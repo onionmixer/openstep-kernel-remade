@@ -1,0 +1,68 @@
+0x001aea64	1	PUSH EBP
+0x001aea65	2	MOV EBP,ESP
+0x001aea67	3	SUB ESP,0xc
+0x001aea6a	1	PUSH EDI
+0x001aea6b	1	PUSH ESI
+0x001aea6c	1	PUSH EBX
+0x001aea6d	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001aea70	3	MOV BL,byte ptr [EBP + 0x10]
+0x001aea73	3	MOV byte ptr [EBP + -0x4],BL
+0x001aea76	3	MOV BL,byte ptr [EBP + 0x14]
+0x001aea79	3	MOV byte ptr [EBP + -0x8],BL
+0x001aea7c	3	MOV BL,byte ptr [EBP + 0x18]
+0x001aea7f	3	MOV byte ptr [EBP + -0xc],BL
+0x001aea82	4	MOVZX ESI,byte ptr [EBP + -0x4]
+0x001aea86	6	MOV EBX,dword ptr [0x001f9410]
+0x001aea8c	1	PUSH EBX
+0x001aea8d	6	MOV EBX,dword ptr [EDI + 0x128]
+0x001aea93	1	PUSH EBX
+0x001aea94	5	CALL 0x001ce960
+0x001aea99	3	ADD ESP,0x8
+0x001aea9c	2	CMP ESI,EAX
+0x001aea9e	2	JGE 0x001aeaa6
+0x001aeaa0	4	CMP byte ptr [EBP + -0x8],0x8
+0x001aeaa4	2	JBE 0x001aeab0
+0x001aeaa6	5	MOV EAX,0xfffffd3e
+0x001aeaab	2	JMP 0x001aeb27
+0x001aeab0	6	MOV EBX,dword ptr [0x001f9a54]
+0x001aeab6	1	PUSH EBX
+0x001aeab7	1	PUSH EDI
+0x001aeab8	5	CALL 0x001ce960
+0x001aeabd	1	PUSH EDI
+0x001aeabe	4	MOVZX EDX,byte ptr [EBP + -0x8]
+0x001aeac2	2	XOR ECX,ECX
+0x001aeac4	1	PUSH ECX
+0x001aeac5	1	PUSH EDX
+0x001aeac6	2	MOV EDX,ESI
+0x001aeac8	2	XOR ECX,ECX
+0x001aeaca	1	PUSH ECX
+0x001aeacb	1	PUSH EDX
+0x001aeacc	6	MOV EBX,dword ptr [0x001f9af4]
+0x001aead2	1	PUSH EBX
+0x001aead3	6	MOV EBX,dword ptr [EDI + 0x128]
+0x001aead9	1	PUSH EBX
+0x001aeada	5	CALL 0x001ce960
+0x001aeadf	2	TEST EAX,EAX
+0x001aeae1	2	JZ 0x001aeaf0
+0x001aeae3	4	CMP byte ptr [EBP + -0xc],0x0
+0x001aeae7	2	JNZ 0x001aeafa
+0x001aeae9	5	MOV EAX,0xfffffd2b
+0x001aeaee	2	JMP 0x001aeb27
+0x001aeaf0	10	MOV dword ptr [EDI + 0x120],0x1
+0x001aeafa	4	MOVZX EDX,byte ptr [EBP + -0x4]
+0x001aeafe	2	XOR ECX,ECX
+0x001aeb00	6	MOV dword ptr [EDI + 0x108],EDX
+0x001aeb06	6	MOV dword ptr [EDI + 0x10c],ECX
+0x001aeb0c	4	MOVZX EDX,byte ptr [EBP + -0x8]
+0x001aeb10	2	XOR ECX,ECX
+0x001aeb12	6	MOV dword ptr [EDI + 0x110],EDX
+0x001aeb18	6	MOV dword ptr [EDI + 0x114],ECX
+0x001aeb1e	7	OR byte ptr [EDI + 0x124],0x1
+0x001aeb25	2	XOR EAX,EAX
+0x001aeb27	3	LEA ESP,[EBP + -0x18]
+0x001aeb2a	1	POP EBX
+0x001aeb2b	1	POP ESI
+0x001aeb2c	1	POP EDI
+0x001aeb2d	2	MOV ESP,EBP
+0x001aeb2f	1	POP EBP
+0x001aeb30	1	RET

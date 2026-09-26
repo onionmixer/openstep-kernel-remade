@@ -1,0 +1,704 @@
+[
+  {
+    "requested_address": "0x001c50ec",
+    "addr": "0x001c50ec",
+    "code": "void __cdecl -[IOFrameBufferDisplay enterLinearMode](IOFrameBufferDisplay *self, SEL a2)\n{\n  ; /*0x1c50ec*/\n}"
+  },
+  {
+    "requested_address": "0x001c50f4",
+    "addr": "0x001c50f4",
+    "code": "void __cdecl -[IOFrameBufferDisplay revertToVGAMode](IOFrameBufferDisplay *self, SEL a2)\n{\n  ; /*0x1c50f4*/\n}"
+  },
+  {
+    "requested_address": "0x001c50fc",
+    "addr": "0x001c50fc",
+    "code": "char __cdecl -[IOFrameBufferDisplay setPendingDisplayMode:](IOFrameBufferDisplay *self, SEL a2, int a3)\n{\n  $514E7C50D28E54AB164B6500F83867A3 *v3; // edi\n  const char *v4; // eax\n  const char *v6; // eax\n  unsigned int var17; // [esp-4h] [ebp-10h]\n\n  v3 = -[IODisplay displayInfo](self, sel_displayInfo); /*0x1c5115*/\n  if ( a3 >= 0 && a3 < -[IOFrameBufferDisplay displayModeCount](self, sel_displayModeCount) )\n  {\n    if ( v3->var17 )\n    {\n      var17 = v3->var17; /*0x1c515e*/\n      v6 = -[IODevice name](self, sel_name); /*0x1c5168*/\n      IOLog((int)\"%s: Display mode %d not available (error 0x%0x)\\n\", v6, a3, var17);\n      return 0; /*0x1c517b*/\n    }\n    else\n    {\n      self->_pendingDisplayMode = a3; /*0x1c5180*/\n      return 1; /*0x1c5186*/\n    }\n  }\n  else\n  {\n    v4 = -[IODevice name](self, sel_name); /*0x1c513b*/\n    IOLog((int)\"%s: Invalid display mode: %d\\n\", v4, a3);\n    return 0; /*0x1c514e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d9078",
+        "name": "aSDisplayModeDN",
+        "string": "%s: Display mode %d not available (error 0x%0x)\n"
+      },
+      {
+        "addr": "0x1d9058",
+        "name": "aSInvalidDispla",
+        "string": "%s: Invalid display mode: %d\n"
+      },
+      {
+        "addr": "0x1c51a8",
+        "name": "-[IOFrameBufferDisplay displayModeCount]"
+      },
+      {
+        "addr": "0x206e90",
+        "name": "sel_displayModeCount",
+        "string": "displayModeCount"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c5198",
+    "addr": "0x001c5198",
+    "code": "int __cdecl -[IOFrameBufferDisplay pendingDisplayMode](IOFrameBufferDisplay *self, SEL a2)\n{\n  return self->_pendingDisplayMode; /*0x1c51a6*/\n}"
+  },
+  {
+    "requested_address": "0x001c51a8",
+    "addr": "0x001c51a8",
+    "code": "unsigned int __cdecl -[IOFrameBufferDisplay displayModeCount](IOFrameBufferDisplay *self, SEL a2)\n{\n  return self->_displayModeCount; /*0x1c51b6*/\n}"
+  },
+  {
+    "requested_address": "0x001c51b8",
+    "addr": "0x001c51b8",
+    "code": "$514E7C50D28E54AB164B6500F83867A3 *__cdecl -[IOFrameBufferDisplay displayModes](IOFrameBufferDisplay *self, SEL a2)\n{\n  return ($514E7C50D28E54AB164B6500F83867A3 *)self->_displayModes; /*0x1c51c6*/\n}"
+  },
+  {
+    "requested_address": "0x001c51c8",
+    "addr": "0x001c51c8",
+    "code": "unsigned int __cdecl -[IOFrameBufferDisplay displayMemorySize](IOFrameBufferDisplay *self, SEL a2)\n{\n  return 0; /*0x1c51cf*/\n}"
+  },
+  {
+    "requested_address": "0x001c51d4",
+    "addr": "0x001c51d4",
+    "code": "unsigned int __cdecl -[IOFrameBufferDisplay ramdacSpeed](IOFrameBufferDisplay *self, SEL a2)\n{\n  return 0; /*0x1c51db*/\n}"
+  },
+  {
+    "requested_address": "0x001c51e0",
+    "addr": "0x001c51e0",
+    "code": "unsigned int __cdecl -[IOFrameBufferDisplay mapFrameBufferAtPhysicalAddress:length:](\n        IOFrameBufferDisplay *self,\n        SEL a2,\n        unsigned int a3,\n        int a4)\n{\n  id v4; // ebx\n  int v5; // eax\n  int v6; // eax\n  int v7; // eax\n  const char *v8; // eax\n  int v10; // [esp-4h] [ebp-14h]\n  unsigned int v11; // [esp+Ch] [ebp-4h] BYREF\n\n  v4 = nullptr; /*0x1c51ef*/\n  v5 = *((_DWORD *)-[IODisplay displayInfo](self, sel_displayInfo) + 24) & 0xC; /*0x1c5201*/\n  if ( v5 == 4 ) /*0x1c520a*/\n    v6 = 2; /*0x1c521c*/\n  else\n    v6 = v5 != 8; /*0x1c520c*/\n  if ( a3 )\n  {\n    v10 = v6; /*0x1c522a*/\n    v7 = current_task_EXTERNAL(); /*0x1c522d*/\n    if ( _KernBusMemoryCreateMapping(a3, a4, &v11, v7, 1, v10) )\n    {\n      v8 = -[IODevice stringFromReturn:](self, sel_stringFromReturn_, -701); /*0x1c524d*/\nLABEL_10:\n      IOLog((int)\"IOFrameBufferDisplay/mapFrameBuffer: Can't map memory (%s)\\n\", v8);\n      return 0; /*0x1c528a*/\n    }\n  }\n  else\n  {\n    v4 = -[IOFrameBufferDisplay mapMemoryRange:to:findSpace:cache:]( /*0x1c5266*/\n           self,\n           sel_mapMemoryRange_to_findSpace_cache_,\n           0,\n           &v11,\n           1,\n           v6);\n  }\n  if ( v4 ) /*0x1c526d*/\n  {\n    v8 = -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v4); /*0x1c5278*/\n    goto LABEL_10; /*0x1c5278*/\n  }\n  return v11; /*0x1c5292*/\n}",
+    "refs": [
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      },
+      {
+        "addr": "0x166a38",
+        "name": "_current_task_EXTERNAL"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d90ac",
+        "name": "aIoframebufferd",
+        "string": "IOFrameBufferDisplay/mapFrameBuffer: Can't map memory (%s)\n"
+      },
+      {
+        "addr": "0x17f74c",
+        "name": "__KernBusMemoryCreateMapping"
+      },
+      {
+        "addr": "0x209af8",
+        "name": "-[IOFrameBufferDisplay mapMemoryRange:to:findSpace:cache:]"
+      },
+      {
+        "addr": "0x203c94",
+        "name": "sel_mapMemoryRange:to:findSpace:cache:",
+        "string": "mapMemoryRange:to:findSpace:cache:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c529c",
+    "addr": "0x001c529c",
+    "code": "int __cdecl -[IOFrameBufferDisplay selectMode:count:](\n        IOFrameBufferDisplay *self,\n        SEL a2,\n        const $514E7C50D28E54AB164B6500F83867A3 *a3,\n        int a4)\n{\n  return -[IOFrameBufferDisplay selectMode:count:valid:modeString:]( /*0x1c52bd*/\n           self,\n           sel_selectMode_count_valid_modeString_,\n           a3,\n           a4,\n           0,\n           0);\n}",
+    "refs": [
+      {
+        "addr": "0x1c43dc",
+        "name": "-[IOFrameBufferDisplay selectMode:count:valid:modeString:]"
+      },
+      {
+        "addr": "0x206e14",
+        "name": "sel_selectMode:count:valid:modeString:",
+        "string": "selectMode:count:valid:modeString:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c52c0",
+    "addr": "0x001c52c0",
+    "code": "int __cdecl -[IOFrameBufferDisplay selectMode:count:valid:](\n        IOFrameBufferDisplay *self,\n        SEL a2,\n        const $514E7C50D28E54AB164B6500F83867A3 *a3,\n        int a4,\n        const char *a5)\n{\n  return -[IOFrameBufferDisplay selectMode:count:valid:modeString:]( /*0x1c52e3*/\n           self,\n           sel_selectMode_count_valid_modeString_,\n           a3,\n           a4,\n           a5,\n           0);\n}",
+    "refs": [
+      {
+        "addr": "0x1c43dc",
+        "name": "-[IOFrameBufferDisplay selectMode:count:valid:modeString:]"
+      },
+      {
+        "addr": "0x206e14",
+        "name": "sel_selectMode:count:valid:modeString:",
+        "string": "selectMode:count:valid:modeString:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c52e8",
+    "addr": "0x001c52e8",
+    "code": "id __cdecl -[IOFrameBufferDisplay setTransferTable:count:](\n        IOFrameBufferDisplay *self,\n        SEL a2,\n        const unsigned int *a3,\n        int a4)\n{\n  return self; /*0x1c52f0*/\n}"
+  },
+  {
+    "requested_address": "0x001c52f4",
+    "addr": "0x001c52f4",
+    "code": "void __cdecl -[IOSVGADisplay _VGADisplayCursor:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  int v4; // esi\n  int v5; // edi\n  __int16 v6; // dx\n  int v7; // edx\n  int v8; // esi\n  int v9; // edx\n  int v10; // edx\n  int v11; // edi\n  unsigned int i; // esi\n  int v13; // [esp+Ch] [ebp-48h]\n  int v14; // [esp+Ch] [ebp-48h]\n  int v15; // [esp+14h] [ebp-40h]\n  unsigned int v16; // [esp+18h] [ebp-3Ch]\n  int v17; // [esp+1Ch] [ebp-38h]\n  int v18; // [esp+20h] [ebp-34h]\n  unsigned int v19; // [esp+24h] [ebp-30h]\n  int v20; // [esp+28h] [ebp-2Ch]\n  int v21; // [esp+2Ch] [ebp-28h]\n  int v22; // [esp+34h] [ebp-20h]\n  _BOOL4 v23; // [esp+38h] [ebp-1Ch]\n  _BOOL4 v24; // [esp+3Ch] [ebp-18h]\n  char *v25; // [esp+40h] [ebp-14h]\n  char *v26; // [esp+40h] [ebp-14h]\n  _DWORD *v27; // [esp+44h] [ebp-10h]\n  char *v28; // [esp+48h] [ebp-Ch]\n  char *v29; // [esp+48h] [ebp-Ch]\n  int v30; // [esp+4Ch] [ebp-8h]\n  int v31; // [esp+50h] [ebp-4h]\n\n  v30 = *((_DWORD *)a4 + 12); /*0x1c5303*/\n  v31 = *((_DWORD *)a4 + 13); /*0x1c5309*/\n  -[IOSVGADisplay savePlaneAndSegmentSettings](self, sel_savePlaneAndSegmentSettings); /*0x1c5316*/\n  v4 = *((_DWORD *)a4 + 8); /*0x1c531e*/\n  v5 = *((_DWORD *)a4 + 9); /*0x1c5321*/\n  if ( (__int16)v31 > (__int16)v5 ) /*0x1c532b*/\n    LOWORD(v5) = v31; /*0x1c532d*/\n  if ( SHIWORD(v5) > SHIWORD(v31) ) /*0x1c5341*/\n    v5 = (v31 >> 16 << 16) | (unsigned __int16)v5; /*0x1c534d*/\n  v6 = *((_WORD *)a4 + 16) - v30; /*0x1c535a*/\n  LOBYTE(v6) = v6 & 0xF0; /*0x1c535d*/\n  LOWORD(v4) = v30 + v6; /*0x1c5364*/\n  HIWORD(v7) = HIWORD(v4); /*0x1c5367*/\n  LOWORD(v7) = v30 + v6 + 32; /*0x1c5369*/\n  v8 = (v7 << 16) | (unsigned __int16)v4; /*0x1c5378*/\n  *((_DWORD *)a4 + 3) = v8; /*0x1c537b*/\n  *((_DWORD *)a4 + 4) = v5; /*0x1c537e*/\n  v22 = 2 * (*((_WORD *)a4 + 16) & 0xF); /*0x1c538a*/\n  v9 = *(_DWORD *)a4 << 6; /*0x1c539c*/\n  v28 = (char *)a4 + v9 + 72; /*0x1c53a3*/\n  v25 = (char *)a4 + v9 + 328; /*0x1c53ad*/\n  v27 = (_DWORD *)((char *)a4 + 584); /*0x1c53b5*/\n  v10 = 4 * ((__int16)v5 - *((__int16 *)a4 + 18)); /*0x1c53c9*/\n  v29 = &v28[v10]; /*0x1c53cc*/\n  v26 = &v25[v10]; /*0x1c53cf*/\n  v24 = (__int16)v30 <= (__int16)v8; /*0x1c53df*/\n  v23 = SHIWORD(v8) <= SHIWORD(v30); /*0x1c53fd*/\n  v21 = ((__int16)v8 - (__int16)v30) >> 4; /*0x1c5408*/\n  v20 = a3->var0 >> 4; /*0x1c5415*/\n  v19 = 0x10000 / (a3->var0 >> 3); /*0x1c5427*/\n  v16 = (__int16)v5 - (__int16)v31; /*0x1c5433*/\n  v15 = (v5 >> 16) - (__int16)v31; /*0x1c543d*/\n  v11 = 2 * v21 + 2 * v20 * (v16 % v19) + 655360; /*0x1c5458*/\n  v18 = v16 / v19; /*0x1c545f*/\n  v17 = v19 * (v16 / v19 + 1); /*0x1c5469*/\n  -[IOSVGADisplay setWriteSegment:](self, sel_setWriteSegment_, (unsigned __int8)(v16 / v19)); /*0x1c547b*/\n  -[IOSVGADisplay setReadSegment:](self, sel_setReadSegment_, (unsigned __int8)(v16 / v19)); /*0x1c548b*/\n  for ( i = v16; v15 > (int)i; ++i ) /*0x1c5499*/\n  {\n    if ( v17 == i ) /*0x1c54a3*/\n    {\n      v11 = 2 * v20 * (i % v19) + 655360 + 2 * v21; /*0x1c54ba*/\n      ++v18; /*0x1c54bd*/\n      v17 = i + v19; /*0x1c54c5*/\n      -[IOSVGADisplay setWriteSegment:](self, sel_setWriteSegment_, (unsigned __int8)v18); /*0x1c54d8*/\n      -[IOSVGADisplay setReadSegment:](self, sel_setReadSegment_, (unsigned __int8)v18); /*0x1c54e9*/\n    }\n    if ( v24 ) /*0x1c54f5*/\n    {\n      -[IOSVGADisplay _readBpp4planar:toBpp2packed32:](self, sel__readBpp4planar_toBpp2packed32_, v11, &dword_1E872C); /*0x1c5508*/\n      v13 = dword_1E872C; /*0x1c5513*/\n      *v27++ = dword_1E872C; /*0x1c5519*/\n      dword_1E872C = (*(_DWORD *)v29 << v22) | v13 & ~(*(_DWORD *)v26 << v22); /*0x1c5539*/\n      -[IOSVGADisplay _writeBpp2packed32:toBpp4planar:](self, sel__writeBpp2packed32_toBpp4planar_, &dword_1E872C, v11); /*0x1c5550*/\n    }\n    if ( v23 ) /*0x1c555c*/\n    {\n      if ( v22 ) /*0x1c5562*/\n      {\n        -[IOSVGADisplay _readBpp4planar:toBpp2packed32:]( /*0x1c5580*/\n          self,\n          sel__readBpp4planar_toBpp2packed32_,\n          v11 + 2,\n          &dword_1E8730);\n        v14 = dword_1E8730; /*0x1c558b*/\n        *v27++ = dword_1E8730; /*0x1c5591*/\n        dword_1E8730 = (*(_DWORD *)v29 >> (32 - v22)) | v14 & ~(*(_DWORD *)v26 >> (32 - v22)); /*0x1c55b1*/\n        -[IOSVGADisplay _writeBpp2packed32:toBpp4planar:]( /*0x1c55c8*/\n          self,\n          sel__writeBpp2packed32_toBpp4planar_,\n          &dword_1E8730,\n          v11 + 2);\n      }\n      else\n      {\n        ++v27; /*0x1c5564*/\n      }\n    }\n    v11 += 2 * v20; /*0x1c55d3*/\n    v29 += 4; /*0x1c55d6*/\n    v26 += 4; /*0x1c55da*/\n  }\n  -[IOSVGADisplay restorePlaneAndSegmentSettings](self, sel_restorePlaneAndSegmentSettings); /*0x1c55f2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c6818",
+        "name": "-[IOSVGADisplay savePlaneAndSegmentSettings]"
+      },
+      {
+        "addr": "0x206f20",
+        "name": "sel_savePlaneAndSegmentSettings",
+        "string": "savePlaneAndSegmentSettings"
+      },
+      {
+        "addr": "0x1c6800",
+        "name": "-[IOSVGADisplay setWriteSegment:]"
+      },
+      {
+        "addr": "0x206f5c",
+        "name": "sel_setWriteSegment:",
+        "string": "setWriteSegment:"
+      },
+      {
+        "addr": "0x1c67f8",
+        "name": "-[IOSVGADisplay setReadSegment:]"
+      },
+      {
+        "addr": "0x206f70",
+        "name": "sel_setReadSegment:",
+        "string": "setReadSegment:"
+      },
+      {
+        "addr": "0x1c60d4",
+        "name": "-[IOSVGADisplay _readBpp4planar:toBpp2packed32:]"
+      },
+      {
+        "addr": "0x20704c",
+        "name": "sel__readBpp4planar:toBpp2packed32:",
+        "string": "_readBpp4planar:toBpp2packed32:"
+      },
+      {
+        "addr": "0x1e872c",
+        "name": "dword_1E872C"
+      },
+      {
+        "addr": "0x1c6284",
+        "name": "-[IOSVGADisplay _writeBpp2packed32:toBpp4planar:]"
+      },
+      {
+        "addr": "0x207028",
+        "name": "sel__writeBpp2packed32:toBpp4planar:",
+        "string": "_writeBpp2packed32:toBpp4planar:"
+      },
+      {
+        "addr": "0x1e8730",
+        "name": "dword_1E8730"
+      },
+      {
+        "addr": "0x1c6820",
+        "name": "-[IOSVGADisplay restorePlaneAndSegmentSettings]"
+      },
+      {
+        "addr": "0x206f00",
+        "name": "sel_restorePlaneAndSegmentSettings",
+        "string": "restorePlaneAndSegmentSettings"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c5604",
+    "addr": "0x001c5604",
+    "code": "void __cdecl -[IOSVGADisplay _VGARemoveCursor:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  unsigned int v4; // esi\n  _DWORD *v5; // edi\n  int v6; // [esp+1Ch] [ebp-3Ch]\n  int v7; // [esp+20h] [ebp-38h]\n  int v8; // [esp+24h] [ebp-34h]\n  unsigned int v9; // [esp+28h] [ebp-30h]\n  int v10; // [esp+2Ch] [ebp-2Ch]\n  int v11; // [esp+34h] [ebp-24h]\n  int v12; // [esp+38h] [ebp-20h]\n  int v13; // [esp+3Ch] [ebp-1Ch]\n  int v14; // [esp+40h] [ebp-18h]\n  int v15; // [esp+44h] [ebp-14h]\n  int v16; // [esp+48h] [ebp-10h]\n  int v17; // [esp+4Ch] [ebp-Ch]\n\n  v17 = 0; /*0x1c560d*/\n  v16 = 0; /*0x1c5614*/\n  v14 = *((_DWORD *)a4 + 12); /*0x1c5621*/\n  v15 = *((_DWORD *)a4 + 13); /*0x1c5627*/\n  v12 = *((_DWORD *)a4 + 3); /*0x1c562d*/\n  v13 = *((_DWORD *)a4 + 4); /*0x1c5633*/\n  -[IOSVGADisplay savePlaneAndSegmentSettings](self, sel_savePlaneAndSegmentSettings); /*0x1c5640*/\n  v10 = a3->var0 >> 4; /*0x1c5664*/\n  v4 = (__int16)v13 - (__int16)v15; /*0x1c5671*/\n  v9 = 0x10000 / (a3->var0 >> 3); /*0x1c568b*/\n  v11 = 2 * (((__int16)v12 - (__int16)v14) >> 4) + 2 * v4 % v9 * v10 + 655360; /*0x1c56a9*/\n  v8 = v4 / v9; /*0x1c56ac*/\n  v7 = v9 * (v4 / v9 + 1); /*0x1c56b6*/\n  -[IOSVGADisplay setWriteSegment:](self, sel_setWriteSegment_, (unsigned __int8)(v4 / v9)); /*0x1c56cb*/\n  -[IOSVGADisplay setReadSegment:](self, sel_setReadSegment_, (unsigned __int8)(v4 / v9)); /*0x1c56df*/\n  v6 = 2 * (*((_WORD *)a4 + 16) & 0xF); /*0x1c56f0*/\n  v5 = (_DWORD *)((char *)a4 + 584); /*0x1c56f5*/\n  if ( (__int16)v12 >= (__int16)v14 ) /*0x1c5714*/\n    v17 = dword_1E53D8[*((__int16 *)a4 + 20) - (__int16)v12]; /*0x1c5724*/\n  if ( SHIWORD(v12) <= SHIWORD(v14) ) /*0x1c5746*/\n    v16 = ~dword_1E53D8[16 - ((v12 >> 16) - *((__int16 *)a4 + 21))]; /*0x1c5769*/\n  while ( (v13 >> 16) - (__int16)v15 > (int)v4 ) /*0x1c5899*/\n  {\n    if ( v7 == v4 ) /*0x1c5777*/\n    {\n      v11 = 2 * v10 * (v4 % v9) + 655360 + 2 * (((__int16)v12 - (__int16)v14) >> 4); /*0x1c5791*/\n      ++v8; /*0x1c5794*/\n      v7 = v4 + v9; /*0x1c579c*/\n      -[IOSVGADisplay setWriteSegment:](self, sel_setWriteSegment_, (unsigned __int8)v8); /*0x1c57b1*/\n      -[IOSVGADisplay setReadSegment:](self, sel_setReadSegment_, (unsigned __int8)v8); /*0x1c57c5*/\n    }\n    if ( (__int16)v12 >= (__int16)v14 ) /*0x1c57d1*/\n    {\n      -[IOSVGADisplay _readBpp4planar:toBpp2packed32:](self, sel__readBpp4planar_toBpp2packed32_, v11, &dword_1E8734); /*0x1c57e6*/\n      dword_1E8734 = *v5++ & v17 | dword_1E8734 & ~v17; /*0x1c57fd*/\n      -[IOSVGADisplay _writeBpp2packed32:toBpp4planar:](self, sel__writeBpp2packed32_toBpp4planar_, &dword_1E8734, v11); /*0x1c581a*/\n    }\n    if ( SHIWORD(v12) <= SHIWORD(v14) ) /*0x1c5826*/\n    {\n      if ( v6 ) /*0x1c582c*/\n      {\n        -[IOSVGADisplay _readBpp4planar:toBpp2packed32:]( /*0x1c584d*/\n          self,\n          sel__readBpp4planar_toBpp2packed32_,\n          v11 + 2,\n          &dword_1E8738);\n        dword_1E8738 = *v5++ & v16 | dword_1E8738 & ~v16; /*0x1c5864*/\n        -[IOSVGADisplay _writeBpp2packed32:toBpp4planar:]( /*0x1c5881*/\n          self,\n          sel__writeBpp2packed32_toBpp4planar_,\n          &dword_1E8738,\n          v11 + 2);\n      }\n      else\n      {\n        ++v5; /*0x1c582e*/\n      }\n    }\n    v11 += 2 * v10; /*0x1c5892*/\n    ++v4; /*0x1c5895*/\n  }\n  -[IOSVGADisplay restorePlaneAndSegmentSettings](self, sel_restorePlaneAndSegmentSettings); /*0x1c58aa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c6818",
+        "name": "-[IOSVGADisplay savePlaneAndSegmentSettings]"
+      },
+      {
+        "addr": "0x206f20",
+        "name": "sel_savePlaneAndSegmentSettings",
+        "string": "savePlaneAndSegmentSettings"
+      },
+      {
+        "addr": "0x1c6800",
+        "name": "-[IOSVGADisplay setWriteSegment:]"
+      },
+      {
+        "addr": "0x206f5c",
+        "name": "sel_setWriteSegment:",
+        "string": "setWriteSegment:"
+      },
+      {
+        "addr": "0x1c67f8",
+        "name": "-[IOSVGADisplay setReadSegment:]"
+      },
+      {
+        "addr": "0x206f70",
+        "name": "sel_setReadSegment:",
+        "string": "setReadSegment:"
+      },
+      {
+        "addr": "0x1e53d8",
+        "name": "dword_1E53D8"
+      },
+      {
+        "addr": "0x1c60d4",
+        "name": "-[IOSVGADisplay _readBpp4planar:toBpp2packed32:]"
+      },
+      {
+        "addr": "0x20704c",
+        "name": "sel__readBpp4planar:toBpp2packed32:",
+        "string": "_readBpp4planar:toBpp2packed32:"
+      },
+      {
+        "addr": "0x1e8734",
+        "name": "dword_1E8734"
+      },
+      {
+        "addr": "0x1c6284",
+        "name": "-[IOSVGADisplay _writeBpp2packed32:toBpp4planar:]"
+      },
+      {
+        "addr": "0x207028",
+        "name": "sel__writeBpp2packed32:toBpp4planar:",
+        "string": "_writeBpp2packed32:toBpp4planar:"
+      },
+      {
+        "addr": "0x1e8738",
+        "name": "dword_1E8738"
+      },
+      {
+        "addr": "0x1c6820",
+        "name": "-[IOSVGADisplay restorePlaneAndSegmentSettings]"
+      },
+      {
+        "addr": "0x206f00",
+        "name": "sel_restorePlaneAndSegmentSettings",
+        "string": "restorePlaneAndSegmentSettings"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c58bc",
+    "addr": "0x001c58bc",
+    "code": "int __cdecl -[IOSVGADisplay selectMode:count:valid:](\n        IOSVGADisplay *self,\n        SEL a2,\n        const $514E7C50D28E54AB164B6500F83867A3 *a3,\n        int a4,\n        const char *a5)\n{\n  id v5; // eax\n  id v6; // eax\n  void *v7; // ebx\n  const char *v8; // ebx\n  size_t v9; // edi\n  const char *i; // ebx\n  int v11; // eax\n  const char *v12; // edx\n  const char *v13; // ebx\n  const char *v14; // ebx\n  size_t v15; // edi\n  const char *j; // ebx\n  int v17; // eax\n  const char *v18; // edx\n  const char *v19; // ebx\n  const char *v20; // ebx\n  size_t v21; // edi\n  const char *k; // ebx\n  int v23; // eax\n  const char *v24; // edx\n  const char *v25; // ebx\n  const char *v26; // ebx\n  size_t v27; // edi\n  const char *m; // ebx\n  int v29; // eax\n  const char *v30; // edx\n  const char *v31; // ebx\n  const char *v32; // ebx\n  size_t v33; // edi\n  const char *n; // ebx\n  int v35; // eax\n  const char *v36; // edx\n  const char *v37; // ebx\n  const char *v39; // ebx\n  size_t v40; // edi\n  const char *ii; // ebx\n  int v42; // eax\n  const char *v43; // edx\n  const char *v44; // ebx\n  const char *v45; // ebx\n  size_t v46; // edi\n  const char *jj; // ebx\n  int v48; // eax\n  const char *v49; // edx\n  const char *v50; // ebx\n  const char *v51; // ebx\n  size_t v52; // edi\n  const char *kk; // ebx\n  int v54; // eax\n  const char *v55; // edx\n  const char *v56; // ebx\n  const char *v57; // ebx\n  size_t v58; // edi\n  const char *mm; // ebx\n  int v60; // eax\n  const char *v61; // edx\n  const char *v62; // ebx\n  const char *v63; // ebx\n  size_t v64; // edi\n  const char *nn; // ebx\n  int v66; // eax\n  const char *v67; // edx\n  const char *v68; // ebx\n  int v69; // edi\n  int v70; // eax\n  const char *v71; // ebx\n  char *__s1; // [esp+Ch] [ebp-24h]\n  __int32 v73; // [esp+10h] [ebp-20h]\n  int v74; // [esp+14h] [ebp-1Ch]\n  int v75; // [esp+18h] [ebp-18h]\n  __int32 v76; // [esp+1Ch] [ebp-14h]\n  __int32 v77; // [esp+20h] [ebp-10h]\n  __int32 v78; // [esp+24h] [ebp-Ch]\n  char *v79; // [esp+28h] [ebp-8h] BYREF\n  char *__endptr; // [esp+2Ch] [ebp-4h] BYREF\n\n  v5 = -[IODirectDevice deviceDescription](self, sel_deviceDescription); /*0x1c58d7*/\n  v6 = objc_msgSend(v5, sel_configTable); /*0x1c58e0*/\n  v7 = v6; /*0x1c58e5*/\n  if ( !v6 ) /*0x1c58ec*/\n    return -1; /*0x1c58ec*/\n  __s1 = (char *)objc_msgSend(v6, sel_valueForStringKey_, \"Display Mode\"); /*0x1c5904*/\n  if ( !__s1 ) /*0x1c590c*/\n  {\n    __s1 = (char *)objc_msgSend(v7, sel_valueForStringKey_, \"DisplayMode\"); /*0x1c5920*/\n    if ( !__s1 ) /*0x1c5928*/\n      return -1; /*0x1c5928*/\n  }\n  v78 = 0; /*0x1c592e*/\n  v77 = 0; /*0x1c5935*/\n  v8 = __s1; /*0x1c593c*/\n  v9 = strlen(\"Width:\"); /*0x1c5952*/\n  if ( *__s1 ) /*0x1c5955*/\n  {\n    while ( strncmp(v8, \"Width:\", v9) ) /*0x1c596d*/\n    {\n      if ( !*++v8 ) /*0x1c5995*/\n        goto LABEL_15; /*0x1c5998*/\n    }\n    for ( i = &v8[v9]; ; ++i ) /*0x1c596f*/\n    {\n      v11 = *i; /*0x1c597f*/\n      if ( !*i || v11 != 32 && v11 != 9 ) /*0x1c597c*/\n        break; /*0x1c597c*/\n    }\n    v12 = nullptr; /*0x1c5986*/\n    if ( *i ) /*0x1c597f*/\n      v12 = i; /*0x1c598c*/\n    v13 = v12; /*0x1c598e*/\n  }\n  else\n  {\nLABEL_15:\n    v13 = nullptr; /*0x1c599a*/\n  }\n  if ( v13 ) /*0x1c599e*/\n    v78 = strtol(v13, nullptr, 10); /*0x1c59aa*/\n  v14 = __s1; /*0x1c59b0*/\n  v15 = strlen(\"Height:\"); /*0x1c59c6*/\n  if ( *__s1 ) /*0x1c59c9*/\n  {\n    while ( strncmp(v14, \"Height:\", v15) ) /*0x1c59e1*/\n    {\n      if ( !*++v14 ) /*0x1c5a09*/\n        goto LABEL_29; /*0x1c5a0c*/\n    }\n    for ( j = &v14[v15]; ; ++j ) /*0x1c59e3*/\n    {\n      v17 = *j; /*0x1c59f3*/\n      if ( !*j || v17 != 32 && v17 != 9 ) /*0x1c59f0*/\n        break; /*0x1c59f0*/\n    }\n    v18 = nullptr; /*0x1c59fa*/\n    if ( *j ) /*0x1c59f3*/\n      v18 = j; /*0x1c5a00*/\n    v19 = v18; /*0x1c5a02*/\n  }\n  else\n  {\nLABEL_29:\n    v19 = nullptr; /*0x1c5a0e*/\n  }\n  if ( v19 ) /*0x1c5a12*/\n    v77 = strtol(v19, nullptr, 10); /*0x1c5a1e*/\n  v20 = __s1; /*0x1c5a24*/\n  v21 = strlen(\"Refresh:\"); /*0x1c5a3a*/\n  if ( *__s1 ) /*0x1c5a3d*/\n  {\n    while ( strncmp(v20, \"Refresh:\", v21) ) /*0x1c5a55*/\n    {\n      if ( !*++v20 ) /*0x1c5a7d*/\n        goto LABEL_43; /*0x1c5a80*/\n    }\n    for ( k = &v20[v21]; ; ++k ) /*0x1c5a57*/\n    {\n      v23 = *k; /*0x1c5a67*/\n      if ( !*k || v23 != 32 && v23 != 9 ) /*0x1c5a64*/\n        break; /*0x1c5a64*/\n    }\n    v24 = nullptr; /*0x1c5a6e*/\n    if ( *k ) /*0x1c5a67*/\n      v24 = k; /*0x1c5a74*/\n    v25 = v24; /*0x1c5a76*/\n  }\n  else\n  {\nLABEL_43:\n    v25 = nullptr; /*0x1c5a82*/\n  }\n  if ( !v25 ) /*0x1c5a86*/\n    return -1; /*0x1c5a86*/\n  v73 = strtol(v25, nullptr, 10); /*0x1c5a96*/\n  v26 = __s1; /*0x1c5a99*/\n  v27 = strlen(\"ColorSpace:\"); /*0x1c5ab2*/\n  if ( *__s1 ) /*0x1c5ab5*/\n  {\n    while ( strncmp(v26, \"ColorSpace:\", v27) ) /*0x1c5acd*/\n    {\n      if ( !*++v26 ) /*0x1c5af5*/\n        goto LABEL_56; /*0x1c5af8*/\n    }\n    for ( m = &v26[v27]; ; ++m ) /*0x1c5acf*/\n    {\n      v29 = *m; /*0x1c5adf*/\n      if ( !*m || v29 != 32 && v29 != 9 ) /*0x1c5adc*/\n        break; /*0x1c5adc*/\n    }\n    v30 = nullptr; /*0x1c5ae6*/\n    if ( *m ) /*0x1c5adf*/\n      v30 = m; /*0x1c5aec*/\n    v31 = v30; /*0x1c5aee*/\n  }\n  else\n  {\nLABEL_56:\n    v31 = nullptr; /*0x1c5afa*/\n  }\n  if ( !v31 ) /*0x1c5afe*/\n    return -1; /*0x1c5afe*/\n  if ( !strncmp(v31, \"BW:2\", 4u) ) /*0x1c5b0c*/\n  {\n    v75 = 0; /*0x1c5b18*/\n    v74 = 0; /*0x1c5b1f*/\n  }\n  else if ( !strncmp(v31, \"BW:8\", 4u) ) /*0x1c5b34*/\n  {\n    v75 = 1; /*0x1c5b40*/\n    v74 = 1; /*0x1c5b47*/\n  }\n  else\n  {\n    if ( !strncmp(v31, \"RGB:256/8\", 9u) ) /*0x1c5b5c*/\n    {\n      v75 = 1; /*0x1c5b68*/\n    }\n    else if ( !strncmp(v31, \"RGB:444/16\", 0xAu) ) /*0x1c5b7c*/\n    {\n      v75 = 2; /*0x1c5b88*/\n    }\n    else if ( !strncmp(v31, \"RGB:555/16\", 0xAu) ) /*0x1c5b9c*/\n    {\n      v75 = 3; /*0x1c5ba8*/\n    }\n    else\n    {\n      if ( strncmp(v31, \"RGB:888/32\", 0xAu) ) /*0x1c5bbc*/\n        return -1; /*0x1c5c70*/\n      v75 = 4; /*0x1c5bcc*/\n    }\n    v74 = 2; /*0x1c5bd3*/\n  }\n  v32 = __s1; /*0x1c5bda*/\n  v33 = strlen(\"Resolution:\"); /*0x1c5bf0*/\n  if ( *__s1 ) /*0x1c5bf3*/\n  {\n    while ( strncmp(v32, \"Resolution:\", v33) ) /*0x1c5c09*/\n    {\n      if ( !*++v32 ) /*0x1c5c31*/\n        goto LABEL_82; /*0x1c5c34*/\n    }\n    for ( n = &v32[v33]; ; ++n ) /*0x1c5c0b*/\n    {\n      v35 = *n; /*0x1c5c1b*/\n      if ( !*n || v35 != 32 && v35 != 9 ) /*0x1c5c18*/\n        break; /*0x1c5c18*/\n    }\n    v36 = nullptr; /*0x1c5c22*/\n    if ( *n ) /*0x1c5c1b*/\n      v36 = n; /*0x1c5c28*/\n    v37 = v36; /*0x1c5c2a*/\n  }\n  else\n  {\nLABEL_82:\n    v37 = nullptr; /*0x1c5c36*/\n  }\n  if ( v37 ) /*0x1c5c3a*/\n  {\n    v78 = strtol(v37, &__endptr, 10); /*0x1c5c48*/\n    v77 = strtol(__endptr + 1, nullptr, 10); /*0x1c5c59*/\n  }\n  if ( !v77 || !v78 ) /*0x1c5c69*/\n    return -1; /*0x1c5c69*/\n  v39 = __s1; /*0x1c5c78*/\n  v40 = strlen(\"Screen:\"); /*0x1c5c8e*/\n  if ( *__s1 ) /*0x1c5c91*/\n  {\n    while ( strncmp(v39, \"Screen:\", v40) ) /*0x1c5ca9*/\n    {\n      if ( !*++v39 ) /*0x1c5cd1*/\n        goto LABEL_99; /*0x1c5cd4*/\n    }\n    for ( ii = &v39[v40]; ; ++ii ) /*0x1c5cab*/\n    {\n      v42 = *ii; /*0x1c5cbb*/\n      if ( !*ii || v42 != 32 && v42 != 9 ) /*0x1c5cb8*/\n        break; /*0x1c5cb8*/\n    }\n    v43 = nullptr; /*0x1c5cc2*/\n    if ( *ii ) /*0x1c5cbb*/\n      v43 = ii; /*0x1c5cc8*/\n    v44 = v43; /*0x1c5cca*/\n  }\n  else\n  {\nLABEL_99:\n    v44 = nullptr; /*0x1c5cd6*/\n  }\n  if ( v44 ) /*0x1c5cda*/\n  {\n    strtol(v44, &v79, 10); /*0x1c5ce3*/\n    v77 = strtol(v79 + 1, nullptr, 10); /*0x1c5cf6*/\n  }\n  v45 = __s1; /*0x1c5cfc*/\n  v46 = strlen(\"Memory:\"); /*0x1c5d12*/\n  if ( *__s1 ) /*0x1c5d15*/\n  {\n    while ( strncmp(v45, \"Memory:\", v46) ) /*0x1c5d2d*/\n    {\n      if ( !*++v45 ) /*0x1c5d55*/\n        goto LABEL_113; /*0x1c5d58*/\n    }\n    for ( jj = &v45[v46]; ; ++jj ) /*0x1c5d2f*/\n    {\n      v48 = *jj; /*0x1c5d3f*/\n      if ( !*jj || v48 != 32 && v48 != 9 ) /*0x1c5d3c*/\n        break; /*0x1c5d3c*/\n    }\n    v49 = nullptr; /*0x1c5d46*/\n    if ( *jj ) /*0x1c5d3f*/\n      v49 = jj; /*0x1c5d4c*/\n    v50 = v49; /*0x1c5d4e*/\n  }\n  else\n  {\nLABEL_113:\n    v50 = nullptr; /*0x1c5d5a*/\n  }\n  if ( v50 ) /*0x1c5d5e*/\n    strtol(v50, nullptr, 10); /*0x1c5d65*/\n  v51 = __s1; /*0x1c5d6d*/\n  v52 = strlen(\"RAMDAC:\"); /*0x1c5d83*/\n  if ( *__s1 ) /*0x1c5d86*/\n  {\n    while ( strncmp(v51, \"RAMDAC:\", v52) ) /*0x1c5d9d*/\n    {\n      if ( !*++v51 ) /*0x1c5dc5*/\n        goto LABEL_127; /*0x1c5dc8*/\n    }\n    for ( kk = &v51[v52]; ; ++kk ) /*0x1c5d9f*/\n    {\n      v54 = *kk; /*0x1c5daf*/\n      if ( !*kk || v54 != 32 && v54 != 9 ) /*0x1c5dac*/\n        break; /*0x1c5dac*/\n    }\n    v55 = nullptr; /*0x1c5db6*/\n    if ( *kk ) /*0x1c5daf*/\n      v55 = kk; /*0x1c5dbc*/\n    v56 = v55; /*0x1c5dbe*/\n  }\n  else\n  {\nLABEL_127:\n    v56 = nullptr; /*0x1c5dca*/\n  }\n  if ( v56 ) /*0x1c5dce*/\n    strtol(v56, nullptr, 10); /*0x1c5dd5*/\n  v57 = __s1; /*0x1c5ddd*/\n  v58 = strlen(\"Sync:\"); /*0x1c5df3*/\n  if ( *__s1 ) /*0x1c5df6*/\n  {\n    while ( strncmp(v57, \"Sync:\", v58) ) /*0x1c5e0d*/\n    {\n      if ( !*++v57 ) /*0x1c5e35*/\n        goto LABEL_141; /*0x1c5e38*/\n    }\n    for ( mm = &v57[v58]; ; ++mm ) /*0x1c5e0f*/\n    {\n      v60 = *mm; /*0x1c5e1f*/\n      if ( !*mm || v60 != 32 && v60 != 9 ) /*0x1c5e1c*/\n        break; /*0x1c5e1c*/\n    }\n    v61 = nullptr; /*0x1c5e26*/\n    if ( *mm ) /*0x1c5e1f*/\n      v61 = mm; /*0x1c5e2c*/\n    v62 = v61; /*0x1c5e2e*/\n  }\n  else\n  {\nLABEL_141:\n    v62 = nullptr; /*0x1c5e3a*/\n  }\n  if ( v62 ) /*0x1c5e3e*/\n    strtol(v62, nullptr, 10); /*0x1c5e45*/\n  v76 = 0; /*0x1c5e4d*/\n  v63 = __s1; /*0x1c5e54*/\n  v64 = strlen(\"Available:\"); /*0x1c5e6a*/\n  if ( *__s1 ) /*0x1c5e6d*/\n  {\n    while ( strncmp(v63, \"Available:\", v64) ) /*0x1c5e85*/\n    {\n      if ( !*++v63 ) /*0x1c5ead*/\n        goto LABEL_155; /*0x1c5eb0*/\n    }\n    for ( nn = &v63[v64]; ; ++nn ) /*0x1c5e87*/\n    {\n      v66 = *nn; /*0x1c5e97*/\n      if ( !*nn || v66 != 32 && v66 != 9 ) /*0x1c5e94*/\n        break; /*0x1c5e94*/\n    }\n    v67 = nullptr; /*0x1c5e9e*/\n    if ( *nn ) /*0x1c5e97*/\n      v67 = nn; /*0x1c5ea4*/\n    v68 = v67; /*0x1c5ea6*/\n  }\n  else\n  {\nLABEL_155:\n    v68 = nullptr; /*0x1c5eb2*/\n  }\n  if ( v68 ) /*0x1c5eb6*/\n    v76 = strtol(v68, nullptr, 10); /*0x1c5ec2*/\n  v69 = 0; /*0x1c5ec8*/\n  if ( a4 <= 0 )\n  {\nLABEL_177:\n    IOLog((int)\"Display: Requested mode is not available.\\n\");\n    return -1; /*0x1c5fc5*/\n  }\n  else\n  {\n    v70 = 0; /*0x1c5ed3*/\n    while ( a5 && !a5[v69] /*0x1c5f32*/\n         || v76\n         || a3[v70].var0 != v78\n         || a3[v70].var1 != v77\n         || a3[v70].var7 != v74\n         || a3[v70].var6 != v75\n         || a3[v70].var4 != v73 )\n    {\n      ++v70; /*0x1c5fac*/\n      if ( a4 <= ++v69 ) /*0x1c5fb5*/\n        goto LABEL_177; /*0x1c5fb5*/\n    }\n    switch ( v75 ) /*0x1c5f3d*/\n    {\n      case 0: /*0x1c5f3d*/\n        v71 = \"BW:2\"; /*0x1c5f58*/\n        break; /*0x1c5f5d*/\n      case 1: /*0x1c5f3d*/\n        v71 = \"BW:8\"; /*0x1c5f60*/\n        if ( v74 == 2 ) /*0x1c5f69*/\n          v71 = \"RGB:256/8\"; /*0x1c5f6b*/\n        break; /*0x1c5f70*/\n      case 2: /*0x1c5f3d*/\n        v71 = \"RGB:444/16\"; /*0x1c5f74*/\n        break; /*0x1c5f79*/\n      case 3: /*0x1c5f3d*/\n        v71 = \"RGB:555/16\"; /*0x1c5f7c*/\n        break; /*0x1c5f81*/\n      case 4: /*0x1c5f3d*/\n        v71 = \"RGB:888/32\"; /*0x1c5f84*/\n        break; /*0x1c5f84*/\n    }\n    IOLog((int)\"Display: Mode selected: %d x %d @ %d Hz (%s)\\n\", v78, v77, v73, v71);\n    return v69; /*0x1c5fa8*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a85c8",
+        "name": "-[IODirectDevice deviceDescription]"
+      },
+      {
+        "addr": "0x20220c",
+        "name": "sel_deviceDescription",
+        "string": "deviceDescription"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20245c",
+        "name": "sel_configTable",
+        "string": "configTable"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1d90e8",
+        "name": "aDisplayMode",
+        "string": "Display Mode"
+      },
+      {
+        "addr": "0x1d90f8",
+        "name": "aDisplaymode",
+        "string": "DisplayMode"
+      },
+      {
+        "addr": "0x1d9104",
+        "name": "aWidth",
+        "string": "Width:"
+      },
+      {
+        "addr": "0x101efc",
+        "name": "_strncmp"
+      },
+      {
+        "addr": "0x1beb58",
+        "name": "_strtol"
+      },
+      {
+        "addr": "0x1d910c",
+        "name": "aHeight",
+        "string": "Height:"
+      },
+      {
+        "addr": "0x1d9114",
+        "name": "aRefresh",
+        "string": "Refresh:"
+      },
+      {
+        "addr": "0x1d9120",
+        "name": "aColorspace",
+        "string": "ColorSpace:"
+      },
+      {
+        "addr": "0x1d9160",
+        "name": "aRgb88832",
+        "string": "RGB:888/32"
+      },
+      {
+        "addr": "0x1d9154",
+        "name": "aRgb55516",
+        "string": "RGB:555/16"
+      },
+      {
+        "addr": "0x1d9148",
+        "name": "aRgb44416",
+        "string": "RGB:444/16"
+      },
+      {
+        "addr": "0x1d913c",
+        "name": "aRgb2568",
+        "string": "RGB:256/8"
+      },
+      {
+        "addr": "0x1d9134",
+        "name": "aBw8",
+        "string": "BW:8"
+      },
+      {
+        "addr": "0x1d912c",
+        "name": "aBw2",
+        "string": "BW:2"
+      },
+      {
+        "addr": "0x1d916c",
+        "name": "aResolution",
+        "string": "Resolution:"
+      },
+      {
+        "addr": "0x1d9178",
+        "name": "aScreen",
+        "string": "Screen:"
+      },
+      {
+        "addr": "0x1d9180",
+        "name": "aMemory",
+        "string": "Memory:"
+      },
+      {
+        "addr": "0x1d9188",
+        "name": "aRamdac",
+        "string": "RAMDAC:"
+      },
+      {
+        "addr": "0x1d9190",
+        "name": "aSync",
+        "string": "Sync:"
+      },
+      {
+        "addr": "0x1d9198",
+        "name": "aAvailable",
+        "string": "Available:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d91e8",
+        "name": "aDisplayRequest",
+        "string": "Display: Requested mode is not available.\n"
+      },
+      {
+        "addr": "0x1d91b8",
+        "name": "aDisplayModeSel",
+        "string": "Display: Mode selected: %d x %d @ %d Hz (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c5fd4",
+    "addr": "0x001c5fd4",
+    "code": "$E63760587FADDAA675F803BB3FBE6402 *__cdecl -[IOSVGADisplay _shmem]()\n{\n  int v1; // [esp+8h] [ebp+8h]\n\n  return *($E63760587FADDAA675F803BB3FBE6402 **)(v1 + 508); /*0x1c5fe2*/\n}"
+  },
+  {
+    "requested_address": "0x001c5fe4",
+    "addr": "0x001c5fe4",
+    "code": "int __cdecl -[IOSVGADisplay _registerWithED](IOSVGADisplay *self, SEL a2)\n{\n  id v2; // eax\n  id v3; // esi\n  $E63760587FADDAA675F803BB3FBE6402 *v4; // eax\n  $E63760587FADDAA675F803BB3FBE6402 *v5; // ebx\n  const char *v7; // eax\n  id v8; // eax\n  size_t v9; // [esp+Ch] [ebp-Ch]\n  int v10; // [esp+10h] [ebp-8h]\n  int v11; // [esp+14h] [ebp-4h]\n\n  v2 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1c6015*/\n  v3 = objc_msgSend(v2, sel_registerScreen_bounds_shmem_size_); /*0x1c6023*/\n  v4 = -[IOSVGADisplay _shmem](self, sel__shmem); /*0x1c602d*/\n  v5 = v4; /*0x1c6032*/\n  if ( v3 == (id)-1 ) /*0x1c603a*/\n    return -706; /*0x1c603c*/\n  if ( v9 <= 0x1448 )\n  {\n    bzero(v4, v9); /*0x1c60a2*/\n    *((_BYTE *)v5 + 8) = 1; /*0x1c60a7*/\n    *((_DWORD *)v5 + 12) = v10; /*0x1c60ae*/\n    *((_DWORD *)v5 + 13) = v11; /*0x1c60b4*/\n    -[IODisplay setToken:](self, sel_setToken_, v3); /*0x1c60c0*/\n    return 0; /*0x1c60c5*/\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1c6061*/\n    IOLog((int)\"%s: shmem_size > sizeof (VGAShmem_t)(%d<>%d)\\n\", v7, v9, 5192);\n    v8 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1c608a*/\n    objc_msgSend(v8, sel_unregisterScreen_); /*0x1c6093*/\n    return -706; /*0x1c6098*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204ff8",
+        "name": "sel_registerScreen:bounds:shmem:size:",
+        "string": "registerScreen:bounds:shmem:size:"
+      },
+      {
+        "addr": "0x1c5fd4",
+        "name": "-[IOSVGADisplay _shmem]"
+      },
+      {
+        "addr": "0x20706c",
+        "name": "sel__shmem",
+        "string": "_shmem"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1af0dc",
+        "name": "-[IODisplay setToken:]"
+      },
+      {
+        "addr": "0x204a94",
+        "name": "sel_setToken:",
+        "string": "setToken:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d9214",
+        "name": "aSShmemSizeSize_0",
+        "string": "%s: shmem_size > sizeof (VGAShmem_t)(%d<>%d)\n"
+      },
+      {
+        "addr": "0x204fe4",
+        "name": "sel_unregisterScreen:",
+        "string": "unregisterScreen:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c60d4",
+    "addr": "0x001c60d4",
+    "code": "void __cdecl -[IOSVGADisplay _readBpp4planar:toBpp2packed32:](\n        IOSVGADisplay *self,\n        SEL a2,\n        unsigned __int16 *a3,\n        unsigned int *a4)\n{\n  int v4; // ebx\n\n  -[IOSVGADisplay setReadPlane:](self, sel_setReadPlane_, 1); /*0x1c60ea*/\n  v4 = (((*(_BYTE *)a3 & 1) == 0) << 15) /*0x1c61a4*/\n     | ((~*(_BYTE *)a3 & 2) << 12)\n     | ((~*(_BYTE *)a3 & 4) << 9)\n     | ((~*(_BYTE *)a3 & 8) << 6)\n     | (8 * (~*(_BYTE *)a3 & 0x10))\n     | ~*(_BYTE *)a3 & 0x20\n     | ((unsigned __int8)(~*(_BYTE *)a3 & 0x40) >> 3)\n     | ((unsigned __int8)(~*(_BYTE *)a3 & 0x80) >> 6)\n     | ((~*a3 & 0x100) << 23)\n     | ((~*a3 & 0x200) << 20)\n     | ((~*a3 & 0x400) << 17)\n     | ((~*a3 & 0x800) << 14)\n     | ((~*a3 & 0x1000) << 11)\n     | ((~*a3 & 0x2000) << 8)\n     | (32 * (~*a3 & 0x4000))\n     | (4 * (~*a3 & 0x8000));\n  -[IOSVGADisplay setReadPlane:](self, sel_setReadPlane_, 0); /*0x1c61b3*/\n  *a4 = (((*(_BYTE *)a3 & 1) == 0) << 14) /*0x1c6275*/\n      | ((~*(_BYTE *)a3 & 2) << 11)\n      | ((~*(_BYTE *)a3 & 4) << 8)\n      | (32 * (~*(_BYTE *)a3 & 8))\n      | (4 * (~*(_BYTE *)a3 & 0x10))\n      | ((unsigned __int8)(~*(_BYTE *)a3 & 0x20) >> 1)\n      | ((unsigned __int8)(~*(_BYTE *)a3 & 0x40) >> 4)\n      | ((unsigned __int8)(~*(_BYTE *)a3 & 0x80) >> 7)\n      | ((~*a3 & 0x100) << 22)\n      | ((~*a3 & 0x200) << 19)\n      | ((~*a3 & 0x400) << 16)\n      | ((~*a3 & 0x800) << 13)\n      | ((~*a3 & 0x1000) << 10)\n      | ((~*a3 & 0x2000) << 7)\n      | (16 * (~*a3 & 0x4000))\n      | (2 * (~*a3 & 0x8000))\n      | v4;\n}",
+    "refs": [
+      {
+        "addr": "0x1c6808",
+        "name": "-[IOSVGADisplay setReadPlane:]"
+      },
+      {
+        "addr": "0x206f4c",
+        "name": "sel_setReadPlane:",
+        "string": "setReadPlane:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c6284",
+    "addr": "0x001c6284",
+    "code": "void __cdecl -[IOSVGADisplay _writeBpp2packed32:toBpp4planar:](\n        IOSVGADisplay *self,\n        SEL a2,\n        unsigned int *a3,\n        unsigned __int16 *a4)\n{\n  unsigned int v4; // ecx\n  unsigned int v5; // ecx\n\n  -[IOSVGADisplay setWritePlane:](self, sel_setWritePlane_, 1); /*0x1c629d*/\n  v4 = HIWORD(*a3); /*0x1c6305*/\n  *a4 = (unsigned __int8)~(((*a3 & 0xAA) << 6) /*0x1c636c*/\n                         | (8 * (*a3 & 8))\n                         | *a3 & 0x20\n                         | ((*a3 & 0x80) >> 3)\n                         | ((*a3 & 0x200) >> 6)\n                         | ((*a3 & 0x800) >> 9)\n                         | ((*a3 & 0x2000) >> 12)\n                         | ((*a3 & 0x8000) >> 15))\n      | ((unsigned __int8)~(((v4 & 0xAA) << 6)\n                          | (8 * (v4 & 8))\n                          | v4 & 0x20\n                          | ((unsigned __int8)(v4 & 0x80) >> 3)\n                          | ((unsigned __int16)(HIWORD(*a3) & 0x200) >> 6)\n                          | ((unsigned __int16)(HIWORD(*a3) & 0x800) >> 9)\n                          | ((unsigned __int16)(HIWORD(*a3) & 0x2000) >> 12)\n                          | ((*a3 & 0x80000000) != 0)) << 8);\n  -[IOSVGADisplay setWritePlane:](self, sel_setWritePlane_, 0); /*0x1c637c*/\n  v5 = HIWORD(*a3); /*0x1c63e4*/\n  *a4 = (unsigned __int8)~(((*a3 & 0x55) << 7) /*0x1c6450*/\n                         | (16 * (*a3 & 4))\n                         | (2 * (*a3 & 0x10))\n                         | ((*a3 & 0x40) >> 2)\n                         | ((*a3 & 0x100) >> 5)\n                         | ((unsigned __int16)(*(_WORD *)a3 & 0x400) >> 8)\n                         | ((*a3 & 0x1000) >> 11)\n                         | ((*a3 & 0x4000) >> 14))\n      | ((unsigned __int8)~(((v5 & 0x55) << 7)\n                          | (16 * (v5 & 4))\n                          | (2 * (v5 & 0x10))\n                          | ((unsigned __int8)(v5 & 0x40) >> 2)\n                          | ((unsigned __int16)(v5 & 0x100) >> 5)\n                          | ((unsigned __int16)(v5 & 0x400) >> 8)\n                          | ((unsigned __int16)(v5 & 0x1000) >> 11)\n                          | ((unsigned __int16)(v5 & 0x4000) >> 14)) << 8);\n}",
+    "refs": [
+      {
+        "addr": "0x1c6810",
+        "name": "-[IOSVGADisplay setWritePlane:]"
+      },
+      {
+        "addr": "0x206f3c",
+        "name": "sel_setWritePlane:",
+        "string": "setWritePlane:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c6460",
+    "addr": "0x001c6460",
+    "code": "void __cdecl -[IOSVGADisplay _displayCursor:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  int v4; // edx\n  __int16 v5; // cx\n  __int16 v6; // ax\n  int v7; // ecx\n\n  v4 = *((_DWORD *)a4 + *(_DWORD *)a4 + 14); /*0x1c6469*/\n  v5 = *((_WORD *)a4 + 14) - v4; /*0x1c6471*/\n  *((_WORD *)a4 + 16) = v5; /*0x1c6474*/\n  *((_WORD *)a4 + 17) = v5 + 16; /*0x1c647c*/\n  v6 = *((_WORD *)a4 + 15) - HIWORD(v4); /*0x1c6487*/\n  *((_WORD *)a4 + 18) = v6; /*0x1c648c*/\n  *((_WORD *)a4 + 19) = v6 + 16; /*0x1c6494*/\n  -[IOSVGADisplay _VGADisplayCursor:shmem:](self, sel__VGADisplayCursor_shmem_, a3, a4); /*0x1c64a7*/\n  v7 = *((_DWORD *)a4 + 9); /*0x1c64af*/\n  *((_DWORD *)a4 + 10) = *((_DWORD *)a4 + 8); /*0x1c64b2*/\n  *((_DWORD *)a4 + 11) = v7; /*0x1c64b5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c52f4",
+        "name": "-[IOSVGADisplay _VGADisplayCursor:shmem:]"
+      },
+      {
+        "addr": "0x20700c",
+        "name": "sel__VGADisplayCursor:shmem:",
+        "string": "_VGADisplayCursor:shmem:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c64c0",
+    "addr": "0x001c64c0",
+    "code": "void __cdecl -[IOSVGADisplay _sysHideCursor:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  char v4; // al\n\n  v4 = *((_BYTE *)a4 + 8); /*0x1c64c6*/\n  *((_BYTE *)a4 + 8) = v4 + 1; /*0x1c64c9*/\n  if ( !v4 ) /*0x1c64ce*/\n    -[IOSVGADisplay _VGARemoveCursor:shmem:](self, sel__VGARemoveCursor_shmem_, a3, a4); /*0x1c64e0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c5604",
+        "name": "-[IOSVGADisplay _VGARemoveCursor:shmem:]"
+      },
+      {
+        "addr": "0x206ff4",
+        "name": "sel__VGARemoveCursor:shmem:",
+        "string": "_VGARemoveCursor:shmem:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c64ec",
+    "addr": "0x001c64ec",
+    "code": "void __cdecl -[IOSVGADisplay _sysShowCursor:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  char v4; // al\n\n  v4 = *((_BYTE *)a4 + 8); /*0x1c64f2*/\n  if ( v4 ) /*0x1c64f7*/\n  {\n    *((_BYTE *)a4 + 8) = v4 - 1; /*0x1c64fd*/\n    if ( v4 == 1 ) /*0x1c6502*/\n      -[IOSVGADisplay _displayCursor:shmem:](self, sel__displayCursor_shmem_, a3, a4); /*0x1c6514*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1c6460",
+        "name": "-[IOSVGADisplay _displayCursor:shmem:]"
+      },
+      {
+        "addr": "0x206fdc",
+        "name": "sel__displayCursor:shmem:",
+        "string": "_displayCursor:shmem:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c6520",
+    "addr": "0x001c6520",
+    "code": "void __cdecl -[IOSVGADisplay _checkShield:shmem:](\n        IOSVGADisplay *self,\n        SEL a2,\n        $514E7C50D28E54AB164B6500F83867A3 *a3,\n        $E63760587FADDAA675F803BB3FBE6402 *a4)\n{\n  int v4; // eax\n  int v5; // edx\n  unsigned __int16 v6; // bx\n  int v7; // ebx\n  __int16 v8; // si\n  int v9; // [esp+Ch] [ebp-4h]\n\n  v4 = *(_DWORD *)a4; /*0x1c652c*/\n  v5 = *((_DWORD *)a4 + *(_DWORD *)a4 + 14); /*0x1c652e*/\n  v6 = *((_WORD *)a4 + 14) - v5; /*0x1c6539*/\n  LOWORD(v4) = v6 + 16; /*0x1c653c*/\n  v7 = v6 | (v4 << 16); /*0x1c654a*/\n  v8 = *((_WORD *)a4 + 15) - HIWORD(v5); /*0x1c6556*/\n  v9 = 0; /*0x1c6567*/\n  if ( *((__int16 *)a4 + 11) > (__int16)v7 && *((__int16 *)a4 + 10) < SHIWORD(v7) && *((__int16 *)a4 + 13) > v8 ) /*0x1c6583*/\n    v9 = *((_WORD *)a4 + 12) < (unsigned __int16)(v8 + 16); /*0x1c6590*/\n  if ( v9 != *((char *)a4 + 11) ) /*0x1c659a*/\n  {\n    *((_BYTE *)a4 + 11) = v9; /*0x1c659f*/\n    if ( (_BYTE)v9 ) /*0x1c65a4*/\n      -[IOSVGADisplay _sysHideCursor:shmem:](self, sel__sysHideCursor_shmem_, a3, a4); /*0x1c65b1*/\n    else\n      -[IOSVGADisplay _sysShowCursor:shmem:](self, sel__sysShowCursor_shmem_, a3, a4); /*0x1c65c4*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1c64c0",
+        "name": "-[IOSVGADisplay _sysHideCursor:shmem:]"
+      },
+      {
+        "addr": "0x206fc4",
+        "name": "sel__sysHideCursor:shmem:",
+        "string": "_sysHideCursor:shmem:"
+      },
+      {
+        "addr": "0x1c64ec",
+        "name": "-[IOSVGADisplay _sysShowCursor:shmem:]"
+      },
+      {
+        "addr": "0x206fac",
+        "name": "sel__sysShowCursor:shmem:",
+        "string": "_sysShowCursor:shmem:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c65d4",
+    "addr": "0x001c65d4",
+    "code": "void __cdecl -[IOSVGADisplay _generateName:andUnit:](IOSVGADisplay *self, SEL a2, char *a3, unsigned int *a4)\n{\n  *a4 = dword_1E541C++; /*0x1c65e0*/\n  sprintf(a3, \"SVGADisplay%d\", *a4); /*0x1c65f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e541c",
+        "name": "dword_1E541C"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d9244",
+        "name": "aSvgadisplayD",
+        "string": "SVGADisplay%d"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c6600",
+    "addr": "0x001c6600",
+    "code": "id __cdecl -[IOSVGADisplay hideCursor:](IOSVGADisplay *self, SEL a2, int a3)\n{\n  id v3; // eax\n  $514E7C50D28E54AB164B6500F83867A3 *v4; // eax\n  $E63760587FADDAA675F803BB3FBE6402 *v5; // eax\n\n  v3 = -[IOSVGADisplay _shmem](self, sel__shmem); /*0x1c660f*/\n  if ( ev_try_lock((volatile signed __int32 *)v3 + 1) ) /*0x1c6618*/\n  {\n    -[IOSVGADisplay _shmem](self, sel__shmem); /*0x1c662c*/\n    v4 = -[IODisplay displayInfo](self, sel_displayInfo); /*0x1c663a*/\n    -[IOSVGADisplay _sysHideCursor:shmem:](self, sel__sysHideCursor_shmem_, v4); /*0x1c664b*/\n    v5 = -[IOSVGADisplay _shmem](self, sel__shmem); /*0x1c6658*/\n    ev_unlock((_DWORD *)v5 + 1); /*0x1c6661*/\n  }\n  return self; /*0x1c6668*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c5fd4",
+        "name": "-[IOSVGADisplay _shmem]"
+      },
+      {
+        "addr": "0x20706c",
+        "name": "sel__shmem",
+        "string": "_shmem"
+      },
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      },
+      {
+        "addr": "0x1c64c0",
+        "name": "-[IOSVGADisplay _sysHideCursor:shmem:]"
+      },
+      {
+        "addr": "0x206fc4",
+        "name": "sel__sysHideCursor:shmem:",
+        "string": "_sysHideCursor:shmem:"
+      },
+      {
+        "addr": "0x1a0d68",
+        "name": "_ev_unlock"
+      },
+      {
+        "addr": "0x1a0d78",
+        "name": "_ev_try_lock"
+      }
+    ]
+  }
+]

@@ -1,0 +1,645 @@
+[
+  {
+    "requested_address": "0x00155ce8",
+    "addr": "0x00155ce8",
+    "code": "int __cdecl port_names(\n        ipc_space_t task,\n        mach_port_name_array_t *names,\n        mach_msg_type_number_t *namesCnt,\n        mach_port_type_array_t *types,\n        mach_msg_type_number_t *typesCnt)\n{\n  kern_return_t v5; // eax\n  int v6; // ebx\n  mach_msg_type_number_t v8; // esi\n  int *v9; // ebx\n  int *v10; // eax\n  int v11; // [esp+Ch] [ebp-18h]\n  int size; // [esp+14h] [ebp-10h]\n  mach_msg_type_number_t v13; // [esp+18h] [ebp-Ch]\n  vm_address_t address; // [esp+1Ch] [ebp-8h] BYREF\n  int v15; // [esp+20h] [ebp-4h] BYREF\n\n  v5 = mach_port_names(task, names, namesCnt, types, typesCnt); /*0x155d05*/\n  v6 = v5; /*0x155d0a*/\n  if ( v5 ) /*0x155d11*/\n  {\n    if ( v5 != 6 ) /*0x155e87*/\n      return 4; /*0x155e89*/\n  }\n  else\n  {\n    v13 = *typesCnt; /*0x155d19*/\n    address = (vm_address_t)*types; /*0x155d24*/\n    size = ~page_mask & (page_mask + 4 * v13); /*0x155d33*/\n    if ( vm_move(ipc_soft_map, address, ipc_kernel_map, size, 0, (int)&v15) ) /*0x155d52*/\n    {\n      kmem_free(ipc_soft_map, *types, ~page_mask & (page_mask + 4 * *typesCnt)); /*0x155d82*/\n      kmem_free(ipc_soft_map, *names, ~page_mask & (page_mask + 4 * *namesCnt)); /*0x155dac*/\n      return 6; /*0x155db6*/\n    }\n    vm_deallocate(ipc_soft_map, address, size); /*0x155dcb*/\n    v8 = 0; /*0x155dd6*/\n    if ( v13 ) /*0x155ddb*/\n    {\n      v9 = (int *)v15; /*0x155ddd*/\n      do /*0x155de2*/\n      {\n        v10 = (int *)(*v9 & 0x1F0000); /*0x155de2*/\n        if ( v10 == (int *)196608 ) /*0x155dec*/\n          goto LABEL_17; /*0x155dec*/\n        if ( (unsigned int)v10 > 0x30000 ) /*0x155dee*/\n        {\n          if ( v10 == (int *)0x80000 ) /*0x155e05*/\n          {\n            v11 = 9; /*0x155e30*/\n            goto LABEL_20; /*0x155e37*/\n          }\n          if ( (unsigned int)v10 > 0x80000 ) /*0x155e07*/\n          {\n            if ( v10 != &dword_100000 ) /*0x155e19*/\nLABEL_19:\n              panic(aConvertPortTyp); /*0x155e3c*/\n          }\n          else if ( v10 != (int *)0x40000 ) /*0x155e0e*/\n          {\n            goto LABEL_19; /*0x155e0e*/\n          }\n        }\n        else if ( v10 != (int *)0x10000 ) /*0x155df5*/\n        {\n          if ( v10 != (int *)0x20000 ) /*0x155dfc*/\n            goto LABEL_19; /*0x155dfc*/\nLABEL_17:\n          v11 = 7; /*0x155e24*/\n          goto LABEL_20; /*0x155e2b*/\n        }\n        v11 = 1; /*0x155e1b*/\nLABEL_20:\n        *v9++ = v11; /*0x155e49*/\n        ++v8; /*0x155e51*/\n      }\n      while ( v13 > v8 ); /*0x155de2*/\n    }\n    v6 = vm_move(ipc_kernel_map, v15, ipc_soft_map, size, 1, (int)&address); /*0x155e57*/\n    *types = (mach_port_type_array_t)address; /*0x155e80*/\n  }\n  return v6; /*0x155e93*/\n}",
+    "refs": [
+      {
+        "addr": "0x154bec",
+        "name": "_mach_port_names"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1f6244",
+        "name": "_ipc_soft_map"
+      },
+      {
+        "addr": "0x178708",
+        "name": "_vm_move"
+      },
+      {
+        "addr": "0x1f622c",
+        "name": "_ipc_kernel_map"
+      },
+      {
+        "addr": "0x17c620",
+        "name": "_vm_deallocate"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deafd",
+        "name": "aConvertPortTyp",
+        "string": "convert_port_type: strange port type"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00155e9c",
+    "addr": "0x00155e9c",
+    "code": "int __cdecl port_type(int a1, int a2, int *a3)\n{\n  int v3; // eax\n  int v4; // edx\n  int *v6; // eax\n  int v7; // edi\n  _BYTE v8[4]; // [esp+Ch] [ebp-Ch] BYREF\n  int v9; // [esp+10h] [ebp-8h] BYREF\n  int v10; // [esp+14h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x155ead*/\n    return 4; /*0x155ead*/\n  v3 = ipc_right_lookup_write(a1, a2, &v9); /*0x155eb8*/\n  if ( !v3 ) /*0x155ec4*/\n  {\n    v4 = ipc_right_info(a1, a2, v9, &v10, v8); /*0x155ed9*/\n    if ( !v4 ) /*0x155ee0*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x155ee4*/\n    v3 = v4; /*0x155ee7*/\n  }\n  if ( v3 ) /*0x155eeb*/\n    return 4; /*0x155ef2*/\n  v6 = (int *)(v10 & 0x1F0000); /*0x155ef7*/\n  if ( (v10 & 0x1F0000) == 0x30000 ) /*0x155f01*/\n  {\nLABEL_19:\n    v7 = 7; /*0x155f3c*/\n    goto LABEL_22; /*0x155f41*/\n  }\n  if ( (v10 & 0x1F0000u) > 0x30000 ) /*0x155f03*/\n  {\n    if ( v6 == (int *)0x80000 ) /*0x155f1d*/\n    {\n      v7 = 9; /*0x155f44*/\n      goto LABEL_22; /*0x155f49*/\n    }\n    if ( (unsigned int)v6 > 0x80000 ) /*0x155f1f*/\n    {\n      if ( v6 != &dword_100000 ) /*0x155f31*/\n        goto LABEL_21; /*0x155f31*/\n    }\n    else if ( v6 != (int *)0x40000 ) /*0x155f26*/\n    {\nLABEL_21:\n      panic(aConvertPortTyp); /*0x155f4c*/\n    }\n  }\n  else if ( v6 != (int *)0x10000 ) /*0x155f0a*/\n  {\n    if ( v6 != (int *)0x20000 ) /*0x155f11*/\n      goto LABEL_21; /*0x155f11*/\n    goto LABEL_19; /*0x155f11*/\n  }\n  v7 = 1; /*0x155f33*/\nLABEL_22:\n  *a3 = v7; /*0x155f56*/\n  return 0; /*0x155f60*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deafd",
+        "name": "aConvertPortTyp",
+        "string": "convert_port_type: strange port type"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00155f68",
+    "addr": "0x00155f68",
+    "code": "int __cdecl port_rename(unsigned int a1, unsigned int a2, unsigned int a3)\n{\n  int result; // eax\n\n  if ( a1 ) /*0x155f73*/\n  {\n    if ( a3 && a3 != -1 ) /*0x155f83*/\n    {\n      result = ipc_object_rename(a1, a2, a3); /*0x155f92*/\n      if ( !result ) /*0x155f99*/\n        return result; /*0x155f99*/\n    }\n    else\n    {\n      result = 18; /*0x155f85*/\n    }\n  }\n  else\n  {\n    result = 16; /*0x155f75*/\n  }\n  if ( result != 13 ) /*0x155f9e*/\n    return 4; /*0x155fa0*/\n  return result; /*0x155fa7*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c060",
+        "name": "_ipc_object_rename"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00155fac",
+    "addr": "0x00155fac",
+    "code": "int __cdecl port_allocate(int a1, unsigned int *a2)\n{\n  int v3; // eax\n  int v4; // ecx\n  volatile __int32 *v5; // [esp+4h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x155fb8*/\n    return 4; /*0x155fba*/\n  v3 = ipc_port_alloc_compat(a1, a2, (int *)&v5); /*0x155fcd*/\n  v4 = v3; /*0x155fd2*/\n  if ( v3 ) /*0x155fd6*/\n  {\n    if ( v3 != 6 ) /*0x155fe7*/\n      return 4; /*0x155fe9*/\n  }\n  else\n  {\n    _InterlockedExchange(v5, 0); /*0x155fdd*/\n  }\n  return v4; /*0x155ff0*/\n}",
+    "refs": [
+      {
+        "addr": "0x14d328",
+        "name": "_ipc_port_alloc_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00155ff8",
+    "addr": "0x00155ff8",
+    "code": "int __cdecl port_deallocate(unsigned int a1, unsigned int a2)\n{\n  int v3; // [esp+8h] [ebp-Ch] BYREF\n  int v4; // [esp+Ch] [ebp-8h] BYREF\n  int *v5; // [esp+10h] [ebp-4h] BYREF\n\n  if ( !a1 || ipc_right_lookup_write(a1, a2, &v5) || ipc_right_info(a1, a2, v5, &v4, &v3) ) /*0x15602a*/\n    return 4; /*0x156036*/\n  if ( (v4 & 0x170000) != 0 ) /*0x156044*/\n  {\n    ipc_right_destroy(a1, a2, (int)v5); /*0x15604c*/\n    return 0; /*0x156051*/\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15605a*/\n    return 4; /*0x15605d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x14e154",
+        "name": "_ipc_right_destroy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015606c",
+    "addr": "0x0015606c",
+    "code": "int __cdecl port_set_backlog(unsigned int a1, unsigned int a2, unsigned int a3)\n{\n  int result; // eax\n  int v4; // edx\n  volatile __int32 *v5; // edx\n  int v6; // [esp+Ch] [ebp-10h] BYREF\n  int v7; // [esp+10h] [ebp-Ch] BYREF\n  int *v8; // [esp+14h] [ebp-8h] BYREF\n  volatile __int32 *v9; // [esp+18h] [ebp-4h]\n\n  if ( !a1 || a3 - 1 > 0xF || ipc_right_lookup_write(a1, a2, &v8) || ipc_right_info(a1, a2, v8, &v7, &v6) ) /*0x1560b4*/\n    return 4; /*0x15608f*/\n  v4 = v7; /*0x1560c0*/\n  if ( (v7 & 0x20000) != 0 ) /*0x1560c9*/\n  {\n    v5 = (volatile __int32 *)v8[1]; /*0x1560e7*/\n    do /*0x1560fe*/\n    {\n      while ( *v5 ) /*0x1560ec*/\n        ; /*0x1560ee*/\n    }\n    while ( _InterlockedExchange(v5, 1) == 1 ); /*0x1560fe*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x156102*/\n    v9 = v5; /*0x156105*/\n    result = 0; /*0x156108*/\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x1560cd*/\n    result = 4; /*0x1560d0*/\n    if ( (v4 & 0x170000) != 0 ) /*0x1560db*/\n      return 7; /*0x1560e2*/\n  }\n  if ( !result ) /*0x15610c*/\n  {\n    ipc_port_set_qlimit((int)v9, a3); /*0x156113*/\n    _InterlockedExchange(v9, 0); /*0x15611d*/\n    return 0; /*0x15611f*/\n  }\n  return result; /*0x156124*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x14c6ec",
+        "name": "_ipc_port_set_qlimit"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015612c",
+    "addr": "0x0015612c",
+    "code": "int __cdecl port_set_backup(unsigned int a1, unsigned int a2, int a3, _DWORD *a4)\n{\n  int v4; // ebx\n  int result; // eax\n  int v6; // edx\n  volatile __int32 *v7; // edx\n  int v8; // eax\n  int v9; // [esp+Ch] [ebp-14h] BYREF\n  int v10; // [esp+10h] [ebp-10h] BYREF\n  int v11; // [esp+14h] [ebp-Ch] BYREF\n  int *v12; // [esp+18h] [ebp-8h] BYREF\n  volatile __int32 *v13; // [esp+1Ch] [ebp-4h]\n\n  v4 = a3; /*0x156138*/\n  if ( !a1 ) /*0x15613d*/\n    return 4; /*0x15613d*/\n  if ( a3 == -1 ) /*0x15614f*/\n  {\n    v4 = 0; /*0x156151*/\n  }\n  else if ( a3 ) /*0x15615a*/\n  {\n    LOBYTE(v4) = a3 | 1; /*0x15615c*/\n  }\n  if ( ipc_right_lookup_write(a1, a2, &v12) || ipc_right_info(a1, a2, v12, &v11, &v10) ) /*0x156185*/\n    return 4; /*0x156144*/\n  v6 = v11; /*0x156191*/\n  if ( (v11 & 0x20000) != 0 ) /*0x15619a*/\n  {\n    v7 = (volatile __int32 *)v12[1]; /*0x1561bb*/\n    do /*0x1561d2*/\n    {\n      while ( *v7 ) /*0x1561c0*/\n        ; /*0x1561c2*/\n    }\n    while ( _InterlockedExchange(v7, 1) == 1 ); /*0x1561d2*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x1561d6*/\n    v13 = v7; /*0x1561d9*/\n    result = 0; /*0x1561dc*/\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15619e*/\n    result = 4; /*0x1561a1*/\n    if ( (v6 & 0x170000) != 0 ) /*0x1561ac*/\n      return 7; /*0x1561b3*/\n  }\n  if ( !result ) /*0x1561e0*/\n  {\n    ipc_port_pdrequest((int)v13, v4, &v9); /*0x1561eb*/\n    v8 = v9; /*0x1561f3*/\n    if ( v9 ) /*0x1561f8*/\n    {\n      if ( (v9 & 1) != 0 ) /*0x1561fc*/\n      {\n        LOBYTE(v8) = v9 & 0xFE; /*0x1561fe*/\n        v9 = v8; /*0x156200*/\n      }\n      else\n      {\n        ipc_notify_send_once(v9); /*0x156209*/\n        v9 = 0; /*0x15620e*/\n      }\n    }\n    *a4 = v9; /*0x15621b*/\n    return 0; /*0x15621d*/\n  }\n  return result; /*0x156222*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x14c67c",
+        "name": "_ipc_port_pdrequest"
+      },
+      {
+        "addr": "0x14b5d4",
+        "name": "_ipc_notify_send_once"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015622c",
+    "addr": "0x0015622c",
+    "code": "int __cdecl port_status(int a1, int a2, _DWORD *a3, _DWORD *a4, _DWORD *a5, _DWORD *a6, _DWORD *a7)\n{\n  int v8; // edi\n  int v9; // ebx\n  int v10; // esi\n  int v11; // eax\n  int v12; // eax\n  int v13; // edx\n  _BYTE v14[4]; // [esp+10h] [ebp-Ch] BYREF\n  int v15; // [esp+14h] [ebp-8h] BYREF\n  int v16; // [esp+18h] [ebp-4h] BYREF\n\n  if ( !a1 || ipc_right_lookup_write(a1, a2, &v16) || ipc_right_info(a1, a2, v16, &v15, v14) ) /*0x15625f*/\n    return 4; /*0x156269*/\n  if ( (v15 & 0x170000) == 0 ) /*0x156273*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x156277*/\n    return 4; /*0x15627f*/\n  }\n  if ( (v15 & 0x20000) == 0 ) /*0x156289*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15633e*/\n    *a6 = 0; /*0x156344*/\n    *a7 = 0; /*0x15634d*/\n    *a3 = 0; /*0x156356*/\n    *a4 = -1; /*0x15635f*/\n    *a5 = 0; /*0x156368*/\n    return 0; /*0x156368*/\n  }\n  v8 = *(_DWORD *)(v16 + 4); /*0x156292*/\n  do /*0x1562aa*/\n  {\n    while ( *(_DWORD *)v8 ) /*0x156298*/\n      ; /*0x15629a*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v8, 1) == 1 ); /*0x1562aa*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x1562ae*/\n  if ( !*(_DWORD *)(v8 + 48) ) /*0x1562b6*/\n    goto LABEL_19; /*0x1562b6*/\n  v9 = *(_DWORD *)(v8 + 48); /*0x1562b8*/\n  do /*0x1562ce*/\n  {\n    while ( *(_DWORD *)v9 ) /*0x1562bc*/\n      ; /*0x1562be*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v9, 1) == 1 ); /*0x1562ce*/\n  if ( *(int *)(v9 + 8) >= 0 ) /*0x1562d4*/\n  {\n    ipc_pset_remove(v9, v8); /*0x1562e2*/\n    v11 = *(_DWORD *)(v9 + 4); /*0x1562ea*/\n    _InterlockedExchange((volatile __int32 *)v9, 0); /*0x1562ef*/\n    if ( !v11 ) /*0x1562f3*/\n      zfree(ipc_object_zones[*(_WORD *)(v9 + 10) & 0x7FFF], v9); /*0x156307*/\nLABEL_19:\n    v10 = 0; /*0x15630c*/\n    goto LABEL_20; /*0x15630c*/\n  }\n  v10 = *(_DWORD *)(v9 + 12); /*0x1562d6*/\n  _InterlockedExchange((volatile __int32 *)v9, 0); /*0x1562db*/\nLABEL_20:\n  v12 = *(_DWORD *)(v8 + 60); /*0x15630e*/\n  v13 = *(_DWORD *)(v8 + 56); /*0x156311*/\n  _InterlockedExchange((volatile __int32 *)v8, 0); /*0x156316*/\n  *a6 = 1; /*0x15631b*/\n  *a7 = 1; /*0x156324*/\n  *a3 = v10; /*0x15632d*/\n  *a4 = v13; /*0x156332*/\n  *a5 = v12; /*0x156337*/\n  return 0; /*0x156373*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x14d734",
+        "name": "_ipc_pset_remove"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015637c",
+    "addr": "0x0015637c",
+    "code": "int __cdecl port_set_allocate(int a1, _DWORD *a2)\n{\n  int v3; // eax\n  int v4; // ecx\n  volatile __int32 *v5; // [esp+4h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x156388*/\n    return 4; /*0x15638a*/\n  v3 = ipc_pset_alloc(a1, a2, &v5); /*0x15639d*/\n  v4 = v3; /*0x1563a2*/\n  if ( v3 ) /*0x1563a6*/\n  {\n    if ( v3 != 6 ) /*0x1563b7*/\n      return 4; /*0x1563b9*/\n  }\n  else\n  {\n    _InterlockedExchange(v5, 0); /*0x1563ad*/\n  }\n  return v4; /*0x1563c0*/\n}",
+    "refs": [
+      {
+        "addr": "0x14d61c",
+        "name": "_ipc_pset_alloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001563c8",
+    "addr": "0x001563c8",
+    "code": "int __cdecl port_set_deallocate(unsigned int a1, unsigned int a2)\n{\n  int result; // eax\n  int *v3; // [esp+8h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x1563d8*/\n    return 4; /*0x1563da*/\n  result = ipc_right_lookup_write(a1, a2, &v3); /*0x1563ea*/\n  if ( !result ) /*0x1563f4*/\n  {\n    if ( (*((_BYTE *)v3 + 2) & 8) != 0 ) /*0x1563fd*/\n    {\n      return ipc_right_destroy(a1, a2, (int)v3); /*0x156402*/\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15640e*/\n      return 4; /*0x156411*/\n    }\n  }\n  return result; /*0x156419*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14e154",
+        "name": "_ipc_right_destroy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156420",
+    "addr": "0x00156420",
+    "code": "int __cdecl port_set_add(unsigned int a1, unsigned int a2, unsigned int a3)\n{\n  int v3; // edx\n  int v5; // esi\n  int *v6; // eax\n  int v7; // [esp+8h] [ebp-Ch] BYREF\n  int v8; // [esp+Ch] [ebp-8h] BYREF\n  int *v9; // [esp+10h] [ebp-4h] BYREF\n\n  if ( !a1 || ipc_right_lookup_write(a1, a3, &v9) || ipc_right_info(a1, a3, v9, &v8, &v7) ) /*0x156452*/\n    return 4; /*0x15645c*/\n  v3 = v8; /*0x15645e*/\n  if ( (v8 & 0x20000) == 0 ) /*0x156467*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15646b*/\n    if ( (v3 & 0x170000) != 0 ) /*0x156474*/\n      return 7; /*0x15647b*/\n    return 4; /*0x156474*/\n  }\n  v5 = v9[1]; /*0x156483*/\n  v6 = ipc_entry_lookup((_DWORD *)a1, a2); /*0x15648b*/\n  v9 = v6; /*0x156490*/\n  if ( !v6 || (*((_BYTE *)v6 + 2) & 8) == 0 ) /*0x15649e*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x1564a2*/\n    return 4; /*0x1564aa*/\n  }\n  return ipc_pset_move(a1, v5, v6[1]); /*0x1564ba*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x145e98",
+        "name": "_ipc_entry_lookup"
+      },
+      {
+        "addr": "0x14d79c",
+        "name": "_ipc_pset_move"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001564c0",
+    "addr": "0x001564c0",
+    "code": "int __cdecl port_set_remove(unsigned int a1, unsigned int a2)\n{\n  int v2; // edx\n  int v4; // [esp+8h] [ebp-Ch] BYREF\n  int v5; // [esp+Ch] [ebp-8h] BYREF\n  int *v6; // [esp+10h] [ebp-4h] BYREF\n\n  if ( !a1 || ipc_right_lookup_write(a1, a2, &v6) || ipc_right_info(a1, a2, v6, &v5, &v4) ) /*0x1564f2*/\n    return 4; /*0x156525*/\n  v2 = v5; /*0x1564fe*/\n  if ( (v5 & 0x20000) == 0 ) /*0x156507*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x15650b*/\n    if ( (v2 & 0x170000) != 0 ) /*0x156514*/\n      return 7; /*0x15651b*/\n    return 4; /*0x156514*/\n  }\n  return ipc_pset_move(a1, v6[1], 0); /*0x15653a*/\n}",
+    "refs": [
+      {
+        "addr": "0x14db08",
+        "name": "_ipc_right_lookup_write"
+      },
+      {
+        "addr": "0x14efa0",
+        "name": "_ipc_right_info"
+      },
+      {
+        "addr": "0x14d79c",
+        "name": "_ipc_pset_move"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156540",
+    "addr": "0x00156540",
+    "code": "kern_return_t __cdecl port_set_status(\n        ipc_space_inspect_t task,\n        mach_port_name_t name,\n        mach_port_name_array_t *members,\n        mach_msg_type_number_t *membersCnt)\n{\n  kern_return_t result; // eax\n\n  result = mach_port_get_set_status(task, name, members, membersCnt); /*0x156553*/\n  if ( result ) /*0x15655a*/\n  {\n    if ( result != 6 ) /*0x15655f*/\n      return 4; /*0x156561*/\n  }\n  return result; /*0x156568*/\n}",
+    "refs": [
+      {
+        "addr": "0x15558c",
+        "name": "_mach_port_get_set_status"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015656c",
+    "addr": "0x0015656c",
+    "code": "int __cdecl port_insert_send(unsigned int a1, unsigned int a2, unsigned int a3)\n{\n  int result; // eax\n\n  if ( !a1 || !a3 || a3 == -1 || !a2 || a2 == -1 ) /*0x15658c*/\n    return 4; /*0x156596*/\n  result = ipc_object_copyout_name_compat(a1, a2, 17, a3); /*0x15659d*/\n  if ( result != 6 ) /*0x1565a5*/\n  {\n    if ( result <= 6 ) /*0x1565a7*/\n    {\n      if ( !result ) /*0x1565be*/\n        return result; /*0x1565be*/\n    }\n    else\n    {\n      if ( result == 13 ) /*0x1565ac*/\n        return result; /*0x1565ac*/\n      if ( result == 21 ) /*0x1565b1*/\n        return 5; /*0x1565bb*/\n    }\n    return 4; /*0x1565c0*/\n  }\n  return result; /*0x156595*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c318",
+        "name": "_ipc_object_copyout_name_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001565cc",
+    "addr": "0x001565cc",
+    "code": "int __cdecl port_extract_send(int a1, int a2, int a3)\n{\n  int result; // eax\n\n  if ( !a1 ) /*0x1565d4*/\n    return 4; /*0x1565d6*/\n  result = ipc_object_copyin_compat(a1, a2, 6, 1, a3); /*0x1565ed*/\n  if ( result ) /*0x1565f4*/\n    return 4; /*0x1565f6*/\n  return result; /*0x1565dd*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c11c",
+        "name": "_ipc_object_copyin_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156600",
+    "addr": "0x00156600",
+    "code": "int __cdecl port_insert_receive(unsigned int a1, unsigned int a2, unsigned int a3)\n{\n  int result; // eax\n\n  if ( !a1 || !a3 || a3 == -1 || !a2 || a2 == -1 ) /*0x156620*/\n    return 4; /*0x15662a*/\n  result = ipc_object_copyout_name_compat(a1, a2, 16, a3); /*0x156631*/\n  if ( result != 6 ) /*0x156639*/\n  {\n    if ( result <= 6 ) /*0x15663b*/\n    {\n      if ( !result ) /*0x156652*/\n        return result; /*0x156652*/\n    }\n    else\n    {\n      if ( result == 13 ) /*0x156640*/\n        return result; /*0x156640*/\n      if ( result == 21 ) /*0x156645*/\n        return 5; /*0x15664f*/\n    }\n    return 4; /*0x156654*/\n  }\n  return result; /*0x156629*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c318",
+        "name": "_ipc_object_copyout_name_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156660",
+    "addr": "0x00156660",
+    "code": "int __cdecl port_extract_receive(int a1, int a2, int a3)\n{\n  int result; // eax\n\n  if ( !a1 ) /*0x156668*/\n    return 4; /*0x15666a*/\n  result = ipc_object_copyin_compat(a1, a2, 5, 1, a3); /*0x156681*/\n  if ( result ) /*0x156688*/\n    return 4; /*0x15668a*/\n  return result; /*0x156671*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c11c",
+        "name": "_ipc_object_copyin_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156694",
+    "addr": "0x00156694",
+    "code": "int ast_init()\n{\n  int result; // eax\n\n  for ( result = 0; result <= 0; ++result ) /*0x156697*/\n    need_ast[result] = 0; /*0x15669c*/\n  return result; /*0x1566ae*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e90ac",
+        "name": "_need_ast"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001566b0",
+    "addr": "0x001566b0",
+    "code": "int ast_check()\n{\n  thread_act_t v0; // esi\n  int v1; // eax\n  int v2; // edx\n  int v3; // ecx\n  int v4; // eax\n  int v5; // eax\n  int v6; // ecx\n  int v7; // edx\n  int v8; // ecx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  _DWORD *v11; // edx\n  int v12; // eax\n  int v14; // [esp+Ch] [ebp-10h]\n  int v15; // [esp+10h] [ebp-Ch]\n  int v16; // [esp+14h] [ebp-8h]\n\n  v0 = active_threads; /*0x1566bb*/\n  v16 = splsched(); /*0x1566c6*/\n  v1 = *(_DWORD *)(processor_ptr + 276); /*0x1566d2*/\n  if ( v1 == 1 ) /*0x1566db*/\n  {\n    v2 = *(_DWORD *)active_u; /*0x156701*/\n    if ( *(_DWORD *)active_u ) /*0x156701*/\n    {\n      if ( *(_BYTE *)(v2 + 23) /*0x15672f*/\n        || v0\n        && (v3 = *(_DWORD *)(*(_DWORD *)(v0 + 132) + 124) | *(_DWORD *)(v2 + 24)) != 0\n        && ((*(_BYTE *)(v2 + 40) & 0x10) != 0 || (v3 & ~(*(_DWORD *)(v2 + 28) | *(_DWORD *)(v2 + 32))) != 0) )\n      {\n        v4 = need_ast; /*0x156731*/\n        LOBYTE(v4) = need_ast | 0x20; /*0x156738*/\n        need_ast = v4; /*0x15673a*/\n      }\n    }\n    need_ast |= *(_DWORD *)(v0 + 380); /*0x156755*/\n    if ( need_ast ) /*0x15676c*/\n      return splx(v16); /*0x15676c*/\n    if ( (*(_BYTE *)(v0 + 76) & 2) == 0 && *(int *)(processor_ptr + 264) <= 0 ) /*0x156786*/\n    {\n      v5 = *(_DWORD *)(processor_ptr + 300); /*0x15678f*/\n      if ( (*(_BYTE *)(v5 + 360) & 2) != 0 ) /*0x15679c*/\n      {\n        v14 = *(_DWORD *)(v5 + 264); /*0x1567a4*/\n        v6 = *(_DWORD *)(v5 + 260); /*0x1567a7*/\n        v15 = *(_DWORD *)(processor_ptr + 292); /*0x1567b6*/\n        v7 = *(_DWORD *)(v0 + 88); /*0x1567b9*/\n        if ( *(_DWORD *)(v0 + 96) == 1 ) /*0x1567c2*/\n        {\n          if ( !v15 && v14 > 0 && v6 >= v7 ) /*0x1567f6*/\n            goto LABEL_42; /*0x1567f6*/\n        }\n        else if ( v14 && v6 >= v7 && (v6 > v7 || !v15) ) /*0x1567df*/\n        {\n          goto LABEL_42; /*0x1567df*/\n        }\n        if ( *(_DWORD *)(v0 + 96) == 2 ) /*0x156800*/\n          *(_DWORD *)(processor_ptr + 292) = 1; /*0x156809*/\n        return splx(v16); /*0x156813*/\n      }\n      v8 = *(_DWORD *)(processor_ptr + 300); /*0x156818*/\n      if ( *(_DWORD *)(processor_ptr + 292) || *(int *)(v5 + 264) <= 0 ) /*0x156831*/\n        return splx(v16); /*0x156831*/\n      if ( *(_DWORD *)(v8 + 8 * *(_DWORD *)(v5 + 260)) == v8 + 8 * *(_DWORD *)(v5 + 260) ) /*0x156842*/\n      {\n        v9 = (volatile __int32 *)(v8 + 256); /*0x156844*/\n        do /*0x15685e*/\n        {\n          while ( *v9 ) /*0x15684c*/\n            ; /*0x15684e*/\n        }\n        while ( _InterlockedExchange(v9, 1) == 1 ); /*0x15685e*/\n        v10 = *(_DWORD *)(v8 + 260); /*0x156860*/\n        v11 = (_DWORD *)(v8 + 8 * v10); /*0x156866*/\n        if ( *(int *)(v8 + 264) > 0 ) /*0x156870*/\n        {\n          for ( ; v10 >= 0; --v10 ) /*0x156874*/\n          {\n            if ( (_DWORD *)*v11 != v11 ) /*0x15687a*/\n              break; /*0x15687a*/\n            v11 -= 2; /*0x15687c*/\n          }\n          *(_DWORD *)(v8 + 260) = v10; /*0x156882*/\n        }\n        _InterlockedExchange((volatile __int32 *)(v8 + 256), 0); /*0x15688a*/\n      }\n      if ( *(_DWORD *)(v8 + 260) < *(_DWORD *)(v0 + 88) ) /*0x156899*/\n        return splx(v16); /*0x156899*/\n    }\nLABEL_42:\n    v12 = need_ast; /*0x15689c*/\n    LOBYTE(v12) = need_ast | 4; /*0x1568a3*/\n    need_ast = v12; /*0x1568a5*/\n    return splx(v16); /*0x1568b3*/\n  }\n  if ( v1 > 1 ) /*0x1566dd*/\n  {\n    if ( v1 > 3 ) /*0x1566ef*/\n      goto LABEL_43; /*0x1566ef*/\n  }\n  else if ( v1 ) /*0x1566e1*/\n  {\nLABEL_43:\n    panic(aAstCheckBadPro); /*0x1568b8*/\n  }\n  return splx(v16); /*0x1568d1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1e9050",
+        "name": "_processor_ptr"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x1e90ac",
+        "name": "_need_ast"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deb22",
+        "name": "aAstCheckBadPro",
+        "string": "ast_check: Bad processor state"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001568d8",
+    "addr": "0x001568d8",
+    "code": "kern_return_t __cdecl exception_with_continuation(\n        exception_type_t exception,\n        exception_data_t code,\n        mach_msg_type_number_t codeCnt,\n        int a4)\n{\n  thread_act_t v4; // esi\n  volatile __int32 *v5; // ebx\n  mach_port_t v6; // ebx\n  mach_port_t thread_self_fast; // eax\n  mach_port_t task_self_fast; // [esp-10h] [ebp-20h]\n\n  v4 = active_threads; /*0x1568e7*/\n  if ( !exception ) /*0x1568ef*/\n    panic(aException); /*0x1568f9*/\n  *(_DWORD *)(active_threads + 56) = a4; /*0x156907*/\n  v5 = (volatile __int32 *)(v4 + 168); /*0x15690a*/\n  do /*0x156922*/\n  {\n    while ( *v5 ) /*0x156910*/\n      ; /*0x156912*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x156922*/\n  v6 = *(_DWORD *)(v4 + 180); /*0x156924*/\n  if ( !v6 || v6 == -1 ) /*0x156931*/\n  {\n    _InterlockedExchange((volatile __int32 *)(v4 + 168), 0); /*0x156935*/\n    return exception_try_task(exception, code, codeCnt); /*0x156971*/\n  }\n  do /*0x156952*/\n  {\n    while ( *(_DWORD *)v6 ) /*0x156940*/\n      ; /*0x156942*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x156952*/\n  _InterlockedExchange((volatile __int32 *)(v4 + 168), 0); /*0x156956*/\n  if ( *(int *)(v6 + 8) >= 0 ) /*0x156960*/\n  {\n    _InterlockedExchange((volatile __int32 *)v6, 0); /*0x156964*/\n    return exception_try_task(exception, code, codeCnt); /*0x156964*/\n  }\n  ++*(_DWORD *)(v6 + 4); /*0x156974*/\n  ++*(_DWORD *)(v6 + 28); /*0x156977*/\n  _InterlockedExchange((volatile __int32 *)v6, 0); /*0x15697c*/\n  *(_DWORD *)(v4 + 200) = exception; /*0x15697e*/\n  *(_DWORD *)(v4 + 204) = code; /*0x156987*/\n  *(_DWORD *)(v4 + 208) = codeCnt; /*0x15698d*/\n  task_self_fast = retrieve_task_self_fast(*(_DWORD *)(v4 + 12)); /*0x1569a2*/\n  thread_self_fast = retrieve_thread_self_fast(v4); /*0x1569a4*/\n  return exception_raise(v6, thread_self_fast, task_self_fast, exception, code, codeCnt); /*0x1569b6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deb58",
+        "name": "aException",
+        "string": "exception"
+      },
+      {
+        "addr": "0x156be0",
+        "name": "_exception_try_task"
+      },
+      {
+        "addr": "0x1598a0",
+        "name": "_retrieve_task_self_fast"
+      },
+      {
+        "addr": "0x159900",
+        "name": "_retrieve_thread_self_fast"
+      },
+      {
+        "addr": "0x156cc8",
+        "name": "_exception_raise"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001569c0",
+    "addr": "0x001569c0",
+    "code": "kern_return_t __cdecl exception(exception_type_t exceptiona, exception_data_t code, mach_msg_type_number_t codeCnt)\n{\n  thread_act_t v3; // esi\n  volatile __int32 *v4; // ebx\n  mach_port_t v5; // ebx\n  mach_port_t thread_self_fast; // eax\n  mach_port_t task_self_fast; // [esp-10h] [ebp-20h]\n\n  v3 = active_threads; /*0x1569cf*/\n  if ( !exceptiona ) /*0x1569d7*/\n    panic(aException); /*0x1569e1*/\n  *(_DWORD *)(active_threads + 56) = thread_exception_return; /*0x1569ec*/\n  v4 = (volatile __int32 *)(v3 + 168); /*0x1569f3*/\n  do /*0x156a0e*/\n  {\n    while ( *v4 ) /*0x1569fc*/\n      ; /*0x1569fe*/\n  }\n  while ( _InterlockedExchange(v4, 1) == 1 ); /*0x156a0e*/\n  v5 = *(_DWORD *)(v3 + 180); /*0x156a10*/\n  if ( !v5 || v5 == -1 ) /*0x156a1d*/\n  {\n    _InterlockedExchange((volatile __int32 *)(v3 + 168), 0); /*0x156a21*/\n    return exception_try_task(exceptiona, code, codeCnt); /*0x156a5d*/\n  }\n  do /*0x156a3e*/\n  {\n    while ( *(_DWORD *)v5 ) /*0x156a2c*/\n      ; /*0x156a2e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v5, 1) == 1 ); /*0x156a3e*/\n  _InterlockedExchange((volatile __int32 *)(v3 + 168), 0); /*0x156a42*/\n  if ( *(int *)(v5 + 8) >= 0 ) /*0x156a4c*/\n  {\n    _InterlockedExchange((volatile __int32 *)v5, 0); /*0x156a50*/\n    return exception_try_task(exceptiona, code, codeCnt); /*0x156a50*/\n  }\n  ++*(_DWORD *)(v5 + 4); /*0x156a60*/\n  ++*(_DWORD *)(v5 + 28); /*0x156a63*/\n  _InterlockedExchange((volatile __int32 *)v5, 0); /*0x156a68*/\n  *(_DWORD *)(v3 + 200) = exceptiona; /*0x156a6a*/\n  *(_DWORD *)(v3 + 204) = code; /*0x156a73*/\n  *(_DWORD *)(v3 + 208) = codeCnt; /*0x156a79*/\n  task_self_fast = retrieve_task_self_fast(*(_DWORD *)(v3 + 12)); /*0x156a8e*/\n  thread_self_fast = retrieve_thread_self_fast(v3); /*0x156a90*/\n  return exception_raise(v5, thread_self_fast, task_self_fast, exceptiona, code, codeCnt); /*0x156aa2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deb58",
+        "name": "aException",
+        "string": "exception"
+      },
+      {
+        "addr": "0x18dec0",
+        "name": "_thread_exception_return"
+      },
+      {
+        "addr": "0x156be0",
+        "name": "_exception_try_task"
+      },
+      {
+        "addr": "0x1598a0",
+        "name": "_retrieve_task_self_fast"
+      },
+      {
+        "addr": "0x159900",
+        "name": "_retrieve_thread_self_fast"
+      },
+      {
+        "addr": "0x156cc8",
+        "name": "_exception_raise"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156aac",
+    "addr": "0x00156aac",
+    "code": "kern_return_t __cdecl exception_from_kernel(\n        exception_type_t exception,\n        exception_data_t code,\n        mach_msg_type_number_t codeCnt)\n{\n  _DWORD *v3; // edi\n  thread_act_t v4; // esi\n  volatile __int32 *v5; // ebx\n  mach_port_t v6; // ebx\n  kern_return_t result; // eax\n  mach_port_t thread_self_fast; // eax\n  mach_port_t task_self_fast; // [esp-10h] [ebp-30h]\n  int v10; // [esp+10h] [ebp-10h]\n  int v11; // [esp+14h] [ebp-Ch]\n  int v12; // [esp+18h] [ebp-8h]\n  int v13; // [esp+1Ch] [ebp-4h]\n\n  v3 = (_DWORD *)active_threads; /*0x156ab8*/\n  v13 = *(_DWORD *)(active_threads + 56); /*0x156ac1*/\n  v12 = *(_DWORD *)(active_threads + 200); /*0x156aca*/\n  v11 = *(_DWORD *)(active_threads + 204); /*0x156ad3*/\n  v10 = *(_DWORD *)(active_threads + 208); /*0x156adc*/\n  v4 = active_threads; /*0x156adf*/\n  if ( !exception ) /*0x156ae3*/\n    panic(aException); /*0x156aed*/\n  *(_DWORD *)(active_threads + 56) = 0; /*0x156af8*/\n  v5 = v3 + 42; /*0x156aff*/\n  do /*0x156b1a*/\n  {\n    while ( *v5 ) /*0x156b08*/\n      ; /*0x156b0a*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x156b1a*/\n  v6 = *(_DWORD *)(v4 + 180); /*0x156b1c*/\n  if ( v6 && v6 != -1 ) /*0x156b29*/\n  {\n    do /*0x156b4a*/\n    {\n      while ( *(_DWORD *)v6 ) /*0x156b38*/\n        ; /*0x156b3a*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x156b4a*/\n    _InterlockedExchange((volatile __int32 *)(v4 + 168), 0); /*0x156b4e*/\n    if ( *(int *)(v6 + 8) < 0 ) /*0x156b58*/\n    {\n      ++*(_DWORD *)(v6 + 4); /*0x156b70*/\n      ++*(_DWORD *)(v6 + 28); /*0x156b73*/\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x156b78*/\n      *(_DWORD *)(v4 + 200) = exception; /*0x156b7a*/\n      *(_DWORD *)(v4 + 204) = code; /*0x156b83*/\n      *(_DWORD *)(v4 + 208) = codeCnt; /*0x156b8c*/\n      task_self_fast = retrieve_task_self_fast(*(_DWORD *)(v4 + 12)); /*0x156ba4*/\n      thread_self_fast = retrieve_thread_self_fast(v4); /*0x156ba6*/\n      result = exception_raise(v6, thread_self_fast, task_self_fast, exception, code, codeCnt); /*0x156bb0*/\n      goto LABEL_15; /*0x156bb0*/\n    }\n    _InterlockedExchange((volatile __int32 *)v6, 0); /*0x156b5c*/\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(v4 + 168), 0); /*0x156b2d*/\n  }\n  result = exception_try_task(exception, code, codeCnt); /*0x156b67*/\nLABEL_15:\n  v3[14] = v13; /*0x156bb5*/\n  v3[50] = v12; /*0x156bbe*/\n  v3[51] = v11; /*0x156bc7*/\n  v3[52] = v10; /*0x156bd0*/\n  return result; /*0x156bd9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deb58",
+        "name": "aException",
+        "string": "exception"
+      },
+      {
+        "addr": "0x1598a0",
+        "name": "_retrieve_task_self_fast"
+      },
+      {
+        "addr": "0x159900",
+        "name": "_retrieve_thread_self_fast"
+      },
+      {
+        "addr": "0x156cc8",
+        "name": "_exception_raise"
+      },
+      {
+        "addr": "0x156be0",
+        "name": "_exception_try_task"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156be0",
+    "addr": "0x00156be0",
+    "code": "kern_return_t __cdecl exception_try_task(\n        exception_type_t exception,\n        exception_data_t code,\n        mach_msg_type_number_t codeCnt)\n{\n  thread_act_t v3; // esi\n  int v4; // ecx\n  volatile __int32 *v5; // edx\n  mach_port_t v6; // ebx\n  mach_port_t thread_self_fast; // eax\n  mach_port_t task_self_fast; // [esp-10h] [ebp-1Ch]\n\n  v3 = active_threads; /*0x156be6*/\n  v4 = *(_DWORD *)(active_threads + 12); /*0x156bec*/\n  v5 = (volatile __int32 *)(v4 + 100); /*0x156bef*/\n  do /*0x156c06*/\n  {\n    while ( *v5 ) /*0x156bf4*/\n      ; /*0x156bf6*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x156c06*/\n  v6 = *(_DWORD *)(v4 + 112); /*0x156c08*/\n  if ( v6 && v6 != -1 ) /*0x156c12*/\n  {\n    do /*0x156c32*/\n    {\n      while ( *(_DWORD *)v6 ) /*0x156c20*/\n        ; /*0x156c22*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x156c32*/\n    _InterlockedExchange((volatile __int32 *)(v4 + 100), 0); /*0x156c36*/\n    if ( *(int *)(v6 + 8) < 0 ) /*0x156c3d*/\n    {\n      ++*(_DWORD *)(v6 + 4); /*0x156c4c*/\n      ++*(_DWORD *)(v6 + 28); /*0x156c4f*/\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x156c54*/\n      *(_DWORD *)(v3 + 200) = 0; /*0x156c56*/\n      task_self_fast = retrieve_task_self_fast(v4); /*0x156c75*/\n      thread_self_fast = retrieve_thread_self_fast(v3); /*0x156c77*/\n      return exception_raise(v6, thread_self_fast, task_self_fast, exception, code, codeCnt); /*0x156c81*/\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x156c41*/\n      return exception_no_server(); /*0x156c43*/\n    }\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(v4 + 100), 0); /*0x156c16*/\n    return exception_no_server(); /*0x156c19*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1598a0",
+        "name": "_retrieve_task_self_fast"
+      },
+      {
+        "addr": "0x159900",
+        "name": "_retrieve_thread_self_fast"
+      },
+      {
+        "addr": "0x156cc8",
+        "name": "_exception_raise"
+      },
+      {
+        "addr": "0x156c90",
+        "name": "_exception_no_server"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156c90",
+    "addr": "0x00156c90",
+    "code": "int exception_no_server()\n{\n  thread_act_t v0; // ebx\n\n  v0 = active_threads; /*0x156c94*/\n  while ( (*(_BYTE *)(v0 + 380) & 3) != 0 ) /*0x156ca1*/\n    thread_halt_self(); /*0x156ca4*/\n  task_terminate(*(_DWORD *)(v0 + 12)); /*0x156cb6*/\n  return thread_halt_self(); /*0x156cc0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1678b4",
+        "name": "_thread_halt_self"
+      },
+      {
+        "addr": "0x165cc0",
+        "name": "_task_terminate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00156cc8",
+    "addr": "0x00156cc8",
+    "code": "kern_return_t __cdecl exception_raise(\n        mach_port_t exception_port,\n        mach_port_t thread,\n        mach_port_t task,\n        exception_type_t exception,\n        exception_data_t code,\n        mach_msg_type_number_t codeCnt)\n{\n  _DWORD *v6; // esi\n  int v7; // eax\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  int v11; // edi\n  int (*v12)(); // eax\n  int v13; // edx\n  int v14; // eax\n  int v15; // edx\n  int v16; // eax\n  int v17; // ebx\n  volatile __int32 *v18; // edx\n  int v19; // edx\n  int v20; // ebx\n  _DWORD *v21; // eax\n  int v22; // eax\n  int v23; // eax\n  int v24; // ebx\n  int v25; // eax\n  int (*v27)(); // eax\n  mach_port_t v28; // [esp+Ch] [ebp-24h]\n  int v29; // [esp+Ch] [ebp-24h]\n  int v30; // [esp+Ch] [ebp-24h]\n  __int64 v31; // [esp+Ch] [ebp-24h]\n  int v32; // [esp+Ch] [ebp-24h]\n  int v33; // [esp+Ch] [ebp-24h]\n  int v34; // [esp+Ch] [ebp-24h]\n  int v35; // [esp+Ch] [ebp-24h]\n  int v36; // [esp+14h] [ebp-1Ch]\n  unsigned int *v37; // [esp+18h] [ebp-18h]\n  volatile __int32 *v38; // [esp+1Ch] [ebp-14h]\n  volatile __int32 *v39; // [esp+20h] [ebp-10h]\n  thread_act_t v40; // [esp+24h] [ebp-Ch]\n  int v41; // [esp+28h] [ebp-8h] BYREF\n  unsigned int v42; // [esp+2Ch] [ebp-4h] BYREF\n\n  v40 = active_threads; /*0x156cd7*/\n  v6 = (_DWORD *)ipc_kmsg_cache; /*0x156cda*/\n  if ( ipc_kmsg_cache ) /*0x156ce2*/\n  {\n    ipc_kmsg_cache = 0; /*0x156ce4*/\n  }\n  else\n  {\n    v7 = kalloc(0x100u); /*0x156cf5*/\n    v6 = (_DWORD *)v7; /*0x156cfa*/\n    if ( !v7 ) /*0x156d01*/\n      panic(aExceptionRaise); /*0x156d08*/\n    *(_DWORD *)(v7 + 8) = 256; /*0x156d10*/\n    *(_DWORD *)(v7 + 12) = 0; /*0x156d17*/\n  }\n  v6[4] = 0; /*0x156d1e*/\n  v8 = (volatile __int32 *)(v40 + 168); /*0x156d28*/\n  do /*0x156d42*/\n  {\n    while ( *v8 ) /*0x156d30*/\n      ; /*0x156d32*/\n  }\n  while ( _InterlockedExchange(v8, 1) == 1 ); /*0x156d42*/\n  v39 = *(volatile __int32 **)(v40 + 192); /*0x156d4d*/\n  if ( !v39 ) /*0x156d52*/\n  {\n    _InterlockedExchange((volatile __int32 *)(v40 + 168), 0); /*0x156d65*/\n    v39 = ipc_port_alloc_special(ipc_space_reply); /*0x156d77*/\n    v9 = (volatile __int32 *)(v40 + 168); /*0x156d7a*/\n    do /*0x156d92*/\n    {\n      while ( *v9 ) /*0x156d80*/\n        ; /*0x156d82*/\n    }\n    while ( _InterlockedExchange(v9, 1) == 1 ); /*0x156d92*/\n    if ( !v39 || *(_DWORD *)(v40 + 192) ) /*0x156d9d*/\n      panic(aExceptionRaise_0); /*0x156dab*/\n    *(_DWORD *)(v40 + 192) = v39; /*0x156db9*/\n  }\n  do /*0x156dd8*/\n  {\n    while ( *v39 ) /*0x156dc3*/\n      ; /*0x156dc5*/\n  }\n  while ( _InterlockedExchange(v39, 1) == 1 ); /*0x156dd8*/\n  _InterlockedExchange((volatile __int32 *)(v40 + 168), 0); /*0x156ddf*/\n  ++*((_DWORD *)v39 + 8); /*0x156de5*/\n  *((_DWORD *)v39 + 1) += 2; /*0x156de8*/\n  *(_DWORD *)(v40 + 196) = v39; /*0x156dec*/\n  v38 = v39 + 16; /*0x156df5*/\n  do /*0x156e10*/\n  {\n    while ( *v38 ) /*0x156dfb*/\n      ; /*0x156dfd*/\n  }\n  while ( _InterlockedExchange(v38, 1) == 1 ); /*0x156e10*/\n  _InterlockedExchange(v39, 0); /*0x156e17*/\n  if ( _InterlockedExchange((volatile __int32 *)exception_port, 1) != 1 )\n  {\n    if ( *(int *)(exception_port + 8) < 0\n      && *(_DWORD *)(exception_port + 12) != ipc_space_kernel\n      && ((v10 = *(_DWORD *)(exception_port + 48)) != 0 ? (v28 = v10 + 16) : (v28 = exception_port + 64),\n          _InterlockedExchange((volatile __int32 *)v28, 1) ^ 1) )\n    {\n      _InterlockedExchange((volatile __int32 *)exception_port, 0); /*0x156e91*/\n      v11 = *(_DWORD *)(v28 + 8); /*0x156e96*/\n      if ( v11 /*0x156ed3*/\n        && *(_DWORD *)(v40 + 56)\n        && ((v12 = *(int (**)())(v11 + 52), v12 == mach_msg_continue)\n         || v12 == mach_msg_receive_continue && *(_DWORD *)(v11 + 156) > 0x3Fu && (*(_BYTE *)(v11 + 201) & 2) == 0)\n        && thread_handoff(v40, exception_raise_continue, *(_DWORD *)(v28 + 8)) )\n      {\n        v13 = *((_DWORD *)v39 + 18); /*0x156f0f*/\n        if ( v13 ) /*0x156f14*/\n        {\n          v14 = *(_DWORD *)(v13 + 148); /*0x156f16*/\n          *(_DWORD *)(v40 + 144) = v13; /*0x156f1f*/\n          *(_DWORD *)(v40 + 148) = v14; /*0x156f25*/\n          *(_DWORD *)(v13 + 148) = v40; /*0x156f2b*/\n          *(_DWORD *)(v14 + 144) = v40; /*0x156f31*/\n        }\n        else\n        {\n          *((_DWORD *)v39 + 18) = v40; /*0x156efa*/\n        }\n        *(_DWORD *)(v40 + 152) = 268451841; /*0x156f3a*/\n        *(_DWORD *)(v40 + 156) = -1; /*0x156f44*/\n        _InterlockedExchange(v38, 0); /*0x156f53*/\n        v15 = *(_DWORD *)(v11 + 144); /*0x156f55*/\n        if ( v15 == v11 ) /*0x156f5d*/\n        {\n          *(_DWORD *)(v28 + 8) = 0; /*0x156f03*/\n        }\n        else\n        {\n          v16 = *(_DWORD *)(v11 + 148); /*0x156f5f*/\n          *(_DWORD *)(v28 + 8) = v15; /*0x156f68*/\n          *(_DWORD *)(v15 + 148) = v16; /*0x156f6b*/\n          *(_DWORD *)(v16 + 144) = v15; /*0x156f71*/\n          *(_DWORD *)(v11 + 144) = v11; /*0x156f77*/\n          *(_DWORD *)(v11 + 148) = v11; /*0x156f7d*/\n        }\n        _InterlockedExchange((volatile __int32 *)v28, 0); /*0x156f88*/\n        v29 = *(_DWORD *)(v11 + 216); /*0x156f90*/\n        do /*0x156fac*/\n        {\n          while ( *(_DWORD *)v29 ) /*0x156f97*/\n            ; /*0x156f99*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)v29, 1) == 1 ); /*0x156fac*/\n        v17 = *(_DWORD *)(v29 + 4) - 1; /*0x156fb1*/\n        *(_DWORD *)(v29 + 4) = v17; /*0x156fb4*/\n        _InterlockedExchange((volatile __int32 *)v29, 0); /*0x156fba*/\n        if ( !v17 ) /*0x156fbe*/\n          zfree(ipc_object_zones[*(_WORD *)(v29 + 10) & 0x7FFF], v29); /*0x156fd2*/\n        v37 = v6 + 5; /*0x156fdd*/\n        v36 = *(_DWORD *)(*(_DWORD *)(v11 + 12) + 136); /*0x156fe9*/\n        v6[5] = -2147479278; /*0x156fec*/\n        v6[6] = 64; /*0x156ff3*/\n        v6[9] = 0; /*0x156ffa*/\n        v6[10] = 2400; /*0x157001*/\n        v6[11] = exc_port_proto; /*0x15700e*/\n        v6[13] = exc_port_proto; /*0x157017*/\n        v6[15] = exc_code_proto; /*0x157020*/\n        v6[16] = exception; /*0x157026*/\n        v6[17] = exc_code_proto; /*0x15702f*/\n        v6[18] = code; /*0x157035*/\n        v6[19] = exc_code_proto; /*0x15703e*/\n        v6[20] = codeCnt; /*0x157044*/\n        if ( *(_DWORD *)(v11 + 204) <= 0x3Fu ) /*0x15704e*/\n        {\n          v6[5] = -2147479023; /*0x157050*/\n          v6[7] = exception_port; /*0x15705a*/\n          v6[8] = v39; /*0x157060*/\n          v6[12] = thread; /*0x157066*/\n          v6[14] = task; /*0x15706c*/\n          ipc_kmsg_destroy(v6); /*0x157070*/\n          thread_syscall_return(268451844); /*0x15707a*/\n        }\n        v18 = (volatile __int32 *)(v36 + 8); /*0x157085*/\n        do /*0x15709a*/\n        {\n          while ( *v18 ) /*0x157088*/\n            ; /*0x15708a*/\n        }\n        while ( _InterlockedExchange(v18, 1) == 1 ); /*0x15709a*/\n        do /*0x1570b4*/\n        {\n          while ( *(_DWORD *)exception_port ) /*0x15709f*/\n            ; /*0x1570a1*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)exception_port, 1) == 1 ); /*0x1570b4*/\n        if ( *(int *)(exception_port + 8) < 0 && _InterlockedExchange(v39, 1) != 1 ) /*0x1570c6*/\n          goto LABEL_61; /*0x1570cb*/\n        while ( 1 ) /*0x1570d2*/\n        {\n          _InterlockedExchange((volatile __int32 *)exception_port, 0); /*0x1570d2*/\n          _InterlockedExchange((volatile __int32 *)(v36 + 8), 0); /*0x1570d9*/\n          *v37 = -2147479023; /*0x1570df*/\n          v6[7] = exception_port; /*0x1570e8*/\n          v6[8] = v39; /*0x1570ee*/\n          v30 = ipc_kmsg_copyout_header(v37, v36, 0); /*0x157100*/\n          if ( !v30 ) /*0x157108*/\n            break; /*0x157108*/\n          v6[12] = thread; /*0x157111*/\n          v6[14] = task; /*0x157117*/\n          ipc_kmsg_copyout_dest(v6, v36); /*0x15711f*/\n          ipc_kmsg_put(*(_DWORD *)(v11 + 196), (int)v6, 24); /*0x15712e*/\n          thread_syscall_return(v30); /*0x157137*/\nLABEL_61:\n          if ( *((int *)v39 + 2) < 0 ) /*0x157146*/\n          {\n            _InterlockedExchange(v39, 0); /*0x157159*/\n            v19 = *(_DWORD *)(v36 + 20); /*0x15715e*/\n            v20 = *(_DWORD *)(v19 + 8); /*0x157161*/\n            HIDWORD(v31) = v20; /*0x157164*/\n            if ( v20 ) /*0x157169*/\n            {\n              v21 = (_DWORD *)(v19 + 16 * v20); /*0x157174*/\n              *(_DWORD *)(v19 + 8) = v21[2]; /*0x157179*/\n              v21[2] = 0; /*0x15717c*/\n              LODWORD(v31) = *v21 + 0x1000000; /*0x15718b*/\n              v6[7] = v31 >> 24; /*0x15719e*/\n              *v21 = v31 | 0x40001; /*0x1571aa*/\n              v21[1] = v39; /*0x1571af*/\n              _InterlockedExchange((volatile __int32 *)(v36 + 8), 0); /*0x1571b7*/\n              --*(_DWORD *)(exception_port + 4); /*0x1571bd*/\n              v22 = 0; /*0x1571c0*/\n              if ( *(_DWORD *)(exception_port + 12) == v36 ) /*0x1571c5*/\n                v22 = *(_DWORD *)(exception_port + 16); /*0x1571c7*/\n              v6[8] = v22; /*0x1571cd*/\n              v23 = *(_DWORD *)(exception_port + 28); /*0x1571d3*/\n              *(_DWORD *)(exception_port + 28) = v23 - 1; /*0x1571d9*/\n              if ( v23 == 1 && (v24 = *(_DWORD *)(exception_port + 36)) != 0 ) /*0x1571e9*/\n              {\n                v25 = *(_DWORD *)(exception_port + 24); /*0x1571ee*/\n                *(_DWORD *)(exception_port + 36) = 0; /*0x1571f1*/\n                _InterlockedExchange((volatile __int32 *)exception_port, 0); /*0x1571fa*/\n                ipc_notify_no_senders(v24, v25); /*0x1571fe*/\n              }\n              else\n              {\n                _InterlockedExchange((volatile __int32 *)exception_port, 0); /*0x15720d*/\n              }\n              break; /*0x157206*/\n            }\n          }\n          else\n          {\n            _InterlockedExchange(v39, 0); /*0x15714a*/\n          }\n        }\n        v32 = ipc_kmsg_copyout_object(v36, thread, 17, v6 + 12); /*0x15720f*/\n        v33 = v32 | ipc_kmsg_copyout_object(v36, task, 17, v6 + 14); /*0x15723e*/\n        if ( v33 ) /*0x157246*/\n        {\n          ipc_kmsg_put(*(_DWORD *)(v11 + 196), (int)v6, v6[6]); /*0x157254*/\n          thread_syscall_return(v33 | 0x1000400C); /*0x157262*/\n        }\n        v6[4] = 0; /*0x15726a*/\n        if ( copyoutmsg(v6 + 5, *(_DWORD *)(v11 + 196), 64) || ipc_kmsg_cache ) /*0x157291*/\n        {\n          v34 = ipc_kmsg_put(*(_DWORD *)(v11 + 196), (int)v6, v6[6]); /*0x1572a4*/\n          thread_syscall_return(v34); /*0x1572a8*/\n        }\n        ipc_kmsg_cache = (int)v6; /*0x1572b0*/\n        thread_syscall_return(0); /*0x1572b8*/\n      }\n      else\n      {\n        _InterlockedExchange(v38, 0); /*0x156ee4*/\n        _InterlockedExchange((volatile __int32 *)v28, 0); /*0x156eeb*/\n      }\n    }\n    else\n    {\n      _InterlockedExchange(v38, 0); /*0x156e7c*/\n      _InterlockedExchange((volatile __int32 *)exception_port, 0); /*0x156e83*/\n    }\n  }\n  else\n  {\n    _InterlockedExchange(v38, 0); /*0x156e2f*/\n  }\n  ++exception_raise_misses; /*0x1572c0*/\n  v6[5] = -2147479023; /*0x1572c6*/\n  v6[6] = 64; /*0x1572cd*/\n  v6[7] = exception_port; /*0x1572d7*/\n  v6[8] = v39; /*0x1572dd*/\n  v6[9] = 0; /*0x1572e0*/\n  v6[10] = 2400; /*0x1572e7*/\n  v6[11] = exc_port_proto; /*0x1572f4*/\n  v6[12] = thread; /*0x1572fa*/\n  v6[13] = exc_port_proto; /*0x157303*/\n  v6[14] = task; /*0x157309*/\n  v6[15] = exc_code_proto; /*0x157312*/\n  v6[16] = exception; /*0x157318*/\n  v6[17] = exc_code_proto; /*0x157321*/\n  v6[18] = code; /*0x157327*/\n  v6[19] = exc_code_proto; /*0x157330*/\n  v6[20] = codeCnt; /*0x157336*/\n  ipc_mqueue_send((int)v6, 0x10000, 0, 0); /*0x157343*/\n  do /*0x157367*/\n  {\n    while ( *v39 ) /*0x15734f*/\n      ; /*0x157354*/\n  }\n  while ( _InterlockedExchange(v39, 1) == 1 ); /*0x157367*/\n  if ( *((int *)v39 + 2) < 0 ) /*0x15736d*/\n  {\n    do /*0x157398*/\n    {\n      while ( *v38 ) /*0x157383*/\n        ; /*0x157385*/\n    }\n    while ( _InterlockedExchange(v38, 1) == 1 ); /*0x157398*/\n    _InterlockedExchange(v39, 0); /*0x15739f*/\n    v27 = nullptr; /*0x1573a9*/\n    if ( *(_DWORD *)(v40 + 56) ) /*0x1573ae*/\n      v27 = exception_raise_continue; /*0x1573b4*/\n    v35 = ipc_mqueue_receive((int)v38, 0, 0xFFFFFFFF, 0, 0, (int)v27, &v42, &v41); /*0x1573cb*/\n    return exception_raise_continue_slow(v35, v42, v41); /*0x1573dd*/\n  }\n  else\n  {\n    _InterlockedExchange(v39, 0); /*0x157371*/\n    return exception_raise_continue_slow(268451849, 0, 0); /*0x15737c*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1f6258",
+        "name": "_ipc_kmsg_cache"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1deb70",
+        "name": "aExceptionRaise",
+        "string": "exception_raise"
+      },
+      {
+        "addr": "0x14d1a4",
+        "name": "_ipc_port_alloc_special"
+      },
+      {
+        "addr": "0x1f6250",
+        "name": "_ipc_space_reply"
+      },
+      {
+        "addr": "0x1deb80",
+        "name": "aExceptionRaise_0",
+        "string": "exception_raise"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x1deb64",
+        "name": "_exc_port_proto"
+      },
+      {
+        "addr": "0x1deb68",
+        "name": "_exc_code_proto"
+      },
+      {
+        "addr": "0x146fe0",
+        "name": "_ipc_kmsg_destroy"
+      },
+      {
+        "addr": "0x18df80",
+        "name": "_thread_syscall_return"
+      },
+      {
+        "addr": "0x148564",
+        "name": "_ipc_kmsg_copyout_header"
+      },
+      {
+        "addr": "0x149428",
+        "name": "_ipc_kmsg_copyout_dest"
+      },
+      {
+        "addr": "0x1476ec",
+        "name": "_ipc_kmsg_put"
+      },
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x148c20",
+        "name": "_ipc_kmsg_copyout_object"
+      },
+      {
+        "addr": "0x189e8c",
+        "name": "_copyoutmsg"
+      },
+      {
+        "addr": "0x153f34",
+        "name": "_mach_msg_continue"
+      },
+      {
+        "addr": "0x152904",
+        "name": "_mach_msg_receive_continue"
+      },
+      {
+        "addr": "0x1592ac",
+        "name": "_thread_handoff"
+      },
+      {
+        "addr": "0x15746c",
+        "name": "_exception_raise_continue"
+      },
+      {
+        "addr": "0x1f624c",
+        "name": "_ipc_space_kernel"
+      },
+      {
+        "addr": "0x1deb6c",
+        "name": "_exception_raise_misses"
+      },
+      {
+        "addr": "0x14a764",
+        "name": "_ipc_mqueue_send"
+      },
+      {
+        "addr": "0x14acd4",
+        "name": "_ipc_mqueue_receive"
+      },
+      {
+        "addr": "0x1574b0",
+        "name": "_exception_raise_continue_slow"
+      }
+    ]
+  }
+]

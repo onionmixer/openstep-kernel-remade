@@ -1,0 +1,979 @@
+[
+  {
+    "requested_address": "0x0012a7d8",
+    "addr": "0x0012a7d8",
+    "code": "void __cdecl tcp_notify(int a1)\n{\n  int v1; // eax\n  int v2; // edx\n\n  v1 = *(_DWORD *)(a1 + 28); /*0x12a7df*/\n  v2 = *(unsigned __int16 *)(v1 + 86); /*0x12a7e2*/\n  if ( *(_WORD *)(v1 + 6) != 4 && (v2 == 65 || v2 == 51 || v2 == 64) ) /*0x12a7fa*/\n  {\n    *(_WORD *)(*(_DWORD *)(a1 + 28) + 86) = 0; /*0x12a7ff*/\n  }\n  else\n  {\n    *(_WORD *)(*(_DWORD *)(a1 + 32) + 106) = v2; /*0x12a80b*/\n    wakeup(*(_DWORD *)(a1 + 28) + 84); /*0x12a816*/\n    sowakeup(*(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 28) + 36); /*0x12a823*/\n    sowakeup(*(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 28) + 60); /*0x12a830*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x11649c",
+        "name": "_sowakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012a83c",
+    "addr": "0x0012a83c",
+    "code": "int __cdecl tcp_ctlinput(unsigned int a1, int a2, int a3)\n{\n  void (__cdecl *v3)(int); // edx\n  __int16 *v4; // eax\n  int result; // eax\n\n  v3 = tcp_notify; /*0x12a84b*/\n  if ( a1 == 4 ) /*0x12a853*/\n  {\n    v3 = (void (__cdecl *)(int))tcp_quench; /*0x12a868*/\nLABEL_6:\n    if ( !a3 ) /*0x12a86f*/\n      return in_pcbnotify(&tcb, a2, 0, zeroin_addr, 0, a1, (int (__cdecl *)(int))v3); /*0x12a89f*/\n    v4 = (__int16 *)(a3 + 4 * (*(_BYTE *)a3 & 0xF)); /*0x12a876*/\n    return in_pcbnotify(&tcb, a2, v4[1], *(_DWORD *)(a3 + 12), *v4, a1, (int (__cdecl *)(int))v3); /*0x12a888*/\n  }\n  if ( a1 <= 0x15 && inetctlerrmap[a1] ) /*0x12a85a*/\n    goto LABEL_6; /*0x12a861*/\n  return result; /*0x12a8a7*/\n}",
+    "refs": [
+      {
+        "addr": "0x12a7d8",
+        "name": "_tcp_notify"
+      },
+      {
+        "addr": "0x12a8b0",
+        "name": "_tcp_quench"
+      },
+      {
+        "addr": "0x125340",
+        "name": "_in_pcbnotify"
+      },
+      {
+        "addr": "0x1ead10",
+        "name": "_tcb"
+      },
+      {
+        "addr": "0x1eab2c",
+        "name": "_zeroin_addr"
+      },
+      {
+        "addr": "0x1dbdb9",
+        "name": "_inetctlerrmap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012a8b0",
+    "addr": "0x0012a8b0",
+    "code": "int __cdecl tcp_quench(int a1)\n{\n  int result; // eax\n\n  result = *(_DWORD *)(a1 + 32); /*0x12a8b6*/\n  if ( result ) /*0x12a8bb*/\n    *(_WORD *)(result + 84) = *(_WORD *)(result + 24); /*0x12a8c1*/\n  return result; /*0x12a8c7*/\n}"
+  },
+  {
+    "requested_address": "0x0012a8cc",
+    "addr": "0x0012a8cc",
+    "code": "int tcp_fasttimo()\n{\n  int v0; // esi\n  int *v1; // ebx\n  int v2; // edx\n  char v3; // al\n\n  v0 = splnet(); /*0x12a8d6*/\n  v1 = (int *)tcb; /*0x12a8d8*/\n  if ( tcb && (int *)tcb != &tcb ) /*0x12a8e8*/\n  {\n    do /*0x12a918*/\n    {\n      v2 = v1[8]; /*0x12a8ec*/\n      if ( v2 ) /*0x12a8f1*/\n      {\n        v3 = *(_BYTE *)(v2 + 27); /*0x12a8f3*/\n        if ( (v3 & 2) != 0 ) /*0x12a8f8*/\n        {\n          *(_BYTE *)(v2 + 27) = v3 & 0xFC | 1; /*0x12a8fe*/\n          ++dword_1EED90; /*0x12a901*/\n          tcp_output(v2); /*0x12a908*/\n        }\n      }\n      v1 = (int *)*v1; /*0x12a910*/\n    }\n    while ( v1 != &tcb ); /*0x12a918*/\n  }\n  return splx(v0); /*0x12a923*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x1ead10",
+        "name": "_tcb"
+      },
+      {
+        "addr": "0x1eed90",
+        "name": "dword_1EED90"
+      },
+      {
+        "addr": "0x129d8c",
+        "name": "_tcp_output"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012a92c",
+    "addr": "0x0012a92c",
+    "code": "int tcp_slowtimo()\n{\n  int *v0; // edi\n  int v1; // edx\n  int v2; // esi\n  int v3; // ebx\n  __int16 v4; // ax\n  __int16 v5; // ax\n  int v7; // [esp+Ch] [ebp-8h]\n  int v8; // [esp+10h] [ebp-4h]\n\n  v8 = splnet(); /*0x12a93a*/\n  tcp_maxidle = 8 * tcp_keepintvl; /*0x12a946*/\n  v0 = (int *)tcb; /*0x12a94c*/\n  if ( tcb ) /*0x12a954*/\n  {\n    while ( v0 != &tcb ) /*0x12a9bf*/\n    {\n      v1 = *v0; /*0x12a958*/\n      v2 = v0[8]; /*0x12a95a*/\n      if ( v2 ) /*0x12a95f*/\n      {\n        v3 = 0; /*0x12a961*/\n        while ( 1 ) /*0x12a964*/\n        {\n          v4 = *(_WORD *)(v2 + 2 * v3 + 10); /*0x12a964*/\n          if ( v4 ) /*0x12a96c*/\n          {\n            *(_WORD *)(v2 + 2 * v3 + 10) = v4 - 1; /*0x12a972*/\n            if ( v4 == 1 ) /*0x12a97b*/\n            {\n              v7 = v1; /*0x12a98b*/\n              tcp_usrreq(*(_DWORD *)(*(_DWORD *)(v2 + 32) + 28), 19, 0, v3, 0); /*0x12a98e*/\n              v1 = v7; /*0x12a996*/\n              if ( *(int **)(v7 + 4) != v0 ) /*0x12a99c*/\n                break; /*0x12a99c*/\n            }\n          }\n          if ( ++v3 > 3 ) /*0x12a9a2*/\n          {\n            ++*(_WORD *)(v2 + 88); /*0x12a9a4*/\n            v5 = *(_WORD *)(v2 + 90); /*0x12a9a8*/\n            if ( v5 ) /*0x12a9af*/\n              *(_WORD *)(v2 + 90) = v5 + 1; /*0x12a9b3*/\n            break; /*0x12a9b3*/\n          }\n        }\n      }\n      v0 = (int *)v1; /*0x12a9b7*/\n    }\n    tcp_iss += 64000; /*0x12a9c1*/\n  }\n  return splx(v8); /*0x12a9d7*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x1eee28",
+        "name": "_tcp_maxidle"
+      },
+      {
+        "addr": "0x1dbea0",
+        "name": "_tcp_keepintvl"
+      },
+      {
+        "addr": "0x1ead10",
+        "name": "_tcb"
+      },
+      {
+        "addr": "0x12ac0c",
+        "name": "_tcp_usrreq"
+      },
+      {
+        "addr": "0x1eed64",
+        "name": "_tcp_iss"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012a9e0",
+    "addr": "0x0012a9e0",
+    "code": "int __cdecl tcp_canceltimers(int a1)\n{\n  int result; // eax\n\n  for ( result = 3; result >= 0; --result ) /*0x12a9e6*/\n    *(_WORD *)(a1 + 2 * result + 10) = 0; /*0x12a9ec*/\n  return result; /*0x12a9f8*/\n}"
+  },
+  {
+    "requested_address": "0x0012a9fc",
+    "addr": "0x0012a9fc",
+    "code": "int __cdecl tcp_timers(int a1, int a2)\n{\n  int v2; // ebx\n  __int16 v4; // si\n  unsigned __int16 v5; // cx\n  unsigned __int16 v6; // cx\n  int v7; // edx\n  unsigned __int16 v8; // cx\n  __int16 v9; // si\n  __int16 v10; // dx\n  __int16 v12; // [esp+Ch] [ebp-4h]\n\n  v2 = a1; /*0x12aa04*/\n  if ( a2 == 1 ) /*0x12aa0d*/\n  {\n    ++dword_1EED9C; /*0x12ab68*/\n    tcp_setpersist((_WORD *)a1); /*0x12ab6f*/\n    *(_BYTE *)(a1 + 26) = 1; /*0x12ab74*/\n    tcp_output(a1); /*0x12ab79*/\n    *(_BYTE *)(a1 + 26) = 0; /*0x12ab7e*/\n  }\n  else if ( a2 > 1 ) /*0x12aa13*/\n  {\n    if ( a2 == 2 ) /*0x12aa23*/\n    {\n      ++dword_1EEDA0; /*0x12ab84*/\n      v10 = *(_WORD *)(a1 + 8); /*0x12ab8a*/\n      if ( v10 <= 3 ) /*0x12ab92*/\n        goto LABEL_31; /*0x12ab92*/\n      if ( (*(_BYTE *)(*(_DWORD *)(*(_DWORD *)(a1 + 32) + 28) + 2) & 8) == 0 || v10 > 5 ) /*0x12aba4*/\n      {\n        *(_WORD *)(a1 + 14) = tcp_keepidle; /*0x12abea*/\n        return v2; /*0x12abee*/\n      }\n      if ( *(__int16 *)(a1 + 88) >= tcp_maxidle + tcp_keepidle ) /*0x12abb7*/\n      {\nLABEL_31:\n        ++dword_1EEDA8; /*0x12abf0*/\n        return tcp_drop(a1, 60); /*0x12abf0*/\n      }\n      ++dword_1EEDA4; /*0x12abb9*/\n      tcp_respond(a1, *(char **)(a1 + 28), 0, *(_DWORD *)(a1 + 64), *(_DWORD *)(a1 + 36) - 1, 0); /*0x12abd1*/\n      *(_WORD *)(a1 + 14) = tcp_keepintvl; /*0x12abdc*/\n    }\n    else if ( a2 == 3 ) /*0x12aa2c*/\n    {\n      if ( *(_WORD *)(a1 + 8) == 10 || tcp_maxidle < *(__int16 *)(a1 + 88) ) /*0x12aa43*/\n        return tcp_close((_DWORD *)a1); /*0x12abfe*/\n      *(_WORD *)(a1 + 16) = tcp_keepintvl; /*0x12aa4b*/\n    }\n  }\n  else\n  {\n    if ( a2 ) /*0x12aa17*/\n      return v2; /*0x12aa17*/\n    v12 = *(_WORD *)(a1 + 18); /*0x12aa64*/\n    *(_WORD *)(a1 + 18) = v12 + 1; /*0x12aa6a*/\n    if ( (__int16)(v12 + 1) > 12 ) /*0x12aa78*/\n    {\n      *(_WORD *)(a1 + 18) = 12; /*0x12aa7a*/\n      ++dword_1EED94; /*0x12aa80*/\n      return tcp_drop(a1, 60); /*0x12abf9*/\n    }\n    ++dword_1EED98; /*0x12aa8c*/\n    *(_WORD *)(a1 + 20) = tcp_backoff[2 * *(__int16 *)(a1 + 18)] * (*(_WORD *)(a1 + 98) + (*(__int16 *)(a1 + 96) >> 3)); /*0x12aaae*/\n    v4 = *(_WORD *)(a1 + 20); /*0x12aab2*/\n    v5 = *(_WORD *)(a1 + 100); /*0x12aab9*/\n    if ( v4 >= (int)v5 ) /*0x12aac2*/\n    {\n      if ( v4 > 128 ) /*0x12aad1*/\n        *(_WORD *)(a1 + 20) = 128; /*0x12aad3*/\n    }\n    else\n    {\n      *(_WORD *)(a1 + 20) = v5; /*0x12aac4*/\n    }\n    *(_WORD *)(a1 + 10) = *(_WORD *)(a1 + 20); /*0x12aadd*/\n    if ( *(__int16 *)(a1 + 18) > 3 ) /*0x12aae6*/\n    {\n      in_losing(*(_DWORD *)(a1 + 32)); /*0x12aaec*/\n      *(_WORD *)(a1 + 98) += *(__int16 *)(a1 + 96) >> 2; /*0x12aaf9*/\n      *(_WORD *)(a1 + 96) = 0; /*0x12aafd*/\n    }\n    *(_DWORD *)(a1 + 40) = *(_DWORD *)(a1 + 36); /*0x12ab09*/\n    *(_WORD *)(a1 + 90) = 0; /*0x12ab0c*/\n    v6 = *(_WORD *)(a1 + 60); /*0x12ab12*/\n    if ( v6 > *(_WORD *)(a1 + 84) ) /*0x12ab1d*/\n      v6 = *(_WORD *)(a1 + 84); /*0x12ab1f*/\n    v7 = v6 >> 1; /*0x12ab28*/\n    v8 = *(_WORD *)(a1 + 24); /*0x12ab2b*/\n    v9 = v7 / v8; /*0x12ab3b*/\n    if ( (unsigned int)(v7 / v8) <= 1 ) /*0x12ab40*/\n      v9 = 2; /*0x12ab42*/\n    *(_WORD *)(a1 + 84) = v8; /*0x12ab47*/\n    *(_WORD *)(a1 + 86) = v9 * *(_WORD *)(a1 + 24); /*0x12ab53*/\n    *(_WORD *)(a1 + 22) = 0; /*0x12ab57*/\n    tcp_output(a1); /*0x12ab5e*/\n  }\n  return v2; /*0x12ac05*/\n}",
+    "refs": [
+      {
+        "addr": "0x1eed9c",
+        "name": "dword_1EED9C"
+      },
+      {
+        "addr": "0x12a3bc",
+        "name": "_tcp_setpersist"
+      },
+      {
+        "addr": "0x129d8c",
+        "name": "_tcp_output"
+      },
+      {
+        "addr": "0x1eeda0",
+        "name": "dword_1EEDA0"
+      },
+      {
+        "addr": "0x1dbe9c",
+        "name": "_tcp_keepidle"
+      },
+      {
+        "addr": "0x1eeda8",
+        "name": "dword_1EEDA8"
+      },
+      {
+        "addr": "0x12a6d4",
+        "name": "_tcp_drop"
+      },
+      {
+        "addr": "0x1eee28",
+        "name": "_tcp_maxidle"
+      },
+      {
+        "addr": "0x1eeda4",
+        "name": "dword_1EEDA4"
+      },
+      {
+        "addr": "0x12a504",
+        "name": "_tcp_respond"
+      },
+      {
+        "addr": "0x1dbea0",
+        "name": "_tcp_keepintvl"
+      },
+      {
+        "addr": "0x12a730",
+        "name": "_tcp_close"
+      },
+      {
+        "addr": "0x1eed94",
+        "name": "dword_1EED94"
+      },
+      {
+        "addr": "0x1eed98",
+        "name": "dword_1EED98"
+      },
+      {
+        "addr": "0x1dbea4",
+        "name": "_tcp_backoff"
+      },
+      {
+        "addr": "0x125428",
+        "name": "_in_losing"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012ac0c",
+    "addr": "0x0012ac0c",
+    "code": "int __usercall tcp_usrreq@<eax>(int a1@<ebx>, int a2, int a3, signed int a4, int a5, int a6)\n{\n  int v6; // edi\n  int result; // eax\n  int v8; // eax\n  int v9; // esi\n  int v10; // eax\n  char *v11; // eax\n  int v12; // eax\n  int v13; // eax\n  int v14; // eax\n  char v15; // al\n  int v16; // eax\n  __int16 v17; // [esp+10h] [ebp-8h]\n  int v18; // [esp+14h] [ebp-4h]\n\n  v6 = 0; /*0x12ac18*/\n  if ( a3 == 11 ) /*0x12ac1e*/\n    return in_control(a2, a4, (_DWORD *)a5, a6); /*0x12ac32*/\n  if ( a6 && *(_WORD *)(a6 + 8) ) /*0x12ac3c*/\n    return 22; /*0x12ac48*/\n  v8 = splnet(); /*0x12ac50*/\n  v18 = v8; /*0x12ac55*/\n  v9 = *(_DWORD *)(a2 + 8); /*0x12ac5b*/\n  if ( v9 ) /*0x12ac60*/\n  {\n    a1 = *(_DWORD *)(v9 + 32); /*0x12ac78*/\n    v17 = *(_WORD *)(a1 + 8); /*0x12ac7f*/\n  }\n  else\n  {\n    if ( a3 ) /*0x12ac66*/\n    {\n      splx(v8); /*0x12ac69*/\n      return 22; /*0x12ac73*/\n    }\n    v17 = 0; /*0x12ac84*/\n  }\n  switch ( a3 ) /*0x12ac98*/\n  {\n    case 0: /*0x12ac98*/\n      if ( v9 ) /*0x12acf2*/\n      {\n        v6 = 56; /*0x12acf4*/\n      }\n      else\n      {\n        v6 = tcp_attach(a2); /*0x12ad09*/\n        if ( !v6 ) /*0x12ad10*/\n        {\n          if ( *(char *)(a2 + 2) < 0 && !*(_WORD *)(a2 + 4) ) /*0x12ad1f*/\n            *(_WORD *)(a2 + 4) = 120; /*0x12ad26*/\n          a1 = *(_DWORD *)(*(_DWORD *)(a2 + 8) + 32); /*0x12ad32*/\n        }\n      }\n      goto LABEL_59; /*0x12acf9*/\n    case 1: /*0x12ac98*/\n      if ( *(__int16 *)(a1 + 8) > 1 ) /*0x12ad41*/\n        goto LABEL_20; /*0x12ad41*/\n      a1 = tcp_close((_DWORD *)a1); /*0x12ad56*/\n      goto LABEL_59; /*0x12ad58*/\n    case 2: /*0x12ac98*/\n      v10 = in_pcbbind(v9, a5); /*0x12ad65*/\n      goto LABEL_33; /*0x12ad6a*/\n    case 3: /*0x12ac98*/\n      if ( !*(_WORD *)(v9 + 24) ) /*0x12ad70*/\n        v6 = in_pcbbind(v9, 0); /*0x12ad7f*/\n      if ( !v6 ) /*0x12ad86*/\n        *(_WORD *)(a1 + 8) = 1; /*0x12ad8c*/\n      goto LABEL_59; /*0x12ad92*/\n    case 4: /*0x12ac98*/\n      if ( !*(_WORD *)(v9 + 24) ) /*0x12ad98*/\n      {\n        v6 = in_pcbbind(v9, 0); /*0x12ada7*/\n        if ( v6 ) /*0x12adae*/\n          goto LABEL_59; /*0x12adae*/\n      }\n      v6 = in_pcbconnect(v9, a5); /*0x12adbe*/\n      if ( v6 ) /*0x12adc5*/\n        goto LABEL_59; /*0x12adc5*/\n      v11 = tcp_template(a1); /*0x12adcc*/\n      *(_DWORD *)(a1 + 28) = v11; /*0x12add1*/\n      if ( v11 ) /*0x12add9*/\n      {\n        soisconnecting(a2); /*0x12adf0*/\n        ++tcpstat; /*0x12adf5*/\n        *(_WORD *)(a1 + 8) = 2; /*0x12adfb*/\n        *(_WORD *)(a1 + 14) = 150; /*0x12ae01*/\n        *(_DWORD *)(a1 + 56) = tcp_iss; /*0x12ae0d*/\n        tcp_iss += 64000; /*0x12ae10*/\n        v12 = *(_DWORD *)(a1 + 56); /*0x12ae1a*/\n        *(_DWORD *)(a1 + 44) = v12; /*0x12ae1d*/\n        *(_DWORD *)(a1 + 80) = v12; /*0x12ae20*/\n        *(_DWORD *)(a1 + 40) = v12; /*0x12ae23*/\n        *(_DWORD *)(a1 + 36) = v12; /*0x12ae26*/\n        v10 = tcp_output(a1); /*0x12ae2a*/\nLABEL_33:\n        v6 = v10; /*0x12ae2f*/\n      }\n      else\n      {\n        in_pcbdisconnect(v9); /*0x12addc*/\n        v6 = 55; /*0x12ade1*/\n      }\n      goto LABEL_59; /*0x12ade6*/\n    case 5: /*0x12ac98*/\n      v13 = *(_DWORD *)(a5 + 4) + a5; /*0x12ae5b*/\n      *(_WORD *)(a5 + 8) = 16; /*0x12ae61*/\n      *(_WORD *)v13 = 2; /*0x12ae67*/\n      *(_WORD *)(v13 + 2) = *(_WORD *)(v9 + 16); /*0x12ae70*/\n      *(_DWORD *)(v13 + 4) = *(_DWORD *)(v9 + 12); /*0x12ae77*/\n      goto LABEL_59; /*0x12ae7a*/\n    case 6: /*0x12ac98*/\nLABEL_20:\n      a1 = tcp_disconnect(a1); /*0x12ad43*/\n      goto LABEL_59; /*0x12ad4b*/\n    case 7: /*0x12ac98*/\n      socantsendmore(a2); /*0x12ae84*/\n      v14 = tcp_usrclosed(a1); /*0x12ae8a*/\n      a1 = v14; /*0x12ae8f*/\n      if ( !v14 ) /*0x12ae96*/\n        goto LABEL_62; /*0x12ae96*/\n      v6 = tcp_output(v14); /*0x12aea2*/\nLABEL_59:\n      if ( a1 ) /*0x12b02b*/\n      {\n        if ( (*(_BYTE *)(a2 + 2) & 1) != 0 ) /*0x12b034*/\n          tcp_trace(2, v17, (const void *)a1, nullptr, a3); /*0x12b043*/\n      }\nLABEL_62:\n      splx(v18); /*0x12b04b*/\n      result = v6; /*0x12b054*/\n      break; /*0x12b05f*/\n    case 8: /*0x12ac98*/\n      tcp_output(a1); /*0x12aead*/\n      goto LABEL_59; /*0x12aeb2*/\n    case 9: /*0x12ac98*/\n      sbappend(a2 + 60, a4); /*0x12aec3*/\n      v6 = tcp_output(a1); /*0x12aece*/\n      goto LABEL_59; /*0x12aed3*/\n    case 10: /*0x12ac98*/\n      a1 = tcp_drop(a1, 53); /*0x12aee0*/\n      goto LABEL_59; /*0x12aee5*/\n    case 12: /*0x12ac98*/\n      *(_DWORD *)(a4 + 48) = *(unsigned __int16 *)(a2 + 62); /*0x12aef6*/\n      splx(v8); /*0x12aefd*/\n      return 0; /*0x12af04*/\n    case 13: /*0x12ac98*/\n      if ( (*(_WORD *)(a2 + 88) || (*(_BYTE *)(a2 + 6) & 0x40) != 0) /*0x12af2a*/\n        && (*(_BYTE *)(a2 + 3) & 1) == 0\n        && (v15 = *(_BYTE *)(a1 + 104), (v15 & 2) == 0) )\n      {\n        if ( (v15 & 1) != 0 ) /*0x12af3a*/\n        {\n          *(_WORD *)(a4 + 8) = 1; /*0x12af4b*/\n          *(_BYTE *)(*(_DWORD *)(a4 + 4) + a4) = *(_BYTE *)(a1 + 105); /*0x12af57*/\n          if ( (a5 & 2) == 0 ) /*0x12af60*/\n            *(_BYTE *)(a1 + 104) ^= 3u; /*0x12af66*/\n        }\n        else\n        {\n          v6 = 35; /*0x12af3c*/\n        }\n      }\n      else\n      {\n        v6 = 22; /*0x12af2c*/\n      }\n      goto LABEL_59; /*0x12af31*/\n    case 14: /*0x12ac98*/\n      v16 = *(unsigned __int16 *)(a2 + 62) - *(unsigned __int16 *)(a2 + 60); /*0x12af8c*/\n      if ( v16 > *(unsigned __int16 *)(a2 + 66) - *(unsigned __int16 *)(a2 + 64) ) /*0x12af90*/\n        v16 = *(unsigned __int16 *)(a2 + 66) - *(unsigned __int16 *)(a2 + 64); /*0x12af92*/\n      if ( v16 >= -512 ) /*0x12af99*/\n      {\n        sbappend(a2 + 60, a4); /*0x12afb7*/\n        *(_DWORD *)(a1 + 44) = *(_DWORD *)(a1 + 36) + *(unsigned __int16 *)(a2 + 60); /*0x12afc6*/\n        *(_BYTE *)(a1 + 26) = 1; /*0x12afc9*/\n        v6 = tcp_output(a1); /*0x12afd3*/\n        *(_BYTE *)(a1 + 26) = 0; /*0x12afd5*/\n      }\n      else\n      {\n        m_freem(a4); /*0x12af9f*/\n        v6 = 55; /*0x12afa4*/\n      }\n      goto LABEL_59; /*0x12afa9*/\n    case 15: /*0x12ac98*/\n      in_setsockaddr(v9, a5); /*0x12afe5*/\n      goto LABEL_59; /*0x12afed*/\n    case 16: /*0x12ac98*/\n      in_setpeeraddr(v9, a5); /*0x12aff5*/\n      goto LABEL_59; /*0x12affd*/\n    case 17: /*0x12ac98*/\n      v6 = 45; /*0x12ae3c*/\n      goto LABEL_59; /*0x12ae41*/\n    case 19: /*0x12ac98*/\n      a1 = tcp_timers(a1, a5); /*0x12b00a*/\n      LOWORD(a3) = ((_WORD)a5 << 8) | a3; /*0x12b012*/\n      goto LABEL_59; /*0x12b012*/\n    default:\n      panic(aTcpUsrreq); /*0x12b021*/\n      return result; /*0x12b021*/\n  }\n  return result; /*0x12b059*/\n}",
+    "refs": [
+      {
+        "addr": "0x1236e0",
+        "name": "_in_control"
+      },
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x12b13c",
+        "name": "_tcp_attach"
+      },
+      {
+        "addr": "0x12a730",
+        "name": "_tcp_close"
+      },
+      {
+        "addr": "0x124e60",
+        "name": "_in_pcbbind"
+      },
+      {
+        "addr": "0x124fe4",
+        "name": "_in_pcbconnect"
+      },
+      {
+        "addr": "0x12a45c",
+        "name": "_tcp_template"
+      },
+      {
+        "addr": "0x116120",
+        "name": "_soisconnecting"
+      },
+      {
+        "addr": "0x1eed70",
+        "name": "_tcpstat"
+      },
+      {
+        "addr": "0x1eed64",
+        "name": "_tcp_iss"
+      },
+      {
+        "addr": "0x129d8c",
+        "name": "_tcp_output"
+      },
+      {
+        "addr": "0x125244",
+        "name": "_in_pcbdisconnect"
+      },
+      {
+        "addr": "0x12b1c4",
+        "name": "_tcp_disconnect"
+      },
+      {
+        "addr": "0x1163c8",
+        "name": "_socantsendmore"
+      },
+      {
+        "addr": "0x12b230",
+        "name": "_tcp_usrclosed"
+      },
+      {
+        "addr": "0x1284c0",
+        "name": "_tcp_trace"
+      },
+      {
+        "addr": "0x116614",
+        "name": "_sbappend"
+      },
+      {
+        "addr": "0x12a6d4",
+        "name": "_tcp_drop"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x1252d0",
+        "name": "_in_setsockaddr"
+      },
+      {
+        "addr": "0x125308",
+        "name": "_in_setpeeraddr"
+      },
+      {
+        "addr": "0x12a9fc",
+        "name": "_tcp_timers"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dbed8",
+        "name": "aTcpUsrreq",
+        "string": "tcp_usrreq"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b060",
+    "addr": "0x0012b060",
+    "code": "int __cdecl tcp_ctloutput(int a1, int a2, int a3, int a4, int *a5)\n{\n  int v5; // ebx\n  int v7; // edx\n  int *v8; // eax\n  int v9; // [esp+Ch] [ebp-4h]\n\n  v9 = 0; /*0x12b072*/\n  v5 = *(_DWORD *)(*(_DWORD *)(a2 + 8) + 32); /*0x12b07f*/\n  if ( a3 != 6 ) /*0x12b086*/\n    return ip_ctloutput(a1, a2, a3, a4, a5); /*0x12b093*/\n  if ( a1 ) /*0x12b0a2*/\n  {\n    if ( a1 == 1 ) /*0x12b0a7*/\n    {\n      v7 = *a5; /*0x12b0ad*/\n      if ( a4 == 1 && v7 && *(_WORD *)(v7 + 8) > 3u ) /*0x12b0bd*/\n      {\n        if ( *(_DWORD *)(*(_DWORD *)(v7 + 4) + v7) ) /*0x12b0c2*/\n          *(_BYTE *)(v5 + 27) |= 4u; /*0x12b0c8*/\n        else\n          *(_BYTE *)(v5 + 27) &= ~4u; /*0x12b0d0*/\n      }\n      else\n      {\n        v9 = 22; /*0x12b0d8*/\n      }\n      if ( v7 ) /*0x12b0e1*/\n        m_free(v7); /*0x12b0e4*/\n    }\n  }\n  else\n  {\n    v8 = m_get(1, 10); /*0x12b0f0*/\n    *a5 = (int)v8; /*0x12b0f7*/\n    *((_WORD *)v8 + 4) = 4; /*0x12b0f9*/\n    if ( a4 == 1 ) /*0x12b102*/\n    {\n      *(int *)((char *)v8 + v8[1]) = *(_BYTE *)(v5 + 27) & 4; /*0x12b115*/\n    }\n    else if ( a4 == 2 ) /*0x12b107*/\n    {\n      *(int *)((char *)v8 + v8[1]) = *(unsigned __int16 *)(v5 + 24); /*0x12b123*/\n    }\n    else\n    {\n      return 22; /*0x12b128*/\n    }\n  }\n  return v9; /*0x12b135*/\n}",
+    "refs": [
+      {
+        "addr": "0x127a88",
+        "name": "_ip_ctloutput"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x113dc0",
+        "name": "_m_get"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b13c",
+    "addr": "0x0012b13c",
+    "code": "int __cdecl tcp_attach(int a1)\n{\n  int result; // eax\n  _DWORD *v2; // edi\n  _DWORD *v3; // eax\n  __int16 v4; // ax\n  __int16 v5; // bx\n\n  if ( *(_WORD *)(a1 + 62) && *(_WORD *)(a1 + 38) || (result = soreserve(a1, tcp_sendspace, tcp_recvspace)) == 0 ) /*0x12b16c*/\n  {\n    result = in_pcballoc(a1, (int)&tcb); /*0x12b174*/\n    if ( !result ) /*0x12b17e*/\n    {\n      v2 = *(_DWORD **)(a1 + 8); /*0x12b180*/\n      v3 = tcp_newtcpcb((int)v2); /*0x12b184*/\n      if ( v3 ) /*0x12b18e*/\n      {\n        *((_WORD *)v3 + 4) = 0; /*0x12b1b0*/\n        return 0; /*0x12b1b6*/\n      }\n      else\n      {\n        v4 = *(_WORD *)(a1 + 6); /*0x12b190*/\n        v5 = v4 & 1; /*0x12b196*/\n        LOBYTE(v4) = v4 & 0xFE; /*0x12b199*/\n        *(_WORD *)(a1 + 6) = v4; /*0x12b19b*/\n        in_pcbdetach(v2); /*0x12b1a0*/\n        *(_WORD *)(a1 + 6) |= v5; /*0x12b1a5*/\n        return 55; /*0x12b1a9*/\n      }\n    }\n  }\n  return result; /*0x12b1bb*/\n}",
+    "refs": [
+      {
+        "addr": "0x124e10",
+        "name": "_in_pcballoc"
+      },
+      {
+        "addr": "0x1ead10",
+        "name": "_tcb"
+      },
+      {
+        "addr": "0x12a65c",
+        "name": "_tcp_newtcpcb"
+      },
+      {
+        "addr": "0x12526c",
+        "name": "_in_pcbdetach"
+      },
+      {
+        "addr": "0x11654c",
+        "name": "_soreserve"
+      },
+      {
+        "addr": "0x1dbee4",
+        "name": "_tcp_sendspace"
+      },
+      {
+        "addr": "0x1dbee8",
+        "name": "_tcp_recvspace"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b1c4",
+    "addr": "0x0012b1c4",
+    "code": "int __cdecl tcp_disconnect(int a1)\n{\n  int v1; // eax\n  int v2; // esi\n  int v3; // ebx\n  int v4; // eax\n\n  v1 = *(_DWORD *)(a1 + 32); /*0x12b1cc*/\n  v2 = *(_DWORD *)(v1 + 28); /*0x12b1cf*/\n  if ( *(__int16 *)(a1 + 8) <= 3 ) /*0x12b1d7*/\n    return tcp_close((_DWORD *)a1); /*0x12b1df*/\n  if ( *(char *)(v2 + 2) < 0 && !*(_WORD *)(v2 + 4) ) /*0x12b1ea*/\n    return tcp_drop(a1, 0); /*0x12b1f9*/\n  soisdisconnecting(*(_DWORD *)(v1 + 28)); /*0x12b201*/\n  sbflush((unsigned __int16 *)(v2 + 36)); /*0x12b20a*/\n  v4 = tcp_usrclosed(a1); /*0x12b210*/\n  v3 = v4; /*0x12b215*/\n  if ( v4 ) /*0x12b21c*/\n    tcp_output(v4); /*0x12b21f*/\n  return v3; /*0x12b229*/\n}",
+    "refs": [
+      {
+        "addr": "0x12a730",
+        "name": "_tcp_close"
+      },
+      {
+        "addr": "0x12a6d4",
+        "name": "_tcp_drop"
+      },
+      {
+        "addr": "0x1161c0",
+        "name": "_soisdisconnecting"
+      },
+      {
+        "addr": "0x116a64",
+        "name": "_sbflush"
+      },
+      {
+        "addr": "0x12b230",
+        "name": "_tcp_usrclosed"
+      },
+      {
+        "addr": "0x129d8c",
+        "name": "_tcp_output"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b230",
+    "addr": "0x0012b230",
+    "code": "int __cdecl tcp_usrclosed(int a1)\n{\n  int v1; // ebx\n\n  v1 = a1; /*0x12b234*/\n  switch ( *(_WORD *)(a1 + 8) ) /*0x12b240*/\n  {\n    case 0: /*0x12b240*/\n    case 1: /*0x12b240*/\n    case 2: /*0x12b240*/\n      *(_WORD *)(a1 + 8) = 0; /*0x12b260*/\n      v1 = tcp_close((_DWORD *)a1); /*0x12b26c*/\n      break; /*0x12b271*/\n    case 3: /*0x12b240*/\n    case 4: /*0x12b240*/\n      *(_WORD *)(a1 + 8) = 6; /*0x12b274*/\n      break; /*0x12b27a*/\n    case 5: /*0x12b240*/\n      *(_WORD *)(a1 + 8) = 8; /*0x12b27c*/\n      break; /*0x12b27c*/\n    default:\n      break;\n  }\n  if ( v1 && *(__int16 *)(v1 + 8) > 8 ) /*0x12b28b*/\n    soisdisconnected(*(_DWORD *)(*(_DWORD *)(v1 + 32) + 28)); /*0x12b294*/\n  return v1; /*0x12b29b*/\n}",
+    "refs": [
+      {
+        "addr": "0x12a730",
+        "name": "_tcp_close"
+      },
+      {
+        "addr": "0x1161f8",
+        "name": "_soisdisconnected"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b2a4",
+    "addr": "0x0012b2a4",
+    "code": "void udp_init()\n{\n  dword_1EAAE4 = (int)&udb; /*0x12b2a7*/\n  udb = (int)&udb; /*0x12b2b1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1eaae4",
+        "name": "dword_1EAAE4"
+      },
+      {
+        "addr": "0x1eaae0",
+        "name": "_udb"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b2c0",
+    "addr": "0x0012b2c0",
+    "code": "void __cdecl udp_input(int a1, int a2)\n{\n  _BYTE *v2; // ecx\n  int v3; // ebx\n  int v4; // eax\n  __int16 v5; // ax\n  int v6; // edx\n  int i; // edi\n  int v8; // eax\n  int v9; // eax\n  int **v10; // eax\n  int v11; // ebx\n  int v12; // ebx\n  _DWORD *v13; // eax\n  _DWORD *v14; // edi\n  unsigned __int32 v15; // ebx\n  _DWORD *v16; // edi\n  int v17; // edx\n  int v18; // edx\n  int v19; // eax\n  int v20; // [esp+10h] [ebp-20h]\n  int v21; // [esp+10h] [ebp-20h]\n  int *v22; // [esp+14h] [ebp-1Ch]\n  _DWORD *v23; // [esp+18h] [ebp-18h]\n  _BYTE v24[20]; // [esp+1Ch] [ebp-14h] BYREF\n\n  v22 = (int *)a1; /*0x12b2cc*/\n  if ( *(_DWORD *)(a1 + 4) > 0x7Cu || *(_WORD *)(a1 + 8) <= 0x1Bu ) /*0x12b2da*/\n  {\n    v22 = m_pullup(a1, 28); /*0x12b2e7*/\n    if ( !v22 ) /*0x12b2ef*/\n    {\n      ++udpstat; /*0x12b2f1*/\n      return; /*0x12b2f7*/\n    }\n  }\n  v2 = (char *)v22 + v22[1]; /*0x12b2ff*/\n  v23 = v2; /*0x12b302*/\n  if ( (*v2 & 0xFu) > 5 ) /*0x12b30d*/\n    ip_stripoptions((unsigned int)v2, 0); /*0x12b312*/\n  v3 = (unsigned __int16)__ROR2__(*((_WORD *)v23 + 12), 8); /*0x12b325*/\n  v4 = *((__int16 *)v23 + 1); /*0x12b328*/\n  if ( v4 != v3 ) /*0x12b32e*/\n  {\n    if ( v3 > v4 ) /*0x12b332*/\n    {\n      ++dword_1EAB28; /*0x12b334*/\n      goto LABEL_49; /*0x12b33a*/\n    }\n    m_adj(v22, v3 - v4); /*0x12b34b*/\n  }\n  qmemcpy(v24, v23, sizeof(v24)); /*0x12b35f*/\n  if ( udpcksum ) /*0x12b368*/\n  {\n    if ( *((_WORD *)v23 + 13) ) /*0x12b36d*/\n    {\n      v23[1] = 0; /*0x12b374*/\n      *v23 = 0; /*0x12b37b*/\n      *((_BYTE *)v23 + 8) = 0; /*0x12b381*/\n      *((_WORD *)v23 + 5) = *((_WORD *)v23 + 12); /*0x12b38c*/\n      v5 = in_cksum(v22, v3 + 20); /*0x12b398*/\n      *((_WORD *)v23 + 13) = v5; /*0x12b3a0*/\n      if ( v5 ) /*0x12b3aa*/\n      {\n        ++dword_1EAB24; /*0x12b3ac*/\n        m_freem((int)v22); /*0x12b3b6*/\n        return; /*0x12b3b6*/\n      }\n    }\n  }\n  if ( (_byteswap_ulong(v23[4]) & 0xF0000000) == 0xE0000000 || in_broadcast(v23[4]) ) /*0x12b3d3*/\n  {\n    word_1DBEF6 = *((_WORD *)v23 + 10); /*0x12b3ea*/\n    dword_1DBEF8 = v23[3]; /*0x12b3f7*/\n    *((_WORD *)v22 + 4) -= 28; /*0x12b400*/\n    v22[1] += 28; /*0x12b405*/\n    v6 = 0; /*0x12b409*/\n    for ( i = udb; (int *)i != &udb; i = *(_DWORD *)i ) /*0x12b417*/\n    {\n      if ( *(_WORD *)(i + 24) == *((_WORD *)v23 + 11) ) /*0x12b42b*/\n      {\n        v8 = *(_DWORD *)(i + 20); /*0x12b431*/\n        if ( !v8 || v23[4] == v8 ) /*0x12b43b*/\n        {\n          v9 = *(_DWORD *)(i + 12); /*0x12b441*/\n          if ( !v9 || v23[3] == v9 && *(_WORD *)(i + 16) == *((_WORD *)v23 + 10) ) /*0x12b458*/\n          {\n            if ( v6 ) /*0x12b45c*/\n            {\n              v20 = v6; /*0x12b469*/\n              v10 = (int **)m_copy(v22, 0, 1000000000); /*0x12b46c*/\n              v11 = (int)v10; /*0x12b471*/\n              if ( v10 ) /*0x12b47b*/\n              {\n                if ( sbappendaddr((unsigned __int16 *)(v20 + 36), (int *)&udp_in, v10, 0) ) /*0x12b48f*/\n                  sowakeup(v20, v20 + 36); /*0x12b4b1*/\n                else\n                  m_freem(v11); /*0x12b49f*/\n              }\n            }\n            v6 = *(_DWORD *)(i + 28); /*0x12b4b9*/\n            if ( (*(_BYTE *)(v6 + 2) & 4) == 0 ) /*0x12b4c0*/\n              break; /*0x12b4c0*/\n          }\n        }\n      }\n    }\n    if ( v6 ) /*0x12b4d2*/\n    {\n      v12 = v6 + 36; /*0x12b4e3*/\n      v21 = v6; /*0x12b4e7*/\n      if ( sbappendaddr((unsigned __int16 *)(v6 + 36), (int *)&udp_in, (int **)v22, 0) ) /*0x12b4ea*/\n      {\n        sowakeup(v21, v12); /*0x12b4fe*/\n        return; /*0x12b4fe*/\n      }\n    }\n    goto LABEL_49; /*0x12b4f7*/\n  }\n  v13 = in_pcblookup(&udb, v23[3], *((_WORD *)v23 + 10), v23[4], *((_WORD *)v23 + 11), 1); /*0x12b520*/\n  v14 = v13; /*0x12b525*/\n  if ( !v13 ) /*0x12b52c*/\n  {\n    v15 = _byteswap_ulong(v23[4]); /*0x12b53a*/\n    v16 = (_DWORD *)in_ifaddr; /*0x12b53c*/\n    if ( in_ifaddr ) /*0x12b544*/\n    {\n      while ( 1 ) /*0x12b548*/\n      {\n        if ( (*(_BYTE *)(v16[8] + 12) & 2) != 0 ) /*0x12b54f*/\n        {\n          v17 = v15 ^ v16[10]; /*0x12b554*/\n          if ( v17 == ~v16[11] ) /*0x12b55d*/\n            break; /*0x12b55d*/\n          if ( !v17 ) /*0x12b565*/\n            break; /*0x12b565*/\n          v18 = v15 ^ v16[12]; /*0x12b56e*/\n          if ( v18 == ~v16[13] || !v18 ) /*0x12b57f*/\n            break; /*0x12b57f*/\n        }\n        v16 = (_DWORD *)v16[16]; /*0x12b585*/\n        if ( !v16 ) /*0x12b58a*/\n          goto LABEL_42; /*0x12b58a*/\n      }\n    }\n    else\n    {\nLABEL_42:\n      v19 = v23[4]; /*0x12b58c*/\n      if ( v19 != -1 && v19 && !in_broadcast(v23[4]) ) /*0x12b5a4*/\n      {\n        qmemcpy(v23, v24, 0x14u); /*0x12b5be*/\n        icmp_error(v23, 3u, 3, a2, nullptr); /*0x12b5ce*/\n        return; /*0x12b5d3*/\n      }\n    }\n    goto LABEL_49; /*0x12b57f*/\n  }\n  word_1DBEF6 = *((_WORD *)v23 + 10); /*0x12b5df*/\n  dword_1DBEF8 = v23[3]; /*0x12b5ec*/\n  *((_WORD *)v22 + 4) -= 28; /*0x12b5f5*/\n  v22[1] += 28; /*0x12b5fa*/\n  if ( !sbappendaddr((unsigned __int16 *)(v13[7] + 36), (int *)&udp_in, (int **)v22, 0) ) /*0x12b617*/\n  {\nLABEL_49:\n    m_freem((int)v22); /*0x12b628*/\n    return; /*0x12b62c*/\n  }\n  sowakeup(v14[7], v14[7] + 36); /*0x12b621*/\n}",
+    "refs": [
+      {
+        "addr": "0x1145a4",
+        "name": "_m_pullup"
+      },
+      {
+        "addr": "0x1eab20",
+        "name": "_udpstat"
+      },
+      {
+        "addr": "0x126e1c",
+        "name": "_ip_stripoptions"
+      },
+      {
+        "addr": "0x1eab28",
+        "name": "dword_1EAB28"
+      },
+      {
+        "addr": "0x1144ec",
+        "name": "_m_adj"
+      },
+      {
+        "addr": "0x18b2ac",
+        "name": "_in_cksum"
+      },
+      {
+        "addr": "0x1eab24",
+        "name": "dword_1EAB24"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x1dbeec",
+        "name": "_udpcksum"
+      },
+      {
+        "addr": "0x1dbef6",
+        "name": "word_1DBEF6"
+      },
+      {
+        "addr": "0x1dbef8",
+        "name": "dword_1DBEF8"
+      },
+      {
+        "addr": "0x1eaae0",
+        "name": "_udb"
+      },
+      {
+        "addr": "0x1141a4",
+        "name": "_m_copy"
+      },
+      {
+        "addr": "0x11649c",
+        "name": "_sowakeup"
+      },
+      {
+        "addr": "0x1166c0",
+        "name": "_sbappendaddr"
+      },
+      {
+        "addr": "0x1dbef4",
+        "name": "_udp_in"
+      },
+      {
+        "addr": "0x123d74",
+        "name": "_in_broadcast"
+      },
+      {
+        "addr": "0x125488",
+        "name": "_in_pcblookup"
+      },
+      {
+        "addr": "0x1eaa60",
+        "name": "_in_ifaddr"
+      },
+      {
+        "addr": "0x125554",
+        "name": "_icmp_error"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b63c",
+    "addr": "0x0012b63c",
+    "code": "void __cdecl udp_notify(int a1)\n{\n  sowakeup(*(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 28) + 36); /*0x12b64b*/\n  sowakeup(*(_DWORD *)(a1 + 28), *(_DWORD *)(a1 + 28) + 60); /*0x12b658*/\n}",
+    "refs": [
+      {
+        "addr": "0x11649c",
+        "name": "_sowakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b664",
+    "addr": "0x0012b664",
+    "code": "int __cdecl udp_ctlinput(unsigned int a1, int a2, int a3)\n{\n  __int16 *v3; // eax\n  int result; // eax\n\n  if ( a1 == 1 || a1 <= 0x15 && inetctlerrmap[a1] ) /*0x12b67c*/\n  {\n    if ( a3 ) /*0x12b687*/\n    {\n      v3 = (__int16 *)(a3 + 4 * (*(_BYTE *)a3 & 0xF)); /*0x12b68e*/\n      return in_pcbnotify(&udb, a2, v3[1], *(_DWORD *)(a3 + 12), *v3, a1, (int (__cdecl *)(int))udp_notify); /*0x12b6a4*/\n    }\n    else\n    {\n      return in_pcbnotify(&udb, a2, 0, zeroin_addr, 0, a1, (int (__cdecl *)(int))udp_notify); /*0x12b6bf*/\n    }\n  }\n  return result; /*0x12b6c7*/\n}",
+    "refs": [
+      {
+        "addr": "0x125340",
+        "name": "_in_pcbnotify"
+      },
+      {
+        "addr": "0x1eaae0",
+        "name": "_udb"
+      },
+      {
+        "addr": "0x12b63c",
+        "name": "_udp_notify"
+      },
+      {
+        "addr": "0x1eab2c",
+        "name": "_zeroin_addr"
+      },
+      {
+        "addr": "0x1dbdb9",
+        "name": "_inetctlerrmap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b6d0",
+    "addr": "0x0012b6d0",
+    "code": "int __cdecl udp_output(int a1, int a2)\n{\n  int v2; // edi\n  int i; // esi\n  int *v4; // esi\n  char *v6; // ebx\n  __int16 v7; // ax\n  int v8; // [esp+Ch] [ebp-4h]\n\n  v2 = 0; /*0x12b6dc*/\n  for ( i = a2; i; i = *(_DWORD *)i ) /*0x12b6e2*/\n    v2 += *(__int16 *)(i + 8); /*0x12b6e8*/\n  v8 = splimp(); /*0x12b6f5*/\n  v4 = (int *)mfree; /*0x12b6f8*/\n  if ( mfree ) /*0x12b700*/\n  {\n    if ( *(_WORD *)(mfree + 10) ) /*0x12b702*/\n      panic(aMget_12); /*0x12b70e*/\n    *(_WORD *)(mfree + 10) = 2; /*0x12b716*/\n    --word_1E917C[0]; /*0x12b71c*/\n    ++word_1E9180; /*0x12b723*/\n    mfree = *v4; /*0x12b72c*/\n    *v4 = 0; /*0x12b732*/\n    v4[1] = 12; /*0x12b738*/\n  }\n  else\n  {\n    v4 = m_more(0, 2); /*0x12b74d*/\n  }\n  splx(v8); /*0x12b756*/\n  if ( v4 ) /*0x12b760*/\n  {\n    v4[1] = 96; /*0x12b774*/\n    *((_WORD *)v4 + 4) = 28; /*0x12b77b*/\n    *v4 = a2; /*0x12b781*/\n    v6 = (char *)v4 + v4[1]; /*0x12b785*/\n    *((_DWORD *)v6 + 1) = 0; /*0x12b788*/\n    *(_DWORD *)v6 = 0; /*0x12b78f*/\n    v6[8] = 0; /*0x12b795*/\n    v6[9] = 17; /*0x12b799*/\n    *((_WORD *)v6 + 5) = __ROR2__(v2 + 8, 8); /*0x12b7a7*/\n    *((_DWORD *)v6 + 3) = *(_DWORD *)(a1 + 20); /*0x12b7b1*/\n    *((_DWORD *)v6 + 4) = *(_DWORD *)(a1 + 12); /*0x12b7ba*/\n    *((_WORD *)v6 + 10) = *(_WORD *)(a1 + 24); /*0x12b7c4*/\n    *((_WORD *)v6 + 11) = *(_WORD *)(a1 + 16); /*0x12b7cf*/\n    *((_WORD *)v6 + 12) = *((_WORD *)v6 + 5); /*0x12b7d7*/\n    *((_WORD *)v6 + 13) = 0; /*0x12b7db*/\n    if ( udpcksum ) /*0x12b7e8*/\n    {\n      v7 = in_cksum(v4, v2 + 28); /*0x12b7ef*/\n      *((_WORD *)v6 + 13) = v7; /*0x12b7f4*/\n      if ( !v7 ) /*0x12b7fe*/\n        *((_WORD *)v6 + 13) = -1; /*0x12b800*/\n    }\n    *((_WORD *)v6 + 1) = v2 + 28; /*0x12b80a*/\n    v6[8] = udp_ttl; /*0x12b814*/\n    return ip_output( /*0x12b83a*/\n             (int)v4,\n             *(_DWORD *)(a1 + 56),\n             (int *)(a1 + 36),\n             *(_WORD *)(*(_DWORD *)(a1 + 28) + 2) & 0x30 | 2,\n             *(_DWORD *)(a1 + 60));\n  }\n  else\n  {\n    m_freem(a2); /*0x12b763*/\n    return 55; /*0x12b768*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dbf04",
+        "name": "aMget_12",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x1e9180",
+        "name": "word_1E9180"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x18b2ac",
+        "name": "_in_cksum"
+      },
+      {
+        "addr": "0x1dbeec",
+        "name": "_udpcksum"
+      },
+      {
+        "addr": "0x1dbef0",
+        "name": "_udp_ttl"
+      },
+      {
+        "addr": "0x127280",
+        "name": "_ip_output"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012b84c",
+    "addr": "0x0012b84c",
+    "code": "int __cdecl udp_usrreq(int a1, int a2, signed int a3, _DWORD *a4, int a5)\n{\n  int v5; // edi\n  int v6; // ebx\n  int result; // eax\n  signed int i; // esi\n  int v9; // ebx\n  int *v10; // esi\n  char *v11; // ebx\n  __int16 v12; // ax\n  int v13; // [esp+10h] [ebp-Ch]\n  int v14; // [esp+14h] [ebp-8h]\n  int v15; // [esp+18h] [ebp-4h]\n\n  v5 = *(_DWORD *)(a1 + 8); /*0x12b85e*/\n  v6 = 0; /*0x12b861*/\n  if ( a2 == 11 ) /*0x12b866*/\n    return in_control(a1, a3, a4, a5); /*0x12b87a*/\n  v15 = splnet(); /*0x12b888*/\n  if ( a5 && *(_WORD *)(a5 + 8) || !v5 && a2 ) /*0x12b89f*/\n  {\nLABEL_9:\n    v6 = 22; /*0x12b910*/\n  }\n  else\n  {\n    switch ( a2 ) /*0x12b8aa*/\n    {\n      case 0: /*0x12b8aa*/\n        if ( v5 ) /*0x12b90e*/\n          goto LABEL_9; /*0x12b90e*/\n        v6 = in_pcballoc(a1, (int)&udb); /*0x12b92a*/\n        if ( !v6 ) /*0x12b931*/\n          v6 = soreserve(a1, udp_sendspace, udp_recvspace); /*0x12b94e*/\n        break; /*0x12b953*/\n      case 1: /*0x12b8aa*/\n        in_pcbdetach((_DWORD *)v5); /*0x12b959*/\n        break; /*0x12b95e*/\n      case 2: /*0x12b8aa*/\n        v6 = in_pcbbind(v5, (int)a4); /*0x12b96e*/\n        break; /*0x12b973*/\n      case 3: /*0x12b8aa*/\n      case 5: /*0x12b8aa*/\n      case 14: /*0x12b8aa*/\n      case 17: /*0x12b8aa*/\n      case 18: /*0x12b8aa*/\n      case 19: /*0x12b8aa*/\n      case 20: /*0x12b8aa*/\n      case 21: /*0x12b8aa*/\n        v6 = 45; /*0x12bbe0*/\n        break; /*0x12bbe5*/\n      case 4: /*0x12b8aa*/\n        if ( *(_DWORD *)(v5 + 12) ) /*0x12b978*/\n          goto LABEL_22; /*0x12b97c*/\n        v6 = in_pcbconnect(v5, (int)a4); /*0x12b988*/\n        if ( !v6 ) /*0x12b98f*/\n          soisconnected(a1); /*0x12b999*/\n        break; /*0x12b99e*/\n      case 6: /*0x12b8aa*/\n        if ( !*(_DWORD *)(v5 + 12) ) /*0x12b9a8*/\n          goto LABEL_26; /*0x12b9a8*/\n        in_pcbdisconnect(v5); /*0x12b9ab*/\n        *(_BYTE *)(a1 + 6) &= ~2u; /*0x12b9b3*/\n        break; /*0x12b9b7*/\n      case 7: /*0x12b8aa*/\n        socantsendmore(a1); /*0x12b9c0*/\n        break; /*0x12b9c5*/\n      case 8: /*0x12b8aa*/\n      case 13: /*0x12b8aa*/\n        splx(v15); /*0x12bbec*/\n        return 45; /*0x12bbf6*/\n      case 9: /*0x12b8aa*/\n        if ( !a4 ) /*0x12b9d0*/\n        {\n          if ( !*(_DWORD *)(v5 + 12) ) /*0x12ba04*/\n          {\nLABEL_26:\n            v6 = 57; /*0x12ba0a*/\n            break; /*0x12ba0f*/\n          }\n          goto LABEL_27; /*0x12ba08*/\n        }\n        v14 = *(_DWORD *)(v5 + 20); /*0x12b9d5*/\n        if ( *(_DWORD *)(v5 + 12) ) /*0x12b9d8*/\n        {\nLABEL_22:\n          v6 = 56; /*0x12b9de*/\n          break; /*0x12b9e3*/\n        }\n        v6 = in_pcbconnect(v5, (int)a4); /*0x12b9f2*/\n        if ( !v6 ) /*0x12b9f9*/\n        {\nLABEL_27:\n          v13 = 0; /*0x12ba14*/\n          for ( i = a3; i; i = *(_DWORD *)i ) /*0x12ba20*/\n            v13 += *(__int16 *)(i + 8); /*0x12ba28*/\n          v9 = splimp(); /*0x12ba36*/\n          v10 = (int *)mfree; /*0x12ba38*/\n          if ( mfree ) /*0x12ba40*/\n          {\n            if ( *(_WORD *)(mfree + 10) ) /*0x12ba42*/\n              panic(aMget_12); /*0x12ba4e*/\n            *(_WORD *)(mfree + 10) = 2; /*0x12ba56*/\n            --word_1E917C[0]; /*0x12ba5c*/\n            ++word_1E9180; /*0x12ba63*/\n            mfree = *v10; /*0x12ba6c*/\n            *v10 = 0; /*0x12ba72*/\n            v10[1] = 12; /*0x12ba78*/\n          }\n          else\n          {\n            v10 = m_more(0, 2); /*0x12ba8d*/\n          }\n          splx(v9); /*0x12ba93*/\n          if ( v10 ) /*0x12ba9d*/\n          {\n            v10[1] = 96; /*0x12bab8*/\n            *((_WORD *)v10 + 4) = 28; /*0x12babf*/\n            *v10 = a3; /*0x12bac8*/\n            v11 = (char *)v10 + v10[1]; /*0x12bacc*/\n            *((_DWORD *)v11 + 1) = 0; /*0x12bacf*/\n            *(_DWORD *)v11 = 0; /*0x12bad6*/\n            v11[8] = 0; /*0x12badc*/\n            v11[9] = 17; /*0x12bae0*/\n            *((_WORD *)v11 + 5) = __ROR2__(v13 + 8, 8); /*0x12baf0*/\n            *((_DWORD *)v11 + 3) = *(_DWORD *)(v5 + 20); /*0x12baf7*/\n            *((_DWORD *)v11 + 4) = *(_DWORD *)(v5 + 12); /*0x12bafd*/\n            *((_WORD *)v11 + 10) = *(_WORD *)(v5 + 24); /*0x12bb04*/\n            *((_WORD *)v11 + 11) = *(_WORD *)(v5 + 16); /*0x12bb0c*/\n            *((_WORD *)v11 + 12) = *((_WORD *)v11 + 5); /*0x12bb14*/\n            *((_WORD *)v11 + 13) = 0; /*0x12bb18*/\n            if ( udpcksum ) /*0x12bb25*/\n            {\n              v12 = in_cksum(v10, v13 + 28); /*0x12bb2f*/\n              *((_WORD *)v11 + 13) = v12; /*0x12bb34*/\n              if ( !v12 ) /*0x12bb3e*/\n                *((_WORD *)v11 + 13) = -1; /*0x12bb40*/\n            }\n            *((_WORD *)v11 + 1) = v13 + 28; /*0x12bb4e*/\n            v11[8] = udp_ttl; /*0x12bb58*/\n            v6 = ip_output( /*0x12bb7a*/\n                   (int)v10,\n                   *(_DWORD *)(v5 + 56),\n                   (int *)(v5 + 36),\n                   *(_WORD *)(*(_DWORD *)(v5 + 28) + 2) & 0x30 | 2,\n                   *(_DWORD *)(v5 + 60));\n          }\n          else\n          {\n            m_freem(a3); /*0x12baa3*/\n            v6 = 55; /*0x12baa8*/\n          }\n          a3 = 0; /*0x12bb7f*/\n          if ( a4 ) /*0x12bb8a*/\n          {\n            in_pcbdisconnect(v5); /*0x12bb8d*/\n            *(_DWORD *)(v5 + 20) = v14; /*0x12bb95*/\n          }\n          break; /*0x12bb98*/\n        }\n        break; /*0x12bb98*/\n      case 10: /*0x12b8aa*/\n        soisdisconnected(a1); /*0x12bba0*/\n        in_pcbdetach((_DWORD *)v5); /*0x12bba6*/\n        break; /*0x12bbae*/\n      case 12: /*0x12b8aa*/\n        splx(v15); /*0x12bbd4*/\n        return 0; /*0x12bbdb*/\n      case 15: /*0x12b8aa*/\n        in_setsockaddr(v5, (int)a4); /*0x12bbb5*/\n        break; /*0x12bbbd*/\n      case 16: /*0x12b8aa*/\n        in_setpeeraddr(v5, (int)a4); /*0x12bbc5*/\n        break; /*0x12bbcd*/\n      default:\n        panic(aUdpUsrreq); /*0x12bbfd*/\n        return result; /*0x12bbfd*/\n    }\n  }\n  splx(v15); /*0x12bc05*/\n  if ( a3 ) /*0x12bc15*/\n    m_freem(a3); /*0x12bc1b*/\n  return v6; /*0x12bc25*/\n}",
+    "refs": [
+      {
+        "addr": "0x1236e0",
+        "name": "_in_control"
+      },
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x124e10",
+        "name": "_in_pcballoc"
+      },
+      {
+        "addr": "0x1eaae0",
+        "name": "_udb"
+      },
+      {
+        "addr": "0x11654c",
+        "name": "_soreserve"
+      },
+      {
+        "addr": "0x1dbf0c",
+        "name": "_udp_sendspace"
+      },
+      {
+        "addr": "0x1dbf10",
+        "name": "_udp_recvspace"
+      },
+      {
+        "addr": "0x12526c",
+        "name": "_in_pcbdetach"
+      },
+      {
+        "addr": "0x124e60",
+        "name": "_in_pcbbind"
+      },
+      {
+        "addr": "0x124fe4",
+        "name": "_in_pcbconnect"
+      },
+      {
+        "addr": "0x116144",
+        "name": "_soisconnected"
+      },
+      {
+        "addr": "0x125244",
+        "name": "_in_pcbdisconnect"
+      },
+      {
+        "addr": "0x1163c8",
+        "name": "_socantsendmore"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dbf04",
+        "name": "aMget_12",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x1e9180",
+        "name": "word_1E9180"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b2ac",
+        "name": "_in_cksum"
+      },
+      {
+        "addr": "0x1dbeec",
+        "name": "_udpcksum"
+      },
+      {
+        "addr": "0x1dbef0",
+        "name": "_udp_ttl"
+      },
+      {
+        "addr": "0x127280",
+        "name": "_ip_output"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x1161f8",
+        "name": "_soisdisconnected"
+      },
+      {
+        "addr": "0x1252d0",
+        "name": "_in_setsockaddr"
+      },
+      {
+        "addr": "0x125308",
+        "name": "_in_setpeeraddr"
+      },
+      {
+        "addr": "0x1dbf14",
+        "name": "aUdpUsrreq",
+        "string": "udp_usrreq"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012bc2c",
+    "addr": "0x0012bc2c",
+    "code": "unsigned __int32 igmp_init()\n{\n  unsigned __int32 result; // eax\n\n  result = _byteswap_ulong(0xE0000001); /*0x12bc34*/\n  dword_1E59AC = result; /*0x12bc36*/\n  return result; /*0x12bc3d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e59ac",
+        "name": "dword_1E59AC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012bc40",
+    "addr": "0x0012bc40",
+    "code": "void __cdecl igmp_input(int *a1, int a2)\n{\n  unsigned int v2; // ecx\n  int v3; // eax\n  unsigned int *v4; // esi\n  int v5; // ebx\n  unsigned int *v6; // ecx\n  int v7; // eax\n  int v8; // eax\n  _DWORD *v9; // eax\n  _DWORD *v10; // eax\n  _DWORD *v11; // ecx\n  int v12; // [esp+10h] [ebp-10h]\n  int v13; // [esp+14h] [ebp-Ch]\n  char *v14; // [esp+18h] [ebp-8h]\n  unsigned __int8 *v15; // [esp+1Ch] [ebp-4h]\n\n  ++igmpstat; /*0x12bc49*/\n  v2 = a1[1]; /*0x12bc52*/\n  v12 = 4 * (*((_BYTE *)a1 + v2) & 0xF); /*0x12bc62*/\n  v13 = *(__int16 *)((char *)a1 + v2 + 2); /*0x12bc69*/\n  if ( v13 <= 7 ) /*0x12bc6f*/\n  {\n    ++dword_1EEE74; /*0x12bc71*/\n    m_freem((int)a1); /*0x12bc7b*/\n    return; /*0x12bc80*/\n  }\n  if ( v2 > 0x7C || *((__int16 *)a1 + 4) < v12 + 8 ) /*0x12bc9f*/\n  {\n    a1 = m_pullup((int)a1, v12 + 8); /*0x12bcae*/\n    if ( !a1 ) /*0x12bcb6*/\n    {\n      ++dword_1EEE74; /*0x12bcb8*/\n      return; /*0x12bcbe*/\n    }\n  }\n  a1[1] += v12; /*0x12bcca*/\n  *((_WORD *)a1 + 4) -= v12; /*0x12bcd1*/\n  v15 = (unsigned __int8 *)a1 + a1[1]; /*0x12bcd8*/\n  if ( in_cksum(a1, v13) ) /*0x12bce3*/\n  {\n    ++dword_1EEE78; /*0x12bcef*/\nLABEL_35:\n    m_freem((int)a1); /*0x12be3d*/\n    return; /*0x12be46*/\n  }\n  a1[1] -= v12; /*0x12bd02*/\n  *((_WORD *)a1 + 4) += v12; /*0x12bd09*/\n  v14 = (char *)a1 + a1[1]; /*0x12bd10*/\n  v3 = *v15; /*0x12bd16*/\n  if ( v3 != 17 ) /*0x12bd1c*/\n  {\n    if ( v3 == 18 ) /*0x12bd21*/\n    {\n      ++dword_1EEE84; /*0x12be04*/\n      if ( loifp != a2 ) /*0x12be13*/\n      {\n        if ( (_byteswap_ulong(*((_DWORD *)v15 + 1)) & 0xF0000000) != 0xE0000000 /*0x12be35*/\n          || *((_DWORD *)v14 + 4) != *((_DWORD *)v15 + 1) )\n        {\n          ++dword_1EEE88; /*0x12be37*/\n          goto LABEL_35; /*0x12be37*/\n        }\n        if ( (_byteswap_ulong(*((_DWORD *)v14 + 3)) & 0xFF000000) == 0 ) /*0x12be59*/\n        {\n          v9 = (_DWORD *)in_ifaddr; /*0x12be5b*/\n          if ( in_ifaddr ) /*0x12be62*/\n          {\n            do /*0x12be71*/\n            {\n              if ( v9[8] == a2 ) /*0x12be6a*/\n                break; /*0x12be6a*/\n              v9 = (_DWORD *)v9[16]; /*0x12be6c*/\n            }\n            while ( v9 ); /*0x12be71*/\n            if ( v9 ) /*0x12be75*/\n              *((_DWORD *)v14 + 3) = _byteswap_ulong(v9[12]); /*0x12be7f*/\n          }\n        }\n        v10 = (_DWORD *)in_ifaddr; /*0x12be82*/\n        if ( in_ifaddr ) /*0x12be89*/\n        {\n          do /*0x12be99*/\n          {\n            if ( v10[8] == a2 ) /*0x12be92*/\n              break; /*0x12be92*/\n            v10 = (_DWORD *)v10[16]; /*0x12be94*/\n          }\n          while ( v10 ); /*0x12be99*/\n          if ( v10 ) /*0x12be9d*/\n          {\n            v11 = (_DWORD *)v10[17]; /*0x12be9f*/\n            if ( v11 ) /*0x12bea4*/\n            {\n              do /*0x12beb5*/\n              {\n                if ( *v11 == *((_DWORD *)v15 + 1) ) /*0x12beae*/\n                  break; /*0x12beae*/\n                v11 = (_DWORD *)v11[5]; /*0x12beb0*/\n              }\n              while ( v11 ); /*0x12beb5*/\n              if ( v11 ) /*0x12beb9*/\n              {\n                v11[4] = 0; /*0x12bebb*/\n                ++dword_1EEE8C; /*0x12bec2*/\n              }\n            }\n          }\n        }\n      }\n    }\n    goto LABEL_51; /*0x12bec2*/\n  }\n  ++dword_1EEE7C; /*0x12bd2c*/\n  if ( loifp != a2 ) /*0x12bd3b*/\n  {\n    if ( *((_DWORD *)v14 + 4) != dword_1E59AC ) /*0x12bd4c*/\n    {\n      ++dword_1EEE80; /*0x12bd4e*/\n      goto LABEL_35; /*0x12bd54*/\n    }\n    v5 = in_ifaddr; /*0x12bd64*/\n    v4 = nullptr; /*0x12bd6a*/\n    v6 = nullptr; /*0x12bd6c*/\n    if ( in_ifaddr ) /*0x12bd70*/\n    {\n      while ( 1 ) /*0x12bd76*/\n      {\n        v6 = *(unsigned int **)(v5 + 68); /*0x12bd76*/\n        v7 = *(_DWORD *)(v5 + 64); /*0x12bd79*/\n        v5 = v7; /*0x12bd7c*/\n        if ( v6 ) /*0x12bd80*/\n          break; /*0x12bd80*/\n        if ( !v7 ) /*0x12bd84*/\n          goto LABEL_19; /*0x12bd84*/\n      }\n      v4 = (unsigned int *)v6[5]; /*0x12bd5c*/\n    }\nLABEL_19:\n    while ( v6 ) /*0x12bd88*/\n    {\n      if ( v6[1] == a2 && !v6[4] && dword_1E59AC != *v6 ) /*0x12bda9*/\n      {\n        v6[4] = (_byteswap_ulong(*v6) + ipstat + _byteswap_ulong(*(_DWORD *)(in_ifaddr + 4))) % 0x32 + 1; /*0x12bdc9*/\n        dword_1DBF44 = 1; /*0x12bdcc*/\n      }\n      v6 = v4; /*0x12bdd6*/\n      if ( !v4 ) /*0x12bdda*/\n      {\n        if ( !v5 ) /*0x12bde6*/\n          continue; /*0x12bde6*/\n        while ( 1 ) /*0x12bdea*/\n        {\n          v6 = *(unsigned int **)(v5 + 68); /*0x12bdea*/\n          v8 = *(_DWORD *)(v5 + 64); /*0x12bded*/\n          v5 = v8; /*0x12bdf0*/\n          if ( v6 ) /*0x12bdf4*/\n            break; /*0x12bdf4*/\n          if ( !v8 ) /*0x12bdf8*/\n            goto LABEL_29; /*0x12bdf8*/\n        }\n      }\n      v4 = (unsigned int *)v6[5]; /*0x12bddc*/\nLABEL_29:\n      ; /*0x12bdfc*/\n    }\n  }\nLABEL_51:\n  dword_1DBF28 = *((_DWORD *)v14 + 3); /*0x12bec8*/\n  dword_1DBF38 = *((_DWORD *)v14 + 4); /*0x12beda*/\n  raw_input((int)a1, &dword_1DBF20, &dword_1DBF24, &dword_1DBF34); /*0x12bef3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1eee70",
+        "name": "_igmpstat"
+      },
+      {
+        "addr": "0x1eee74",
+        "name": "dword_1EEE74"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x1145a4",
+        "name": "_m_pullup"
+      },
+      {
+        "addr": "0x1eee78",
+        "name": "dword_1EEE78"
+      },
+      {
+        "addr": "0x18b2ac",
+        "name": "_in_cksum"
+      },
+      {
+        "addr": "0x1eee84",
+        "name": "dword_1EEE84"
+      },
+      {
+        "addr": "0x1eee88",
+        "name": "dword_1EEE88"
+      },
+      {
+        "addr": "0x1eaa60",
+        "name": "_in_ifaddr"
+      },
+      {
+        "addr": "0x1eee8c",
+        "name": "dword_1EEE8C"
+      },
+      {
+        "addr": "0x1e9c74",
+        "name": "_loifp"
+      },
+      {
+        "addr": "0x1eee7c",
+        "name": "dword_1EEE7C"
+      },
+      {
+        "addr": "0x1eee80",
+        "name": "dword_1EEE80"
+      },
+      {
+        "addr": "0x1e59ac",
+        "name": "dword_1E59AC"
+      },
+      {
+        "addr": "0x1eaab0",
+        "name": "_ipstat"
+      },
+      {
+        "addr": "0x1dbf44",
+        "name": "dword_1DBF44"
+      },
+      {
+        "addr": "0x1dbf28",
+        "name": "dword_1DBF28"
+      },
+      {
+        "addr": "0x1dbf38",
+        "name": "dword_1DBF38"
+      },
+      {
+        "addr": "0x12157c",
+        "name": "_raw_input"
+      },
+      {
+        "addr": "0x1dbf20",
+        "name": "dword_1DBF20"
+      },
+      {
+        "addr": "0x1dbf24",
+        "name": "dword_1DBF24"
+      },
+      {
+        "addr": "0x1dbf34",
+        "name": "dword_1DBF34"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012bf04",
+    "addr": "0x0012bf04",
+    "code": "int __cdecl igmp_joingroup(unsigned int *a1)\n{\n  int v1; // esi\n\n  v1 = splnet(); /*0x12bf11*/\n  if ( *a1 == dword_1E59AC || a1[1] == loifp ) /*0x12bf24*/\n  {\n    a1[4] = 0; /*0x12bf26*/\n  }\n  else\n  {\n    igmp_sendreport(a1); /*0x12bf31*/\n    a1[4] = (_byteswap_ulong(*a1) + ipstat + _byteswap_ulong(*(_DWORD *)(in_ifaddr + 4))) % 0x32 + 1; /*0x12bf59*/\n    dword_1DBF44 = 1; /*0x12bf5c*/\n  }\n  return splx(v1); /*0x12bf6f*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x12c044",
+        "name": "_igmp_sendreport"
+      },
+      {
+        "addr": "0x1eaab0",
+        "name": "_ipstat"
+      },
+      {
+        "addr": "0x1eaa60",
+        "name": "_in_ifaddr"
+      },
+      {
+        "addr": "0x1dbf44",
+        "name": "dword_1DBF44"
+      },
+      {
+        "addr": "0x1e59ac",
+        "name": "dword_1E59AC"
+      },
+      {
+        "addr": "0x1e9c74",
+        "name": "_loifp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012bf78",
+    "addr": "0x0012bf78",
+    "code": "void igmp_leavegroup()\n{\n  ; /*0x12bf78*/\n}"
+  },
+  {
+    "requested_address": "0x0012bf80",
+    "addr": "0x0012bf80",
+    "code": "void igmp_fasttimo()\n{\n  int v0; // ebx\n  int v1; // edx\n  int v2; // eax\n  int v3; // eax\n  int v4; // [esp+4h] [ebp-8h]\n  int v5; // [esp+8h] [ebp-4h]\n\n  if ( dword_1DBF44 ) /*0x12bf8e*/\n  {\n    v0 = splnet(); /*0x12bf99*/\n    dword_1DBF44 = 0; /*0x12bf9b*/\n    v4 = in_ifaddr; /*0x12bfab*/\n    v5 = 0; /*0x12bfae*/\n    v1 = 0; /*0x12bfb5*/\n    while ( v4 ) /*0x12bfbe*/\n    {\n      v1 = *(_DWORD *)(v4 + 68); /*0x12bfc3*/\n      v4 = *(_DWORD *)(v4 + 64); /*0x12bfc9*/\n      if ( v1 ) /*0x12bfce*/\n        goto LABEL_11; /*0x12bfce*/\n    }\n    while ( 1 ) /*0x12c007*/\n    {\n      while ( 1 ) /*0x12c030*/\n      {\nLABEL_15:\n        if ( !v1 ) /*0x12c032*/\n        {\n          splx(v0); /*0x12c035*/\n          return; /*0x12c035*/\n        }\n        v2 = *(_DWORD *)(v1 + 16); /*0x12bfd8*/\n        if ( v2 ) /*0x12bfdd*/\n        {\n          *(_DWORD *)(v1 + 16) = v2 - 1; /*0x12bfe2*/\n          if ( v2 == 1 ) /*0x12bfe8*/\n            igmp_sendreport(v1); /*0x12bfeb*/\n          else\n            dword_1DBF44 = 1; /*0x12bff8*/\n        }\n        v1 = v5; /*0x12c002*/\n        if ( !v5 ) /*0x12c007*/\n          break; /*0x12c007*/\nLABEL_11:\n        v5 = *(_DWORD *)(v1 + 20); /*0x12c009*/\n      }\n      if ( v4 ) /*0x12c018*/\n      {\n        while ( 1 ) /*0x12c01f*/\n        {\n          v1 = *(_DWORD *)(v4 + 68); /*0x12c01f*/\n          v3 = *(_DWORD *)(v4 + 64); /*0x12c022*/\n          v4 = v3; /*0x12c025*/\n          if ( v1 ) /*0x12c02a*/\n            goto LABEL_11; /*0x12c02a*/\n          if ( !v3 ) /*0x12c02e*/\n            goto LABEL_15; /*0x12c02e*/\n        }\n      }\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x1dbf44",
+        "name": "dword_1DBF44"
+      },
+      {
+        "addr": "0x1eaa60",
+        "name": "_in_ifaddr"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x12c044",
+        "name": "_igmp_sendreport"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012c044",
+    "addr": "0x0012c044",
+    "code": "int __cdecl igmp_sendreport(_DWORD *a1)\n{\n  int v1; // ebx\n  int *v2; // esi\n  int result; // eax\n  int v4; // ebx\n  int *v5; // edi\n  char *v6; // ebx\n  char *v7; // eax\n  char *v8; // ecx\n\n  v1 = splimp(); /*0x12c052*/\n  v2 = (int *)mfree; /*0x12c054*/\n  if ( mfree ) /*0x12c05c*/\n  {\n    if ( *(_WORD *)(mfree + 10) ) /*0x12c05e*/\n      panic(aMget_13); /*0x12c06a*/\n    *(_WORD *)(mfree + 10) = 2; /*0x12c072*/\n    --word_1E917C[0]; /*0x12c078*/\n    ++word_1E9180; /*0x12c07f*/\n    mfree = *v2; /*0x12c088*/\n    *v2 = 0; /*0x12c08e*/\n    v2[1] = 12; /*0x12c094*/\n  }\n  else\n  {\n    v2 = m_more(0, 2); /*0x12c0a9*/\n  }\n  result = splx(v1); /*0x12c0af*/\n  if ( v2 ) /*0x12c0b9*/\n  {\n    v4 = splimp(); /*0x12c0c4*/\n    v5 = (int *)mfree; /*0x12c0c6*/\n    if ( mfree ) /*0x12c0ce*/\n    {\n      if ( *(_WORD *)(mfree + 10) ) /*0x12c0d0*/\n        panic(aMget_14); /*0x12c0dc*/\n      *(_WORD *)(mfree + 10) = 14; /*0x12c0e4*/\n      --word_1E917C[0]; /*0x12c0ea*/\n      ++word_1E9198; /*0x12c0f1*/\n      mfree = *v5; /*0x12c0fa*/\n      *v5 = 0; /*0x12c100*/\n      v5[1] = 12; /*0x12c106*/\n    }\n    else\n    {\n      v5 = m_more(0, 14); /*0x12c119*/\n    }\n    splx(v4); /*0x12c11f*/\n    if ( v5 ) /*0x12c129*/\n    {\n      v2[1] = 116; /*0x12c138*/\n      *((_WORD *)v2 + 4) = 8; /*0x12c13f*/\n      v6 = (char *)v2 + v2[1]; /*0x12c147*/\n      *v6 = 18; /*0x12c14a*/\n      v6[1] = 0; /*0x12c14d*/\n      *((_DWORD *)v6 + 1) = *a1; /*0x12c156*/\n      *((_WORD *)v6 + 1) = 0; /*0x12c159*/\n      *((_WORD *)v6 + 1) = in_cksum(v2, 8); /*0x12c167*/\n      v2[1] -= 20; /*0x12c16b*/\n      *((_WORD *)v2 + 4) += 20; /*0x12c16f*/\n      v7 = (char *)v2 + v2[1]; /*0x12c176*/\n      v7[1] = 0; /*0x12c179*/\n      *((_WORD *)v7 + 1) = 28; /*0x12c17d*/\n      *((_WORD *)v7 + 3) = 0; /*0x12c183*/\n      v7[9] = 2; /*0x12c189*/\n      *((_DWORD *)v7 + 3) = 0; /*0x12c18d*/\n      *((_DWORD *)v7 + 4) = *((_DWORD *)v6 + 1); /*0x12c197*/\n      v8 = (char *)v5 + v5[1]; /*0x12c19c*/\n      *(_DWORD *)v8 = a1[1]; /*0x12c1a5*/\n      v8[4] = 1; /*0x12c1a7*/\n      v8[5] = ip_mrouter != 0; /*0x12c1b8*/\n      ip_output((int)v2, 0, nullptr, 2, (int)v5); /*0x12c1c3*/\n      result = m_free((int)v5); /*0x12c1c9*/\n      ++dword_1EEE90; /*0x12c1ce*/\n    }\n    else\n    {\n      return m_free((int)v2); /*0x12c12c*/\n    }\n  }\n  return result; /*0x12c1d7*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dbf48",
+        "name": "aMget_13",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x1e9180",
+        "name": "word_1E9180"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1dbf4d",
+        "name": "aMget_14",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e9198",
+        "name": "word_1E9198"
+      },
+      {
+        "addr": "0x18b2ac",
+        "name": "_in_cksum"
+      },
+      {
+        "addr": "0x1dbf54",
+        "name": "_ip_mrouter"
+      },
+      {
+        "addr": "0x127280",
+        "name": "_ip_output"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x1eee90",
+        "name": "dword_1EEE90"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0012c1e0",
+    "addr": "0x0012c1e0",
+    "code": "int ip_mrouter_cmd()\n{\n  return 45; /*0x12c1ea*/\n}"
+  }
+]

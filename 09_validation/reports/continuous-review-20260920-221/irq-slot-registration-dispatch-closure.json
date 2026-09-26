@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "binary": {"path":"03_original/x86/binaries/mach_kernel","sha256":"33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890","mach_base":"0x00100000"},
+  "method": "Python 3 calculated indexed-slot expressions and direct rel32 call targets, converted VAs to file offsets, and compared every cited encoding to original bytes.",
+  "slot_layout_connection": {
+    "base":"0x001e7624",
+    "stride_bytes":12,
+    "registration":{"entry":"0x0018c39c","stores":[
+      {"va":"0x0018c3ea","instruction":"MOV [ECX+0x001e7624],EDI","slot_offset":0,"file_offset":574442,"bytes":"89b924761e00"},
+      {"va":"0x0018c3f8","instruction":"MOV [EDX+ECX+4],EDI","slot_offset":4,"file_offset":574456,"bytes":"897c0a04"},
+      {"va":"0x0018c3fc","instruction":"MOV [EDX+ECX+8],ESI","slot_offset":8,"file_offset":574460,"bytes":"89740a08"}
+    ]},
+    "dispatch":{"entry":"0x0018c85c","index_and_base":[
+      {"va":"0x0018c86b","instruction":"MOV EBX,[frame+0x30]; ADD EBX,-0x40; LEA EDX,[EBX+EBX*2]; LEA ESI,[EDX*4+0x001e7624]","formula":"0x001e7624 + 12 * ([frame+0x30] - 0x40)","file_offset":575595,"bytes":"8b583083c3c08d145b8d349524761e00"}
+    ],
+    "slot_reads":[
+      {"va":"0x0018c8ac","instruction":"MOV ECX,[ESI+8]","slot_offset":8,"file_offset":575660,"bytes":"8b4e08"},
+      {"va":"0x0018c92b","instruction":"CMP DWORD [ESI+4],0; JNZ 0x0018c944","slot_offset":4,"file_offset":575787,"bytes":"837e04007513"},
+      {"va":"0x0018c95d","instruction":"MOV EDX,[ESI]; PUSH EDX; MOV ESI,[ESI+4]; MOV [local],ESI; CALL ESI","slot_offsets":[0,4],"file_offset":575837,"bytes":"8b16528b76048975f8ffd6"}
+    ]}
+  },
+  "conditional_indirect_call_path": {
+    "gate":{"va":"0x0018c944","instruction":"MOV EBX,[0x001e7714]; MOV ECX,[ESI+8]; CMP EBX,ECX; JGE 0x0018c9c0","file_offset":575812,"bytes":"8b1d14771e008b4e0839cb7d6f"},
+    "before_call":{"va":"0x0018c951","instruction":"MOV [0x001e7714],ECX; STI; PUSH EBX; PUSH frame; then load slot +0/+4","file_offset":575825,"bytes":"890d14771e00fb538b45fc508b16528b7604"},
+    "call_and_restore":{"va":"0x0018c966","instruction":"CALL ESI; CLI; MOV [0x001e7714],EBX","file_offset":575846,"bytes":"ffd6fa891d14771e00"},
+    "bounded_finding":"On the shown signed-less-than branch, the dispatcher invokes the current slot +4 value indirectly after loading/pushing slot +0 and after STI; it executes CLI and restores the saved global afterward. The nonzero +4 gate precedes this path."
+  },
+  "direct_entry_edge": {
+    "all_text_direct_rel32_call_site_count":1,
+    "site":{"va":"0x00186fe5","containing_export":"_catch_interrupt","instruction":"CALL 0x0018c85c","file_offset":552933,"bytes":"e872580000"},
+    "caller_window":{"va":"0x00186fe0","instruction":"PUSH EBX; MOV EBX,[EBP+8]; PUSH EBX; CALL; ADD ESP,4","file_offset":552928,"bytes":"538b5d0853e87258000083c404"}
+  },
+  "bounded_findings": [
+    "The register and dispatch bodies use the same base, stride, and selected offsets 0, 4, and 8.",
+    "The dispatcher has one direct relative entry edge in original __text; this does not exclude an indirect entry path.",
+    "No handler identity, device semantics, interrupt delivery, IRQ lifecycle, nested execution, lock progress, or runtime state is inferred."
+  ],
+  "validation":{"raw_instruction_records_checked":12,"python_calculations_checked":3,"status":"pass"}
+}

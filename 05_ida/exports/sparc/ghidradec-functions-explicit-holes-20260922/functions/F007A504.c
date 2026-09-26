@@ -1,0 +1,3 @@
+
+//Decompiler native message:  Low-level Error: Bad decompile address: r0xf007a504 ram may not be a global space in the spec file.
+//Decompiling function: _kern_serv_version @ 0xf007a504

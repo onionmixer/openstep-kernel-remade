@@ -1,0 +1,8 @@
+0x001aec8c	1	PUSH EBP
+0x001aec8d	2	MOV EBP,ESP
+0x001aec8f	3	MOV EAX,dword ptr [EBP + 0x8]
+0x001aec92	7	AND byte ptr [EAX + 0x11c],0xfe
+0x001aec99	2	XOR EAX,EAX
+0x001aec9b	2	MOV ESP,EBP
+0x001aec9d	1	POP EBP
+0x001aec9e	1	RET

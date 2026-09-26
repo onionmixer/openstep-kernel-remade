@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "method": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890",
+    "export": "04_ghidra/exports/x86/full-pass5",
+    "raw_decode": "Python capstone x86/32 over each exported body range",
+    "text_section": {
+      "address": "0x001012d0",
+      "file_offset": 4816
+    }
+  },
+  "measurement": {
+    "vm_fault": {"body_bytes": 5406, "decoded_instruction_count": 1853, "direct_call_count": 107, "return_count": 1},
+    "vm_object_copy": {"body_bytes": 488, "decoded_instruction_count": 181, "direct_call_count": 4, "return_count": 1},
+    "vm_object_shadow": {"body_bytes": 87, "decoded_instruction_count": 35, "direct_call_count": 3, "return_count": 1},
+    "vm_object_coalesce": {"body_bytes": 247, "decoded_instruction_count": 94, "direct_call_count": 3, "return_count": 1},
+    "vm_fault_copy_entry": {"body_bytes": 500, "decoded_instruction_count": 184, "direct_call_count": 10, "return_count": 1},
+    "vm_map_copy_entry": {"body_bytes": 397, "decoded_instruction_count": 153, "direct_call_count": 9, "return_count": 1},
+    "vm_map_fork": {"body_bytes": 1437, "decoded_instruction_count": 465, "direct_call_count": 28, "return_count": 1},
+    "vm_map_deallocate": {"body_bytes": 110, "decoded_instruction_count": 46, "direct_call_count": 4, "return_count": 1}
+  },
+  "vm_fault_return_sites": [
+    {"site": "0x0017207a", "eax_source": "saved vm_map_lookup EAX", "jump": "0x00173580"},
+    {"site": "0x001721de", "eax": 10, "jump": "0x00173580"},
+    {"site": "0x00172376", "eax": 0, "jump": "0x00173580"},
+    {"site": "0x00172572", "eax": 10, "jump": "0x00173580"},
+    {"site": "0x00172922", "eax": 10, "jump": "0x00173580"},
+    {"site": "0x00172d13", "eax": 0, "jump": "0x00173580"},
+    {"site": "0x001731fe", "eax_source": "saved second vm_map_lookup EAX", "jump": "0x00173580"},
+    {"site": "0x0017357e", "eax": 0, "role": "normal fall-through epilogue"}
+  ],
+  "vm_fault_direct_callers": [
+    {"call": "0x001735d5", "function": "_vm_fault_wire", "post_call": "add esp,0x14; iteration continues; EAX is not tested"},
+    {"call": "0x00192000", "function": "_user_trap", "post_call": "stores EAX at [EBP-0x14], compares it with zero"},
+    {"call": "0x001921e7", "function": "_kernel_trap", "post_call": "stores EAX at [EBP-0xc], compares it with zero"},
+    {"call": "0x0019242d", "function": "FUN_001923e0", "post_call": "immediately restores frame and RET; EAX is preserved"},
+    {"call": "0x001a143c", "function": "_PCexception", "post_call": "moves EAX to EDX and tests EDX"}
+  ],
+  "object_copy_and_shadow": {
+    "vm_object_copy": [
+      {"range": "0x001793f0-0x0017943e", "fact": "tests +0x28 and +0x46 bit 0x10; fast path increments WORD +0x18 and writes output flag 1"},
+      {"range": "0x00179444-0x001794b5", "fact": "calls vm_object_collapse, then conditionally reuses backing object after testing backing +0x1a and +0x28"},
+      {"range": "0x001794c4-0x00179550", "fact": "allocates object, checks backing +0x20/+0x24, rewrites +0x20/+0x24 chain and updates WORD +0x18"},
+      {"range": "0x0017957c-0x0017958f", "fact": "writes output object/offset and output flag 0"}
+    ],
+    "vm_object_shadow": [
+      {"range": "0x001795b5-0x001795cf", "fact": "zalloc then __vm_object_allocate; null allocation enters panic call"},
+      {"range": "0x001795d4-0x001795eb", "fact": "new +0x20 receives former object pointer; new +0x24 receives former offset; caller offset becomes 0 and object pointer becomes new object"}
+    ],
+    "vm_object_coalesce": [
+      {"range": "0x00179c34-0x00179c3c", "fact": "nonzero second argument returns EAX=0"},
+      {"range": "0x00179c6d-0x00179c8d", "fact": "requires WORD +0x18 <= 1 and +0x28/+0x20/+0x1c all zero; otherwise unlocks and returns 0"},
+      {"range": "0x00179cbe-0x00179d15", "fact": "removes matching pages, frees them under queue lock, extends +0x14 if needed, then returns 1"}
+    ]
+  },
+  "copy_and_fork": {
+    "vm_fault_copy_entry": [
+      {"range": "0x00173718-0x0017378a", "fact": "vm_page_alloc_sequential failure unlocks, wakes a wait channel, sleeps, reacquires lock, and retries"},
+      {"range": "0x001737a8-0x001737d1", "fact": "source vm_page_lookup returning zero reaches panic"},
+      {"range": "0x001737d4-0x0017386f", "fact": "copies page, enters pmap mapping, activates page under queue lock, clears busy bit and wakes waiters"}
+    ],
+    "vm_map_copy_entry": [
+      {"range": "0x00176812-0x0017682c", "fact": "calls vm_object_copy, tests output flag, and conditionally sets entry bits 0x40 and 0x08"},
+      {"range": "0x0017683f-0x00176876", "fact": "output-copy path deallocates prior object then pmap_copy; nonzero WORD +0x28 path invokes vm_fault_copy_entry"}
+    ],
+    "vm_map_fork": [
+      {"range": "0x00177a7d-0x00177a91", "fact": "calls lock_write on parent, increments parent +0x4c, then pmap_create(0)"},
+      {"range": "0x00177f6f-0x00177fcd", "fact": "calls vm_object_copy, tests output flag, marks flags, deallocates prior object and calls pmap_copy"},
+      {"range": "0x00177fd8-0x00177fed", "fact": "nonzero child entry WORD +0x28 path calls vm_fault_copy_entry"},
+      {"range": "0x00178013-0x0017801f", "fact": "calls lock_done on parent then returns child map pointer in EAX"}
+    ],
+    "vm_map_deallocate": [
+      {"range": "0x001747e3-0x0017480d", "fact": "interlocks +0x34, decrements +0x30, and returns only when pre-decrement value remains positive"},
+      {"range": "0x0017480f-0x0017483a", "fact": "otherwise lock_write, vm_map_delete(full map range), pmap_destroy, then zfree"}
+    ]
+  }
+}

@@ -1,0 +1,589 @@
+[
+  {
+    "requested_address": "0x001ae74c",
+    "addr": "0x001ae74c",
+    "code": "void __cdecl -[SCSIDisk unlockIoQLock](SCSIDisk *self, SEL a2)\n{\n  char *v2; // edx\n  int v3; // ebx\n\n  v2 = -[IODisk lastReadyState](self, sel_lastReadyState); /*0x1ae761*/\n  if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->_ioQueueNodisk.next == &self->_ioQueueNodisk /*0x1ae78a*/\n    && (($BAB6C68F9D34F0972F921D3DB17D7446 *)self->_ioQueueDisk.next == &self->_ioQueueDisk\n     || (unsigned int)(v2 - 2) <= 1\n     || self->_ejectPending) )\n  {\n    v3 = 0; /*0x1ae79c*/\n    objc_msgSend(self->_ioQLock, sel_unlockWith_, 0); /*0x1ae7ad*/\n  }\n  else\n  {\n    v3 = 1; /*0x1ae793*/\n    objc_msgSend(self->_ioQLock, sel_unlockWith_, 1); /*0x1ae798*/\n  }\n  if ( v3 == 1 ) /*0x1ae7b8*/\n    thread_block(); /*0x1ae7ba*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a586c",
+        "name": "-[IODisk lastReadyState]"
+      },
+      {
+        "addr": "0x203798",
+        "name": "sel_lastReadyState",
+        "string": "lastReadyState"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae7c8",
+    "addr": "0x001ae7c8",
+    "code": "int __cdecl +[SCSIGeneric deviceStyle](id a1, SEL a2)\n{\n  return 1; /*0x1ae7d2*/\n}"
+  },
+  {
+    "requested_address": "0x001ae7d4",
+    "addr": "0x001ae7d4",
+    "code": "id *__cdecl +[SCSIGeneric requiredProtocols](id a1, SEL a2)\n{\n  return (id *)&unk_1E517C; /*0x1ae7de*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e517c",
+        "name": "unk_1E517C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae7e0",
+    "addr": "0x001ae7e0",
+    "code": "char __cdecl +[SCSIGeneric probe:](id a1, SEL a2, id a3)\n{\n  id v3; // esi\n  int i; // ebx\n  id v6; // eax\n\n  v3 = objc_msgSend(a3, sel_directDevice); /*0x1ae7f9*/\n  if ( objc_msgSend(v3, sel_unit) ) /*0x1ae803*/\n    return 0; /*0x1ae80f*/\n  for ( i = 0; i <= 3; ++i ) /*0x1ae814*/\n  {\n    v6 = objc_msgSend(a1, sel_alloc); /*0x1ae820*/\n    sgIdMap[i] = (int)v6; /*0x1ae825*/\n    objc_msgSend(v6, sel_sgInit_controller_, i, v3); /*0x1ae836*/\n  }\n  return 1; /*0x1ae84c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203afc",
+        "name": "sel_directDevice",
+        "string": "directDevice"
+      },
+      {
+        "addr": "0x203404",
+        "name": "sel_unit",
+        "string": "unit"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1f74a0",
+        "name": "_sgIdMap"
+      },
+      {
+        "addr": "0x204a58",
+        "name": "sel_sgInit:controller:",
+        "string": "sgInit:controller:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae854",
+    "addr": "0x001ae854",
+    "code": "int __cdecl -[SCSIGeneric sgInit:controller:](SCSIGeneric *self, SEL a2, unsigned int a3, id a4)\n{\n  id v4; // eax\n  char v6[20]; // [esp+Ch] [ebp-14h] BYREF\n\n  self->_controller = a4; /*0x1ae863*/\n  self->_controllerNum = 0; /*0x1ae869*/\n  *((_BYTE *)self + 284) &= ~1u; /*0x1ae873*/\n  self->_isReserved = 0; /*0x1ae87a*/\n  *((_BYTE *)self + 292) &= ~1u; /*0x1ae884*/\n  self->_openLock = +[Object new](aNxlock, sel_new); /*0x1ae89e*/\n  self->_owner = nullptr; /*0x1ae8a4*/\n  sprintf(v6, \"sg%d\", a3); /*0x1ae8bb*/\n  -[IODevice setName:](self, sel_setName_, v6); /*0x1ae8c9*/\n  -[IODevice setDeviceKind:](self, sel_setDeviceKind_, \"SCSIGeneric\"); /*0x1ae8de*/\n  v4 = objc_msgSend(a4, sel_name); /*0x1ae8eb*/\n  -[IODevice setLocation:](self, sel_setLocation_, v4); /*0x1ae8f9*/\n  -[IODevice setUnit:](self, sel_setUnit_, a3); /*0x1ae90d*/\n  -[IODevice registerDevice](self, sel_registerDevice); /*0x1ae91a*/\n  return 0; /*0x1ae924*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d79c0",
+        "name": "aSgD",
+        "string": "sg%d"
+      },
+      {
+        "addr": "0x1a42e8",
+        "name": "-[IODevice setName:]"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1a433c",
+        "name": "-[IODevice setDeviceKind:]"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1d79c8",
+        "name": "aScsigeneric",
+        "string": "SCSIGeneric"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a4398",
+        "name": "-[IODevice setLocation:]"
+      },
+      {
+        "addr": "0x202c18",
+        "name": "sel_setLocation:",
+        "string": "setLocation:"
+      },
+      {
+        "addr": "0x1a43f8",
+        "name": "-[IODevice setUnit:]"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x1a416c",
+        "name": "-[IODevice registerDevice]"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae92c",
+    "addr": "0x001ae92c",
+    "code": "unsigned __int8 __cdecl -[SCSIGeneric target](SCSIGeneric *self, SEL a2)\n{\n  return self->_target; /*0x1ae93b*/\n}"
+  },
+  {
+    "requested_address": "0x001ae940",
+    "addr": "0x001ae940",
+    "code": "unsigned __int8 __cdecl -[SCSIGeneric lun](SCSIGeneric *self, SEL a2)\n{\n  return self->_lun; /*0x1ae94f*/\n}"
+  },
+  {
+    "requested_address": "0x001ae954",
+    "addr": "0x001ae954",
+    "code": "unsigned __int64 __cdecl -[SCSIGeneric SCSI3_target](SCSIGeneric *self, SEL a2)\n{\n  return self->_target; /*0x1ae968*/\n}"
+  },
+  {
+    "requested_address": "0x001ae96c",
+    "addr": "0x001ae96c",
+    "code": "unsigned __int64 __cdecl -[SCSIGeneric SCSI3_lun](SCSIGeneric *self, SEL a2)\n{\n  return self->_lun; /*0x1ae980*/\n}"
+  },
+  {
+    "requested_address": "0x001ae984",
+    "addr": "0x001ae984",
+    "code": "int __cdecl -[SCSIGeneric acquire:](SCSIGeneric *self, SEL a2, id a3)\n{\n  int v3; // ebx\n\n  objc_msgSend(self->_openLock, sel_lock); /*0x1ae99a*/\n  if ( self->_owner ) /*0x1ae9a2*/\n  {\n    v3 = 1; /*0x1ae9ab*/\n  }\n  else\n  {\n    *((_BYTE *)self + 284) &= ~1u; /*0x1ae9b4*/\n    self->_owner = a3; /*0x1ae9be*/\n    v3 = 0; /*0x1ae9c4*/\n  }\n  objc_msgSend(self->_openLock, sel_unlock); /*0x1ae9d4*/\n  return v3; /*0x1ae9de*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae9e4",
+    "addr": "0x001ae9e4",
+    "code": "int __cdecl -[SCSIGeneric release:](SCSIGeneric *self, SEL a2, id a3)\n{\n  const char *v3; // eax\n\n  objc_msgSend(self->_openLock, sel_lock); /*0x1ae9fd*/\n  if ( self->_owner == a3 )\n  {\n    -[SCSIGeneric clearReservation](self, sel_clearReservation); /*0x1aea34*/\n    self->_owner = nullptr; /*0x1aea39*/\n  }\n  else\n  {\n    v3 = -[IODevice name](self, sel_name); /*0x1aea15*/\n    IOLog((int)\"%s: bogus close call\\n\", v3);\n  }\n  return (int)objc_msgSend(self->_openLock, sel_unlock); /*0x1aea5c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1aefd4",
+        "name": "-[SCSIGeneric clearReservation]"
+      },
+      {
+        "addr": "0x204a00",
+        "name": "sel_clearReservation",
+        "string": "clearReservation"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d79d4",
+        "name": "aSBogusCloseCal",
+        "string": "%s: bogus close call\n"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aea64",
+    "addr": "0x001aea64",
+    "code": "int __cdecl -[SCSIGeneric setTarget:lun:isRoot:](\n        SCSIGeneric *self,\n        SEL a2,\n        unsigned __int8 a3,\n        unsigned __int8 a4,\n        char a5)\n{\n  if ( a3 >= (int)objc_msgSend(self->_controller, sel_numberOfTargets) || a4 > 8u ) /*0x1aeaa4*/\n    return -706; /*0x1aeaab*/\n  -[SCSIGeneric clearReservation](self, sel_clearReservation); /*0x1aeab8*/\n  if ( objc_msgSend(self->_controller, sel_reserveSCSI3Target_lun_forOwner_, a3, 0, a4, 0, self) ) /*0x1aeada*/\n  {\n    if ( !a5 ) /*0x1aeae7*/\n      return -725; /*0x1aeaee*/\n  }\n  else\n  {\n    self->_isReserved = 1; /*0x1aeaf0*/\n  }\n  self->_target = a3; /*0x1aeb00*/\n  self->_lun = a4; /*0x1aeb12*/\n  *((_BYTE *)self + 292) |= 1u; /*0x1aeb1e*/\n  return 0; /*0x1aeb2a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2028f8",
+        "name": "sel_numberOfTargets",
+        "string": "numberOfTargets"
+      },
+      {
+        "addr": "0x1aefd4",
+        "name": "-[SCSIGeneric clearReservation]"
+      },
+      {
+        "addr": "0x204a00",
+        "name": "sel_clearReservation",
+        "string": "clearReservation"
+      },
+      {
+        "addr": "0x204724",
+        "name": "sel_reserveSCSI3Target:lun:forOwner:",
+        "string": "reserveSCSI3Target:lun:forOwner:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aeb34",
+    "addr": "0x001aeb34",
+    "code": "int __cdecl -[SCSIGeneric setSCSI3Target:lun:isRoot:](\n        SCSIGeneric *self,\n        SEL a2,\n        unsigned __int64 a3,\n        unsigned __int64 a4,\n        char a5)\n{\n  if ( (int)objc_msgSend(self->_controller, sel_numberOfTargets) <= a3 || a4 > 8 ) /*0x1aeb87*/\n    return -706; /*0x1aeb8e*/\n  -[SCSIGeneric clearReservation](self, sel_clearReservation); /*0x1aeb98*/\n  if ( objc_msgSend(self->_controller, sel_reserveSCSI3Target_lun_forOwner_, a3, a4, self) ) /*0x1aebb4*/\n  {\n    if ( !a5 ) /*0x1aebc1*/\n      return -725; /*0x1aebc8*/\n  }\n  else\n  {\n    self->_isReserved = 1; /*0x1aebcc*/\n  }\n  self->_target = a3; /*0x1aebd6*/\n  self->_lun = (unsigned int)a4; /*0x1aebe5*/\n  *((_BYTE *)self + 292) |= 1u; /*0x1aebf4*/\n  return 0; /*0x1aec00*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2028f8",
+        "name": "sel_numberOfTargets",
+        "string": "numberOfTargets"
+      },
+      {
+        "addr": "0x1aefd4",
+        "name": "-[SCSIGeneric clearReservation]"
+      },
+      {
+        "addr": "0x204a00",
+        "name": "sel_clearReservation",
+        "string": "clearReservation"
+      },
+      {
+        "addr": "0x204724",
+        "name": "sel_reserveSCSI3Target:lun:forOwner:",
+        "string": "reserveSCSI3Target:lun:forOwner:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aec08",
+    "addr": "0x001aec08",
+    "code": "int __cdecl -[SCSIGeneric setController:](SCSIGeneric *self, SEL a2, unsigned int a3)\n{\n  int v4; // [esp+Ch] [ebp-10h] BYREF\n  char __s1[12]; // [esp+10h] [ebp-Ch] BYREF\n\n  if ( self->_controllerNum == a3 ) /*0x1aec1d*/\n    return 0; /*0x1aec1f*/\n  -[SCSIGeneric clearReservation](self, sel_clearReservation); /*0x1aec2c*/\n  sprintf(__s1, \"sc%d\", a3); /*0x1aec3b*/\n  if ( IOGetObjectForDeviceName(__s1, (int)&v4) ) /*0x1aec45*/\n    return -704; /*0x1aec68*/\n  self->_controllerNum = a3; /*0x1aec4e*/\n  self->_controller = (id)v4; /*0x1aec57*/\n  *((_BYTE *)self + 292) &= ~1u; /*0x1aec5d*/\n  return 0; /*0x1aec70*/\n}",
+    "refs": [
+      {
+        "addr": "0x1aefd4",
+        "name": "-[SCSIGeneric clearReservation]"
+      },
+      {
+        "addr": "0x204a00",
+        "name": "sel_clearReservation",
+        "string": "clearReservation"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d75e4",
+        "name": "aScD",
+        "string": "sc%d"
+      },
+      {
+        "addr": "0x1a3d0c",
+        "name": "_IOGetObjectForDeviceName"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aec78",
+    "addr": "0x001aec78",
+    "code": "int __cdecl -[SCSIGeneric enableAutoSense](SCSIGeneric *self, SEL a2)\n{\n  *((_BYTE *)self + 284) |= 1u; /*0x1aec7e*/\n  return 0; /*0x1aec89*/\n}"
+  },
+  {
+    "requested_address": "0x001aec8c",
+    "addr": "0x001aec8c",
+    "code": "int __cdecl -[SCSIGeneric disableAutoSense](SCSIGeneric *self, SEL a2)\n{\n  *((_BYTE *)self + 284) &= ~1u; /*0x1aec92*/\n  return 0; /*0x1aec9d*/\n}"
+  },
+  {
+    "requested_address": "0x001aeca0",
+    "addr": "0x001aeca0",
+    "code": "int __cdecl -[SCSIGeneric autoSense](SCSIGeneric *self, SEL a2)\n{\n  return *((_BYTE *)self + 284) & 1; /*0x1aecb1*/\n}"
+  },
+  {
+    "requested_address": "0x001aecb4",
+    "addr": "0x001aecb4",
+    "code": "int __cdecl -[SCSIGeneric executeRequest:buffer:client:senseBuf:](\n        SCSIGeneric *self,\n        int a2,\n        $71639E5036F17B36840F09F8ED9B0E88 *a3,\n        int a4,\n        int a5,\n        char *a6)\n{\n  int result; // eax\n  id v7; // eax\n  const char *v8; // eax\n  int target; // [esp-14h] [ebp-20h]\n  int lun; // [esp-10h] [ebp-1Ch]\n  char *v11; // [esp-Ch] [ebp-18h]\n\n  if ( (*((_BYTE *)self + 292) & 1) == 0 /*0x1aecef*/\n    || LODWORD(self->_target) != *(_BYTE *)a3\n    || HIDWORD(self->_target)\n    || LODWORD(self->_lun) != *((unsigned __int8 *)a3 + 1)\n    || HIDWORD(self->_lun) )\n  {\n    return 7; /*0x1aecf7*/\n  }\n  result = (int)objc_msgSend(self->_controller, sel_executeRequest_buffer_client_, a3, a4, a5); /*0x1aed1e*/\n  if ( result == 2 )\n  {\n    qmemcpy(a6, (char *)a3 + 56, 0x1Au); /*0x1aed37*/\n  }\n  else if ( result == 3 && (*((_BYTE *)self + 284) & 1) != 0 )\n  {\n    v7 = -[SCSIGeneric getSense:](self, sel_getSense_, a6); /*0x1aed57*/\n    if ( v7 )\n    {\n      v11 = IOFindNameForValue((int)v7, IOScStatusStrings); /*0x1aed77*/\n      lun = self->_lun; /*0x1aed7e*/\n      target = self->_target; /*0x1aed85*/\n      v8 = -[IODevice name](self, sel_name); /*0x1aed8e*/\n      IOLog((int)\"%s: Request Sense on target %d lun %d failed (%s)\\n\", v8, target, lun, v11);\n      return 3; /*0x1aeda1*/\n    }\n    else\n    {\n      return 2; /*0x1aed63*/\n    }\n  }\n  return result; /*0x1aeda9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2046d4",
+        "name": "sel_executeRequest:buffer:client:",
+        "string": "executeRequest:buffer:client:"
+      },
+      {
+        "addr": "0x1aeed4",
+        "name": "-[SCSIGeneric getSense:]"
+      },
+      {
+        "addr": "0x204a14",
+        "name": "sel_getSense:",
+        "string": "getSense:"
+      },
+      {
+        "addr": "0x1a553c",
+        "name": "_IOFindNameForValue"
+      },
+      {
+        "addr": "0x1e5184",
+        "name": "_IOScStatusStrings"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d79ec",
+        "name": "aSRequestSenseO",
+        "string": "%s: Request Sense on target %d lun %d failed (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aedb0",
+    "addr": "0x001aedb0",
+    "code": "int __cdecl -[SCSIGeneric executeSCSI3Request:buffer:client:senseBuf:](\n        SCSIGeneric *self,\n        int a2,\n        $1018BFDC2666C6D554C1554632BFDA34 *a3,\n        int a4,\n        int a5,\n        char *a6)\n{\n  int result; // eax\n  id v7; // eax\n  const char *v8; // eax\n  int target; // [esp-14h] [ebp-20h]\n  int lun; // [esp-10h] [ebp-1Ch]\n  char *v11; // [esp-Ch] [ebp-18h]\n\n  if ( (*((_BYTE *)self + 292) & 1) == 0 /*0x1aedf1*/\n    || *(_DWORD *)a3 != LODWORD(self->_target)\n    || *((_DWORD *)a3 + 1) != HIDWORD(self->_target)\n    || *((_DWORD *)a3 + 2) != LODWORD(self->_lun)\n    || *((_DWORD *)a3 + 3) != HIDWORD(self->_lun) )\n  {\n    return 7; /*0x1aedf3*/\n  }\n  result = (int)objc_msgSend(self->_controller, sel_executeSCSI3Request_buffer_client_, a3, a4, a5); /*0x1aee17*/\n  if ( result == 2 )\n  {\n    qmemcpy(a6, (char *)a3 + 76, 0x1Au); /*0x1aee2d*/\n  }\n  else if ( result == 3 && (*((_BYTE *)self + 284) & 1) != 0 )\n  {\n    v7 = -[SCSIGeneric getSense:](self, sel_getSense_, a6); /*0x1aee4b*/\n    if ( v7 )\n    {\n      v11 = IOFindNameForValue((int)v7, IOScStatusStrings); /*0x1aee6b*/\n      lun = self->_lun; /*0x1aee72*/\n      target = self->_target; /*0x1aee79*/\n      v8 = -[IODevice name](self, sel_name); /*0x1aee82*/\n      IOLog((int)\"%s: Request Sense on target %d lun %d failed (%s)\\n\", v8, target, lun, v11);\n      return 3; /*0x1aee95*/\n    }\n    else\n    {\n      return 2; /*0x1aee57*/\n    }\n  }\n  return result; /*0x1aee9d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2046b0",
+        "name": "sel_executeSCSI3Request:buffer:client:",
+        "string": "executeSCSI3Request:buffer:client:"
+      },
+      {
+        "addr": "0x1aeed4",
+        "name": "-[SCSIGeneric getSense:]"
+      },
+      {
+        "addr": "0x204a14",
+        "name": "sel_getSense:",
+        "string": "getSense:"
+      },
+      {
+        "addr": "0x1a553c",
+        "name": "_IOFindNameForValue"
+      },
+      {
+        "addr": "0x1e5184",
+        "name": "_IOScStatusStrings"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d79ec",
+        "name": "aSRequestSenseO",
+        "string": "%s: Request Sense on target %d lun %d failed (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aeea4",
+    "addr": "0x001aeea4",
+    "code": "int __cdecl -[SCSIGeneric resetSCSIBus](SCSIGeneric *self, SEL a2)\n{\n  return (int)objc_msgSend(self->_controller, sel_resetSCSIBus); /*0x1aeebf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202908",
+        "name": "sel_resetSCSIBus",
+        "string": "resetSCSIBus"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aeec4",
+    "addr": "0x001aeec4",
+    "code": "id __cdecl -[SCSIGeneric controller](SCSIGeneric *self, SEL a2)\n{\n  return self->_controller; /*0x1aeed2*/\n}"
+  },
+  {
+    "requested_address": "0x001aeed4",
+    "addr": "0x001aeed4",
+    "code": "int __cdecl -[SCSIGeneric getSense:](SCSIGeneric *self, SEL a2, $55B996686E2E2C4974FEF7D53845AF12 *a3)\n{\n  int v3; // eax\n  id v4; // ebx\n  id v6; // [esp+Ch] [ebp-70h]\n  int v7; // [esp+10h] [ebp-6Ch] BYREF\n  int v8; // [esp+14h] [ebp-68h] BYREF\n  _BYTE v9[8]; // [esp+18h] [ebp-64h] BYREF\n  unsigned int v10; // [esp+20h] [ebp-5Ch]\n  _BYTE v11[3]; // [esp+28h] [ebp-54h] BYREF\n  char v12; // [esp+2Bh] [ebp-51h]\n  char v13; // [esp+2Eh] [ebp-4Eh]\n  char v14; // [esp+36h] [ebp-46h]\n  int v15; // [esp+38h] [ebp-44h]\n  int v16; // [esp+3Ch] [ebp-40h]\n  char v17; // [esp+40h] [ebp-3Ch]\n\n  v6 = objc_msgSend(self->_controller, sel_allocateBufferOfLength_actualStart_actualLength_, 26, &v8, &v7); /*0x1aef03*/\n  bzero(v11, 0x54u); /*0x1aef09*/\n  objc_msgSend(self->_controller, sel_getDMAAlignment_, v9); /*0x1aef20*/\n  v11[0] = self->_target; /*0x1aef2b*/\n  v11[1] = self->_lun; /*0x1aef34*/\n  v14 = 1; /*0x1aef37*/\n  if ( v10 <= 1 ) /*0x1aef44*/\n    v15 = 26; /*0x1aef54*/\n  else\n    v15 = -v10 & (v10 + 25); /*0x1aef4d*/\n  v16 = 10; /*0x1aef5b*/\n  v17 &= ~1u; /*0x1aef62*/\n  v11[2] = 3; /*0x1aef66*/\n  v12 = (32 * LOBYTE(self->_lun)) | v12 & 0x1F; /*0x1aef7a*/\n  v13 = 26; /*0x1aef7d*/\n  v3 = IOVmTaskSelf(); /*0x1aef81*/\n  v4 = objc_msgSend(self->_controller, sel_executeRequest_buffer_client_, v11, v6, v3); /*0x1aefa2*/\n  if ( !v4 ) /*0x1aefa9*/\n    qmemcpy(a3, v6, sizeof($55B996686E2E2C4974FEF7D53845AF12)); /*0x1aefb7*/\n  IOFree(v8, v7); /*0x1aefc3*/\n  return (int)v4; /*0x1aefcd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2026f0",
+        "name": "sel_allocateBufferOfLength:actualStart:actualLength:",
+        "string": "allocateBufferOfLength:actualStart:actualLength:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x2046d4",
+        "name": "sel_executeRequest:buffer:client:",
+        "string": "executeRequest:buffer:client:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aefd4",
+    "addr": "0x001aefd4",
+    "code": "void __cdecl -[SCSIGeneric clearReservation](SCSIGeneric *self, SEL a2)\n{\n  const char *v2; // eax\n\n  if ( self->_isReserved )\n  {\n    if ( (*((_BYTE *)self + 292) & 1) != 0 )\n    {\n      objc_msgSend( /*0x1af018*/\n        self->_controller,\n        sel_releaseSCSI3Target_lun_forOwner_,\n        LODWORD(self->_target),\n        HIDWORD(self->_target),\n        LODWORD(self->_lun),\n        HIDWORD(self->_lun),\n        self);\n      *((_BYTE *)self + 292) &= ~1u; /*0x1af01d*/\n    }\n    else\n    {\n      v2 = -[IODevice name](self, sel_name); /*0x1af030*/\n      IOLog((int)\"%s: clearReservation, no valid target\\n\", v2);\n    }\n    self->_isReserved = 0; /*0x1af040*/\n  }\n  *((_BYTE *)self + 292) &= ~1u; /*0x1af04a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204700",
+        "name": "sel_releaseSCSI3Target:lun:forOwner:",
+        "string": "releaseSCSI3Target:lun:forOwner:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7a20",
+        "name": "aSClearreservat",
+        "string": "%s: clearReservation, no valid target\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001af058",
+    "addr": "0x001af058",
+    "code": "$0FF10449EE71A6B4D80D3A2D7B5E2C1F *__cdecl -[IODisplay allocateConsoleInfo](IODisplay *self, SEL a2)\n{\n  return nullptr; /*0x1af05f*/\n}"
+  },
+  {
+    "requested_address": "0x001af064",
+    "addr": "0x001af064",
+    "code": "int __cdecl -[IODisplay devicePort](IODisplay *self, SEL a2)\n{\n  id v2; // eax\n\n  v2 = -[IODirectDevice deviceDescription](self, sel_deviceDescription); /*0x1af079*/\n  return (int)objc_msgSend(v2, sel_devicePort); /*0x1af089*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a85c8",
+        "name": "-[IODirectDevice deviceDescription]"
+      },
+      {
+        "addr": "0x20220c",
+        "name": "sel_deviceDescription",
+        "string": "deviceDescription"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203c54",
+        "name": "sel_devicePort",
+        "string": "devicePort"
+      }
+    ]
+  }
+]

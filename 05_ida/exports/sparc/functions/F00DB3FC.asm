@@ -1,0 +1,6 @@
+F00DB3FC: 9de3bf90                 save    %sp, -0x70, %sp
+F00DB400: 113c03f1                 sethi   %hi(aAudioSubclassD), %o0! "Audio: subclass does not implement mixR"...
+F00DB404: 7fffab3c                 call    _IOLog
+F00DB408: 90122058                 bset    %lo(aAudioSubclassD), %o0! "Audio: subclass does not implement mixR"...
+F00DB40C: 81c7e008                 ret
+F00DB410: 91e82000                 restore %g0, 0, %o0

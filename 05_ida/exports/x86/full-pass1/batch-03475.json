@@ -1,0 +1,953 @@
+[
+  {
+    "requested_address": "0x001a6c34",
+    "addr": "0x001a6c34",
+    "code": "int __cdecl +[IODiskPartition deviceStyle](id a1, SEL a2)\n{\n  return 1; /*0x1a6c3e*/\n}"
+  },
+  {
+    "requested_address": "0x001a6c40",
+    "addr": "0x001a6c40",
+    "code": "id *__cdecl +[IODiskPartition requiredProtocols](id a1, SEL a2)\n{\n  return (id *)&unk_1E50F4; /*0x1a6c4a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e50f4",
+        "name": "unk_1E50F4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6c4c",
+    "addr": "0x001a6c4c",
+    "code": "int __cdecl -[IODiskPartition NeXTpartitionOffset](IODiskPartition *self, SEL a2)\n{\n  int v2; // edi\n  int v3; // esi\n  int v4; // eax\n  int v5; // edx\n  int i; // ecx\n  char v8; // [esp+Ch] [ebp-Ch]\n  id v9; // [esp+10h] [ebp-8h]\n  _BYTE v10[4]; // [esp+14h] [ebp-4h] BYREF\n\n  v2 = 0; /*0x1a6c55*/\n  v9 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a6c67*/\n  v3 = IOMalloc(page_size); /*0x1a6c76*/\n  v8 = 0; /*0x1a6c78*/\n  if ( -[IOLogicalDisk physicalBlockSize](self, sel_physicalBlockSize) == 512 ) /*0x1a6c94*/\n  {\n    v4 = IOVmTaskSelf(); /*0x1a6c96*/\n    if ( objc_msgSend(v9, sel_readAt_length_buffer_actualLength_client_, 0, 512, v3, v10, v4) ) /*0x1a6cb3*/\n    {\n      v2 = -1103; /*0x1a6cbf*/\n    }\n    else if ( *(_WORD *)(v3 + 510) == 0xAA55 ) /*0x1a6cd9*/\n    {\n      v5 = v3 + 446; /*0x1a6cdb*/\n      for ( i = 0; i <= 3; ++i ) /*0x1a6ce1*/\n      {\n        if ( *(_BYTE *)(v5 + 4) ) /*0x1a6ce4*/\n        {\n          if ( *(unsigned __int8 *)(v5 + 4) == 167 ) /*0x1a6cf1*/\n          {\n            v2 = *(_DWORD *)(v5 + 8); /*0x1a6cc8*/\n            goto LABEL_13; /*0x1a6ccb*/\n          }\n          v8 = 1; /*0x1a6cf3*/\n        }\n        v5 += 16; /*0x1a6cf8*/\n      }\n      if ( v8 ) /*0x1a6d04*/\n        v2 = -1104; /*0x1a6d06*/\n    }\n  }\nLABEL_13:\n  IOFree(v3, page_size); /*0x1a6d0b*/\n  return v2; /*0x1a6d1d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2039bc",
+        "name": "sel_readAt:length:buffer:actualLength:client:",
+        "string": "readAt:length:buffer:actualLength:client:"
+      },
+      {
+        "addr": "0x1a61b8",
+        "name": "-[IOLogicalDisk physicalBlockSize]"
+      },
+      {
+        "addr": "0x203938",
+        "name": "sel_physicalBlockSize",
+        "string": "physicalBlockSize"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6d24",
+    "addr": "0x001a6d24",
+    "code": "id __cdecl -[IODiskPartition free](IODiskPartition *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  -[IODiskPartition unregisterUnixDisk:](self, sel_unregisterUnixDisk_, self->_partition); /*0x1a6d3d*/\n  v3.receiver = self; /*0x1a6d49*/\n  v3.super_class = (Class)stru_1FA154.super_class; /*0x1a6d52*/\n  return -[IOLogicalDisk free](&v3, sel_free); /*0x1a6d5e*/\n}",
+    "refs": [
+      {
+        "addr": "0x209ac4",
+        "name": "-[IODiskPartition unregisterUnixDisk:]"
+      },
+      {
+        "addr": "0x203b20",
+        "name": "sel_unregisterUnixDisk:",
+        "string": "unregisterUnixDisk:"
+      },
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a6154",
+        "name": "-[IOLogicalDisk free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6d68",
+    "addr": "0x001a6d68",
+    "code": "int __cdecl -[IODiskPartition eject](IODiskPartition *self, SEL a2)\n{\n  id v2; // esi\n  int result; // eax\n  objc_super v4; // [esp+8h] [ebp-8h] BYREF\n\n  v2 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a6d80*/\n  result = -[IODiskPartition checkSafeConfig:](self, sel_checkSafeConfig_, \"eject\"); /*0x1a6d8f*/\n  if ( !result ) /*0x1a6d99*/\n  {\n    -[IODiskPartition _freePartitions](self, sel__freePartitions); /*0x1a6da3*/\n    self->_labelValid = 0; /*0x1a6da8*/\n    v4.receiver = self; /*0x1a6db8*/\n    v4.super_class = (Class)stru_1FA154.super_class; /*0x1a6dc1*/\n    -[IODisk setFormattedInternal:](&v4, sel_setFormattedInternal_, 0); /*0x1a6dc8*/\n    if ( (unsigned __int8)objc_msgSend(v2, sel_needsManualPolling) ) /*0x1a6dd5*/\n      vol_check_manual_poll(); /*0x1a6de1*/\n    return (int)objc_msgSend(v2, sel_ejectPhysical); /*0x1a6dee*/\n  }\n  return result; /*0x1a6df6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1a74d8",
+        "name": "-[IODiskPartition checkSafeConfig:]"
+      },
+      {
+        "addr": "0x203a0c",
+        "name": "sel_checkSafeConfig:",
+        "string": "checkSafeConfig:"
+      },
+      {
+        "addr": "0x1d71c8",
+        "name": "aEject",
+        "string": "eject"
+      },
+      {
+        "addr": "0x1a73d0",
+        "name": "-[IODiskPartition _freePartitions]"
+      },
+      {
+        "addr": "0x203a34",
+        "name": "sel__freePartitions",
+        "string": "_freePartitions"
+      },
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a58a8",
+        "name": "-[IODisk setFormattedInternal:]"
+      },
+      {
+        "addr": "0x203758",
+        "name": "sel_setFormattedInternal:",
+        "string": "setFormattedInternal:"
+      },
+      {
+        "addr": "0x1859a0",
+        "name": "_vol_check_manual_poll"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2035ec",
+        "name": "sel_needsManualPolling",
+        "string": "needsManualPolling"
+      },
+      {
+        "addr": "0x20383c",
+        "name": "sel_ejectPhysical",
+        "string": "ejectPhysical"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6dfc",
+    "addr": "0x001a6dfc",
+    "code": "int __cdecl -[IODiskPartition readAt:length:buffer:actualLength:client:](\n        IODiskPartition *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        char *a5,\n        unsigned int *a6,\n        unsigned int a7)\n{\n  const char *v7; // eax\n  objc_super v9; // [esp+0h] [ebp-8h] BYREF\n\n  if ( self->_labelValid )\n  {\n    v9.receiver = self; /*0x1a6e4b*/\n    v9.super_class = (Class)stru_1FA154.super_class; /*0x1a6e54*/\n    return -[IOLogicalDisk readAt:length:buffer:actualLength:client:]( /*0x1a6e5b*/\n             &v9,\n             sel_readAt_length_buffer_actualLength_client_,\n             a3,\n             a4,\n             a5,\n             a6,\n             a7);\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1a6e16*/\n    IOLog((int)\"%s: Read attempt with no valid label\\n\", v7);\n    return -706; /*0x1a6e26*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a5e40",
+        "name": "-[IOLogicalDisk readAt:length:buffer:actualLength:client:]"
+      },
+      {
+        "addr": "0x2039bc",
+        "name": "sel_readAt:length:buffer:actualLength:client:",
+        "string": "readAt:length:buffer:actualLength:client:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d71d0",
+        "name": "aSReadAttemptWi",
+        "string": "%s: Read attempt with no valid label\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6e64",
+    "addr": "0x001a6e64",
+    "code": "int __cdecl -[IODiskPartition readAsyncAt:length:buffer:pending:client:](\n        IODiskPartition *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        char *a5,\n        void *a6,\n        unsigned int a7)\n{\n  const char *v7; // eax\n  objc_super v9; // [esp+0h] [ebp-8h] BYREF\n\n  if ( self->_labelValid )\n  {\n    v9.receiver = self; /*0x1a6eb3*/\n    v9.super_class = (Class)stru_1FA154.super_class; /*0x1a6ebc*/\n    return -[IOLogicalDisk readAsyncAt:length:buffer:pending:client:]( /*0x1a6ec3*/\n             &v9,\n             sel_readAsyncAt_length_buffer_pending_client_,\n             a3,\n             a4,\n             a5,\n             a6,\n             a7);\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1a6e7e*/\n    IOLog((int)\"%s: Read attempt with no valid label\\n\", v7);\n    return -706; /*0x1a6e8e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a5e9c",
+        "name": "-[IOLogicalDisk readAsyncAt:length:buffer:pending:client:]"
+      },
+      {
+        "addr": "0x202730",
+        "name": "sel_readAsyncAt:length:buffer:pending:client:",
+        "string": "readAsyncAt:length:buffer:pending:client:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d71d0",
+        "name": "aSReadAttemptWi",
+        "string": "%s: Read attempt with no valid label\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6ecc",
+    "addr": "0x001a6ecc",
+    "code": "int __cdecl -[IODiskPartition writeAt:length:buffer:actualLength:client:](\n        IODiskPartition *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        char *a5,\n        unsigned int *a6,\n        unsigned int a7)\n{\n  const char *v7; // eax\n  objc_super v9; // [esp+0h] [ebp-8h] BYREF\n\n  if ( self->_labelValid )\n  {\n    v9.receiver = self; /*0x1a6f1b*/\n    v9.super_class = (Class)stru_1FA154.super_class; /*0x1a6f24*/\n    return -[IOLogicalDisk writeAt:length:buffer:actualLength:client:]( /*0x1a6f2b*/\n             &v9,\n             sel_writeAt_length_buffer_actualLength_client_,\n             a3,\n             a4,\n             a5,\n             a6,\n             a7);\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1a6ee6*/\n    IOLog((int)\"%s: Write attempt with no valid label\\n\", v7);\n    return -706; /*0x1a6ef6*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a5ef8",
+        "name": "-[IOLogicalDisk writeAt:length:buffer:actualLength:client:]"
+      },
+      {
+        "addr": "0x203990",
+        "name": "sel_writeAt:length:buffer:actualLength:client:",
+        "string": "writeAt:length:buffer:actualLength:client:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d71f8",
+        "name": "aSWriteAttemptW",
+        "string": "%s: Write attempt with no valid label\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6f34",
+    "addr": "0x001a6f34",
+    "code": "int __cdecl -[IODiskPartition writeAsyncAt:length:buffer:pending:client:](\n        IODiskPartition *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        char *a5,\n        void *a6,\n        unsigned int a7)\n{\n  const char *v7; // eax\n  objc_super v9; // [esp+0h] [ebp-8h] BYREF\n\n  if ( self->_labelValid )\n  {\n    v9.receiver = self; /*0x1a6f83*/\n    v9.super_class = (Class)stru_1FA154.super_class; /*0x1a6f8c*/\n    return -[IOLogicalDisk writeAsyncAt:length:buffer:pending:client:]( /*0x1a6f93*/\n             &v9,\n             sel_writeAsyncAt_length_buffer_pending_client_,\n             a3,\n             a4,\n             a5,\n             a6,\n             a7);\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1a6f4e*/\n    IOLog((int)\"%s: Write attempt with no valid label\\n\", v7);\n    return -706; /*0x1a6f5e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a5f74",
+        "name": "-[IOLogicalDisk writeAsyncAt:length:buffer:pending:client:]"
+      },
+      {
+        "addr": "0x20275c",
+        "name": "sel_writeAsyncAt:length:buffer:pending:client:",
+        "string": "writeAsyncAt:length:buffer:pending:client:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d71f8",
+        "name": "aSWriteAttemptW",
+        "string": "%s: Write attempt with no valid label\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a6f9c",
+    "addr": "0x001a6f9c",
+    "code": "int __cdecl -[IODiskPartition setFormatted:](IODiskPartition *self, SEL a2, char a3)\n{\n  int result; // eax\n  id v4; // ebx\n\n  result = -[IODiskPartition checkSafeConfig:](self, sel_checkSafeConfig_, \"setFormatted\"); /*0x1a6fbb*/\n  if ( !result ) /*0x1a6fc5*/\n  {\n    v4 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a6fd4*/\n    objc_msgSend(v4, sel_setFormattedInternal_, a3); /*0x1a6fe3*/\n    if ( a3 ) /*0x1a6fef*/\n      objc_msgSend(v4, sel_updatePhysicalParameters); /*0x1a6ff9*/\n    objc_msgSend(v4, sel_setFormattedInternal_, a3); /*0x1a700a*/\n    -[IODiskPartition setFormattedInternal:](self, sel_setFormattedInternal_, a3); /*0x1a7018*/\n    return 0; /*0x1a701d*/\n  }\n  return result; /*0x1a7022*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a74d8",
+        "name": "-[IODiskPartition checkSafeConfig:]"
+      },
+      {
+        "addr": "0x203a0c",
+        "name": "sel_checkSafeConfig:",
+        "string": "checkSafeConfig:"
+      },
+      {
+        "addr": "0x1d7220",
+        "name": "aSetformatted",
+        "string": "setFormatted"
+      },
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203758",
+        "name": "sel_setFormattedInternal:",
+        "string": "setFormattedInternal:"
+      },
+      {
+        "addr": "0x202834",
+        "name": "sel_updatePhysicalParameters",
+        "string": "updatePhysicalParameters"
+      },
+      {
+        "addr": "0x1a702c",
+        "name": "-[IODiskPartition setFormattedInternal:]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a702c",
+    "addr": "0x001a702c",
+    "code": "void __cdecl -[IODiskPartition setFormattedInternal:](IODiskPartition *self, SEL a2, char a3)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  -[IODiskPartition _freePartitions](self, sel__freePartitions); /*0x1a7041*/\n  self->_labelValid = 0; /*0x1a7049*/\n  v3.receiver = self; /*0x1a705e*/\n  v3.super_class = (Class)stru_1FA154.super_class; /*0x1a7067*/\n  -[IODisk setFormattedInternal:](&v3, sel_setFormattedInternal_, a3); /*0x1a706e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a73d0",
+        "name": "-[IODiskPartition _freePartitions]"
+      },
+      {
+        "addr": "0x203a34",
+        "name": "sel__freePartitions",
+        "string": "_freePartitions"
+      },
+      {
+        "addr": "0x1fa154",
+        "name": "stru_1FA154"
+      },
+      {
+        "addr": "0x1a58a8",
+        "name": "-[IODisk setFormattedInternal:]"
+      },
+      {
+        "addr": "0x203758",
+        "name": "sel_setFormattedInternal:",
+        "string": "setFormattedInternal:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a707c",
+    "addr": "0x001a707c",
+    "code": "char __cdecl -[IODiskPartition isBlockDeviceOpen](IODiskPartition *self, SEL a2)\n{\n  return self->_blockDeviceOpen; /*0x1a708b*/\n}"
+  },
+  {
+    "requested_address": "0x001a7090",
+    "addr": "0x001a7090",
+    "code": "void __cdecl -[IODiskPartition setBlockDeviceOpen:](IODiskPartition *self, SEL a2, char a3)\n{\n  self->_blockDeviceOpen = a3 != 0; /*0x1a709d*/\n  -[IOLogicalDisk setInstanceOpen:](self, sel_setInstanceOpen_, (*(_DWORD *)&self->_labelValid & 0xFFFF00) != 0); /*0x1a70be*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a6270",
+        "name": "-[IOLogicalDisk setInstanceOpen:]"
+      },
+      {
+        "addr": "0x2038fc",
+        "name": "sel_setInstanceOpen:",
+        "string": "setInstanceOpen:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a70c8",
+    "addr": "0x001a70c8",
+    "code": "char __cdecl -[IODiskPartition isRawDeviceOpen](IODiskPartition *self, SEL a2)\n{\n  return self->_rawDeviceOpen; /*0x1a70d7*/\n}"
+  },
+  {
+    "requested_address": "0x001a70dc",
+    "addr": "0x001a70dc",
+    "code": "void __cdecl -[IODiskPartition setRawDeviceOpen:](IODiskPartition *self, SEL a2, char a3)\n{\n  self->_rawDeviceOpen = a3 != 0; /*0x1a70e9*/\n  -[IOLogicalDisk setInstanceOpen:](self, sel_setInstanceOpen_, (*(_DWORD *)&self->_labelValid & 0xFFFF00) != 0); /*0x1a710a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a6270",
+        "name": "-[IOLogicalDisk setInstanceOpen:]"
+      },
+      {
+        "addr": "0x2038fc",
+        "name": "sel_setInstanceOpen:",
+        "string": "setInstanceOpen:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a7114",
+    "addr": "0x001a7114",
+    "code": "void __cdecl -[IODiskPartition _probeLabel:](IODiskPartition *self, SEL a2, $8CBD0DAB9EB64966FFA875B94553E7ED *a3)\n{\n  IODiskPartition *v3; // edi\n  const char *v4; // eax\n  int v5; // esi\n  IODiskPartition *v6; // ebx\n  id v7; // eax\n  int v8; // [esp+Ch] [ebp-8h]\n  id v9; // [esp+10h] [ebp-4h]\n\n  v9 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a712d*/\n  v3 = self; /*0x1a7130*/\n  if ( self->_partition )\n  {\n    v4 = -[IODevice name](self, sel_name); /*0x1a7147*/\n    IOLog((int)\"%s:  _probeLabel on partition != 0\\n\", v4);\n  }\n  else\n  {\n    -[IODiskPartition _initPartition:disktab:](self, sel__initPartition_disktab_, 0, (char *)a3 + 44); /*0x1a716d*/\n    v5 = 1; /*0x1a7172*/\n    v8 = 240; /*0x1a717a*/\n    do /*0x1a7229*/\n    {\n      if ( *(int *)((char *)a3 + v8 + 4) > 0 ) /*0x1a718f*/\n      {\n        v6 = +[Object new](aIodiskpartitio_1, sel_new); /*0x1a71a8*/\n        -[IOLogicalDisk connectToPhysicalDisk:](v6, sel_connectToPhysicalDisk_, v9); /*0x1a71b6*/\n        -[IODiskPartition _initPartition:disktab:](v6, sel__initPartition_disktab_, v5, (char *)a3 + 44); /*0x1a71cb*/\n        -[IODevice init](v6, sel_init); /*0x1a71db*/\n        -[IODisk registerDevice](v6, sel_registerDevice); /*0x1a71e8*/\n        -[IODisk setLogicalDisk:](v3, sel_setLogicalDisk_, v6); /*0x1a71f6*/\n        v7 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a720e*/\n        objc_msgSend(v7, sel_setLogicalDisk_); /*0x1a7217*/\n        v3 = v6; /*0x1a721c*/\n      }\n      v8 += 48; /*0x1a7221*/\n      ++v5; /*0x1a7225*/\n    }\n    while ( v5 <= 6 ); /*0x1a7229*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7230",
+        "name": "aSProbelabelOnP",
+        "string": "%s:  _probeLabel on partition != 0\n"
+      },
+      {
+        "addr": "0x1a723c",
+        "name": "-[IODiskPartition _initPartition:disktab:]"
+      },
+      {
+        "addr": "0x203a44",
+        "name": "sel__initPartition:disktab:",
+        "string": "_initPartition:disktab:"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe73a",
+        "name": "aIodiskpartitio_1",
+        "string": "IODiskPartition"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1a6010",
+        "name": "-[IOLogicalDisk connectToPhysicalDisk:]"
+      },
+      {
+        "addr": "0x203978",
+        "name": "sel_connectToPhysicalDisk:",
+        "string": "connectToPhysicalDisk:"
+      },
+      {
+        "addr": "0x1a40f8",
+        "name": "-[IODevice init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1a5b58",
+        "name": "-[IODisk registerDevice]"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      },
+      {
+        "addr": "0x1a5b38",
+        "name": "-[IODisk setLogicalDisk:]"
+      },
+      {
+        "addr": "0x20366c",
+        "name": "sel_setLogicalDisk:",
+        "string": "setLogicalDisk:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a723c",
+    "addr": "0x001a723c",
+    "code": "void __cdecl -[IODiskPartition _initPartition:disktab:](IODiskPartition *self, SEL a2, int a3, disktab *a4)\n{\n  id v4; // esi\n  const char *v5; // eax\n  id v6; // eax\n  signed __int8 v7; // al\n  int v8; // ebx\n  unsigned int v9; // edi\n  objc_super v10; // [esp+Ch] [ebp-28h] BYREF\n  char v11[32]; // [esp+14h] [ebp-20h] BYREF\n\n  v4 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a7268*/\n  v5 = (const char *)objc_msgSend(v4, sel_name); /*0x1a7279*/\n  sprintf(v11, \"%s%c\", v5, a3 + 97); /*0x1a728b*/\n  -[IODevice setName:](self, sel_setName_, v11); /*0x1a729c*/\n  -[IODisk setDriveName:](self, sel_setDriveName_, \"IODiskPartition Partition\"); /*0x1a72b4*/\n  -[IODevice setLocation:](self, sel_setLocation_, 0); /*0x1a72c6*/\n  -[IODisk setDiskSize:](self, sel_setDiskSize_, a4[1].d_partitions[6 * a3 + 2].p_size); /*0x1a72da*/\n  -[IODisk setBlockSize:](self, sel_setBlockSize_, *(_DWORD *)&a4->d_partitions[1].p_bsize); /*0x1a72f4*/\n  v6 = objc_msgSend(v4, sel_unit); /*0x1a7301*/\n  -[IODevice setUnit:](self, sel_setUnit_, v6); /*0x1a7312*/\n  v7 = (unsigned __int8)objc_msgSend(v4, sel_isWriteProtected); /*0x1a7322*/\n  -[IODisk setWriteProtected:](self, sel_setWriteProtected_, v7); /*0x1a7336*/\n  v8 = *(_DWORD *)&a4[1].d_partitions[6 * a3 + 1].p_bsize + SLOWORD(a4->d_partitions[4].p_size); /*0x1a7342*/\n  v9 = -[IOLogicalDisk physicalBlockSize](self, sel_physicalBlockSize); /*0x1a7354*/\n  -[IOLogicalDisk setPartitionBase:](self, sel_setPartitionBase_, *(_DWORD *)&a4->d_partitions[1].p_bsize / v9 * v8); /*0x1a736f*/\n  self->_partition = a3; /*0x1a737a*/\n  v10.receiver = self; /*0x1a738c*/\n  v10.super_class = objc_getOrigClass(\"IOLogicalDisk\"); /*0x1a739c*/\n  -[IODisk setFormattedInternal:](&v10, sel_setFormattedInternal_, 1); /*0x1a73a3*/\n  self->_labelValid = 1; /*0x1a73ab*/\n  -[IODiskPartition registerUnixDisk:](self, sel_registerUnixDisk_, a3); /*0x1a73c1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d7254",
+        "name": "aSC",
+        "string": "%s%c"
+      },
+      {
+        "addr": "0x1a42e8",
+        "name": "-[IODevice setName:]"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1a5828",
+        "name": "-[IODisk setDriveName:]"
+      },
+      {
+        "addr": "0x2037a8",
+        "name": "sel_setDriveName:",
+        "string": "setDriveName:"
+      },
+      {
+        "addr": "0x1d703c",
+        "name": "aIodiskpartitio_0",
+        "string": "IODiskPartition Partition"
+      },
+      {
+        "addr": "0x1a4398",
+        "name": "-[IODevice setLocation:]"
+      },
+      {
+        "addr": "0x202c18",
+        "name": "sel_setLocation:",
+        "string": "setLocation:"
+      },
+      {
+        "addr": "0x1a57c0",
+        "name": "-[IODisk setDiskSize:]"
+      },
+      {
+        "addr": "0x2037f8",
+        "name": "sel_setDiskSize:",
+        "string": "setDiskSize:"
+      },
+      {
+        "addr": "0x1a57d4",
+        "name": "-[IODisk setBlockSize:]"
+      },
+      {
+        "addr": "0x2037e8",
+        "name": "sel_setBlockSize:",
+        "string": "setBlockSize:"
+      },
+      {
+        "addr": "0x203404",
+        "name": "sel_unit",
+        "string": "unit"
+      },
+      {
+        "addr": "0x1a43f8",
+        "name": "-[IODevice setUnit:]"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x203808",
+        "name": "sel_isWriteProtected",
+        "string": "isWriteProtected"
+      },
+      {
+        "addr": "0x1a5890",
+        "name": "-[IODisk setWriteProtected:]"
+      },
+      {
+        "addr": "0x203770",
+        "name": "sel_setWriteProtected:",
+        "string": "setWriteProtected:"
+      },
+      {
+        "addr": "0x1a61b8",
+        "name": "-[IOLogicalDisk physicalBlockSize]"
+      },
+      {
+        "addr": "0x203938",
+        "name": "sel_physicalBlockSize",
+        "string": "physicalBlockSize"
+      },
+      {
+        "addr": "0x1a60d8",
+        "name": "-[IOLogicalDisk setPartitionBase:]"
+      },
+      {
+        "addr": "0x203964",
+        "name": "sel_setPartitionBase:",
+        "string": "setPartitionBase:"
+      },
+      {
+        "addr": "0x1ccf18",
+        "name": "_objc_getOrigClass"
+      },
+      {
+        "addr": "0x1d725c",
+        "name": "aIologicaldisk",
+        "string": "IOLogicalDisk"
+      },
+      {
+        "addr": "0x1a58a8",
+        "name": "-[IODisk setFormattedInternal:]"
+      },
+      {
+        "addr": "0x203758",
+        "name": "sel_setFormattedInternal:",
+        "string": "setFormattedInternal:"
+      },
+      {
+        "addr": "0x209a90",
+        "name": "-[IODiskPartition registerUnixDisk:]"
+      },
+      {
+        "addr": "0x203b0c",
+        "name": "sel_registerUnixDisk:",
+        "string": "registerUnixDisk:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a73d0",
+    "addr": "0x001a73d0",
+    "code": "int __cdecl -[IODiskPartition _freePartitions](IODiskPartition *self, SEL a2)\n{\n  id v2; // eax\n  void *v3; // ebx\n\n  v2 = -[IODisk nextLogicalDisk](self, sel_nextLogicalDisk); /*0x1a73e0*/\n  v3 = v2; /*0x1a73e5*/\n  if ( self->_partition )\n  {\n    -[IODevice name](self, sel_name); /*0x1a73fb*/\n    IOLog(\"%s: _freePartitions on partition != 0\\n\");\n    return -725; /*0x1a740b*/\n  }\n  else if ( v2 )\n  {\n    if ( (unsigned __int8)objc_msgSend(v2, sel_isOpen) )\n    {\n      -[IODevice name](self, sel_name); /*0x1a7438*/\n      IOLog(\"%s: _freePartitions with open partitions\\n\");\n      return -725; /*0x1a7448*/\n    }\n    else\n    {\n      objc_msgSend(v3, sel_free); /*0x1a7458*/\n      -[IODisk setLogicalDisk:](self, sel_setLogicalDisk_, 0); /*0x1a7467*/\n      return 0; /*0x1a746c*/\n    }\n  }\n  else\n  {\n    return 0; /*0x1a7418*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5800",
+        "name": "-[IODisk nextLogicalDisk]"
+      },
+      {
+        "addr": "0x2037c8",
+        "name": "sel_nextLogicalDisk",
+        "string": "nextLogicalDisk"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d726c",
+        "name": "aSFreepartition",
+        "string": "%s: _freePartitions on partition != 0\n"
+      },
+      {
+        "addr": "0x1d7294",
+        "name": "aSFreepartition_0",
+        "string": "%s: _freePartitions with open partitions\n"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a5b38",
+        "name": "-[IODisk setLogicalDisk:]"
+      },
+      {
+        "addr": "0x20366c",
+        "name": "sel_setLogicalDisk:",
+        "string": "setLogicalDisk:"
+      },
+      {
+        "addr": "0x20395c",
+        "name": "sel_isOpen",
+        "string": "isOpen"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a7478",
+    "addr": "0x001a7478",
+    "code": "char __cdecl -[IODiskPartition isAnyBlockDevOpen](IODiskPartition *self, SEL a2)\n{\n  id i; // eax\n  void *v4; // ebx\n  id v5; // [esp-8h] [ebp-Ch]\n\n  v5 = -[IOLogicalDisk physicalDisk](self, sel_physicalDisk); /*0x1a7496*/\n  for ( i = objc_msgSend(v5, sel_nextLogicalDisk); ; i = objc_msgSend(v4, sel_nextLogicalDisk) ) /*0x1a7497*/\n  {\n    v4 = i; /*0x1a74c5*/\n    if ( !i ) /*0x1a74cc*/\n      break; /*0x1a74cc*/\n    if ( (unsigned __int8)objc_msgSend(i, sel_isBlockDeviceOpen) ) /*0x1a74a4*/\n      return 1; /*0x1a74b5*/\n  }\n  return 0; /*0x1a74d0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a61a8",
+        "name": "-[IOLogicalDisk physicalDisk]"
+      },
+      {
+        "addr": "0x20394c",
+        "name": "sel_physicalDisk",
+        "string": "physicalDisk"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2037c8",
+        "name": "sel_nextLogicalDisk",
+        "string": "nextLogicalDisk"
+      },
+      {
+        "addr": "0x203ad4",
+        "name": "sel_isBlockDeviceOpen",
+        "string": "isBlockDeviceOpen"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a74d8",
+    "addr": "0x001a74d8",
+    "code": "int __cdecl -[IODiskPartition checkSafeConfig:](IODiskPartition *self, SEL a2, const char *a3)\n{\n  if ( self->_partition )\n  {\n    -[IODevice name](self, sel_name); /*0x1a74f5*/\n    IOLog(\"%s: %s on partition != 0\\n\");\n    return -725; /*0x1a7508*/\n  }\n  else if ( -[IODiskPartition isAnyBlockDevOpen](self, sel_isAnyBlockDevOpen) )\n  {\n    -[IODevice name](self, sel_name); /*0x1a752d*/\n    IOLog(\"%s: %s with open block devices\\n\");\n    return -725; /*0x1a7540*/\n  }\n  else if ( -[IOLogicalDisk isAnyOtherOpen](self, sel_isAnyOtherOpen) )\n  {\n    -[IODevice name](self, sel_name); /*0x1a7565*/\n    IOLog(\"%s: %s with other partitions open\\n\");\n    return -725; /*0x1a7578*/\n  }\n  else\n  {\n    return 0; /*0x1a7580*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d72c0",
+        "name": "aSSOnPartition0",
+        "string": "%s: %s on partition != 0\n"
+      },
+      {
+        "addr": "0x1d72dc",
+        "name": "aSSWithOpenBloc",
+        "string": "%s: %s with open block devices\n"
+      },
+      {
+        "addr": "0x1d72fc",
+        "name": "aSSWithOtherPar",
+        "string": "%s: %s with other partitions open\n"
+      },
+      {
+        "addr": "0x1a6200",
+        "name": "-[IOLogicalDisk isAnyOtherOpen]"
+      },
+      {
+        "addr": "0x203910",
+        "name": "sel_isAnyOtherOpen",
+        "string": "isAnyOtherOpen"
+      },
+      {
+        "addr": "0x1a7478",
+        "name": "-[IODiskPartition isAnyBlockDevOpen]"
+      },
+      {
+        "addr": "0x203a20",
+        "name": "sel_isAnyBlockDevOpen",
+        "string": "isAnyBlockDevOpen"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a758c",
+    "addr": "0x001a758c",
+    "code": "int volCheckInit()\n{\n  dword_1E86E8 = +[Object new](aNxspinlock, sel_new); /*0x1a75a2*/\n  dword_1E86DC = (int)&dword_1E86D8; /*0x1a75a7*/\n  dword_1E86D8 = (int)&dword_1E86D8; /*0x1a75b1*/\n  dword_1E86E4 = (int)&dword_1E86E0; /*0x1a75bb*/\n  dword_1E86E0 = (int)&dword_1E86E0; /*0x1a75c5*/\n  return IOForkThread(sub_1A7754, 0); /*0x1a75dd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e86e8",
+        "name": "dword_1E86E8"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe77f",
+        "name": "aNxspinlock",
+        "string": "NXSpinLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1e86dc",
+        "name": "dword_1E86DC"
+      },
+      {
+        "addr": "0x1e86d8",
+        "name": "dword_1E86D8"
+      },
+      {
+        "addr": "0x1e86e4",
+        "name": "dword_1E86E4"
+      },
+      {
+        "addr": "0x1e86e0",
+        "name": "dword_1E86E0"
+      },
+      {
+        "addr": "0x1a90ec",
+        "name": "_IOForkThread"
+      },
+      {
+        "addr": "0x1a7754",
+        "name": "sub_1A7754"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a75e0",
+    "addr": "0x001a75e0",
+    "code": "id __cdecl volCheckRegister(id a1, __int16 a2, __int16 a3)\n{\n  if ( (unsigned __int8)objc_msgSend(a1, sel_isPhysical) ) /*0x1a75f9*/\n    return sub_1A76A4(0, (int)a1, 0, a2, a3); /*0x1a762d*/\n  objc_msgSend(a1, sel_name); /*0x1a760d*/\n  return (id)IOLog(\"volCheckRegister: %s is not a physical device\\n\");\n}",
+    "refs": [
+      {
+        "addr": "0x1a76a4",
+        "name": "sub_1A76A4"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20381c",
+        "name": "sel_isPhysical",
+        "string": "isPhysical"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7320",
+        "name": "aVolcheckregist",
+        "string": "volCheckRegister: %s is not a physical device\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a763c",
+    "addr": "0x001a763c",
+    "code": "id __cdecl volCheckUnregister(int a1)\n{\n  return sub_1A76A4(1, a1, 0, 0, 0); /*0x1a7652*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a76a4",
+        "name": "sub_1A76A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a7654",
+    "addr": "0x001a7654",
+    "code": "id __cdecl volCheckRequest(int a1, int a2)\n{\n  return sub_1A76A4(2, a1, a2, 0, 0); /*0x1a766c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a76a4",
+        "name": "sub_1A76A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a7670",
+    "addr": "0x001a7670",
+    "code": "id __cdecl volCheckEjecting(int a1, int a2)\n{\n  return sub_1A76A4(3, a1, a2, 0, 0); /*0x1a7688*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a76a4",
+        "name": "sub_1A76A4"
+      }
+    ]
+  }
+]

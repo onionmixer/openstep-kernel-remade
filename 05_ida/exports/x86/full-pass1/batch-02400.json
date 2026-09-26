@@ -1,0 +1,649 @@
+[
+  {
+    "requested_address": "0x0017fc98",
+    "addr": "0x0017fc98",
+    "code": "id __cdecl -[KernBusInterrupt initForResource:item:shareable:](\n        KernBusInterrupt *self,\n        SEL a2,\n        id a3,\n        unsigned int a4,\n        char a5)\n{\n  return -[KernBusInterrupt initForResource:item:withHandler:shareable:]( /*0x17fcbc*/\n           self,\n           sel_initForResource_item_withHandler_shareable_,\n           a3,\n           a4,\n           0,\n           a5);\n}",
+    "refs": [
+      {
+        "addr": "0x17fbc4",
+        "name": "-[KernBusInterrupt initForResource:item:withHandler:shareable:]"
+      },
+      {
+        "addr": "0x202058",
+        "name": "sel_initForResource:item:withHandler:shareable:",
+        "string": "initForResource:item:withHandler:shareable:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017fcc0",
+    "addr": "0x0017fcc0",
+    "code": "id __cdecl -[KernBusInterrupt free](KernBusInterrupt *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->_interruptLock, sel_acquire); /*0x17fcd5*/\n  if ( self->_attachedInterruptCount <= 0 ) /*0x17fce1*/\n  {\n    objc_msgSend(self->_interruptLock, sel_release); /*0x17fd03*/\n    v3.receiver = self; /*0x17fd0f*/\n    v3.super_class = (Class)stru_1F9F24.ext; /*0x17fd18*/\n    return -[KernBusItem free](&v3, sel_free); /*0x17fd1f*/\n  }\n  else\n  {\n    objc_msgSend(self->_interruptLock, sel_release); /*0x17fcee*/\n    return self; /*0x17fcf3*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x1f9f24",
+        "name": "stru_1F9F24"
+      },
+      {
+        "addr": "0x17ebf0",
+        "name": "-[KernBusItem free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017fd2c",
+    "addr": "0x0017fd2c",
+    "code": "id __cdecl -[KernBusInterrupt dealloc](KernBusInterrupt *self, SEL a2)\n{\n  int suspendCount; // edx\n  objc_super v4; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->_interruptLock, sel_acquire); /*0x17fd41*/\n  if ( self->_attachedInterruptCount <= 0 ) /*0x17fd4d*/\n  {\n    objc_msgSend(self->_suspendLock, sel_acquire); /*0x17fd73*/\n    suspendCount = self->_suspendCount; /*0x17fd78*/\n    self->_suspendCount = suspendCount + 1; /*0x17fd7e*/\n    if ( suspendCount + 1 < 0 ) /*0x17fd89*/\n      self->_suspendCount = suspendCount; /*0x17fd8b*/\n    objc_msgSend(self->_suspendLock, sel_release); /*0x17fd99*/\n    objc_msgSend(self->_interruptLock, sel_release); /*0x17fda9*/\n    objc_msgSend(self->_attachedInterrupts, sel_free); /*0x17fdb9*/\n    objc_msgSend(self->_suspendLock, sel_free); /*0x17fdc9*/\n    objc_msgSend(self->_interruptLock, sel_free); /*0x17fddc*/\n    v4.receiver = self; /*0x17fde8*/\n    v4.super_class = (Class)stru_1F9F24.ext; /*0x17fdf1*/\n    return -[KernBusItem dealloc](&v4, sel_dealloc); /*0x17fdf8*/\n  }\n  else\n  {\n    objc_msgSend(self->_interruptLock, sel_release); /*0x17fd5a*/\n    return self; /*0x17fd5f*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1f9f24",
+        "name": "stru_1F9F24"
+      },
+      {
+        "addr": "0x17ec24",
+        "name": "-[KernBusItem dealloc]"
+      },
+      {
+        "addr": "0x201cbc",
+        "name": "sel_dealloc",
+        "string": "dealloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017fe04",
+    "addr": "0x0017fe04",
+    "code": "id __cdecl -[KernBusInterrupt attachDeviceInterrupt:](KernBusInterrupt *self, SEL a2, id a3)\n{\n  KernBusInterrupt *v3; // esi\n\n  objc_msgSend(self->_interruptLock, sel_acquire); /*0x17fe1a*/\n  if ( objc_msgSend(self->_attachedInterrupts, sel_indexOf_, a3) == (id)-1 /*0x17fe44*/\n    && objc_msgSend(self->_attachedInterrupts, sel_addObject_, a3) )\n  {\n    ++self->_attachedInterruptCount; /*0x17fe50*/\n  }\n  objc_msgSend(self->_suspendLock, sel_acquire); /*0x17fe5e*/\n  v3 = nullptr; /*0x17fe66*/\n  if ( self->_attachedInterruptCount > 0 && !self->_suspendCount ) /*0x17fe6e*/\n    v3 = self; /*0x17fe74*/\n  objc_msgSend(self->_suspendLock, sel_release); /*0x17fe81*/\n  objc_msgSend(self->_interruptLock, sel_release); /*0x17fe91*/\n  return v3; /*0x17fe9b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x202084",
+        "name": "sel_indexOf:",
+        "string": "indexOf:"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017fea4",
+    "addr": "0x0017fea4",
+    "code": "id __cdecl -[KernBusInterrupt attachDeviceInterrupt:atLevel:](KernBusInterrupt *self, SEL a2, id a3, int a4)\n{\n  return -[KernBusInterrupt attachDeviceInterrupt:](self, sel_attachDeviceInterrupt_, a3); /*0x17febd*/\n}",
+    "refs": [
+      {
+        "addr": "0x17fe04",
+        "name": "-[KernBusInterrupt attachDeviceInterrupt:]"
+      },
+      {
+        "addr": "0x202040",
+        "name": "sel_attachDeviceInterrupt:",
+        "string": "attachDeviceInterrupt:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017fec0",
+    "addr": "0x0017fec0",
+    "code": "id __cdecl -[KernBusInterrupt detachDeviceInterrupt:](KernBusInterrupt *self, SEL a2, id a3)\n{\n  KernBusInterrupt *v3; // ebx\n\n  objc_msgSend(self->_interruptLock, sel_acquire); /*0x17fed6*/\n  if ( objc_msgSend(self->_attachedInterrupts, sel_removeObject_, a3) ) /*0x17fee7*/\n    --self->_attachedInterruptCount; /*0x17fef3*/\n  objc_msgSend(self->_suspendLock, sel_acquire); /*0x17ff01*/\n  v3 = nullptr; /*0x17ff09*/\n  if ( self->_attachedInterruptCount > 0 && !self->_suspendCount ) /*0x17ff11*/\n    v3 = self; /*0x17ff17*/\n  objc_msgSend(self->_suspendLock, sel_release); /*0x17ff24*/\n  objc_msgSend(self->_interruptLock, sel_release); /*0x17ff34*/\n  return v3; /*0x17ff3e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x20209c",
+        "name": "sel_removeObject:",
+        "string": "removeObject:"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ff44",
+    "addr": "0x0017ff44",
+    "code": "id __cdecl -[KernBusInterrupt suspend](KernBusInterrupt *self, SEL a2)\n{\n  int suspendCount; // edx\n\n  objc_msgSend(self->_suspendLock, sel_acquire); /*0x17ff56*/\n  suspendCount = self->_suspendCount; /*0x17ff5b*/\n  self->_suspendCount = suspendCount + 1; /*0x17ff61*/\n  if ( suspendCount + 1 < 0 ) /*0x17ff6c*/\n    self->_suspendCount = suspendCount; /*0x17ff6e*/\n  objc_msgSend(self->_suspendLock, sel_release); /*0x17ff7c*/\n  return self; /*0x17ff83*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ff8c",
+    "addr": "0x0017ff8c",
+    "code": "id __cdecl -[KernBusInterrupt resume](KernBusInterrupt *self, SEL a2)\n{\n  int suspendCount; // eax\n  KernBusInterrupt *v3; // esi\n\n  objc_msgSend(self->_suspendLock, sel_acquire); /*0x17ff9f*/\n  suspendCount = self->_suspendCount; /*0x17ffa4*/\n  if ( suspendCount > 0 ) /*0x17ffac*/\n    self->_suspendCount = suspendCount - 1; /*0x17ffaf*/\n  v3 = nullptr; /*0x17ffb2*/\n  if ( !self->_suspendCount ) /*0x17ffb4*/\n    v3 = self; /*0x17ffba*/\n  objc_msgSend(self->_suspendLock, sel_release); /*0x17ffc7*/\n  return v3; /*0x17ffd1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ffd8",
+    "addr": "0x0017ffd8",
+    "code": "_DWORD *__cdecl sub_17FFD8(int a1)\n{\n  KernLock *v1; // eax\n  _DWORD *v3; // [esp+Ch] [ebp-4h]\n\n  v3 = (_DWORD *)kalloc(0x58u); /*0x17ffeb*/\n  qmemcpy(v3, &unk_1D1390, 0x58u); /*0x17fffe*/\n  v1 = +[Object alloc](aKernlock, sel_alloc); /*0x180017*/\n  v3[12] = -[KernLock initWithLevel:](v1, sel_initWithLevel_); /*0x180028*/\n  ipc_object_reference(a1); /*0x18002c*/\n  v3[11] = a1; /*0x180031*/\n  v3[15] = sub_1802E8; /*0x180034*/\n  v3[17] = v3; /*0x18003e*/\n  v3[20] = 0; /*0x180041*/\n  v3[2] = -2; /*0x18004b*/\n  v3[3] = 0; /*0x180052*/\n  v3[4] = 0; /*0x180059*/\n  ipc_object_reference(v3[11]); /*0x180064*/\n  return v3; /*0x18006f*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d1390",
+        "name": "unk_1D1390"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfd6",
+        "name": "aKernlock",
+        "string": "KernLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x17e764",
+        "name": "-[KernLock initWithLevel:]"
+      },
+      {
+        "addr": "0x201a2c",
+        "name": "sel_initWithLevel:",
+        "string": "initWithLevel:"
+      },
+      {
+        "addr": "0x14b844",
+        "name": "_ipc_object_reference"
+      },
+      {
+        "addr": "0x1802e8",
+        "name": "sub_1802E8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180078",
+    "addr": "0x00180078",
+    "code": "int __cdecl sub_180078(int a1)\n{\n  char v1; // al\n\n  KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x180083*/\n  v1 = *(_BYTE *)(a1 + 84); /*0x180088*/\n  if ( (v1 & 3) != 0 ) /*0x180090*/\n  {\n    *(_BYTE *)(a1 + 84) = v1 | 4; /*0x180094*/\n    return KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x18009b*/\n  }\n  else\n  {\n    KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x1800a8*/\n    ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x1800b1*/\n    ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x1800ba*/\n    objc_msgSend(*(id *)(a1 + 48), sel_free); /*0x1800ca*/\n    return kfree(a1, 0x58u); /*0x1800d2*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001800e0",
+    "addr": "0x001800e0",
+    "code": "int __cdecl KernDeviceInterruptMsgRelease(int a1)\n{\n  char v1; // al\n  char v2; // al\n\n  ipc_object_reference(*(_DWORD *)(a1 + 44)); /*0x1800ee*/\n  KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x1800f7*/\n  v1 = *(_BYTE *)(a1 + 84); /*0x1800fc*/\n  *(_BYTE *)(a1 + 84) = v1 & 0xFE; /*0x180104*/\n  if ( (v1 & 4) == 0 ) /*0x18010c*/\n    return KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180174*/\n  KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180112*/\n  KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x18011e*/\n  v2 = *(_BYTE *)(a1 + 84); /*0x180123*/\n  if ( (v2 & 3) != 0 ) /*0x18012b*/\n  {\n    *(_BYTE *)(a1 + 84) = v2 | 4; /*0x18012f*/\n    return KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180136*/\n  }\n  else\n  {\n    KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x18013c*/\n    ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x180145*/\n    ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x18014e*/\n    objc_msgSend(*(id *)(a1 + 48), sel_free); /*0x18015e*/\n    return kfree(a1, 0x58u); /*0x180166*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x14b844",
+        "name": "_ipc_object_reference"
+      },
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180184",
+    "addr": "0x00180184",
+    "code": "int __cdecl KernDeviceInterruptDispatch(int a1, int a2)\n{\n  return (*(int (__stdcall **)(int, int, _DWORD))(a1 + 12))(a1, a2, *(_DWORD *)(a1 + 16)); /*0x18019a*/\n}"
+  },
+  {
+    "requested_address": "0x0018019c",
+    "addr": "0x0018019c",
+    "code": "int __cdecl KernDeviceInterruptDispatchShared(int a1, int a2)\n{\n  int (__cdecl *v2)(int, int, _DWORD); // edi\n\n  v2 = *(int (__cdecl **)(int, int, _DWORD))(a1 + 12); /*0x1801a8*/\n  IODisableInterrupt(a1); /*0x1801ac*/\n  return v2(a1, a2, *(_DWORD *)(a1 + 16)); /*0x1801bc*/\n}",
+    "refs": [
+      {
+        "addr": "0x180208",
+        "name": "_IODisableInterrupt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001801c4",
+    "addr": "0x001801c4",
+    "code": "void __cdecl IOEnableInterrupt(int a1)\n{\n  int v1; // esi\n  char v2; // [esp+8h] [ebp-4h]\n\n  KernLockAcquire(*(_DWORD *)(a1 + 8)); /*0x1801d3*/\n  v1 = *(_DWORD *)(a1 + 4); /*0x1801d8*/\n  v2 = *(_BYTE *)(a1 + 24); /*0x1801de*/\n  *(_BYTE *)(a1 + 24) = 0; /*0x1801e1*/\n  KernLockRelease(*(_DWORD *)(a1 + 8)); /*0x1801e9*/\n  if ( v2 ) /*0x1801f5*/\n    KernBusInterruptResume(v1); /*0x1801f8*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x17fb8c",
+        "name": "_KernBusInterruptResume"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180208",
+    "addr": "0x00180208",
+    "code": "int __cdecl IODisableInterrupt(int a1)\n{\n  int v1; // esi\n  int result; // eax\n  char v3; // [esp+8h] [ebp-4h]\n\n  KernLockAcquire(*(_DWORD *)(a1 + 8)); /*0x180217*/\n  v1 = *(_DWORD *)(a1 + 4); /*0x18021c*/\n  v3 = *(_BYTE *)(a1 + 24); /*0x180222*/\n  *(_BYTE *)(a1 + 24) = 1; /*0x180225*/\n  result = KernLockRelease(*(_DWORD *)(a1 + 8)); /*0x18022d*/\n  if ( !v3 ) /*0x180239*/\n    return KernBusInterruptSuspend(v1); /*0x18023c*/\n  return result; /*0x180244*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x17fb4c",
+        "name": "_KernBusInterruptSuspend"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018024c",
+    "addr": "0x0018024c",
+    "code": "int __cdecl IOSendInterrupt(int a1, int a2, int a3)\n{\n  int v3; // ebx\n  int result; // eax\n  char v5; // al\n\n  v3 = *(_DWORD *)(a1 + 20); /*0x180255*/\n  result = curipl(); /*0x180258*/\n  if ( result <= 6 ) /*0x180260*/\n  {\n    KernLockAcquire(*(_DWORD *)(v3 + 48)); /*0x180266*/\n    v5 = *(_BYTE *)(v3 + 84); /*0x18026b*/\n    if ( (v5 & 3) != 0 ) /*0x180273*/\n    {\n      return KernLockRelease(*(_DWORD *)(v3 + 48)); /*0x180279*/\n    }\n    else\n    {\n      *(_BYTE *)(v3 + 84) = v5 | 1; /*0x180282*/\n      KernLockRelease(*(_DWORD *)(v3 + 48)); /*0x180289*/\n      qmemcpy((void *)(v3 + 20), &unk_1E0FD0, 0x18u); /*0x18029c*/\n      *(_DWORD *)(v3 + 40) = a3; /*0x1802a1*/\n      *(_DWORD *)(v3 + 28) = *(_DWORD *)(v3 + 44); /*0x1802a7*/\n      result = ipc_mqueue_send_interrupt(v3); /*0x1802ab*/\n      if ( result ) /*0x1802b5*/\n      {\n        KernLockAcquire(*(_DWORD *)(v3 + 48)); /*0x1802bb*/\n        *(_BYTE *)(v3 + 84) = *(_BYTE *)(v3 + 84) & 0xFC | 2; /*0x1802c7*/\n        KernLockRelease(*(_DWORD *)(v3 + 48)); /*0x1802ce*/\n        return calloutEntryDispatch(v3 + 52); /*0x1802d7*/\n      }\n    }\n  }\n  return result; /*0x1802df*/\n}",
+    "refs": [
+      {
+        "addr": "0x18c27c",
+        "name": "_curipl"
+      },
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x1e0fd0",
+        "name": "unk_1E0FD0"
+      },
+      {
+        "addr": "0x14aa34",
+        "name": "_ipc_mqueue_send_interrupt"
+      },
+      {
+        "addr": "0x16982c",
+        "name": "_calloutEntryDispatch"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001802e8",
+    "addr": "0x001802e8",
+    "code": "int __cdecl sub_1802E8(int a1)\n{\n  int result; // eax\n  char v2; // al\n  char v3; // al\n\n  KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x1802f3*/\n  *(_BYTE *)(a1 + 84) = *(_BYTE *)(a1 + 84) & 0xFC | 1; /*0x1802ff*/\n  KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180306*/\n  result = ipc_mqueue_send(a1, 65552, 0, 0); /*0x180315*/\n  if ( result ) /*0x18031f*/\n  {\n    ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x180329*/\n    ipc_object_reference(*(_DWORD *)(a1 + 44)); /*0x180335*/\n    KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x18033e*/\n    v2 = *(_BYTE *)(a1 + 84); /*0x180343*/\n    *(_BYTE *)(a1 + 84) = v2 & 0xFE; /*0x18034b*/\n    if ( (v2 & 4) != 0 ) /*0x180353*/\n    {\n      KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180359*/\n      KernLockAcquire(*(_DWORD *)(a1 + 48)); /*0x180365*/\n      v3 = *(_BYTE *)(a1 + 84); /*0x18036a*/\n      if ( (v3 & 3) == 0 ) /*0x180372*/\n      {\n        KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x180378*/\n        ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x180381*/\n        ipc_object_release(*(_DWORD *)(a1 + 44)); /*0x18038a*/\n        objc_msgSend(*(id *)(a1 + 48), sel_free); /*0x18039a*/\n        return kfree(a1, 0x58u); /*0x1803a7*/\n      }\n      *(_BYTE *)(a1 + 84) = v3 | 4; /*0x1803ae*/\n    }\n    return KernLockRelease(*(_DWORD *)(a1 + 48)); /*0x1803b5*/\n  }\n  return result; /*0x1803ba*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e70c",
+        "name": "_KernLockAcquire"
+      },
+      {
+        "addr": "0x17e744",
+        "name": "_KernLockRelease"
+      },
+      {
+        "addr": "0x14a764",
+        "name": "_ipc_mqueue_send"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      },
+      {
+        "addr": "0x14b844",
+        "name": "_ipc_object_reference"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001803c4",
+    "addr": "0x001803c4",
+    "code": "KernDevice *__cdecl -[KernDevice initWithDeviceDescription:](KernDevice *self, SEL a2, id a3)\n{\n  objc_super v4; // [esp+8h] [ebp-8h] BYREF\n\n  if ( !a3 ) /*0x1803d4*/\n    return (KernDevice *)-[KernDevice free](self, sel_free); /*0x1803de*/\n  v4.receiver = self; /*0x1803ef*/\n  v4.super_class = (Class)stru_1F9F74.ext; /*0x1803f8*/\n  -[Object init](&v4, sel_init); /*0x1803ff*/\n  self->_deviceDescription = a3; /*0x180404*/\n  return self; /*0x18040c*/\n}",
+    "refs": [
+      {
+        "addr": "0x18042c",
+        "name": "-[KernDevice free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1f9f74",
+        "name": "stru_1F9F74"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180414",
+    "addr": "0x00180414",
+    "code": "KernDevice *__cdecl -[KernDevice init](KernDevice *self, SEL a2)\n{\n  return (KernDevice *)-[KernDevice free](self, sel_free); /*0x180429*/\n}",
+    "refs": [
+      {
+        "addr": "0x18042c",
+        "name": "-[KernDevice free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018042c",
+    "addr": "0x0018042c",
+    "code": "id __cdecl -[KernDevice free](KernDevice *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  -[KernDevice detachInterruptPort](self, sel_detachInterruptPort); /*0x18043e*/\n  v3.receiver = self; /*0x18044a*/\n  v3.super_class = (Class)stru_1F9F74.ext; /*0x180453*/\n  return -[Object free](&v3, sel_free); /*0x18045f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1805a8",
+        "name": "-[KernDevice detachInterruptPort]"
+      },
+      {
+        "addr": "0x2021e0",
+        "name": "sel_detachInterruptPort",
+        "string": "detachInterruptPort"
+      },
+      {
+        "addr": "0x1f9f74",
+        "name": "stru_1F9F74"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180468",
+    "addr": "0x00180468",
+    "code": "id __cdecl -[KernDevice deviceDescription](KernDevice *self, SEL a2)\n{\n  return self->_deviceDescription; /*0x180473*/\n}"
+  },
+  {
+    "requested_address": "0x00180478",
+    "addr": "0x00180478",
+    "code": "id __cdecl -[KernDevice attachInterruptPort:](KernDevice *self, SEL a2, int a3)\n{\n  id v4; // eax\n  id v5; // esi\n  List *v6; // eax\n  int v7; // ebx\n  KernDeviceInterrupt *v8; // eax\n  KernDeviceInterrupt *v9; // eax\n  void *v10; // [esp+Ch] [ebp-4h] BYREF\n\n  if ( self->_interruptPort || ipc_object_copyin(*(_DWORD *)(*(_DWORD *)(active_threads + 12) + 136), a3, 20, (int)&v10) ) /*0x1804a3*/\n    return nullptr; /*0x1804b1*/\n  v4 = objc_msgSend(self->_deviceDescription, sel_interrupts); /*0x1804c3*/\n  if ( !v4 || (v5 = objc_msgSend(v4, sel_count)) == nullptr ) /*0x1804f4*/\n  {\n    ipc_port_release_send((int)v10); /*0x1804d3*/\n    return self; /*0x18059c*/\n  }\n  self->_interruptPort = v10; /*0x18051f*/\n  v6 = +[Object alloc](aList, sel_alloc); /*0x180538*/\n  self->_interrupts = -[List initCount:](v6, sel_initCount_); /*0x180546*/\n  v7 = 0; /*0x180549*/\n  if ( (int)v5 <= 0 ) /*0x180550*/\n    return self; /*0x180550*/\n  while ( 1 ) /*0x18056d*/\n  {\n    v8 = +[Object alloc](aKerndeviceinte, sel_alloc); /*0x18056d*/\n    v9 = -[KernDeviceInterrupt initWithInterruptPort:](v8, sel_initWithInterruptPort_); /*0x180576*/\n    if ( !objc_msgSend(self->_interrupts, sel_addObject_, v9) ) /*0x180587*/\n      break; /*0x180587*/\n    if ( ++v7 >= (int)v5 ) /*0x18059a*/\n      return self; /*0x18059a*/\n  }\n  -[KernDevice _detachInterruptSources](self, sel__detachInterruptSources); /*0x180500*/\n  ipc_port_release_send((int)self->_interruptPort); /*0x180509*/\n  self->_interruptPort = nullptr; /*0x18050e*/\n  return nullptr; /*0x1805a1*/\n}",
+    "refs": [
+      {
+        "addr": "0x14bbec",
+        "name": "_ipc_object_copyin"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2021c8",
+        "name": "sel_interrupts",
+        "string": "interrupts"
+      },
+      {
+        "addr": "0x14d050",
+        "name": "_ipc_port_release_send"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9560",
+        "name": "-[List initCount:]"
+      },
+      {
+        "addr": "0x202244",
+        "name": "sel_initCount:",
+        "string": "initCount:"
+      },
+      {
+        "addr": "0x1fe1b7",
+        "name": "aKerndeviceinte",
+        "string": "KernDeviceInterrupt"
+      },
+      {
+        "addr": "0x180648",
+        "name": "-[KernDeviceInterrupt initWithInterruptPort:]"
+      },
+      {
+        "addr": "0x202168",
+        "name": "sel_initWithInterruptPort:",
+        "string": "initWithInterruptPort:"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x18060c",
+        "name": "-[KernDevice _detachInterruptSources]"
+      },
+      {
+        "addr": "0x202180",
+        "name": "sel__detachInterruptSources",
+        "string": "_detachInterruptSources"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001805a8",
+    "addr": "0x001805a8",
+    "code": "id __cdecl -[KernDevice detachInterruptPort](KernDevice *self, SEL a2)\n{\n  if ( self->_interruptPort ) /*0x1805af*/\n  {\n    -[KernDevice _detachInterruptSources](self, sel__detachInterruptSources); /*0x1805bd*/\n    ipc_port_release_send((int)self->_interruptPort); /*0x1805c6*/\n    self->_interruptPort = nullptr; /*0x1805cb*/\n  }\n  return self; /*0x1805d4*/\n}",
+    "refs": [
+      {
+        "addr": "0x18060c",
+        "name": "-[KernDevice _detachInterruptSources]"
+      },
+      {
+        "addr": "0x202180",
+        "name": "sel__detachInterruptSources",
+        "string": "_detachInterruptSources"
+      },
+      {
+        "addr": "0x14d050",
+        "name": "_ipc_port_release_send"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001805dc",
+    "addr": "0x001805dc",
+    "code": "id __cdecl -[KernDevice interrupt:](KernDevice *self, SEL a2, int a3)\n{\n  return objc_msgSend(self->_interrupts, sel_objectAt_, a3); /*0x1805f8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001805fc",
+    "addr": "0x001805fc",
+    "code": "id __cdecl -[KernDevice interrupts](KernDevice *self, SEL a2)\n{\n  return self->_interrupts; /*0x180607*/\n}"
+  }
+]

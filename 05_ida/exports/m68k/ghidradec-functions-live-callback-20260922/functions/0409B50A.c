@@ -1,0 +1,7 @@
+
+void decbin(void)
+
+{
+  return;
+}
+

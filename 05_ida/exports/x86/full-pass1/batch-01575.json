@@ -1,0 +1,582 @@
+[
+  {
+    "requested_address": "0x0015a294",
+    "addr": "0x0015a294",
+    "code": "int __cdecl convert_port_to_thread(int a1)\n{\n  int v1; // esi\n  int v2; // eax\n\n  v1 = 0; /*0x15a29c*/\n  if ( a1 && a1 != -1 ) /*0x15a2a5*/\n  {\n    do /*0x15a2ba*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x15a2a8*/\n        ; /*0x15a2aa*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x15a2ba*/\n    v2 = *(_DWORD *)(a1 + 8); /*0x15a2bc*/\n    if ( v2 < 0 && (_WORD)v2 == 1 ) /*0x15a2c7*/\n    {\n      v1 = *(_DWORD *)(a1 + 20); /*0x15a2c9*/\n      thread_reference(v1); /*0x15a2cd*/\n    }\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x15a2d4*/\n  }\n  return v1; /*0x15a2db*/\n}",
+    "refs": [
+      {
+        "addr": "0x167238",
+        "name": "_thread_reference"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a2e4",
+    "addr": "0x0015a2e4",
+    "code": "int __cdecl convert_task_to_port(int a1)\n{\n  volatile __int32 *v1; // edx\n  int send; // ebx\n\n  v1 = (volatile __int32 *)(a1 + 100); /*0x15a2ec*/\n  do /*0x15a302*/\n  {\n    while ( *v1 ) /*0x15a2f0*/\n      ; /*0x15a2f2*/\n  }\n  while ( _InterlockedExchange(v1, 1) == 1 ); /*0x15a302*/\n  if ( *(_DWORD *)(a1 + 104) ) /*0x15a304*/\n    send = ipc_port_make_send(*(_DWORD *)(a1 + 104)); /*0x15a311*/\n  else\n    send = 0; /*0x15a318*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 100), 0); /*0x15a31c*/\n  task_deallocate(a1); /*0x15a320*/\n  return send; /*0x15a32a*/\n}",
+    "refs": [
+      {
+        "addr": "0x14cf74",
+        "name": "_ipc_port_make_send"
+      },
+      {
+        "addr": "0x165bec",
+        "name": "_task_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a330",
+    "addr": "0x0015a330",
+    "code": "int __cdecl convert_thread_to_port(int a1)\n{\n  volatile __int32 *v1; // edx\n  int send; // ebx\n\n  v1 = (volatile __int32 *)(a1 + 168); /*0x15a338*/\n  do /*0x15a352*/\n  {\n    while ( *v1 ) /*0x15a340*/\n      ; /*0x15a342*/\n  }\n  while ( _InterlockedExchange(v1, 1) == 1 ); /*0x15a352*/\n  if ( *(_DWORD *)(a1 + 172) ) /*0x15a354*/\n    send = ipc_port_make_send(*(_DWORD *)(a1 + 172)); /*0x15a364*/\n  else\n    send = 0; /*0x15a36c*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 168), 0); /*0x15a370*/\n  thread_deallocate(a1); /*0x15a377*/\n  return send; /*0x15a381*/\n}",
+    "refs": [
+      {
+        "addr": "0x14cf74",
+        "name": "_ipc_port_make_send"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a388",
+    "addr": "0x0015a388",
+    "code": "int __cdecl space_deallocate(int a1)\n{\n  int result; // eax\n\n  result = a1; /*0x15a38b*/\n  if ( a1 ) /*0x15a390*/\n    return ipc_space_release(a1); /*0x15a393*/\n  return result; /*0x15a39a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1506d8",
+        "name": "_ipc_space_release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a39c",
+    "addr": "0x0015a39c",
+    "code": "int host_priv_self()\n{\n  int v0; // ebx\n  int v2; // eax\n  int v3; // [esp+4h] [ebp-4h] BYREF\n\n  v0 = *(_DWORD *)(active_threads + 12); /*0x15a3a8*/\n  if ( !suser() ) /*0x15a3ab*/\n    return 0; /*0x15a3b4*/\n  if ( !dword_1E97B4 ) /*0x15a3c0*/\n    return 0; /*0x15a3e4*/\n  v2 = ipc_port_copy_send(dword_1E97B4); /*0x15a3cb*/\n  ipc_object_copyout(*(_DWORD *)(v0 + 136), v2, 17, 1, &v3); /*0x15a3db*/\n  return v3; /*0x15a3ee*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x1e97b4",
+        "name": "dword_1E97B4"
+      },
+      {
+        "addr": "0x14cfa4",
+        "name": "_ipc_port_copy_send"
+      },
+      {
+        "addr": "0x14bdb4",
+        "name": "_ipc_object_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a3f8",
+    "addr": "0x0015a3f8",
+    "code": "int device_master_self()\n{\n  int v0; // ebx\n  int v1; // edx\n  int v2; // eax\n  int v4; // [esp+4h] [ebp-4h] BYREF\n\n  v0 = *(_DWORD *)(active_threads + 12); /*0x15a404*/\n  if ( suser() ) /*0x15a407*/\n    v1 = dword_1E97B4; /*0x15a418*/\n  else\n    v1 = realhost; /*0x15a410*/\n  if ( !v1 ) /*0x15a420*/\n    return 0; /*0x15a444*/\n  v2 = ipc_port_copy_send(v1); /*0x15a42b*/\n  ipc_object_copyout(*(_DWORD *)(v0 + 136), v2, 17, 1, &v4); /*0x15a43b*/\n  return v4; /*0x15a44e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1e97b4",
+        "name": "dword_1E97B4"
+      },
+      {
+        "addr": "0x1e97b0",
+        "name": "_realhost"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x14cfa4",
+        "name": "_ipc_port_copy_send"
+      },
+      {
+        "addr": "0x14bdb4",
+        "name": "_ipc_object_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a458",
+    "addr": "0x0015a458",
+    "code": "unsigned int __cdecl _lookupd_port(unsigned int a1)\n{\n  unsigned int v1; // ebx\n  int v2; // esi\n  int v3; // eax\n  int v5; // [esp+8h] [ebp-8h] BYREF\n  int v6; // [esp+Ch] [ebp-4h] BYREF\n\n  v1 = a1; /*0x15a460*/\n  v2 = *(_DWORD *)(active_threads + 12); /*0x15a468*/\n  if ( a1 ) /*0x15a46d*/\n  {\n    if ( !suser() || ipc_object_copyin(*(_DWORD *)(v2 + 136), a1, 20, (int)&v6) ) /*0x15a48a*/\n    {\n      return 0; /*0x15a478*/\n    }\n    else\n    {\n      if ( lookupd_port ) /*0x15a49d*/\n        ipc_port_release_send(lookupd_port); /*0x15a4a0*/\n      lookupd_port = v6; /*0x15a4a8*/\n    }\n  }\n  else\n  {\n    v6 = lookupd_port; /*0x15a4b6*/\n    if ( !lookupd_port ) /*0x15a4c1*/\n      return 0; /*0x15a4e4*/\n    v3 = ipc_port_copy_send(lookupd_port); /*0x15a4cc*/\n    ipc_object_copyout(*(_DWORD *)(v2 + 136), v3, 17, 1, &v5); /*0x15a4dc*/\n    return v5; /*0x15a4eb*/\n  }\n  return v1; /*0x15a4f3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x14d050",
+        "name": "_ipc_port_release_send"
+      },
+      {
+        "addr": "0x1f6358",
+        "name": "_lookupd_port"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x14bbec",
+        "name": "_ipc_object_copyin"
+      },
+      {
+        "addr": "0x14cfa4",
+        "name": "_ipc_port_copy_send"
+      },
+      {
+        "addr": "0x14bdb4",
+        "name": "_ipc_object_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a4fc",
+    "addr": "0x0015a4fc",
+    "code": "int __cdecl _event_port_by_tag(unsigned int a1)\n{\n  int v1; // esi\n  int v3; // edx\n  int v4; // eax\n  int v5; // [esp+8h] [ebp-4h] BYREF\n\n  v1 = *(_DWORD *)(active_threads + 12); /*0x15a50c*/\n  if ( !a1 && !suser() || a1 > 2 ) /*0x15a51e*/\n    return 0; /*0x15a525*/\n  v3 = ev_port_list[a1]; /*0x15a52c*/\n  if ( !v3 ) /*0x15a535*/\n    return 0; /*0x15a558*/\n  v4 = ipc_port_copy_send(v3); /*0x15a540*/\n  ipc_object_copyout(*(_DWORD *)(v1 + 136), v4, 17, 1, &v5); /*0x15a550*/\n  return v5; /*0x15a565*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x1ded00",
+        "name": "_ev_port_list"
+      },
+      {
+        "addr": "0x14cfa4",
+        "name": "_ipc_port_copy_send"
+      },
+      {
+        "addr": "0x14bdb4",
+        "name": "_ipc_object_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a56c",
+    "addr": "0x0015a56c",
+    "code": "_BOOL4 __cdecl object_copyin(int a1, int a2, int a3, int a4, int a5)\n{\n  return ipc_object_copyin_compat(*(_DWORD *)(a1 + 136), a2, a3, a4, a5) == 0; /*0x15a599*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c11c",
+        "name": "_ipc_object_copyin_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a5a4",
+    "addr": "0x0015a5a4",
+    "code": "void __cdecl object_copyout(int a1, int a2, int a3, _DWORD *a4)\n{\n  int v4; // ebx\n\n  if ( !a2 ) /*0x15a5b5*/\n    panic(aObjectCopyout); /*0x15a5bc*/\n  if ( a3 == 5 ) /*0x15a5c7*/\n    v4 = 16; /*0x15a5c9*/\n  else\n    v4 = 17; /*0x15a5d0*/\n  if ( ipc_object_copyout_compat(*(_DWORD *)(a1 + 136), a2, v4, a4) ) /*0x15a5e6*/\n    *a4 = 0; /*0x15a5ef*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1ded08",
+        "name": "aObjectCopyout",
+        "string": "object_copyout"
+      },
+      {
+        "addr": "0x14c198",
+        "name": "_ipc_object_copyout_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a600",
+    "addr": "0x0015a600",
+    "code": "int __cdecl port_reference(int a1)\n{\n  int result; // eax\n\n  result = a1; /*0x15a603*/\n  if ( a1 ) /*0x15a608*/\n    return ipc_port_copy_send(a1); /*0x15a60b*/\n  return result; /*0x15a612*/\n}",
+    "refs": [
+      {
+        "addr": "0x14cfa4",
+        "name": "_ipc_port_copy_send"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a614",
+    "addr": "0x0015a614",
+    "code": "int __cdecl port_release(int a1)\n{\n  int result; // eax\n\n  result = a1; /*0x15a617*/\n  if ( a1 ) /*0x15a61c*/\n    return ipc_port_release_send(a1); /*0x15a61f*/\n  return result; /*0x15a626*/\n}",
+    "refs": [
+      {
+        "addr": "0x14d050",
+        "name": "_ipc_port_release_send"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a628",
+    "addr": "0x0015a628",
+    "code": "int ds_notify()\n{\n  return 0; /*0x15a62f*/\n}"
+  },
+  {
+    "requested_address": "0x0015a634",
+    "addr": "0x0015a634",
+    "code": "void vm_object_pager_wakeup()\n{\n  ; /*0x15a634*/\n}"
+  },
+  {
+    "requested_address": "0x0015a63c",
+    "addr": "0x0015a63c",
+    "code": "void __cdecl send_notification(task_inspect_t task, int a2, int a3)\n{\n  mach_port_t special_port; // [esp+0h] [ebp-4h] BYREF\n\n  if ( a2 == 66 && !task_get_special_port(task, 2, &special_port) ) /*0x15a652*/\n    ipc_notify_msg_accepted_compat(special_port, a3); /*0x15a666*/\n}",
+    "refs": [
+      {
+        "addr": "0x14b73c",
+        "name": "_ipc_notify_msg_accepted_compat"
+      },
+      {
+        "addr": "0x159d2c",
+        "name": "_task_get_special_port"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a670",
+    "addr": "0x0015a670",
+    "code": "int task_secure()\n{\n  return 1; /*0x15a67a*/\n}"
+  },
+  {
+    "requested_address": "0x0015a67c",
+    "addr": "0x0015a67c",
+    "code": "void kalloc_init()\n{\n  int v0; // esi\n  char *v1; // edi\n  unsigned int v2; // ebx\n\n  kalloc_map = kernel_map; /*0x15a688*/\n  v0 = 0; /*0x15a68e*/\n  v1 = byte_1E5A98; /*0x15a690*/\n  do /*0x15a6df*/\n  {\n    v2 = k_zone_elemsize[v0]; /*0x15a698*/\n    if ( page_size <= v2 ) /*0x15a6a5*/\n      break; /*0x15a6a5*/\n    sprintf(v1, \"kalloc.%d\", k_zone_elemsize[v0]); /*0x15a6ae*/\n    k_zone[v0] = zinit(v2, &dword_100000, page_size, 0, v1); /*0x15a6c8*/\n    k_zone_maxsize = v2; /*0x15a6cf*/\n    v1 += 16; /*0x15a6d8*/\n    ++v0; /*0x15a6db*/\n  }\n  while ( v0 <= 15 ); /*0x15a6df*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x1e5a98",
+        "name": "byte_1E5A98"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1ded58",
+        "name": "aKallocD",
+        "string": "kalloc.%d"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      },
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a6ec",
+    "addr": "0x0015a6ec",
+    "code": "int __cdecl kalloc_noblock(unsigned int a1)\n{\n  int v1; // edx\n  unsigned int i; // eax\n  int v4; // [esp+4h] [ebp-4h] BYREF\n\n  v1 = 0; /*0x15a6f6*/\n  i = a1; /*0x15a6f8*/\n  if ( k_zone_maxsize < a1 ) /*0x15a700*/\n    goto LABEL_11; /*0x15a700*/\n  for ( i = k_zone_elemsize[0]; i < a1; i = k_zone_elemsize[v1] ) /*0x15a709*/\n    ++v1; /*0x15a70c*/\n  if ( k_zone_maxsize >= i ) /*0x15a71e*/\n    return zalloc_noblock(k_zone[v1]); /*0x15a72d*/\nLABEL_11:\n  if ( kmem_alloc_zone(kalloc_map, &v4, i, 0) ) /*0x15a742*/\n    return 0; /*0x15a74b*/\n  return v4; /*0x15a755*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x16b7a4",
+        "name": "_zalloc_noblock"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x174170",
+        "name": "_kmem_alloc_zone"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a75c",
+    "addr": "0x0015a75c",
+    "code": "int __cdecl kalloc(unsigned int a1)\n{\n  int v1; // edx\n  unsigned int i; // eax\n  int v4; // [esp+4h] [ebp-4h] BYREF\n\n  v1 = 0; /*0x15a766*/\n  i = a1; /*0x15a768*/\n  if ( k_zone_maxsize < a1 ) /*0x15a770*/\n    goto LABEL_11; /*0x15a770*/\n  for ( i = k_zone_elemsize[0]; i < a1; i = k_zone_elemsize[v1] ) /*0x15a779*/\n    ++v1; /*0x15a77c*/\n  if ( k_zone_maxsize >= i ) /*0x15a78e*/\n    return zalloc(k_zone[v1]); /*0x15a79d*/\nLABEL_11:\n  if ( kmem_alloc_wired(kalloc_map, &v4, i) ) /*0x15a7b0*/\n    return 0; /*0x15a7b9*/\n  return v4; /*0x15a7c3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a7cc",
+    "addr": "0x0015a7cc",
+    "code": "int __cdecl kget(unsigned int a1)\n{\n  unsigned int v1; // eax\n  int i; // edx\n\n  if ( k_zone_maxsize < a1 ) /*0x15a7db*/\n    goto LABEL_6; /*0x15a7db*/\n  v1 = k_zone_elemsize[0]; /*0x15a7dd*/\n  for ( i = 0; v1 < a1; v1 = k_zone_elemsize[i] ) /*0x15a7e6*/\n    ++i; /*0x15a7e8*/\n  if ( k_zone_maxsize < v1 ) /*0x15a7fa*/\nLABEL_6:\n    panic(aKget); /*0x15a815*/\n  return zget(k_zone[i]); /*0x15a81c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1ded62",
+        "name": "aKget",
+        "string": "kget"
+      },
+      {
+        "addr": "0x16b7b8",
+        "name": "_zget"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a824",
+    "addr": "0x0015a824",
+    "code": "int __cdecl kfree(int a1, unsigned int a2)\n{\n  int v2; // edx\n  unsigned int i; // eax\n\n  v2 = 0; /*0x15a82f*/\n  i = a2; /*0x15a831*/\n  if ( k_zone_maxsize < a2 ) /*0x15a839*/\n    return kmem_free(kalloc_map, a1, i); /*0x15a839*/\n  for ( i = k_zone_elemsize[0]; i < a2; i = k_zone_elemsize[v2] ) /*0x15a842*/\n    ++v2; /*0x15a844*/\n  if ( k_zone_maxsize < i ) /*0x15a856*/\n    return kmem_free(kalloc_map, a1, i); /*0x15a871*/\n  else\n    return zfree(k_zone[v2], a1); /*0x15a861*/\n}",
+    "refs": [
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a880",
+    "addr": "0x0015a880",
+    "code": "void *__cdecl malloc(size_t __size)\n{\n  size_t v1; // esi\n  int v2; // edx\n  unsigned int i; // eax\n  _DWORD *v4; // ebx\n  void *v6; // [esp+8h] [ebp-4h] BYREF\n\n  v1 = __size + 8; /*0x15a88b*/\n  v2 = 0; /*0x15a88e*/\n  i = __size + 8; /*0x15a890*/\n  if ( k_zone_maxsize >= __size + 8 ) /*0x15a898*/\n  {\n    for ( i = k_zone_elemsize[0]; i < v1; i = k_zone_elemsize[v2] ) /*0x15a8a1*/\n      ++v2; /*0x15a8a4*/\n  }\n  if ( k_zone_maxsize < i ) /*0x15a8b6*/\n  {\n    if ( kmem_alloc_wired(kalloc_map, &v6, i) ) /*0x15a8dc*/\n      v6 = nullptr; /*0x15a8e8*/\n  }\n  else\n  {\n    v6 = (void *)zalloc(k_zone[v2]); /*0x15a8c5*/\n  }\n  v4 = v6; /*0x15a8ef*/\n  if ( !v6 ) /*0x15a8f4*/\n    return nullptr; /*0x15a904*/\n  bzero(v6, v1); /*0x15a8f8*/\n  *v4 = v1; /*0x15a8fd*/\n  return v4 + 2; /*0x15a909*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a910",
+    "addr": "0x0015a910",
+    "code": "void *__cdecl calloc(size_t __count, size_t __size)\n{\n  size_t v2; // esi\n  int v3; // edx\n  unsigned int i; // eax\n  _DWORD *v5; // ebx\n  void *v7; // [esp+8h] [ebp-4h] BYREF\n\n  v2 = __size * __count + 8; /*0x15a91f*/\n  v3 = 0; /*0x15a922*/\n  i = v2; /*0x15a924*/\n  if ( k_zone_maxsize >= v2 ) /*0x15a92c*/\n  {\n    for ( i = k_zone_elemsize[0]; i < v2; i = k_zone_elemsize[v3] ) /*0x15a935*/\n      ++v3; /*0x15a938*/\n  }\n  if ( k_zone_maxsize < i ) /*0x15a94a*/\n  {\n    if ( kmem_alloc_wired(kalloc_map, &v7, i) ) /*0x15a970*/\n      v7 = nullptr; /*0x15a97c*/\n  }\n  else\n  {\n    v7 = (void *)zalloc(k_zone[v3]); /*0x15a959*/\n  }\n  v5 = v7; /*0x15a983*/\n  if ( !v7 ) /*0x15a988*/\n    return nullptr; /*0x15a98a*/\n  bzero(v7, v2); /*0x15a992*/\n  *v5 = v2; /*0x15a997*/\n  return v5 + 2; /*0x15a99f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015a9a8",
+    "addr": "0x0015a9a8",
+    "code": "void *__cdecl realloc(void *__ptr, size_t __size)\n{\n  size_t *v2; // esi\n  size_t v3; // esi\n  int k; // edx\n  unsigned int v5; // eax\n  _DWORD *v6; // ebx\n  size_t v7; // ecx\n  int v8; // edx\n  unsigned int i; // eax\n  size_t v11; // ecx\n  int v12; // edx\n  unsigned int j; // eax\n  size_t v14; // [esp-4h] [ebp-14h]\n  void *v15; // [esp+Ch] [ebp-4h] BYREF\n\n  v2 = (size_t *)((char *)__ptr - 8); /*0x15a9b4*/\n  if ( __ptr ) /*0x15a9bb*/\n  {\n    v7 = __size + 8; /*0x15aa3f*/\n    v8 = 0; /*0x15aa42*/\n    i = __size + 8; /*0x15aa44*/\n    if ( k_zone_maxsize < __size + 8 ) /*0x15aa4c*/\n      goto LABEL_32; /*0x15aa4c*/\n    for ( i = k_zone_elemsize[0]; i < v7; i = k_zone_elemsize[v8] ) /*0x15aa55*/\n      ++v8; /*0x15aa58*/\n    if ( k_zone_maxsize < i ) /*0x15aa6a*/\n    {\nLABEL_32:\n      if ( kmem_alloc_wired(kalloc_map, &v15, i) ) /*0x15aa90*/\n        v15 = nullptr; /*0x15aa9c*/\n    }\n    else\n    {\n      v15 = (void *)zalloc(k_zone[v8]); /*0x15aa79*/\n    }\n    v6 = v15; /*0x15aaa3*/\n    if ( v15 ) /*0x15aaa8*/\n    {\n      *(_DWORD *)v15 = __size + 8; /*0x15aab6*/\n      if ( __size >= *v2 ) /*0x15aabd*/\n        v14 = *v2; /*0x15aac8*/\n      else\n        v14 = __size; /*0x15aac2*/\n      bcopy(__ptr, v6 + 2, v14); /*0x15aad1*/\n      v11 = *v2; /*0x15aad9*/\n      v12 = 0; /*0x15aadb*/\n      j = *v2; /*0x15aadd*/\n      if ( k_zone_maxsize < *v2 ) /*0x15aae5*/\n        goto LABEL_28; /*0x15aae5*/\n      for ( j = k_zone_elemsize[0]; j < v11; j = k_zone_elemsize[v12] ) /*0x15aaee*/\n        ++v12; /*0x15aaf0*/\n      if ( k_zone_maxsize < j ) /*0x15ab02*/\nLABEL_28:\n        kmem_free(kalloc_map, v2, j); /*0x15ab1d*/\n      else\n        zfree(k_zone[v12], v2); /*0x15ab0d*/\n      return v6 + 2; /*0x15ab12*/\n    }\n    return nullptr; /*0x15aaac*/\n  }\n  v3 = __size + 8; /*0x15a9c0*/\n  k = 0; /*0x15a9c3*/\n  v5 = __size + 8; /*0x15a9c5*/\n  if ( k_zone_maxsize >= __size + 8 ) /*0x15a9cd*/\n  {\n    v5 = k_zone_elemsize[0]; /*0x15a9cf*/\n    for ( k = 0; v5 < v3; v5 = k_zone_elemsize[k] ) /*0x15a9d9*/\n      ++k; /*0x15a9dc*/\n  }\n  if ( k_zone_maxsize < v5 ) /*0x15a9ee*/\n  {\n    if ( kmem_alloc_wired(kalloc_map, &v15, v5) ) /*0x15aa14*/\n      v15 = nullptr; /*0x15aa20*/\n  }\n  else\n  {\n    v15 = (void *)zalloc(k_zone[k]); /*0x15a9fd*/\n  }\n  v6 = v15; /*0x15aa27*/\n  if ( !v15 ) /*0x15aa2c*/\n    return nullptr; /*0x15aa2c*/\n  bzero(v15, v3); /*0x15aa30*/\n  *v6 = v3; /*0x15aa35*/\n  return v6 + 2; /*0x15ab28*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015ab30",
+    "addr": "0x0015ab30",
+    "code": "void __cdecl free(void *a1)\n{\n  char *v1; // ebx\n  unsigned int v2; // ecx\n  int v3; // edx\n  unsigned int i; // eax\n\n  if ( a1 ) /*0x15ab3a*/\n  {\n    v1 = (char *)a1 - 8; /*0x15ab3c*/\n    v2 = *((_DWORD *)a1 - 2); /*0x15ab3f*/\n    v3 = 0; /*0x15ab42*/\n    i = v2; /*0x15ab44*/\n    if ( k_zone_maxsize < v2 ) /*0x15ab4c*/\n      goto LABEL_7; /*0x15ab4c*/\n    for ( i = k_zone_elemsize[0]; i < v2; i = k_zone_elemsize[v3] ) /*0x15ab55*/\n      ++v3; /*0x15ab58*/\n    if ( k_zone_maxsize < i ) /*0x15ab6a*/\nLABEL_7:\n      kmem_free(kalloc_map, v1, i); /*0x15ab85*/\n    else\n      zfree(k_zone[v3], v1); /*0x15ab75*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f63a0",
+        "name": "_k_zone_maxsize"
+      },
+      {
+        "addr": "0x1ded18",
+        "name": "_k_zone_elemsize"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1f6330",
+        "name": "_kalloc_map"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6360",
+        "name": "_k_zone"
+      }
+    ]
+  }
+]

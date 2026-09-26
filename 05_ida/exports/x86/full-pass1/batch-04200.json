@@ -1,0 +1,260 @@
+[
+  {
+    "requested_address": "0x001be50c",
+    "addr": "0x001be50c",
+    "code": "void __cdecl audio_convertLinear16ToMulaw8(__int16 *a1, _BYTE *a2, int a3)\n{\n  __int16 v5; // [esp-4h] [ebp-10h]\n\n  while ( --a3 != -1 ) /*0x1be531*/\n  {\n    v5 = *a1++; /*0x1be523*/\n    *a2 = audio_shortToMulaw(v5); /*0x1be52c*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1beab8",
+        "name": "_audio_shortToMulaw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001be544",
+    "addr": "0x001be544",
+    "code": "int __cdecl audio_convertMulaw8ToLinear16(unsigned __int8 *a1, _BYTE *a2, int a3)\n{\n  int result; // eax\n\n  while ( --a3 != -1 ) /*0x1be562*/\n  {\n    result = *a1; /*0x1be554*/\n    LOBYTE(result) = audio_muLaw[result]; /*0x1be557*/\n    *a2 = result; /*0x1be55e*/\n    ++a1; /*0x1be560*/\n    ++a2; /*0x1be561*/\n  }\n  return result; /*0x1be568*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5ee4",
+        "name": "_audio_muLaw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001be570",
+    "addr": "0x001be570",
+    "code": "void audio_convertMulaw8ToLinear8()\n{\n  ; /*0x1be570*/\n}"
+  },
+  {
+    "requested_address": "0x001be578",
+    "addr": "0x001be578",
+    "code": "int __cdecl audio_mix(__int16 *a1, _BYTE *a2, size_t a3, int a4, int a5)\n{\n  __int16 *v5; // ebx\n  _BYTE *v6; // ecx\n  _BYTE *v8; // edi\n  _BYTE *v9; // ebx\n  size_t v10; // ecx\n  size_t v11; // esi\n  int v12; // eax\n  size_t v13; // esi\n  int v14; // eax\n  unsigned __int8 *v15; // edi\n  _BYTE *v16; // ebx\n  size_t v17; // esi\n  int v18; // eax\n  int v19; // [esp+Ch] [ebp-4h]\n\n  v5 = a1; /*0x1be581*/\n  v6 = a2; /*0x1be584*/\n  v19 = 0; /*0x1be58d*/\n  if ( !a3 ) /*0x1be596*/\n    return 0; /*0x1be59a*/\n  if ( a5 ) /*0x1be5a4*/\n  {\n    if ( a4 == 3 ) /*0x1be5a9*/\n    {\n      v8 = a1; /*0x1be5ab*/\n      v9 = a2; /*0x1be5ad*/\n      v10 = a3 - 1; /*0x1be5af*/\n      do /*0x1be5cf*/\n      {\n        *v9++ = *v8 & 0x7F | *v8 ^ 0x80; /*0x1be5c7*/\n        ++v8; /*0x1be5ca*/\n        --v10; /*0x1be5cb*/\n      }\n      while ( v10 != -1 ); /*0x1be5cf*/\n    }\n    else\n    {\n      bcopy(a1, a2, a3); /*0x1be5db*/\n    }\n    return v19; /*0x1be5cf*/\n  }\n  if ( a4 == 1 ) /*0x1be5eb*/\n  {\n    v15 = (unsigned __int8 *)a1; /*0x1be6a8*/\n    v16 = a2; /*0x1be6aa*/\n    v17 = a3 - 1; /*0x1be6ac*/\n    while ( 1 ) /*0x1be6ca*/\n    {\n      v18 = audio_muLaw[(unsigned __int8)*v16] + audio_muLaw[*v15++]; /*0x1be6ca*/\n      if ( v18 <= 0x7FFF ) /*0x1be6d2*/\n      {\n        if ( v18 >= -32768 ) /*0x1be6e1*/\n        {\n          *v16++ = audio_shortToMulaw(v18); /*0x1be6f3*/\n          goto LABEL_40; /*0x1be6f5*/\n        }\n        *v16 = 0; /*0x1be6e3*/\n      }\n      else\n      {\n        *v16 = 0x80; /*0x1be6d4*/\n      }\n      ++v16; /*0x1be6e6*/\n      ++v19; /*0x1be6e7*/\nLABEL_40:\n      if ( --v17 == -1 ) /*0x1be6fd*/\n        return v19; /*0x1be6fd*/\n    }\n  }\n  if ( a4 > 1 ) /*0x1be5f1*/\n  {\n    if ( a4 != 3 ) /*0x1be5ff*/\n      goto LABEL_42; /*0x1be5ff*/\n    v13 = a3 - 1; /*0x1be658*/\n    while ( 1 ) /*0x1be675*/\n    {\n      v14 = (char)(*v6 & 0x7F | *v6 ^ 0x80) + *(char *)v5; /*0x1be675*/\n      v5 = (__int16 *)((char *)v5 + 1); /*0x1be677*/\n      if ( v14 <= 127 ) /*0x1be67b*/\n      {\n        if ( v14 >= -128 ) /*0x1be687*/\n        {\n          *v6++ = v14 & 0x7F | v14 ^ 0x80; /*0x1be69d*/\n          goto LABEL_31; /*0x1be69f*/\n        }\n        *v6 = 0; /*0x1be689*/\n      }\n      else\n      {\n        *v6 = -1; /*0x1be67d*/\n      }\n      ++v6; /*0x1be68c*/\n      ++v19; /*0x1be68d*/\nLABEL_31:\n      if ( --v13 == -1 ) /*0x1be6a4*/\n        return v19; /*0x1be6a4*/\n    }\n  }\n  if ( a4 )\n  {\nLABEL_42:\n    IOLog((int)\"Audio: unrecognized format %d in mix\\n\", a4);\n    return v19; /*0x1be70a*/\n  }\n  v11 = (a3 >> 1) - 1; /*0x1be60a*/\n  if ( a3 >> 1 ) /*0x1be608*/\n  {\n    do /*0x1be61a*/\n    {\n      v12 = *(__int16 *)v6 + *v5++; /*0x1be61a*/\n      if ( v12 <= 0x7FFF ) /*0x1be624*/\n      {\n        if ( v12 >= -32768 ) /*0x1be635*/\n        {\n          *(_WORD *)v6 = v12; /*0x1be644*/\n          v6 += 2; /*0x1be647*/\n          goto LABEL_22; /*0x1be647*/\n        }\n        *(_WORD *)v6 = 0x8000; /*0x1be637*/\n      }\n      else\n      {\n        *(_WORD *)v6 = 0x7FFF; /*0x1be626*/\n      }\n      v6 += 2; /*0x1be63c*/\n      ++v19; /*0x1be63f*/\nLABEL_22:\n      --v11; /*0x1be64a*/\n    }\n    while ( v11 != -1 ); /*0x1be61a*/\n  }\n  return v19; /*0x1be715*/\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1d5ee4",
+        "name": "_audio_muLaw"
+      },
+      {
+        "addr": "0x1beab8",
+        "name": "_audio_shortToMulaw"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8cd0",
+        "name": "aAudioUnrecogni_7",
+        "string": "Audio: unrecognized format %d in mix\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001be71c",
+    "addr": "0x001be71c",
+    "code": "unsigned int __cdecl audio_mulaw8_peak(int a1, unsigned __int8 *a2, unsigned int a3, _DWORD *a4, _DWORD *a5)\n{\n  unsigned int v6; // ecx\n  unsigned int result; // eax\n  unsigned __int8 *v8; // edx\n  unsigned int v9; // ecx\n  __int16 v10; // ax\n  unsigned __int8 *v11; // edx\n  unsigned __int8 *v12; // edx\n  unsigned __int8 *v13; // edx\n\n  *a5 = 0; /*0x1be731*/\n  *a4 = 0; /*0x1be737*/\n  if ( a1 == 1 ) /*0x1be740*/\n  {\n    v6 = 0; /*0x1be742*/\n    for ( result = a3 >> 2; v6 < a3 >> 2; ++v6 ) /*0x1be746*/\n    {\n      LOWORD(result) = audio_muLaw[*a2]; /*0x1be753*/\n      v8 = a2 + 1; /*0x1be75b*/\n      if ( (result & 0x8000u) != 0 ) /*0x1be75f*/\n        LOWORD(result) = -(__int16)result; /*0x1be761*/\n      result = (__int16)result; /*0x1be764*/\n      if ( *a4 < (unsigned int)(__int16)result ) /*0x1be767*/\n        *a4 = (__int16)result; /*0x1be769*/\n      a2 = v8 + 3; /*0x1be76b*/\n    }\n    *a5 = *a4; /*0x1be775*/\n  }\n  else\n  {\n    v9 = 0; /*0x1be77c*/\n    for ( result = a3 >> 2; v9 < a3 >> 2; ++v9 ) /*0x1be780*/\n    {\n      v10 = audio_muLaw[*a2]; /*0x1be78f*/\n      v11 = a2 + 1; /*0x1be797*/\n      if ( v10 < 0 ) /*0x1be79b*/\n        v10 = -v10; /*0x1be79d*/\n      if ( *a4 < (unsigned int)v10 ) /*0x1be7a3*/\n        *a4 = v10; /*0x1be7a5*/\n      v12 = v11 + 1; /*0x1be7a7*/\n      LOWORD(result) = audio_muLaw[*v12]; /*0x1be7ab*/\n      v13 = v12 + 1; /*0x1be7b3*/\n      if ( (result & 0x8000u) != 0 ) /*0x1be7b7*/\n        LOWORD(result) = -(__int16)result; /*0x1be7b9*/\n      result = (__int16)result; /*0x1be7bc*/\n      if ( *a5 < (unsigned int)(__int16)result ) /*0x1be7bf*/\n        *a5 = (__int16)result; /*0x1be7c1*/\n      a2 = v13 + 1; /*0x1be7c3*/\n    }\n  }\n  return result; /*0x1be7cc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5ee4",
+        "name": "_audio_muLaw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001be7d4",
+    "addr": "0x001be7d4",
+    "code": "unsigned int __cdecl audio_linear16_peak(int a1, __int16 *a2, unsigned int a3, _DWORD *a4, _DWORD *a5)\n{\n  unsigned int v6; // ecx\n  unsigned int result; // eax\n  _WORD *v8; // edx\n  unsigned int v9; // ecx\n  __int16 v10; // ax\n  _WORD *v11; // edx\n\n  *a5 = 0; /*0x1be7e9*/\n  *a4 = 0; /*0x1be7ef*/\n  if ( a1 == 1 ) /*0x1be7f8*/\n  {\n    v6 = 0; /*0x1be7fa*/\n    for ( result = a3 >> 1; v6 < a3 >> 1; ++v6 ) /*0x1be7fe*/\n    {\n      LOWORD(result) = *a2; /*0x1be808*/\n      v8 = a2 + 1; /*0x1be80b*/\n      if ( (result & 0x8000u) != 0 ) /*0x1be811*/\n        LOWORD(result) = -(__int16)result; /*0x1be813*/\n      result = (__int16)result; /*0x1be816*/\n      if ( *a4 < (unsigned int)(__int16)result ) /*0x1be819*/\n        *a4 = (__int16)result; /*0x1be81b*/\n      a2 = v8 + 1; /*0x1be81d*/\n    }\n    *a5 = *a4; /*0x1be827*/\n  }\n  else\n  {\n    v9 = 0; /*0x1be82c*/\n    for ( result = a3 >> 1; v9 < a3 >> 1; ++v9 ) /*0x1be830*/\n    {\n      v10 = *a2; /*0x1be838*/\n      v11 = a2 + 1; /*0x1be83b*/\n      if ( v10 < 0 ) /*0x1be841*/\n        v10 = -v10; /*0x1be843*/\n      if ( *a4 < (unsigned int)v10 ) /*0x1be849*/\n        *a4 = v10; /*0x1be84b*/\n      LOWORD(result) = *v11; /*0x1be84d*/\n      a2 = v11 + 1; /*0x1be850*/\n      if ( (result & 0x8000u) != 0 ) /*0x1be856*/\n        LOWORD(result) = -(__int16)result; /*0x1be858*/\n      result = (__int16)result; /*0x1be85b*/\n      if ( *a5 < (unsigned int)(__int16)result ) /*0x1be85e*/\n        *a5 = (__int16)result; /*0x1be860*/\n    }\n  }\n  return result; /*0x1be86a*/\n}"
+  },
+  {
+    "requested_address": "0x001be874",
+    "addr": "0x001be874",
+    "code": "unsigned int __cdecl audio_linear8_peak(int a1, char *a2, unsigned int a3, _DWORD *a4, _DWORD *a5)\n{\n  unsigned int v6; // ebx\n  unsigned int result; // eax\n  char v8; // al\n  _BYTE *v9; // ecx\n  unsigned int v10; // ebx\n  char v11; // al\n  char *v12; // ecx\n  char v13; // al\n  char v14; // al\n\n  *a5 = 0; /*0x1be889*/\n  *a4 = 0; /*0x1be892*/\n  if ( a1 == 1 ) /*0x1be89b*/\n  {\n    v6 = 0; /*0x1be89d*/\n    for ( result = a3 >> 1; a3 >> 1 > v6; ++v6 ) /*0x1be8a1*/\n    {\n      v8 = *a2; /*0x1be8ac*/\n      v9 = a2 + 1; /*0x1be8ae*/\n      LOBYTE(result) = v8 ^ 0x80 | v8 & 0x7F; /*0x1be8b6*/\n      if ( (result & 0x80u) != 0 ) /*0x1be8b8*/\n        LOBYTE(result) = -(char)result; /*0x1be8ba*/\n      result = (char)result; /*0x1be8bc*/\n      if ( *a4 < (unsigned int)(char)result ) /*0x1be8c4*/\n        *a4 = (char)result; /*0x1be8c6*/\n      a2 = v9 + 1; /*0x1be8c8*/\n    }\n    *a5 = *a4; /*0x1be8d7*/\n  }\n  else\n  {\n    v10 = 0; /*0x1be8dc*/\n    for ( result = a3 >> 1; a3 >> 1 > v10; ++v10 ) /*0x1be8e0*/\n    {\n      v11 = *a2; /*0x1be8ec*/\n      v12 = a2 + 1; /*0x1be8ee*/\n      v13 = v11 ^ 0x80 | v11 & 0x7F; /*0x1be8f6*/\n      if ( v13 < 0 ) /*0x1be8f8*/\n        v13 = -v13; /*0x1be8fa*/\n      if ( *a4 < (unsigned int)v13 ) /*0x1be904*/\n        *a4 = v13; /*0x1be906*/\n      v14 = *v12; /*0x1be908*/\n      a2 = v12 + 1; /*0x1be90a*/\n      LOBYTE(result) = v14 ^ 0x80 | v14 & 0x7F; /*0x1be912*/\n      if ( (result & 0x80u) != 0 ) /*0x1be914*/\n        LOBYTE(result) = -(char)result; /*0x1be916*/\n      result = (char)result; /*0x1be918*/\n      if ( *a5 < (unsigned int)(char)result ) /*0x1be920*/\n        *a5 = (char)result; /*0x1be922*/\n    }\n  }\n  *a5 <<= 8; /*0x1be92d*/\n  *a4 <<= 8; /*0x1be933*/\n  return result; /*0x1be939*/\n}"
+  },
+  {
+    "requested_address": "0x001be940",
+    "addr": "0x001be940",
+    "code": "int __cdecl audio_clear_peaks(_DWORD *a1, int a2)\n{\n  int result; // eax\n\n  result = a2; /*0x1be946*/\n  while ( --result != -1 ) /*0x1be955*/\n    *a1++ = 0; /*0x1be94c*/\n  return result; /*0x1be95d*/\n}"
+  },
+  {
+    "requested_address": "0x001be960",
+    "addr": "0x001be960",
+    "code": "unsigned int __cdecl audio_max_peak(unsigned int *a1, int a2)\n{\n  unsigned int v3; // ebx\n  unsigned int v5; // eax\n\n  v3 = 0; /*0x1be967*/\n  while ( --a2 != -1 ) /*0x1be97b*/\n  {\n    v5 = *a1++; /*0x1be970*/\n    if ( v5 > v3 ) /*0x1be977*/\n      v3 = v5; /*0x1be979*/\n  }\n  return v3; /*0x1be983*/\n}"
+  },
+  {
+    "requested_address": "0x001be98c",
+    "addr": "0x001be98c",
+    "code": "int __cdecl audio_add_peak(int a1, int a2, int *a3, int a4)\n{\n  int result; // eax\n\n  if ( a4 ) /*0x1be99c*/\n  {\n    *(_DWORD *)(a1 + 4 * *a3) = a2; /*0x1be9a3*/\n    result = *a3 + 1; /*0x1be9a8*/\n    *a3 = result; /*0x1be9a9*/\n    if ( result == a4 ) /*0x1be9ad*/\n      *a3 = 0; /*0x1be9af*/\n  }\n  return result; /*0x1be9b8*/\n}"
+  },
+  {
+    "requested_address": "0x001be9c0",
+    "addr": "0x001be9c0",
+    "code": "void audio_makeIMuLawTab()\n{\n  int v0; // ecx\n  _WORD *v1; // eax\n  int v2; // edx\n  int v3; // ecx\n  int v4; // ebx\n  int v5; // esi\n  _BYTE v6[1024]; // [esp+Ch] [ebp-800h] BYREF\n  _DWORD __base[256]; // [esp+40Ch] [ebp-400h] BYREF\n\n  if ( !dword_1E53CC ) /*0x1be9d3*/\n  {\n    dword_1E53CC = IOMalloc(0x4000u); /*0x1be9e3*/\n    v0 = 0; /*0x1be9e8*/\n    v1 = v6; /*0x1be9ed*/\n    v2 = 0; /*0x1be9f5*/\n    do /*0x1bea20*/\n    {\n      __base[v0] = v1; /*0x1be9f8*/\n      *v1 = v0; /*0x1be9ff*/\n      *(_WORD *)&v6[v2 + 2] = audio_muLaw[v0] >> 2; /*0x1bea0e*/\n      v1 += 2; /*0x1bea13*/\n      v2 += 4; /*0x1bea16*/\n      ++v0; /*0x1bea19*/\n    }\n    while ( v0 <= 255 ); /*0x1bea20*/\n    qsort(__base, 0x100u, 4u, _compar); /*0x1bea35*/\n    v3 = 0; /*0x1bea3a*/\n    v4 = 0; /*0x1bea3c*/\n    v5 = -8192; /*0x1bea3e*/\n    do /*0x1bea8b*/\n    {\n      if ( v4 <= 254 /*0x1bea6e*/\n        && v5 - *(__int16 *)(__base[v4] + 2) > 0\n        && v5 - *(__int16 *)(__base[v4] + 2) > *(__int16 *)(__base[v4 + 1] + 2) - v5 )\n      {\n        ++v4; /*0x1bea70*/\n      }\n      *(_BYTE *)(v3 + dword_1E53CC) = *(_BYTE *)__base[v4]; /*0x1bea80*/\n      ++v3; /*0x1bea83*/\n      ++v5; /*0x1bea84*/\n    }\n    while ( v3 <= 0x3FFF ); /*0x1bea8b*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e53cc",
+        "name": "dword_1E53CC"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1d5ee4",
+        "name": "_audio_muLaw"
+      },
+      {
+        "addr": "0x10ba60",
+        "name": "_qsort"
+      },
+      {
+        "addr": "0x1beb1c",
+        "name": "__compar"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bea9c",
+    "addr": "0x001bea9c",
+    "code": "int audio_freeIMuLawTab()\n{\n  int result; // eax\n\n  result = dword_1E53CC; /*0x1bea9f*/\n  if ( dword_1E53CC ) /*0x1beaa6*/\n    return IOFree(dword_1E53CC, 0x4000); /*0x1beaae*/\n  return result; /*0x1beab5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e53cc",
+        "name": "dword_1E53CC"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001beab8",
+    "addr": "0x001beab8",
+    "code": "int __cdecl audio_shortToMulaw(__int16 a1)\n{\n  return *(unsigned __int8 *)(dword_1E53CC + (a1 >> 2) + 0x2000); /*0x1bead7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e53cc",
+        "name": "dword_1E53CC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001beb04",
+    "addr": "0x001beb04",
+    "code": "int __cdecl audio_byteToMulaw(char a1)\n{\n  return *(unsigned __int8 *)(dword_1E53CC + a1 + 0x2000); /*0x1beb1a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e53cc",
+        "name": "dword_1E53CC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001beb1c",
+    "addr": "0x001beb1c",
+    "code": "int __cdecl _compar(const void *a1, const void *a2)\n{\n  __int16 v2; // cx\n  __int16 v3; // ax\n\n  v2 = *(_WORD *)(*(_DWORD *)a1 + 2); /*0x1beb29*/\n  v3 = *(_WORD *)(*(_DWORD *)a2 + 2); /*0x1beb2d*/\n  if ( v2 > v3 ) /*0x1beb34*/\n    return 1; /*0x1beb36*/\n  if ( v2 == v3 ) /*0x1beb43*/\n    return 0; /*0x1beb50*/\n  return -1; /*0x1beb3d*/\n}"
+  },
+  {
+    "requested_address": "0x001beb58",
+    "addr": "0x001beb58",
+    "code": "__int32 __cdecl strtol(const char *__str, char **__endptr, int __base)\n{\n  const char *v3; // edi\n  int v4; // ecx\n  int v5; // ebx\n  unsigned __int32 v6; // esi\n  int v7; // ecx\n  int v8; // ebx\n  char *v9; // ecx\n  signed int v11; // [esp+10h] [ebp-10h]\n  int v12; // [esp+14h] [ebp-Ch]\n  int v13; // [esp+18h] [ebp-8h]\n  unsigned int v14; // [esp+1Ch] [ebp-4h]\n  unsigned int v15; // [esp+1Ch] [ebp-4h]\n\n  v3 = __str; /*0x1beb61*/\n  v13 = 0; /*0x1beb64*/\n  do /*0x1beb8e*/\n  {\n    v4 = *v3++; /*0x1beb6c*/\n    v5 = 0; /*0x1beb73*/\n    if ( (_BYTE)v4 == 32 || (unsigned __int8)(v4 - 9) <= 1u ) /*0x1beb80*/\n      v5 = 1; /*0x1beb87*/\n  }\n  while ( v5 ); /*0x1beb8e*/\n  if ( v4 == 45 ) /*0x1beb93*/\n  {\n    v13 = 1; /*0x1beb95*/\nLABEL_9:\n    v4 = *v3++; /*0x1beba5*/\n    goto LABEL_10; /*0x1beba8*/\n  }\n  if ( v4 == 43 ) /*0x1beba3*/\n    goto LABEL_9; /*0x1beba3*/\nLABEL_10:\n  if ( (!__base || __base == 16) && v4 == 48 && (*v3 == 120 || *v3 == 88) ) /*0x1bebc4*/\n  {\n    v4 = v3[1]; /*0x1bebc6*/\n    v3 += 2; /*0x1bebca*/\n    __base = 16; /*0x1bebcd*/\n  }\n  else\n  {\n    if ( (!__base || __base == 2) && v4 == 48 && (*v3 == 98 || *v3 == 66) ) /*0x1bebf3*/\n    {\n      v4 = v3[1]; /*0x1bebf5*/\n      v3 += 2; /*0x1bebf9*/\n      __base = 2; /*0x1bebfc*/\n    }\n    if ( !__base ) /*0x1bec07*/\n    {\n      __base = 10; /*0x1bec09*/\n      if ( v4 == 48 ) /*0x1bec13*/\n        __base = 8; /*0x1bec15*/\n    }\n  }\n  v14 = 0x7FFFFFFF; /*0x1bec1c*/\n  if ( v13 ) /*0x1bec27*/\n    v14 = 0x80000000; /*0x1bec29*/\n  v11 = v14 % __base; /*0x1bec38*/\n  v15 = v14 / __base; /*0x1bec3b*/\n  v6 = 0; /*0x1bec3e*/\n  v12 = 0; /*0x1bec40*/\n  while ( 1 ) /*0x1bec48*/\n  {\n    if ( (unsigned __int8)(v4 - 48) <= 9u ) /*0x1bec51*/\n    {\n      v7 = v4 - 48; /*0x1bec53*/\n      goto LABEL_37; /*0x1bec56*/\n    }\n    v8 = 0; /*0x1bec58*/\n    if ( (unsigned __int8)(v4 - 65) <= 0x19u || (unsigned __int8)(v4 - 97) <= 0x19u ) /*0x1bec6a*/\n      v8 = 1; /*0x1bec6c*/\n    if ( !v8 ) /*0x1bec73*/\n      break; /*0x1bec73*/\n    if ( (unsigned __int8)(v4 - 65) > 0x19u ) /*0x1bec7b*/\n      v7 = v4 - 87; /*0x1bec84*/\n    else\n      v7 = v4 - 55; /*0x1bec7d*/\nLABEL_37:\n    if ( __base <= v7 ) /*0x1bec8a*/\n      break; /*0x1bec8a*/\n    if ( v12 < 0 || v15 < v6 || v15 == v6 && v11 < v7 ) /*0x1bec9c*/\n    {\n      v12 = -1; /*0x1bec9e*/\n    }\n    else\n    {\n      v12 = 1; /*0x1beca8*/\n      v6 = v7 + __base * v6; /*0x1becb3*/\n    }\n    v4 = *v3++; /*0x1becb5*/\n  }\n  if ( v12 >= 0 ) /*0x1becc0*/\n  {\n    if ( v13 ) /*0x1becd8*/\n      v6 = -v6; /*0x1becda*/\n  }\n  else\n  {\n    v6 = 0x7FFFFFFF; /*0x1becc2*/\n    if ( v13 ) /*0x1beccb*/\n      v6 = 0x80000000; /*0x1beccd*/\n  }\n  if ( __endptr ) /*0x1bece0*/\n  {\n    v9 = (char *)__str; /*0x1bece2*/\n    if ( v12 ) /*0x1bece9*/\n      v9 = (char *)(v3 - 1); /*0x1beceb*/\n    *__endptr = v9; /*0x1becf1*/\n  }\n  return v6; /*0x1becf8*/\n}"
+  },
+  {
+    "requested_address": "0x001bed00",
+    "addr": "0x001bed00",
+    "code": "unsigned __int32 __cdecl strtoul(const char *__str, char **__endptr, int __base)\n{\n  const char *v3; // edi\n  int v4; // ecx\n  int v5; // ebx\n  unsigned __int32 v6; // esi\n  int v7; // ecx\n  int v8; // ebx\n  int v9; // eax\n  char *v10; // eax\n  int v12; // [esp+14h] [ebp-Ch]\n  int v13; // [esp+18h] [ebp-8h]\n  unsigned int v14; // [esp+1Ch] [ebp-4h]\n\n  v3 = __str; /*0x1bed09*/\n  v13 = 0; /*0x1bed0c*/\n  do /*0x1bed36*/\n  {\n    v4 = *v3++; /*0x1bed14*/\n    v5 = 0; /*0x1bed1b*/\n    if ( (_BYTE)v4 == 32 || (unsigned __int8)(v4 - 9) <= 1u ) /*0x1bed28*/\n      v5 = 1; /*0x1bed2f*/\n  }\n  while ( v5 ); /*0x1bed36*/\n  if ( v4 == 45 ) /*0x1bed3b*/\n  {\n    v13 = 1; /*0x1bed3d*/\nLABEL_9:\n    v4 = *v3++; /*0x1bed4d*/\n    goto LABEL_10; /*0x1bed50*/\n  }\n  if ( v4 == 43 ) /*0x1bed4b*/\n    goto LABEL_9; /*0x1bed4b*/\nLABEL_10:\n  if ( (!__base || __base == 16) && v4 == 48 && (*v3 == 120 || *v3 == 88) ) /*0x1bed6a*/\n  {\n    v4 = v3[1]; /*0x1bed6c*/\n    v3 += 2; /*0x1bed70*/\n    __base = 16; /*0x1bed73*/\n  }\n  else\n  {\n    if ( (!__base || __base == 2) && v4 == 48 && (*v3 == 98 || *v3 == 66) ) /*0x1bed95*/\n    {\n      v4 = v3[1]; /*0x1bed97*/\n      v3 += 2; /*0x1bed9b*/\n      __base = 2; /*0x1bed9e*/\n    }\n    if ( !__base ) /*0x1beda9*/\n    {\n      __base = 10; /*0x1bedab*/\n      if ( v4 == 48 ) /*0x1bedb5*/\n        __base = 8; /*0x1bedb7*/\n    }\n  }\n  v14 = 0xFFFFFFFF / __base; /*0x1bedcb*/\n  v6 = 0; /*0x1bedce*/\n  v12 = 0; /*0x1bedd0*/\n  while ( 1 ) /*0x1bedd8*/\n  {\n    if ( (unsigned __int8)(v4 - 48) <= 9u ) /*0x1bede1*/\n    {\n      v7 = v4 - 48; /*0x1bede3*/\n      goto LABEL_36; /*0x1bede6*/\n    }\n    v8 = 0; /*0x1bede8*/\n    if ( (unsigned __int8)(v4 - 65) <= 0x19u || (unsigned __int8)(v4 - 97) <= 0x19u ) /*0x1bedfa*/\n      v8 = 1; /*0x1bedfc*/\n    if ( !v8 ) /*0x1bee03*/\n      break; /*0x1bee03*/\n    if ( (unsigned __int8)(v4 - 65) > 0x19u ) /*0x1bee0b*/\n      v9 = v4 - 87; /*0x1bee14*/\n    else\n      v9 = v4 - 55; /*0x1bee0d*/\n    v7 = v9; /*0x1bee17*/\nLABEL_36:\n    if ( __base <= v7 ) /*0x1bee1c*/\n      break; /*0x1bee1c*/\n    if ( v12 < 0 || v14 < v6 || v14 == v6 && (int)(0xFFFFFFFF % __base) < v7 ) /*0x1bee2e*/\n    {\n      v12 = -1; /*0x1bee30*/\n    }\n    else\n    {\n      v12 = 1; /*0x1bee3c*/\n      v6 = v7 + __base * v6; /*0x1bee47*/\n    }\n    v4 = *v3++; /*0x1bee49*/\n  }\n  if ( v12 >= 0 ) /*0x1bee54*/\n  {\n    if ( v13 ) /*0x1bee64*/\n      v6 = -v6; /*0x1bee66*/\n  }\n  else\n  {\n    v6 = -1; /*0x1bee56*/\n  }\n  if ( __endptr ) /*0x1bee6c*/\n  {\n    v10 = (char *)__str; /*0x1bee6e*/\n    if ( v12 ) /*0x1bee75*/\n      v10 = (char *)(v3 - 1); /*0x1bee77*/\n    *__endptr = v10; /*0x1bee7d*/\n  }\n  return v6; /*0x1bee84*/\n}"
+  },
+  {
+    "requested_address": "0x001bee8c",
+    "addr": "0x001bee8c",
+    "code": "int __cdecl Event_server(_DWORD *a1, int a2)\n{\n  int v2; // ecx\n  int (__cdecl *v3)(int, int); // eax\n\n  *(_BYTE *)(a2 + 3) = 1; /*0x1bee97*/\n  *(_DWORD *)(a2 + 4) = 32; /*0x1bee9b*/\n  *(_DWORD *)(a2 + 8) = a1[2]; /*0x1beea5*/\n  *(_DWORD *)(a2 + 12) = 0; /*0x1beea8*/\n  *(_DWORD *)(a2 + 16) = a1[4]; /*0x1beeb2*/\n  *(_DWORD *)(a2 + 20) = a1[5] + 100; /*0x1beebb*/\n  *(_DWORD *)(a2 + 24) = 268509186; /*0x1beec4*/\n  *(_DWORD *)(a2 + 28) = -303; /*0x1beec7*/\n  v2 = a1[5]; /*0x1beece*/\n  if ( (unsigned int)(v2 - 31000) > 8 ) /*0x1beeda*/\n    return 0; /*0x1beeda*/\n  v3 = funcs_1BEEEE[v2 - 31000]; /*0x1beedc*/\n  if ( !v3 ) /*0x1beee5*/\n    return 0; /*0x1beee7*/\n  v3((int)a1, a2); /*0x1beeee*/\n  return 1; /*0x1beef8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d6150",
+        "name": "funcs_1BEEEE"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bef00",
+    "addr": "0x001bef00",
+    "code": "int __cdecl sub_1BEF00(int a1, int a2)\n{\n  int result; // eax\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bef0a*/\n  if ( *(_DWORD *)(a1 + 4) == 32 && !*(_BYTE *)(a1 + 3) ) /*0x1bef16*/\n  {\n    result = 268509190; /*0x1bef24*/\n    if ( *(_DWORD *)(a1 + 24) == 268509190 ) /*0x1bef2c*/\n    {\n      result = (int)EvOpen(); /*0x1bef40*/\n      *(_DWORD *)(a2 + 28) = result; /*0x1bef45*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bef2e*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bef48*/\n    {\n      *(_BYTE *)(a2 + 3) = 1; /*0x1bef4e*/\n      *(_DWORD *)(a2 + 4) = 32; /*0x1bef52*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bef18*/\n  }\n  return result; /*0x1bef59*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b3680",
+        "name": "_EvOpen"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bef60",
+    "addr": "0x001bef60",
+    "code": "int __cdecl sub_1BEF60(int a1, int a2)\n{\n  int result; // eax\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bef6a*/\n  if ( *(_DWORD *)(a1 + 4) == 32 && !*(_BYTE *)(a1 + 3) ) /*0x1bef76*/\n  {\n    result = 268509190; /*0x1bef84*/\n    if ( *(_DWORD *)(a1 + 24) == 268509190 ) /*0x1bef8c*/\n    {\n      result = (int)EvClose(); /*0x1befa0*/\n      *(_DWORD *)(a2 + 28) = result; /*0x1befa5*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bef8e*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1befa8*/\n    {\n      *(_BYTE *)(a2 + 3) = 1; /*0x1befae*/\n      *(_DWORD *)(a2 + 4) = 32; /*0x1befb2*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bef78*/\n  }\n  return result; /*0x1befb9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b36b4",
+        "name": "_EvClose"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001befc0",
+    "addr": "0x001befc0",
+    "code": "int __cdecl sub_1BEFC0(int a1, int a2)\n{\n  int result; // eax\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1befca*/\n  if ( *(_DWORD *)(a1 + 4) == 48 && !*(_BYTE *)(a1 + 3) ) /*0x1befd6*/\n  {\n    result = 268509190; /*0x1befe4*/\n    if ( *(_DWORD *)(a1 + 24) == 268509190 /*0x1bf000*/\n      && (result = 268509190, *(_DWORD *)(a1 + 32) == 268509190)\n      && (result = 268509186, *(_DWORD *)(a1 + 40) == 268509186) )\n    {\n      result = (int)EvMapEventShmem(); /*0x1bf020*/\n      *(_DWORD *)(a2 + 28) = result; /*0x1bf025*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bf002*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bf028*/\n    {\n      *(_DWORD *)(a2 + 32) = 268509186; /*0x1bf034*/\n      *(_BYTE *)(a2 + 3) = 1; /*0x1bf037*/\n      *(_DWORD *)(a2 + 4) = 40; /*0x1bf03b*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1befd8*/\n  }\n  return result; /*0x1bf042*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b3720",
+        "name": "_EvMapEventShmem"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bf04c",
+    "addr": "0x001bf04c",
+    "code": "int __cdecl sub_1BF04C(int a1, int a2)\n{\n  int result; // eax\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bf056*/\n  if ( *(_DWORD *)(a1 + 4) == 168 && !*(_BYTE *)(a1 + 3) ) /*0x1bf065*/\n  {\n    result = 268509190; /*0x1bf070*/\n    if ( *(_DWORD *)(a1 + 24) == 268509190 /*0x1bf08c*/\n      && (result = 272631816, *(_DWORD *)(a1 + 32) == 272631816)\n      && (result = 272631816, *(_DWORD *)(a1 + 100) == 272631816) )\n    {\n      result = (int)EvFrameBufferDevicePort(); /*0x1bf0ac*/\n      *(_DWORD *)(a2 + 28) = result; /*0x1bf0b1*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bf08e*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bf0b4*/\n    {\n      *(_DWORD *)(a2 + 32) = 268509190; /*0x1bf0c0*/\n      *(_BYTE *)(a2 + 3) = 0; /*0x1bf0c3*/\n      *(_DWORD *)(a2 + 4) = 40; /*0x1bf0c7*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bf067*/\n  }\n  return result; /*0x1bf0ce*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b375c",
+        "name": "_EvFrameBufferDevicePort"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bf0d8",
+    "addr": "0x001bf0d8",
+    "code": "int __cdecl sub_1BF0D8(int a1, int a2)\n{\n  int result; // eax\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bf0e2*/\n  if ( *(_DWORD *)(a1 + 4) == 40 && !*(_BYTE *)(a1 + 3) ) /*0x1bf0ee*/\n  {\n    result = 268509186; /*0x1bf0fc*/\n    if ( *(_DWORD *)(a1 + 24) == 268509186 && (result = 268509190, *(_DWORD *)(a1 + 32) == 268509190) ) /*0x1bf10e*/\n    {\n      result = (int)EvSetSpecialKeyPort(); /*0x1bf128*/\n      *(_DWORD *)(a2 + 28) = result; /*0x1bf12d*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bf110*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bf130*/\n    {\n      *(_BYTE *)(a2 + 3) = 1; /*0x1bf136*/\n      *(_DWORD *)(a2 + 4) = 32; /*0x1bf13a*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bf0f0*/\n  }\n  return result; /*0x1bf141*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b36e8",
+        "name": "_EvSetSpecialKeyPort"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bf148",
+    "addr": "0x001bf148",
+    "code": "int __cdecl sub_1BF148(int a1, int a2)\n{\n  int result; // eax\n  int v3; // ecx\n  int v4; // [esp+8h] [ebp-4h] BYREF\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bf156*/\n  if ( *(_DWORD *)(a1 + 4) == 108 && result == 1 ) /*0x1bf163*/\n  {\n    result = 268509186; /*0x1bf174*/\n    if ( *(_DWORD *)(a1 + 24) == 268509186 /*0x1bf190*/\n      && (result = 272631816, *(_DWORD *)(a1 + 32) == 272631816)\n      && (result = 268509186, *(_DWORD *)(a1 + 100) == 268509186) )\n    {\n      v4 = 64; /*0x1bf19c*/\n      result = EvGetParameterInt( /*0x1bf1bb*/\n                 *(_DWORD *)(a1 + 12),\n                 *(_DWORD *)(a1 + 28),\n                 a1 + 36,\n                 *(_DWORD *)(a1 + 104),\n                 a2 + 36,\n                 &v4);\n      *(_DWORD *)(a2 + 28) = result; /*0x1bf1c0*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bf192*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bf1c3*/\n    {\n      *(_DWORD *)(a2 + 32) = 272637954; /*0x1bf1cf*/\n      v3 = v4; /*0x1bf1d2*/\n      *(_WORD *)(a2 + 34) = v4 & 0xFFF | *(_WORD *)(a2 + 34) & 0xF000; /*0x1bf1e5*/\n      result = 4 * v3 + 36; /*0x1bf1e9*/\n      *(_BYTE *)(a2 + 3) = 1; /*0x1bf1f0*/\n      *(_DWORD *)(a2 + 4) = result; /*0x1bf1f4*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bf165*/\n  }\n  return result; /*0x1bf1fa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b34c0",
+        "name": "_EvGetParameterInt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bf200",
+    "addr": "0x001bf200",
+    "code": "int __cdecl sub_1BF200(int a1, int a2)\n{\n  int result; // eax\n  int v3; // eax\n  int v4; // [esp+4h] [ebp-4h] BYREF\n\n  result = *(unsigned __int8 *)(a1 + 3); /*0x1bf20d*/\n  if ( *(_DWORD *)(a1 + 4) == 108 && result == 1 ) /*0x1bf21a*/\n  {\n    result = 268509186; /*0x1bf228*/\n    if ( *(_DWORD *)(a1 + 24) == 268509186 /*0x1bf244*/\n      && (result = 272631816, *(_DWORD *)(a1 + 32) == 272631816)\n      && (result = 268509186, *(_DWORD *)(a1 + 100) == 268509186) )\n    {\n      v4 = 4096; /*0x1bf250*/\n      result = EvGetParameterChar( /*0x1bf26f*/\n                 *(_DWORD *)(a1 + 12),\n                 *(_DWORD *)(a1 + 28),\n                 a1 + 36,\n                 *(_DWORD *)(a1 + 104),\n                 a2 + 44,\n                 &v4);\n      *(_DWORD *)(a2 + 28) = result; /*0x1bf274*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = -304; /*0x1bf246*/\n    }\n    if ( !*(_DWORD *)(a2 + 28) ) /*0x1bf277*/\n    {\n      *(_DWORD *)(a2 + 32) = 805306368; /*0x1bf283*/\n      *(_DWORD *)(a2 + 36) = 524296; /*0x1bf28c*/\n      *(_DWORD *)(a2 + 40) = 4096; /*0x1bf295*/\n      *(_DWORD *)(a2 + 40) = v4; /*0x1bf29b*/\n      v3 = v4 + 3; /*0x1bf2a1*/\n      LOBYTE(v3) = (v4 + 3) & 0xFC; /*0x1bf2a4*/\n      *(_BYTE *)(a2 + 3) = 1; /*0x1bf2a6*/\n      result = v3 + 44; /*0x1bf2aa*/\n      *(_DWORD *)(a2 + 4) = result; /*0x1bf2ad*/\n    }\n  }\n  else\n  {\n    *(_DWORD *)(a2 + 28) = -304; /*0x1bf21c*/\n  }\n  return result; /*0x1bf2b0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b3524",
+        "name": "_EvGetParameterChar"
+      }
+    ]
+  }
+]

@@ -1,0 +1,559 @@
+[
+  {
+    "requested_address": "0x0017ec74",
+    "addr": "0x0017ec74",
+    "code": "unsigned int __cdecl -[KernBusItem item](KernBusItem *self, SEL a2)\n{\n  return self->_item; /*0x17ec7f*/\n}"
+  },
+  {
+    "requested_address": "0x0017ec84",
+    "addr": "0x0017ec84",
+    "code": "KernBusRangeResource *__cdecl -[KernBusRangeResource initWithExtent:kind:owner:](\n        KernBusRangeResource *self,\n        SEL a2,\n        $85CD2974BE96D4886BB301820D1C36C2 a3,\n        id a4,\n        id a5)\n{\n  unsigned int v7; // [esp+Ch] [ebp-Ch]\n  objc_super v8; // [esp+10h] [ebp-8h] BYREF\n\n  v7 = a3.var1 + a3.var0; /*0x17ec99*/\n  v8.receiver = self; /*0x17eca3*/\n  v8.super_class = (Class)stru_1F9E84.super_class; /*0x17ecac*/\n  -[Object init](&v8, sel_init); /*0x17ecb3*/\n  if ( a3.var1 + a3.var0 && v7 <= a3.var0 ) /*0x17ecc4*/\n    return (KernBusRangeResource *)-[KernBusRangeResource free](self, sel_free); /*0x17ecdd*/\n  self->_owner = a5; /*0x17ece7*/\n  if ( a4 ) /*0x17ecee*/\n    self->_kind = a4; /*0x17ecf3*/\n  else\n    self->_kind = objc_msgSend(&aKernbusrange, sel_class); /*0x17ed0b*/\n  self->_rangeCount = 0; /*0x17ed0e*/\n  self->_ranges = nullptr; /*0x17ed15*/\n  self->_end = v7; /*0x17ed1f*/\n  self->_base = a3.var0; /*0x17ed22*/\n  return self; /*0x17ed2a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9e84",
+        "name": "stru_1F9E84"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x17ed34",
+        "name": "-[KernBusRangeResource free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1fe049",
+        "name": "aKernbusrange"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ed34",
+    "addr": "0x0017ed34",
+    "code": "id __cdecl -[KernBusRangeResource free](KernBusRangeResource *self, SEL a2)\n{\n  id result; // eax\n  objc_super v3; // [esp+0h] [ebp-8h] BYREF\n\n  result = self; /*0x17ed3a*/\n  if ( self->_rangeCount <= 0 ) /*0x17ed41*/\n  {\n    v3.receiver = self; /*0x17ed4a*/\n    v3.super_class = (Class)stru_1F9E84.super_class; /*0x17ed53*/\n    return -[Object free](&v3, sel_free); /*0x17ed5a*/\n  }\n  return result; /*0x17ed5f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9e84",
+        "name": "stru_1F9E84"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ed68",
+    "addr": "0x0017ed68",
+    "code": "id __cdecl -[KernBusRangeResource reserveRange:](\n        KernBusRangeResource *self,\n        SEL a2,\n        $85CD2974BE96D4886BB301820D1C36C2 a3)\n{\n  id result; // eax\n  unsigned int end; // edx\n  char *v6; // ebx\n  id v7; // eax\n  int rangeCount; // edx\n  id v9; // [esp+10h] [ebp-10h]\n  void **p_ranges; // [esp+14h] [ebp-Ch]\n  unsigned int v11; // [esp+18h] [ebp-8h]\n\n  v11 = a3.var1 + a3.var0; /*0x17ed7d*/\n  p_ranges = &self->_ranges; /*0x17ed83*/\n  result = nullptr; /*0x17ed86*/\n  if ( a3.var1 + a3.var0 && a3.var0 >= a3.var1 + a3.var0 ) /*0x17ed93*/\n    return nullptr; /*0x17eda3*/\n  if ( self->_base > a3.var0 ) /*0x17edab*/\n    return nullptr; /*0x17edab*/\n  end = self->_end; /*0x17edad*/\n  if ( end ) /*0x17edb2*/\n  {\n    if ( v11 > end ) /*0x17edb7*/\n      return nullptr; /*0x17edb9*/\n  }\n  while ( 1 ) /*0x17edc3*/\n  {\n    v6 = (char *)*p_ranges; /*0x17edc3*/\n    if ( !*p_ranges || *((_DWORD *)v6 + 3) >= v11 ) /*0x17edcf*/\n      break; /*0x17edcf*/\n    if ( *((_DWORD *)v6 + 4) > a3.var0 ) /*0x17ee3a*/\n      return result; /*0x17ee3a*/\n    p_ranges = (void **)(v6 + 4); /*0x17ee3f*/\n  }\n  v7 = objc_msgSend(self->_kind, sel_alloc); /*0x17edef*/\n  result = objc_msgSend(v7, sel_initForResource_range_shareable_); /*0x17edf8*/\n  if ( result ) /*0x17ee05*/\n  {\n    *((_DWORD *)result + 1) = v6; /*0x17ee07*/\n    *p_ranges = result; /*0x17ee0d*/\n    rangeCount = self->_rangeCount; /*0x17ee0f*/\n    self->_rangeCount = rangeCount + 1; /*0x17ee15*/\n    if ( !rangeCount ) /*0x17ee1a*/\n    {\n      v9 = result; /*0x17ee27*/\n      objc_msgSend(self->_owner, sel__resourceActive); /*0x17ee2a*/\n      return v9; /*0x17ee2f*/\n    }\n  }\n  return result; /*0x17ee4b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x201cc4",
+        "name": "sel_initForResource:range:shareable:",
+        "string": "initForResource:range:shareable:"
+      },
+      {
+        "addr": "0x201a50",
+        "name": "sel__resourceActive",
+        "string": "_resourceActive"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ee54",
+    "addr": "0x0017ee54",
+    "code": "id __cdecl -[KernBusRangeResource shareRange:](\n        KernBusRangeResource *self,\n        SEL a2,\n        $85CD2974BE96D4886BB301820D1C36C2 a3)\n{\n  id result; // eax\n  unsigned int end; // edx\n  void **v6; // ebx\n  unsigned int v7; // edx\n  id v8; // eax\n  int rangeCount; // edx\n  id v10; // [esp+10h] [ebp-Ch]\n  void **p_ranges; // [esp+14h] [ebp-8h]\n  unsigned int v12; // [esp+18h] [ebp-4h]\n\n  v12 = a3.var1 + a3.var0; /*0x17ee66*/\n  p_ranges = &self->_ranges; /*0x17ee6f*/\n  result = nullptr; /*0x17ee72*/\n  if ( a3.var1 + a3.var0 && a3.var0 >= a3.var1 + a3.var0 ) /*0x17ee7f*/\n    return nullptr; /*0x17ee8f*/\n  if ( self->_base > a3.var0 ) /*0x17ee9a*/\n    return nullptr; /*0x17ee9a*/\n  end = self->_end; /*0x17ee9c*/\n  if ( end ) /*0x17eea1*/\n  {\n    if ( v12 > end ) /*0x17eea6*/\n      return nullptr; /*0x17eea8*/\n  }\n  while ( 1 ) /*0x17eec7*/\n  {\n    v6 = (void **)*p_ranges; /*0x17eec7*/\n    if ( !*p_ranges ) /*0x17eec7*/\n      break; /*0x17eec7*/\n    v7 = (unsigned int)v6[3]; /*0x17eecd*/\n    if ( v12 <= v7 ) /*0x17eed3*/\n      break; /*0x17eed3*/\n    if ( a3.var0 >= v7 && (unsigned int)v6[4] >= v12 ) /*0x17ef4b*/\n      return objc_msgSend(v6, sel_share); /*0x17eebd*/\n    if ( (unsigned int)v6[4] > a3.var0 ) /*0x17ef57*/\n      return result; /*0x17ef57*/\n    p_ranges = v6 + 1; /*0x17ef5c*/\n  }\n  v8 = objc_msgSend(self->_kind, sel_alloc); /*0x17eef6*/\n  result = objc_msgSend(v8, sel_initForResource_range_shareable_); /*0x17eeff*/\n  if ( result ) /*0x17ef09*/\n  {\n    *((_DWORD *)result + 1) = v6; /*0x17ef0b*/\n    *p_ranges = result; /*0x17ef11*/\n    rangeCount = self->_rangeCount; /*0x17ef16*/\n    self->_rangeCount = rangeCount + 1; /*0x17ef1c*/\n    if ( !rangeCount ) /*0x17ef21*/\n    {\n      v10 = result; /*0x17ef31*/\n      objc_msgSend(self->_owner, sel__resourceActive); /*0x17ef34*/\n      return v10; /*0x17ef39*/\n    }\n  }\n  return result; /*0x17ef67*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201cb4",
+        "name": "sel_share",
+        "string": "share"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x201cc4",
+        "name": "sel_initForResource:range:shareable:",
+        "string": "initForResource:range:shareable:"
+      },
+      {
+        "addr": "0x201a50",
+        "name": "sel__resourceActive",
+        "string": "_resourceActive"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ef70",
+    "addr": "0x0017ef70",
+    "code": "$85CD2974BE96D4886BB301820D1C36C2 __cdecl -[KernBusRangeResource findFreeRangeWithSize:alignment:](\n        KernBusRangeResource *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4)\n{\n  unsigned int base; // eax\n  unsigned int v5; // esi\n  $85CD2974BE96D4886BB301820D1C36C2 v6; // rcx\n  char *v7; // edx\n  void **p_ranges; // [esp+14h] [ebp-4h]\n\n  p_ranges = &self->_ranges; /*0x17ef7f*/\n  base = self->_base; /*0x17ef82*/\n  v5 = a3 + base; /*0x17ef87*/\n  v6 = 0; /*0x17ef8c*/\n  if ( base < self->_end ) /*0x17ef93*/\n  {\n    while ( 1 ) /*0x17efa3*/\n    {\n      v7 = (char *)*p_ranges; /*0x17efa3*/\n      if ( !*p_ranges || *((_DWORD *)v7 + 3) >= v5 ) /*0x17efac*/\n        break; /*0x17efac*/\n      if ( *((_DWORD *)v7 + 4) > base ) /*0x17efbb*/\n      {\nLABEL_7:\n        if ( v6.var1 ) /*0x17efca*/\n          return v6; /*0x17efca*/\n        base += a4; /*0x17efcc*/\n        v5 += a4; /*0x17efcf*/\n        if ( self->_end <= base ) /*0x17efd5*/\n          return v6; /*0x17efd5*/\n      }\n      else\n      {\n        p_ranges = (void **)(v7 + 4); /*0x17efc0*/\n      }\n    }\n    v6.var0 = base; /*0x17efae*/\n    v6.var1 = v5 - base; /*0x17efb0*/\n    goto LABEL_7; /*0x17efb3*/\n  }\n  return v6; /*0x17efde*/\n}"
+  },
+  {
+    "requested_address": "0x0017efe8",
+    "addr": "0x0017efe8",
+    "code": "id __cdecl -[KernBusRangeResource _destroyRange:](KernBusRangeResource *self, SEL a2, id a3)\n{\n  void **p_ranges; // edi\n  void **ranges; // ebx\n  int rangeCount; // eax\n\n  p_ranges = &self->_ranges; /*0x17eff1*/\n  if ( !(unsigned __int8)objc_msgSend(a3, sel_isKindOf_, self->_kind) ) /*0x17f003*/\n    return nullptr; /*0x17f00f*/\n  ranges = (void **)self->_ranges; /*0x17f014*/\n  if ( !ranges ) /*0x17f019*/\n    return nullptr; /*0x17f062*/\n  while ( a3 != ranges ) /*0x17f01f*/\n  {\n    p_ranges = ranges + 1; /*0x17f058*/\n    ranges = (void **)ranges[1]; /*0x17f05b*/\n    if ( !ranges ) /*0x17f060*/\n      return nullptr; /*0x17f060*/\n  }\n  *p_ranges = ranges[1]; /*0x17f024*/\n  rangeCount = self->_rangeCount; /*0x17f026*/\n  self->_rangeCount = rangeCount - 1; /*0x17f02c*/\n  if ( rangeCount == 1 ) /*0x17f032*/\n    objc_msgSend(self->_owner, sel__resourceInactive); /*0x17f03f*/\n  return objc_msgSend(ranges, sel_dealloc); /*0x17f067*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201e50",
+        "name": "sel_isKindOf:",
+        "string": "isKindOf:"
+      },
+      {
+        "addr": "0x201a3c",
+        "name": "sel__resourceInactive",
+        "string": "_resourceInactive"
+      },
+      {
+        "addr": "0x201cbc",
+        "name": "sel_dealloc",
+        "string": "dealloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f070",
+    "addr": "0x0017f070",
+    "code": "id __cdecl -[KernBusRange initForResource:range:shareable:](\n        KernBusRange *self,\n        SEL a2,\n        id a3,\n        $85CD2974BE96D4886BB301820D1C36C2 a4,\n        char a5)\n{\n  objc_super v6; // [esp+10h] [ebp-8h] BYREF\n\n  v6.receiver = self; /*0x17f095*/\n  v6.super_class = (Class)stru_1F9E34.ext; /*0x17f09e*/\n  if ( !a3 ) /*0x17f08c*/\n    return -[Object free](&v6, sel_free); /*0x17f0a5*/\n  -[Object init](&v6, sel_init); /*0x17f0c3*/\n  self->_resource = a3; /*0x17f0cb*/\n  self->_base = a4.var0; /*0x17f0ce*/\n  self->_end = a4.var1 + a4.var0; /*0x17f0d5*/\n  self->_useCount = 1; /*0x17f0d8*/\n  self->_shareable = a5; /*0x17f0e2*/\n  self->_mappingCount = 0; /*0x17f0e5*/\n  return self; /*0x17f0f1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9e34",
+        "name": "stru_1F9E34"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f0f8",
+    "addr": "0x0017f0f8",
+    "code": "KernBusRange *__cdecl -[KernBusRange init](KernBusRange *self, SEL a2)\n{\n  objc_super v3; // [esp+0h] [ebp-8h] BYREF\n\n  v3.receiver = self; /*0x17f108*/\n  v3.super_class = (Class)stru_1F9E34.ext; /*0x17f111*/\n  return (KernBusRange *)-[Object free](&v3, sel_free); /*0x17f11d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9e34",
+        "name": "stru_1F9E34"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f124",
+    "addr": "0x0017f124",
+    "code": "id __cdecl -[KernBusRange free](KernBusRange *self, SEL a2)\n{\n  int v3; // ecx\n\n  if ( self->_mappingCount > 0 ) /*0x17f12e*/\n    return self; /*0x17f130*/\n  v3 = self->_useCount - 1; /*0x17f13b*/\n  self->_useCount = v3; /*0x17f13e*/\n  if ( v3 > 0 ) /*0x17f144*/\n    return nullptr; /*0x17f15c*/\n  else\n    return objc_msgSend(self->_resource, sel__destroyRange_, self); /*0x17f152*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201ce8",
+        "name": "sel__destroyRange:",
+        "string": "_destroyRange:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f164",
+    "addr": "0x0017f164",
+    "code": "id __cdecl -[KernBusRange dealloc](KernBusRange *self, SEL a2)\n{\n  id result; // eax\n  objc_super v3; // [esp+0h] [ebp-8h] BYREF\n\n  result = self; /*0x17f16a*/\n  if ( self->_useCount <= 0 ) /*0x17f171*/\n  {\n    v3.receiver = self; /*0x17f17a*/\n    v3.super_class = (Class)stru_1F9E34.ext; /*0x17f183*/\n    return -[Object free](&v3, sel_free); /*0x17f18a*/\n  }\n  return result; /*0x17f18f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9e34",
+        "name": "stru_1F9E34"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f198",
+    "addr": "0x0017f198",
+    "code": "id __cdecl -[KernBusRange share](KernBusRange *self, SEL a2)\n{\n  id result; // eax\n\n  result = self; /*0x17f19b*/\n  if ( !self->_shareable ) /*0x17f19e*/\n    return nullptr; /*0x17f1ac*/\n  ++self->_useCount; /*0x17f1a4*/\n  return result; /*0x17f1a9*/\n}"
+  },
+  {
+    "requested_address": "0x0017f1b4",
+    "addr": "0x0017f1b4",
+    "code": "$85CD2974BE96D4886BB301820D1C36C2 __cdecl -[KernBusRange range](KernBusRange *self, SEL a2)\n{\n  $85CD2974BE96D4886BB301820D1C36C2 result; // rax\n\n  result.var0 = self->_base; /*0x17f1c6*/\n  result.var1 = self->_end - result.var0; /*0x17f1c8*/\n  return result; /*0x17f1cd*/\n}"
+  },
+  {
+    "requested_address": "0x0017f1d4",
+    "addr": "0x0017f1d4",
+    "code": "id __cdecl -[KernBusRange _addMapping](KernBusRange *self, SEL a2)\n{\n  ++self->_mappingCount; /*0x17f1da*/\n  return self; /*0x17f1df*/\n}"
+  },
+  {
+    "requested_address": "0x0017f1e4",
+    "addr": "0x0017f1e4",
+    "code": "id __cdecl -[KernBusRange _destroyMapping:](KernBusRange *self, SEL a2, id a3)\n{\n  --self->_mappingCount; /*0x17f1ea*/\n  return objc_msgSend(a3, sel_free); /*0x17f1ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f204",
+    "addr": "0x0017f204",
+    "code": "KernBusRangeMapping *__cdecl -[KernBusRangeMapping initWithRange:subRange:](\n        KernBusRangeMapping *self,\n        SEL a2,\n        id a3,\n        $85CD2974BE96D4886BB301820D1C36C2 a4)\n{\n  char *v6; // eax\n  int v7; // edx\n  char *v8; // edx\n  unsigned int v9; // eax\n  int v10; // [esp+14h] [ebp-Ch]\n  objc_super v11; // [esp+18h] [ebp-8h] BYREF\n\n  if ( !a3 ) /*0x17f217*/\n    return (KernBusRangeMapping *)-[KernBusRangeMapping free](self, sel_free); /*0x17f224*/\n  v11.receiver = self; /*0x17f23a*/\n  v11.super_class = (Class)stru_1F9E34.super_class; /*0x17f243*/\n  -[Object init](&v11, sel_init); /*0x17f24a*/\n  if ( a4.var1 + a4.var0 && a4.var1 + a4.var0 <= a4.var0 ) /*0x17f25b*/\n    return (KernBusRangeMapping *)-[KernBusRangeMapping free](self, sel_free); /*0x17f26b*/\n  v6 = (char *)objc_msgSend(a3, sel_range); /*0x17f28b*/\n  v10 = v7; /*0x17f293*/\n  v8 = v6; /*0x17f296*/\n  v9 = (unsigned int)&v6[v10]; /*0x17f29c*/\n  if ( &v8[a4.var0] < v8 || v9 && (unsigned int)&v8[a4.var0 + a4.var1] > v9 ) /*0x17f2b7*/\n    return (KernBusRangeMapping *)-[KernBusRangeMapping free](self, sel_free); /*0x17f278*/\n  self->_range = a3; /*0x17f2d2*/\n  self->_mappedRange.base = (unsigned int)&v8[a4.var0]; /*0x17f2d8*/\n  self->_mappedRange.length = a4.var1; /*0x17f2db*/\n  objc_msgSend(a3, sel__addMapping); /*0x17f2e9*/\n  return self; /*0x17f2f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x17f2fc",
+        "name": "-[KernBusRangeMapping free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1f9e34",
+        "name": "stru_1F9E34"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201cac",
+        "name": "sel_range",
+        "string": "range"
+      },
+      {
+        "addr": "0x201c54",
+        "name": "sel__addMapping",
+        "string": "_addMapping"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f2fc",
+    "addr": "0x0017f2fc",
+    "code": "id __cdecl -[KernBusRangeMapping free](KernBusRangeMapping *self, SEL a2)\n{\n  id range; // edx\n  objc_super v4; // [esp+0h] [ebp-8h] BYREF\n\n  range = self->_range; /*0x17f305*/\n  if ( range ) /*0x17f30a*/\n  {\n    self->_range = nullptr; /*0x17f32c*/\n    return objc_msgSend(range, sel__destroyMapping_, self); /*0x17f33c*/\n  }\n  else\n  {\n    v4.receiver = self; /*0x17f313*/\n    v4.super_class = (Class)stru_1F9E34.super_class; /*0x17f31c*/\n    return -[Object free](&v4, sel_free); /*0x17f323*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201c40",
+        "name": "sel__destroyMapping:",
+        "string": "_destroyMapping:"
+      },
+      {
+        "addr": "0x1f9e34",
+        "name": "stru_1F9E34"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f348",
+    "addr": "0x0017f348",
+    "code": "$85CD2974BE96D4886BB301820D1C36C2 __cdecl -[KernBusRangeMapping mappedRange](KernBusRangeMapping *self, SEL a2)\n{\n  return ($85CD2974BE96D4886BB301820D1C36C2)self->_mappedRange; /*0x17f356*/\n}"
+  },
+  {
+    "requested_address": "0x0017f358",
+    "addr": "0x0017f358",
+    "code": "id __cdecl +[KernBus initialize](id a1, SEL a2)\n{\n  HashTable *v2; // eax\n  HashTable *v3; // eax\n\n  if ( !dword_1E731C ) /*0x17f362*/\n  {\n    v2 = +[Object alloc](aHashtable, sel_alloc); /*0x17f37e*/\n    dword_1E731C = -[HashTable initKeyDesc:](v2, sel_initKeyDesc_); /*0x17f38c*/\n  }\n  if ( !dword_1E7320 ) /*0x17f39b*/\n  {\n    v3 = +[Object alloc](aHashtable, sel_alloc); /*0x17f3b7*/\n    dword_1E7320 = -[HashTable initKeyDesc:](v3, sel_initKeyDesc_); /*0x17f3c5*/\n  }\n  return a1; /*0x17f3cf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe0c9",
+        "name": "aHashtable",
+        "string": "HashTable"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1e731c",
+        "name": "dword_1E731C"
+      },
+      {
+        "addr": "0x1c8b4c",
+        "name": "-[HashTable initKeyDesc:]"
+      },
+      {
+        "addr": "0x201e5c",
+        "name": "sel_initKeyDesc:",
+        "string": "initKeyDesc:"
+      },
+      {
+        "addr": "0x1e7320",
+        "name": "dword_1E7320"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f3d4",
+    "addr": "0x0017f3d4",
+    "code": "id __cdecl +[KernBus registerBusClass:name:](id a1, SEL a2, id a3, char *a4)\n{\n  objc_msgSend(dword_1E731C, sel_insertKey_value_, a4, a3); /*0x17f3ee*/\n  return a3; /*0x17f3f5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e731c",
+        "name": "dword_1E731C"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f3fc",
+    "addr": "0x0017f3fc",
+    "code": "id __cdecl +[KernBus registerBusInstance:name:busId:](id a1, SEL a2, id a3, char *a4, int a5)\n{\n  id v5; // ebx\n  HashTable *v6; // eax\n\n  v5 = objc_msgSend(dword_1E7320, sel_valueForKey_, a4); /*0x17f41c*/\n  if ( !v5 ) /*0x17f423*/\n  {\n    v6 = +[Object alloc](aHashtable, sel_alloc); /*0x17f43f*/\n    v5 = -[HashTable initKeyDesc:](v6, sel_initKeyDesc_); /*0x17f44d*/\n    objc_msgSend(dword_1E7320, sel_insertKey_value_, a4, v5); /*0x17f45f*/\n  }\n  objc_msgSend(v5, sel_insertKey_value_, a5, a3); /*0x17f474*/\n  return a3; /*0x17f47e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e7320",
+        "name": "dword_1E7320"
+      },
+      {
+        "addr": "0x201e80",
+        "name": "sel_valueForKey:",
+        "string": "valueForKey:"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe0c9",
+        "name": "aHashtable",
+        "string": "HashTable"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c8b4c",
+        "name": "-[HashTable initKeyDesc:]"
+      },
+      {
+        "addr": "0x201e5c",
+        "name": "sel_initKeyDesc:",
+        "string": "initKeyDesc:"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f488",
+    "addr": "0x0017f488",
+    "code": "id __cdecl +[KernBus lookupBusClassWithName:](id a1, SEL a2, char *a3)\n{\n  return objc_msgSend(dword_1E731C, sel_valueForKey_, a3); /*0x17f4a4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e731c",
+        "name": "dword_1E731C"
+      },
+      {
+        "addr": "0x201e80",
+        "name": "sel_valueForKey:",
+        "string": "valueForKey:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f4a8",
+    "addr": "0x0017f4a8",
+    "code": "id __cdecl +[KernBus lookupBusInstanceWithName:busId:](id a1, SEL a2, char *a3, int a4)\n{\n  void *v4; // ebx\n  id v5; // eax\n\n  v4 = nullptr; /*0x17f4ac*/\n  v5 = objc_msgSend(dword_1E7320, sel_valueForKey_, a3); /*0x17f4c0*/\n  if ( v5 ) /*0x17f4ca*/\n    return objc_msgSend(v5, sel_valueForKey_, a4); /*0x17f4dd*/\n  return v4; /*0x17f4e1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e7320",
+        "name": "dword_1E7320"
+      },
+      {
+        "addr": "0x201e80",
+        "name": "sel_valueForKey:",
+        "string": "valueForKey:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f4e8",
+    "addr": "0x0017f4e8",
+    "code": "KernBus *__cdecl -[KernBus init](KernBus *self, SEL a2)\n{\n  HashTable *v2; // eax\n  objc_super v4; // [esp+4h] [ebp-8h] BYREF\n\n  v4.receiver = self; /*0x17f4f9*/\n  v4.super_class = (Class)stru_1F9DE4.ext; /*0x17f502*/\n  -[Object init](&v4, sel_init); /*0x17f509*/\n  if ( !self->_resources ) /*0x17f511*/\n  {\n    v2 = +[Object alloc](aHashtable, sel_alloc); /*0x17f531*/\n    self->_resources = -[HashTable initKeyDesc:](v2, sel_initKeyDesc_); /*0x17f53f*/\n  }\n  return self; /*0x17f544*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9de4",
+        "name": "stru_1F9DE4"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe0c9",
+        "name": "aHashtable",
+        "string": "HashTable"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c8b4c",
+        "name": "-[HashTable initKeyDesc:]"
+      },
+      {
+        "addr": "0x201e5c",
+        "name": "sel_initKeyDesc:",
+        "string": "initKeyDesc:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017f54c",
+    "addr": "0x0017f54c",
+    "code": "id __cdecl -[KernBus free](KernBus *self, SEL a2)\n{\n  id result; // eax\n  objc_super v3; // [esp+0h] [ebp-8h] BYREF\n\n  result = self; /*0x17f552*/\n  if ( self->_activeResourceCount <= 0 ) /*0x17f559*/\n  {\n    v3.receiver = self; /*0x17f562*/\n    v3.super_class = (Class)stru_1F9DE4.ext; /*0x17f56b*/\n    return -[Object free](&v3, sel_free); /*0x17f572*/\n  }\n  return result; /*0x17f577*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9de4",
+        "name": "stru_1F9DE4"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  }
+]

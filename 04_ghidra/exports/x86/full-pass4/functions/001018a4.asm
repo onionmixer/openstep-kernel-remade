@@ -1,0 +1,2 @@
+0x001018a4	3	MOV byte ptr [EDX + 0xc],CL
+0x001018a7	2	JMP 0x0010184f

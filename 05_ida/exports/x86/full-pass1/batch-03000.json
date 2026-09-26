@@ -1,0 +1,591 @@
+[
+  {
+    "requested_address": "0x0018d208",
+    "addr": "0x0018d208",
+    "code": "_DWORD *__cdecl stack_attach(int a1, int a2, int a3)\n{\n  _DWORD *result; // eax\n\n  *(_DWORD *)(a1 + 44) = a2; /*0x18d214*/\n  result = **(_DWORD ***)(a1 + 40); /*0x18d21a*/\n  result[15] = a2 + 4084; /*0x18d222*/\n  result[14] = a2 + 4084; /*0x18d225*/\n  result[8] = _stack_attach; /*0x18d228*/\n  result[13] = a3; /*0x18d22f*/\n  return result; /*0x18d234*/\n}",
+    "refs": [
+      {
+        "addr": "0x186f74",
+        "name": "__stack_attach"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d238",
+    "addr": "0x0018d238",
+    "code": "int __cdecl stack_detach(int a1)\n{\n  int v1; // edx\n\n  v1 = *(_DWORD *)(a1 + 44); /*0x18d23e*/\n  *(_DWORD *)(a1 + 44) = 0; /*0x18d241*/\n  return v1; /*0x18d24c*/\n}"
+  },
+  {
+    "requested_address": "0x0018d250",
+    "addr": "0x0018d250",
+    "code": "unsigned __int32 __cdecl stack_handoff(_DWORD *a1, _DWORD *a2)\n{\n  _DWORD *v2; // edi\n  _DWORD *v3; // esi\n  int v4; // edx\n  _DWORD *v5; // eax\n  int v6; // eax\n  unsigned __int32 v7; // eax\n  int v8; // ebx\n  _BYTE *v9; // edx\n  int v10; // ecx\n  _BYTE *v11; // edx\n  int v12; // eax\n  int v13; // ebx\n  unsigned __int32 result; // eax\n\n  v2 = (_DWORD *)a2[10]; /*0x18d25c*/\n  v3 = (_DWORD *)a1[10]; /*0x18d25f*/\n  v4 = a1[11]; /*0x18d262*/\n  a1[11] = 0; /*0x18d265*/\n  a2[11] = v4; /*0x18d26c*/\n  v5 = *(_DWORD **)a2[10]; /*0x18d272*/\n  v4 += 4084; /*0x18d274*/\n  v5[15] = v4; /*0x18d27a*/\n  v5[14] = v4; /*0x18d27d*/\n  v5[8] = _stack_attach; /*0x18d280*/\n  v5[13] = 0; /*0x18d287*/\n  v6 = a1[3]; /*0x18d28e*/\n  if ( a2[3] != v6 ) /*0x18d294*/\n  {\n    *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(v6 + 12) + 36) + 24) = 0; /*0x18d29c*/\n    *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a2[3] + 12) + 36) + 24) = 1; /*0x18d2ac*/\n  }\n  active_threads = (thread_act_t)a2; /*0x18d2b3*/\n  v7 = *(_DWORD *)(*v2 + 28); /*0x18d2bd*/\n  if ( *(_DWORD *)(*v3 + 28) != v7 ) /*0x18d2c3*/\n    __writecr3(v7); /*0x18d2c5*/\n  v8 = v2[29]; /*0x18d2c8*/\n  if ( v3[29] != v8 || v2[30] != v3[30] ) /*0x18d2d6*/\n  {\n    v9 = gdt; /*0x18d2d8*/\n    v10 = v2[30] - 1; /*0x18d2e1*/\n    *((_WORD *)gdt + 17) = v8; /*0x18d2e2*/\n    v9[36] = BYTE2(v8); /*0x18d2eb*/\n    v9[39] = HIBYTE(v8); /*0x18d2f3*/\n    v9[37] = v9[37] & 0x60 | 0x82; /*0x18d2fd*/\n    v9[38] &= ~0x80u; /*0x18d300*/\n    *((_WORD *)v9 + 16) = v10; /*0x18d304*/\n    v9[38] = BYTE2(v10) & 0xF | v9[38] & 0xF0; /*0x18d315*/\n    __asm { lldt ds:word_1D14EA } /*0x18d318*/\n  }\n  v11 = gdt; /*0x18d31f*/\n  v12 = *v2 - 0x40000000; /*0x18d327*/\n  v13 = v2[1] - 1; /*0x18d32f*/\n  *((_WORD *)gdt + 13) = *(_WORD *)v2; /*0x18d330*/\n  v11[28] = BYTE2(v12); /*0x18d339*/\n  v11[31] = HIBYTE(v12); /*0x18d33f*/\n  v11[29] = -119; /*0x18d342*/\n  v11[30] &= ~0x80u; /*0x18d346*/\n  *((_WORD *)v11 + 12) = v13; /*0x18d34a*/\n  v11[30] = BYTE2(v13) & 0xF | v11[30] & 0xF0; /*0x18d35d*/\n  __asm { ltr word ptr ds:unk_1D14E8 } /*0x18d360*/\n  result = __readcr0(); /*0x18d367*/\n  LOBYTE(result) = result | 8; /*0x18d36a*/\n  __writecr0(result); /*0x18d36c*/\n  return result; /*0x18d372*/\n}",
+    "refs": [
+      {
+        "addr": "0x186f74",
+        "name": "__stack_attach"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d37c",
+    "addr": "0x0018d37c",
+    "code": "void __cdecl switch_context(_DWORD *a1, int a2, _DWORD *a3)\n{\n  int v3; // eax\n  unsigned __int32 v4; // eax\n  int v5; // ebx\n  _BYTE *v6; // edx\n  int v7; // ecx\n  _BYTE *v8; // edx\n  int v9; // eax\n  unsigned int v10; // ebx\n  int v11; // ebx\n  unsigned __int32 v12; // eax\n  int *v13; // [esp+Ch] [ebp-8h]\n  int *v14; // [esp+10h] [ebp-4h]\n  int savedregs; // [esp+14h] [ebp+0h] BYREF\n\n  v13 = (int *)a3[10]; /*0x18d38b*/\n  v14 = (int *)a1[10]; /*0x18d394*/\n  v3 = a1[3]; /*0x18d39a*/\n  if ( a3[3] != v3 ) /*0x18d3a0*/\n  {\n    *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(v3 + 12) + 36) + 24) = 0; /*0x18d3a8*/\n    *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a3[3] + 12) + 36) + 24) = 1; /*0x18d3b8*/\n  }\n  active_threads = (thread_act_t)a3; /*0x18d3bf*/\n  active_stacks[0] = a3[11]; /*0x18d3c8*/\n  stack_pointers = a3[11] + 4084; /*0x18d3d7*/\n  v4 = *(_DWORD *)(*v13 + 28); /*0x18d3e7*/\n  if ( *(_DWORD *)(*v14 + 28) != v4 ) /*0x18d3ed*/\n    __writecr3(v4); /*0x18d3ef*/\n  v5 = v13[29]; /*0x18d3f5*/\n  if ( v14[29] != v5 || v13[30] != v14[30] ) /*0x18d406*/\n  {\n    v6 = gdt; /*0x18d408*/\n    v7 = v13[30] - 1; /*0x18d414*/\n    *((_WORD *)gdt + 17) = v5; /*0x18d415*/\n    v6[36] = BYTE2(v5); /*0x18d41e*/\n    v6[39] = HIBYTE(v5); /*0x18d426*/\n    v6[37] = v6[37] & 0x60 | 0x82; /*0x18d430*/\n    v6[38] &= ~0x80u; /*0x18d433*/\n    *((_WORD *)v6 + 16) = v7; /*0x18d437*/\n    v6[38] = BYTE2(v7) & 0xF | v6[38] & 0xF0; /*0x18d448*/\n    __asm { lldt ds:word_1D14EA } /*0x18d44b*/\n  }\n  v8 = gdt; /*0x18d452*/\n  v9 = *v13 - 0x40000000; /*0x18d45d*/\n  v10 = v13[1] - 1; /*0x18d465*/\n  *((_WORD *)gdt + 13) = *(_WORD *)v13; /*0x18d466*/\n  v8[28] = BYTE2(v9); /*0x18d46f*/\n  v8[31] = HIBYTE(v9); /*0x18d475*/\n  v8[29] = -119; /*0x18d478*/\n  v8[30] &= ~0x80u; /*0x18d47c*/\n  *((_WORD *)v8 + 12) = v10; /*0x18d480*/\n  v11 = HIWORD(v10); /*0x18d484*/\n  v8[30] = v11 & 0xF | v8[30] & 0xF0; /*0x18d493*/\n  __asm { ltr word ptr ds:unk_1D14E8 } /*0x18d496*/\n  v12 = __readcr0(); /*0x18d49d*/\n  LOBYTE(v12) = v12 | 8; /*0x18d4a0*/\n  __writecr0(v12); /*0x18d4a2*/\n  a1[13] = a2; /*0x18d4ab*/\n  if ( a2 ) /*0x18d4b0*/\n    _switch_tss(v11, (int)&savedregs, a2, *v13, 0, *v13, (int)a1); /*0x18d4bb*/\n  else\n    _switch_tss(v11, (int)&savedregs, *v14, *v13, *v14, *v13, (int)a1); /*0x18d4d0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1f6354",
+        "name": "_active_stacks"
+      },
+      {
+        "addr": "0x1f74d8",
+        "name": "_stack_pointers"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x186f20",
+        "name": "__switch_tss"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d4e0",
+    "addr": "0x0018d4e0",
+    "code": "int __cdecl call_continuation(int (*a1)(void))\n{\n  return _call_with_stack(a1, stack_pointers); /*0x18d4f5*/\n}",
+    "refs": [
+      {
+        "addr": "0x186f7c",
+        "name": "__call_with_stack"
+      },
+      {
+        "addr": "0x1f74d8",
+        "name": "_stack_pointers"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d4f8",
+    "addr": "0x0018d4f8",
+    "code": "int pcb_module_init()\n{\n  int result; // eax\n\n  result = zinit(244, 124928, 0x3D00u, 0, (int)&unk_1E2478); /*0x18d511*/\n  pcb_zone = result; /*0x18d516*/\n  return result; /*0x18d51d*/\n}",
+    "refs": [
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1e2478",
+        "name": "unk_1E2478"
+      },
+      {
+        "addr": "0x1f7a50",
+        "name": "_pcb_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d520",
+    "addr": "0x0018d520",
+    "code": "int __cdecl pcb_init(int a1)\n{\n  _DWORD *v1; // edx\n  int result; // eax\n\n  v1 = (_DWORD *)zalloc(pcb_zone); /*0x18d535*/\n  *(_DWORD *)(a1 + 40) = v1; /*0x18d537*/\n  qmemcpy(v1, &unk_1D14EC, 0xF4u); /*0x18d547*/\n  *v1 = v1 + 2; /*0x18d54c*/\n  v1[1] = 104; /*0x18d54e*/\n  result = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 12) + 12) + 36) + 4); /*0x18d55e*/\n  v1[9] = result; /*0x18d561*/\n  v1[29] = (char *)ldt - 0x40000000; /*0x18d570*/\n  v1[30] = 24; /*0x18d573*/\n  *((_WORD *)v1 + 52) = 32; /*0x18d57a*/\n  *((_WORD *)v1 + 8) = 16; /*0x18d580*/\n  v1[11] = 512; /*0x18d586*/\n  *((_WORD *)v1 + 44) = 16; /*0x18d58d*/\n  *((_WORD *)v1 + 42) = 8; /*0x18d593*/\n  *((_WORD *)v1 + 46) = 16; /*0x18d599*/\n  *((_WORD *)v1 + 40) = 16; /*0x18d59f*/\n  *((_WORD *)v1 + 48) = 80; /*0x18d5a5*/\n  *((_WORD *)v1 + 50) = 0; /*0x18d5ab*/\n  *((_WORD *)v1 + 55) = 104; /*0x18d5b1*/\n  return result; /*0x18d5ba*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f7a50",
+        "name": "_pcb_zone"
+      },
+      {
+        "addr": "0x1d14ec",
+        "name": "unk_1D14EC"
+      },
+      {
+        "addr": "0x1e2278",
+        "name": "_ldt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d5c4",
+    "addr": "0x0018d5c4",
+    "code": "int __cdecl pcb_common_init(int a1)\n{\n  _DWORD *v1; // esi\n  int result; // eax\n\n  v1 = (_DWORD *)kalloc(0x1Cu); /*0x18d5d3*/\n  LOBYTE(result) = lock_init(v1 + 4, 1); /*0x18d5db*/\n  *v1 = (char *)ldt - 0x40000000; /*0x18d5ec*/\n  v1[1] = 24; /*0x18d5ee*/\n  v1[2] = 0; /*0x18d5f5*/\n  v1[3] = 0; /*0x18d5fc*/\n  *(_DWORD *)(a1 + 64) = v1; /*0x18d603*/\n  return result; /*0x18d609*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      },
+      {
+        "addr": "0x1e2278",
+        "name": "_ldt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d610",
+    "addr": "0x0018d610",
+    "code": "void __cdecl sub_18D610(int a1)\n{\n  int v1; // ebx\n  int i; // esi\n  size_t v3; // esi\n  int v4; // edi\n  void *v5; // eax\n  int v6; // edx\n  unsigned int v7; // ecx\n  _BYTE *v8; // eax\n  _DWORD *v9; // edx\n  int v10; // ecx\n  int v11; // ebx\n  size_t v12; // [esp+10h] [ebp-1Ch]\n  void *__src; // [esp+1Ch] [ebp-10h]\n  int v14; // [esp+20h] [ebp-Ch]\n  int v15; // [esp+24h] [ebp-8h]\n  int *v16; // [esp+28h] [ebp-4h]\n\n  v14 = *(_DWORD *)(a1 + 64); /*0x18d61f*/\n  v16 = (int *)(a1 + 28); /*0x18d628*/\n  v1 = 0; /*0x18d62b*/\n  do /*0x18d648*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x18d633*/\n      ; /*0x18d635*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18d648*/\n  for ( i = *v16; ; i = *(_DWORD *)(v15 + 16) ) /*0x18d64d*/\n  {\n    v15 = i; /*0x18d7ac*/\n    if ( v16 == (int *)i ) /*0x18d7b2*/\n      break; /*0x18d7b2*/\n    thread_reference(i); /*0x18d658*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18d665*/\n    if ( v1 ) /*0x18d669*/\n      thread_deallocate(v1); /*0x18d66c*/\n    __src = *(void **)(v14 + 8); /*0x18d67a*/\n    v3 = *(_DWORD *)(v14 + 12); /*0x18d680*/\n    v4 = *(_DWORD *)(v15 + 40); /*0x18d689*/\n    if ( *(_DWORD *)(v4 + 4) < v3 + 105 ) /*0x18d697*/\n    {\n      v12 = v3 + 105; /*0x18d69d*/\n      v5 = (void *)kalloc(v3 + 105); /*0x18d6a1*/\n      qmemcpy(v5, *(const void **)v4, 0x68u); /*0x18d6b7*/\n      if ( (*(_BYTE *)(v4 + 240) & 4) != 0 ) /*0x18d6c6*/\n      {\n        v6 = *(_DWORD *)(v4 + 8); /*0x18d6c8*/\n        v7 = *(_DWORD *)(v4 + 12); /*0x18d6cb*/\n        *(_DWORD *)(v4 + 8) = v5; /*0x18d6d1*/\n        *(_DWORD *)(v4 + 12) = v12; /*0x18d6d7*/\n        *(_DWORD *)v4 = v5; /*0x18d6da*/\n        *(_DWORD *)(v4 + 4) = v12; /*0x18d6df*/\n        *(_BYTE *)(v4 + 240) |= 4u; /*0x18d6e2*/\n        kfree(v6, v7); /*0x18d6eb*/\n      }\n      else\n      {\n        *(_DWORD *)(v4 + 8) = v5; /*0x18d6fe*/\n        *(_DWORD *)(v4 + 12) = v12; /*0x18d704*/\n        *(_DWORD *)v4 = v5; /*0x18d707*/\n        *(_DWORD *)(v4 + 4) = v12; /*0x18d70c*/\n        *(_BYTE *)(v4 + 240) |= 4u; /*0x18d70f*/\n      }\n      if ( active_threads == v15 ) /*0x18d71f*/\n      {\n        v8 = gdt; /*0x18d721*/\n        v9 = *(_DWORD **)(v15 + 40); /*0x18d726*/\n        v10 = *v9 - 0x40000000; /*0x18d72b*/\n        v11 = v9[1] - 1; /*0x18d734*/\n        *((_WORD *)gdt + 13) = *(_WORD *)v9; /*0x18d735*/\n        v8[28] = BYTE2(v10); /*0x18d73e*/\n        v8[31] = HIBYTE(v10); /*0x18d744*/\n        v8[29] = -119; /*0x18d747*/\n        v8[30] &= ~0x80u; /*0x18d74b*/\n        *((_WORD *)v8 + 12) = v11; /*0x18d74f*/\n        v8[30] = BYTE2(v11) & 0xF | v8[30] & 0xF0; /*0x18d763*/\n        __asm { ltr word ptr ds:unk_1D14E8 } /*0x18d766*/\n      }\n    }\n    memcpy((void *)(*(unsigned __int16 *)(*(_DWORD *)v4 + 102) + *(_DWORD *)v4), __src, v3); /*0x18d781*/\n    v1 = v15; /*0x18d789*/\n    do /*0x18d7a4*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x18d78f*/\n        ; /*0x18d791*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18d7a4*/\n  }\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18d7bd*/\n  if ( v1 ) /*0x18d7c1*/\n    thread_deallocate(v1); /*0x18d7c4*/\n}",
+    "refs": [
+      {
+        "addr": "0x167238",
+        "name": "_thread_reference"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1013e4",
+        "name": "_memcpy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d7d4",
+    "addr": "0x0018d7d4",
+    "code": "int __cdecl task_map_io_ports(int a1, int a2, int a3, int a4)\n{\n  int v4; // esi\n  void *v6; // ebx\n  signed int i; // ebx\n  size_t __len; // [esp+Ch] [ebp-8h]\n  unsigned int v9; // [esp+10h] [ebp-4h]\n\n  v4 = *(_DWORD *)(a1 + 64); /*0x18d7e0*/\n  v9 = a3 + a2; /*0x18d7e9*/\n  if ( (unsigned int)(a3 + a2) > 0x10000 ) /*0x18d7f2*/\n    return 1; /*0x18d7f4*/\n  if ( *(_DWORD *)(a1 + 80) ) /*0x18d803*/\n    return 0; /*0x18d809*/\n  if ( task_hold(a1) ) /*0x18d814*/\n    return 4; /*0x18d820*/\n  __len = (v9 + 7) >> 3; /*0x18d835*/\n  lock_write(v4 + 16); /*0x18d83c*/\n  if ( *(_DWORD *)(v4 + 12) < __len ) /*0x18d84a*/\n  {\n    v6 = (void *)kalloc(__len); /*0x18d852*/\n    memset(v6, 255, __len); /*0x18d85e*/\n    memcpy(v6, *(const void **)(v4 + 8), *(_DWORD *)(v4 + 12)); /*0x18d86c*/\n    kfree(*(_DWORD *)(v4 + 8), *(_DWORD *)(v4 + 12)); /*0x18d87c*/\n    *(_DWORD *)(v4 + 8) = v6; /*0x18d881*/\n    *(_DWORD *)(v4 + 12) = __len; /*0x18d887*/\n  }\n  for ( i = a2; v9 > i; ++i ) /*0x18d893*/\n  {\n    if ( a4 ) /*0x18d8a0*/\n      *(_BYTE *)(i / 8 + *(_DWORD *)(v4 + 8)) |= 1 << (i % 8); /*0x18d8c9*/\n    else\n      *(_BYTE *)(i / 8 + *(_DWORD *)(v4 + 8)) &= __ROL4__(-2, i % 8); /*0x18d8f9*/\n  }\n  task_dowait(a1, 1); /*0x18d908*/\n  sub_18D610(a1); /*0x18d90e*/\n  task_release(a1); /*0x18d914*/\n  lock_done(v4 + 16); /*0x18d91d*/\n  return 0; /*0x18d927*/\n}",
+    "refs": [
+      {
+        "addr": "0x166094",
+        "name": "_task_hold"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101630",
+        "name": "_memset"
+      },
+      {
+        "addr": "0x1013e4",
+        "name": "_memcpy"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x16610c",
+        "name": "_task_dowait"
+      },
+      {
+        "addr": "0x18d610",
+        "name": "sub_18D610"
+      },
+      {
+        "addr": "0x1661cc",
+        "name": "_task_release"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018d930",
+    "addr": "0x0018d930",
+    "code": "int __cdecl task_locate_ldt(int a1, unsigned int a2, unsigned int a3)\n{\n  int v3; // edx\n  int v5; // ebx\n  int i; // esi\n  int v7; // eax\n  _BYTE *v8; // ecx\n  int v9; // eax\n  int v10; // edx\n  int v11; // ebx\n  int *v12; // [esp+Ch] [ebp-Ch]\n  _DWORD *v13; // [esp+10h] [ebp-8h]\n  unsigned int *v14; // [esp+14h] [ebp-4h]\n\n  v14 = *(unsigned int **)(a1 + 64); /*0x18d945*/\n  v3 = *(_DWORD *)(a1 + 12); /*0x18d94b*/\n  if ( *(_DWORD *)(v3 + 20) > a2 || *(_DWORD *)(v3 + 24) <= a3 + a2 ) /*0x18d959*/\n    return 1; /*0x18d95b*/\n  if ( task_hold(a1) ) /*0x18d96c*/\n    return 4; /*0x18d978*/\n  lock_write((int)(v14 + 4)); /*0x18d98b*/\n  *v14 = a2; /*0x18d993*/\n  v14[1] = a3; /*0x18d995*/\n  task_dowait(a1, 1); /*0x18d99e*/\n  v13 = *(_DWORD **)(a1 + 64); /*0x18d9ac*/\n  v12 = (int *)(a1 + 28); /*0x18d9b5*/\n  v5 = 0; /*0x18d9b8*/\n  do /*0x18d9d4*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x18d9bf*/\n      ; /*0x18d9c1*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18d9d4*/\n  for ( i = *v12; v12 != (int *)i; i = *(_DWORD *)(i + 16) ) /*0x18d9dd*/\n  {\n    thread_reference(i); /*0x18d9e5*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18d9f2*/\n    if ( v5 ) /*0x18d9f6*/\n      thread_deallocate(v5); /*0x18d9f9*/\n    v7 = v13[1]; /*0x18da04*/\n    *(_DWORD *)(*(_DWORD *)(i + 40) + 116) = *v13; /*0x18da0c*/\n    *(_DWORD *)(*(_DWORD *)(i + 40) + 120) = v7; /*0x18da12*/\n    if ( active_threads == i ) /*0x18da1b*/\n    {\n      v8 = gdt; /*0x18da1d*/\n      v9 = *(_DWORD *)(i + 40); /*0x18da23*/\n      v10 = *(_DWORD *)(v9 + 116); /*0x18da26*/\n      v11 = *(_DWORD *)(v9 + 120) - 1; /*0x18da2c*/\n      *((_WORD *)gdt + 17) = v10; /*0x18da2d*/\n      v8[36] = BYTE2(v10); /*0x18da36*/\n      v8[39] = HIBYTE(v10); /*0x18da3c*/\n      v8[37] = v8[37] & 0x60 | 0x82; /*0x18da46*/\n      v8[38] &= ~0x80u; /*0x18da49*/\n      *((_WORD *)v8 + 16) = v11; /*0x18da4d*/\n      v8[38] = BYTE2(v11) & 0xF | v8[38] & 0xF0; /*0x18da60*/\n      __asm { lldt ds:word_1D14EA } /*0x18da63*/\n    }\n    v5 = i; /*0x18da6a*/\n    do /*0x18da84*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x18da6f*/\n        ; /*0x18da71*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18da84*/\n  }\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18da97*/\n  if ( v5 ) /*0x18da9b*/\n    thread_deallocate(v5); /*0x18da9e*/\n  task_release(a1); /*0x18daaa*/\n  lock_done((int)(v14 + 4)); /*0x18dab6*/\n  return 0; /*0x18dac0*/\n}",
+    "refs": [
+      {
+        "addr": "0x166094",
+        "name": "_task_hold"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x16610c",
+        "name": "_task_dowait"
+      },
+      {
+        "addr": "0x167238",
+        "name": "_thread_reference"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1661cc",
+        "name": "_task_release"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018dac8",
+    "addr": "0x0018dac8",
+    "code": "int __cdecl task_default_ldt(int a1)\n{\n  int v2; // edx\n  int v3; // eax\n  _BYTE *v4; // ecx\n  int v5; // eax\n  int v6; // edx\n  int v7; // [esp+Ch] [ebp-18h]\n  int v8; // [esp+10h] [ebp-14h]\n  int i; // [esp+14h] [ebp-10h]\n  int *v10; // [esp+18h] [ebp-Ch]\n  _DWORD *v11; // [esp+1Ch] [ebp-8h]\n  _DWORD *v12; // [esp+20h] [ebp-4h]\n\n  v12 = *(_DWORD **)(a1 + 64); /*0x18dad7*/\n  if ( task_hold(a1) ) /*0x18dadb*/\n    return 4; /*0x18dae7*/\n  lock_write((int)(v12 + 4)); /*0x18dafb*/\n  *v12 = (char *)ldt - 0x40000000; /*0x18db0f*/\n  v12[1] = 24; /*0x18db11*/\n  task_dowait(a1, 1); /*0x18db1b*/\n  v11 = *(_DWORD **)(a1 + 64); /*0x18db26*/\n  v10 = (int *)(a1 + 28); /*0x18db2c*/\n  v2 = 0; /*0x18db2f*/\n  do /*0x18db46*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x18db34*/\n      ; /*0x18db36*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18db46*/\n  for ( i = *v10; v10 != (int *)i; i = *(_DWORD *)(i + 16) ) /*0x18db53*/\n  {\n    v8 = v2; /*0x18db60*/\n    thread_reference(i); /*0x18db63*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18db6d*/\n    if ( v8 ) /*0x18db74*/\n      thread_deallocate(v8); /*0x18db77*/\n    v3 = v11[1]; /*0x18db82*/\n    *(_DWORD *)(*(_DWORD *)(i + 40) + 116) = *v11; /*0x18db8d*/\n    *(_DWORD *)(*(_DWORD *)(i + 40) + 120) = v3; /*0x18db93*/\n    if ( active_threads == i ) /*0x18db9c*/\n    {\n      v4 = gdt; /*0x18db9e*/\n      v5 = *(_DWORD *)(i + 40); /*0x18dba4*/\n      v6 = *(_DWORD *)(v5 + 116); /*0x18dba7*/\n      v7 = *(_DWORD *)(v5 + 120) - 1; /*0x18dbae*/\n      *((_WORD *)gdt + 17) = v6; /*0x18dbb1*/\n      v4[36] = BYTE2(v6); /*0x18dbba*/\n      v4[39] = HIBYTE(v6); /*0x18dbc0*/\n      v4[37] = v4[37] & 0x60 | 0x82; /*0x18dbca*/\n      v4[38] &= ~0x80u; /*0x18dbcd*/\n      *((_WORD *)v4 + 16) = v7; /*0x18dbd5*/\n      v4[38] = BYTE2(v7) & 0xF | v4[38] & 0xF0; /*0x18dbef*/\n      __asm { lldt ds:word_1D14EA } /*0x18dbf2*/\n    }\n    v2 = i; /*0x18dbf9*/\n    do /*0x18dc0e*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x18dbfc*/\n        ; /*0x18dbfe*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x18dc0e*/\n  }\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x18dc24*/\n  if ( v2 ) /*0x18dc28*/\n    thread_deallocate(v2); /*0x18dc2b*/\n  task_release(a1); /*0x18dc34*/\n  lock_done((int)(v12 + 4)); /*0x18dc40*/\n  return 0; /*0x18dc4a*/\n}",
+    "refs": [
+      {
+        "addr": "0x166094",
+        "name": "_task_hold"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1e2278",
+        "name": "_ldt"
+      },
+      {
+        "addr": "0x16610c",
+        "name": "_task_dowait"
+      },
+      {
+        "addr": "0x167238",
+        "name": "_thread_reference"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1661cc",
+        "name": "_task_release"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018dc54",
+    "addr": "0x0018dc54",
+    "code": "int __cdecl thread_user_state(int a1)\n{\n  int v1; // edx\n  int v2; // edx\n\n  v1 = *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112); /*0x18dc5f*/\n  if ( v1 ) /*0x18dc64*/\n    return v1 + 132; /*0x18dcd0*/\n  v2 = kalloc(0xE0u); /*0x18dc70*/\n  *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112) = v2; /*0x18dc75*/\n  qmemcpy((void *)(v2 + 132), &unk_1D15E0, 0x5Cu); /*0x18dc8b*/\n  *(_DWORD *)(v2 + 196) = 512; /*0x18dc8d*/\n  *(_WORD *)(v2 + 192) = 99; /*0x18dc97*/\n  *(_WORD *)(v2 + 204) = 107; /*0x18dca0*/\n  *(_WORD *)(v2 + 144) = 107; /*0x18dca9*/\n  *(_WORD *)(v2 + 140) = 107; /*0x18dcb2*/\n  *(_WORD *)(v2 + 136) = 0; /*0x18dcbb*/\n  *(_WORD *)(v2 + 132) = 0; /*0x18dcc4*/\n  return v2 + 132; /*0x18dcd9*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018dce0",
+    "addr": "0x0018dce0",
+    "code": "int thread_bootstrap_return()\n{\n  int v0; // edx\n  int v1; // esi\n  unsigned int v2; // edx\n  void *v3; // eax\n  int v4; // edx\n  unsigned int v5; // ecx\n  _BYTE *v6; // ecx\n  _DWORD *v7; // eax\n  int v8; // edx\n  int v9; // ebx\n  int v10; // edx\n  _BYTE *v11; // ecx\n  int v12; // eax\n  int v13; // edx\n  int v14; // ebx\n  unsigned int v16; // [esp+14h] [ebp-1Ch]\n  size_t __n; // [esp+1Ch] [ebp-14h]\n  void *__src; // [esp+20h] [ebp-10h]\n  int v19; // [esp+24h] [ebp-Ch]\n  _DWORD *v20; // [esp+28h] [ebp-8h]\n  thread_act_t v21; // [esp+2Ch] [ebp-4h]\n\n  v21 = active_threads; /*0x18dcef*/\n  v20 = *(_DWORD **)(*(_DWORD *)(active_threads + 12) + 64); /*0x18dcf8*/\n  v19 = *(_DWORD *)(active_threads + 40); /*0x18dcfe*/\n  lock_read((int)(v20 + 4)); /*0x18dd05*/\n  v0 = v20[3]; /*0x18dd10*/\n  if ( v0 ) /*0x18dd15*/\n  {\n    __src = (void *)v20[2]; /*0x18dd1e*/\n    __n = v20[3]; /*0x18dd21*/\n    v1 = *(_DWORD *)(v21 + 40); /*0x18dd27*/\n    v2 = v0 + 105; /*0x18dd2d*/\n    if ( *(_DWORD *)(v1 + 4) < v2 ) /*0x18dd33*/\n    {\n      v16 = v2; /*0x18dd39*/\n      v3 = (void *)kalloc(v2); /*0x18dd3d*/\n      qmemcpy(v3, *(const void **)v1, 0x68u); /*0x18dd57*/\n      if ( (*(_BYTE *)(v1 + 240) & 4) != 0 ) /*0x18dd66*/\n      {\n        v4 = *(_DWORD *)(v1 + 8); /*0x18dd68*/\n        v5 = *(_DWORD *)(v1 + 12); /*0x18dd6b*/\n        *(_DWORD *)(v1 + 8) = v3; /*0x18dd71*/\n        *(_DWORD *)(v1 + 12) = v16; /*0x18dd77*/\n        *(_DWORD *)v1 = v3; /*0x18dd7a*/\n        *(_DWORD *)(v1 + 4) = v16; /*0x18dd7f*/\n        *(_BYTE *)(v1 + 240) |= 4u; /*0x18dd82*/\n        kfree(v4, v5); /*0x18dd8b*/\n      }\n      else\n      {\n        *(_DWORD *)(v1 + 8) = v3; /*0x18dd9e*/\n        *(_DWORD *)(v1 + 12) = v16; /*0x18dda4*/\n        *(_DWORD *)v1 = v3; /*0x18ddaa*/\n        *(_DWORD *)(v1 + 4) = v16; /*0x18ddaf*/\n        *(_BYTE *)(v1 + 240) |= 4u; /*0x18ddb2*/\n      }\n      if ( active_threads == v21 ) /*0x18ddc2*/\n      {\n        v6 = gdt; /*0x18ddc4*/\n        v7 = *(_DWORD **)(v21 + 40); /*0x18ddca*/\n        v8 = *v7 - 0x40000000; /*0x18ddcf*/\n        v9 = v7[1] - 1; /*0x18ddd8*/\n        *((_WORD *)gdt + 13) = *(_WORD *)v7; /*0x18ddd9*/\n        v6[28] = BYTE2(v8); /*0x18dde2*/\n        v6[31] = HIBYTE(v8); /*0x18dde8*/\n        v6[29] = -119; /*0x18ddeb*/\n        v6[30] &= ~0x80u; /*0x18ddef*/\n        *((_WORD *)v6 + 12) = v9; /*0x18ddf3*/\n        v6[30] = BYTE2(v9) & 0xF | v6[30] & 0xF0; /*0x18de06*/\n        __asm { ltr word ptr ds:unk_1D14E8 } /*0x18de09*/\n      }\n    }\n    memcpy((void *)(*(unsigned __int16 *)(*(_DWORD *)v1 + 102) + *(_DWORD *)v1), __src, __n); /*0x18de24*/\n  }\n  if ( *(_DWORD *)(v19 + 116) != *v20 ) /*0x18de37*/\n  {\n    v10 = v20[1]; /*0x18de39*/\n    *(_DWORD *)(*(_DWORD *)(v21 + 40) + 116) = *v20; /*0x18de42*/\n    *(_DWORD *)(*(_DWORD *)(v21 + 40) + 120) = v10; /*0x18de48*/\n    if ( active_threads == v21 ) /*0x18de51*/\n    {\n      v11 = gdt; /*0x18de53*/\n      v12 = *(_DWORD *)(v21 + 40); /*0x18de59*/\n      v13 = *(_DWORD *)(v12 + 116); /*0x18de5c*/\n      v14 = *(_DWORD *)(v12 + 120) - 1; /*0x18de62*/\n      *((_WORD *)gdt + 17) = v13; /*0x18de63*/\n      v11[36] = BYTE2(v13); /*0x18de6c*/\n      v11[39] = HIBYTE(v13); /*0x18de72*/\n      v11[37] = v11[37] & 0x60 | 0x82; /*0x18de7e*/\n      v11[38] &= ~0x80u; /*0x18de81*/\n      *((_WORD *)v11 + 16) = v14; /*0x18de85*/\n      v11[38] = BYTE2(v14) & 0xF | v11[38] & 0xF0; /*0x18de98*/\n      __asm { lldt ds:word_1D14EA } /*0x18de9b*/\n    }\n  }\n  lock_done((int)(v20 + 4)); /*0x18dea9*/\n  return thread_exception_return(); /*0x18deb6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x1013e4",
+        "name": "_memcpy"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18dec0",
+        "name": "_thread_exception_return"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018dec0",
+    "addr": "0x0018dec0",
+    "code": "void thread_exception_return()\n{\n  thread_act_t v0; // ebx\n  int v1; // eax\n  int v2; // esi\n  int v3; // edx\n  int v4; // edx\n\n  v0 = active_threads; /*0x18dec6*/\n  v1 = *(_DWORD *)(*(_DWORD *)(active_threads + 40) + 112); /*0x18decf*/\n  if ( v1 ) /*0x18ded4*/\n  {\n    v2 = v1 + 132; /*0x18ded6*/\n  }\n  else\n  {\n    v3 = kalloc(0xE0u); /*0x18deea*/\n    *(_DWORD *)(*(_DWORD *)(v0 + 40) + 112) = v3; /*0x18deef*/\n    qmemcpy((void *)(v3 + 132), &unk_1D15E0, 0x5Cu); /*0x18df05*/\n    *(_DWORD *)(v3 + 196) = 512; /*0x18df07*/\n    *(_WORD *)(v3 + 192) = 99; /*0x18df11*/\n    *(_WORD *)(v3 + 204) = 107; /*0x18df1a*/\n    *(_WORD *)(v3 + 144) = 107; /*0x18df23*/\n    *(_WORD *)(v3 + 140) = 107; /*0x18df2c*/\n    *(_WORD *)(v3 + 136) = 0; /*0x18df35*/\n    *(_WORD *)(v3 + 132) = 0; /*0x18df3e*/\n    v2 = v3 + 132; /*0x18df47*/\n  }\n  check_for_ast(v2); /*0x18df4d*/\n  if ( (*(_BYTE *)(v2 + 66) & 2) != 0 ) /*0x18df5e*/\n    v4 = v2 + 92; /*0x18df60*/\n  else\n    v4 = v2 + 76; /*0x18df68*/\n  *(_DWORD *)(**(_DWORD **)(v0 + 40) + 4) = v4; /*0x18df6b*/\n  _return_with_state(); /*0x18df6f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      },
+      {
+        "addr": "0x1929e8",
+        "name": "_check_for_ast"
+      },
+      {
+        "addr": "0x186f04",
+        "name": "__return_with_state"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018df80",
+    "addr": "0x0018df80",
+    "code": "void __cdecl thread_syscall_return(int a1)\n{\n  int v1; // eax\n  int v2; // ebx\n  int v3; // edx\n  int v4; // edx\n  thread_act_t v5; // [esp+Ch] [ebp-4h]\n\n  v5 = active_threads; /*0x18df8f*/\n  v1 = *(_DWORD *)(*(_DWORD *)(active_threads + 40) + 112); /*0x18df95*/\n  if ( v1 ) /*0x18df9a*/\n  {\n    v2 = v1 + 132; /*0x18df9c*/\n  }\n  else\n  {\n    v3 = kalloc(0xE0u); /*0x18dfae*/\n    *(_DWORD *)(*(_DWORD *)(v5 + 40) + 112) = v3; /*0x18dfb6*/\n    qmemcpy((void *)(v3 + 132), &unk_1D15E0, 0x5Cu); /*0x18dfcc*/\n    *(_DWORD *)(v3 + 196) = 512; /*0x18dfce*/\n    *(_WORD *)(v3 + 192) = 99; /*0x18dfd8*/\n    *(_WORD *)(v3 + 204) = 107; /*0x18dfe1*/\n    *(_WORD *)(v3 + 144) = 107; /*0x18dfea*/\n    *(_WORD *)(v3 + 140) = 107; /*0x18dff3*/\n    *(_WORD *)(v3 + 136) = 0; /*0x18dffc*/\n    *(_WORD *)(v3 + 132) = 0; /*0x18e005*/\n    v2 = v3 + 132; /*0x18e00e*/\n  }\n  *(_DWORD *)(v2 + 44) = a1; /*0x18e016*/\n  check_for_ast(v2); /*0x18e01a*/\n  if ( (*(_BYTE *)(v2 + 66) & 2) != 0 ) /*0x18e02e*/\n    v4 = v2 + 92; /*0x18e030*/\n  else\n    v4 = v2 + 76; /*0x18e038*/\n  *(_DWORD *)(**(_DWORD **)(v5 + 40) + 4) = v4; /*0x18e03b*/\n  _return_with_state(); /*0x18e03f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      },
+      {
+        "addr": "0x1929e8",
+        "name": "_check_for_ast"
+      },
+      {
+        "addr": "0x186f04",
+        "name": "__return_with_state"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e050",
+    "addr": "0x0018e050",
+    "code": "int __cdecl thread_set_syscall_return(int a1, int a2)\n{\n  int v2; // eax\n  int result; // eax\n  int v4; // edx\n\n  v2 = *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112); /*0x18e05b*/\n  if ( v2 ) /*0x18e060*/\n  {\n    result = v2 + 132; /*0x18e062*/\n  }\n  else\n  {\n    v4 = kalloc(0xE0u); /*0x18e076*/\n    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112) = v4; /*0x18e07b*/\n    result = v4 + 132; /*0x18e07e*/\n    qmemcpy((void *)(v4 + 132), &unk_1D15E0, 0x5Cu); /*0x18e091*/\n    *(_DWORD *)(v4 + 196) = 512; /*0x18e093*/\n    *(_WORD *)(v4 + 192) = 99; /*0x18e09d*/\n    *(_WORD *)(v4 + 204) = 107; /*0x18e0a6*/\n    *(_WORD *)(v4 + 144) = 107; /*0x18e0af*/\n    *(_WORD *)(v4 + 140) = 107; /*0x18e0b8*/\n    *(_WORD *)(v4 + 136) = 0; /*0x18e0c1*/\n    *(_WORD *)(v4 + 132) = 0; /*0x18e0ca*/\n  }\n  *(_DWORD *)(result + 44) = a2; /*0x18e0d6*/\n  return result; /*0x18e0dc*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e0e4",
+    "addr": "0x0018e0e4",
+    "code": "void __cdecl start_initial_context(_DWORD *a1)\n{\n  int *v1; // esi\n  int v2; // edi\n  _BYTE *v3; // edx\n  int v4; // eax\n  int v5; // ebx\n  _BYTE *v6; // edx\n  int v7; // eax\n  unsigned int v8; // ebx\n  unsigned __int32 v9; // eax\n  int savedregs; // [esp+Ch] [ebp+0h] BYREF\n\n  v1 = (int *)a1[10]; /*0x18e0ed*/\n  ldt_init(); /*0x18e0f0*/\n  *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1[3] + 12) + 36) + 24) = 1; /*0x18e0fe*/\n  active_threads = (thread_act_t)a1; /*0x18e105*/\n  v2 = a1[11]; /*0x18e10b*/\n  active_stacks[0] = v2; /*0x18e10e*/\n  stack_pointers = a1[11] + 4084; /*0x18e11d*/\n  __writecr3(*(_DWORD *)(*v1 + 28)); /*0x18e128*/\n  v3 = gdt; /*0x18e12b*/\n  v4 = v1[29]; /*0x18e131*/\n  v5 = v1[30] - 1; /*0x18e137*/\n  *((_WORD *)gdt + 17) = v4; /*0x18e138*/\n  v3[36] = BYTE2(v4); /*0x18e141*/\n  v3[39] = HIBYTE(v4); /*0x18e147*/\n  v3[37] = v3[37] & 0x60 | 0x82; /*0x18e151*/\n  v3[38] &= ~0x80u; /*0x18e154*/\n  *((_WORD *)v3 + 16) = v5; /*0x18e158*/\n  v3[38] = BYTE2(v5) & 0xF | v3[38] & 0xF0; /*0x18e16b*/\n  __asm { lldt ds:word_1D14EA } /*0x18e16e*/\n  v6 = gdt; /*0x18e175*/\n  v7 = *v1 - 0x40000000; /*0x18e17d*/\n  v8 = v1[1] - 1; /*0x18e185*/\n  *((_WORD *)gdt + 13) = *(_WORD *)v1; /*0x18e186*/\n  v6[28] = BYTE2(v7); /*0x18e18f*/\n  v6[31] = HIBYTE(v7); /*0x18e195*/\n  v6[29] = -119; /*0x18e198*/\n  v6[30] &= ~0x80u; /*0x18e19c*/\n  *((_WORD *)v6 + 12) = v8; /*0x18e1a0*/\n  v8 >>= 16; /*0x18e1a4*/\n  v6[30] = v8 & 0xF | v6[30] & 0xF0; /*0x18e1b3*/\n  __asm { ltr word ptr ds:unk_1D14E8 } /*0x18e1b6*/\n  v9 = __readcr0(); /*0x18e1bd*/\n  LOBYTE(v9) = v9 | 8; /*0x18e1c0*/\n  __writecr0(v9); /*0x18e1c2*/\n  _switch_tss(v8, (int)&savedregs, v2, *v1, 0, *v1, 0); /*0x18e1cc*/\n}",
+    "refs": [
+      {
+        "addr": "0x18cbcc",
+        "name": "_ldt_init"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1f6354",
+        "name": "_active_stacks"
+      },
+      {
+        "addr": "0x1f74d8",
+        "name": "_stack_pointers"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x186f20",
+        "name": "__switch_tss"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e1dc",
+    "addr": "0x0018e1dc",
+    "code": "int __cdecl thread_setstatus(int a1, int a2, int a3, int a4)\n{\n  if ( a2 == -2 ) /*0x18e1ef*/\n    return set_thread_fpstate(a1, a3, a4); /*0x18e203*/\n  if ( a2 == -1 ) /*0x18e1f4*/\n    return set_thread_state(a1, a3, a4); /*0x18e1f9*/\n  return 4; /*0x18e211*/\n}",
+    "refs": [
+      {
+        "addr": "0x18e634",
+        "name": "_set_thread_fpstate"
+      },
+      {
+        "addr": "0x18e218",
+        "name": "_set_thread_state"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e218",
+    "addr": "0x0018e218",
+    "code": "int __cdecl set_thread_state(int a1, int a2, unsigned int a3)\n{\n  int v3; // eax\n  int v4; // eax\n  _BOOL4 v5; // ecx\n  int v6; // eax\n  _BOOL4 v7; // ecx\n  int v8; // eax\n  _BOOL4 v9; // ecx\n  int v10; // eax\n  _BOOL4 v11; // ecx\n  int v12; // eax\n  _DWORD *v13; // eax\n  int v15; // eax\n  int v16; // edx\n  int v17; // edx\n  int v18; // edi\n\n  if ( a3 <= 0xF ) /*0x18e225*/\n    return 4; /*0x18e225*/\n  if ( (*(_BYTE *)(a2 + 38) & 2) == 0 ) /*0x18e232*/\n  {\n    if ( *(_DWORD *)(*(_DWORD *)(a1 + 12) + 76) ) /*0x18e243*/\n    {\n      v13 = **(_DWORD ***)(a1 + 40); /*0x18e3c3*/\n      if ( *(int (**)())(a1 + 52) == thread_bootstrap_return ) /*0x18e3cc*/\n      {\n        v13[10] = *(_DWORD *)a2; /*0x18e3da*/\n        v13[13] = *(_DWORD *)(a2 + 4); /*0x18e3e0*/\n        v13[11] = *(_DWORD *)(a2 + 8); /*0x18e3e6*/\n        v13[12] = *(_DWORD *)(a2 + 12); /*0x18e3ec*/\n        v13[17] = *(_DWORD *)(a2 + 16); /*0x18e3f2*/\n        v13[16] = *(_DWORD *)(a2 + 20); /*0x18e3f8*/\n        thread_start(a1, *(_DWORD *)(a2 + 40)); /*0x18e400*/\n        return 0; /*0x18e405*/\n      }\n    }\n    else\n    {\n      v3 = *(_DWORD *)(a2 + 44); /*0x18e24d*/\n      if ( v3 ) /*0x18e254*/\n      {\n        if ( (v3 & 4) != 0 ) /*0x18e25d*/\n        {\n          if ( (v3 & 3) != 3 ) /*0x18e265*/\n            return 4; /*0x18e265*/\n        }\n        else if ( (unsigned __int16)((unsigned __int16)v3 >> 3) > 0x1Fu /*0x18e29b*/\n               || (v3 & 3) != 3\n               || (*((_BYTE *)gdt + 8 * ((unsigned __int16)v3 >> 3) + 5) & 0x60) != 0x60 )\n        {\n          return 4; /*0x18e29b*/\n        }\n        v4 = *(_DWORD *)(a2 + 48); /*0x18e2a1*/\n        if ( !v4 || (v4 & 4) != 0 ) /*0x18e2af*/\n          goto LABEL_50; /*0x18e2af*/\n        v5 = 0; /*0x18e2ba*/\n        if ( (unsigned __int16)((unsigned __int16)v4 >> 3) <= 0x1Fu ) /*0x18e2bf*/\n          v5 = (*((_BYTE *)gdt + 8 * ((unsigned __int16)v4 >> 3) + 5) & 0x60) == 96; /*0x18e2d0*/\n        if ( v5 ) /*0x18e2d3*/\n        {\nLABEL_50:\n          v6 = *(_DWORD *)(a2 + 52); /*0x18e2d9*/\n          if ( !v6 || (v6 & 4) != 0 ) /*0x18e2e7*/\n            goto LABEL_51; /*0x18e2e7*/\n          v7 = 0; /*0x18e2f2*/\n          if ( (unsigned __int16)((unsigned __int16)v6 >> 3) <= 0x1Fu ) /*0x18e2f7*/\n            v7 = (*((_BYTE *)gdt + 8 * ((unsigned __int16)v6 >> 3) + 5) & 0x60) == 96; /*0x18e308*/\n          if ( v7 ) /*0x18e30b*/\n          {\nLABEL_51:\n            v8 = *(_DWORD *)(a2 + 56); /*0x18e311*/\n            if ( !v8 || (v8 & 4) != 0 ) /*0x18e31f*/\n              goto LABEL_52; /*0x18e31f*/\n            v9 = 0; /*0x18e32a*/\n            if ( (unsigned __int16)((unsigned __int16)v8 >> 3) <= 0x1Fu ) /*0x18e32f*/\n              v9 = (*((_BYTE *)gdt + 8 * ((unsigned __int16)v8 >> 3) + 5) & 0x60) == 96; /*0x18e340*/\n            if ( v9 ) /*0x18e343*/\n            {\nLABEL_52:\n              v10 = *(_DWORD *)(a2 + 60); /*0x18e349*/\n              if ( !v10 || (v10 & 4) != 0 ) /*0x18e357*/\n                goto LABEL_53; /*0x18e357*/\n              v11 = 0; /*0x18e362*/\n              if ( (unsigned __int16)((unsigned __int16)v10 >> 3) <= 0x1Fu ) /*0x18e367*/\n                v11 = (*((_BYTE *)gdt + 8 * ((unsigned __int16)v10 >> 3) + 5) & 0x60) == 96; /*0x18e378*/\n              if ( v11 ) /*0x18e37b*/\n              {\nLABEL_53:\n                v12 = *(_DWORD *)(a2 + 32); /*0x18e37d*/\n                if ( v12 ) /*0x18e386*/\n                {\n                  if ( (v12 & 4) != 0 ) /*0x18e38b*/\n                  {\n                    if ( (v12 & 3) == 3 ) /*0x18e393*/\n                      goto LABEL_43; /*0x18e393*/\n                  }\n                  else if ( (unsigned __int16)((unsigned __int16)v12 >> 3) <= 0x1Fu /*0x18e3bb*/\n                         && (v12 & 3) == 3\n                         && (*((_BYTE *)gdt + 8 * ((unsigned __int16)v12 >> 3) + 5) & 0x60) == 0x60 )\n                  {\nLABEL_43:\n                    v15 = *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112); /*0x18e40c*/\n                    if ( v15 ) /*0x18e414*/\n                    {\n                      v16 = v15 + 132; /*0x18e416*/\n                    }\n                    else\n                    {\n                      v17 = kalloc(0xE0u); /*0x18e42a*/\n                      *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112) = v17; /*0x18e42f*/\n                      qmemcpy((void *)(v17 + 132), &unk_1D15E0, 0x5Cu); /*0x18e445*/\n                      *(_DWORD *)(v17 + 196) = 512; /*0x18e447*/\n                      *(_WORD *)(v17 + 192) = 99; /*0x18e451*/\n                      *(_WORD *)(v17 + 204) = 107; /*0x18e45a*/\n                      *(_WORD *)(v17 + 144) = 107; /*0x18e463*/\n                      *(_WORD *)(v17 + 140) = 107; /*0x18e46c*/\n                      *(_WORD *)(v17 + 136) = 0; /*0x18e475*/\n                      *(_WORD *)(v17 + 132) = 0; /*0x18e47e*/\n                      v16 = v17 + 132; /*0x18e487*/\n                    }\n                    *(_DWORD *)(v16 + 44) = *(_DWORD *)a2; /*0x18e48b*/\n                    *(_DWORD *)(v16 + 32) = *(_DWORD *)(a2 + 4); /*0x18e491*/\n                    *(_DWORD *)(v16 + 40) = *(_DWORD *)(a2 + 8); /*0x18e497*/\n                    *(_DWORD *)(v16 + 36) = *(_DWORD *)(a2 + 12); /*0x18e49d*/\n                    *(_DWORD *)(v16 + 16) = *(_DWORD *)(a2 + 16); /*0x18e4a3*/\n                    *(_DWORD *)(v16 + 20) = *(_DWORD *)(a2 + 20); /*0x18e4a9*/\n                    *(_DWORD *)(v16 + 24) = *(_DWORD *)(a2 + 24); /*0x18e4af*/\n                    *(_DWORD *)(v16 + 68) = *(_DWORD *)(a2 + 28); /*0x18e4b5*/\n                    *(_WORD *)(v16 + 72) = *(_WORD *)(a2 + 32); /*0x18e4bc*/\n                    v18 = *(_DWORD *)(a2 + 36); /*0x18e4c0*/\n                    *(_DWORD *)(v16 + 64) = v18; /*0x18e4c3*/\n                    *(_DWORD *)(v16 + 64) = v18 & 0x50DD5 | 0x202; /*0x18e4d2*/\n                    *(_DWORD *)(v16 + 56) = *(_DWORD *)(a2 + 40); /*0x18e4d8*/\n                    *(_WORD *)(v16 + 60) = *(_WORD *)(a2 + 44); /*0x18e4df*/\n                    *(_WORD *)(v16 + 12) = *(_WORD *)(a2 + 48); /*0x18e4e7*/\n                    *(_WORD *)(v16 + 8) = *(_WORD *)(a2 + 52); /*0x18e4ef*/\n                    *(_WORD *)(v16 + 4) = *(_WORD *)(a2 + 56); /*0x18e4f7*/\n                    *(_WORD *)v16 = *(_WORD *)(a2 + 60); /*0x18e4ff*/\n                    return 0; /*0x18e4ff*/\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n    return 4; /*0x18e3d3*/\n  }\n  sub_18E510(a1, a2); /*0x18e236*/\n  return 0; /*0x18e507*/\n}",
+    "refs": [
+      {
+        "addr": "0x16847c",
+        "name": "_thread_start"
+      },
+      {
+        "addr": "0x18dce0",
+        "name": "_thread_bootstrap_return"
+      },
+      {
+        "addr": "0x1e19b0",
+        "name": "_gdt"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      },
+      {
+        "addr": "0x18e510",
+        "name": "sub_18E510"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e510",
+    "addr": "0x0018e510",
+    "code": "int __cdecl sub_18E510(int a1, int a2)\n{\n  int v2; // eax\n  int v3; // edx\n  int v4; // edx\n  int v5; // ecx\n  int result; // eax\n\n  v2 = *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112); /*0x18e51f*/\n  if ( v2 ) /*0x18e524*/\n  {\n    v3 = v2 + 132; /*0x18e526*/\n  }\n  else\n  {\n    v4 = kalloc(0xE0u); /*0x18e53a*/\n    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112) = v4; /*0x18e53f*/\n    qmemcpy((void *)(v4 + 132), &unk_1D15E0, 0x5Cu); /*0x18e555*/\n    *(_DWORD *)(v4 + 196) = 512; /*0x18e557*/\n    *(_WORD *)(v4 + 192) = 99; /*0x18e561*/\n    *(_WORD *)(v4 + 204) = 107; /*0x18e56a*/\n    *(_WORD *)(v4 + 144) = 107; /*0x18e573*/\n    *(_WORD *)(v4 + 140) = 107; /*0x18e57c*/\n    *(_WORD *)(v4 + 136) = 0; /*0x18e585*/\n    *(_WORD *)(v4 + 132) = 0; /*0x18e58e*/\n    v3 = v4 + 132; /*0x18e597*/\n  }\n  *(_DWORD *)(v3 + 44) = *(_DWORD *)a2; /*0x18e59b*/\n  *(_DWORD *)(v3 + 32) = *(_DWORD *)(a2 + 4); /*0x18e5a1*/\n  *(_DWORD *)(v3 + 40) = *(_DWORD *)(a2 + 8); /*0x18e5a7*/\n  *(_DWORD *)(v3 + 36) = *(_DWORD *)(a2 + 12); /*0x18e5ad*/\n  *(_DWORD *)(v3 + 16) = *(_DWORD *)(a2 + 16); /*0x18e5b3*/\n  *(_DWORD *)(v3 + 20) = *(_DWORD *)(a2 + 20); /*0x18e5b9*/\n  *(_DWORD *)(v3 + 24) = *(_DWORD *)(a2 + 24); /*0x18e5bf*/\n  *(_DWORD *)(v3 + 68) = *(_DWORD *)(a2 + 28); /*0x18e5c5*/\n  *(_WORD *)(v3 + 72) = *(_WORD *)(a2 + 32); /*0x18e5cc*/\n  v5 = *(_DWORD *)(a2 + 36); /*0x18e5d0*/\n  *(_DWORD *)(v3 + 64) = v5; /*0x18e5d3*/\n  result = v5 & 0x50DD5 | 0x20202; /*0x18e5dd*/\n  *(_DWORD *)(v3 + 64) = result; /*0x18e5e2*/\n  *(_DWORD *)(v3 + 56) = *(_DWORD *)(a2 + 40); /*0x18e5e8*/\n  *(_WORD *)(v3 + 60) = *(_WORD *)(a2 + 44); /*0x18e5ef*/\n  *(_WORD *)(v3 + 12) = 0; /*0x18e5f3*/\n  *(_WORD *)(v3 + 8) = 0; /*0x18e5f9*/\n  *(_WORD *)(v3 + 4) = 0; /*0x18e5ff*/\n  *(_WORD *)v3 = 0; /*0x18e605*/\n  *(_WORD *)(v3 + 80) = *(_WORD *)(a2 + 48); /*0x18e60e*/\n  *(_WORD *)(v3 + 76) = *(_WORD *)(a2 + 52); /*0x18e616*/\n  *(_WORD *)(v3 + 84) = *(_WORD *)(a2 + 56); /*0x18e61e*/\n  *(_WORD *)(v3 + 88) = *(_WORD *)(a2 + 60); /*0x18e626*/\n  return result; /*0x18e62d*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e634",
+    "addr": "0x0018e634",
+    "code": "int __cdecl set_thread_fpstate(int a1, int a2, unsigned int a3)\n{\n  int v3; // ebx\n\n  if ( a3 <= 0x1A ) /*0x18e63e*/\n    return 4; /*0x18e680*/\n  v3 = *(_DWORD *)(a1 + 40); /*0x18e643*/\n  fp_terminate(a1); /*0x18e64a*/\n  qmemcpy((void *)(v3 + 124), (const void *)a2, 0x1Cu); /*0x18e658*/\n  qmemcpy((void *)(v3 + 152), (const void *)(a2 + 28), 0x50u); /*0x18e66c*/\n  *(_BYTE *)(*(_DWORD *)(a1 + 40) + 240) |= 2u; /*0x18e674*/\n  return 0; /*0x18e688*/\n}",
+    "refs": [
+      {
+        "addr": "0x18a800",
+        "name": "_fp_terminate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e690",
+    "addr": "0x0018e690",
+    "code": "int __cdecl thread_set_cthread_self(int a1)\n{\n  *(_DWORD *)(*(_DWORD *)(active_threads + 40) + 232) = a1; /*0x18e69e*/\n  return 0; /*0x18e6a8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e6ac",
+    "addr": "0x0018e6ac",
+    "code": "int __cdecl thread_getstatus(int a1, int a2, int a3, int a4)\n{\n  int result; // eax\n\n  switch ( a2 ) /*0x18e6c4*/\n  {\n    case -4: /*0x18e6c4*/\n      result = get_thread_cthreadstate(a1, a3, a4); /*0x18e707*/\n      break; /*0x18e70c*/\n    case -3: /*0x18e6c4*/\n      result = get_thread_exceptstate(a1, a3, a4); /*0x18e6fb*/\n      break; /*0x18e700*/\n    case -2: /*0x18e6c4*/\n      result = get_thread_fpstate(a1, a3, a4); /*0x18e6ef*/\n      break; /*0x18e6f4*/\n    case -1: /*0x18e6c4*/\n      result = get_thread_state(a1, a3, a4); /*0x18e6e3*/\n      break; /*0x18e6e8*/\n    case 0: /*0x18e6c4*/\n      result = get_thread_state_flavor_list(a3, a4); /*0x18e712*/\n      break; /*0x18e717*/\n    default:\n      result = 4; /*0x18e71c*/\n      break; /*0x18e71c*/\n  }\n  return result; /*0x18e721*/\n}",
+    "refs": [
+      {
+        "addr": "0x18e970",
+        "name": "_get_thread_cthreadstate"
+      },
+      {
+        "addr": "0x18e8b8",
+        "name": "_get_thread_exceptstate"
+      },
+      {
+        "addr": "0x18e85c",
+        "name": "_get_thread_fpstate"
+      },
+      {
+        "addr": "0x18e728",
+        "name": "_get_thread_state"
+      },
+      {
+        "addr": "0x18e9bc",
+        "name": "_get_thread_state_flavor_list"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018e728",
+    "addr": "0x0018e728",
+    "code": "int __cdecl get_thread_state(int a1, _DWORD *a2, _DWORD *a3)\n{\n  int v4; // eax\n  unsigned __int16 *v5; // eax\n  int v6; // edx\n  int v7; // eax\n\n  if ( *a3 <= 0xFu ) /*0x18e737*/\n    return 4; /*0x18e739*/\n  v4 = *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112); /*0x18e74a*/\n  if ( v4 ) /*0x18e74f*/\n  {\n    v5 = (unsigned __int16 *)(v4 + 132); /*0x18e751*/\n  }\n  else\n  {\n    v6 = kalloc(0xE0u); /*0x18e762*/\n    *(_DWORD *)(*(_DWORD *)(a1 + 40) + 112) = v6; /*0x18e767*/\n    v5 = (unsigned __int16 *)(v6 + 132); /*0x18e76a*/\n    qmemcpy((void *)(v6 + 132), &unk_1D15E0, 0x5Cu); /*0x18e77d*/\n    *(_DWORD *)(v6 + 196) = 512; /*0x18e77f*/\n    *(_WORD *)(v6 + 192) = 99; /*0x18e789*/\n    *(_WORD *)(v6 + 204) = 107; /*0x18e792*/\n    *(_WORD *)(v6 + 144) = 107; /*0x18e79b*/\n    *(_WORD *)(v6 + 140) = 107; /*0x18e7a4*/\n    *(_WORD *)(v6 + 136) = 0; /*0x18e7ad*/\n    *(_WORD *)(v6 + 132) = 0; /*0x18e7b6*/\n  }\n  *a2 = *((_DWORD *)v5 + 11); /*0x18e7c2*/\n  a2[1] = *((_DWORD *)v5 + 8); /*0x18e7c7*/\n  a2[2] = *((_DWORD *)v5 + 10); /*0x18e7cd*/\n  a2[3] = *((_DWORD *)v5 + 9); /*0x18e7d3*/\n  a2[4] = *((_DWORD *)v5 + 4); /*0x18e7d9*/\n  a2[5] = *((_DWORD *)v5 + 5); /*0x18e7df*/\n  a2[6] = *((_DWORD *)v5 + 6); /*0x18e7e5*/\n  a2[7] = *((_DWORD *)v5 + 17); /*0x18e7eb*/\n  a2[8] = v5[36]; /*0x18e7f2*/\n  a2[9] = *((_DWORD *)v5 + 16); /*0x18e7f8*/\n  a2[10] = *((_DWORD *)v5 + 14); /*0x18e7fe*/\n  a2[11] = v5[30]; /*0x18e805*/\n  if ( (v5[33] & 2) != 0 ) /*0x18e80c*/\n  {\n    a2[12] = v5[40]; /*0x18e82c*/\n    a2[13] = v5[38]; /*0x18e833*/\n    a2[14] = v5[42]; /*0x18e83a*/\n    v7 = v5[44]; /*0x18e83d*/\n  }\n  else\n  {\n    a2[12] = v5[6]; /*0x18e812*/\n    a2[13] = v5[4]; /*0x18e819*/\n    a2[14] = v5[2]; /*0x18e820*/\n    v7 = *v5; /*0x18e823*/\n  }\n  a2[15] = v7; /*0x18e841*/\n  *a3 = 16; /*0x18e847*/\n  return 0; /*0x18e852*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d15e0",
+        "name": "unk_1D15E0"
+      }
+    ]
+  }
+]

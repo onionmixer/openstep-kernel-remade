@@ -1,0 +1,1385 @@
+Sent: command("registerProgram", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+
+<processor_spec>
+  <properties>
+    <property key=\"emulateInstructionStateModifierClass\" value=\"ghidra.program.emulation.m68kEmulateInstructionStateModifier\"/>
+    <property key=\"useropLibs\" value=\"m68k,trig\"/>
+    <property key=\"assemblyRating:68000:BE:32:default\" value=\"PLATINUM\"/>
+  </properties>
+  <programcounter register=\"PC\"/>
+</processor_spec>
+", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+
+<compiler_spec>
+  <data_organization>
+	<absolute_max_alignment value=\"0\" />
+	<machine_alignment value=\"8\" />
+	<default_alignment value=\"1\" />
+	<default_pointer_alignment value=\"4\" />
+	<pointer_size value=\"4\" />
+	<wchar_size value=\"4\" />
+	<short_size value=\"2\" />
+	<integer_size value=\"4\" />
+	<long_size value=\"4\" />
+	<long_long_size value=\"8\" />
+	<float_size value=\"4\" />
+	<double_size value=\"8\" />
+	<long_double_size value=\"10\" /> <!-- aligned-length=12 -->
+	<size_alignment_map>
+		<entry size=\"1\" alignment=\"1\" />
+		<entry size=\"2\" alignment=\"2\" />
+		<entry size=\"4\" alignment=\"4\" />
+		<entry size=\"8\" alignment=\"4\" />
+	</size_alignment_map>
+  </data_organization>
+  
+  <global>
+    <range space=\"ram\"/>
+  </global>
+  
+  <stackpointer register=\"SP\" space=\"ram\"/>
+  
+  <default_proto>
+    <prototype name=\"__stdcall\" extrapop=\"4\" stackshift=\"4\">
+      <input>
+        <pentry minsize=\"1\" maxsize=\"500\" align=\"4\">
+          <addr offset=\"4\" space=\"stack\"/>
+        </pentry>
+      </input>
+      <output>
+        <pentry minsize=\"4\" maxsize=\"10\" metatype=\"float\" >
+          <register name=\"FP0\"/>
+        </pentry>
+        <pentry minsize=\"1\" maxsize=\"4\">
+          <register name=\"D0\" />
+        </pentry>
+        <pentry minsize=\"5\" maxsize=\"8\">
+          <addr space=\"join\" piece1=\"D0\" piece2=\"D1\"/>
+        </pentry>
+      </output>
+      <unaffected>
+        <register name=\"D2\"/>
+        <register name=\"D3\"/>
+        <register name=\"D4\"/>
+        <register name=\"D5\"/>
+        <register name=\"D6\"/>
+        <register name=\"D7\"/>
+        <register name=\"A2\"/>
+        <register name=\"A3\"/>
+        <register name=\"A4\"/>
+        <register name=\"A5\"/>
+        <register name=\"A6\"/>
+        <register name=\"SP\"/>
+        <register name=\"FP2\"/>
+        <register name=\"FP3\"/>
+        <register name=\"FP4\"/>
+        <register name=\"FP5\"/>
+        <register name=\"FP6\"/>
+        <register name=\"FP7\"/>
+      </unaffected>
+      <killedbycall>
+        <register name=\"D0\"/>
+        <register name=\"D1\"/>
+        <register name=\"A0\"/>
+        <register name=\"A1\"/>
+      </killedbycall>
+    </prototype>
+  </default_proto>
+  
+</compiler_spec>
+", "<sleigh bigendian=\"true\" uniqbase=\"0x10000000\">
+  <spaces defaultspace=\"ram\"><space name=\"OTHER\" index=\"1\" bigendian=\"false\" delay=\"0\" size=\"8\" physical=\"false\" global=\"false\"/><space_unique name=\"unique\" index=\"2\" bigendian=\"true\" delay=\"0\" size=\"4\" physical=\"true\" global=\"false\"/><space name=\"ram\" index=\"3\" bigendian=\"true\" delay=\"1\" size=\"4\" physical=\"true\" global=\"true\"/><space name=\"register\" index=\"4\" bigendian=\"true\" delay=\"0\" size=\"4\" physical=\"true\" global=\"false\"/></spaces>
+</sleigh>
+", "    <coretypes>
+        <void/>
+        <type name=\"undefined\" size=\"1\" metatype=\"unknown\" id=\"14223605013689429295\"/>
+        <type name=\"undefined1\" size=\"1\" metatype=\"unknown\" id=\"16457673021210415453\"/>
+        <type name=\"undefined2\" size=\"2\" metatype=\"unknown\" id=\"16457673020567007223\"/>
+        <type name=\"undefined3\" size=\"3\" metatype=\"unknown\" id=\"16457673021210415443\"/>
+        <type name=\"undefined4\" size=\"4\" metatype=\"unknown\" id=\"16457673020567007225\"/>
+        <type name=\"undefined5\" size=\"5\" metatype=\"unknown\" id=\"16457673021210415441\"/>
+        <type name=\"undefined6\" size=\"6\" metatype=\"unknown\" id=\"16457673020567007227\"/>
+        <type name=\"undefined7\" size=\"7\" metatype=\"unknown\" id=\"16457673021210415447\"/>
+        <type name=\"undefined8\" size=\"8\" metatype=\"unknown\" id=\"16457673020567007229\"/>
+        <type name=\"sbyte\" size=\"1\" metatype=\"int\" id=\"9295095874932170597\"/>
+        <type name=\"short\" size=\"2\" metatype=\"int\" id=\"9295095875799492575\"/>
+        <type name=\"sword\" size=\"2\" metatype=\"int\" id=\"9223507882949617615\"/>
+        <type name=\"int3\" size=\"3\" metatype=\"int\" id=\"9223651511387283251\"/>
+        <type name=\"int\" size=\"4\" metatype=\"int\" id=\"9223373128552168415\"/>
+        <type name=\"sdword\" size=\"4\" metatype=\"int\" id=\"18361330922956662735\"/>
+        <type name=\"int5\" size=\"5\" metatype=\"int\" id=\"9223651511387283253\"/>
+        <type name=\"int6\" size=\"6\" metatype=\"int\" id=\"9223651513640952221\"/>
+        <type name=\"int7\" size=\"7\" metatype=\"int\" id=\"9223651511387283255\"/>
+        <type name=\"long\" size=\"8\" metatype=\"int\" id=\"9295055227530102119\"/>
+        <type name=\"sqword\" size=\"8\" metatype=\"int\" id=\"9258120517581940687\"/>
+        <type name=\"longlong\" size=\"8\" metatype=\"int\" id=\"17036957519693866825\"/>
+        <type name=\"int16\" size=\"16\" metatype=\"int\" id=\"9294917519484964765\"/>
+        <type name=\"byte\" size=\"1\" metatype=\"uint\" id=\"9295055227361681253\"/>
+        <type name=\"ushort\" size=\"2\" metatype=\"uint\" id=\"9261052796780292063\"/>
+        <type name=\"word\" size=\"2\" metatype=\"uint\" id=\"9223372608659662799\"/>
+        <type name=\"uint3\" size=\"3\" metatype=\"uint\" id=\"9223518410350780211\"/>
+        <type name=\"uint\" size=\"4\" metatype=\"uint\" id=\"9223372608626244575\"/>
+        <type name=\"dword\" size=\"4\" metatype=\"uint\" id=\"18350907552725346255\"/>
+        <type name=\"uint5\" size=\"5\" metatype=\"uint\" id=\"9223518410350780213\"/>
+        <type name=\"uint6\" size=\"6\" metatype=\"uint\" id=\"9223518412604449181\"/>
+        <type name=\"uint7\" size=\"7\" metatype=\"uint\" id=\"9223518410350780215\"/>
+        <type name=\"ulong\" size=\"8\" metatype=\"uint\" id=\"9295095883690526055\"/>
+        <type name=\"qword\" size=\"8\" metatype=\"uint\" id=\"9223507891539552207\"/>
+        <type name=\"ulonglong\" size=\"8\" metatype=\"uint\" id=\"17036957306664479607\"/>
+        <type name=\"uint16\" size=\"16\" metatype=\"uint\" id=\"9260843654140186525\"/>
+        <type name=\"float2\" size=\"2\" metatype=\"float\" id=\"15361271699889987227\"/>
+        <type name=\"float\" size=\"4\" metatype=\"float\" id=\"18326605056201498591\"/>
+        <type name=\"double\" size=\"8\" metatype=\"float\" id=\"12359338878106585187\"/>
+        <type name=\"float8\" size=\"8\" metatype=\"float\" id=\"15361271699889987229\"/>
+        <type name=\"float10\" size=\"10\" metatype=\"float\" id=\"12552440103070347141\"/>
+        <type name=\"float16\" size=\"16\" metatype=\"float\" id=\"12552440103070347147\"/>
+        <type name=\"longdouble\" size=\"16\" metatype=\"float\" id=\"17178835019738156415\"/>
+        <type name=\"code\" size=\"1\" metatype=\"code\" id=\"9223372611450425189\"/>
+        <type name=\"char\" size=\"1\" metatype=\"int\" char=\"true\" id=\"9223652207829229529\"/>
+        <type name=\"wchar_t\" size=\"4\" metatype=\"int\" utf=\"true\" id=\"9645693801883410911\"/>
+        <type name=\"wchar16\" size=\"2\" metatype=\"int\" utf=\"true\" id=\"9645693801883422621\"/>
+        <type name=\"wchar32\" size=\"4\" metatype=\"int\" utf=\"true\" id=\"9645693801883422105\"/>
+        <type name=\"bool\" size=\"1\" metatype=\"bool\" id=\"9295055269593911751\"/>
+    </coretypes>
+")
+Received: query read begin
+Received: readQueryString bytes="6"
+Received: query read complete bytes="6"
+Received: packed query stream begin bytes="6" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("kfactor")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("ftrap")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("__m68k_trap")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("__m68k_trapv")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("reset")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("saveFPUStateFrame")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("restoreFPUStateFrame")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("invalidateCacheLines")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("pushInvalidateCaches")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fetox")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fetoxm1")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fgetexp")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fgetman")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fint")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("flog10")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("flog2")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("flogn")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("flognp1")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fmod")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("frem")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fscale")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fsgldiv")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("ftentox")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("ftwotox")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("bcdAdjust")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("sin")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("cos")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("tan")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("asin")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("acos")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("atan")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("sinh")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("cosh")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("tanh")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("breakpoint")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("callm")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("rtm")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("stop")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("fmovem")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="7"
+Received: query read complete bytes="7"
+Received: packed query stream begin bytes="7" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="257"
+Sent: queryresponse("")
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="10"
+Received: query read complete bytes="10"
+Received: packed query stream begin bytes="10" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="9"
+Received: query read complete bytes="9"
+Received: packed query stream begin bytes="9" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="253"
+Sent: queryresponse(command_getregister)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="14"
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1"
+Received: buffereddata("0")
+Received: response next burst begin
+Received: response next burst type="16"
+Received: response buffer read begin
+Received: response buffer read complete type="17" bytes="0"
+Received: buffereddata("")
+Received: response next burst begin
+Received: response next burst type="7"
+Sent: command("setOptions", "0", "a0xc9a0xb6a0xca0xc1q0x8econditionalexe0xa10xcaa0xcb0xc1q0x82on0xa10xcb0xa10xb6a0x970xc1q0x82on0xa10x97a0xb6a0xca0xc1q0x89decompile0xa10xcaa0xcb0xc1q0x8bunreachable0xa10xcba0xcc0xc1q0x82on0xa10xcc0xa10xb6a0xb6a0xca0xc1q0x89decompile0xa10xcaa0xcb0xc1q0x8cdoubleprecis0xa10xcba0xcc0xc1q0x82on0xa10xcc0xa10xb6a0xbc0xc1q0x83off0xa10xbca0xbe0xc1q0x82on0xa10xbea0xb00xc1q0x82on0xa10xb0a0xaf0xc1q0x82on0xa10xafa0xba0xc1q0x83off0xa10xbaa0xb80xc1q0x83off0xa10xb8a0xb90xc1q0x82on0xa10xb9a0xc20xc1q0x83off0xa10xc2a0xae0xc1q0x85array0xa10xaea0xc30xc1q0x861000000xa10xc3a0xc50xc1q0x87minimal0xa10xc5b0x8ea0xca0xc1q0x86struct0xa10xcaa0xcb0xc1q0x85array0xa10xcba0xcc0xc1q0x87pointer0xa10xcc0xa20x8eb0x900xc1q0x87compare0xa20x90a0xc80xc1q0x83off0xa10xc8a0xc00xc1q0x83off0xa10xc0a0xb50xc1q0x82on0xa10xb5a0xc60xc1q0x83off0xa10xc6a0xc40xc1q0x831000xa10xc4b0x8f0xc1q0x8440960xa20x8fa0xbd0xc1q0x8120xa10xbda0xb20xc1q0x82200xa10xb2a0xb40xc1q0x81c0xa10xb4a0xb3a0xca0xc1q0x86header0xa10xcaa0xcb0xc1q0x83off0xa10xcb0xa10xb3a0xb3a0xca0xc1q0x85user20xa10xcaa0xcb0xc1q0x82on0xa10xcb0xa10xb3a0xb3a0xca0xc1q0x85user10xa10xcaa0xcb0xc1q0x83off0xa10xcb0xa10xb3a0xb3a0xca0xc1q0x85user30xa10xcaa0xcb0xc1q0x83off0xa10xcb0xa10xb3a0xb3a0xca0xc1q0x87warning0xa10xcaa0xcb0xc1q0x82on0xa10xcb0xa10xb3a0xb1a0xca0xc1q0x86header0xa10xcaa0xcb0xc1q0x82on0xa10xcb0xa10xb1a0xb1a0xca0xc1q0x8dwarningheader0xa10xcaa0xcb0xc1q0x82on0xa10xcb0xa10xb1a0xc10xc1q0x84best0xa10xc1b0x9ca0xca0xc1q0x88function0xa10xcaa0xcb0xc1q0x84skip0xa10xcb0xa20x9cb0x9ca0xca0xc1q0x86ifelse0xa10xcaa0xcb0xc1q0x84same0xa10xcb0xa20x9cb0x9ca0xca0xc1q0x84loop0xa10xcaa0xcb0xc1q0x84same0xa10xcb0xa20x9cb0x9ca0xca0xc1q0x86switch0xa10xcaa0xcb0xc1q0x84same0xa10xcb0xa20x9ca0xcf0xc1q0x8ac-language0xa10xcfa0xcd0xc1q0x89__stdcall0xa10xcd0xa10xc9")
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1"
+Received: buffereddata("t")
+Received: response next burst begin
+Received: response next burst type="16"
+Received: response buffer read begin
+Received: response buffer read complete type="17" bytes="0"
+Received: buffereddata("")
+Received: response next burst begin
+Received: response next burst type="7"
+Sent: command("setAction", "0", "decompile", "")
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1"
+Received: buffereddata("t")
+Received: response next burst begin
+Received: response next burst type="16"
+Received: response buffer read begin
+Received: response buffer read complete type="17" bytes="0"
+Received: buffereddata("")
+Received: response next burst begin
+Received: response next burst type="7"
+Sent: command("decompileAt", "0", "K0xd4Q0x830xd0D0xa00x800xa70xd60x8b")
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="249"
+Received: query(command_getmappedsymbols addr="ram:0x40013d6")
+Received: query(command_getmappedsymbols result kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Sent: queryresponse(command_getmappedsymbols)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013d6")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013d6")
+Received: loadFill begin addr="ram:0x40013d6" size="16"
+Sent: loadFill end addr="ram:0x40013d6" size="16" loaded="16"
+Sent: query(command_getpcode translate end addr="ram:0x40013d6" bytes="168")
+Sent: queryresponse(command_getpcode packedPcode("<inst offset=\"4\">
+  <addr space=\"ram\" offset=\"0x40013d6\"/>
+  <op code=\"20\">
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+    <addr space=\"const\" offset=\"0x4\" size=\"4\"/>
+  </op>
+  <op code=\"3\">
+    <void/>
+    <spaceid name=\"ram\"/>
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+    <addr space=\"register\" offset=\"0x38\" size=\"4\"/>
+  </op>
+  <op code=\"1\">
+    <addr space=\"register\" offset=\"0x38\" size=\"4\"/>
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+  </op>
+  <op code=\"19\">
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+    <addr space=\"register\" offset=\"0x3c\" size=\"4\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"4\"/>
+  </op>
+</inst>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013da")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013da")
+Received: loadFill begin addr="ram:0x40013da" size="16"
+Sent: loadFill end addr="ram:0x40013da" size="16" loaded="16"
+Sent: query(command_getpcode translate end addr="ram:0x40013da" bytes="297")
+Sent: queryresponse(command_getpcode packedPcode("<inst offset=\"8\">
+  <addr space=\"ram\" offset=\"0x40013da\"/>
+  <op code=\"1\">
+    <addr space=\"unique\" offset=\"0x41400\" size=\"1\"/>
+    <addr space=\"ram\" offset=\"0x40b56cc\" size=\"1\"/>
+  </op>
+  <op code=\"15\">
+    <addr space=\"register\" offset=\"0x47\" size=\"1\"/>
+    <addr space=\"unique\" offset=\"0x41400\" size=\"1\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"1\"/>
+  </op>
+  <op code=\"23\">
+    <addr space=\"register\" offset=\"0x46\" size=\"1\"/>
+    <addr space=\"unique\" offset=\"0x41400\" size=\"1\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"1\"/>
+  </op>
+  <op code=\"1\">
+    <addr space=\"register\" offset=\"0x43\" size=\"1\"/>
+    <addr space=\"register\" offset=\"0x47\" size=\"1\"/>
+  </op>
+  <op code=\"20\">
+    <addr space=\"unique\" offset=\"0x41600\" size=\"1\"/>
+    <addr space=\"unique\" offset=\"0x41400\" size=\"1\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"1\"/>
+  </op>
+  <op code=\"13\">
+    <addr space=\"register\" offset=\"0x44\" size=\"1\"/>
+    <addr space=\"unique\" offset=\"0x41600\" size=\"1\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"1\"/>
+  </op>
+  <op code=\"11\">
+    <addr space=\"register\" offset=\"0x45\" size=\"1\"/>
+    <addr space=\"unique\" offset=\"0x41600\" size=\"1\"/>
+    <addr space=\"const\" offset=\"0x0\" size=\"1\"/>
+  </op>
+</inst>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="249"
+Received: query(command_getmappedsymbols addr="ram:0x40b56cc")
+Received: query(command_getmappedsymbols result kind="data" entry="0x0" size="1" name="_cpu_type")
+Received: query(command_getmappedsymbols data encoded size="1" type="undefined" metatype="unknown" chain0="unknown")
+Sent: queryresponse(command_getmappedsymbols)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013e2")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013e2")
+Received: loadFill begin addr="ram:0x40013e2" size="16"
+Sent: loadFill end addr="ram:0x40013e2" size="16" loaded="16"
+Sent: query(command_getpcode translate end addr="ram:0x40013e2" bytes="54")
+Sent: queryresponse(command_getpcode packedPcode("<inst offset=\"2\">
+  <addr space=\"ram\" offset=\"0x40013e2\"/>
+  <op code=\"5\">
+    <void/>
+    <addr space=\"ram\" offset=\"0x40013ec\" size=\"4\"/>
+    <addr space=\"register\" offset=\"0x45\" size=\"1\"/>
+  </op>
+</inst>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013e4")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013e4")
+Received: loadFill begin addr="ram:0x40013e4" size="16"
+Sent: loadFill end addr="ram:0x40013e4" size="16" loaded="16"
+Sent: query(command_getpcode translate end addr="ram:0x40013e4" bytes="18")
+Sent: queryresponse(command_getpcode packedPcode("<inst offset=\"2\">
+  <addr space=\"ram\" offset=\"0x40013e4\"/>
+</inst>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013e6")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013e6")
+Received: loadFill begin addr="ram:0x40013e6" size="16"
+Sent: loadFill end addr="ram:0x40013e6" size="16" loaded="16"
+Sent: query(command_getpcode translate end addr="ram:0x40013e6" bytes="49")
+Sent: queryresponse(command_getpcode packedPcode("<inst offset=\"2\">
+  <addr space=\"ram\" offset=\"0x40013e6\"/>
+  <op code=\"9\">
+    <void/>
+    <addr space=\"const\" offset=\"0x8\" size=\"4\"/>
+    <addr space=\"const\" offset=\"0x3\" size=\"4\"/>
+  </op>
+</inst>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013e8")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013e8")
+Received: loadFill begin addr="ram:0x40013e8" size="16"
+Sent: loadFill end addr="ram:0x40013e8" size="16" loaded="16"
+Sent: queryresponse(command_getpcode packedPcode("<unimpl offset=\"1\" at=\"ram:0x40013e8\"/>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="251"
+Received: query(command_getpcode addr="ram:0x40013ec")
+Received: query(command_getpcode owner kind="function" entry="0x40013d6" size="30" name="_pflush_super")
+Received: query(command_getpcode translate begin addr="ram:0x40013ec")
+Received: loadFill begin addr="ram:0x40013ec" size="16"
+Sent: loadFill end addr="ram:0x40013ec" size="16" loaded="16"
+Sent: queryresponse(command_getpcode packedPcode("<unimpl offset=\"1\" at=\"ram:0x40013ec\"/>
+"))
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="4"
+Received: query read begin
+Received: readQueryString bytes="15"
+Received: query read complete bytes="15"
+Received: packed query stream begin bytes="15" first="0x62"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="256"
+Received: query(command_gettrackedregisters count="0")
+Sent: queryresponse(command_gettrackedregisters)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response next burst begin
+Received: response next burst type="14"
+Received: response buffer read begin
+Received: response buffer read complete type="4" bytes="1011"
+Received: buffereddata("a0xe5`0xf40xceq0x8d_pflush_super0xd3!0x97K0xd4Q0x830xd0D0xa00x800xa70xd60x8ba0xe40xe10x86`0xe10x850x10`0xd00xceq0x8d_pflush_super0xc9A0x81`0xcd0xc9@0xa00xcdML0xd4`0xdbA0x840xdcB0x830xf70x8cL0xd4`0xdbE0x8f0xff0xc20xfb0xc00xdcE0x8f0xff0xff0xff0xfb0x8c0x8d0xa00xd00xa10xe4`0xf3`0xf7K0xd4P0xd0@0xd3!0x810xd2A0xab0x8bK0xd4P0xd0A0x810xd3!0x840xd2A0xa20x8bK0xd4P0xd0A0x810xd3!0x840xd2A0xa30x8bK0xd4P0xd0A0x830xd3!0x840xd2A0xa10x8bK0xd4P0xd0A0x880xd3!0x840xd2A0xa00x8bK0xd4Q0x830xd0D0xa00x800xa70xec0xd3!0x810xd2A0x9e0x8bK0xd4Q0x830xd0D0xa00xad0xad0xcc0xd3!0x810xd2A0xb30xe00xa10x110xde0x110xe00xa00x110x8bK0xd4Q0x830xd0D0xa00xad0xad0xcc0xd3!0x810xd2A0xaf0xe00xa10x110xde0x110x8bK0xd4Q0x830xd0D0xa00xad0xad0xcc0xd3!0x810xd2A0xb10xe00xa10x110xde0x110x8bK0xd4Q0x840xd0A0xc50xd3!0x810xd2A0x9b0x8b0xa00xf7`0xe70xca ML0xd4Q0x830xdbD0xa00x800xa70xd60xdcD0xa00x800xa70xe20x8c0x8d[0xe00xab!0x8cO0xd4Q0x830xd0D0xa00x800xa70xda0xddA0x8a0x8fK0xd2A0x9b0x8bK0xd2A0xb30x8bK0xd2A0xab0x8b0x9b[0xe00xab!0x85O0xd4Q0x830xd0D0xa00x800xa70xe20xddA0x8b0x8fJ0x8aK0xd2A0x9e0x8bK0xd2A0x9b0x8b0x9b0xa00xe7`0xe70xca!0x81ML0xd4Q0x830xdbD0xa00x800xa70xec0xdcD0xa00x800xa70xec0x8c0x8d[0xe00xab!0x81O0xd4Q0x830xd0D0xa00x800xa70xec0xddA0x920x8fK0xd2A0xb10x8bK0xd2A0xb30x8b0x9b[0xe00xab!0x8aO0xd4Q0x830xd0D0xa00x800xa70xec0xddA0x8e0x8fJ0x8aK0xd2A0xa30x8b0x9b0xa00xe7`0xe70xca!0x82ML0xd4Q0x830xdbD0xa00x800xa70xe60xdcD0xa00x800xa70xe80x8c0x8d[0xe00xab!0x89O0xd4Q0x830xd0D0xa00x800xa70xe60xddA0x8c0x8fJ0x8aK0xd2A0xa00x8bK0xd2A0xa10x8b0x9b[0xe00xab!0x81O0xd4Q0x830xd0D0xa00x800xa70xe80xddA0x910x8fK0xd2A0xaf0x8bK0xd2A0xb30x8b0x9b[0xe00xab!0x8aO0xd4Q0x830xd0D0xa00x800xa70xe80xddA0x8d0x8fJ0x8aK0xd2A0xa20x8b0x9b0xa00xe7`0xe80xca!0x81`0xe90xe00xcd 0xe00xcf 0xa00xe90xa00xe8`0xe80xca!0x82`0xe90xe00xcd 0xe00xcf!0x810xa00xe90xa00xe80xa00xf3`0xf5`0xd20xe00xc3A0xab0xe00xc2q0x88constant`0xbf0xceq0x84char0xc9J0x810x800x800xbf0xda0x860x9b0xa20xbf0xd90xa00xbfK0xd2A0xab0x8b0xa00xd2`0xd20xe00xc3A0xa20xe00xc2q0x88constant`0xbf0xceq0x8aundefined40xc9J0x810xe40xb20xd90xcd0xa60xe30xb40xdf0xf90xa00xbfK0xd2A0xa20x8b0xa00xd2`0xd20xe00xc3A0xa30xe00xc2q0x88constant`0xbf0xceq0x8aundefined40xc9J0x810xe40xb20xd90xcd0xa60xe30xb40xdf0xf90xa00xbfK0xd2A0xa30x8b0xa00xd2`0xd20xe00xc3A0xa10xe00xc2q0x88constant`0xbf0xceq0x8aundefined40xc9J0x810xe40xb20xd90xcd0xa60xe30xb40xdf0xf90xa00xbfK0xd2A0xa10x8b0xa00xd2`0xd20xe00xc3A0xa00xe00xc2q0x88constant`0xbf0xceq0x8aundefined40xc9J0x810xe40xb20xd90xcd0xa60xe30xb40xdf0xf90xa00xbfK0xd2A0xa00x8b0xa00xd2`0xd20xe00xc3A0xb30xe00xc2q0x86global0xe00xc4I0xc00x800x800x800x800x800x800x800x80`0xbf0xceq0x84char0xc9J0x810x800x800xbf0xda0x860x9b0xa20xbf0xd90xa00xbfK0xd2A0xb30x8bK0xd2A0xaf0x8bK0xd2A0xb10x8b0xa00xd2`0xd20xe00xc3A0x9b0xe00xc2q0x85other`0xbf0xceq0x84bool0xc9J0x810x800xff0xaa0xf00xd30xbe0x920xa30xc70xa00xbfK0xd2A0x9b0x8b0xa00xd20xa00xf5a0xa90xcdq0x89__stdcall0xc6!0x84a0xacK0x8bJ0x8a0xa10xac0xa10xa90xa00xf4")
+Received: query read begin
+Received: readQueryString bytes="18"
+Received: query read complete bytes="18"
+Received: packed query stream begin bytes="18" first="0x61"
+Received: packed query stream ready
+Received: packed query ingest begin
+Received: packed query ingest complete
+Received: packed query open element begin
+Received: packed query open element id="245"
+Received: query(command_getcomments decode begin)
+Received: query(command_getcomments addr="ram:0x40013d6" flags="58")
+Sent: queryresponse(command_getcomments)
+Received: query terminator read begin
+Received: query terminator read complete
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1652"
+Received: buffereddata("`0xf4X0xc1p0x98Q0xe00xa6 0x91`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x83/* 0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x88WARNING:0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x87Control0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x84flow0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x8bencountered0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x8dunimplemented0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x8cinstructions0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x83 */0xa00xd6Q0xe00xa6 0x91`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x83/* 0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x92<ghidradec_select>0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xd60xc1q0x83 */0xa00xd6Q0xe00xa6 0x91X0xc1p0x98Q0xe00xa6 0x91TV`0xbc0xe00xa5A0x820xc9J0x810xc00xff0xaa0xf00xd20x9e0x920xaf0xcf0xc1q0x84void0xa00xbcX0xc1p0x98X0xc1p0x980x96X0xc1q0x81 0x98S0xe00xa5A0x830xc1q0x8d_pflush_super0x93X0xc1p0x98X0xe00xa8!0x870xc1q0x81(0x98X0xc1p0x98X0xe00xa5@0xc1q0x84void0x98X0xc1p0x98X0xe00xa4!0x870xc1q0x81)0x980x94Q0xe00xa6 0x91X0xc1p0x98Q0xe00xa6 0x91X0xc1q0x81{0x98`0xe70xe00xa3 `0xe70xe00xa3 Q0xe00xa6!0x820x91[0xe00xa5@0xe00xa9A0x8b0xc1q0x82if0x9bX0xc1q0x81 0x98X0xe00xa8!0x8b0xc1q0x81(0x98X0xc1p0x98Z0xe00xa5A0x870xe00xaaA0xb30xe00xa9A0x8a0xc1q0x89_cpu_type0x9aX0xc1q0x81 0x98[0xe00xa9A0x8a0xc1q0x82!=0x9bX0xc1q0x81 0x98Z0xe00xa5A0x850xe00xaaA0xab0xe00xa9A0x8a0xc1q0x84'\\0'0x9aX0xc1p0x98X0xe00xa4!0x8b0xc1q0x81)0x98X0xc1q0x81 0x98X0xc1q0x81{0x98`0xe70xe00xa3!0x82Q0xe00xa6!0x840x91W0xe00xa9A0x8c[0xe00xa5A0x830xe00xa9A0x8c0xc1q0x94pushInvalidateCaches0x9bX0xc1p0x98X0xe00xa8!0x910xc1q0x81(0x98X0xc1p0x98Z0xe00xa5A0x850xe00xaaA0xa10xe00xa9A0x8c0xc1q0x8130x9aX0xc1p0x98X0xe00xa4!0x910xc1q0x81)0x980x97X0xc1p0x98X0xc1q0x81;0x98Q0xe00xa6!0x940x91`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x83/* 0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x88WARNING:0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x8dUnimplemented0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x8binstruction0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x81-0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x8aTruncating0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x87control0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x84flow0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x84here0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xe80xc1q0x83 */0xa00xd6Q0xe00xa6!0x840x91W0xe00xa9A0x8d[0xe00xa5A0x830xe00xa9A0x8d0xc1q0x92halt_unimplemented0x9bX0xc1p0x98X0xe00xa8!0x950xc1q0x81(0x98X0xc1p0x98X0xe00xa4!0x950xc1q0x81)0x980x97X0xc1p0x98X0xc1q0x81;0x980xa00xe7Q0xe00xa6!0x820x91X0xc1q0x81}0x980xa00xe7`0xe70xe00xa3!0x81Q0xe00xa6!0x940x91`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x83/* 0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x88WARNING:0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x8dUnimplemented0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x8binstruction0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x81-0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x8aTruncating0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x87control0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x84flow0xa00xd6X0xc1q0x81 0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x84here0xa00xd6X0xc1p0x98`0xd60xe00xa5A0x810xd4Q0x830xe00xa7D0xa00x800xa70xec0xc1q0x83 */0xa00xd6Q0xe00xa6!0x820x91W0xe00xa9A0x8e[0xe00xa5A0x830xe00xa9A0x8e0xc1q0x92halt_unimplemented0x9bX0xc1p0x98X0xe00xa8!0x9a0xc1q0x81(0x98X0xc1p0x98X0xe00xa4!0x9a0xc1q0x81)0x980x97X0xc1p0x98X0xc1q0x81;0x980xa00xe70xa00xe7Q0xe00xa6 0x91X0xc1q0x81}0x98Q0xe00xa6 0x91X0xc1p0x980xa00xf40xa10xe5")
+Received: response next burst begin
+Received: response next burst type="16"
+Received: response buffer read begin
+Received: response buffer read complete type="17" bytes="0"
+Received: buffereddata("")
+Received: response next burst begin
+Received: response next burst type="7"
+Received: doDecompile response bytes="2663"
+Sent: command("flushNative", "0")
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1"
+Received: buffereddata("0")
+Received: response next burst begin
+Received: response next burst type="16"
+Received: response buffer read begin
+Received: response buffer read complete type="17" bytes="0"
+Received: buffereddata("")
+Received: response next burst begin
+Received: response next burst type="7"
+Received: doDecompile flushNative result="0"
+Received: doDecompile unpack packed XML
+Received: doDecompile XML bytes="8185"
+Received: doDecompile XML parsed
+Received: doDecompile function element first="true"
+Received: doDecompile parse prototype begin
+Received: doDecompile parse prototype complete
+Received: doDecompile localdb begin
+Received: doDecompile localdb complete
+Received: doDecompile ast begin
+Received: doDecompile ast complete
+Received: doDecompile function element first="false"
+Received: doDecompile convert source begin
+Received: doDecompile convert source complete
+Received: doDecompile parsed document complete
+Sent: command("deregisterProgram", "0")
+Received: response buffer read begin
+Received: response buffer read complete type="15" bytes="1"
+Received: buffereddata("1")
+Received: response next burst begin
+Received: response next burst type="7"

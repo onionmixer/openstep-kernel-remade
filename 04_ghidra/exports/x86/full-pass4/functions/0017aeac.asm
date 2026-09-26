@@ -1,0 +1,64 @@
+0x0017aeac	1	PUSH EBP
+0x0017aead	2	MOV EBP,ESP
+0x0017aeaf	1	PUSH EDI
+0x0017aeb0	1	PUSH ESI
+0x0017aeb1	1	PUSH EBX
+0x0017aeb2	3	MOV ESI,dword ptr [EBP + 0x8]
+0x0017aeb5	4	TEST byte ptr [ESI + 0x20],0x4
+0x0017aeb9	6	JZ 0x0017af4e
+0x0017aebf	6	MOV ECX,dword ptr [0x001f6ea4]
+0x0017aec5	3	MOV EAX,dword ptr [ESI + 0x18]
+0x0017aec8	2	SHR EAX,CL
+0x0017aeca	3	ADD EAX,dword ptr [ESI + 0x14]
+0x0017aecd	6	AND EAX,dword ptr [0x001f743c]
+0x0017aed3	6	MOV EDX,dword ptr [0x001f7438]
+0x0017aed9	3	LEA EBX,[EDX + EAX*0x8]
+0x0017aedc	5	CALL 0x0018b970
+0x0017aee1	2	MOV ECX,EAX
+0x0017aee3	1	NOP
+0x0017aee4	2	MOV EAX,dword ptr [EBX]
+0x0017aee6	2	TEST EAX,EAX
+0x0017aee8	2	JNZ 0x0017aee6
+0x0017aeea	5	MOV EAX,0x1
+0x0017aeef	2	XCHG dword ptr [EBX],EAX
+0x0017aef1	3	XOR EAX,0x1
+0x0017aef4	2	TEST EAX,EAX
+0x0017aef6	2	JZ 0x0017aee4
+0x0017aef8	3	MOV EAX,dword ptr [EBX + 0x4]
+0x0017aefb	2	CMP EAX,ESI
+0x0017aefd	2	JNZ 0x0017af0c
+0x0017aeff	3	MOV EDI,dword ptr [ESI + 0x10]
+0x0017af02	3	MOV dword ptr [EBX + 0x4],EDI
+0x0017af05	2	JMP 0x0017af1b
+0x0017af08	2	MOV dword ptr [EAX],EDX
+0x0017af0a	2	JMP 0x0017af43
+0x0017af0c	3	LEA EDX,[EAX + 0x10]
+0x0017af0f	3	MOV EAX,dword ptr [EAX + 0x10]
+0x0017af12	2	CMP EAX,ESI
+0x0017af14	2	JNZ 0x0017af0c
+0x0017af16	3	MOV EAX,dword ptr [EAX + 0x10]
+0x0017af19	2	MOV dword ptr [EDX],EAX
+0x0017af1b	2	XOR EAX,EAX
+0x0017af1d	2	XCHG dword ptr [EBX],EAX
+0x0017af1f	1	PUSH ECX
+0x0017af20	5	CALL 0x0018b544
+0x0017af25	3	MOV EDX,dword ptr [ESI + 0x8]
+0x0017af28	3	MOV EAX,dword ptr [ESI + 0xc]
+0x0017af2b	3	CMP dword ptr [ESI + 0x14],EDX
+0x0017af2e	2	JNZ 0x0017af38
+0x0017af30	3	MOV dword ptr [EDX + 0x4],EAX
+0x0017af33	2	JMP 0x0017af3b
+0x0017af38	3	MOV dword ptr [EDX + 0xc],EAX
+0x0017af3b	3	CMP dword ptr [ESI + 0x14],EAX
+0x0017af3e	2	JZ 0x0017af08
+0x0017af40	3	MOV dword ptr [EAX + 0x8],EDX
+0x0017af43	3	MOV EAX,dword ptr [ESI + 0x14]
+0x0017af46	4	DEC word ptr [EAX + 0x1a]
+0x0017af4a	4	AND byte ptr [ESI + 0x20],0xfb
+0x0017af4e	3	LEA ESP,[EBP + -0xc]
+0x0017af51	1	POP EBX
+0x0017af52	1	POP ESI
+0x0017af53	1	POP EDI
+0x0017af54	2	MOV ESP,EBP
+0x0017af56	1	POP EBP
+0x0017af57	1	RET

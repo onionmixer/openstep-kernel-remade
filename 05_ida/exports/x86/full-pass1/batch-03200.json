@@ -1,0 +1,682 @@
+[
+  {
+    "requested_address": "0x00197134",
+    "addr": "0x00197134",
+    "code": "int __cdecl sub_197134(int a1)\n{\n  int v1; // eax\n  int v2; // eax\n  int v3; // edx\n\n  v1 = *(_DWORD *)(a1 + 64); /*0x19713b*/\n  if ( (v1 & 0x121) != 0 || !*(_DWORD *)(a1 + 24) ) /*0x197145*/\n  {\n    if ( *(_DWORD *)(a1 + 24) <= ttlowat[*(_BYTE *)(a1 + 74) & 0x1F] ) /*0x197199*/\n    {\n      v2 = *(_DWORD *)(a1 + 64); /*0x19719b*/\n      if ( (v2 & 0x40) != 0 ) /*0x1971a0*/\n      {\n        LOBYTE(v2) = v2 & 0xBF; /*0x1971a2*/\n        *(_DWORD *)(a1 + 64) = v2; /*0x1971a4*/\n        wakeup(a1 + 24); /*0x1971ab*/\n      }\n      v3 = *(_DWORD *)(a1 + 44); /*0x1971b3*/\n      if ( v3 ) /*0x1971b8*/\n      {\n        selwakeup(v3, *(_DWORD *)(a1 + 64) & 0x1000); /*0x1971c4*/\n        selthreadclear((_DWORD *)(a1 + 44)); /*0x1971cd*/\n        *(_DWORD *)(a1 + 64) &= ~0x1000u; /*0x1971d2*/\n      }\n    }\n  }\n  else\n  {\n    LOBYTE(v1) = v1 | 0x20; /*0x19714b*/\n    *(_DWORD *)(a1 + 64) = v1; /*0x19714d*/\n    if ( *(_DWORD *)(a1 + 24) <= ttlowat[*(_BYTE *)(a1 + 74) & 0x1F] ) /*0x197161*/\n      ns_timeout((int)sub_1971E4, a1, 1000); /*0x19717f*/\n    else\n      calloutDispatchUnique((int)sub_1971E4, a1); /*0x197169*/\n  }\n  return 0; /*0x1971db*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x10d7e4",
+        "name": "_selwakeup"
+      },
+      {
+        "addr": "0x10d7b0",
+        "name": "_selthreadclear"
+      },
+      {
+        "addr": "0x1daeac",
+        "name": "_ttlowat"
+      },
+      {
+        "addr": "0x1604b0",
+        "name": "_ns_timeout"
+      },
+      {
+        "addr": "0x1971e4",
+        "name": "sub_1971E4"
+      },
+      {
+        "addr": "0x1692d8",
+        "name": "_calloutDispatchUnique"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001971e4",
+    "addr": "0x001971e4",
+    "code": "int __cdecl sub_1971E4(int a1)\n{\n  int v1; // esi\n  int v2; // eax\n  unsigned int v3; // esi\n  int v4; // eax\n  char *i; // ebx\n  char v6; // al\n  __int64 v7; // rax\n  int v8; // eax\n  int v9; // ecx\n  int v10; // eax\n  int *v12; // [esp+14h] [ebp-58h]\n  int v13; // [esp+18h] [ebp-54h]\n  char v14[80]; // [esp+1Ch] [ebp-50h] BYREF\n\n  v13 = ttynty(a1); /*0x1971f6*/\n  v1 = -1; /*0x1971f9*/\n  if ( *(int *)(a1 + 24) > 0 )\n  {\n    v12 = (int *)(a1 + 24); /*0x197211*/\n    do\n    {\n      v2 = (*(_DWORD *)(a1 + 60) & 0x2200020) != 0\n        || (*(_DWORD *)(v13 + 16) & 0x10000000) == 0\n        || (*(_DWORD *)(v13 + 16) & 0x300) == 0x300\n         ? ndqb(v12, 0)\n         : ndqb(v12, 128);\n      v3 = v2; /*0x19725a*/\n      if ( !v2 ) /*0x197261*/\n        goto LABEL_15; /*0x197261*/\n      v4 = 80; /*0x197263*/\n      if ( v3 <= 0x4F ) /*0x19726b*/\n        v4 = v3; /*0x19726d*/\n      v1 = v4; /*0x19726f*/\n      q_to_b((int)v12, v14, v4); /*0x19727a*/\n      for ( i = v14; &v14[v1] > i; ++i ) /*0x19728a*/\n        objc_msgSend(kmId, sel_kmPutc_, *i & 0x7F); /*0x1972a4*/\n    }\n    while ( *(int *)(a1 + 24) > 0 );\n  }\n  if ( !v1 ) /*0x1972c1*/\n  {\nLABEL_15:\n    v6 = getc((FILE *)(a1 + 24)); /*0x1972c3*/\n    v7 = ticks_to_ns_time(v6 & 0x7F); /*0x1972d9*/\n    ns_timeout((int)ttrstrt, a1, v7); /*0x1972ec*/\n    *(_BYTE *)(a1 + 64) |= 1u; /*0x1972f4*/\n    goto LABEL_18; /*0x1972fb*/\n  }\n  if ( *(int *)(a1 + 24) > 0 ) /*0x197307*/\n    calloutDispatchUnique((int)sub_1971E4, a1); /*0x19730f*/\nLABEL_18:\n  v8 = *(_DWORD *)(a1 + 64); /*0x197317*/\n  v9 = v8; /*0x19731d*/\n  LOBYTE(v9) = v8 & 0xDF; /*0x19731f*/\n  *(_DWORD *)(a1 + 64) = v9; /*0x197322*/\n  if ( *(_DWORD *)(a1 + 24) <= ttlowat[*(_BYTE *)(a1 + 74) & 0x1F] ) /*0x197336*/\n  {\n    if ( (v8 & 0x40) != 0 ) /*0x19733a*/\n    {\n      LOBYTE(v8) = v8 & 0x9F; /*0x19733c*/\n      *(_DWORD *)(a1 + 64) = v8; /*0x19733e*/\n      wakeup(a1 + 24); /*0x197348*/\n    }\n    v10 = *(_DWORD *)(a1 + 44); /*0x197353*/\n    if ( v10 ) /*0x197358*/\n    {\n      selwakeup(v10, *(_DWORD *)(a1 + 64) & 0x1000); /*0x197365*/\n      selthreadclear((_DWORD *)(a1 + 44)); /*0x197371*/\n      *(_DWORD *)(a1 + 64) &= ~0x1000u; /*0x197376*/\n    }\n  }\n  return 0; /*0x197382*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x112ff0",
+        "name": "_ndqb"
+      },
+      {
+        "addr": "0x112eac",
+        "name": "_q_to_b"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x202bb4",
+        "name": "sel_kmPutc:",
+        "string": "kmPutc:"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x1606d0",
+        "name": "_ticks_to_ns_time"
+      },
+      {
+        "addr": "0x1604b0",
+        "name": "_ns_timeout"
+      },
+      {
+        "addr": "0x10dee4",
+        "name": "_ttrstrt"
+      },
+      {
+        "addr": "0x1692d8",
+        "name": "_calloutDispatchUnique"
+      },
+      {
+        "addr": "0x1971e4",
+        "name": "sub_1971E4"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x10d7e4",
+        "name": "_selwakeup"
+      },
+      {
+        "addr": "0x10d7b0",
+        "name": "_selthreadclear"
+      },
+      {
+        "addr": "0x1daeac",
+        "name": "_ttlowat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019738c",
+    "addr": "0x0019738c",
+    "code": "int __cdecl kmpopup(int a1)\n{\n  if ( !dword_1E777C ) /*0x197396*/\n    kminit(); /*0x197398*/\n  DoAlert(a1, byte_1E3E78); /*0x1973a6*/\n  return 0; /*0x1973af*/\n}",
+    "refs": [
+      {
+        "addr": "0x197514",
+        "name": "_kminit"
+      },
+      {
+        "addr": "0x1e777c",
+        "name": "dword_1E777C"
+      },
+      {
+        "addr": "0x195ec0",
+        "name": "_DoAlert"
+      },
+      {
+        "addr": "0x1e3e78",
+        "name": "byte_1E3E78"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001973b4",
+    "addr": "0x001973b4",
+    "code": "int kmrestore()\n{\n  DoRestore(); /*0x1973b7*/\n  return 0; /*0x1973c0*/\n}",
+    "refs": [
+      {
+        "addr": "0x195758",
+        "name": "_DoRestore"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001973c4",
+    "addr": "0x001973c4",
+    "code": "int __cdecl alert(int a1, int a2, int a3, char *a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12)\n{\n  char v13[200]; // [esp+8h] [ebp-C8h] BYREF\n\n  sprintf(v13, a4, a5, a6, a7, a8, a9, a10, a11, a12); /*0x1973fd*/\n  DoAlert(a3, v13); /*0x197407*/\n  return 0; /*0x197414*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x195ec0",
+        "name": "_DoAlert"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019741c",
+    "addr": "0x0019741c",
+    "code": "int alert_done()\n{\n  DoRestore(); /*0x19741f*/\n  return 0; /*0x197428*/\n}",
+    "refs": [
+      {
+        "addr": "0x195758",
+        "name": "_DoRestore"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019742c",
+    "addr": "0x0019742c",
+    "code": "id __cdecl aprint(char *a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9)\n{\n  char *v9; // edi\n  int v10; // esi\n  id result; // eax\n  int v12; // ebx\n  char v13[200]; // [esp+10h] [ebp-C8h] BYREF\n\n  v9 = v13; /*0x197438*/\n  sprintf(v13, a1, a2, a3, a4, a5, a6, a7, a8, a9); /*0x197463*/\n  do /*0x1974e2*/\n  {\n    v10 = *v9++; /*0x19746c*/\n    if ( kmId ) /*0x19747d*/\n    {\n      if ( v10 == 10 ) /*0x197482*/\n        objc_msgSend(kmId, sel_kmPutc_, 13); /*0x19748e*/\n      result = objc_msgSend(kmId, sel_kmPutc_, v10); /*0x1974a5*/\n    }\n    else\n    {\n      v12 = kmAlertConsole; /*0x1974b0*/\n      if ( !kmAlertConsole ) /*0x1974b8*/\n        v12 = basicConsole; /*0x1974ba*/\n      if ( v10 == 10 ) /*0x1974c3*/\n        (*(void (__cdecl **)(int, int))(v12 + 20))(v12, 13); /*0x1974cb*/\n      result = (id)(*(int (__cdecl **)(int, int))(v12 + 20))(v12, v10); /*0x1974db*/\n    }\n  }\n  while ( v9 ); /*0x1974e2*/\n  return result; /*0x1974ea*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x202bb4",
+        "name": "sel_kmPutc:",
+        "string": "kmPutc:"
+      },
+      {
+        "addr": "0x1f7b44",
+        "name": "_kmAlertConsole"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001974f4",
+    "addr": "0x001974f4",
+    "code": "id kmdumplog()\n{\n  id result; // eax\n\n  result = kmId; /*0x1974f7*/\n  if ( kmId ) /*0x1974fe*/\n    return objc_msgSend(kmId, sel_dumpMsgBuf); /*0x197508*/\n  return result; /*0x19750f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202b74",
+        "name": "sel_dumpMsgBuf",
+        "string": "dumpMsgBuf"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197514",
+    "addr": "0x00197514",
+    "code": "int kminit()\n{\n  dword_1E777C = 1; /*0x197517*/\n  basicConsole = FBAllocateVBEConsole(); /*0x197526*/\n  if ( !basicConsole ) /*0x19752d*/\n    basicConsole = BasicAllocateConsole(); /*0x197534*/\n  if ( MEMORY[0x1114C] ) /*0x197540*/\n  {\n    basicConsoleMode = 2; /*0x197542*/\n    return (*(int (__stdcall **)(int, int, _DWORD, _DWORD, char *))(basicConsole + 4))( /*0x197562*/\n             basicConsole,\n             2,\n             0,\n             0,\n             mach_title);\n  }\n  else\n  {\n    basicConsoleMode = 1; /*0x197568*/\n    return (*(int (__stdcall **)(int, int, int, int, char *))(basicConsole + 4))(basicConsole, 1, 1, 1, mach_title); /*0x197584*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e777c",
+        "name": "dword_1E777C"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x19ecb8",
+        "name": "_FBAllocateVBEConsole"
+      },
+      {
+        "addr": "0x197c58",
+        "name": "_BasicAllocateConsole"
+      },
+      {
+        "addr": "0x1f7b40",
+        "name": "_basicConsoleMode"
+      },
+      {
+        "addr": "0x1e38a4",
+        "name": "_mach_title"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197588",
+    "addr": "0x00197588",
+    "code": "id __cdecl kmDrawGraphicPanel(int a1)\n{\n  id result; // eax\n\n  result = kmId; /*0x19758b*/\n  if ( kmId ) /*0x197592*/\n    return objc_msgSend(kmId, sel_drawGraphicPanel_, a1); /*0x1975a0*/\n  return result; /*0x1975a7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202ca8",
+        "name": "sel_drawGraphicPanel:",
+        "string": "drawGraphicPanel:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001975ac",
+    "addr": "0x001975ac",
+    "code": "id __cdecl kmGraphicPanelString(int a1)\n{\n  id result; // eax\n\n  result = kmId; /*0x1975af*/\n  if ( kmId ) /*0x1975b6*/\n    return objc_msgSend(kmId, sel_graphicPanelString_, a1); /*0x1975c4*/\n  return result; /*0x1975cb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202cbc",
+        "name": "sel_graphicPanelString:",
+        "string": "graphicPanelString:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001975d0",
+    "addr": "0x001975d0",
+    "code": "void __cdecl -[kmDevice graphicPanelString:](kmDevice *self, SEL a2, char *__s2)\n{\n  unsigned int i; // ecx\n  int v4; // ecx\n  int v5; // ebx\n  char *v6; // esi\n  int m; // ecx\n  __int16 *v8; // esi\n  __int16 v9; // cx\n  int ii; // edi\n  int v11; // eax\n  int v12; // ecx\n  int v13; // ecx\n  char *v14; // [esp+10h] [ebp-24h]\n  char j; // [esp+14h] [ebp-20h]\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *v16; // [esp+18h] [ebp-1Ch]\n  int n; // [esp+1Ch] [ebp-18h]\n  char *v18; // [esp+20h] [ebp-14h]\n  char *k; // [esp+20h] [ebp-14h]\n  int v20; // [esp+24h] [ebp-10h]\n  _WORD v21[4]; // [esp+28h] [ebp-Ch] BYREF\n  char *v22; // [esp+30h] [ebp-4h]\n  char *__s2a; // [esp+44h] [ebp+10h]\n\n  if ( self->fbMode == 2 ) /*0x1975e3*/\n  {\n    __s2a = (char *)kmLocalizeString(__s2); /*0x1975f2*/\n    dword_1E8640 = 0; /*0x1975f5*/\n    dword_1E8628 = 288; /*0x1975ff*/\n    dword_1E862C = 52; /*0x197609*/\n    for ( i = 0; i <= 0xE9F; ++i ) /*0x197616*/\n      byte_1E7780[i] = 85; /*0x197618*/\n    v4 = 0; /*0x197628*/\n    v18 = __s2a; /*0x19762d*/\n    for ( j = 0; *v18; ++v18 ) /*0x197634*/\n    {\n      j = *v18; /*0x197641*/\n      if ( *v18 == 10 ) /*0x197646*/\n        ++v4; /*0x197648*/\n    }\n    if ( j != 10 ) /*0x197658*/\n      ++v4; /*0x19765a*/\n    v5 = dword_1E8630 + 3; /*0x197661*/\n    LOBYTE(v5) = (dword_1E8630 + 3) & 0xFC; /*0x197664*/\n    dword_1E8630 = v5; /*0x197667*/\n    dword_1E8628 &= 0xFFFFFFFC; /*0x19766d*/\n    v20 = *((__int16 *)off_1E3E90 + 4) + (*((__int16 *)off_1E3E90 + 4) + 9) / 10; /*0x197694*/\n    dword_1E863C = (dword_1E862C - v20 * (v4 - 1)) / 2 + 2; /*0x1976b5*/\n    for ( k = __s2a; *k; dword_1E863C += v20 ) /*0x1976c1*/\n    {\n      v6 = k; /*0x1976cc*/\n      for ( m = 0; *v6; m += *((__int16 *)off_1E3E90 + 8 * (unsigned __int8)*v6++ - 244) ) /*0x1976d1*/\n      {\n        if ( *v6 == 10 ) /*0x1976e4*/\n          break; /*0x1976e4*/\n      }\n      dword_1E8638 = (dword_1E8628 - m) / 2; /*0x197711*/\n      if ( *k ) /*0x197719*/\n      {\n        while ( *k != 10 ) /*0x19772c*/\n        {\n          v8 = (__int16 *)((char *)off_1E3E90 + 16 * (unsigned __int8)*k - 496); /*0x197744*/\n          for ( n = 0; n < v8[1]; ++n ) /*0x197757*/\n          {\n            v9 = *v8; /*0x197760*/\n            for ( ii = 0; ii < *v8; v9 = *v8 ) /*0x197768*/\n            {\n              v11 = ii + *((_DWORD *)v8 + 3) + v9 * (v8[1] - n - 1); /*0x197784*/\n              v12 = *(unsigned __int8 *)((v11 >> 3) + *((_DWORD *)off_1E3E90 + 388)); /*0x197797*/\n              if ( _bittest(&v12, 7 - (v11 & 7)) ) /*0x1977a8*/\n              {\n                v13 = 2 * (ii + dword_1E8638 + v8[2] + dword_1E8628 * (dword_1E863C - v8[3] - n)); /*0x1977e1*/\n                v14 = &off_1E3E8C[v13 >> 3]; /*0x1977ee*/\n                if ( v14 != (char *)dword_1E8640 ) /*0x1977fc*/\n                {\n                  if ( dword_1E8640 ) /*0x197800*/\n                    *(_BYTE *)dword_1E8640 = byte_1E8644; /*0x197808*/\n                  byte_1E8644 = *v14; /*0x19780f*/\n                  dword_1E8640 = (int)v14; /*0x197818*/\n                }\n                byte_1E8644 = (3 << (6 - (v13 & 7))) | ~(unsigned __int8)(3 << (6 - (v13 & 7))) & byte_1E8644; /*0x197847*/\n              }\n              ++ii; /*0x19784d*/\n            }\n          }\n          if ( dword_1E8640 ) /*0x197874*/\n            *(_BYTE *)dword_1E8640 = byte_1E8644; /*0x19787c*/\n          dword_1E8640 = 0; /*0x19787e*/\n          dword_1E8638 += v8[4]; /*0x19788f*/\n          if ( !*++k ) /*0x19789b*/\n            goto LABEL_30; /*0x19789e*/\n        }\n        ++k; /*0x19772f*/\n      }\nLABEL_30:\n      ; /*0x1978a4*/\n    }\n    v16 = self->fbp[0]; /*0x1978c2*/\n    v21[2] = dword_1E8628; /*0x1978cc*/\n    v21[3] = dword_1E862C; /*0x1978d7*/\n    v21[0] = dword_1E8630 + 12; /*0x1978e5*/\n    v21[1] = dword_1E8634 + 62; /*0x1978f4*/\n    v22 = off_1E3E8C; /*0x1978fe*/\n    (*((void (__stdcall **)($8EF4127CF77ECA3DDB612FCF233DC3A8 *, _WORD *))v16 + 3))(v16, v21); /*0x19790c*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x197988",
+        "name": "_kmLocalizeString"
+      },
+      {
+        "addr": "0x1e8640",
+        "name": "dword_1E8640"
+      },
+      {
+        "addr": "0x1e8628",
+        "name": "dword_1E8628"
+      },
+      {
+        "addr": "0x1e862c",
+        "name": "dword_1E862C"
+      },
+      {
+        "addr": "0x1e7780",
+        "name": "byte_1E7780"
+      },
+      {
+        "addr": "0x1e8630",
+        "name": "dword_1E8630"
+      },
+      {
+        "addr": "0x1e3e90",
+        "name": "off_1E3E90"
+      },
+      {
+        "addr": "0x1e863c",
+        "name": "dword_1E863C"
+      },
+      {
+        "addr": "0x1e8638",
+        "name": "dword_1E8638"
+      },
+      {
+        "addr": "0x1e3e8c",
+        "name": "off_1E3E8C"
+      },
+      {
+        "addr": "0x1e8644",
+        "name": "byte_1E8644"
+      },
+      {
+        "addr": "0x1e8634",
+        "name": "dword_1E8634"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197918",
+    "addr": "0x00197918",
+    "code": "void __cdecl -[kmDevice drawGraphicPanel:](kmDevice *self, SEL a2, int a3)\n{\n  _WORD v3[4]; // [esp+0h] [ebp-Ch] BYREF\n  void *v4; // [esp+8h] [ebp-4h]\n\n  if ( self->fbMode == 2 ) /*0x197928*/\n  {\n    dword_1E8620 = 312; /*0x19792a*/\n    v3[2] = 312; /*0x197934*/\n    dword_1E8624 = 176; /*0x19793a*/\n    v3[3] = 176; /*0x197944*/\n    dword_1E8630 = 164; /*0x19794a*/\n    v3[0] = 164; /*0x197954*/\n    dword_1E8634 = 152; /*0x19795a*/\n    v3[1] = 152; /*0x197964*/\n    v4 = &NSPanel; /*0x19796a*/\n    (*((void (__stdcall **)($8EF4127CF77ECA3DDB612FCF233DC3A8 *, _WORD *))self->fbp[0] + 3))(self->fbp[0], v3); /*0x19797f*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8620",
+        "name": "dword_1E8620"
+      },
+      {
+        "addr": "0x1e8624",
+        "name": "dword_1E8624"
+      },
+      {
+        "addr": "0x1e8630",
+        "name": "dword_1E8630"
+      },
+      {
+        "addr": "0x1e8634",
+        "name": "dword_1E8634"
+      },
+      {
+        "addr": "0x1d1648",
+        "name": "_NSPanel"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197988",
+    "addr": "0x00197988",
+    "code": "char *__cdecl kmLocalizeString(char *__s2)\n{\n  int v1; // edi\n  const char **v2; // ebx\n  int v3; // esi\n  char *result; // eax\n\n  v1 = glLanguage; /*0x19798e*/\n  if ( (unsigned int)glLanguage > 6 ) /*0x197997*/\n    v1 = 0; /*0x197999*/\n  if ( !kmLocalizedStrings[0] ) /*0x1979a2*/\n    return __s2; /*0x1979a2*/\n  v2 = (const char **)kmLocalizedStrings; /*0x1979a4*/\n  v3 = 0; /*0x1979a9*/\n  while ( strcmp(*v2, __s2) ) /*0x1979bd*/\n  {\n    v2 += 7; /*0x1979cc*/\n    v3 += 7; /*0x1979cf*/\n    if ( !*v2 ) /*0x1979d2*/\n      return __s2; /*0x1979d5*/\n  }\n  result = (&kmLocalizedStrings[v1])[v3]; /*0x1979bf*/\n  if ( !result ) /*0x1979c8*/\n    return __s2; /*0x1979d7*/\n  return result; /*0x1979dd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7a1c",
+        "name": "_glLanguage"
+      },
+      {
+        "addr": "0x1e3e94",
+        "name": "_kmLocalizedStrings"
+      },
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001979e4",
+    "addr": "0x001979e4",
+    "code": "int VGASetGraphicsMode()\n{\n  unsigned int i; // ecx\n  unsigned int j; // ecx\n  unsigned int k; // ecx\n  unsigned int m; // ecx\n  int v4; // ecx\n  int v5; // edx\n  unsigned __int8 v6; // bl\n  unsigned __int8 v7; // si\n  unsigned __int8 v8; // di\n  int n; // [esp+Ch] [ebp-Ch]\n\n  __outbyte(0x3C4u, 1u); /*0x1979f4*/\n  _InterlockedIncrement(dword_1E8648); /*0x1979f5*/\n  __outbyte(0x3C5u, 0x21u); /*0x197a09*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a0a*/\n  __inbyte(0x3DAu); /*0x197a16*/\n  __outbyte(0x3C0u, 0); /*0x197a1e*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a1f*/\n  __outbyte(0x3C2u, 0xE3u); /*0x197a33*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a34*/\n  __outbyte(0x3DAu, 0); /*0x197a48*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a49*/\n  for ( i = 0; i <= 4; ++i ) /*0x197a50*/\n  {\n    __outbyte(0x3C4u, i); /*0x197a5d*/\n    _InterlockedIncrement(dword_1E8648); /*0x197a5e*/\n    __outbyte(0x3C5u, byte_1D54DE[i]); /*0x197a72*/\n    _InterlockedIncrement(dword_1E8648); /*0x197a73*/\n  }\n  __outbyte(0x3C4u, 0); /*0x197a87*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a88*/\n  __outbyte(0x3C5u, 3u); /*0x197a96*/\n  _InterlockedIncrement(dword_1E8648); /*0x197a97*/\n  __outbyte(0x3D4u, 0x11u); /*0x197aa5*/\n  _InterlockedIncrement(dword_1E8648); /*0x197aa6*/\n  __outbyte(0x3D5u, 0); /*0x197ab4*/\n  _InterlockedIncrement(dword_1E8648); /*0x197ab5*/\n  for ( j = 0; j <= 0x18; ++j ) /*0x197abc*/\n  {\n    __outbyte(0x3D4u, j); /*0x197ac9*/\n    _InterlockedIncrement(dword_1E8648); /*0x197aca*/\n    __outbyte(0x3D5u, byte_1D54E3[j]); /*0x197ade*/\n    _InterlockedIncrement(dword_1E8648); /*0x197adf*/\n  }\n  __inbyte(0x3DAu); /*0x197af1*/\n  for ( k = 0; k <= 0x14; ++k ) /*0x197af2*/\n  {\n    __outbyte(0x3C0u, k); /*0x197afd*/\n    _InterlockedIncrement(dword_1E8648); /*0x197afe*/\n    __outbyte(0x3C0u, byte_1D54FC[k]); /*0x197b0d*/\n    _InterlockedIncrement(dword_1E8648); /*0x197b0e*/\n  }\n  for ( m = 0; m <= 8; ++m ) /*0x197b1b*/\n  {\n    __outbyte(0x3CEu, m); /*0x197b29*/\n    _InterlockedIncrement(dword_1E8648); /*0x197b2a*/\n    __outbyte(0x3CFu, byte_1D5511[m]); /*0x197b3e*/\n    _InterlockedIncrement(dword_1E8648); /*0x197b3f*/\n  }\n  for ( n = 0; n <= 15; ++n )\n  {\n    v4 = n + (n < 0 ? 3 : 0);\n    LOBYTE(v4) = v4 & 0xFC; /*0x197b5e*/\n    v5 = 3 * (n - v4); /*0x197b6c*/\n    v6 = byte_1D551A[v5]; /*0x197b6f*/\n    v7 = byte_1D551B[v5]; /*0x197b76*/\n    v8 = byte_1D551C[v5]; /*0x197b7d*/\n    __outbyte(0x3C8u, n); /*0x197b8e*/\n    _InterlockedIncrement(dword_1E8648); /*0x197b8f*/\n    us_spin(10); /*0x197b98*/\n    __outbyte(0x3C9u, v6); /*0x197ba9*/\n    _InterlockedIncrement(dword_1E8648); /*0x197baa*/\n    us_spin(10); /*0x197bb3*/\n    __outbyte(0x3C9u, v7); /*0x197bc4*/\n    _InterlockedIncrement(dword_1E8648); /*0x197bc5*/\n    us_spin(10); /*0x197bce*/\n    __outbyte(0x3C9u, v8); /*0x197bdf*/\n    _InterlockedIncrement(dword_1E8648); /*0x197be0*/\n    us_spin(10); /*0x197be9*/\n  }\n  memset((void *)0xA0000, 1, 0x10000u); /*0x197c0a*/\n  __inbyte(0x3DAu); /*0x197c14*/\n  __outbyte(0x3C0u, 0x20u); /*0x197c1c*/\n  _InterlockedIncrement(dword_1E8648); /*0x197c1d*/\n  __outbyte(0x3C4u, 1u); /*0x197c2b*/\n  _InterlockedIncrement(dword_1E8648); /*0x197c2c*/\n  __outbyte(0x3C5u, 1u); /*0x197c43*/\n  _InterlockedIncrement(dword_1E8648); /*0x197c44*/\n  return 0; /*0x197c50*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8648",
+        "name": "dword_1E8648"
+      },
+      {
+        "addr": "0x1d54de",
+        "name": "byte_1D54DE"
+      },
+      {
+        "addr": "0x1d54e3",
+        "name": "byte_1D54E3"
+      },
+      {
+        "addr": "0x1d54fc",
+        "name": "byte_1D54FC"
+      },
+      {
+        "addr": "0x1d5511",
+        "name": "byte_1D5511"
+      },
+      {
+        "addr": "0x1d551a",
+        "name": "byte_1D551A"
+      },
+      {
+        "addr": "0x1d551b",
+        "name": "byte_1D551B"
+      },
+      {
+        "addr": "0x1d551c",
+        "name": "byte_1D551C"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x101630",
+        "name": "_memset"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197c58",
+    "addr": "0x00197c58",
+    "code": "int BasicAllocateConsole()\n{\n  int result; // eax\n  _DWORD v1[34]; // [esp+4h] [ebp-88h] BYREF\n\n  result = FBAllocateVBEConsole(); /*0x197c62*/\n  if ( !result ) /*0x197c69*/\n  {\n    bzero(v1, 0x88u); /*0x197c77*/\n    v1[0] = 640; /*0x197c7c*/\n    v1[1] = 480; /*0x197c86*/\n    return VGAAllocateConsole(v1); /*0x197c91*/\n  }\n  return result; /*0x197c96*/\n}",
+    "refs": [
+      {
+        "addr": "0x19ecb8",
+        "name": "_FBAllocateVBEConsole"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x19b760",
+        "name": "_VGAAllocateConsole"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197ca0",
+    "addr": "0x00197ca0",
+    "code": "char __cdecl sub_197CA0(int a1)\n{\n  int v1; // ecx\n  unsigned __int8 *v2; // ecx\n  int i; // edi\n  int v5; // [esp+Ch] [ebp-10h]\n  unsigned __int8 v6; // [esp+10h] [ebp-Ch]\n  unsigned __int8 v7; // [esp+10h] [ebp-Ch]\n  unsigned __int8 v8; // [esp+14h] [ebp-8h]\n  unsigned __int8 v9; // [esp+1Bh] [ebp-1h]\n\n  v5 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x197cbe*/\n  v1 = *(_DWORD *)(a1 + 140) + 8 * *(_DWORD *)(a1 + 168); /*0x197cd3*/\n  __outbyte(0x3CEu, 7u); /*0x197ce0*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197ce1*/\n  __outbyte(0x3CFu, 0xFu); /*0x197cef*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197cf0*/\n  __outbyte(0x3CEu, 5u); /*0x197cfe*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197cff*/\n  __outbyte(0x3CFu, 8u); /*0x197d0d*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197d0e*/\n  v8 = *(_BYTE *)(a1 + 176); /*0x197d1b*/\n  __outbyte(0x3CEu, 2u); /*0x197d25*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197d26*/\n  __outbyte(0x3CFu, v8); /*0x197d35*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197d36*/\n  v2 = (unsigned __int8 *)(*(_DWORD *)(a1 + 24) + *(_DWORD *)(a1 + 16) * v5 + (v1 >> 3)); /*0x197d4a*/\n  for ( i = v5; i < v5 + 12; ++i ) /*0x197d51*/\n  {\n    v9 = *v2; /*0x197d5a*/\n    v6 = *(_BYTE *)(a1 + 176); /*0x197d63*/\n    __outbyte(0x3CEu, 0); /*0x197d6d*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197d6e*/\n    __outbyte(0x3CFu, v6); /*0x197d7d*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197d7e*/\n    __outbyte(0x3CEu, 8u); /*0x197d94*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197d95*/\n    __outbyte(0x3CFu, ~v9); /*0x197da4*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197da5*/\n    *v2 = -1; /*0x197dac*/\n    v7 = *(_BYTE *)(a1 + 180); /*0x197db5*/\n    __outbyte(0x3CEu, 0); /*0x197dbf*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197dc0*/\n    __outbyte(0x3CFu, v7); /*0x197dcf*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197dd0*/\n    __outbyte(0x3CEu, 8u); /*0x197de4*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197de5*/\n    __outbyte(0x3CFu, v9); /*0x197df4*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197df5*/\n    *v2 = -1; /*0x197e01*/\n    v2 += *(_DWORD *)(a1 + 16); /*0x197e04*/\n  }\n  __outbyte(0x3CEu, 5u); /*0x197e17*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197e18*/\n  __outbyte(0x3CFu, 0); /*0x197e26*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197e27*/\n  __outbyte(0x3CEu, 8u); /*0x197e35*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197e36*/\n  __outbyte(0x3CFu, 0xFFu); /*0x197e44*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197e45*/\n  return -1; /*0x197e4f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00197e58",
+    "addr": "0x00197e58",
+    "code": "char __cdecl sub_197E58(int a1, char a2)\n{\n  unsigned __int8 v2; // bl\n  int v3; // ebx\n  int i; // esi\n  int j; // esi\n  _BYTE *v6; // ecx\n  char result; // al\n  unsigned __int8 *v8; // ebx\n  int v9; // ecx\n  _BYTE *v10; // esi\n  int v11; // ecx\n  unsigned __int8 v12; // al\n  int v13; // [esp+Ch] [ebp-24h]\n  _BYTE *v14; // [esp+Ch] [ebp-24h]\n  unsigned __int8 v15; // [esp+Ch] [ebp-24h]\n  int v16; // [esp+10h] [ebp-20h]\n  int k; // [esp+10h] [ebp-20h]\n  int v18; // [esp+10h] [ebp-20h]\n  unsigned __int8 v19; // [esp+18h] [ebp-18h]\n  unsigned __int8 v20; // [esp+1Ch] [ebp-14h]\n  int v21; // [esp+20h] [ebp-10h]\n\n  v13 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x197e82*/\n  v16 = *(_DWORD *)(a1 + 140) + 8 * *(_DWORD *)(a1 + 168); /*0x197e97*/\n  v21 = *(_DWORD *)(a1 + 16); /*0x197ea2*/\n  v2 = *(_BYTE *)(a1 + 176); /*0x197ea5*/\n  __outbyte(0x3CEu, 0); /*0x197eb2*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197eb3*/\n  __outbyte(0x3CFu, v2); /*0x197ec1*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197ec2*/\n  __outbyte(0x3CEu, 8u); /*0x197ed0*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197ed1*/\n  v20 = byte_1E4685[v16 & 7]; /*0x197eef*/\n  v19 = byte_1E468D[(v16 + 8) & 7]; /*0x197efb*/\n  v14 = (_BYTE *)((v16 >> 3) + *(_DWORD *)(a1 + 24) + v21 * v13); /*0x197f0a*/\n  v3 = ((v16 + 8) >> 3) - (v16 >> 3) - 1; /*0x197f0f*/\n  if ( (v16 + 8) >> 3 == v16 >> 3 ) /*0x197f0d*/\n  {\n    __outbyte(0x3CFu, byte_1E4685[v16 & 7] & byte_1E468D[(v16 + 8) & 7]); /*0x197f1e*/\n    _InterlockedIncrement(&dword_1E8654); /*0x197f1f*/\n    for ( i = 11; i >= 0; --i ) /*0x197f26*/\n    {\n      *v14 = -1; /*0x197f3a*/\n      v14 += v21; /*0x197f42*/\n    }\n  }\n  else\n  {\n    for ( j = 11; j >= 0; --j ) /*0x197f4c*/\n    {\n      __outbyte(0x3CFu, v20); /*0x197f67*/\n      _InterlockedIncrement(&dword_1E8654); /*0x197f68*/\n      *v14 = -1; /*0x197f72*/\n      v6 = v14 + 1; /*0x197f78*/\n      __outbyte(0x3CFu, 0xFFu); /*0x197f7b*/\n      _InterlockedIncrement(&dword_1E8654); /*0x197f7c*/\n      for ( k = v3 - 1; k >= 0; --k ) /*0x197f8b*/\n        *v6++ = -1; /*0x197f90*/\n      __outbyte(0x3CFu, v19); /*0x197fa1*/\n      _InterlockedIncrement(&dword_1E8654); /*0x197fa2*/\n      *v6 = -1; /*0x197fb1*/\n      v14 += v21; /*0x197fb7*/\n    }\n  }\n  result = -1; /*0x197fc2*/\n  __outbyte(0x3CFu, 0xFFu); /*0x197fc4*/\n  _InterlockedIncrement(&dword_1E8654); /*0x197fc5*/\n  if ( a2 > 31 ) /*0x197fd0*/\n  {\n    v8 = (unsigned __int8 *)&aEreIlComputerA[12 * a2]; /*0x197fe0*/\n    v9 = *(_DWORD *)(a1 + 140) + 8 * *(_DWORD *)(a1 + 168); /*0x197ff4*/\n    v18 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x19800c*/\n    v15 = *(_BYTE *)(a1 + 180); /*0x198015*/\n    __outbyte(0x3CEu, 0); /*0x19801f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198020*/\n    __outbyte(0x3CFu, v15); /*0x19802f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198030*/\n    v10 = (_BYTE *)((v9 >> 3) + *(_DWORD *)(a1 + 24) + *(_DWORD *)(a1 + 16) * v18); /*0x198046*/\n    __outbyte(0x3CEu, 8u); /*0x19804f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198050*/\n    v11 = 12; /*0x198057*/\n    do /*0x198079*/\n    {\n      v12 = *v8++; /*0x19805c*/\n      __outbyte(0x3CFu, v12); /*0x198064*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198065*/\n      *v10 = -1; /*0x198072*/\n      v10 += *(_DWORD *)(a1 + 16); /*0x198075*/\n      --v11; /*0x198078*/\n    }\n    while ( v11 ); /*0x198079*/\n    __outbyte(0x3CFu, 0xFFu); /*0x19807d*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19807e*/\n    ++*(_DWORD *)(a1 + 168); /*0x198085*/\n    return -1; /*0x19807b*/\n  }\n  return result; /*0x19808e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1e4685",
+        "name": "byte_1E4685"
+      },
+      {
+        "addr": "0x1e468d",
+        "name": "byte_1E468D"
+      },
+      {
+        "addr": "0x1e407c",
+        "name": "aEreIlComputerA",
+        "string": "ere il computer,\nattendi la conferma.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00198098",
+    "addr": "0x00198098",
+    "code": "char __cdecl sub_198098(int a1, char a2)\n{\n  char result; // al\n  int v3; // ebx\n  unsigned int v4; // ebx\n  int kk; // ebx\n  int v6; // ebx\n  int mm; // ebx\n  int v8; // ecx\n  int nn; // ebx\n  int i1; // ebx\n  int i2; // ebx\n  int v12; // edx\n  int i3; // ebx\n  unsigned __int8 v14; // bl\n  int v15; // ebx\n  int i7; // ebx\n  int v17; // ebx\n  int i; // ebx\n  int v19; // ebx\n  _BYTE *v20; // ebx\n  int v21; // ebx\n  unsigned __int8 v22; // al\n  char *v23; // ebx\n  unsigned __int8 v24; // al\n  int v25; // ebx\n  char v26; // bl\n  _BYTE *v27; // ebx\n  int v28; // [esp+18h] [ebp-60h]\n  int v29; // [esp+30h] [ebp-48h]\n  int v30; // [esp+30h] [ebp-48h]\n  int v31; // [esp+30h] [ebp-48h]\n  int v32; // [esp+30h] [ebp-48h]\n  int j; // [esp+30h] [ebp-48h]\n  int k; // [esp+30h] [ebp-48h]\n  int v35; // [esp+30h] [ebp-48h]\n  int v36; // [esp+30h] [ebp-48h]\n  int i4; // [esp+34h] [ebp-44h]\n  int i5; // [esp+34h] [ebp-44h]\n  int m; // [esp+34h] [ebp-44h]\n  int v40; // [esp+34h] [ebp-44h]\n  int n; // [esp+34h] [ebp-44h]\n  int ii; // [esp+34h] [ebp-44h]\n  int v43; // [esp+38h] [ebp-40h]\n  _BYTE *v44; // [esp+38h] [ebp-40h]\n  unsigned __int8 v45; // [esp+38h] [ebp-40h]\n  int v46; // [esp+38h] [ebp-40h]\n  unsigned __int8 v47; // [esp+38h] [ebp-40h]\n  int v48; // [esp+38h] [ebp-40h]\n  int v49; // [esp+3Ch] [ebp-3Ch]\n  _BYTE *v50; // [esp+3Ch] [ebp-3Ch]\n  int v51; // [esp+3Ch] [ebp-3Ch]\n  _BYTE *v52; // [esp+3Ch] [ebp-3Ch]\n  int v53; // [esp+3Ch] [ebp-3Ch]\n  _BYTE *v54; // [esp+3Ch] [ebp-3Ch]\n  int v55; // [esp+44h] [ebp-34h]\n  int v56; // [esp+44h] [ebp-34h]\n  int i6; // [esp+44h] [ebp-34h]\n  int v58; // [esp+44h] [ebp-34h]\n  int v59; // [esp+44h] [ebp-34h]\n  int jj; // [esp+44h] [ebp-34h]\n  unsigned __int8 v61; // [esp+4Ch] [ebp-2Ch]\n  unsigned __int8 v62; // [esp+50h] [ebp-28h]\n  unsigned int v63; // [esp+54h] [ebp-24h]\n  int v64; // [esp+58h] [ebp-20h]\n  char *v65; // [esp+5Ch] [ebp-1Ch]\n  unsigned __int8 v66; // [esp+60h] [ebp-18h]\n  unsigned __int8 v67; // [esp+64h] [ebp-14h]\n  int v68; // [esp+68h] [ebp-10h]\n  unsigned __int8 v69; // [esp+6Ch] [ebp-Ch]\n  unsigned __int8 v70; // [esp+70h] [ebp-8h]\n\n  result = a2; /*0x1980a1*/\n  v29 = 0; /*0x1980a7*/\n  if ( *(_DWORD *)a1 == 1 || *(_DWORD *)a1 == 3 ) /*0x1980bb*/\n    v29 = 1; /*0x1980bd*/\n  if ( v29 ) /*0x1980c8*/\n  {\n    v3 = *(_DWORD *)(a1 + 244); /*0x1980d1*/\n    switch ( v3 ) /*0x1980da*/\n    {\n      case 1: /*0x1980da*/\n        if ( a2 == 91 ) /*0x198108*/\n        {\n          *(_DWORD *)(a1 + 244) = 2; /*0x19810d*/\n          return result; /*0x198117*/\n        }\n        result = a1; /*0x19811c*/\n        *(_DWORD *)(a1 + 244) = 0; /*0x19811f*/\n        break;\n      case 0: /*0x1980da*/\n        if ( a2 == 27 ) /*0x1980ec*/\n        {\n          *(_DWORD *)(a1 + 244) = 1; /*0x1980f5*/\n          return result; /*0x1980ff*/\n        }\nLABEL_58:\n        sub_197CA0(a1); /*0x198594*/\n        if ( a2 == 10 ) /*0x1985a4*/\n        {\n          *(_DWORD *)(a1 + 168) = 0; /*0x1985fb*/\n          ++*(_DWORD *)(a1 + 164); /*0x198605*/\n        }\n        else\n        {\n          if ( a2 <= 10 ) /*0x1985a6*/\n          {\n            if ( a2 == 8 ) /*0x1985ac*/\n            {\n              v17 = *(_DWORD *)(a1 + 168); /*0x198613*/\n              if ( v17 ) /*0x19861b*/\n                *(_DWORD *)(a1 + 168) = v17 - 1; /*0x198622*/\n              goto LABEL_87; /*0x198628*/\n            }\n            if ( a2 == 9 ) /*0x1985b2*/\n            {\n              v31 = 8 - *(_DWORD *)(a1 + 168) % 8; /*0x198658*/\n              sub_197CA0(a1); /*0x19865f*/\n              for ( i = 0; v31 > i; ++i ) /*0x19866b*/\n                sub_198098(a1, 32); /*0x198676*/\n              sub_197CA0(a1); /*0x198688*/\n              goto LABEL_87; /*0x198690*/\n            }\n            goto LABEL_86; /*0x1985b2*/\n          }\n          if ( a2 == 13 ) /*0x1985c0*/\n          {\n            *(_DWORD *)(a1 + 168) = 0; /*0x1985e7*/\n          }\n          else\n          {\n            if ( a2 <= 13 ) /*0x1985c2*/\n            {\n              if ( a2 == 12 ) /*0x1985c8*/\n              {\n                *(_DWORD *)(a1 + 168) = 0; /*0x19869b*/\n                *(_DWORD *)(a1 + 164) = 0; /*0x1986a5*/\n                v28 = *(_DWORD *)(a1 + 140); /*0x1986b5*/\n                v19 = *(_DWORD *)(a1 + 144); /*0x1986b8*/\n                v32 = *(_DWORD *)(a1 + 160); /*0x1986c4*/\n                v51 = *(_DWORD *)(a1 + 152) + v28; /*0x1986cd*/\n                v68 = *(_DWORD *)(a1 + 16); /*0x1986d3*/\n                v45 = *(_BYTE *)(a1 + 176); /*0x1986dc*/\n                __outbyte(0x3CEu, 0); /*0x1986e6*/\n                _InterlockedIncrement(&dword_1E8654); /*0x1986e7*/\n                __outbyte(0x3CFu, v45); /*0x1986f6*/\n                _InterlockedIncrement(&dword_1E8654); /*0x1986f7*/\n                __outbyte(0x3CEu, 8u); /*0x198705*/\n                _InterlockedIncrement(&dword_1E8654); /*0x198706*/\n                v67 = byte_1E4685[v28 & 7]; /*0x198725*/\n                v66 = byte_1E468D[v51 & 7]; /*0x198734*/\n                v20 = (_BYTE *)((v28 >> 3) + *(_DWORD *)(a1 + 24) + v68 * v19); /*0x198741*/\n                v46 = (v51 >> 3) - (v28 >> 3) - 1; /*0x198748*/\n                if ( v51 >> 3 == v28 >> 3 ) /*0x19874e*/\n                {\n                  __outbyte(0x3CFu, v67 & byte_1E468D[v51 & 7]); /*0x19875a*/\n                  _InterlockedIncrement(&dword_1E8654); /*0x19875b*/\n                  for ( j = v32 - 1; j >= 0; --j ) /*0x198765*/\n                  {\n                    *v20 = -1; /*0x198771*/\n                    v20 += v68; /*0x198774*/\n                  }\n                }\n                else\n                {\n                  for ( k = v32 - 1; k >= 0; --k ) /*0x198783*/\n                  {\n                    __outbyte(0x3CFu, v67); /*0x198795*/\n                    _InterlockedIncrement(&dword_1E8654); /*0x198796*/\n                    *v20 = -1; /*0x19879d*/\n                    v52 = v20 + 1; /*0x1987a3*/\n                    __outbyte(0x3CFu, 0xFFu); /*0x1987a8*/\n                    _InterlockedIncrement(&dword_1E8654); /*0x1987a9*/\n                    for ( m = v46 - 1; m >= 0; --m ) /*0x1987b7*/\n                      *v52++ = -1; /*0x1987bf*/\n                    __outbyte(0x3CFu, v66); /*0x1987d3*/\n                    _InterlockedIncrement(&dword_1E8654); /*0x1987d4*/\n                    *v52 = -1; /*0x1987e6*/\n                    v20 += v68; /*0x1987e9*/\n                  }\n                }\n                __outbyte(0x3CFu, 0xFFu); /*0x1987f8*/\n                _InterlockedIncrement(&dword_1E8654); /*0x1987f9*/\n                goto LABEL_87; /*0x198800*/\n              }\n              goto LABEL_86; /*0x1985c8*/\n            }\n            if ( a2 != 127 ) /*0x1985d8*/\n            {\nLABEL_86:\n              sub_197E58(a1, a2); /*0x198810*/\n              goto LABEL_87; /*0x198819*/\n            }\n            ++*(_DWORD *)(a1 + 168); /*0x198807*/\n          }\n        }\nLABEL_87:\n        if ( *(_DWORD *)(a1 + 168) >= *(_DWORD *)(a1 + 148) ) /*0x198833*/\n        {\n          *(_DWORD *)(a1 + 168) = 0; /*0x198835*/\n          ++*(_DWORD *)(a1 + 164); /*0x19883f*/\n        }\n        v21 = *(_DWORD *)(a1 + 156); /*0x198848*/\n        if ( *(_DWORD *)(a1 + 164) >= v21 ) /*0x198854*/\n        {\n          *(_DWORD *)(a1 + 164) = v21 - 1; /*0x19885b*/\n          __outbyte(0x3CEu, 5u); /*0x198868*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198869*/\n          v22 = __inbyte(0x3CFu); /*0x198875*/\n          __outbyte(0x3CEu, 5u); /*0x198885*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198886*/\n          __outbyte(0x3CFu, v22 & 0xFC | 1); /*0x198894*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198895*/\n          v35 = *(_DWORD *)(a1 + 16); /*0x1988ab*/\n          v23 = (char *)((*(int *)(a1 + 140) >> 3) + *(_DWORD *)(a1 + 24) + v35 * (*(_DWORD *)(a1 + 144) + 12)); /*0x1988c2*/\n          v65 = &v23[-12 * v35]; /*0x1988d2*/\n          v58 = 12; /*0x1988d5*/\n          v64 = *(_DWORD *)(a1 + 160); /*0x1988e2*/\n          if ( v64 > 12 ) /*0x1988e8*/\n          {\n            v63 = *(int *)(a1 + 152) >> 3; /*0x1988f6*/\n            do /*0x19891c*/\n            {\n              qmemcpy(v65, v23, v63); /*0x198908*/\n              v23 += v35; /*0x19890a*/\n              v65 += v35; /*0x198910*/\n              ++v58; /*0x198913*/\n            }\n            while ( v58 < v64 ); /*0x19891c*/\n          }\n          __outbyte(0x3CEu, 5u); /*0x198925*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198926*/\n          v24 = __inbyte(0x3CFu); /*0x198932*/\n          __outbyte(0x3CEu, 5u); /*0x19893f*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198940*/\n          __outbyte(0x3CFu, v24 & 0xFC); /*0x19894e*/\n          _InterlockedIncrement(&dword_1E8654); /*0x19894f*/\n          *(_DWORD *)(a1 + 168) = 0; /*0x198959*/\n          v25 = *(_DWORD *)(a1 + 140); /*0x198963*/\n          v53 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x19897e*/\n          v59 = *(_DWORD *)(a1 + 152) + v25; /*0x198989*/\n          v36 = *(_DWORD *)(a1 + 16); /*0x19898f*/\n          v47 = *(_BYTE *)(a1 + 176); /*0x198998*/\n          __outbyte(0x3CEu, 0); /*0x1989a2*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1989a3*/\n          __outbyte(0x3CFu, v47); /*0x1989b2*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1989b3*/\n          __outbyte(0x3CEu, 8u); /*0x1989c1*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1989c2*/\n          v40 = v25 >> 3; /*0x1989ce*/\n          v26 = byte_1E4685[v25 & 7]; /*0x1989da*/\n          v62 = v26; /*0x1989e0*/\n          v61 = byte_1E468D[v59 & 7]; /*0x1989ef*/\n          v54 = (_BYTE *)(v40 + *(_DWORD *)(a1 + 24) + v36 * v53); /*0x198a01*/\n          v48 = (v59 >> 3) - v40 - 1; /*0x198a0b*/\n          if ( v59 >> 3 == v40 ) /*0x198a11*/\n          {\n            __outbyte(0x3CFu, v26 & v61); /*0x198a1d*/\n            _InterlockedIncrement(&dword_1E8654); /*0x198a1e*/\n            for ( n = 11; n >= 0; --n ) /*0x198a25*/\n            {\n              *v54 = -1; /*0x198a37*/\n              v54 += v36; /*0x198a3f*/\n            }\n          }\n          else\n          {\n            for ( ii = 11; ii >= 0; --ii ) /*0x198a4c*/\n            {\n              __outbyte(0x3CFu, v62); /*0x198a64*/\n              _InterlockedIncrement(&dword_1E8654); /*0x198a65*/\n              *v54 = -1; /*0x198a6f*/\n              v27 = v54 + 1; /*0x198a75*/\n              __outbyte(0x3CFu, 0xFFu); /*0x198a78*/\n              _InterlockedIncrement(&dword_1E8654); /*0x198a79*/\n              for ( jj = v48 - 1; jj >= 0; --jj ) /*0x198a87*/\n                *v27++ = -1; /*0x198a8c*/\n              __outbyte(0x3CFu, v61); /*0x198a9d*/\n              _InterlockedIncrement(&dword_1E8654); /*0x198a9e*/\n              *v27 = -1; /*0x198aaa*/\n              v54 += v36; /*0x198ab0*/\n            }\n          }\n          __outbyte(0x3CFu, 0xFFu); /*0x198abf*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198ac0*/\n        }\n        return sub_197CA0(a1); /*0x198acb*/\n      case 2: /*0x1980da*/\n        break;\n      default:\n        goto LABEL_58; /*0x1980e1*/\n    }\n    if ( (unsigned __int8)(a2 - 48) <= 9u ) /*0x198132*/\n    {\n      **(_BYTE **)(a1 + 252) = 10 * **(_BYTE **)(a1 + 252) + a2 - 48; /*0x19814b*/\n      return result; /*0x19814d*/\n    }\n    if ( a2 != 59 ) /*0x198158*/\n    {\n      for ( kk = 0; kk <= 2; ++kk ) /*0x198180*/\n      {\n        if ( !*(_BYTE *)(kk + a1 + 248) ) /*0x198187*/\n          *(_BYTE *)(kk + a1 + 248) = 1; /*0x198191*/\n      }\n      v6 = **(unsigned __int8 **)(a1 + 252); /*0x1981a8*/\n      sub_197CA0(a1); /*0x1981af*/\n      switch ( a2 ) /*0x1981cb*/\n      {\n        case 'A': /*0x1981cb*/\n          for ( mm = v6 - 1; mm != -1; --mm ) /*0x19828c*/\n          {\n            v8 = *(_DWORD *)(a1 + 164); /*0x198297*/\n            if ( v8 ) /*0x1982a2*/\n              *(_DWORD *)(a1 + 164) = v8 - 1; /*0x1982a8*/\n          }\n          break; /*0x1982b2*/\n        case 'B': /*0x1981cb*/\n          for ( nn = v6 - 1; nn != -1; --nn ) /*0x1982c0*/\n            ++*(_DWORD *)(a1 + 164); /*0x1982cb*/\n          break; /*0x1982d5*/\n        case 'C': /*0x1981cb*/\n          for ( i1 = v6 - 1; i1 != -1; --i1 ) /*0x1982e0*/\n            ++*(_DWORD *)(a1 + 168); /*0x1982eb*/\n          break; /*0x1982f5*/\n        case 'D': /*0x1981cb*/\n          for ( i2 = v6 - 1; i2 != -1; --i2 ) /*0x198300*/\n          {\n            v12 = *(_DWORD *)(a1 + 168); /*0x19830b*/\n            if ( v12 ) /*0x198316*/\n              *(_DWORD *)(a1 + 168) = v12 - 1; /*0x19831c*/\n          }\n          break; /*0x198326*/\n        case 'E': /*0x1981cb*/\n          *(_DWORD *)(a1 + 168) = 0; /*0x198333*/\n          for ( i3 = v6 - 1; i3 != -1; --i3 ) /*0x198341*/\n            ++*(_DWORD *)(a1 + 164); /*0x19834b*/\n          break; /*0x198355*/\n        case 'H': /*0x1981cb*/\n        case 'f': /*0x1981cb*/\n          *(_DWORD *)(a1 + 168) = **(unsigned __int8 **)(a1 + 252) - 1; /*0x19836c*/\n          v55 = *(_DWORD *)(a1 + 252); /*0x198378*/\n          *(_DWORD *)(a1 + 252) = v55 - 1; /*0x19837c*/\n          *(_DWORD *)(a1 + 164) = *(unsigned __int8 *)(v55 - 1) - 1; /*0x19838a*/\n          --*(_DWORD *)(a1 + 252); /*0x198390*/\n          break; /*0x198396*/\n        case 'K': /*0x1981cb*/\n          v43 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x1983c6*/\n          v56 = *(_DWORD *)(a1 + 140) + 8 * *(_DWORD *)(a1 + 168); /*0x1983d2*/\n          v49 = *(_DWORD *)(a1 + 140) + *(_DWORD *)(a1 + 152); /*0x1983e4*/\n          v30 = *(_DWORD *)(a1 + 16); /*0x1983ea*/\n          v14 = *(_BYTE *)(a1 + 176); /*0x1983ed*/\n          __outbyte(0x3CEu, 0); /*0x1983fa*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1983fb*/\n          __outbyte(0x3CFu, v14); /*0x198409*/\n          _InterlockedIncrement(&dword_1E8654); /*0x19840a*/\n          __outbyte(0x3CEu, 8u); /*0x198418*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198419*/\n          v70 = byte_1E4685[v56 & 7]; /*0x19843b*/\n          v69 = byte_1E468D[v49 & 7]; /*0x19844a*/\n          v44 = (_BYTE *)((v56 >> 3) + *(_DWORD *)(a1 + 24) + v30 * v43); /*0x19845c*/\n          v15 = (v49 >> 3) - (v56 >> 3) - 1; /*0x198462*/\n          if ( v49 >> 3 == v56 >> 3 ) /*0x198466*/\n          {\n            __outbyte(0x3CFu, v70 & byte_1E468D[v49 & 7]); /*0x198472*/\n            _InterlockedIncrement(&dword_1E8654); /*0x198473*/\n            for ( i4 = 11; i4 >= 0; --i4 ) /*0x19847a*/\n            {\n              *v44 = -1; /*0x19848f*/\n              v44 += v30; /*0x198497*/\n            }\n          }\n          else\n          {\n            for ( i5 = 11; i5 >= 0; --i5 ) /*0x1984a4*/\n            {\n              __outbyte(0x3CFu, v70); /*0x1984bc*/\n              _InterlockedIncrement(&dword_1E8654); /*0x1984bd*/\n              *v44 = -1; /*0x1984c7*/\n              v50 = v44 + 1; /*0x1984cb*/\n              __outbyte(0x3CFu, 0xFFu); /*0x1984d0*/\n              _InterlockedIncrement(&dword_1E8654); /*0x1984d1*/\n              for ( i6 = v15 - 1; i6 >= 0; --i6 ) /*0x1984e0*/\n                *v50++ = -1; /*0x1984e7*/\n              __outbyte(0x3CFu, v69); /*0x1984fb*/\n              _InterlockedIncrement(&dword_1E8654); /*0x1984fc*/\n              *v50 = -1; /*0x19850e*/\n              v44 += v30; /*0x198514*/\n            }\n          }\n          __outbyte(0x3CFu, 0xFFu); /*0x198523*/\n          _InterlockedIncrement(&dword_1E8654); /*0x198524*/\n          break; /*0x19852b*/\n        case 'm': /*0x1981cb*/\n          *(_DWORD *)(a1 + 252) -= 2; /*0x198533*/\n          if ( *(_DWORD *)(a1 + 176) == *(_DWORD *)(a1 + 180) ) /*0x198546*/\n          {\n            *(_DWORD *)(a1 + 176) = 3; /*0x198548*/\n            *(_DWORD *)(a1 + 180) = 0; /*0x198552*/\n          }\n          break; /*0x198552*/\n        default:\n          break;\n      }\n      *(_DWORD *)(a1 + 252) = a1 + 249; /*0x19855c*/\n      for ( i7 = 2; i7 >= 0; --i7 ) /*0x19856d*/\n        *(_BYTE *)(i7 + a1 + 248) = 0; /*0x198577*/\n      *(_DWORD *)(a1 + 244) = 0; /*0x198582*/\n      goto LABEL_87; /*0x19858c*/\n    }\n    result = a1; /*0x198163*/\n    v4 = *(_DWORD *)(a1 + 252); /*0x198166*/\n    if ( v4 < a1 + 250 ) /*0x19816e*/\n      *(_DWORD *)(a1 + 252) = v4 + 1; /*0x198175*/\n  }\n  return result; /*0x198ad3*/\n}",
+    "refs": [
+      {
+        "addr": "0x197ca0",
+        "name": "sub_197CA0"
+      },
+      {
+        "addr": "0x198098",
+        "name": "sub_198098"
+      },
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1e4685",
+        "name": "byte_1E4685"
+      },
+      {
+        "addr": "0x1e468d",
+        "name": "byte_1E468D"
+      },
+      {
+        "addr": "0x197e58",
+        "name": "sub_197E58"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00198adc",
+    "addr": "0x00198adc",
+    "code": "int __cdecl sub_198ADC(int a1, const char *a2)\n{\n  unsigned int v2; // ecx\n  int result; // eax\n  int v4; // ebx\n  int v5; // edi\n  unsigned __int8 v6; // cl\n  _BYTE *v7; // ebx\n  int v8; // ecx\n  int i; // esi\n  int j; // esi\n  int v11; // ebx\n  int v12; // edi\n  unsigned __int8 v13; // cl\n  _BYTE *v14; // ebx\n  int v15; // ecx\n  int m; // esi\n  int n; // esi\n  int v18; // ebx\n  int v19; // edi\n  unsigned __int8 v20; // cl\n  _BYTE *v21; // ebx\n  int v22; // ecx\n  int jj; // esi\n  int kk; // esi\n  int v25; // edi\n  unsigned __int8 v26; // bl\n  int v27; // ebx\n  int nn; // esi\n  int i1; // esi\n  _BYTE *v30; // ecx\n  int v31; // edi\n  int v32; // ebx\n  unsigned __int8 v33; // cl\n  _BYTE *v34; // ebx\n  int v35; // ecx\n  int i3; // esi\n  int i4; // esi\n  int v38; // ebx\n  int v39; // edi\n  unsigned __int8 v40; // cl\n  _BYTE *v41; // ebx\n  int v42; // ecx\n  int i6; // esi\n  int i7; // esi\n  int v45; // ecx\n  int v46; // ebx\n  int v47; // ecx\n  int v48; // edi\n  int v49; // esi\n  char v50; // bl\n  char v51; // cl\n  int i9; // esi\n  int i10; // esi\n  _BYTE *v54; // ebx\n  int i11; // ecx\n  char v56; // [esp-4h] [ebp-7Ch]\n  int v57; // [esp+14h] [ebp-64h]\n  _BYTE *v58; // [esp+18h] [ebp-60h]\n  int v59; // [esp+18h] [ebp-60h]\n  _BYTE *v60; // [esp+18h] [ebp-60h]\n  int v61; // [esp+18h] [ebp-60h]\n  _BYTE *v62; // [esp+18h] [ebp-60h]\n  int v63; // [esp+18h] [ebp-60h]\n  _BYTE *v64; // [esp+18h] [ebp-60h]\n  int v65; // [esp+18h] [ebp-60h]\n  _BYTE *v66; // [esp+18h] [ebp-60h]\n  int v67; // [esp+18h] [ebp-60h]\n  _BYTE *v68; // [esp+18h] [ebp-60h]\n  int v69; // [esp+18h] [ebp-60h]\n  _BYTE *v70; // [esp+18h] [ebp-60h]\n  int v71; // [esp+1Ch] [ebp-5Ch]\n  int k; // [esp+1Ch] [ebp-5Ch]\n  int v73; // [esp+1Ch] [ebp-5Ch]\n  int v74; // [esp+1Ch] [ebp-5Ch]\n  int v75; // [esp+1Ch] [ebp-5Ch]\n  int ii; // [esp+1Ch] [ebp-5Ch]\n  int v77; // [esp+1Ch] [ebp-5Ch]\n  int mm; // [esp+1Ch] [ebp-5Ch]\n  int v79; // [esp+1Ch] [ebp-5Ch]\n  int i2; // [esp+1Ch] [ebp-5Ch]\n  int v81; // [esp+1Ch] [ebp-5Ch]\n  int i5; // [esp+1Ch] [ebp-5Ch]\n  int v83; // [esp+1Ch] [ebp-5Ch]\n  int i8; // [esp+1Ch] [ebp-5Ch]\n  unsigned __int8 v85; // [esp+1Ch] [ebp-5Ch]\n  int v86; // [esp+1Ch] [ebp-5Ch]\n  int v87; // [esp+1Ch] [ebp-5Ch]\n  int v88; // [esp+20h] [ebp-58h]\n  int v89; // [esp+24h] [ebp-54h]\n  unsigned __int8 v90; // [esp+28h] [ebp-50h]\n  unsigned __int8 v91; // [esp+2Ch] [ebp-4Ch]\n  unsigned __int8 v92; // [esp+30h] [ebp-48h]\n  unsigned __int8 v93; // [esp+34h] [ebp-44h]\n  unsigned __int8 v94; // [esp+38h] [ebp-40h]\n  unsigned __int8 v95; // [esp+3Ch] [ebp-3Ch]\n  int v96; // [esp+40h] [ebp-38h]\n  unsigned __int8 v97; // [esp+44h] [ebp-34h]\n  unsigned __int8 v98; // [esp+48h] [ebp-30h]\n  int v99; // [esp+4Ch] [ebp-2Ch]\n  unsigned __int8 v100; // [esp+50h] [ebp-28h]\n  unsigned __int8 v101; // [esp+54h] [ebp-24h]\n  unsigned __int8 v102; // [esp+58h] [ebp-20h]\n  unsigned __int8 v103; // [esp+5Ch] [ebp-1Ch]\n  unsigned __int8 v104; // [esp+60h] [ebp-18h]\n  unsigned __int8 v105; // [esp+64h] [ebp-14h]\n  unsigned int v106; // [esp+68h] [ebp-10h]\n  int v107; // [esp+6Ch] [ebp-Ch]\n  int v108; // [esp+70h] [ebp-8h]\n\n  v108 = *(_DWORD *)(a1 + 164); /*0x198aee*/\n  v107 = *(_DWORD *)(a1 + 168); /*0x198afa*/\n  v2 = strlen(a2) + 1; /*0x198b0a*/\n  v106 = v2 - 1; /*0x198b11*/\n  if ( v2 == 1 || *(_DWORD *)(a1 + 148) < (signed int)(v2 - 1) ) /*0x198b1f*/\n    return IOLog(aConsoleIllegal); /*0x198b2a*/\n  sub_197CA0(a1); /*0x198b38*/\n  if ( *(_DWORD *)(a1 + 192) ) /*0x198b43*/\n  {\n    *(_DWORD *)(a1 + 144) -= 24; /*0x198b4c*/\n    *(_DWORD *)(a1 + 156) += 2; /*0x198b53*/\n    *(_DWORD *)(a1 + 160) += 24; /*0x198b5a*/\n    v108 += 2; /*0x198b61*/\n  }\n  *(_DWORD *)(a1 + 164) = 0; /*0x198b68*/\n  v57 = *(_DWORD *)(a1 + 140); /*0x198b78*/\n  v4 = *(_DWORD *)(a1 + 144); /*0x198b7b*/\n  v71 = 8 * *(_DWORD *)(a1 + 148) + v57; /*0x198b93*/\n  v5 = *(_DWORD *)(a1 + 16); /*0x198b99*/\n  v6 = *(_BYTE *)(a1 + 180); /*0x198b9c*/\n  __outbyte(0x3CEu, 0); /*0x198ba9*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198baa*/\n  __outbyte(0x3CFu, v6); /*0x198bb8*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198bb9*/\n  __outbyte(0x3CEu, 8u); /*0x198bc7*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198bc8*/\n  v105 = byte_1E4685[v57 & 7]; /*0x198be7*/\n  v104 = byte_1E468D[v71 & 7]; /*0x198bf6*/\n  v7 = (_BYTE *)((v57 >> 3) + *(_DWORD *)(a1 + 24) + v5 * v4); /*0x198c02*/\n  v8 = (v71 >> 3) - (v57 >> 3) - 1; /*0x198c06*/\n  if ( v71 >> 3 == v57 >> 3 ) /*0x198c0a*/\n  {\n    __outbyte(0x3CFu, v105 & byte_1E468D[v71 & 7]); /*0x198c16*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198c17*/\n    for ( i = 21; i >= 0; --i ) /*0x198c1e*/\n    {\n      *v7 = -1; /*0x198c29*/\n      v7 += v5; /*0x198c2c*/\n    }\n  }\n  else\n  {\n    for ( j = 21; j >= 0; --j ) /*0x198c34*/\n    {\n      __outbyte(0x3CFu, v105); /*0x198c49*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198c4a*/\n      *v7 = -1; /*0x198c51*/\n      v58 = v7 + 1; /*0x198c57*/\n      __outbyte(0x3CFu, 0xFFu); /*0x198c5c*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198c5d*/\n      for ( k = v8 - 1; k >= 0; --k ) /*0x198c6c*/\n        *v58++ = -1; /*0x198c73*/\n      __outbyte(0x3CFu, v104); /*0x198c87*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198c88*/\n      *v58 = -1; /*0x198c9a*/\n      v7 += v5; /*0x198c9d*/\n    }\n  }\n  __outbyte(0x3CFu, 0xFFu); /*0x198ca9*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198caa*/\n  v11 = *(_DWORD *)(a1 + 144); /*0x198cb4*/\n  *(_DWORD *)(a1 + 144) = v11 + 6; /*0x198cbd*/\n  *(_DWORD *)(a1 + 168) = (int)(*(_DWORD *)(a1 + 148) - v106) / 2; /*0x198cdc*/\n  sub_197CA0(a1); /*0x198ce3*/\n  v73 = *(_DWORD *)(a1 + 180); /*0x198cf4*/\n  *(_DWORD *)(a1 + 180) = *(_DWORD *)(a1 + 176); /*0x198d00*/\n  *(_DWORD *)(a1 + 176) = v73; /*0x198d09*/\n  while ( *a2 ) /*0x198d12*/\n  {\n    v56 = *a2++; /*0x198d1e*/\n    sub_198098(a1, v56); /*0x198d26*/\n  }\n  v74 = *(_DWORD *)(a1 + 180); /*0x198d3f*/\n  *(_DWORD *)(a1 + 180) = *(_DWORD *)(a1 + 176); /*0x198d4b*/\n  *(_DWORD *)(a1 + 176) = v74; /*0x198d54*/\n  sub_197CA0(a1); /*0x198d5b*/\n  *(_DWORD *)(a1 + 144) = v11; /*0x198d63*/\n  v59 = *(_DWORD *)(a1 + 140) - 2; /*0x198d72*/\n  v75 = *(_DWORD *)(a1 + 152) + 4 + v59; /*0x198d86*/\n  v12 = *(_DWORD *)(a1 + 16); /*0x198d8c*/\n  v13 = *(_BYTE *)(a1 + 188); /*0x198d8f*/\n  __outbyte(0x3CEu, 0); /*0x198d9c*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198d9d*/\n  __outbyte(0x3CFu, v13); /*0x198dab*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198dac*/\n  __outbyte(0x3CEu, 8u); /*0x198dba*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198dbb*/\n  v103 = byte_1E4685[v59 & 7]; /*0x198dda*/\n  v102 = byte_1E468D[v75 & 7]; /*0x198de9*/\n  v14 = (_BYTE *)((v59 >> 3) + *(_DWORD *)(a1 + 24) + v12 * (v11 - 2)); /*0x198df5*/\n  v15 = (v75 >> 3) - (v59 >> 3) - 1; /*0x198df9*/\n  if ( v75 >> 3 == v59 >> 3 ) /*0x198dfd*/\n  {\n    __outbyte(0x3CFu, v103 & byte_1E468D[v75 & 7]); /*0x198e09*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198e0a*/\n    for ( m = 1; m >= 0; --m ) /*0x198e11*/\n    {\n      *v14 = -1; /*0x198e1d*/\n      v14 += v12; /*0x198e20*/\n    }\n  }\n  else\n  {\n    for ( n = 1; n >= 0; --n ) /*0x198e28*/\n    {\n      __outbyte(0x3CFu, v103); /*0x198e3d*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198e3e*/\n      *v14 = -1; /*0x198e45*/\n      v60 = v14 + 1; /*0x198e4b*/\n      __outbyte(0x3CFu, 0xFFu); /*0x198e50*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198e51*/\n      for ( ii = v15 - 1; ii >= 0; --ii ) /*0x198e60*/\n        *v60++ = -1; /*0x198e67*/\n      __outbyte(0x3CFu, v102); /*0x198e7b*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198e7c*/\n      *v60 = -1; /*0x198e8e*/\n      v14 += v12; /*0x198e91*/\n    }\n  }\n  __outbyte(0x3CFu, 0xFFu); /*0x198e9d*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198e9e*/\n  v61 = *(_DWORD *)(a1 + 140) - 2; /*0x198eb1*/\n  v18 = *(_DWORD *)(a1 + 144) + 19; /*0x198ebd*/\n  v77 = *(_DWORD *)(a1 + 152) + 4 + v61; /*0x198ece*/\n  v19 = *(_DWORD *)(a1 + 16); /*0x198ed4*/\n  v20 = *(_BYTE *)(a1 + 184); /*0x198ed7*/\n  __outbyte(0x3CEu, 0); /*0x198ee4*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198ee5*/\n  __outbyte(0x3CFu, v20); /*0x198ef3*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198ef4*/\n  __outbyte(0x3CEu, 8u); /*0x198f02*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198f03*/\n  v101 = byte_1E4685[v61 & 7]; /*0x198f22*/\n  v100 = byte_1E468D[v77 & 7]; /*0x198f31*/\n  v21 = (_BYTE *)((v61 >> 3) + *(_DWORD *)(a1 + 24) + v19 * v18); /*0x198f3d*/\n  v22 = (v77 >> 3) - (v61 >> 3) - 1; /*0x198f41*/\n  if ( v77 >> 3 == v61 >> 3 ) /*0x198f45*/\n  {\n    __outbyte(0x3CFu, v101 & byte_1E468D[v77 & 7]); /*0x198f51*/\n    _InterlockedIncrement(&dword_1E8654); /*0x198f52*/\n    for ( jj = 1; jj >= 0; --jj ) /*0x198f59*/\n    {\n      *v21 = -1; /*0x198f65*/\n      v21 += v19; /*0x198f68*/\n    }\n  }\n  else\n  {\n    for ( kk = 1; kk >= 0; --kk ) /*0x198f70*/\n    {\n      __outbyte(0x3CFu, v101); /*0x198f85*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198f86*/\n      *v21 = -1; /*0x198f8d*/\n      v62 = v21 + 1; /*0x198f93*/\n      __outbyte(0x3CFu, 0xFFu); /*0x198f98*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198f99*/\n      for ( mm = v22 - 1; mm >= 0; --mm ) /*0x198fa8*/\n        *v62++ = -1; /*0x198faf*/\n      __outbyte(0x3CFu, v100); /*0x198fc3*/\n      _InterlockedIncrement(&dword_1E8654); /*0x198fc4*/\n      *v62 = -1; /*0x198fd6*/\n      v21 += v19; /*0x198fd9*/\n    }\n  }\n  __outbyte(0x3CFu, 0xFFu); /*0x198fe5*/\n  _InterlockedIncrement(&dword_1E8654); /*0x198fe6*/\n  v25 = 0; /*0x198fed*/\n  v88 = 23; /*0x198fef*/\n  do /*0x199151*/\n  {\n    v79 = *(_DWORD *)(a1 + 140) + v25 - 2; /*0x199006*/\n    v63 = *(_DWORD *)(a1 + 144) + v25 - 2; /*0x199014*/\n    v99 = *(_DWORD *)(a1 + 16); /*0x19901e*/\n    v26 = *(_BYTE *)(a1 + 188); /*0x199024*/\n    __outbyte(0x3CEu, 0); /*0x199031*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199032*/\n    __outbyte(0x3CFu, v26); /*0x199040*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199041*/\n    __outbyte(0x3CEu, 8u); /*0x19904f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199050*/\n    v98 = byte_1E4685[v79 & 7]; /*0x19906e*/\n    v97 = byte_1E468D[(v79 + 1) & 7]; /*0x19907a*/\n    v64 = (_BYTE *)((v79 >> 3) + *(_DWORD *)(a1 + 24) + v99 * v63); /*0x19908c*/\n    v27 = ((v79 + 1) >> 3) - (v79 >> 3) - 1; /*0x199091*/\n    if ( (v79 + 1) >> 3 == v79 >> 3 ) /*0x19908f*/\n    {\n      __outbyte(0x3CFu, v98 & byte_1E468D[(v79 + 1) & 7]); /*0x1990a1*/\n      _InterlockedIncrement(&dword_1E8654); /*0x1990a2*/\n      for ( nn = v88 - 1; nn >= 0; --nn ) /*0x1990ad*/\n      {\n        *v64 = -1; /*0x1990bf*/\n        v64 += v99; /*0x1990c7*/\n      }\n    }\n    else\n    {\n      for ( i1 = v88 - 1; i1 >= 0; --i1 ) /*0x1990d4*/\n      {\n        __outbyte(0x3CFu, v98); /*0x1990e8*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1990e9*/\n        *v64 = -1; /*0x1990f3*/\n        v30 = v64 + 1; /*0x1990f9*/\n        __outbyte(0x3CFu, 0xFFu); /*0x1990fc*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1990fd*/\n        for ( i2 = v27 - 1; i2 >= 0; --i2 ) /*0x19910c*/\n          *v30++ = -1; /*0x199110*/\n        __outbyte(0x3CFu, v97); /*0x199121*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199122*/\n        *v30 = -1; /*0x19912e*/\n        v64 += v99; /*0x199134*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x199141*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199142*/\n    v88 -= 2; /*0x199149*/\n    ++v25; /*0x19914d*/\n  }\n  while ( v25 <= 1 ); /*0x199151*/\n  v31 = 1; /*0x199157*/\n  v89 = 21; /*0x19915c*/\n  do /*0x1992b2*/\n  {\n    v32 = *(_DWORD *)(a1 + 144) - v31; /*0x19916d*/\n    v81 = v31 + *(_DWORD *)(a1 + 152) + *(_DWORD *)(a1 + 140) - 1; /*0x19917f*/\n    v65 = v31 + *(_DWORD *)(a1 + 152) + *(_DWORD *)(a1 + 140); /*0x199183*/\n    v96 = *(_DWORD *)(a1 + 16); /*0x199189*/\n    v33 = *(_BYTE *)(a1 + 184); /*0x19918c*/\n    __outbyte(0x3CEu, 0); /*0x199199*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19919a*/\n    __outbyte(0x3CFu, v33); /*0x1991a8*/\n    _InterlockedIncrement(&dword_1E8654); /*0x1991a9*/\n    __outbyte(0x3CEu, 8u); /*0x1991b7*/\n    _InterlockedIncrement(&dword_1E8654); /*0x1991b8*/\n    v95 = byte_1E4685[v81 & 7]; /*0x1991d7*/\n    v94 = byte_1E468D[v65 & 7]; /*0x1991e6*/\n    v34 = (_BYTE *)((v81 >> 3) + *(_DWORD *)(a1 + 24) + v96 * v32); /*0x1991f3*/\n    v35 = (v65 >> 3) - (v81 >> 3) - 1; /*0x1991f7*/\n    if ( v65 >> 3 == v81 >> 3 ) /*0x1991fb*/\n    {\n      __outbyte(0x3CFu, v95 & byte_1E468D[v65 & 7]); /*0x199207*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199208*/\n      for ( i3 = v89 - 1; i3 >= 0; --i3 ) /*0x199213*/\n      {\n        *v34 = -1; /*0x199221*/\n        v34 += v96; /*0x199224*/\n      }\n    }\n    else\n    {\n      for ( i4 = v89 - 1; i4 >= 0; --i4 ) /*0x199230*/\n      {\n        __outbyte(0x3CFu, v95); /*0x199241*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199242*/\n        *v34 = -1; /*0x199249*/\n        v66 = v34 + 1; /*0x19924f*/\n        __outbyte(0x3CFu, 0xFFu); /*0x199254*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199255*/\n        for ( i5 = v35 - 1; i5 >= 0; --i5 ) /*0x199264*/\n          *v66++ = -1; /*0x19926b*/\n        __outbyte(0x3CFu, v94); /*0x19927f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199280*/\n        *v66 = -1; /*0x199292*/\n        v34 += v96; /*0x199295*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x1992a2*/\n    _InterlockedIncrement(&dword_1E8654); /*0x1992a3*/\n    v89 += 2; /*0x1992aa*/\n    ++v31; /*0x1992ae*/\n  }\n  while ( v31 <= 2 ); /*0x1992b2*/\n  v67 = *(_DWORD *)(a1 + 140) - 3; /*0x1992c4*/\n  v38 = *(_DWORD *)(a1 + 144) + 21; /*0x1992d0*/\n  v83 = *(_DWORD *)(a1 + 152) + 6 + v67; /*0x1992e1*/\n  v39 = *(_DWORD *)(a1 + 16); /*0x1992e7*/\n  v40 = *(_BYTE *)(a1 + 180); /*0x1992ea*/\n  __outbyte(0x3CEu, 0); /*0x1992f7*/\n  _InterlockedIncrement(&dword_1E8654); /*0x1992f8*/\n  __outbyte(0x3CFu, v40); /*0x199306*/\n  _InterlockedIncrement(&dword_1E8654); /*0x199307*/\n  __outbyte(0x3CEu, 8u); /*0x199315*/\n  _InterlockedIncrement(&dword_1E8654); /*0x199316*/\n  v93 = byte_1E4685[v67 & 7]; /*0x199335*/\n  v92 = byte_1E468D[v83 & 7]; /*0x199344*/\n  v41 = (_BYTE *)((v67 >> 3) + *(_DWORD *)(a1 + 24) + v39 * v38); /*0x199350*/\n  v42 = (v83 >> 3) - (v67 >> 3) - 1; /*0x199354*/\n  if ( v83 >> 3 == v67 >> 3 ) /*0x199358*/\n  {\n    __outbyte(0x3CFu, v93 & byte_1E468D[v83 & 7]); /*0x199364*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199365*/\n    for ( i6 = 0; i6 >= 0; --i6 ) /*0x19936c*/\n    {\n      *v41 = -1; /*0x199375*/\n      v41 += v39; /*0x199378*/\n    }\n  }\n  else\n  {\n    for ( i7 = 0; i7 >= 0; --i7 ) /*0x199380*/\n    {\n      __outbyte(0x3CFu, v93); /*0x199391*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199392*/\n      *v41 = -1; /*0x199399*/\n      v68 = v41 + 1; /*0x19939f*/\n      __outbyte(0x3CFu, 0xFFu); /*0x1993a4*/\n      _InterlockedIncrement(&dword_1E8654); /*0x1993a5*/\n      for ( i8 = v42 - 1; i8 >= 0; --i8 ) /*0x1993b4*/\n        *v68++ = -1; /*0x1993bb*/\n      __outbyte(0x3CFu, v92); /*0x1993cf*/\n      _InterlockedIncrement(&dword_1E8654); /*0x1993d0*/\n      *v68 = -1; /*0x1993e2*/\n      v41 += v39; /*0x1993e5*/\n    }\n  }\n  __outbyte(0x3CFu, 0xFFu); /*0x1993f1*/\n  _InterlockedIncrement(&dword_1E8654); /*0x1993f2*/\n  *(_DWORD *)(a1 + 144) += 24; /*0x1993fc*/\n  *(_DWORD *)(a1 + 156) -= 2; /*0x199403*/\n  *(_DWORD *)(a1 + 160) -= 24; /*0x19940a*/\n  *(_DWORD *)(a1 + 168) = v107; /*0x199414*/\n  if ( v108 <= 0 ) /*0x19941e*/\n  {\n    v45 = *(_DWORD *)(a1 + 140); /*0x199437*/\n    v46 = v45 + 8 * v107; /*0x199440*/\n    v69 = *(_DWORD *)(a1 + 144) + 12 * *(_DWORD *)(a1 + 164); /*0x19945b*/\n    v47 = *(_DWORD *)(a1 + 152) + v45; /*0x199461*/\n    v48 = *(_DWORD *)(a1 + 16); /*0x199467*/\n    v85 = *(_BYTE *)(a1 + 176); /*0x199470*/\n    __outbyte(0x3CEu, 0); /*0x19947a*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19947b*/\n    __outbyte(0x3CFu, v85); /*0x19948a*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19948b*/\n    __outbyte(0x3CEu, 8u); /*0x199499*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19949a*/\n    v49 = v46 >> 3; /*0x1994a3*/\n    v86 = v47 >> 3; /*0x1994ab*/\n    v50 = byte_1E4685[v46 & 7]; /*0x1994b1*/\n    v91 = v50; /*0x1994b7*/\n    v51 = byte_1E468D[v47 & 7]; /*0x1994bd*/\n    v90 = v51; /*0x1994c3*/\n    v70 = (_BYTE *)(v49 + *(_DWORD *)(a1 + 24) + v48 * v69); /*0x1994d4*/\n    v87 = v86 - v49 - 1; /*0x1994dd*/\n    if ( v87 == -1 ) /*0x1994e3*/\n    {\n      __outbyte(0x3CFu, v50 & v51); /*0x1994ee*/\n      _InterlockedIncrement(&dword_1E8654); /*0x1994ef*/\n      for ( i9 = 11; i9 >= 0; --i9 ) /*0x1994f6*/\n      {\n        *v70 = -1; /*0x199507*/\n        v70 += v48; /*0x19950c*/\n      }\n    }\n    else\n    {\n      for ( i10 = 11; i10 >= 0; --i10 ) /*0x199514*/\n      {\n        __outbyte(0x3CFu, v91); /*0x19952c*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19952d*/\n        *v70 = -1; /*0x199537*/\n        v54 = v70 + 1; /*0x19953d*/\n        __outbyte(0x3CFu, 0xFFu); /*0x199540*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199541*/\n        for ( i11 = v87 - 1; i11 >= 0; --i11 ) /*0x19954c*/\n          *v54++ = -1; /*0x199550*/\n        __outbyte(0x3CFu, v90); /*0x19955f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199560*/\n        *v54 = -1; /*0x19956c*/\n        v70 += v48; /*0x19956f*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19957c*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19957d*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 164) = v108 - 2; /*0x199426*/\n  }\n  LOBYTE(result) = sub_197CA0(a1); /*0x199588*/\n  *(_DWORD *)(a1 + 192) = 1; /*0x199590*/\n  return result; /*0x19959d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e4695",
+        "name": "aConsoleIllegal",
+        "string": "console: Illegal title length (%d)\n"
+      },
+      {
+        "addr": "0x197ca0",
+        "name": "sub_197CA0"
+      },
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1e4685",
+        "name": "byte_1E4685"
+      },
+      {
+        "addr": "0x1e468d",
+        "name": "byte_1E468D"
+      },
+      {
+        "addr": "0x198098",
+        "name": "sub_198098"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001995a4",
+    "addr": "0x001995a4",
+    "code": "char __cdecl sub_1995A4(int a1, int a2, int a3, const char *a4, int a5, int a6)\n{\n  int v6; // edx\n  int j; // ebx\n  unsigned __int8 v8; // al\n  unsigned __int8 v9; // al\n  int v10; // edi\n  unsigned __int8 v11; // al\n  unsigned __int8 v12; // al\n  int v13; // ebx\n  unsigned int v14; // ebx\n  unsigned __int8 v15; // al\n  int v16; // ebx\n  unsigned int v17; // ebx\n  unsigned __int8 v18; // al\n  unsigned __int8 v19; // cl\n  unsigned __int16 v20; // dx\n  int v21; // edi\n  int v22; // ebx\n  unsigned __int8 v23; // al\n  unsigned int v24; // ebx\n  unsigned __int8 v25; // al\n  int v26; // ebx\n  _BYTE *v27; // ebx\n  int v28; // ebx\n  _BYTE *v29; // ebx\n  int v30; // ebx\n  _BYTE *v31; // ebx\n  unsigned __int8 v32; // bl\n  int v33; // ebx\n  int v34; // ebx\n  _BYTE *v35; // ebx\n  int v36; // ebx\n  _BYTE *v37; // ebx\n  int v38; // ebx\n  _BYTE *v39; // ebx\n  int v40; // ebx\n  _BYTE *v41; // ebx\n  int v42; // ebx\n  _BYTE *v43; // ebx\n  int v45; // [esp+10h] [ebp-B0h]\n  int v46; // [esp+14h] [ebp-ACh]\n  int v47; // [esp+18h] [ebp-A8h]\n  int k; // [esp+20h] [ebp-A0h]\n  int v49; // [esp+20h] [ebp-A0h]\n  int v50; // [esp+20h] [ebp-A0h]\n  int i18; // [esp+20h] [ebp-A0h]\n  int i19; // [esp+20h] [ebp-A0h]\n  int m; // [esp+24h] [ebp-9Ch]\n  int n; // [esp+24h] [ebp-9Ch]\n  int jj; // [esp+24h] [ebp-9Ch]\n  int kk; // [esp+24h] [ebp-9Ch]\n  int nn; // [esp+24h] [ebp-9Ch]\n  int i1; // [esp+24h] [ebp-9Ch]\n  int i3; // [esp+24h] [ebp-9Ch]\n  int i4; // [esp+24h] [ebp-9Ch]\n  int i6; // [esp+24h] [ebp-9Ch]\n  int i7; // [esp+24h] [ebp-9Ch]\n  int i9; // [esp+24h] [ebp-9Ch]\n  int i10; // [esp+24h] [ebp-9Ch]\n  int i12; // [esp+24h] [ebp-9Ch]\n  int i13; // [esp+24h] [ebp-9Ch]\n  _BYTE *v67; // [esp+24h] [ebp-9Ch]\n  int i20; // [esp+24h] [ebp-9Ch]\n  unsigned __int8 v69; // [esp+28h] [ebp-98h]\n  unsigned __int8 v70; // [esp+28h] [ebp-98h]\n  int v71; // [esp+28h] [ebp-98h]\n  unsigned __int8 v72; // [esp+28h] [ebp-98h]\n  int v73; // [esp+28h] [ebp-98h]\n  unsigned __int8 v74; // [esp+28h] [ebp-98h]\n  int v75; // [esp+28h] [ebp-98h]\n  int v76; // [esp+28h] [ebp-98h]\n  _BYTE *v77; // [esp+28h] [ebp-98h]\n  unsigned __int8 v78; // [esp+28h] [ebp-98h]\n  unsigned __int8 v79; // [esp+28h] [ebp-98h]\n  unsigned __int8 v80; // [esp+28h] [ebp-98h]\n  int v81; // [esp+28h] [ebp-98h]\n  unsigned __int8 v82; // [esp+28h] [ebp-98h]\n  int v83; // [esp+28h] [ebp-98h]\n  unsigned __int8 v84; // [esp+28h] [ebp-98h]\n  int v85; // [esp+28h] [ebp-98h]\n  unsigned __int8 v86; // [esp+2Ch] [ebp-94h]\n  char *v87; // [esp+30h] [ebp-90h]\n  char *v88; // [esp+30h] [ebp-90h]\n  char *v89; // [esp+30h] [ebp-90h]\n  int v90; // [esp+30h] [ebp-90h]\n  _BYTE *v91; // [esp+30h] [ebp-90h]\n  int v92; // [esp+30h] [ebp-90h]\n  _BYTE *v93; // [esp+30h] [ebp-90h]\n  int v94; // [esp+30h] [ebp-90h]\n  _BYTE *v95; // [esp+30h] [ebp-90h]\n  int v96; // [esp+30h] [ebp-90h]\n  int i5; // [esp+30h] [ebp-90h]\n  _BYTE *v98; // [esp+30h] [ebp-90h]\n  _BYTE *v99; // [esp+30h] [ebp-90h]\n  _BYTE *v100; // [esp+30h] [ebp-90h]\n  int v101; // [esp+30h] [ebp-90h]\n  int i17; // [esp+30h] [ebp-90h]\n  int v103; // [esp+30h] [ebp-90h]\n  _BYTE *v104; // [esp+30h] [ebp-90h]\n  int i; // [esp+34h] [ebp-8Ch]\n  int v106; // [esp+34h] [ebp-8Ch]\n  int v107; // [esp+34h] [ebp-8Ch]\n  int v108; // [esp+34h] [ebp-8Ch]\n  int v109; // [esp+34h] [ebp-8Ch]\n  int ii; // [esp+34h] [ebp-8Ch]\n  int v111; // [esp+34h] [ebp-8Ch]\n  int mm; // [esp+34h] [ebp-8Ch]\n  int v113; // [esp+34h] [ebp-8Ch]\n  int i2; // [esp+34h] [ebp-8Ch]\n  int v115; // [esp+34h] [ebp-8Ch]\n  _BYTE *v116; // [esp+34h] [ebp-8Ch]\n  int i8; // [esp+34h] [ebp-8Ch]\n  int i11; // [esp+34h] [ebp-8Ch]\n  int v119; // [esp+34h] [ebp-8Ch]\n  int i14; // [esp+34h] [ebp-8Ch]\n  int v121; // [esp+34h] [ebp-8Ch]\n  int i15; // [esp+34h] [ebp-8Ch]\n  int i16; // [esp+34h] [ebp-8Ch]\n  unsigned __int8 v124; // [esp+3Ch] [ebp-84h]\n  unsigned __int8 v125; // [esp+40h] [ebp-80h]\n  int v126; // [esp+44h] [ebp-7Ch]\n  unsigned __int8 v127; // [esp+48h] [ebp-78h]\n  unsigned __int8 v128; // [esp+4Ch] [ebp-74h]\n  int v129; // [esp+50h] [ebp-70h]\n  unsigned __int8 v130; // [esp+54h] [ebp-6Ch]\n  unsigned __int8 v131; // [esp+58h] [ebp-68h]\n  int v132; // [esp+5Ch] [ebp-64h]\n  unsigned __int8 v133; // [esp+60h] [ebp-60h]\n  unsigned __int8 v134; // [esp+64h] [ebp-5Ch]\n  int v135; // [esp+68h] [ebp-58h]\n  unsigned __int8 v136; // [esp+6Ch] [ebp-54h]\n  unsigned __int8 v137; // [esp+70h] [ebp-50h]\n  int v138; // [esp+74h] [ebp-4Ch]\n  unsigned __int8 v139; // [esp+7Ch] [ebp-44h]\n  unsigned __int8 v140; // [esp+80h] [ebp-40h]\n  unsigned __int8 v141; // [esp+84h] [ebp-3Ch]\n  unsigned __int8 v142; // [esp+88h] [ebp-38h]\n  int v143; // [esp+8Ch] [ebp-34h]\n  unsigned __int8 v144; // [esp+90h] [ebp-30h]\n  unsigned __int8 v145; // [esp+94h] [ebp-2Ch]\n  int v146; // [esp+98h] [ebp-28h]\n  unsigned __int8 v147; // [esp+9Ch] [ebp-24h]\n  unsigned __int8 v148; // [esp+A0h] [ebp-20h]\n  int v149; // [esp+A4h] [ebp-1Ch]\n  int v150; // [esp+A8h] [ebp-18h]\n  int v151; // [esp+ACh] [ebp-14h]\n  int v152; // [esp+B0h] [ebp-10h]\n  char *v153; // [esp+B4h] [ebp-Ch]\n  char *v154; // [esp+B4h] [ebp-Ch]\n  signed int v155; // [esp+CCh] [ebp+Ch]\n  int v156; // [esp+D0h] [ebp+10h]\n\n  v155 = (a2 + (a2 < 0 ? 7 : 0)) & 0xFFFFFFF8;\n  v156 = 12 * (a3 / 12); /*0x1995ea*/\n  v6 = *(_DWORD *)(a1 + 4); /*0x1995f0*/\n  if ( v155 > v6 - 6 ) /*0x199600*/\n    v155 = v6 - 6; /*0x199602*/\n  if ( v156 > *(_DWORD *)(a1 + 8) - 6 ) /*0x199611*/\n    v156 = *(_DWORD *)(a1 + 8) - 6; /*0x199613*/\n  *(_DWORD *)(a1 + 140) = (v6 - v155) / 2; /*0x199635*/\n  *(_DWORD *)(a1 + 144) = (*(_DWORD *)(a1 + 8) - v156) / 2; /*0x199654*/\n  *(_DWORD *)(a1 + 152) = v155; /*0x19965d*/\n  *(_DWORD *)(a1 + 160) = v156; /*0x199666*/\n  *(_DWORD *)(a1 + 140) &= 0xFFFFFFF8; /*0x19966c*/\n  *(_DWORD *)(a1 + 148) = *(_DWORD *)(a1 + 152) / 8; /*0x199686*/\n  *(_DWORD *)(a1 + 156) = *(_DWORD *)(a1 + 160) / 12; /*0x19969f*/\n  *(_DWORD *)(a1 + 168) = 0; /*0x1996a5*/\n  *(_DWORD *)(a1 + 192) = 0; /*0x1996af*/\n  if ( a5 ) /*0x1996bd*/\n  {\n    if ( a6 ) /*0x1996c7*/\n    {\n      for ( i = 0; i <= 8; ++i ) /*0x1996cd*/\n      {\n        v69 = byte_1E467C[i]; /*0x1996ea*/\n        __outbyte(0x3CEu, i); /*0x1996f7*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1996f8*/\n        __outbyte(0x3CFu, v69); /*0x19970a*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19970b*/\n      }\n      if ( *(_DWORD *)(a1 + 256) ) /*0x199724*/\n      {\n        for ( j = 0; j <= 8; ++j ) /*0x199741*/\n        {\n          __outbyte(0x3CEu, j); /*0x19974b*/\n          _InterlockedIncrement(&dword_1E8654); /*0x19974c*/\n          v8 = __inbyte(0x3CFu); /*0x199758*/\n          *(_BYTE *)(j + a1 + 230) = v8; /*0x19975f*/\n        }\n        __outbyte(0x3C4u, 2u); /*0x19976f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199770*/\n        v9 = __inbyte(0x3C5u); /*0x19977c*/\n        *(_BYTE *)(a1 + 241) = v9; /*0x19977f*/\n        *(_DWORD *)(a1 + 200) = v156 + 6; /*0x19978b*/\n        v10 = v155 / 8 + 2; /*0x1997a0*/\n        *(_DWORD *)(a1 + 204) = v10; /*0x1997a6*/\n        *(_DWORD *)(a1 + 208) = *(_DWORD *)(a1 + 200) * v10; /*0x1997b6*/\n        v153 = *(char **)(a1 + 196); /*0x1997c2*/\n        __outbyte(0x3CEu, 5u); /*0x1997cc*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1997cd*/\n        v11 = __inbyte(0x3CFu); /*0x1997d9*/\n        __outbyte(0x3CEu, 5u); /*0x1997e6*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1997e7*/\n        __outbyte(0x3CFu, v11 & 0xF7); /*0x1997f5*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1997f6*/\n        __outbyte(0x3CEu, 4u); /*0x199804*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199805*/\n        v12 = __inbyte(0x3CFu); /*0x199811*/\n        __outbyte(0x3CEu, 4u); /*0x19981e*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19981f*/\n        __outbyte(0x3CFu, v12 & 0xFC); /*0x19982d*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19982e*/\n        v13 = (*(int *)(a1 + 140) >> 3) + *(_DWORD *)(a1 + 24) + *(_DWORD *)(a1 + 16) * (*(_DWORD *)(a1 + 144) - 3) - 1; /*0x199854*/\n        *(_DWORD *)(a1 + 212) = v13; /*0x199858*/\n        v87 = (char *)v13; /*0x19985e*/\n        v106 = *(_DWORD *)(a1 + 200); /*0x19986a*/\n        if ( v106 ) /*0x199872*/\n        {\n          v14 = *(_DWORD *)(a1 + 204); /*0x199874*/\n          v152 = *(_DWORD *)(a1 + 16); /*0x19987d*/\n          do /*0x19989f*/\n          {\n            qmemcpy(v153, v87, v14); /*0x19988b*/\n            v87 += v152; /*0x199890*/\n            v153 += v14; /*0x199896*/\n            --v106; /*0x199899*/\n          }\n          while ( v106 ); /*0x19989f*/\n        }\n        __outbyte(0x3CEu, 4u); /*0x1998a8*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1998a9*/\n        v15 = __inbyte(0x3CFu); /*0x1998b5*/\n        __outbyte(0x3CEu, 4u); /*0x1998c5*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1998c6*/\n        __outbyte(0x3CFu, v15 & 0xFC | 1); /*0x1998d4*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1998d5*/\n        v16 = (*(int *)(a1 + 140) >> 3) + *(_DWORD *)(a1 + 24) + *(_DWORD *)(a1 + 16) * (*(_DWORD *)(a1 + 144) - 3) - 1; /*0x1998fb*/\n        *(_DWORD *)(a1 + 212) = v16; /*0x1998ff*/\n        v88 = (char *)v16; /*0x199905*/\n        v107 = *(_DWORD *)(a1 + 200); /*0x199911*/\n        if ( v107 ) /*0x199919*/\n        {\n          v17 = *(_DWORD *)(a1 + 204); /*0x19991b*/\n          v151 = *(_DWORD *)(a1 + 16); /*0x199924*/\n          do /*0x199947*/\n          {\n            qmemcpy(v153, v88, v17); /*0x199933*/\n            v88 += v151; /*0x199938*/\n            v153 += v17; /*0x19993e*/\n            --v107; /*0x199941*/\n          }\n          while ( v107 ); /*0x199947*/\n        }\n        __outbyte(0x3CEu, 5u); /*0x199954*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199955*/\n        v18 = __inbyte(0x3CFu); /*0x199961*/\n        __outbyte(0x3CEu, 5u); /*0x19996e*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19996f*/\n        __outbyte(0x3CFu, v18 & 0xFC); /*0x19997d*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19997e*/\n        for ( k = 0; k <= 8; ++k ) /*0x19998e*/\n        {\n          v70 = *(_BYTE *)(k + a1 + 230); /*0x1999a7*/\n          __outbyte(0x3CEu, k); /*0x1999b4*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1999b5*/\n          __outbyte(0x3CFu, v70); /*0x1999c7*/\n          _InterlockedIncrement(&dword_1E8654); /*0x1999c8*/\n        }\n        v19 = *(_BYTE *)(a1 + 241); /*0x1999de*/\n        __outbyte(0x3C4u, 2u); /*0x1999e8*/\n        _InterlockedIncrement(&dword_1E8654); /*0x1999e9*/\n        v20 = 965; /*0x1999f0*/\n      }\n      else\n      {\n        *(_DWORD *)(a1 + 200) = v156 + 6; /*0x199a05*/\n        v21 = v155 / 8 + 2; /*0x199a1a*/\n        *(_DWORD *)(a1 + 204) = v21; /*0x199a20*/\n        *(_DWORD *)(a1 + 208) = *(_DWORD *)(a1 + 200) * v21; /*0x199a30*/\n        v154 = *(char **)(a1 + 196); /*0x199a3c*/\n        v22 = (*(int *)(a1 + 140) >> 3) + *(_DWORD *)(a1 + 24) + *(_DWORD *)(a1 + 16) * (*(_DWORD *)(a1 + 144) - 3) - 1; /*0x199a58*/\n        *(_DWORD *)(a1 + 212) = v22; /*0x199a5c*/\n        v89 = (char *)v22; /*0x199a62*/\n        __outbyte(0x3CEu, 5u); /*0x199a6f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199a70*/\n        v23 = __inbyte(0x3CFu); /*0x199a7c*/\n        __outbyte(0x3CEu, 5u); /*0x199a8c*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199a8d*/\n        __outbyte(0x3CFu, v23 & 0xFC | 1); /*0x199a9b*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199a9c*/\n        v108 = *(_DWORD *)(a1 + 200); /*0x199aac*/\n        if ( v108 ) /*0x199ab4*/\n        {\n          v24 = *(_DWORD *)(a1 + 204); /*0x199ab9*/\n          v150 = *(_DWORD *)(a1 + 16); /*0x199ac2*/\n          do /*0x199ae7*/\n          {\n            qmemcpy(v154, v89, v24); /*0x199ad3*/\n            v89 += v150; /*0x199ad8*/\n            v154 += v24; /*0x199ade*/\n            --v108; /*0x199ae1*/\n          }\n          while ( v108 ); /*0x199ae7*/\n        }\n        __outbyte(0x3CEu, 5u); /*0x199af0*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199af1*/\n        v25 = __inbyte(0x3CFu); /*0x199afd*/\n        v19 = v25 & 0xFC; /*0x199b00*/\n        __outbyte(0x3CEu, 5u); /*0x199b0a*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199b0b*/\n        v20 = 975; /*0x199b12*/\n      }\n      __outbyte(v20, v19); /*0x199b19*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199b1a*/\n    }\n    *(_DWORD *)(a1 + 164) = 0; /*0x199b24*/\n    *(_DWORD *)(a1 + 192) = 0; /*0x199b2e*/\n    v109 = *(_DWORD *)(a1 + 140) - 3; /*0x199b4a*/\n    v26 = *(_DWORD *)(a1 + 144) - 3; /*0x199b56*/\n    v90 = v109 + v155 + 6; /*0x199b60*/\n    v149 = *(_DWORD *)(a1 + 16); /*0x199b69*/\n    v86 = *(_BYTE *)(a1 + 180); /*0x199b72*/\n    __outbyte(0x3CEu, 0); /*0x199b7f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199b80*/\n    __outbyte(0x3CFu, v86); /*0x199b92*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199b93*/\n    __outbyte(0x3CEu, 8u); /*0x199ba1*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199ba2*/\n    v148 = byte_1E4685[v109 & 7]; /*0x199bca*/\n    v147 = byte_1E468D[v90 & 7]; /*0x199bdc*/\n    v27 = (_BYTE *)((v109 >> 3) + *(_DWORD *)(a1 + 24) + v149 * v26); /*0x199be9*/\n    v71 = (v90 >> 3) - (v109 >> 3) - 1; /*0x199bf4*/\n    if ( v90 >> 3 == v109 >> 3 ) /*0x199bfd*/\n    {\n      __outbyte(0x3CFu, v148 & byte_1E468D[v90 & 7]); /*0x199c09*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199c0a*/\n      for ( m = 0; m >= 0; --m ) /*0x199c11*/\n      {\n        *v27 = -1; /*0x199c27*/\n        v27 += v149; /*0x199c2a*/\n      }\n    }\n    else\n    {\n      for ( n = 0; n >= 0; --n ) /*0x199c3c*/\n      {\n        __outbyte(0x3CFu, v148); /*0x199c5b*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199c5c*/\n        *v27 = -1; /*0x199c63*/\n        v91 = v27 + 1; /*0x199c69*/\n        __outbyte(0x3CFu, 0xFFu); /*0x199c71*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199c72*/\n        for ( ii = v71 - 1; ii >= 0; --ii ) /*0x199c86*/\n          *v91++ = -1; /*0x199c8e*/\n        __outbyte(0x3CFu, v147); /*0x199ca8*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199ca9*/\n        *v91 = -1; /*0x199cc7*/\n        v27 += v149; /*0x199cca*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x199ce0*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199ce1*/\n    v111 = *(_DWORD *)(a1 + 140) - 2; /*0x199cfd*/\n    v28 = *(_DWORD *)(a1 + 144) - 2; /*0x199d0c*/\n    v92 = v111 + v155 + 4; /*0x199d16*/\n    v146 = *(_DWORD *)(a1 + 16); /*0x199d1f*/\n    v72 = *(_BYTE *)(a1 + 176); /*0x199d28*/\n    __outbyte(0x3CEu, 0); /*0x199d35*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199d36*/\n    __outbyte(0x3CFu, v72); /*0x199d48*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199d49*/\n    __outbyte(0x3CEu, 8u); /*0x199d57*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199d58*/\n    v145 = byte_1E4685[v111 & 7]; /*0x199d86*/\n    v144 = byte_1E468D[v92 & 7]; /*0x199d98*/\n    v29 = (_BYTE *)((v111 >> 3) + *(_DWORD *)(a1 + 24) + v146 * v28); /*0x199da2*/\n    v73 = (v92 >> 3) - (v111 >> 3) - 1; /*0x199db5*/\n    if ( v92 >> 3 == v111 >> 3 ) /*0x199dbe*/\n    {\n      __outbyte(0x3CFu, v145 & byte_1E468D[v92 & 7]); /*0x199dca*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199dcb*/\n      for ( jj = 1; jj >= 0; --jj ) /*0x199dd2*/\n      {\n        *v29 = -1; /*0x199de7*/\n        v29 += v146; /*0x199dea*/\n      }\n    }\n    else\n    {\n      for ( kk = 1; kk >= 0; --kk ) /*0x199dfc*/\n      {\n        __outbyte(0x3CFu, v145); /*0x199e1b*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199e1c*/\n        *v29 = -1; /*0x199e23*/\n        v93 = v29 + 1; /*0x199e29*/\n        __outbyte(0x3CFu, 0xFFu); /*0x199e31*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199e32*/\n        for ( mm = v73 - 1; mm >= 0; --mm ) /*0x199e46*/\n          *v93++ = -1; /*0x199e4e*/\n        __outbyte(0x3CFu, v144); /*0x199e68*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199e69*/\n        *v93 = -1; /*0x199e87*/\n        v29 += v146; /*0x199e8a*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x199ea0*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199ea1*/\n    v113 = *(_DWORD *)(a1 + 140) - 2; /*0x199ebd*/\n    v30 = *(_DWORD *)(a1 + 144) + v156; /*0x199ec9*/\n    v94 = v113 + v155 + 4; /*0x199ed6*/\n    v143 = *(_DWORD *)(a1 + 16); /*0x199edf*/\n    v74 = *(_BYTE *)(a1 + 176); /*0x199ee8*/\n    __outbyte(0x3CEu, 0); /*0x199ef5*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199ef6*/\n    __outbyte(0x3CFu, v74); /*0x199f08*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199f09*/\n    __outbyte(0x3CEu, 8u); /*0x199f17*/\n    _InterlockedIncrement(&dword_1E8654); /*0x199f18*/\n    v142 = byte_1E4685[v113 & 7]; /*0x199f46*/\n    v141 = byte_1E468D[v94 & 7]; /*0x199f58*/\n    v31 = (_BYTE *)((v113 >> 3) + *(_DWORD *)(a1 + 24) + v143 * v30); /*0x199f62*/\n    v75 = (v94 >> 3) - (v113 >> 3) - 1; /*0x199f75*/\n    if ( v94 >> 3 == v113 >> 3 ) /*0x199f7e*/\n    {\n      __outbyte(0x3CFu, v142 & byte_1E468D[v94 & 7]); /*0x199f8a*/\n      _InterlockedIncrement(&dword_1E8654); /*0x199f8b*/\n      for ( nn = 1; nn >= 0; --nn ) /*0x199f92*/\n      {\n        *v31 = -1; /*0x199fa7*/\n        v31 += v143; /*0x199faa*/\n      }\n    }\n    else\n    {\n      for ( i1 = 1; i1 >= 0; --i1 ) /*0x199fbc*/\n      {\n        __outbyte(0x3CFu, v142); /*0x199fdb*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199fdc*/\n        *v31 = -1; /*0x199fe3*/\n        v95 = v31 + 1; /*0x199fe9*/\n        __outbyte(0x3CFu, 0xFFu); /*0x199ff1*/\n        _InterlockedIncrement(&dword_1E8654); /*0x199ff2*/\n        for ( i2 = v75 - 1; i2 >= 0; --i2 ) /*0x19a006*/\n          *v95++ = -1; /*0x19a00e*/\n        __outbyte(0x3CFu, v141); /*0x19a028*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a029*/\n        *v95 = -1; /*0x19a047*/\n        v31 += v143; /*0x19a04a*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a060*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a061*/\n    v96 = *(_DWORD *)(a1 + 140) - 3; /*0x19a07a*/\n    v115 = *(_DWORD *)(a1 + 144) + v156 + 2; /*0x19a08f*/\n    v76 = v96 + v155 + 6; /*0x19a09c*/\n    v49 = *(_DWORD *)(a1 + 16); /*0x19a0a5*/\n    v32 = *(_BYTE *)(a1 + 180); /*0x19a0ab*/\n    __outbyte(0x3CEu, 0); /*0x19a0b8*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a0b9*/\n    __outbyte(0x3CFu, v32); /*0x19a0c7*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a0c8*/\n    __outbyte(0x3CEu, 8u); /*0x19a0d6*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a0d7*/\n    v140 = byte_1E4685[v96 & 7]; /*0x19a0ff*/\n    v139 = byte_1E468D[v76 & 7]; /*0x19a111*/\n    v116 = (_BYTE *)((v96 >> 3) + *(_DWORD *)(a1 + 24) + v49 * v115); /*0x19a12a*/\n    v33 = (v76 >> 3) - (v96 >> 3) - 1; /*0x19a136*/\n    if ( v76 >> 3 == v96 >> 3 ) /*0x19a13a*/\n    {\n      __outbyte(0x3CFu, byte_1E4685[v96 & 7] & v139); /*0x19a148*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19a149*/\n      for ( i3 = 0; i3 >= 0; --i3 ) /*0x19a150*/\n      {\n        *v116 = -1; /*0x19a170*/\n        v116 += v49; /*0x19a17b*/\n      }\n    }\n    else\n    {\n      for ( i4 = 0; i4 >= 0; --i4 ) /*0x19a190*/\n      {\n        __outbyte(0x3CFu, v140); /*0x19a1b2*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a1b3*/\n        *v116 = -1; /*0x19a1c0*/\n        v77 = v116 + 1; /*0x19a1c4*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19a1cc*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a1cd*/\n        for ( i5 = v33 - 1; i5 >= 0; --i5 ) /*0x19a1df*/\n          *v77++ = -1; /*0x19a1ea*/\n        __outbyte(0x3CFu, v139); /*0x19a204*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a205*/\n        *v77 = -1; /*0x19a220*/\n        v116 += v49; /*0x19a229*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a242*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a243*/\n    v47 = *(_DWORD *)(a1 + 140); /*0x19a25c*/\n    v34 = *(_DWORD *)(a1 + 144) - 3; /*0x19a274*/\n    v138 = *(_DWORD *)(a1 + 16); /*0x19a289*/\n    v78 = *(_BYTE *)(a1 + 180); /*0x19a292*/\n    __outbyte(0x3CEu, 0); /*0x19a29f*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a2a0*/\n    __outbyte(0x3CFu, v78); /*0x19a2b2*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a2b3*/\n    __outbyte(0x3CEu, 8u); /*0x19a2c1*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a2c2*/\n    v137 = byte_1E4685[((_BYTE)v47 - 3) & 7]; /*0x19a2f0*/\n    v136 = byte_1E468D[((_BYTE)v47 - 2) & 7]; /*0x19a302*/\n    v35 = (_BYTE *)(((v47 - 3) >> 3) + *(_DWORD *)(a1 + 24) + v138 * v34); /*0x19a30c*/\n    if ( (v47 - 2) >> 3 == (v47 - 3) >> 3 ) /*0x19a328*/\n    {\n      __outbyte(0x3CFu, byte_1E4685[((_BYTE)v47 - 3) & 7] & byte_1E468D[((_BYTE)v47 - 2) & 7]); /*0x19a333*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19a334*/\n      for ( i6 = v156 + 5; i6 >= 0; --i6 ) /*0x19a347*/\n      {\n        *v35 = -1; /*0x19a35b*/\n        v35 += v138; /*0x19a35e*/\n      }\n    }\n    else\n    {\n      for ( i7 = v156 + 5; i7 >= 0; --i7 ) /*0x19a37c*/\n      {\n        __outbyte(0x3CFu, v137); /*0x19a397*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a398*/\n        *v35 = -1; /*0x19a39f*/\n        v98 = v35 + 1; /*0x19a3a5*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19a3ad*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a3ae*/\n        for ( i8 = ((v47 - 2) >> 3) - ((v47 - 3) >> 3) - 2; i8 >= 0; --i8 ) /*0x19a3c2*/\n          *v98++ = -1; /*0x19a3ca*/\n        __outbyte(0x3CFu, v136); /*0x19a3e4*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a3e5*/\n        *v98 = -1; /*0x19a403*/\n        v35 += v138; /*0x19a406*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a41c*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a41d*/\n    v46 = *(_DWORD *)(a1 + 140); /*0x19a436*/\n    v36 = *(_DWORD *)(a1 + 144) - 2; /*0x19a44e*/\n    v135 = *(_DWORD *)(a1 + 16); /*0x19a454*/\n    v79 = *(_BYTE *)(a1 + 176); /*0x19a45d*/\n    __outbyte(0x3CEu, 0); /*0x19a46a*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a46b*/\n    __outbyte(0x3CFu, v79); /*0x19a47d*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a47e*/\n    __outbyte(0x3CEu, 8u); /*0x19a48c*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a48d*/\n    v134 = byte_1E4685[((_BYTE)v46 - 2) & 7]; /*0x19a4bb*/\n    v133 = byte_1E468D[v46 & 7]; /*0x19a4cd*/\n    v37 = (_BYTE *)(((v46 - 2) >> 3) + *(_DWORD *)(a1 + 24) + v135 * v36); /*0x19a4d7*/\n    if ( v46 >> 3 == (v46 - 2) >> 3 ) /*0x19a4f3*/\n    {\n      __outbyte(0x3CFu, byte_1E4685[((_BYTE)v46 - 2) & 7] & byte_1E468D[v46 & 7]); /*0x19a4fe*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19a4ff*/\n      for ( i9 = v156 + 3; i9 >= 0; --i9 ) /*0x19a512*/\n      {\n        *v37 = -1; /*0x19a523*/\n        v37 += v135; /*0x19a526*/\n      }\n    }\n    else\n    {\n      for ( i10 = v156 + 3; i10 >= 0; --i10 ) /*0x19a544*/\n      {\n        __outbyte(0x3CFu, v134); /*0x19a55f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a560*/\n        *v37 = -1; /*0x19a567*/\n        v99 = v37 + 1; /*0x19a56d*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19a575*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a576*/\n        for ( i11 = (v46 >> 3) - ((v46 - 2) >> 3) - 2; i11 >= 0; --i11 ) /*0x19a58a*/\n          *v99++ = -1; /*0x19a592*/\n        __outbyte(0x3CFu, v133); /*0x19a5ac*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a5ad*/\n        *v99 = -1; /*0x19a5cb*/\n        v37 += v135; /*0x19a5ce*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a5e4*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a5e5*/\n    v119 = *(_DWORD *)(a1 + 140) + v155; /*0x19a601*/\n    v38 = *(_DWORD *)(a1 + 144) - 2; /*0x19a60d*/\n    v132 = *(_DWORD *)(a1 + 16); /*0x19a61c*/\n    v80 = *(_BYTE *)(a1 + 176); /*0x19a625*/\n    __outbyte(0x3CEu, 0); /*0x19a632*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a633*/\n    __outbyte(0x3CFu, v80); /*0x19a645*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a646*/\n    __outbyte(0x3CEu, 8u); /*0x19a654*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a655*/\n    v131 = byte_1E4685[v119 & 7]; /*0x19a67d*/\n    v130 = byte_1E468D[((_BYTE)v119 + 2) & 7]; /*0x19a68f*/\n    v39 = (_BYTE *)((v119 >> 3) + *(_DWORD *)(a1 + 24) + v132 * v38); /*0x19a69c*/\n    v81 = ((v119 + 2) >> 3) - (v119 >> 3) - 1; /*0x19a6a9*/\n    if ( (v119 + 2) >> 3 == v119 >> 3 ) /*0x19a6b2*/\n    {\n      __outbyte(0x3CFu, byte_1E4685[v119 & 7] & byte_1E468D[((_BYTE)v119 + 2) & 7]); /*0x19a6bd*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19a6be*/\n      for ( i12 = v156 + 3; i12 >= 0; --i12 ) /*0x19a6d1*/\n      {\n        *v39 = -1; /*0x19a6e3*/\n        v39 += v132; /*0x19a6e6*/\n      }\n    }\n    else\n    {\n      for ( i13 = v156 + 3; i13 >= 0; --i13 ) /*0x19a704*/\n      {\n        __outbyte(0x3CFu, v131); /*0x19a71f*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a720*/\n        *v39 = -1; /*0x19a727*/\n        v100 = v39 + 1; /*0x19a72d*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19a735*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a736*/\n        for ( i14 = v81 - 1; i14 >= 0; --i14 ) /*0x19a74a*/\n          *v100++ = -1; /*0x19a752*/\n        __outbyte(0x3CFu, v130); /*0x19a76c*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a76d*/\n        *v100 = -1; /*0x19a78b*/\n        v39 += v132; /*0x19a78e*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a7a4*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a7a5*/\n    v121 = *(_DWORD *)(a1 + 140) + v155 + 2; /*0x19a7c4*/\n    v40 = *(_DWORD *)(a1 + 144) - 3; /*0x19a7d0*/\n    v101 = *(_DWORD *)(a1 + 140) + v155 + 3; /*0x19a7d4*/\n    v129 = *(_DWORD *)(a1 + 16); /*0x19a7dd*/\n    v82 = *(_BYTE *)(a1 + 180); /*0x19a7e6*/\n    __outbyte(0x3CEu, 0); /*0x19a7f3*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a7f4*/\n    __outbyte(0x3CFu, v82); /*0x19a806*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a807*/\n    __outbyte(0x3CEu, 8u); /*0x19a815*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a816*/\n    v128 = byte_1E4685[v121 & 7]; /*0x19a83e*/\n    v127 = byte_1E468D[v101 & 7]; /*0x19a850*/\n    v41 = (_BYTE *)((v121 >> 3) + *(_DWORD *)(a1 + 24) + v129 * v40); /*0x19a85d*/\n    v83 = (v101 >> 3) - (v121 >> 3) - 1; /*0x19a86a*/\n    if ( v101 >> 3 == v121 >> 3 ) /*0x19a873*/\n    {\n      __outbyte(0x3CFu, byte_1E4685[v121 & 7] & byte_1E468D[v101 & 7]); /*0x19a87e*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19a87f*/\n      for ( i15 = v156 + 5; i15 >= 0; --i15 ) /*0x19a892*/\n      {\n        *v41 = -1; /*0x19a8a3*/\n        v41 += v129; /*0x19a8a6*/\n      }\n    }\n    else\n    {\n      for ( i16 = v156 + 5; i16 >= 0; --i16 ) /*0x19a8c4*/\n      {\n        __outbyte(0x3CFu, v128); /*0x19a8df*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a8e0*/\n        *v41 = -1; /*0x19a8e7*/\n        v67 = v41 + 1; /*0x19a8ed*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19a8f5*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a8f6*/\n        for ( i17 = v83 - 1; i17 >= 0; --i17 ) /*0x19a90a*/\n          *v67++ = -1; /*0x19a912*/\n        __outbyte(0x3CFu, v127); /*0x19a92c*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19a92d*/\n        *v67 = -1; /*0x19a94b*/\n        v41 += v129; /*0x19a94e*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19a964*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a965*/\n    v45 = *(_DWORD *)(a1 + 140); /*0x19a97e*/\n    v42 = *(_DWORD *)(a1 + 144); /*0x19a987*/\n    v50 = *(_DWORD *)(a1 + 160); /*0x19a993*/\n    v103 = *(_DWORD *)(a1 + 152) + v45; /*0x19a99f*/\n    v126 = *(_DWORD *)(a1 + 16); /*0x19a9a8*/\n    v84 = *(_BYTE *)(a1 + 176); /*0x19a9b1*/\n    __outbyte(0x3CEu, 0); /*0x19a9be*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a9bf*/\n    __outbyte(0x3CFu, v84); /*0x19a9d1*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a9d2*/\n    __outbyte(0x3CEu, 8u); /*0x19a9e0*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19a9e1*/\n    v125 = byte_1E4685[v45 & 7]; /*0x19aa0f*/\n    v124 = byte_1E468D[v103 & 7]; /*0x19aa21*/\n    v43 = (_BYTE *)((v45 >> 3) + *(_DWORD *)(a1 + 24) + v126 * v42); /*0x19aa2e*/\n    v85 = (v103 >> 3) - (v45 >> 3) - 1; /*0x19aa41*/\n    if ( v103 >> 3 == v45 >> 3 ) /*0x19aa4a*/\n    {\n      __outbyte(0x3CFu, v125 & byte_1E468D[v103 & 7]); /*0x19aa56*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aa57*/\n      for ( i18 = v50 - 1; i18 >= 0; --i18 ) /*0x19aa64*/\n      {\n        *v43 = -1; /*0x19aa77*/\n        v43 += v126; /*0x19aa7a*/\n      }\n    }\n    else\n    {\n      for ( i19 = v50 - 1; i19 >= 0; --i19 ) /*0x19aa92*/\n      {\n        __outbyte(0x3CFu, v125); /*0x19aaab*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19aaac*/\n        *v43 = -1; /*0x19aab3*/\n        v104 = v43 + 1; /*0x19aab9*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19aac1*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19aac2*/\n        for ( i20 = v85 - 1; i20 >= 0; --i20 ) /*0x19aad6*/\n          *v104++ = -1; /*0x19aade*/\n        __outbyte(0x3CFu, v124); /*0x19aafb*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19aafc*/\n        *v104 = -1; /*0x19ab1a*/\n        v43 += v126; /*0x19ab1d*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19ab33*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19ab34*/\n    sub_197CA0(a1); /*0x19ab3f*/\n    return sub_198ADC(a1, a4); /*0x19ab4c*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 164) = *(_DWORD *)(a1 + 156) - 1; /*0x19ab5e*/\n    sub_198ADC(a1, a4); /*0x19ab69*/\n    return sub_198098(a1, 10); /*0x19ab74*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e467c",
+        "name": "byte_1E467C"
+      },
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1e4685",
+        "name": "byte_1E4685"
+      },
+      {
+        "addr": "0x1e468d",
+        "name": "byte_1E468D"
+      },
+      {
+        "addr": "0x197ca0",
+        "name": "sub_197CA0"
+      },
+      {
+        "addr": "0x198adc",
+        "name": "sub_198ADC"
+      },
+      {
+        "addr": "0x198098",
+        "name": "sub_198098"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019ab88",
+    "addr": "0x0019ab88",
+    "code": "char __cdecl sub_19AB88(int a1, unsigned int a2, int a3, int a4, const char *a5)\n{\n  int v5; // edi\n  int i; // esi\n  int j; // esi\n  unsigned __int8 v8; // al\n  unsigned __int8 v9; // al\n  int k; // esi\n  unsigned __int8 v11; // cl\n  int v12; // esi\n  unsigned __int8 v13; // cl\n  _BYTE *v14; // ebx\n  int ii; // esi\n  int m; // esi\n  _BYTE *v17; // ecx\n  char result; // al\n  int v19; // [esp+Ch] [ebp-1Ch]\n  int n; // [esp+14h] [ebp-14h]\n  unsigned __int8 v21; // [esp+18h] [ebp-10h]\n  unsigned __int8 v22; // [esp+1Ch] [ebp-Ch]\n  int v23; // [esp+20h] [ebp-8h]\n\n  v5 = *(_DWORD *)(a1 + 28); /*0x19ab97*/\n  *(_DWORD *)(v5 + 176) = 3; /*0x19ab9a*/\n  *(_DWORD *)(v5 + 188) = 2; /*0x19aba4*/\n  *(_DWORD *)(v5 + 184) = 1; /*0x19abae*/\n  *(_DWORD *)(v5 + 180) = 0; /*0x19abb8*/\n  *(_DWORD *)(v5 + 172) = *(_DWORD *)(v5 + 184); /*0x19abc8*/\n  *(_DWORD *)(v5 + 244) = 0; /*0x19abce*/\n  for ( i = 2; i >= 0; --i ) /*0x19abd8*/\n    *(_BYTE *)(i + v5 + 248) = 0; /*0x19abe0*/\n  *(_DWORD *)(v5 + 252) = v5 + 249; /*0x19abf1*/\n  for ( j = 0; j <= 8; ++j ) /*0x19abfd*/\n  {\n    __outbyte(0x3CEu, j); /*0x19ac09*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19ac0a*/\n    v8 = __inbyte(0x3CFu); /*0x19ac16*/\n    *(_BYTE *)(j + v5 + 216) = v8; /*0x19ac17*/\n  }\n  __outbyte(0x3C4u, 2u); /*0x19ac27*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19ac28*/\n  v9 = __inbyte(0x3C5u); /*0x19ac34*/\n  *(_BYTE *)(v5 + 227) = v9; /*0x19ac35*/\n  if ( a2 - 1 <= 1 && a3 ) /*0x19ac43*/\n    VGASetGraphicsMode(); /*0x19ac45*/\n  __outbyte(0x3C4u, 2u); /*0x19ac51*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19ac52*/\n  __outbyte(0x3C5u, 0xFu); /*0x19ac60*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19ac61*/\n  for ( k = 0; k <= 8; ++k ) /*0x19ac68*/\n  {\n    v11 = byte_1E467C[k]; /*0x19ac71*/\n    __outbyte(0x3CEu, k); /*0x19ac7c*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19ac7d*/\n    __outbyte(0x3CFu, v11); /*0x19ac8b*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19ac8c*/\n  }\n  if ( a3 && *(_DWORD *)v5 != 3 ) /*0x19aca4*/\n  {\n    v12 = *(_DWORD *)(v5 + 8); /*0x19acaa*/\n    v23 = *(_DWORD *)(v5 + 16); /*0x19acb0*/\n    v13 = *(_BYTE *)(v5 + 172); /*0x19acb3*/\n    __outbyte(0x3CEu, 0); /*0x19acc0*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19acc1*/\n    __outbyte(0x3CFu, v13); /*0x19accf*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19acd0*/\n    __outbyte(0x3CEu, 8u); /*0x19acde*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19acdf*/\n    v22 = byte_1E4685[0]; /*0x19acf5*/\n    v21 = byte_1E468D[*(_DWORD *)(v5 + 12) & 7]; /*0x19ad04*/\n    v14 = *(_BYTE **)(v5 + 24); /*0x19ad07*/\n    v19 = (*(int *)(v5 + 12) >> 3) - 1; /*0x19ad0e*/\n    if ( *(int *)(v5 + 12) >> 3 ) /*0x19acec*/\n    {\n      for ( m = v12 - 1; m >= 0; --m ) /*0x19ad3d*/\n      {\n        __outbyte(0x3CFu, v22); /*0x19ad4d*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19ad4e*/\n        *v14 = -1; /*0x19ad55*/\n        v17 = v14 + 1; /*0x19ad58*/\n        __outbyte(0x3CFu, 0xFFu); /*0x19ad5d*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19ad5e*/\n        for ( n = v19 - 1; n >= 0; --n ) /*0x19ad6c*/\n          *v17++ = -1; /*0x19ad70*/\n        __outbyte(0x3CFu, v21); /*0x19ad81*/\n        _InterlockedIncrement(&dword_1E8654); /*0x19ad82*/\n        *v17 = -1; /*0x19ad8e*/\n        v14 += v23; /*0x19ad91*/\n      }\n    }\n    else\n    {\n      __outbyte(0x3CFu, byte_1E4685[0] & byte_1E468D[*(_DWORD *)(v5 + 12) & 7]); /*0x19ad20*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19ad21*/\n      for ( ii = v12 - 1; ii >= 0; --ii ) /*0x19ad29*/\n      {\n        *v14 = -1; /*0x19ad31*/\n        v14 += v23; /*0x19ad34*/\n      }\n    }\n    __outbyte(0x3CFu, 0xFFu); /*0x19ad9e*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19ad9f*/\n  }\n  result = a2; /*0x19ada6*/\n  *(_DWORD *)v5 = a2; /*0x19ada9*/\n  if ( a2 != 2 ) /*0x19adae*/\n  {\n    if ( a2 > 2 ) /*0x19adb0*/\n    {\n      if ( a2 != 3 ) /*0x19adc0*/\nLABEL_29:\n        panic(aVgaconsoleVgai); /*0x19adf8*/\n      return sub_1995A4(v5, 320, 200, a5, a4, 1); /*0x19adf1*/\n    }\n    else\n    {\n      if ( a2 != 1 ) /*0x19adb5*/\n        goto LABEL_29; /*0x19adb5*/\n      return sub_1995A4(v5, 600, 450, a5, a4, 0); /*0x19add8*/\n    }\n  }\n  return result; /*0x19ae05*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1979e4",
+        "name": "_VGASetGraphicsMode"
+      },
+      {
+        "addr": "0x1e467c",
+        "name": "byte_1E467C"
+      },
+      {
+        "addr": "0x1e4685",
+        "name": "byte_1E4685"
+      },
+      {
+        "addr": "0x1e468d",
+        "name": "byte_1E468D"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e46b9",
+        "name": "aVgaconsoleVgai",
+        "string": "VGAConsole/VGAInitConsole: can't init"
+      },
+      {
+        "addr": "0x1995a4",
+        "name": "sub_1995A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019ae0c",
+    "addr": "0x0019ae0c",
+    "code": "int __cdecl sub_19AE0C(int a1)\n{\n  _DWORD *v1; // eax\n  unsigned __int8 v3; // al\n  unsigned int v4; // ebx\n  unsigned int v5; // ebx\n  unsigned __int8 v6; // al\n  unsigned int v7; // ebx\n  unsigned __int8 v8; // bl\n  unsigned __int8 v9; // [esp+Ch] [ebp-28h]\n  int i; // [esp+10h] [ebp-24h]\n  char *v11; // [esp+14h] [ebp-20h]\n  char *v12; // [esp+14h] [ebp-20h]\n  char *v13; // [esp+14h] [ebp-20h]\n  int v14; // [esp+18h] [ebp-1Ch]\n  int v15; // [esp+18h] [ebp-1Ch]\n  int v16; // [esp+18h] [ebp-1Ch]\n  int v17; // [esp+1Ch] [ebp-18h]\n  int v18; // [esp+20h] [ebp-14h]\n  int v19; // [esp+24h] [ebp-10h]\n  char *v20; // [esp+28h] [ebp-Ch]\n  char *v21; // [esp+28h] [ebp-Ch]\n  _DWORD *v22; // [esp+2Ch] [ebp-8h]\n\n  v1 = *(_DWORD **)(a1 + 28); /*0x19ae18*/\n  v22 = v1; /*0x19ae1b*/\n  if ( *v1 == 3 ) /*0x19ae23*/\n  {\n    if ( v1[64] ) /*0x19ae3f*/\n    {\n      v20 = (char *)v1[49]; /*0x19ae52*/\n      __outbyte(0x3CEu, 5u); /*0x19ae5c*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19ae5d*/\n      v3 = __inbyte(0x3CFu); /*0x19ae69*/\n      __outbyte(0x3CEu, 5u); /*0x19ae76*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19ae77*/\n      __outbyte(0x3CFu, v3 & 0xFC); /*0x19ae85*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19ae86*/\n      __outbyte(0x3CEu, 1u); /*0x19ae94*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19ae95*/\n      __outbyte(0x3CFu, 0); /*0x19aea3*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aea4*/\n      __outbyte(0x3CEu, 8u); /*0x19aeb2*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aeb3*/\n      __outbyte(0x3CFu, 0xFFu); /*0x19aec1*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aec2*/\n      __outbyte(0x3C4u, 2u); /*0x19aed0*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aed1*/\n      __outbyte(0x3C5u, 1u); /*0x19aedf*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19aee0*/\n      v11 = (char *)v22[53]; /*0x19aef0*/\n      v14 = v22[50]; /*0x19af00*/\n      if ( v14 ) /*0x19af05*/\n      {\n        v4 = v22[51]; /*0x19af0a*/\n        v19 = v22[4]; /*0x19af13*/\n        do /*0x19af2e*/\n        {\n          qmemcpy(v11, v20, v4); /*0x19af20*/\n          v11 += v19; /*0x19af25*/\n          v20 += v4; /*0x19af28*/\n          --v14; /*0x19af2b*/\n        }\n        while ( v14 ); /*0x19af2e*/\n      }\n      __outbyte(0x3C4u, 2u); /*0x19af37*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19af38*/\n      __outbyte(0x3C5u, 2u); /*0x19af44*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19af45*/\n      v12 = (char *)v22[53]; /*0x19af55*/\n      v15 = v22[50]; /*0x19af61*/\n      if ( v15 ) /*0x19af66*/\n      {\n        v5 = v22[51]; /*0x19af6b*/\n        v18 = v22[4]; /*0x19af74*/\n        do /*0x19af8e*/\n        {\n          qmemcpy(v12, v20, v5); /*0x19af80*/\n          v12 += v18; /*0x19af85*/\n          v20 += v5; /*0x19af88*/\n          --v15; /*0x19af8b*/\n        }\n        while ( v15 ); /*0x19af8e*/\n      }\n    }\n    else\n    {\n      v21 = (char *)v1[49]; /*0x19afa5*/\n      v13 = (char *)v1[53]; /*0x19afb1*/\n      __outbyte(0x3CEu, 5u); /*0x19afbb*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19afbc*/\n      v6 = __inbyte(0x3CFu); /*0x19afc8*/\n      __outbyte(0x3CEu, 5u); /*0x19afd8*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19afd9*/\n      __outbyte(0x3CFu, v6 & 0xFC | 1); /*0x19afe7*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19afe8*/\n      v16 = v22[50]; /*0x19aff8*/\n      if ( v16 ) /*0x19affd*/\n      {\n        v7 = v22[51]; /*0x19b002*/\n        v17 = v22[4]; /*0x19b00b*/\n        do /*0x19b026*/\n        {\n          qmemcpy(v13, v21, v7); /*0x19b018*/\n          v13 += v17; /*0x19b01d*/\n          v21 += v7; /*0x19b020*/\n          --v16; /*0x19b023*/\n        }\n        while ( v16 ); /*0x19b026*/\n      }\n    }\n    for ( i = 0; i <= 8; ++i ) /*0x19b031*/\n    {\n      v9 = *((_BYTE *)v22 + i + 216); /*0x19b044*/\n      __outbyte(0x3CEu, i); /*0x19b04f*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19b050*/\n      __outbyte(0x3CFu, v9); /*0x19b05f*/\n      _InterlockedIncrement(&dword_1E8654); /*0x19b060*/\n    }\n    v8 = *((_BYTE *)v22 + 227); /*0x19b070*/\n    __outbyte(0x3C4u, 2u); /*0x19b07a*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19b07b*/\n    __outbyte(0x3C5u, v8); /*0x19b089*/\n    _InterlockedIncrement(&dword_1E8654); /*0x19b08a*/\n    *v22 = 0; /*0x19b094*/\n    return 0; /*0x19b09a*/\n  }\n  else\n  {\n    IOLog(aVgaconsoleBogu); /*0x19ae2b*/\n    return -1; /*0x19ae30*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e46df",
+        "name": "aVgaconsoleBogu",
+        "string": "VGAConsole: bogus restore, mode %d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019b0a8",
+    "addr": "0x0019b0a8",
+    "code": "char __cdecl sub_19B0A8(int *a1, _WORD *a2)\n{\n  unsigned int v2; // ecx\n  unsigned int v3; // ecx\n\n  __outbyte(0x3C4u, 2u); /*0x19b0ba*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b0bb*/\n  __outbyte(0x3C5u, 2u); /*0x19b0c7*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b0c8*/\n  v2 = HIWORD(*a1); /*0x19b157*/\n  *a2 = (unsigned __int8)~(((*a1 & 0xAA) << 6) /*0x19b1df*/\n                         | (8 * (*a1 & 8))\n                         | *a1 & 0x20\n                         | ((unsigned __int8)(*a1 & 0x80) >> 3)\n                         | ((*a1 & 0x200u) >> 6)\n                         | ((*a1 & 0x800u) >> 9)\n                         | ((*a1 & 0x2000u) >> 12)\n                         | ((*a1 & 0x8000u) >> 15))\n      | ((unsigned __int8)~(((v2 & 0xAA) << 6)\n                          | (8 * (v2 & 8))\n                          | v2 & 0x20\n                          | ((unsigned __int8)(v2 & 0x80) >> 3)\n                          | ((unsigned __int16)(v2 & 0x200) >> 6)\n                          | ((unsigned __int16)(v2 & 0x800) >> 9)\n                          | ((unsigned __int16)(HIWORD(*a1) & 0x2000) >> 12)\n                          | (*a1 < 0)) << 8);\n  __outbyte(0x3C4u, 2u); /*0x19b1e9*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b1ea*/\n  __outbyte(0x3C5u, 1u); /*0x19b1f8*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b1f9*/\n  v3 = HIWORD(*a1); /*0x19b287*/\n  *a2 = (unsigned __int8)~(((*a1 & 0x55) << 7) /*0x19b314*/\n                         | (16 * (*a1 & 4))\n                         | (2 * (*a1 & 0x10))\n                         | ((unsigned __int8)(*a1 & 0x40) >> 2)\n                         | ((*a1 & 0x100u) >> 5)\n                         | ((unsigned __int16)(*a1 & 0x400) >> 8)\n                         | ((*a1 & 0x1000u) >> 11)\n                         | ((*a1 & 0x4000u) >> 14))\n      | ((unsigned __int8)~(((v3 & 0x55) << 7)\n                          | (16 * (v3 & 4))\n                          | (2 * (v3 & 0x10))\n                          | ((unsigned __int8)(v3 & 0x40) >> 2)\n                          | ((unsigned __int16)(v3 & 0x100) >> 5)\n                          | ((unsigned __int16)(v3 & 0x400) >> 8)\n                          | ((unsigned __int16)(v3 & 0x1000) >> 11)\n                          | ((unsigned __int16)(v3 & 0x4000) >> 14)) << 8);\n  __outbyte(0x3C4u, 2u); /*0x19b31e*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b31f*/\n  __outbyte(0x3C5u, 0xFu); /*0x19b32d*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b32e*/\n  return 15; /*0x19b338*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019b340",
+    "addr": "0x0019b340",
+    "code": "int __cdecl sub_19B340(int a1, unsigned __int16 *a2)\n{\n  unsigned int v2; // ebx\n  unsigned __int16 v3; // ax\n  int v5; // ebx\n  int v6; // esi\n  int v7; // edx\n  unsigned __int8 v8; // dl\n  _WORD *v9; // [esp-4h] [ebp-34h]\n  int i; // [esp+Ch] [ebp-24h]\n  int j; // [esp+Ch] [ebp-24h]\n  _WORD *v12; // [esp+14h] [ebp-1Ch]\n  int v13; // [esp+18h] [ebp-18h]\n  int v14; // [esp+1Ch] [ebp-14h]\n  int v15; // [esp+20h] [ebp-10h]\n  unsigned __int8 *v16; // [esp+24h] [ebp-Ch]\n  int v17; // [esp+2Ch] [ebp-4h] BYREF\n\n  v2 = *(_DWORD *)(a1 + 28); /*0x19b34c*/\n  if ( *(_DWORD *)v2 != 2 ) /*0x19b358*/\n    return -1; /*0x19b358*/\n  if ( *(_DWORD *)(v2 + 4) < (int)a2[2] ) /*0x19b364*/\n    return -1; /*0x19b364*/\n  if ( *(_DWORD *)(v2 + 8) < (int)a2[3] ) /*0x19b370*/\n    return -1; /*0x19b370*/\n  *(_BYTE *)a2 &= 0xFCu; /*0x19b375*/\n  v3 = a2[2]; /*0x19b378*/\n  LOBYTE(v3) = v3 & 0xFC; /*0x19b37c*/\n  a2[2] = v3; /*0x19b37e*/\n  if ( a2[3] * (v3 >> 2) <= 0 ) /*0x19b395*/\n    return -1; /*0x19b39c*/\n  __outbyte(0x3CEu, 1u); /*0x19b3ab*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b3ac*/\n  __outbyte(0x3CFu, 0); /*0x19b3ba*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b3bb*/\n  v16 = *((unsigned __int8 **)a2 + 2); /*0x19b3c8*/\n  LOWORD(v2) = *a2; /*0x19b3d7*/\n  v14 = (v2 >> 2) & 3; /*0x19b3f2*/\n  v15 = (*(_DWORD *)(*(_DWORD *)(a1 + 28) + 4) * a2[1] + *a2 - 4 * v14) / 8 + *(_DWORD *)(*(_DWORD *)(a1 + 28) + 24); /*0x19b40c*/\n  v13 = 0; /*0x19b40f*/\n  if ( a2[3] ) /*0x19b419*/\n  {\n    while ( 1 ) /*0x19b428*/\n    {\n      v5 = 30; /*0x19b428*/\n      v17 = 0; /*0x19b42d*/\n      v12 = (_WORD *)v15; /*0x19b437*/\n      v6 = 0; /*0x19b43a*/\n      if ( a2[2] ) /*0x19b43f*/\n        break; /*0x19b43f*/\nLABEL_17:\n      v15 += 80; /*0x19b50b*/\n      if ( ++v13 >= a2[3] ) /*0x19b51c*/\n        goto LABEL_18; /*0x19b51c*/\n    }\n    while ( 1 ) /*0x19b44c*/\n    {\n      if ( !v6 ) /*0x19b44e*/\n      {\n        for ( i = 0; i < v14; ++i ) /*0x19b45a*/\n        {\n          v7 = v17 << 8; /*0x19b45f*/\n          LOBYTE(v7) = -86; /*0x19b462*/\n          v17 = v7; /*0x19b465*/\n          v5 -= 8; /*0x19b468*/\n        }\n      }\n      v8 = *v16++; /*0x19b479*/\n      for ( j = 0; j <= 7; j += 2 ) /*0x19b47e*/\n      {\n        v17 |= (((int)v8 >> (6 - j)) & 3) << (30 - v5); /*0x19b4a0*/\n        v5 -= 2; /*0x19b4a3*/\n      }\n      v6 += 4; /*0x19b4b0*/\n      if ( v5 < 0 ) /*0x19b4b5*/\n        goto LABEL_16; /*0x19b4b5*/\n      if ( v6 >= a2[2] ) /*0x19b4c0*/\n      {\n        do /*0x19b4d8*/\n        {\n          v17 |= 2 << (30 - v5); /*0x19b4d2*/\n          v5 -= 2; /*0x19b4d5*/\n        }\n        while ( v5 >= 0 ); /*0x19b4d8*/\nLABEL_16:\n        v9 = v12++; /*0x19b4da*/\n        sub_19B0A8(&v17, v9); /*0x19b4e8*/\n        v5 = 30; /*0x19b4ed*/\n        v17 = 0; /*0x19b4f2*/\n        if ( v6 >= a2[2] ) /*0x19b505*/\n          goto LABEL_17; /*0x19b505*/\n      }\n    }\n  }\nLABEL_18:\n  __outbyte(0x3CEu, 1u); /*0x19b522*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b52a*/\n  __outbyte(0x3CFu, 0xFu); /*0x19b538*/\n  _InterlockedIncrement(&dword_1E8654); /*0x19b539*/\n  return 0; /*0x19b545*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8654",
+        "name": "dword_1E8654"
+      },
+      {
+        "addr": "0x19b0a8",
+        "name": "sub_19B0A8"
+      }
+    ]
+  }
+]

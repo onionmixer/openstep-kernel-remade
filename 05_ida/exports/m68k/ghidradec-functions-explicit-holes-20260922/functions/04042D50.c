@@ -1,0 +1,3 @@
+
+//Decompiler native message:  Low-level Error: Bad decompile address: r0x04042d50 ram may not be a global space in the spec file.
+//Decompiling function: _ipc_right_copyin_header @ 0x4042d50

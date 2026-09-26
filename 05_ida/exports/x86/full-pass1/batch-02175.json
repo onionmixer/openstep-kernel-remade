@@ -1,0 +1,905 @@
+[
+  {
+    "requested_address": "0x001749c4",
+    "addr": "0x001749c4",
+    "code": "int __cdecl vm_map_lookup_entry(int a1, unsigned int a2, _DWORD *a3)\n{\n  volatile __int32 *v3; // edx\n  _DWORD *v4; // ecx\n  _DWORD *v5; // eax\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // edx\n\n  v3 = (volatile __int32 *)(a1 + 60); /*0x1749d3*/\n  do /*0x1749ea*/\n  {\n    while ( *v3 ) /*0x1749d8*/\n      ; /*0x1749da*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x1749ea*/\n  v4 = *(_DWORD **)(a1 + 56); /*0x1749ec*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1749f1*/\n  v5 = (_DWORD *)(a1 + 12); /*0x1749f4*/\n  if ( v4 == (_DWORD *)(a1 + 12) ) /*0x1749f9*/\n    v4 = *(_DWORD **)(a1 + 16); /*0x1749fb*/\n  if ( v4[2] > a2 ) /*0x174a01*/\n  {\n    v5 = (_DWORD *)v4[1]; /*0x174a18*/\n    v4 = *(_DWORD **)(a1 + 16); /*0x174a1b*/\nLABEL_18:\n    while ( v4 != v5 ) /*0x174a59*/\n    {\n      if ( v4[3] > a2 ) /*0x174a23*/\n      {\n        if ( v4[2] > a2 ) /*0x174a28*/\n          goto LABEL_19; /*0x174a28*/\n        *a3 = v4; /*0x174a2a*/\n        v7 = (volatile __int32 *)(a1 + 60); /*0x174a2c*/\n        do /*0x174a42*/\n        {\n          while ( *v7 ) /*0x174a30*/\n            ; /*0x174a32*/\n        }\n        while ( _InterlockedExchange(v7, 1) == 1 ); /*0x174a42*/\n        *(_DWORD *)(a1 + 56) = v4; /*0x174a44*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174a49*/\n        return 1; /*0x174a51*/\n      }\n      v4 = (_DWORD *)v4[1]; /*0x174a54*/\n    }\n    goto LABEL_19; /*0x174a59*/\n  }\n  if ( v4 == v5 ) /*0x174a05*/\n  {\nLABEL_19:\n    *a3 = *v4; /*0x174a5b*/\n    v8 = (volatile __int32 *)(a1 + 60); /*0x174a5f*/\n    do /*0x174a76*/\n    {\n      while ( *v8 ) /*0x174a64*/\n        ; /*0x174a66*/\n    }\n    while ( _InterlockedExchange(v8, 1) == 1 ); /*0x174a76*/\n    *(_DWORD *)(a1 + 56) = *a3; /*0x174a7a*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174a7f*/\n    return 0; /*0x174a82*/\n  }\n  if ( v4[3] <= a2 ) /*0x174a0a*/\n    goto LABEL_18; /*0x174a0a*/\n  *a3 = v4; /*0x174a0c*/\n  return 1; /*0x174a87*/\n}"
+  },
+  {
+    "requested_address": "0x00174a90",
+    "addr": "0x00174a90",
+    "code": "int __cdecl vm_map_find(int a1, int a2, int a3, unsigned int *a4, int a5, int a6)\n{\n  unsigned int v6; // esi\n  unsigned int v7; // eax\n  _DWORD *v9; // ebx\n  volatile __int32 *v10; // edx\n  _DWORD *i; // ecx\n  _DWORD *v12; // eax\n  volatile __int32 *v13; // edx\n  volatile __int32 *v14; // edx\n  unsigned int v15; // ecx\n  int v16; // edx\n  volatile __int32 *v17; // edx\n  int v18; // eax\n  int v19; // ecx\n  int v20; // edx\n  int v21; // eax\n  int v22; // eax\n  int v23; // eax\n  int v24; // ebx\n  int v25; // eax\n  int v26; // [esp+Ch] [ebp-18h]\n  int v27; // [esp+Ch] [ebp-18h]\n  unsigned int v28; // [esp+10h] [ebp-14h]\n  int v29; // [esp+14h] [ebp-10h]\n  unsigned int v30; // [esp+18h] [ebp-Ch]\n  int v31; // [esp+1Ch] [ebp-8h] BYREF\n  _DWORD *v32; // [esp+20h] [ebp-4h]\n\n  v6 = *a4; /*0x174a9f*/\n  v28 = *a4; /*0x174aa1*/\n  lock_write(a1); /*0x174aa8*/\n  ++*(_DWORD *)(a1 + 76); /*0x174aad*/\n  if ( a6 ) /*0x174ab5*/\n  {\n    v7 = *(_DWORD *)(a1 + 20); /*0x174abb*/\n    if ( v6 < v7 ) /*0x174ac0*/\n      v28 = *(_DWORD *)(a1 + 20); /*0x174ac2*/\n    if ( *(_DWORD *)(a1 + 24) < v28 ) /*0x174ace*/\n    {\nLABEL_5:\n      lock_done(a1); /*0x174ad0*/\n      return 3; /*0x174adb*/\n    }\n    if ( v28 == v7 ) /*0x174ae3*/\n    {\n      v9 = *(_DWORD **)(a1 + 64); /*0x174ae8*/\n      if ( v9 == (_DWORD *)(a1 + 12) ) /*0x174af2*/\n        goto LABEL_33; /*0x174af2*/\n      while ( 1 ) /*0x174c17*/\n      {\n        v28 = v9[3]; /*0x174c17*/\nLABEL_33:\n        v15 = a5 + v28; /*0x174bdb*/\n        if ( *(_DWORD *)(a1 + 24) < a5 + v28 || v28 > v15 ) /*0x174be9*/\n          goto LABEL_5; /*0x174be9*/\n        v16 = v9[1]; /*0x174c00*/\n        if ( v16 == a1 + 12 || *(_DWORD *)(v16 + 8) >= v15 ) /*0x174c10*/\n        {\n          *a4 = v28; /*0x174c22*/\n          v17 = (volatile __int32 *)(a1 + 60); /*0x174c27*/\n          do /*0x174c3e*/\n          {\n            while ( *v17 ) /*0x174c2c*/\n              ; /*0x174c2e*/\n          }\n          while ( _InterlockedExchange(v17, 1) == 1 ); /*0x174c3e*/\n          *(_DWORD *)(a1 + 56) = v9; /*0x174c43*/\n          _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174c48*/\n          goto LABEL_44; /*0x174c48*/\n        }\n        v9 = (_DWORD *)v9[1]; /*0x174c12*/\n      }\n    }\n    v10 = (volatile __int32 *)(a1 + 60); /*0x174b03*/\n    do /*0x174b1a*/\n    {\n      while ( *v10 ) /*0x174b08*/\n        ; /*0x174b0a*/\n    }\n    while ( _InterlockedExchange(v10, 1) == 1 ); /*0x174b1a*/\n    i = *(_DWORD **)(a1 + 56); /*0x174b1f*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174b24*/\n    v12 = (_DWORD *)(a1 + 12); /*0x174b29*/\n    if ( i == (_DWORD *)(a1 + 12) ) /*0x174b2e*/\n      i = *(_DWORD **)(a1 + 16); /*0x174b30*/\n    if ( i[2] > v28 ) /*0x174b39*/\n    {\n      v12 = (_DWORD *)i[1]; /*0x174b4c*/\n      for ( i = *(_DWORD **)(a1 + 16); ; i = (_DWORD *)i[1] ) /*0x174b52*/\n      {\nLABEL_26:\n        if ( i == v12 ) /*0x174b99*/\n          goto LABEL_27; /*0x174b99*/\n        if ( i[3] > v28 ) /*0x174b5e*/\n          break; /*0x174b5e*/\n      }\n      if ( i[2] <= v28 ) /*0x174b63*/\n      {\n        v32 = i; /*0x174b65*/\n        v13 = (volatile __int32 *)(a1 + 60); /*0x174b6b*/\n        do /*0x174b82*/\n        {\n          while ( *v13 ) /*0x174b70*/\n            ; /*0x174b72*/\n        }\n        while ( _InterlockedExchange(v13, 1) == 1 ); /*0x174b82*/\n        *(_DWORD *)(a1 + 56) = i; /*0x174b87*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174b8c*/\nLABEL_31:\n        v28 = v32[3]; /*0x174bcc*/\nLABEL_32:\n        v9 = v32; /*0x174bd5*/\n        goto LABEL_33; /*0x174bd5*/\n      }\n    }\n    else if ( i != v12 ) /*0x174b3d*/\n    {\n      if ( i[3] <= v28 ) /*0x174b42*/\n        goto LABEL_26; /*0x174b42*/\n      v32 = i; /*0x174b44*/\n      goto LABEL_31; /*0x174b47*/\n    }\nLABEL_27:\n    v32 = (_DWORD *)*i; /*0x174b9b*/\n    v14 = (volatile __int32 *)(a1 + 60); /*0x174ba3*/\n    do /*0x174bba*/\n    {\n      while ( *v14 ) /*0x174ba8*/\n        ; /*0x174baa*/\n    }\n    while ( _InterlockedExchange(v14, 1) == 1 ); /*0x174bba*/\n    *(_DWORD *)(a1 + 56) = v32; /*0x174bc2*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x174bc7*/\n    goto LABEL_32; /*0x174bca*/\n  }\nLABEL_44:\n  v30 = v28 + a5; /*0x174c4b*/\n  if ( *(_DWORD *)(a1 + 20) <= v28 && *(_DWORD *)(a1 + 24) >= v30 && v28 < v30 ) /*0x174c6a*/\n  {\n    if ( !vm_map_lookup_entry(a1, v28, &v31) /*0x174ca6*/\n      && ((v19 = v31, v20 = *(_DWORD *)(v31 + 4), v20 == a1 + 12) || *(_DWORD *)(v20 + 8) >= v30) )\n    {\n      if ( !a2 /*0x174d14*/\n        && v31 != a1 + 12\n        && *(_DWORD *)(v31 + 12) == v28\n        && (*(_BYTE *)(v31 + 24) & 5) == 0\n        && *(_DWORD *)(v31 + 36) == 1\n        && *(_DWORD *)(v31 + 28) == 3\n        && *(_DWORD *)(v31 + 32) == 7\n        && !*(_WORD *)(v31 + 40)\n        && (v26 = v31,\n            v21 = vm_object_coalesce(*(_DWORD *)(v31 + 16), 0, *(_DWORD *)(v31 + 20), 0, v28 - *(_DWORD *)(v31 + 8), a5),\n            v19 = v26,\n            v21) )\n      {\n        *(_DWORD *)(a1 + 40) += v30 - *(_DWORD *)(v26 + 12); /*0x174d1f*/\n        *(_DWORD *)(v26 + 12) = v30; /*0x174d25*/\n      }\n      else\n      {\n        if ( *(_DWORD *)(a1 + 32) ) /*0x174d33*/\n          v22 = vm_map_entry_zone; /*0x174d39*/\n        else\n          v22 = vm_map_kentry_zone; /*0x174d40*/\n        v27 = v19; /*0x174d46*/\n        v23 = zalloc(v22); /*0x174d49*/\n        v24 = v23; /*0x174d4e*/\n        if ( !v23 ) /*0x174d58*/\n          panic(aVmMapEntryCrea); /*0x174d62*/\n        *(_DWORD *)(v23 + 8) = v28; /*0x174d72*/\n        *(_DWORD *)(v23 + 12) = v30; /*0x174d78*/\n        *(_BYTE *)(v23 + 24) &= 0xFAu; /*0x174d7b*/\n        *(_DWORD *)(v23 + 16) = a2; /*0x174d82*/\n        *(_DWORD *)(v23 + 20) = a3; /*0x174d88*/\n        *(_BYTE *)(v23 + 24) &= 0xB7u; /*0x174d8b*/\n        if ( *(_DWORD *)(a1 + 44) ) /*0x174d92*/\n        {\n          *(_DWORD *)(v23 + 36) = 1; /*0x174d98*/\n          *(_DWORD *)(v23 + 28) = 3; /*0x174d9f*/\n          *(_DWORD *)(v23 + 32) = 7; /*0x174da6*/\n          *(_WORD *)(v23 + 40) = 0; /*0x174dad*/\n        }\n        ++*(_DWORD *)(a1 + 28); /*0x174db6*/\n        *(_DWORD *)v23 = v27; /*0x174db9*/\n        *(_DWORD *)(v23 + 4) = *(_DWORD *)(v27 + 4); /*0x174dbe*/\n        v25 = *(_DWORD *)v23; /*0x174dc1*/\n        **(_DWORD **)(v24 + 4) = v24; /*0x174dc6*/\n        *(_DWORD *)(v25 + 4) = v24; /*0x174dc8*/\n        *(_DWORD *)(a1 + 40) += *(_DWORD *)(v24 + 12) - *(_DWORD *)(v24 + 8); /*0x174dd1*/\n        if ( *(_DWORD *)(a1 + 64) == v27 && *(_DWORD *)(v27 + 12) >= *(_DWORD *)(v24 + 8) ) /*0x174ddf*/\n          *(_DWORD *)(a1 + 64) = v24; /*0x174de1*/\n      }\n      v18 = 0; /*0x174de4*/\n    }\n    else\n    {\n      v18 = 3; /*0x174ca8*/\n    }\n  }\n  else\n  {\n    v18 = 1; /*0x174c6c*/\n  }\n  v29 = v18; /*0x174dea*/\n  lock_done(a1); /*0x174ded*/\n  return v29; /*0x174df8*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x179c28",
+        "name": "_vm_object_coalesce"
+      },
+      {
+        "addr": "0x1749c4",
+        "name": "_vm_map_lookup_entry"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174e00",
+    "addr": "0x00174e00",
+    "code": "int **__cdecl _vm_map_clip_start(int a1, int a2, int a3)\n{\n  int v3; // eax\n  int v4; // edx\n  int **result; // eax\n  int v6; // edx\n  volatile __int32 *v7; // ecx\n  int *v8; // [esp+10h] [ebp-4h]\n\n  if ( *(_DWORD *)(a1 + 20) ) /*0x174e0f*/\n    v3 = vm_map_entry_zone; /*0x174e15*/\n  else\n    v3 = vm_map_kentry_zone; /*0x174e1c*/\n  v8 = (int *)zalloc(v3); /*0x174e27*/\n  if ( !v8 ) /*0x174e2f*/\n    panic(aVmMapEntryCrea); /*0x174e36*/\n  qmemcpy(v8, (const void *)a2, 0x2Cu); /*0x174e53*/\n  v8[3] = a3; /*0x174e58*/\n  *(_DWORD *)(a2 + 20) += a3 - *(_DWORD *)(a2 + 8); /*0x174e61*/\n  *(_DWORD *)(a2 + 8) = a3; /*0x174e64*/\n  ++*(_DWORD *)(a1 + 16); /*0x174e6a*/\n  *v8 = *(_DWORD *)a2; /*0x174e72*/\n  v8[1] = *(_DWORD *)(*(_DWORD *)a2 + 4); /*0x174e79*/\n  v4 = *v8; /*0x174e7c*/\n  result = (int **)v8[1]; /*0x174e7e*/\n  *result = v8; /*0x174e81*/\n  *(_DWORD *)(v4 + 4) = v8; /*0x174e83*/\n  if ( (*(_BYTE *)(a2 + 24) & 5) == 0 ) /*0x174e8a*/\n    return (int **)vm_object_reference(v8[4]); /*0x174ebf*/\n  v6 = v8[4]; /*0x174e8c*/\n  if ( v6 ) /*0x174e91*/\n  {\n    v7 = (volatile __int32 *)(v6 + 52); /*0x174e93*/\n    do /*0x174eaa*/\n    {\n      while ( *v7 ) /*0x174e98*/\n        ; /*0x174e9a*/\n    }\n    while ( _InterlockedExchange(v7, 1) == 1 ); /*0x174eaa*/\n    ++*(_DWORD *)(v6 + 48); /*0x174eac*/\n    return (int **)_InterlockedExchange((volatile __int32 *)(v6 + 52), 0); /*0x174eb1*/\n  }\n  return result; /*0x174ec7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174ed0",
+    "addr": "0x00174ed0",
+    "code": "int **__cdecl _vm_map_clip_end(int a1, int a2, int a3)\n{\n  int v3; // eax\n  int v4; // edx\n  int **result; // eax\n  int v6; // edx\n  volatile __int32 *v7; // ecx\n  int *v8; // [esp+10h] [ebp-4h]\n\n  if ( *(_DWORD *)(a1 + 20) ) /*0x174edf*/\n    v3 = vm_map_entry_zone; /*0x174ee5*/\n  else\n    v3 = vm_map_kentry_zone; /*0x174eec*/\n  v8 = (int *)zalloc(v3); /*0x174ef7*/\n  if ( !v8 ) /*0x174eff*/\n    panic(aVmMapEntryCrea); /*0x174f06*/\n  qmemcpy(v8, (const void *)a2, 0x2Cu); /*0x174f23*/\n  *(_DWORD *)(a2 + 12) = a3; /*0x174f28*/\n  v8[2] = a3; /*0x174f2e*/\n  v8[5] += a3 - *(_DWORD *)(a2 + 8); /*0x174f37*/\n  ++*(_DWORD *)(a1 + 16); /*0x174f3d*/\n  *v8 = a2; /*0x174f40*/\n  v8[1] = *(_DWORD *)(a2 + 4); /*0x174f45*/\n  v4 = *v8; /*0x174f48*/\n  result = (int **)v8[1]; /*0x174f4a*/\n  *result = v8; /*0x174f4d*/\n  *(_DWORD *)(v4 + 4) = v8; /*0x174f4f*/\n  if ( (*(_BYTE *)(a2 + 24) & 5) == 0 ) /*0x174f56*/\n    return (int **)vm_object_reference(v8[4]); /*0x174f8b*/\n  v6 = v8[4]; /*0x174f58*/\n  if ( v6 ) /*0x174f5d*/\n  {\n    v7 = (volatile __int32 *)(v6 + 52); /*0x174f5f*/\n    do /*0x174f76*/\n    {\n      while ( *v7 ) /*0x174f64*/\n        ; /*0x174f66*/\n    }\n    while ( _InterlockedExchange(v7, 1) == 1 ); /*0x174f76*/\n    ++*(_DWORD *)(v6 + 48); /*0x174f78*/\n    return (int **)_InterlockedExchange((volatile __int32 *)(v6 + 52), 0); /*0x174f7d*/\n  }\n  return result; /*0x174f93*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174f9c",
+    "addr": "0x00174f9c",
+    "code": "int __cdecl vm_map_submap(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  volatile __int32 *v4; // edx\n  _DWORD *v5; // ecx\n  _DWORD *v6; // eax\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // edx\n  int v9; // eax\n  int v10; // edx\n  int v11; // edx\n  volatile __int32 *v12; // ecx\n  int v13; // eax\n  int v14; // edx\n  int v15; // edx\n  volatile __int32 *v16; // ecx\n  char v17; // cl\n  int v18; // edx\n  volatile __int32 *v19; // edx\n  int *v21; // [esp+10h] [ebp-18h]\n  int *v22; // [esp+18h] [ebp-10h]\n  int v23; // [esp+20h] [ebp-8h]\n  _DWORD *v24; // [esp+24h] [ebp-4h]\n  int v25; // [esp+24h] [ebp-4h]\n\n  v23 = 4; /*0x174fa5*/\n  lock_write(a1); /*0x174fb0*/\n  ++*(_DWORD *)(a1 + 76); /*0x174fb5*/\n  if ( a2 < *(_DWORD *)(a1 + 20) ) /*0x174fc1*/\n    a2 = *(_DWORD *)(a1 + 20); /*0x174fc3*/\n  if ( a3 > *(_DWORD *)(a1 + 24) ) /*0x174fcf*/\n    a3 = *(_DWORD *)(a1 + 24); /*0x174fd1*/\n  if ( a2 > a3 ) /*0x174fda*/\n    a2 = a3; /*0x174fdc*/\n  v4 = (volatile __int32 *)(a1 + 60); /*0x174fe2*/\n  do /*0x174ffa*/\n  {\n    while ( *v4 ) /*0x174fe8*/\n      ; /*0x174fea*/\n  }\n  while ( _InterlockedExchange(v4, 1) == 1 ); /*0x174ffa*/\n  v5 = *(_DWORD **)(a1 + 56); /*0x174fff*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x175004*/\n  v6 = (_DWORD *)(a1 + 12); /*0x175009*/\n  if ( v5 == (_DWORD *)(a1 + 12) ) /*0x17500e*/\n    v5 = *(_DWORD **)(a1 + 16); /*0x175010*/\n  if ( v5[2] > a2 ) /*0x175019*/\n  {\n    v6 = (_DWORD *)v5[1]; /*0x17502c*/\n    v5 = *(_DWORD **)(a1 + 16); /*0x175032*/\nLABEL_24:\n    while ( v5 != v6 ) /*0x175079*/\n    {\n      if ( v5[3] > a2 ) /*0x17503e*/\n      {\n        if ( v5[2] > a2 ) /*0x175043*/\n          goto LABEL_25; /*0x175043*/\n        v24 = v5; /*0x175045*/\n        v7 = (volatile __int32 *)(a1 + 60); /*0x17504b*/\n        do /*0x175062*/\n        {\n          while ( *v7 ) /*0x175050*/\n            ; /*0x175052*/\n        }\n        while ( _InterlockedExchange(v7, 1) == 1 ); /*0x175062*/\n        *(_DWORD *)(a1 + 56) = v5; /*0x175067*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x17506c*/\n        goto LABEL_29; /*0x17506f*/\n      }\n      v5 = (_DWORD *)v5[1]; /*0x175074*/\n    }\n    goto LABEL_25; /*0x175079*/\n  }\n  if ( v5 == v6 ) /*0x17501d*/\n  {\nLABEL_25:\n    v25 = *v5; /*0x17507b*/\n    v8 = (volatile __int32 *)(a1 + 60); /*0x175083*/\n    do /*0x17509a*/\n    {\n      while ( *v8 ) /*0x175088*/\n        ; /*0x17508a*/\n    }\n    while ( _InterlockedExchange(v8, 1) == 1 ); /*0x17509a*/\n    *(_DWORD *)(a1 + 56) = v25; /*0x1750a2*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1750a7*/\n    v24 = *(_DWORD **)(v25 + 4); /*0x175192*/\n    goto LABEL_42; /*0x17509c*/\n  }\n  if ( v5[3] <= a2 ) /*0x175022*/\n    goto LABEL_24; /*0x175022*/\n  v24 = v5; /*0x175024*/\nLABEL_29:\n  if ( v24[2] < a2 ) /*0x1750b9*/\n  {\n    if ( *(_DWORD *)(a1 + 32) ) /*0x1750cd*/\n      v9 = vm_map_entry_zone; /*0x1750d3*/\n    else\n      v9 = vm_map_kentry_zone; /*0x1750dc*/\n    v22 = (int *)zalloc(v9); /*0x1750e7*/\n    if ( !v22 ) /*0x1750ef*/\n      panic(aVmMapEntryCrea); /*0x1750f6*/\n    qmemcpy(v22, v24, 0x2Cu); /*0x175113*/\n    v22[3] = a2; /*0x175118*/\n    v24[5] += a2 - v24[2]; /*0x175121*/\n    v24[2] = a2; /*0x175124*/\n    ++*(_DWORD *)(a1 + 28); /*0x17512a*/\n    *v22 = *v24; /*0x175132*/\n    v22[1] = *(_DWORD *)(*v24 + 4); /*0x175139*/\n    v10 = *v22; /*0x17513c*/\n    *(_DWORD *)v22[1] = v22; /*0x175141*/\n    *(_DWORD *)(v10 + 4) = v22; /*0x175143*/\n    if ( (v24[6] & 5) != 0 ) /*0x17514a*/\n    {\n      v11 = v22[4]; /*0x17514c*/\n      if ( v11 ) /*0x175151*/\n      {\n        v12 = (volatile __int32 *)(v11 + 52); /*0x175153*/\n        do /*0x17516a*/\n        {\n          while ( *v12 ) /*0x175158*/\n            ; /*0x17515a*/\n        }\n        while ( _InterlockedExchange(v12, 1) == 1 ); /*0x17516a*/\n        ++*(_DWORD *)(v11 + 48); /*0x17516c*/\n        _InterlockedExchange((volatile __int32 *)(v11 + 52), 0); /*0x175171*/\n      }\n    }\n    else\n    {\n      vm_object_reference(v22[4]); /*0x17517f*/\n    }\n  }\nLABEL_42:\n  if ( v24[3] > a3 ) /*0x17519e*/\n  {\n    if ( *(_DWORD *)(a1 + 32) ) /*0x1751b2*/\n      v13 = vm_map_entry_zone; /*0x1751b8*/\n    else\n      v13 = vm_map_kentry_zone; /*0x1751c0*/\n    v21 = (int *)zalloc(v13); /*0x1751cb*/\n    if ( !v21 ) /*0x1751d3*/\n      panic(aVmMapEntryCrea); /*0x1751da*/\n    qmemcpy(v21, v24, 0x2Cu); /*0x1751f7*/\n    v24[3] = a3; /*0x1751fc*/\n    v21[2] = a3; /*0x175202*/\n    v21[5] += a3 - v24[2]; /*0x17520b*/\n    ++*(_DWORD *)(a1 + 28); /*0x175211*/\n    *v21 = (int)v24; /*0x175214*/\n    v21[1] = v24[1]; /*0x175219*/\n    v14 = *v21; /*0x17521c*/\n    *(_DWORD *)v21[1] = v21; /*0x175221*/\n    *(_DWORD *)(v14 + 4) = v21; /*0x175223*/\n    if ( (v24[6] & 5) != 0 ) /*0x17522a*/\n    {\n      v15 = v21[4]; /*0x17522c*/\n      if ( v15 ) /*0x175231*/\n      {\n        v16 = (volatile __int32 *)(v15 + 52); /*0x175233*/\n        do /*0x17524a*/\n        {\n          while ( *v16 ) /*0x175238*/\n            ; /*0x17523a*/\n        }\n        while ( _InterlockedExchange(v16, 1) == 1 ); /*0x17524a*/\n        ++*(_DWORD *)(v15 + 48); /*0x17524c*/\n        _InterlockedExchange((volatile __int32 *)(v15 + 52), 0); /*0x175251*/\n      }\n    }\n    else\n    {\n      vm_object_reference(v21[4]); /*0x17525f*/\n    }\n  }\n  if ( v24[2] == a2 && v24[3] == a3 ) /*0x175278*/\n  {\n    v17 = *((_BYTE *)v24 + 24); /*0x17527a*/\n    if ( (v17 & 1) == 0 ) /*0x175280*/\n    {\n      v18 = v24[4]; /*0x175282*/\n      if ( vm_submap_object == v18 && (v17 & 8) == 0 ) /*0x175290*/\n      {\n        v24[4] = 0; /*0x175292*/\n        vm_object_deallocate(v18); /*0x17529a*/\n        *((_BYTE *)v24 + 24) |= 4u; /*0x1752a2*/\n        v24[4] = a4; /*0x1752ac*/\n        if ( a4 ) /*0x1752b7*/\n        {\n          v19 = (volatile __int32 *)(a4 + 52); /*0x1752b9*/\n          do /*0x1752ce*/\n          {\n            while ( *v19 ) /*0x1752bc*/\n              ; /*0x1752be*/\n          }\n          while ( _InterlockedExchange(v19, 1) == 1 ); /*0x1752ce*/\n          ++*(_DWORD *)(a4 + 48); /*0x1752d0*/\n          _InterlockedExchange((volatile __int32 *)(a4 + 52), 0); /*0x1752d5*/\n        }\n        v23 = 0; /*0x1752d8*/\n      }\n    }\n  }\n  lock_done(a1); /*0x1752e3*/\n  return v23; /*0x1752ee*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x1f6ea8",
+        "name": "_vm_submap_object"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001752f8",
+    "addr": "0x001752f8",
+    "code": "int __cdecl vm_map_protect(int a1, unsigned int a2, unsigned int a3, int a4, int a5)\n{\n  volatile __int32 *v5; // edx\n  _DWORD *v6; // ecx\n  _DWORD *v7; // eax\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  int v11; // edx\n  int v12; // edx\n  volatile __int32 *v13; // ecx\n  _DWORD *i; // ebx\n  _DWORD *j; // ebx\n  int v17; // eax\n  int v18; // edx\n  int v19; // edx\n  volatile __int32 *v20; // ecx\n  int v21; // eax\n  int v22; // edx\n  unsigned int v23; // ecx\n  volatile __int32 *v24; // edx\n  _DWORD *v25; // edx\n  _DWORD *v26; // eax\n  volatile __int32 *v27; // ecx\n  volatile __int32 *v28; // edx\n  int v29; // eax\n  unsigned int v30; // eax\n  unsigned int v31; // edx\n  int v32; // ecx\n  unsigned int v33; // eax\n  int v34; // eax\n  int v35; // [esp-8h] [ebp-34h]\n  int v36; // [esp-4h] [ebp-30h]\n  int v37; // [esp+Ch] [ebp-20h]\n  unsigned int v38; // [esp+10h] [ebp-1Ch]\n  int *v39; // [esp+18h] [ebp-14h]\n  int *v40; // [esp+1Ch] [ebp-10h]\n  _DWORD *v41; // [esp+24h] [ebp-8h]\n  _DWORD *v42; // [esp+28h] [ebp-4h]\n  int v43; // [esp+28h] [ebp-4h]\n\n  lock_write(a1); /*0x175305*/\n  ++*(_DWORD *)(a1 + 76); /*0x17530a*/\n  if ( a2 < *(_DWORD *)(a1 + 20) ) /*0x175316*/\n    a2 = *(_DWORD *)(a1 + 20); /*0x175318*/\n  if ( a3 > *(_DWORD *)(a1 + 24) ) /*0x175324*/\n    a3 = *(_DWORD *)(a1 + 24); /*0x175326*/\n  if ( a2 > a3 ) /*0x17532f*/\n    a2 = a3; /*0x175331*/\n  v5 = (volatile __int32 *)(a1 + 60); /*0x175337*/\n  do /*0x17534e*/\n  {\n    while ( *v5 ) /*0x17533c*/\n      ; /*0x17533e*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x17534e*/\n  v6 = *(_DWORD **)(a1 + 56); /*0x175353*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x175358*/\n  v7 = (_DWORD *)(a1 + 12); /*0x17535d*/\n  if ( v6 == (_DWORD *)(a1 + 12) ) /*0x175362*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x175364*/\n  if ( v6[2] > a2 ) /*0x17536d*/\n  {\n    v7 = (_DWORD *)v6[1]; /*0x175380*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x175386*/\nLABEL_24:\n    while ( v6 != v7 ) /*0x1753cd*/\n    {\n      if ( v6[3] > a2 ) /*0x175392*/\n      {\n        if ( v6[2] > a2 ) /*0x175397*/\n          break; /*0x175397*/\n        v42 = v6; /*0x175399*/\n        v8 = (volatile __int32 *)(a1 + 60); /*0x17539f*/\n        do /*0x1753b6*/\n        {\n          while ( *v8 ) /*0x1753a4*/\n            ; /*0x1753a6*/\n        }\n        while ( _InterlockedExchange(v8, 1) == 1 ); /*0x1753b6*/\n        *(_DWORD *)(a1 + 56) = v6; /*0x1753bb*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1753c0*/\n        goto LABEL_29; /*0x1753c3*/\n      }\n      v6 = (_DWORD *)v6[1]; /*0x1753c8*/\n    }\n  }\n  else if ( v6 != v7 ) /*0x175371*/\n  {\n    if ( v6[3] <= a2 ) /*0x175376*/\n      goto LABEL_24; /*0x175376*/\n    v42 = v6; /*0x175378*/\nLABEL_29:\n    if ( v42[2] < a2 ) /*0x17540d*/\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x175421*/\n        v10 = vm_map_entry_zone; /*0x175427*/\n      else\n        v10 = vm_map_kentry_zone; /*0x175430*/\n      v40 = (int *)zalloc(v10); /*0x17543b*/\n      if ( !v40 ) /*0x175443*/\n        panic(aVmMapEntryCrea); /*0x17544a*/\n      qmemcpy(v40, v42, 0x2Cu); /*0x175467*/\n      v40[3] = a2; /*0x17546c*/\n      v42[5] += a2 - v42[2]; /*0x175475*/\n      v42[2] = a2; /*0x175478*/\n      ++*(_DWORD *)(a1 + 28); /*0x17547e*/\n      *v40 = *v42; /*0x175486*/\n      v40[1] = *(_DWORD *)(*v42 + 4); /*0x17548d*/\n      v11 = *v40; /*0x175490*/\n      *(_DWORD *)v40[1] = v40; /*0x175495*/\n      *(_DWORD *)(v11 + 4) = v40; /*0x175497*/\n      if ( (v42[6] & 5) != 0 ) /*0x17549e*/\n      {\n        v12 = v40[4]; /*0x1754a0*/\n        if ( v12 ) /*0x1754a5*/\n        {\n          v13 = (volatile __int32 *)(v12 + 52); /*0x1754a7*/\n          do /*0x1754be*/\n          {\n            while ( *v13 ) /*0x1754ac*/\n              ; /*0x1754ae*/\n          }\n          while ( _InterlockedExchange(v13, 1) == 1 ); /*0x1754be*/\n          ++*(_DWORD *)(v12 + 48); /*0x1754c0*/\n          _InterlockedExchange((volatile __int32 *)(v12 + 52), 0); /*0x1754c5*/\n        }\n      }\n      else\n      {\n        vm_object_reference(v40[4]); /*0x1754d3*/\n      }\n    }\n    goto LABEL_44; /*0x1754c8*/\n  }\n  v43 = *v6; /*0x1753cf*/\n  v9 = (volatile __int32 *)(a1 + 60); /*0x1753d7*/\n  do /*0x1753ee*/\n  {\n    while ( *v9 ) /*0x1753dc*/\n      ; /*0x1753de*/\n  }\n  while ( _InterlockedExchange(v9, 1) == 1 ); /*0x1753ee*/\n  *(_DWORD *)(a1 + 56) = v43; /*0x1753f6*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1753fb*/\n  v42 = *(_DWORD **)(v43 + 4); /*0x17550e*/\nLABEL_44:\n  for ( i = v42; i != (_DWORD *)(a1 + 12); i = (_DWORD *)i[1] ) /*0x17551c*/\n  {\n    if ( i[2] >= a3 ) /*0x175526*/\n      break; /*0x175526*/\n    if ( (i[6] & 4) != 0 ) /*0x17552c*/\n    {\n      lock_done(a1); /*0x1754e4*/\n      return 4; /*0x1754ee*/\n    }\n    if ( a4 != (i[8] & a4) ) /*0x175537*/\n    {\n      lock_done(a1); /*0x1754f8*/\n      return 2; /*0x175502*/\n    }\n  }\n  for ( j = v42; j != (_DWORD *)(a1 + 12) && j[2] < a3; j = (_DWORD *)j[1] ) /*0x175540*/\n  {\n    if ( j[3] > a3 ) /*0x175557*/\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x175566*/\n        v17 = vm_map_entry_zone; /*0x17556c*/\n      else\n        v17 = vm_map_kentry_zone; /*0x175574*/\n      v39 = (int *)zalloc(v17); /*0x175582*/\n      if ( !v39 ) /*0x17558d*/\n        panic(aVmMapEntryCrea); /*0x175597*/\n      qmemcpy(v39, j, 0x2Cu); /*0x1755b8*/\n      j[3] = a3; /*0x1755bd*/\n      v39[2] = a3; /*0x1755c3*/\n      v39[5] += a3 - j[2]; /*0x1755cc*/\n      ++*(_DWORD *)(a1 + 28); /*0x1755cf*/\n      *v39 = (int)j; /*0x1755d2*/\n      v39[1] = j[1]; /*0x1755d7*/\n      v18 = *v39; /*0x1755da*/\n      *(_DWORD *)v39[1] = v39; /*0x1755df*/\n      *(_DWORD *)(v18 + 4) = v39; /*0x1755e1*/\n      if ( (j[6] & 5) != 0 ) /*0x1755e8*/\n      {\n        v19 = v39[4]; /*0x1755ea*/\n        if ( v19 ) /*0x1755ef*/\n        {\n          v20 = (volatile __int32 *)(v19 + 52); /*0x1755f1*/\n          do /*0x175606*/\n          {\n            while ( *v20 ) /*0x1755f4*/\n              ; /*0x1755f6*/\n          }\n          while ( _InterlockedExchange(v20, 1) == 1 ); /*0x175606*/\n          ++*(_DWORD *)(v19 + 48); /*0x175608*/\n          _InterlockedExchange((volatile __int32 *)(v19 + 52), 0); /*0x17560d*/\n        }\n      }\n      else\n      {\n        vm_object_reference(v39[4]); /*0x17561b*/\n      }\n    }\n    v21 = j[7]; /*0x175623*/\n    if ( a5 ) /*0x17562a*/\n    {\n      j[8] = a4; /*0x17562f*/\n      j[7] = v21 & a4; /*0x175634*/\n    }\n    else\n    {\n      j[7] = a4; /*0x17563f*/\n    }\n    v22 = j[7]; /*0x175642*/\n    if ( v22 != v21 ) /*0x175647*/\n    {\n      if ( (j[6] & 1) == 0 ) /*0x175651*/\n      {\n        if ( (v42[6] & 8) != 0 ) /*0x1757c7*/\n        {\n          v34 = j[7]; /*0x1757c9*/\n          LOBYTE(v34) = v22 & 0xFD; /*0x1757cb*/\n        }\n        else\n        {\n          v34 = j[7] & 7; /*0x1757d2*/\n        }\n        pmap_protect(*(_DWORD *)(a1 + 36), j[2], j[3], v34); /*0x1757e5*/\n        continue; /*0x1757e5*/\n      }\n      lock_write(j[4]); /*0x17565b*/\n      ++*(_DWORD *)(j[4] + 76); /*0x175663*/\n      v37 = j[4]; /*0x17566c*/\n      v23 = j[5]; /*0x17566f*/\n      v24 = (volatile __int32 *)(v37 + 60); /*0x175674*/\n      do /*0x17568a*/\n      {\n        while ( *v24 ) /*0x175678*/\n          ; /*0x17567a*/\n      }\n      while ( _InterlockedExchange(v24, 1) == 1 ); /*0x17568a*/\n      v25 = *(_DWORD **)(v37 + 56); /*0x17568f*/\n      _InterlockedExchange((volatile __int32 *)(v37 + 60), 0); /*0x175694*/\n      v26 = (_DWORD *)(v37 + 12); /*0x175699*/\n      if ( v25 == (_DWORD *)(v37 + 12) ) /*0x17569e*/\n        v25 = *(_DWORD **)(v37 + 16); /*0x1756a0*/\n      if ( v25[2] > v23 ) /*0x1756a6*/\n      {\n        v26 = (_DWORD *)v25[1]; /*0x1756b8*/\n        v25 = *(_DWORD **)(v37 + 16); /*0x1756be*/\nLABEL_86:\n        while ( v25 != v26 ) /*0x175701*/\n        {\n          if ( v25[3] > v23 ) /*0x1756c7*/\n          {\n            if ( v25[2] > v23 ) /*0x1756cc*/\n              break; /*0x1756cc*/\n            v41 = v25; /*0x1756ce*/\n            v27 = (volatile __int32 *)(v37 + 60); /*0x1756d4*/\n            do /*0x1756ea*/\n            {\n              while ( *v27 ) /*0x1756d8*/\n                ; /*0x1756da*/\n            }\n            while ( _InterlockedExchange(v27, 1) == 1 ); /*0x1756ea*/\n            *(_DWORD *)(v37 + 56) = v25; /*0x1756ef*/\n            _InterlockedExchange((volatile __int32 *)(v37 + 60), 0); /*0x1756f4*/\n            goto LABEL_91; /*0x1756f7*/\n          }\n          v25 = (_DWORD *)v25[1]; /*0x1756fc*/\n        }\n      }\n      else if ( v25 != v26 ) /*0x1756aa*/\n      {\n        if ( v25[3] <= v23 ) /*0x1756af*/\n          goto LABEL_86; /*0x1756af*/\n        v41 = v25; /*0x1756b1*/\n        goto LABEL_91; /*0x1756b4*/\n      }\n      v41 = (_DWORD *)*v25; /*0x175703*/\n      v28 = (volatile __int32 *)(v37 + 60); /*0x17570b*/\n      do /*0x175722*/\n      {\n        while ( *v28 ) /*0x175710*/\n          ; /*0x175712*/\n      }\n      while ( _InterlockedExchange(v28, 1) == 1 ); /*0x175722*/\n      *(_DWORD *)(v37 + 56) = v41; /*0x17572a*/\n      _InterlockedExchange((volatile __int32 *)(v37 + 60), 0); /*0x17572f*/\nLABEL_91:\n      v38 = j[5] + j[3] - j[2]; /*0x175732*/\n      while ( v41 != (_DWORD *)(j[4] + 12) && v41[2] < v38 ) /*0x175749*/\n      {\n        if ( (v41[6] & 8) != 0 ) /*0x175752*/\n        {\n          v29 = j[7]; /*0x175754*/\n          LOBYTE(v29) = v29 & 0xFD; /*0x175756*/\n        }\n        else\n        {\n          v29 = j[7] & 7; /*0x17575e*/\n        }\n        v36 = v29; /*0x175761*/\n        v30 = v41[3]; /*0x175768*/\n        if ( v38 > v30 ) /*0x17576e*/\n          v30 = v38; /*0x175770*/\n        v31 = j[5]; /*0x175773*/\n        v32 = j[2]; /*0x175778*/\n        v35 = v32 + v30 - v31; /*0x17577d*/\n        v33 = v41[2]; /*0x175781*/\n        if ( v33 < v31 ) /*0x175786*/\n          v33 = j[5]; /*0x175788*/\n        pmap_protect(*(_DWORD *)(a1 + 36), v32 + v33 - v31, v35, v36); /*0x175796*/\n        v41 = (_DWORD *)v41[1]; /*0x1757a1*/\n      }\n      lock_done(j[4]); /*0x1757b6*/\n      continue; /*0x1757be*/\n    }\n  }\n  lock_done(a1); /*0x175802*/\n  return 0; /*0x17580c*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18fee4",
+        "name": "_pmap_protect"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00175814",
+    "addr": "0x00175814",
+    "code": "int __cdecl vm_map_inherit(int a1, unsigned int a2, unsigned int a3, unsigned int a4)\n{\n  volatile __int32 *v5; // edx\n  _DWORD *v6; // ecx\n  _DWORD *v7; // eax\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  int v11; // edx\n  int v12; // edx\n  volatile __int32 *v13; // ecx\n  _DWORD *v14; // ebx\n  int v15; // eax\n  int v16; // edx\n  int v17; // edx\n  volatile __int32 *v18; // ecx\n  int *v19; // [esp+18h] [ebp-10h]\n  int *v20; // [esp+1Ch] [ebp-Ch]\n  _DWORD *v21; // [esp+24h] [ebp-4h]\n  int v22; // [esp+24h] [ebp-4h]\n\n  if ( a4 > 2 ) /*0x175821*/\n    return 4; /*0x17582e*/\n  lock_write(a1); /*0x175838*/\n  ++*(_DWORD *)(a1 + 76); /*0x17583d*/\n  if ( a2 < *(_DWORD *)(a1 + 20) ) /*0x175849*/\n    a2 = *(_DWORD *)(a1 + 20); /*0x17584b*/\n  if ( a3 > *(_DWORD *)(a1 + 24) ) /*0x175857*/\n    a3 = *(_DWORD *)(a1 + 24); /*0x175859*/\n  if ( a2 > a3 ) /*0x175862*/\n    a2 = a3; /*0x175864*/\n  v5 = (volatile __int32 *)(a1 + 60); /*0x17586a*/\n  do /*0x175882*/\n  {\n    while ( *v5 ) /*0x175870*/\n      ; /*0x175872*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x175882*/\n  v6 = *(_DWORD **)(a1 + 56); /*0x175887*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x17588c*/\n  v7 = (_DWORD *)(a1 + 12); /*0x175891*/\n  if ( v6 == (_DWORD *)(a1 + 12) ) /*0x175896*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x175898*/\n  if ( v6[2] > a2 ) /*0x1758a1*/\n  {\n    v7 = (_DWORD *)v6[1]; /*0x1758b4*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x1758ba*/\nLABEL_26:\n    while ( v6 != v7 ) /*0x175901*/\n    {\n      if ( v6[3] > a2 ) /*0x1758c6*/\n      {\n        if ( v6[2] > a2 ) /*0x1758cb*/\n          break; /*0x1758cb*/\n        v21 = v6; /*0x1758cd*/\n        v8 = (volatile __int32 *)(a1 + 60); /*0x1758d3*/\n        do /*0x1758ea*/\n        {\n          while ( *v8 ) /*0x1758d8*/\n            ; /*0x1758da*/\n        }\n        while ( _InterlockedExchange(v8, 1) == 1 ); /*0x1758ea*/\n        *(_DWORD *)(a1 + 56) = v6; /*0x1758ef*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1758f4*/\n        goto LABEL_31; /*0x1758f7*/\n      }\n      v6 = (_DWORD *)v6[1]; /*0x1758fc*/\n    }\n  }\n  else if ( v6 != v7 ) /*0x1758a5*/\n  {\n    if ( v6[3] <= a2 ) /*0x1758aa*/\n      goto LABEL_26; /*0x1758aa*/\n    v21 = v6; /*0x1758ac*/\nLABEL_31:\n    v14 = v21; /*0x175938*/\n    if ( v21[2] < a2 ) /*0x175941*/\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x175953*/\n        v10 = vm_map_entry_zone; /*0x175959*/\n      else\n        v10 = vm_map_kentry_zone; /*0x175960*/\n      v20 = (int *)zalloc(v10); /*0x17596b*/\n      if ( !v20 ) /*0x175973*/\n        panic(aVmMapEntryCrea); /*0x17597a*/\n      qmemcpy(v20, v21, 0x2Cu); /*0x175997*/\n      v20[3] = a2; /*0x17599c*/\n      v21[5] += a2 - v21[2]; /*0x1759a5*/\n      v21[2] = a2; /*0x1759a8*/\n      ++*(_DWORD *)(a1 + 28); /*0x1759ae*/\n      *v20 = *v21; /*0x1759b6*/\n      v20[1] = *(_DWORD *)(*v21 + 4); /*0x1759bd*/\n      v11 = *v20; /*0x1759c0*/\n      *(_DWORD *)v20[1] = v20; /*0x1759c5*/\n      *(_DWORD *)(v11 + 4) = v20; /*0x1759c7*/\n      if ( (v21[6] & 5) != 0 ) /*0x1759ce*/\n      {\n        v12 = v20[4]; /*0x1759d0*/\n        if ( v12 ) /*0x1759d5*/\n        {\n          v13 = (volatile __int32 *)(v12 + 52); /*0x1759db*/\n          do /*0x1759f2*/\n          {\n            while ( *v13 ) /*0x1759e0*/\n              ; /*0x1759e2*/\n          }\n          while ( _InterlockedExchange(v13, 1) == 1 ); /*0x1759f2*/\n          ++*(_DWORD *)(v12 + 48); /*0x1759f4*/\n          _InterlockedExchange((volatile __int32 *)(v12 + 52), 0); /*0x1759f9*/\n        }\n      }\n      else\n      {\n        vm_object_reference(v20[4]); /*0x175a0b*/\n      }\n    }\n    goto LABEL_59; /*0x1759fc*/\n  }\n  v22 = *v6; /*0x175903*/\n  v9 = (volatile __int32 *)(a1 + 60); /*0x17590b*/\n  do /*0x175922*/\n  {\n    while ( *v9 ) /*0x175910*/\n      ; /*0x175912*/\n  }\n  while ( _InterlockedExchange(v9, 1) == 1 ); /*0x175922*/\n  *(_DWORD *)(a1 + 56) = v22; /*0x17592a*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x17592f*/\n  v14 = *(_DWORD **)(v22 + 4); /*0x175a1b*/\nLABEL_59:\n  while ( v14 != (_DWORD *)(a1 + 12) && v14[2] < a3 ) /*0x175a2a*/\n  {\n    if ( v14[3] > a3 ) /*0x175a33*/\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x175a42*/\n        v15 = vm_map_entry_zone; /*0x175a48*/\n      else\n        v15 = vm_map_kentry_zone; /*0x175a50*/\n      v19 = (int *)zalloc(v15); /*0x175a5e*/\n      if ( !v19 ) /*0x175a69*/\n        panic(aVmMapEntryCrea); /*0x175a73*/\n      qmemcpy(v19, v14, 0x2Cu); /*0x175a94*/\n      v14[3] = a3; /*0x175a99*/\n      v19[2] = a3; /*0x175a9f*/\n      v19[5] += a3 - v14[2]; /*0x175aa8*/\n      ++*(_DWORD *)(a1 + 28); /*0x175aab*/\n      *v19 = (int)v14; /*0x175aae*/\n      v19[1] = v14[1]; /*0x175ab3*/\n      v16 = *v19; /*0x175ab6*/\n      *(_DWORD *)v19[1] = v19; /*0x175abb*/\n      *(_DWORD *)(v16 + 4) = v19; /*0x175abd*/\n      if ( (v14[6] & 5) != 0 ) /*0x175ac4*/\n      {\n        v17 = v19[4]; /*0x175ac6*/\n        if ( v17 ) /*0x175acb*/\n        {\n          v18 = (volatile __int32 *)(v17 + 52); /*0x175acd*/\n          do /*0x175ae2*/\n          {\n            while ( *v18 ) /*0x175ad0*/\n              ; /*0x175ad2*/\n          }\n          while ( _InterlockedExchange(v18, 1) == 1 ); /*0x175ae2*/\n          ++*(_DWORD *)(v17 + 48); /*0x175ae4*/\n          _InterlockedExchange((volatile __int32 *)(v17 + 52), 0); /*0x175ae9*/\n        }\n      }\n      else\n      {\n        vm_object_reference(v19[4]); /*0x175af7*/\n      }\n    }\n    v14[9] = a4; /*0x175b02*/\n    v14 = (_DWORD *)v14[1]; /*0x175b05*/\n  }\n  lock_done(a1); /*0x175b1a*/\n  return 0; /*0x175b24*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00175b2c",
+    "addr": "0x00175b2c",
+    "code": "int __cdecl vm_map_pageable(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  volatile __int32 *v4; // edx\n  _DWORD *v5; // ecx\n  _DWORD *v6; // eax\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // edx\n  int v9; // eax\n  int v10; // edx\n  int v11; // edx\n  volatile __int32 *v12; // ecx\n  _DWORD *v13; // ebx\n  int i; // ebx\n  int v15; // eax\n  int v16; // edx\n  int v17; // edx\n  volatile __int32 *v18; // ecx\n  __int16 v19; // ax\n  int v20; // eax\n  int v21; // edx\n  int v22; // edx\n  volatile __int32 *v23; // ecx\n  __int16 v24; // ax\n  char v25; // al\n  int j; // ebx\n  int *v28; // [esp+18h] [ebp-18h]\n  int *v29; // [esp+1Ch] [ebp-14h]\n  int *v30; // [esp+20h] [ebp-10h]\n  int v31; // [esp+28h] [ebp-8h]\n  _DWORD *v32; // [esp+2Ch] [ebp-4h]\n  int v33; // [esp+2Ch] [ebp-4h]\n  int v34; // [esp+2Ch] [ebp-4h]\n\n  v31 = 1; /*0x175b35*/\n  lock_write(a1); /*0x175b40*/\n  ++*(_DWORD *)(a1 + 76); /*0x175b45*/\n  if ( a2 < *(_DWORD *)(a1 + 20) ) /*0x175b51*/\n    a2 = *(_DWORD *)(a1 + 20); /*0x175b53*/\n  if ( a3 > *(_DWORD *)(a1 + 24) ) /*0x175b5f*/\n    a3 = *(_DWORD *)(a1 + 24); /*0x175b61*/\n  if ( a2 > a3 ) /*0x175b6a*/\n    a2 = a3; /*0x175b6c*/\n  v4 = (volatile __int32 *)(a1 + 60); /*0x175b72*/\n  do /*0x175b8a*/\n  {\n    while ( *v4 ) /*0x175b78*/\n      ; /*0x175b7a*/\n  }\n  while ( _InterlockedExchange(v4, 1) == 1 ); /*0x175b8a*/\n  v5 = *(_DWORD **)(a1 + 56); /*0x175b8f*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x175b94*/\n  v6 = (_DWORD *)(a1 + 12); /*0x175b99*/\n  if ( v5 == (_DWORD *)(a1 + 12) ) /*0x175b9e*/\n    v5 = *(_DWORD **)(a1 + 16); /*0x175ba0*/\n  if ( v5[2] > a2 ) /*0x175ba9*/\n  {\n    v6 = (_DWORD *)v5[1]; /*0x175bbc*/\n    v5 = *(_DWORD **)(a1 + 16); /*0x175bc2*/\nLABEL_24:\n    while ( v5 != v6 ) /*0x175c09*/\n    {\n      if ( v5[3] > a2 ) /*0x175bce*/\n      {\n        if ( v5[2] > a2 ) /*0x175bd3*/\n          goto LABEL_25; /*0x175bd3*/\n        v32 = v5; /*0x175bd5*/\n        v7 = (volatile __int32 *)(a1 + 60); /*0x175bdb*/\n        do /*0x175bf2*/\n        {\n          while ( *v7 ) /*0x175be0*/\n            ; /*0x175be2*/\n        }\n        while ( _InterlockedExchange(v7, 1) == 1 ); /*0x175bf2*/\n        *(_DWORD *)(a1 + 56) = v5; /*0x175bf7*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x175bfc*/\n        goto LABEL_29; /*0x175bff*/\n      }\n      v5 = (_DWORD *)v5[1]; /*0x175c04*/\n    }\n    goto LABEL_25; /*0x175c09*/\n  }\n  if ( v5 == v6 ) /*0x175bad*/\n  {\nLABEL_25:\n    v33 = *v5; /*0x175c0b*/\n    v8 = (volatile __int32 *)(a1 + 60); /*0x175c13*/\n    do /*0x175c2a*/\n    {\n      while ( *v8 ) /*0x175c18*/\n        ; /*0x175c1a*/\n    }\n    while ( _InterlockedExchange(v8, 1) == 1 ); /*0x175c2a*/\n    *(_DWORD *)(a1 + 56) = v33; /*0x175c32*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x175c37*/\n    v13 = *(_DWORD **)(v33 + 4); /*0x175d1b*/\n    goto LABEL_42; /*0x175c2c*/\n  }\n  if ( v5[3] <= a2 ) /*0x175bb2*/\n    goto LABEL_24; /*0x175bb2*/\n  v32 = v5; /*0x175bb4*/\nLABEL_29:\n  v13 = v32; /*0x175c40*/\n  if ( v32[2] < a2 ) /*0x175c49*/\n  {\n    if ( *(_DWORD *)(a1 + 32) ) /*0x175c5b*/\n      v9 = vm_map_entry_zone; /*0x175c61*/\n    else\n      v9 = vm_map_kentry_zone; /*0x175c68*/\n    v30 = (int *)zalloc(v9); /*0x175c73*/\n    if ( !v30 ) /*0x175c7b*/\n      panic(aVmMapEntryCrea); /*0x175c82*/\n    qmemcpy(v30, v32, 0x2Cu); /*0x175c9f*/\n    v30[3] = a2; /*0x175ca4*/\n    v32[5] += a2 - v32[2]; /*0x175cad*/\n    v32[2] = a2; /*0x175cb0*/\n    ++*(_DWORD *)(a1 + 28); /*0x175cb6*/\n    *v30 = *v32; /*0x175cbe*/\n    v30[1] = *(_DWORD *)(*v32 + 4); /*0x175cc5*/\n    v10 = *v30; /*0x175cc8*/\n    *(_DWORD *)v30[1] = v30; /*0x175ccd*/\n    *(_DWORD *)(v10 + 4) = v30; /*0x175ccf*/\n    if ( (v32[6] & 5) != 0 ) /*0x175cd6*/\n    {\n      v11 = v30[4]; /*0x175cd8*/\n      if ( v11 ) /*0x175cdd*/\n      {\n        v12 = (volatile __int32 *)(v11 + 52); /*0x175cdf*/\n        do /*0x175cf6*/\n        {\n          while ( *v12 ) /*0x175ce4*/\n            ; /*0x175ce6*/\n        }\n        while ( _InterlockedExchange(v12, 1) == 1 ); /*0x175cf6*/\n        ++*(_DWORD *)(v11 + 48); /*0x175cf8*/\n        _InterlockedExchange((volatile __int32 *)(v11 + 52), 0); /*0x175cfd*/\n      }\n    }\n    else\n    {\n      vm_object_reference(v30[4]); /*0x175d0b*/\n    }\n  }\nLABEL_42:\n  v34 = (int)v13; /*0x175d1e*/\n  if ( a4 ) /*0x175d25*/\n  {\n    if ( v13 != (_DWORD *)(a1 + 12) ) /*0x175d33*/\n    {\n      while ( v13[2] < a3 ) /*0x175d3e*/\n      {\n        if ( !*((_WORD *)v13 + 20) ) /*0x175d45*/\n        {\n          lock_done(a1); /*0x175fe0*/\n          return 4; /*0x175fea*/\n        }\n        v13 = (_DWORD *)v13[1]; /*0x175d4b*/\n        if ( v13 == (_DWORD *)(a1 + 12) ) /*0x175d50*/\n          break; /*0x175d50*/\n      }\n    }\n    for ( i = v34; i != a1 + 12 && *(_DWORD *)(i + 8) < a3; i = *(_DWORD *)(i + 4) ) /*0x175d52*/\n    {\n      if ( *(_DWORD *)(i + 12) > a3 ) /*0x175d72*/\n      {\n        if ( *(_DWORD *)(a1 + 32) ) /*0x175d81*/\n          v15 = vm_map_entry_zone; /*0x175d87*/\n        else\n          v15 = vm_map_kentry_zone; /*0x175d90*/\n        v29 = (int *)zalloc(v15); /*0x175d9e*/\n        if ( !v29 ) /*0x175da9*/\n          panic(aVmMapEntryCrea); /*0x175db3*/\n        qmemcpy(v29, (const void *)i, 0x2Cu); /*0x175dd4*/\n        *(_DWORD *)(i + 12) = a3; /*0x175dd9*/\n        v29[2] = a3; /*0x175ddf*/\n        v29[5] += a3 - *(_DWORD *)(i + 8); /*0x175de8*/\n        ++*(_DWORD *)(a1 + 28); /*0x175deb*/\n        *v29 = i; /*0x175dee*/\n        v29[1] = *(_DWORD *)(i + 4); /*0x175df3*/\n        v16 = *v29; /*0x175df6*/\n        *(_DWORD *)v29[1] = v29; /*0x175dfb*/\n        *(_DWORD *)(v16 + 4) = v29; /*0x175dfd*/\n        if ( (*(_BYTE *)(i + 24) & 5) != 0 ) /*0x175e04*/\n        {\n          v17 = v29[4]; /*0x175e06*/\n          if ( v17 ) /*0x175e0b*/\n          {\n            v18 = (volatile __int32 *)(v17 + 52); /*0x175e0d*/\n            do /*0x175e22*/\n            {\n              while ( *v18 ) /*0x175e10*/\n                ; /*0x175e12*/\n            }\n            while ( _InterlockedExchange(v18, 1) == 1 ); /*0x175e22*/\n            ++*(_DWORD *)(v17 + 48); /*0x175e24*/\n            _InterlockedExchange((volatile __int32 *)(v17 + 52), 0); /*0x175e29*/\n          }\n        }\n        else\n        {\n          vm_object_reference(v29[4]); /*0x175e37*/\n        }\n      }\n      v19 = *(_WORD *)(i + 40); /*0x175e3f*/\n      *(_WORD *)(i + 40) = v19 - 1; /*0x175e47*/\n      if ( v19 == 1 ) /*0x175e4f*/\n        vm_fault_unwire(a1, i); /*0x175e56*/\n    }\n  }\n  else\n  {\n    while ( v13 != (_DWORD *)(a1 + 12) && v13[2] < a3 ) /*0x175e76*/\n    {\n      if ( v13[3] > a3 ) /*0x175e7f*/\n      {\n        if ( *(_DWORD *)(a1 + 32) ) /*0x175e8e*/\n          v20 = vm_map_entry_zone; /*0x175e94*/\n        else\n          v20 = vm_map_kentry_zone; /*0x175e9c*/\n        v28 = (int *)zalloc(v20); /*0x175eaa*/\n        if ( !v28 ) /*0x175eb5*/\n          panic(aVmMapEntryCrea); /*0x175ebf*/\n        qmemcpy(v28, v13, 0x2Cu); /*0x175ee0*/\n        v13[3] = a3; /*0x175ee5*/\n        v28[2] = a3; /*0x175eeb*/\n        v28[5] += a3 - v13[2]; /*0x175ef4*/\n        ++*(_DWORD *)(a1 + 28); /*0x175ef7*/\n        *v28 = (int)v13; /*0x175efa*/\n        v28[1] = v13[1]; /*0x175eff*/\n        v21 = *v28; /*0x175f02*/\n        *(_DWORD *)v28[1] = v28; /*0x175f07*/\n        *(_DWORD *)(v21 + 4) = v28; /*0x175f09*/\n        if ( (v13[6] & 5) != 0 ) /*0x175f10*/\n        {\n          v22 = v28[4]; /*0x175f12*/\n          if ( v22 ) /*0x175f17*/\n          {\n            v23 = (volatile __int32 *)(v22 + 52); /*0x175f19*/\n            do /*0x175f2e*/\n            {\n              while ( *v23 ) /*0x175f1c*/\n                ; /*0x175f1e*/\n            }\n            while ( _InterlockedExchange(v23, 1) == 1 ); /*0x175f2e*/\n            ++*(_DWORD *)(v22 + 48); /*0x175f30*/\n            _InterlockedExchange((volatile __int32 *)(v22 + 52), 0); /*0x175f35*/\n          }\n        }\n        else\n        {\n          vm_object_reference(v28[4]); /*0x175f43*/\n        }\n      }\n      v24 = *((_WORD *)v13 + 20); /*0x175f4b*/\n      *((_WORD *)v13 + 20) = v24 + 1; /*0x175f53*/\n      if ( !v24 ) /*0x175f5a*/\n      {\n        v25 = *((_BYTE *)v13 + 24); /*0x175f5c*/\n        if ( (v25 & 1) == 0 ) /*0x175f61*/\n        {\n          if ( (v25 & 0x40) != 0 && (v13[7] & 2) != 0 ) /*0x175f6b*/\n          {\n            vm_object_shadow(v13 + 4, v13 + 5, v13[3] - v13[2]); /*0x175f7c*/\n            *((_BYTE *)v13 + 24) &= ~0x40u; /*0x175f81*/\n          }\n          else if ( !v13[4] ) /*0x175f8c*/\n          {\n            v13[4] = vm_object_allocate(v13[3] - v13[2]); /*0x175f9e*/\n            v13[5] = 0; /*0x175fa1*/\n          }\n        }\n      }\n      v13 = (_DWORD *)v13[1]; /*0x175fab*/\n    }\n    if ( kernel_map == a1 ) /*0x175fc5*/\n    {\n      v31 = 0; /*0x175fc7*/\n      lock_done(a1); /*0x175fcf*/\n    }\n    else\n    {\n      lock_set_recursive(a1); /*0x175ff0*/\n      lock_write_to_read(a1); /*0x175ff6*/\n    }\n    for ( j = v34; a1 + 12 != j; j = *(_DWORD *)(j + 4) ) /*0x176009*/\n    {\n      if ( *(_DWORD *)(j + 8) >= a3 ) /*0x176016*/\n        break; /*0x176016*/\n      if ( *(_WORD *)(j + 40) == 1 ) /*0x17601d*/\n        vm_fault_wire(a1, j); /*0x176024*/\n    }\n    if ( !v31 ) /*0x176038*/\n      return 0; /*0x176038*/\n    lock_clear_recursive(a1); /*0x17603e*/\n  }\n  lock_done(a1); /*0x176050*/\n  return 0; /*0x17605a*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x1795a0",
+        "name": "_vm_object_shadow"
+      },
+      {
+        "addr": "0x178b80",
+        "name": "_vm_object_allocate"
+      },
+      {
+        "addr": "0x15bb9c",
+        "name": "_lock_set_recursive"
+      },
+      {
+        "addr": "0x15b9b0",
+        "name": "_lock_write_to_read"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x17358c",
+        "name": "_vm_fault_wire"
+      },
+      {
+        "addr": "0x15bbe0",
+        "name": "_lock_clear_recursive"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00176064",
+    "addr": "0x00176064",
+    "code": "int __cdecl vm_map_entry_unwire(int a1, int a2)\n{\n  int result; // eax\n\n  result = vm_fault_unwire(a1, a2); /*0x176070*/\n  *(_WORD *)(a2 + 40) = 0; /*0x176075*/\n  return result; /*0x17607b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00176084",
+    "addr": "0x00176084",
+    "code": "__int32 __cdecl vm_map_entry_delete(_DWORD *a1, _DWORD *a2)\n{\n  int v2; // ebx\n  volatile __int32 *v3; // edx\n  int v4; // ecx\n  int v5; // eax\n\n  if ( *((_WORD *)a2 + 20) ) /*0x176090*/\n  {\n    vm_fault_unwire((int)a1, (int)a2); /*0x176099*/\n    *((_WORD *)a2 + 20) = 0; /*0x17609e*/\n  }\n  --a1[7]; /*0x1760a7*/\n  *(_DWORD *)a2[1] = *a2; /*0x1760af*/\n  *(_DWORD *)(*a2 + 4) = a2[1]; /*0x1760b6*/\n  a1[10] -= a2[3] - a2[2]; /*0x1760bf*/\n  if ( (a2[6] & 5) != 0 ) /*0x1760c6*/\n  {\n    v2 = a2[4]; /*0x1760c8*/\n    if ( v2 ) /*0x1760cd*/\n    {\n      v3 = (volatile __int32 *)(v2 + 52); /*0x1760cf*/\n      do /*0x1760e6*/\n      {\n        while ( *v3 ) /*0x1760d4*/\n          ; /*0x1760d6*/\n      }\n      while ( _InterlockedExchange(v3, 1) == 1 ); /*0x1760e6*/\n      v4 = *(_DWORD *)(v2 + 48) - 1; /*0x1760eb*/\n      *(_DWORD *)(v2 + 48) = v4; /*0x1760ee*/\n      _InterlockedExchange((volatile __int32 *)(v2 + 52), 0); /*0x1760f4*/\n      if ( v4 <= 0 ) /*0x1760f9*/\n      {\n        lock_write(v2); /*0x1760fc*/\n        ++*(_DWORD *)(v2 + 76); /*0x176101*/\n        vm_map_delete(v2, *(_DWORD *)(v2 + 20), *(_DWORD *)(v2 + 24)); /*0x176110*/\n        pmap_destroy(*(_DWORD *)(v2 + 36)); /*0x176119*/\n        zfree(vm_map_zone, (_DWORD *)v2); /*0x176126*/\n      }\n    }\n  }\n  else\n  {\n    vm_object_deallocate(a2[4]); /*0x176134*/\n  }\n  if ( a1[8] ) /*0x17613c*/\n    v5 = vm_map_entry_zone; /*0x176142*/\n  else\n    v5 = vm_map_kentry_zone; /*0x17614c*/\n  return zfree(v5, a2); /*0x17615b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x18f69c",
+        "name": "_pmap_destroy"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00176164",
+    "addr": "0x00176164",
+    "code": "int __cdecl vm_map_delete(int a1, unsigned int a2, unsigned int a3)\n{\n  volatile __int32 *v3; // edx\n  _DWORD *v4; // ebx\n  _DWORD *v5; // eax\n  volatile __int32 *v6; // edx\n  volatile __int32 *v7; // edx\n  int v8; // ebx\n  int v9; // eax\n  int v10; // edx\n  int v11; // edx\n  volatile __int32 *v12; // esi\n  volatile __int32 *v13; // edx\n  int v14; // eax\n  int v15; // edx\n  int v16; // edx\n  volatile __int32 *v17; // esi\n  int v18; // esi\n  int v19; // esi\n  volatile __int32 *v20; // edx\n  int v21; // edi\n  int v22; // eax\n  int v24; // [esp+Ch] [ebp-20h]\n  int *v25; // [esp+14h] [ebp-18h]\n  int v26; // [esp+18h] [ebp-14h]\n  int v27; // [esp+1Ch] [ebp-10h]\n  int *v28; // [esp+20h] [ebp-Ch]\n  _DWORD *v29; // [esp+28h] [ebp-4h]\n  int v30; // [esp+28h] [ebp-4h]\n\n  v3 = (volatile __int32 *)(a1 + 60); /*0x176170*/\n  do /*0x176186*/\n  {\n    while ( *v3 ) /*0x176174*/\n      ; /*0x176176*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x176186*/\n  v4 = *(_DWORD **)(a1 + 56); /*0x17618b*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176190*/\n  v5 = (_DWORD *)(a1 + 12); /*0x176195*/\n  if ( v4 == (_DWORD *)(a1 + 12) ) /*0x17619a*/\n    v4 = *(_DWORD **)(a1 + 16); /*0x17619c*/\n  if ( v4[2] > a2 ) /*0x1761a5*/\n  {\n    v5 = (_DWORD *)v4[1]; /*0x1761b8*/\n    v4 = *(_DWORD **)(a1 + 16); /*0x1761be*/\nLABEL_18:\n    while ( v4 != v5 ) /*0x176205*/\n    {\n      if ( v4[3] > a2 ) /*0x1761ca*/\n      {\n        if ( v4[2] > a2 ) /*0x1761cf*/\n          goto LABEL_19; /*0x1761cf*/\n        v29 = v4; /*0x1761d1*/\n        v6 = (volatile __int32 *)(a1 + 60); /*0x1761d7*/\n        do /*0x1761ee*/\n        {\n          while ( *v6 ) /*0x1761dc*/\n            ; /*0x1761de*/\n        }\n        while ( _InterlockedExchange(v6, 1) == 1 ); /*0x1761ee*/\n        *(_DWORD *)(a1 + 56) = v4; /*0x1761f3*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1761f8*/\n        goto LABEL_23; /*0x1761fb*/\n      }\n      v4 = (_DWORD *)v4[1]; /*0x176200*/\n    }\n    goto LABEL_19; /*0x176205*/\n  }\n  if ( v4 == v5 ) /*0x1761a9*/\n  {\nLABEL_19:\n    v30 = *v4; /*0x176207*/\n    v7 = (volatile __int32 *)(a1 + 60); /*0x17620f*/\n    do /*0x176226*/\n    {\n      while ( *v7 ) /*0x176214*/\n        ; /*0x176216*/\n    }\n    while ( _InterlockedExchange(v7, 1) == 1 ); /*0x176226*/\n    *(_DWORD *)(a1 + 56) = v30; /*0x17622e*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176233*/\n    v8 = *(_DWORD *)(v30 + 4); /*0x176239*/\n    goto LABEL_40; /*0x17623c*/\n  }\n  if ( v4[3] <= a2 ) /*0x1761ae*/\n    goto LABEL_18; /*0x1761ae*/\n  v29 = v4; /*0x1761b0*/\nLABEL_23:\n  v8 = (int)v29; /*0x176244*/\n  if ( v29[2] < a2 ) /*0x17624d*/\n  {\n    if ( *(_DWORD *)(a1 + 32) ) /*0x17625f*/\n      v9 = vm_map_entry_zone; /*0x176265*/\n    else\n      v9 = vm_map_kentry_zone; /*0x17626c*/\n    v28 = (int *)zalloc(v9); /*0x176277*/\n    if ( !v28 ) /*0x17627f*/\n      panic(aVmMapEntryCrea); /*0x176286*/\n    qmemcpy(v28, v29, 0x2Cu); /*0x1762a1*/\n    v28[3] = a2; /*0x1762a6*/\n    v29[5] += a2 - v29[2]; /*0x1762af*/\n    v29[2] = a2; /*0x1762b2*/\n    ++*(_DWORD *)(a1 + 28); /*0x1762b8*/\n    *v28 = *v29; /*0x1762c0*/\n    v28[1] = *(_DWORD *)(*v29 + 4); /*0x1762c7*/\n    v10 = *v28; /*0x1762ca*/\n    *(_DWORD *)v28[1] = v28; /*0x1762cf*/\n    *(_DWORD *)(v10 + 4) = v28; /*0x1762d1*/\n    if ( (v29[6] & 5) != 0 ) /*0x1762d8*/\n    {\n      v11 = v28[4]; /*0x1762da*/\n      if ( v11 ) /*0x1762df*/\n      {\n        v12 = (volatile __int32 *)(v11 + 52); /*0x1762e1*/\n        do /*0x1762f6*/\n        {\n          while ( *v12 ) /*0x1762e4*/\n            ; /*0x1762e6*/\n        }\n        while ( _InterlockedExchange(v12, 1) == 1 ); /*0x1762f6*/\n        ++*(_DWORD *)(v11 + 48); /*0x1762f8*/\n        _InterlockedExchange((volatile __int32 *)(v11 + 52), 0); /*0x1762fd*/\n      }\n    }\n    else\n    {\n      vm_object_reference(v28[4]); /*0x17630b*/\n    }\n  }\n  v13 = (volatile __int32 *)(a1 + 60); /*0x176316*/\n  do /*0x17632e*/\n  {\n    while ( *v13 ) /*0x17631c*/\n      ; /*0x17631e*/\n  }\n  while ( _InterlockedExchange(v13, 1) == 1 ); /*0x17632e*/\n  *(_DWORD *)(a1 + 56) = *v29; /*0x176335*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x17633a*/\nLABEL_40:\n  if ( *(_DWORD *)(*(_DWORD *)(a1 + 64) + 8) >= a2 ) /*0x176349*/\n    *(_DWORD *)(a1 + 64) = *(_DWORD *)v8; /*0x176351*/\n  while ( v8 != a1 + 12 && *(_DWORD *)(v8 + 8) < a3 ) /*0x176362*/\n  {\n    if ( *(_DWORD *)(v8 + 12) > a3 ) /*0x17636b*/\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x17637a*/\n        v14 = vm_map_entry_zone; /*0x176380*/\n      else\n        v14 = vm_map_kentry_zone; /*0x176388*/\n      v25 = (int *)zalloc(v14); /*0x176396*/\n      if ( !v25 ) /*0x1763a1*/\n        panic(aVmMapEntryCrea); /*0x1763ab*/\n      qmemcpy(v25, (const void *)v8, 0x2Cu); /*0x1763c9*/\n      *(_DWORD *)(v8 + 12) = a3; /*0x1763ce*/\n      v25[2] = a3; /*0x1763d4*/\n      v25[5] += a3 - *(_DWORD *)(v8 + 8); /*0x1763dd*/\n      ++*(_DWORD *)(a1 + 28); /*0x1763e0*/\n      *v25 = v8; /*0x1763e3*/\n      v25[1] = *(_DWORD *)(v8 + 4); /*0x1763e8*/\n      v15 = *v25; /*0x1763eb*/\n      *(_DWORD *)v25[1] = v25; /*0x1763f0*/\n      *(_DWORD *)(v15 + 4) = v25; /*0x1763f2*/\n      if ( (*(_BYTE *)(v8 + 24) & 5) != 0 ) /*0x1763f9*/\n      {\n        v16 = v25[4]; /*0x1763fb*/\n        if ( v16 ) /*0x176400*/\n        {\n          v17 = (volatile __int32 *)(v16 + 52); /*0x176402*/\n          do /*0x17641a*/\n          {\n            while ( *v17 ) /*0x176408*/\n              ; /*0x17640a*/\n          }\n          while ( _InterlockedExchange(v17, 1) == 1 ); /*0x17641a*/\n          ++*(_DWORD *)(v16 + 48); /*0x17641c*/\n          _InterlockedExchange((volatile __int32 *)(v16 + 52), 0); /*0x176421*/\n        }\n      }\n      else\n      {\n        vm_object_reference(v25[4]); /*0x17642f*/\n      }\n    }\n    v27 = *(_DWORD *)(v8 + 4); /*0x17643a*/\n    v26 = *(_DWORD *)(v8 + 8); /*0x176440*/\n    v24 = *(_DWORD *)(v8 + 12); /*0x176446*/\n    v18 = *(_DWORD *)(v8 + 16); /*0x176449*/\n    if ( *(_WORD *)(v8 + 40) ) /*0x17644c*/\n    {\n      vm_fault_unwire(a1, v8); /*0x176458*/\n      *(_WORD *)(v8 + 40) = 0; /*0x17645d*/\n    }\n    if ( kernel_object == v18 ) /*0x17646c*/\n      vm_object_page_remove(v18, *(_DWORD *)(v8 + 20), *(_DWORD *)(v8 + 20) + v24 - v26); /*0x17647c*/\n    if ( !*(_DWORD *)(a1 + 44) ) /*0x176487*/\n      vm_object_pmap_remove(v18, *(_DWORD *)(v8 + 20), *(_DWORD *)(v8 + 20) + v24 - v26); /*0x17649b*/\n    pmap_remove(*(_DWORD *)(a1 + 36), v26, v24); /*0x1764b2*/\n    if ( *(_WORD *)(v8 + 40) ) /*0x1764ba*/\n    {\n      vm_fault_unwire(a1, v8); /*0x1764c6*/\n      *(_WORD *)(v8 + 40) = 0; /*0x1764cb*/\n    }\n    --*(_DWORD *)(a1 + 28); /*0x1764d7*/\n    **(_DWORD **)(v8 + 4) = *(_DWORD *)v8; /*0x1764df*/\n    *(_DWORD *)(*(_DWORD *)v8 + 4) = *(_DWORD *)(v8 + 4); /*0x1764e6*/\n    *(_DWORD *)(a1 + 40) -= *(_DWORD *)(v8 + 12) - *(_DWORD *)(v8 + 8); /*0x1764f2*/\n    if ( (*(_BYTE *)(v8 + 24) & 5) != 0 ) /*0x1764f9*/\n    {\n      v19 = *(_DWORD *)(v8 + 16); /*0x1764fb*/\n      if ( v19 ) /*0x176500*/\n      {\n        v20 = (volatile __int32 *)(v19 + 52); /*0x176502*/\n        do /*0x17651a*/\n        {\n          while ( *v20 ) /*0x176508*/\n            ; /*0x17650a*/\n        }\n        while ( _InterlockedExchange(v20, 1) == 1 ); /*0x17651a*/\n        v21 = *(_DWORD *)(v19 + 48) - 1; /*0x17651f*/\n        *(_DWORD *)(v19 + 48) = v21; /*0x176522*/\n        _InterlockedExchange((volatile __int32 *)(v19 + 52), 0); /*0x176528*/\n        if ( v21 <= 0 ) /*0x17652d*/\n        {\n          lock_write(v19); /*0x176530*/\n          ++*(_DWORD *)(v19 + 76); /*0x176535*/\n          vm_map_delete(v19, *(_DWORD *)(v19 + 20), *(_DWORD *)(v19 + 24)); /*0x176544*/\n          pmap_destroy(*(_DWORD *)(v19 + 36)); /*0x17654d*/\n          zfree(vm_map_zone, (_DWORD *)v19); /*0x17655a*/\n        }\n      }\n    }\n    else\n    {\n      vm_object_deallocate(*(_DWORD *)(v8 + 16)); /*0x176568*/\n    }\n    if ( *(_DWORD *)(a1 + 32) ) /*0x176573*/\n      v22 = vm_map_entry_zone; /*0x176579*/\n    else\n      v22 = vm_map_kentry_zone; /*0x176580*/\n    zfree(v22, (_DWORD *)v8); /*0x176587*/\n    v8 = v27; /*0x17658f*/\n  }\n  return 0; /*0x1765a5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x179bbc",
+        "name": "_vm_object_page_remove"
+      },
+      {
+        "addr": "0x1f6ea0",
+        "name": "_kernel_object"
+      },
+      {
+        "addr": "0x179350",
+        "name": "_vm_object_pmap_remove"
+      },
+      {
+        "addr": "0x18fa44",
+        "name": "_pmap_remove"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x18f69c",
+        "name": "_pmap_destroy"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001765ac",
+    "addr": "0x001765ac",
+    "code": "int __cdecl vm_map_remove(_DWORD *a1, unsigned int a2, unsigned int a3)\n{\n  unsigned int v3; // edi\n  unsigned int v4; // ebx\n  int v5; // ebx\n\n  v3 = a2; /*0x1765b5*/\n  v4 = a3; /*0x1765b8*/\n  lock_write((int)a1); /*0x1765bc*/\n  ++a1[19]; /*0x1765c1*/\n  if ( a2 < a1[5] ) /*0x1765cc*/\n    v3 = a1[5]; /*0x1765ce*/\n  if ( a3 > a1[6] ) /*0x1765d5*/\n    v4 = a1[6]; /*0x1765d7*/\n  if ( v3 > v4 ) /*0x1765db*/\n    v3 = v4; /*0x1765dd*/\n  v5 = vm_map_delete((int)a1, v3, v4); /*0x1765e7*/\n  lock_done((int)a1); /*0x1765ea*/\n  return v5; /*0x1765f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001765fc",
+    "addr": "0x001765fc",
+    "code": "int __cdecl vm_map_check_protection(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  unsigned int v4; // ebx\n  volatile __int32 *v5; // edx\n  _DWORD *v6; // ecx\n  _DWORD *v7; // eax\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // edx\n  _DWORD *v11; // edx\n  _DWORD *v12; // [esp+Ch] [ebp-4h]\n  int v13; // [esp+Ch] [ebp-4h]\n\n  v4 = a2; /*0x176608*/\n  v5 = (volatile __int32 *)(a1 + 60); /*0x17660b*/\n  do /*0x176622*/\n  {\n    while ( *v5 ) /*0x176610*/\n      ; /*0x176612*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x176622*/\n  v6 = *(_DWORD **)(a1 + 56); /*0x176624*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176629*/\n  v7 = (_DWORD *)(a1 + 12); /*0x17662c*/\n  if ( v6 == (_DWORD *)(a1 + 12) ) /*0x176631*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x176633*/\n  if ( v6[2] > a2 ) /*0x176639*/\n  {\n    v7 = (_DWORD *)v6[1]; /*0x17664c*/\n    v6 = *(_DWORD **)(a1 + 16); /*0x17664f*/\nLABEL_18:\n    while ( v6 != v7 ) /*0x176689*/\n    {\n      if ( v6[3] > a2 ) /*0x176657*/\n      {\n        if ( v6[2] > a2 ) /*0x17665c*/\n          goto LABEL_19; /*0x17665c*/\n        v12 = v6; /*0x17665e*/\n        v8 = (volatile __int32 *)(a1 + 60); /*0x176661*/\n        do /*0x176676*/\n        {\n          while ( *v8 ) /*0x176664*/\n            ; /*0x176666*/\n        }\n        while ( _InterlockedExchange(v8, 1) == 1 ); /*0x176676*/\n        *(_DWORD *)(a1 + 56) = v6; /*0x176678*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x17667d*/\n        goto LABEL_24; /*0x176680*/\n      }\n      v6 = (_DWORD *)v6[1]; /*0x176684*/\n    }\n    goto LABEL_19; /*0x176689*/\n  }\n  if ( v6 == v7 ) /*0x17663d*/\n  {\nLABEL_19:\n    v13 = *v6; /*0x17668b*/\n    v9 = (volatile __int32 *)(a1 + 60); /*0x176690*/\n    do /*0x1766a6*/\n    {\n      while ( *v9 ) /*0x176694*/\n        ; /*0x176696*/\n    }\n    while ( _InterlockedExchange(v9, 1) == 1 ); /*0x1766a6*/\n    *(_DWORD *)(a1 + 56) = v13; /*0x1766ab*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x1766b0*/\n    return 0; /*0x1766b5*/\n  }\n  if ( v6[3] <= a2 ) /*0x176642*/\n    goto LABEL_18; /*0x176642*/\n  v12 = v6; /*0x176644*/\nLABEL_24:\n  v11 = v12; /*0x1766b8*/\n  if ( a3 > a2 ) /*0x1766be*/\n  {\n    while ( v11 != (_DWORD *)(a1 + 12) && v11[2] <= v4 && a4 == (v11[7] & a4) ) /*0x1766d6*/\n    {\n      v4 = v11[3]; /*0x1766d8*/\n      v11 = (_DWORD *)v11[1]; /*0x1766db*/\n      if ( a3 <= v4 ) /*0x1766e1*/\n        return 1; /*0x1766e1*/\n    }\n    return 0; /*0x1766d6*/\n  }\n  return 1; /*0x1766eb*/\n}"
+  },
+  {
+    "requested_address": "0x001766f4",
+    "addr": "0x001766f4",
+    "code": "void __cdecl vm_map_copy_entry(int a1, int a2, int a3, int a4)\n{\n  volatile __int32 *v4; // edx\n  _BOOL4 v5; // edx\n  int v6; // eax\n  int v7; // [esp+Ch] [ebp-8h]\n  int v8; // [esp+10h] [ebp-4h] BYREF\n\n  if ( (*(_BYTE *)(a3 + 24) & 4) == 0 && (*(_BYTE *)(a4 + 24) & 4) == 0 ) /*0x176711*/\n  {\n    if ( *(_WORD *)(a4 + 40) ) /*0x176717*/\n    {\n      vm_fault_unwire(a2, a4); /*0x176723*/\n      *(_WORD *)(a4 + 40) = 0; /*0x176728*/\n    }\n    if ( !*(_DWORD *)(a2 + 44) ) /*0x176734*/\n      vm_object_pmap_remove( /*0x17674b*/\n        *(_DWORD *)(a4 + 16),\n        *(_DWORD *)(a4 + 20),\n        *(_DWORD *)(a4 + 20) + *(_DWORD *)(a4 + 12) - *(_DWORD *)(a4 + 8));\n    pmap_remove(*(_DWORD *)(a2 + 36), *(_DWORD *)(a4 + 8), *(_DWORD *)(a4 + 12)); /*0x176762*/\n    if ( *(_WORD *)(a3 + 40) ) /*0x17676a*/\n    {\n      vm_fault_copy_entry(a2, a1, (_DWORD *)a4, a3); /*0x176876*/\n    }\n    else\n    {\n      if ( (*(_BYTE *)(a3 + 24) & 0x40) == 0 ) /*0x176779*/\n      {\n        if ( *(_DWORD *)(a1 + 44) ) /*0x17677e*/\n          goto LABEL_14; /*0x17677e*/\n        v4 = (volatile __int32 *)(a1 + 52); /*0x176786*/\n        do /*0x17679e*/\n        {\n          while ( *v4 ) /*0x17678c*/\n            ; /*0x17678e*/\n        }\n        while ( _InterlockedExchange(v4, 1) == 1 ); /*0x17679e*/\n        v5 = *(_DWORD *)(a1 + 48) == 1; /*0x1767aa*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 52), 0); /*0x1767af*/\n        if ( v5 ) /*0x1767b4*/\n        {\nLABEL_14:\n          v6 = *(_DWORD *)(a3 + 28); /*0x1767b6*/\n          LOBYTE(v6) = v6 & 0xFD; /*0x1767b9*/\n          pmap_protect(*(_DWORD *)(a1 + 36), *(_DWORD *)(a3 + 8), *(_DWORD *)(a3 + 12), v6); /*0x1767cb*/\n        }\n        else\n        {\n          vm_object_pmap_copy( /*0x1767e9*/\n            *(_DWORD *)(a3 + 16),\n            *(_DWORD *)(a3 + 20),\n            *(_DWORD *)(a3 + 20) + *(_DWORD *)(a3 + 12) - *(_DWORD *)(a3 + 8));\n        }\n      }\n      v7 = *(_DWORD *)(a4 + 16); /*0x1767f4*/\n      vm_object_copy( /*0x176812*/\n        *(_DWORD *)(a3 + 16),\n        *(_DWORD *)(a3 + 20),\n        *(_DWORD *)(a3 + 12) - *(_DWORD *)(a3 + 8),\n        a4 + 16,\n        a4 + 20,\n        &v8);\n      if ( v8 ) /*0x17681e*/\n        *(_BYTE *)(a3 + 24) |= 0x40u; /*0x176820*/\n      *(_BYTE *)(a4 + 24) |= 0x40u; /*0x176824*/\n      *(_BYTE *)(a3 + 24) |= 8u; /*0x176828*/\n      *(_BYTE *)(a4 + 24) |= 8u; /*0x17682c*/\n      if ( (*(_BYTE *)(a3 + 28) & 4) != 0 ) /*0x176834*/\n        *(_DWORD *)(a4 + 28) |= *(_DWORD *)(a4 + 32) & 4; /*0x17683c*/\n      vm_object_deallocate(v7); /*0x176843*/\n      pmap_copy( /*0x176864*/\n        *(_DWORD *)(a2 + 36),\n        *(_DWORD *)(a1 + 36),\n        *(_DWORD *)(a4 + 8),\n        *(_DWORD *)(a4 + 12) - *(_DWORD *)(a4 + 8),\n        *(_DWORD *)(a3 + 8));\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x179350",
+        "name": "_vm_object_pmap_remove"
+      },
+      {
+        "addr": "0x18fa44",
+        "name": "_pmap_remove"
+      },
+      {
+        "addr": "0x17369c",
+        "name": "_vm_fault_copy_entry"
+      },
+      {
+        "addr": "0x18fee4",
+        "name": "_pmap_protect"
+      },
+      {
+        "addr": "0x1792e8",
+        "name": "_vm_object_pmap_copy"
+      },
+      {
+        "addr": "0x1793b0",
+        "name": "_vm_object_copy"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x19113c",
+        "name": "_pmap_copy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00176888",
+    "addr": "0x00176888",
+    "code": "int __cdecl vm_map_copy(int a1, int a2, unsigned int a3, int a4, unsigned int a5, int a6, int a7)\n{\n  int v8; // edi\n  unsigned int v9; // ebx\n  volatile __int32 *v10; // edx\n  _DWORD *v11; // ecx\n  _DWORD *v12; // eax\n  volatile __int32 *v13; // edx\n  volatile __int32 *v14; // edx\n  _DWORD *v15; // eax\n  _DWORD *v16; // ecx\n  int v17; // edx\n  int v18; // eax\n  int v19; // eax\n  int v20; // eax\n  int v21; // ebx\n  int v22; // eax\n  unsigned int v23; // ebx\n  volatile __int32 *v24; // edx\n  _DWORD *v25; // ecx\n  _DWORD *v26; // eax\n  volatile __int32 *v27; // edx\n  volatile __int32 *v28; // edx\n  _DWORD *v29; // eax\n  volatile __int32 *v30; // edx\n  _DWORD *v31; // ecx\n  _DWORD *v32; // eax\n  volatile __int32 *v33; // edx\n  volatile __int32 *v34; // edx\n  int v35; // eax\n  int v36; // edx\n  int v37; // edx\n  volatile __int32 *v38; // ecx\n  volatile __int32 *v39; // edx\n  _DWORD *v40; // ecx\n  _DWORD *v41; // eax\n  volatile __int32 *v42; // edx\n  volatile __int32 *v43; // edx\n  int v44; // eax\n  int v45; // edx\n  int v46; // edx\n  volatile __int32 *v47; // ecx\n  volatile __int32 *v48; // edx\n  _DWORD *v49; // ecx\n  _DWORD *v50; // eax\n  volatile __int32 *v51; // edx\n  volatile __int32 *v52; // edx\n  int v53; // eax\n  int *v54; // eax\n  int v55; // edx\n  int v56; // edx\n  volatile __int32 *v57; // ecx\n  int v58; // eax\n  int *v59; // eax\n  int v60; // edx\n  int v61; // edx\n  volatile __int32 *v62; // ecx\n  unsigned int v63; // ebx\n  int v64; // eax\n  int v65; // edx\n  int v66; // edx\n  volatile __int32 *v67; // ecx\n  unsigned int v68; // ebx\n  int v69; // eax\n  int v70; // edx\n  int v71; // edx\n  volatile __int32 *v72; // ecx\n  char v73; // dl\n  char v74; // al\n  volatile __int32 *v75; // edx\n  _BOOL4 v76; // edx\n  int v77; // eax\n  int v78; // ebx\n  _DWORD *v79; // ebx\n  unsigned int v80; // edi\n  _DWORD *v81; // ecx\n  _DWORD *v82; // eax\n  int v83; // eax\n  int v84; // eax\n  int v85; // eax\n  _DWORD *v86; // [esp+Ch] [ebp-5Ch]\n  _DWORD *v87; // [esp+Ch] [ebp-5Ch]\n  _DWORD *v88; // [esp+Ch] [ebp-5Ch]\n  _DWORD *v89; // [esp+Ch] [ebp-5Ch]\n  int v90; // [esp+10h] [ebp-58h]\n  unsigned int v91; // [esp+1Ch] [ebp-4Ch]\n  int v92; // [esp+20h] [ebp-48h]\n  _DWORD *v93; // [esp+24h] [ebp-44h]\n  int v94; // [esp+28h] [ebp-40h]\n  unsigned int v95; // [esp+2Ch] [ebp-3Ch]\n  int *v96; // [esp+30h] [ebp-38h]\n  int *v97; // [esp+34h] [ebp-34h]\n  int *v98; // [esp+38h] [ebp-30h]\n  int *v99; // [esp+3Ch] [ebp-2Ch]\n  int v100; // [esp+44h] [ebp-24h]\n  unsigned int v101; // [esp+48h] [ebp-20h]\n  unsigned int v102; // [esp+50h] [ebp-18h]\n  unsigned int v103; // [esp+54h] [ebp-14h]\n  int v104; // [esp+58h] [ebp-10h]\n  int v105; // [esp+5Ch] [ebp-Ch]\n  _DWORD *v106; // [esp+60h] [ebp-8h]\n  _DWORD *v107; // [esp+60h] [ebp-8h]\n  _DWORD *v108; // [esp+60h] [ebp-8h]\n  _DWORD *v109; // [esp+64h] [ebp-4h] BYREF\n\n  v102 = a4 + a5; /*0x1768a0*/\n  v101 = a4 + a3; /*0x1768ae*/\n  if ( a4 + a3 < a3 || v102 < a5 ) /*0x1768bb*/\n    return 3; /*0x1768c2*/\n  v8 = a1; /*0x1768c8*/\n  if ( a2 == a1 ) /*0x1768ce*/\n    goto LABEL_8; /*0x1768ce*/\n  if ( a2 >= a1 ) /*0x1768d6*/\n  {\n    lock_write(a1); /*0x1768f8*/\n    ++*(_DWORD *)(a1 + 76); /*0x1768fd*/\n    v8 = a2; /*0x176903*/\nLABEL_8:\n    lock_write(v8); /*0x176906*/\n    ++*(_DWORD *)(v8 + 76); /*0x17690c*/\n    goto LABEL_9; /*0x17690c*/\n  }\n  lock_write(a2); /*0x1768dc*/\n  ++*(_DWORD *)(a2 + 76); /*0x1768e1*/\n  lock_write(a1); /*0x1768e8*/\n  ++*(_DWORD *)(a1 + 76); /*0x1768ed*/\nLABEL_9:\n  v100 = 0; /*0x17690f*/\n  if ( !*(_DWORD *)(a2 + 44) || !*(_DWORD *)(a1 + 44) ) /*0x176929*/\n    goto LABEL_96; /*0x17692d*/\n  v9 = a5; /*0x176933*/\n  v10 = (volatile __int32 *)(a2 + 60); /*0x176938*/\n  do /*0x17694e*/\n  {\n    while ( *v10 ) /*0x17693c*/\n      ; /*0x17693e*/\n  }\n  while ( _InterlockedExchange(v10, 1) == 1 ); /*0x17694e*/\n  v11 = *(_DWORD **)(a2 + 56); /*0x176953*/\n  _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x176958*/\n  v12 = (_DWORD *)(a2 + 12); /*0x17695d*/\n  if ( v11 == (_DWORD *)(a2 + 12) ) /*0x176962*/\n    v11 = *(_DWORD **)(a2 + 16); /*0x176964*/\n  if ( v11[2] > a5 ) /*0x17696a*/\n  {\n    v12 = (_DWORD *)v11[1]; /*0x176980*/\n    v11 = *(_DWORD **)(a2 + 16); /*0x176986*/\nLABEL_28:\n    while ( v11 != v12 ) /*0x1769c9*/\n    {\n      if ( v11[3] > a5 ) /*0x17698f*/\n      {\n        if ( v11[2] > a5 ) /*0x176994*/\n          goto LABEL_29; /*0x176994*/\n        v109 = v11; /*0x176996*/\n        v13 = (volatile __int32 *)(a2 + 60); /*0x17699c*/\n        do /*0x1769b2*/\n        {\n          while ( *v13 ) /*0x1769a0*/\n            ; /*0x1769a2*/\n        }\n        while ( _InterlockedExchange(v13, 1) == 1 ); /*0x1769b2*/\n        *(_DWORD *)(a2 + 56) = v11; /*0x1769b7*/\n        _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x1769bc*/\n        goto LABEL_33; /*0x1769bf*/\n      }\n      v11 = (_DWORD *)v11[1]; /*0x1769c4*/\n    }\n    goto LABEL_29; /*0x1769c9*/\n  }\n  if ( v11 == v12 ) /*0x17696e*/\n  {\nLABEL_29:\n    v109 = (_DWORD *)*v11; /*0x1769cb*/\n    v14 = (volatile __int32 *)(a2 + 60); /*0x1769d3*/\n    do /*0x1769ea*/\n    {\n      while ( *v14 ) /*0x1769d8*/\n        ; /*0x1769da*/\n    }\n    while ( _InterlockedExchange(v14, 1) == 1 ); /*0x1769ea*/\n    *(_DWORD *)(a2 + 56) = v109; /*0x1769f2*/\n    _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x1769f7*/\n    goto LABEL_95; /*0x1769fa*/\n  }\n  if ( v11[3] <= a5 ) /*0x176973*/\n    goto LABEL_28; /*0x176973*/\n  v109 = v11; /*0x176975*/\nLABEL_33:\n  v15 = v109; /*0x176a00*/\n  if ( v102 > a5 ) /*0x176a06*/\n  {\n    while ( v15 != (_DWORD *)(a2 + 12) && v15[2] <= v9 && (v15[7] & 1) != 0 ) /*0x176a25*/\n    {\n      v9 = v15[3]; /*0x176a2b*/\n      v15 = (_DWORD *)v15[1]; /*0x176a2e*/\n      if ( v102 <= v9 ) /*0x176a34*/\n        goto LABEL_38; /*0x176a34*/\n    }\n    goto LABEL_95; /*0x176a25*/\n  }\nLABEL_38:\n  if ( !a6 ) /*0x176a3a*/\n  {\n    v23 = a3; /*0x176be0*/\n    v24 = (volatile __int32 *)(a1 + 60); /*0x176be6*/\n    do /*0x176bfe*/\n    {\n      while ( *v24 ) /*0x176bec*/\n        ; /*0x176bee*/\n    }\n    while ( _InterlockedExchange(v24, 1) == 1 ); /*0x176bfe*/\n    v25 = *(_DWORD **)(a1 + 56); /*0x176c03*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176c08*/\n    v26 = (_DWORD *)(a1 + 12); /*0x176c0d*/\n    if ( v25 == (_DWORD *)(a1 + 12) ) /*0x176c12*/\n      v25 = *(_DWORD **)(a1 + 16); /*0x176c14*/\n    if ( v25[2] > a3 ) /*0x176c1a*/\n    {\n      v26 = (_DWORD *)v25[1]; /*0x176c2c*/\n      v25 = *(_DWORD **)(a1 + 16); /*0x176c32*/\nLABEL_84:\n      while ( v25 != v26 ) /*0x176c75*/\n      {\n        if ( v25[3] > a3 ) /*0x176c3b*/\n        {\n          if ( v25[2] > a3 ) /*0x176c40*/\n            break; /*0x176c40*/\n          v109 = v25; /*0x176c42*/\n          v27 = (volatile __int32 *)(a1 + 60); /*0x176c48*/\n          do /*0x176c5e*/\n          {\n            while ( *v27 ) /*0x176c4c*/\n              ; /*0x176c4e*/\n          }\n          while ( _InterlockedExchange(v27, 1) == 1 ); /*0x176c5e*/\n          *(_DWORD *)(a1 + 56) = v25; /*0x176c63*/\n          _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176c68*/\n          goto LABEL_89; /*0x176c6b*/\n        }\n        v25 = (_DWORD *)v25[1]; /*0x176c70*/\n      }\n    }\n    else if ( v25 != v26 ) /*0x176c1e*/\n    {\n      if ( v25[3] <= a3 ) /*0x176c23*/\n        goto LABEL_84; /*0x176c23*/\n      v109 = v25; /*0x176c25*/\nLABEL_89:\n      v29 = v109; /*0x176ca8*/\n      if ( v101 <= a3 ) /*0x176cae*/\n        goto LABEL_96; /*0x176cae*/\n      while ( v29 != (_DWORD *)(a1 + 12) && v29[2] <= v23 && (v29[7] & 2) != 0 ) /*0x176cc5*/\n      {\n        v23 = v29[3]; /*0x176cc7*/\n        v29 = (_DWORD *)v29[1]; /*0x176cca*/\n        if ( v101 <= v23 ) /*0x176cd0*/\n          goto LABEL_96; /*0x176cd0*/\n      }\nLABEL_95:\n      v100 = 2; /*0x176cd4*/\n      goto LABEL_303; /*0x176cdb*/\n    }\n    v109 = (_DWORD *)*v25; /*0x176c77*/\n    v28 = (volatile __int32 *)(a1 + 60); /*0x176c7f*/\n    do /*0x176c96*/\n    {\n      while ( *v28 ) /*0x176c84*/\n        ; /*0x176c86*/\n    }\n    while ( _InterlockedExchange(v28, 1) == 1 ); /*0x176c96*/\n    *(_DWORD *)(a1 + 56) = v109; /*0x176c9e*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176ca3*/\n    goto LABEL_95; /*0x176ca6*/\n  }\n  if ( *(_DWORD *)(a1 + 20) <= a3 && *(_DWORD *)(a1 + 24) >= v101 && a3 < v101 ) /*0x176a56*/\n  {\n    if ( vm_map_lookup_entry(a1, a3, &v109) /*0x176a92*/\n      || (v16 = v109, v17 = v109[1], v17 != a1 + 12) && *(_DWORD *)(v17 + 8) < v101 )\n    {\n      v100 = 3; /*0x176a94*/\n      goto LABEL_303; /*0x176a9b*/\n    }\n    if ( v109 != (_DWORD *)(a1 + 12) /*0x176afa*/\n      && v109[3] == a3\n      && (v109[6] & 5) == 0\n      && v109[9] == 1\n      && v109[7] == 3\n      && v109[8] == 7\n      && !*((_WORD *)v109 + 20)\n      && (v86 = v109, v18 = vm_object_coalesce(v109[4], 0, v109[5], 0, a3 - v109[2], a4), v16 = v86, v18) )\n    {\n      *(_DWORD *)(a1 + 40) += v101 - v86[3]; /*0x176b05*/\n      v86[3] = v101; /*0x176b0b*/\n    }\n    else\n    {\n      if ( *(_DWORD *)(a1 + 32) ) /*0x176b1f*/\n        v19 = vm_map_entry_zone; /*0x176b25*/\n      else\n        v19 = vm_map_kentry_zone; /*0x176b2c*/\n      v87 = v16; /*0x176b32*/\n      v20 = zalloc(v19); /*0x176b35*/\n      v21 = v20; /*0x176b3a*/\n      if ( !v20 ) /*0x176b44*/\n        panic(aVmMapEntryCrea); /*0x176b4e*/\n      *(_DWORD *)(v20 + 8) = a3; /*0x176b5e*/\n      *(_DWORD *)(v20 + 12) = v101; /*0x176b64*/\n      *(_BYTE *)(v20 + 24) &= 0xFAu; /*0x176b67*/\n      *(_DWORD *)(v20 + 16) = 0; /*0x176b6b*/\n      *(_DWORD *)(v20 + 20) = 0; /*0x176b72*/\n      *(_BYTE *)(v20 + 24) &= 0xB7u; /*0x176b79*/\n      if ( *(_DWORD *)(a1 + 44) ) /*0x176b80*/\n      {\n        *(_DWORD *)(v20 + 36) = 1; /*0x176b86*/\n        *(_DWORD *)(v20 + 28) = 3; /*0x176b8d*/\n        *(_DWORD *)(v20 + 32) = 7; /*0x176b94*/\n        *(_WORD *)(v20 + 40) = 0; /*0x176b9b*/\n      }\n      ++*(_DWORD *)(a1 + 28); /*0x176ba4*/\n      *(_DWORD *)v20 = v87; /*0x176ba7*/\n      *(_DWORD *)(v20 + 4) = v87[1]; /*0x176bac*/\n      v22 = *(_DWORD *)v20; /*0x176baf*/\n      **(_DWORD **)(v21 + 4) = v21; /*0x176bb4*/\n      *(_DWORD *)(v22 + 4) = v21; /*0x176bb6*/\n      *(_DWORD *)(a1 + 40) += *(_DWORD *)(v21 + 12) - *(_DWORD *)(v21 + 8); /*0x176bbf*/\n      if ( *(_DWORD **)(a1 + 64) == v87 && v87[3] >= *(_DWORD *)(v21 + 8) ) /*0x176bd1*/\n        *(_DWORD *)(a1 + 64) = v21; /*0x176bd7*/\n    }\n    v100 = 0; /*0x176b0e*/\nLABEL_96:\n    v30 = (volatile __int32 *)(a2 + 60); /*0x176ce0*/\n    do /*0x176cfa*/\n    {\n      while ( *v30 ) /*0x176ce8*/\n        ; /*0x176cea*/\n    }\n    while ( _InterlockedExchange(v30, 1) == 1 ); /*0x176cfa*/\n    v31 = *(_DWORD **)(a2 + 56); /*0x176cff*/\n    _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x176d04*/\n    v32 = (_DWORD *)(a2 + 12); /*0x176d09*/\n    if ( v31 == (_DWORD *)(a2 + 12) ) /*0x176d0e*/\n      v31 = *(_DWORD **)(a2 + 16); /*0x176d10*/\n    if ( v31[2] > a5 ) /*0x176d19*/\n    {\n      v32 = (_DWORD *)v31[1]; /*0x176d2c*/\n      v31 = *(_DWORD **)(a2 + 16); /*0x176d32*/\nLABEL_113:\n      while ( v31 != v32 ) /*0x176d79*/\n      {\n        if ( v31[3] > a5 ) /*0x176d3e*/\n        {\n          if ( v31[2] > a5 ) /*0x176d43*/\n            break; /*0x176d43*/\n          v106 = v31; /*0x176d45*/\n          v33 = (volatile __int32 *)(a2 + 60); /*0x176d4b*/\n          do /*0x176d62*/\n          {\n            while ( *v33 ) /*0x176d50*/\n              ; /*0x176d52*/\n          }\n          while ( _InterlockedExchange(v33, 1) == 1 ); /*0x176d62*/\n          *(_DWORD *)(a2 + 56) = v31; /*0x176d67*/\n          _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x176d6c*/\n          goto LABEL_118; /*0x176d6f*/\n        }\n        v31 = (_DWORD *)v31[1]; /*0x176d74*/\n      }\n    }\n    else if ( v31 != v32 ) /*0x176d1d*/\n    {\n      if ( v31[3] <= a5 ) /*0x176d22*/\n        goto LABEL_113; /*0x176d22*/\n      v106 = v31; /*0x176d24*/\nLABEL_118:\n      v105 = (int)v106; /*0x176daa*/\n      if ( v106[2] < a5 ) /*0x176db6*/\n      {\n        if ( *(_DWORD *)(a2 + 32) ) /*0x176dc5*/\n          v35 = vm_map_entry_zone; /*0x176dcb*/\n        else\n          v35 = vm_map_kentry_zone; /*0x176dd4*/\n        v99 = (int *)zalloc(v35); /*0x176ddf*/\n        if ( !v99 ) /*0x176de7*/\n          panic(aVmMapEntryCrea); /*0x176dee*/\n        qmemcpy(v99, v106, 0x2Cu); /*0x176e0c*/\n        v99[3] = a5; /*0x176e11*/\n        v106[5] += a5 - v106[2]; /*0x176e1d*/\n        v106[2] = a5; /*0x176e20*/\n        ++*(_DWORD *)(a2 + 28); /*0x176e23*/\n        *v99 = *v106; /*0x176e2b*/\n        v99[1] = *(_DWORD *)(*v106 + 4); /*0x176e38*/\n        v36 = *v99; /*0x176e3b*/\n        *(_DWORD *)v99[1] = v99; /*0x176e40*/\n        *(_DWORD *)(v36 + 4) = v99; /*0x176e42*/\n        if ( (v106[6] & 5) != 0 ) /*0x176e49*/\n        {\n          v37 = v99[4]; /*0x176e4b*/\n          if ( v37 ) /*0x176e50*/\n          {\n            v38 = (volatile __int32 *)(v37 + 52); /*0x176e52*/\n            do /*0x176e6a*/\n            {\n              while ( *v38 ) /*0x176e58*/\n                ; /*0x176e5a*/\n            }\n            while ( _InterlockedExchange(v38, 1) == 1 ); /*0x176e6a*/\n            ++*(_DWORD *)(v37 + 48); /*0x176e6c*/\n            _InterlockedExchange((volatile __int32 *)(v37 + 52), 0); /*0x176e71*/\n          }\n        }\n        else\n        {\n          vm_object_reference(v99[4]); /*0x176e7f*/\n        }\n      }\n      v39 = (volatile __int32 *)(a1 + 60); /*0x176e8a*/\n      do /*0x176ea2*/\n      {\n        while ( *v39 ) /*0x176e90*/\n          ; /*0x176e92*/\n      }\n      while ( _InterlockedExchange(v39, 1) == 1 ); /*0x176ea2*/\n      v40 = *(_DWORD **)(a1 + 56); /*0x176ea7*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176eac*/\n      v41 = (_DWORD *)(a1 + 12); /*0x176eb1*/\n      if ( v40 == (_DWORD *)(a1 + 12) ) /*0x176eb6*/\n        v40 = *(_DWORD **)(a1 + 16); /*0x176eb8*/\n      if ( v40[2] > a3 ) /*0x176ec1*/\n      {\n        v41 = (_DWORD *)v40[1]; /*0x176ed4*/\n        v40 = *(_DWORD **)(a1 + 16); /*0x176eda*/\nLABEL_148:\n        while ( v40 != v41 ) /*0x176f21*/\n        {\n          if ( v40[3] > a3 ) /*0x176ee6*/\n          {\n            if ( v40[2] > a3 ) /*0x176eeb*/\n              break; /*0x176eeb*/\n            v107 = v40; /*0x176eed*/\n            v42 = (volatile __int32 *)(a1 + 60); /*0x176ef3*/\n            do /*0x176f0a*/\n            {\n              while ( *v42 ) /*0x176ef8*/\n                ; /*0x176efa*/\n            }\n            while ( _InterlockedExchange(v42, 1) == 1 ); /*0x176f0a*/\n            *(_DWORD *)(a1 + 56) = v40; /*0x176f0f*/\n            _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176f14*/\n            goto LABEL_153; /*0x176f17*/\n          }\n          v40 = (_DWORD *)v40[1]; /*0x176f1c*/\n        }\n      }\n      else if ( v40 != v41 ) /*0x176ec5*/\n      {\n        if ( v40[3] <= a3 ) /*0x176eca*/\n          goto LABEL_148; /*0x176eca*/\n        v107 = v40; /*0x176ecc*/\nLABEL_153:\n        v104 = (int)v107; /*0x176f52*/\n        if ( v107[2] < a3 ) /*0x176f5e*/\n        {\n          if ( *(_DWORD *)(a1 + 32) ) /*0x176f6d*/\n            v44 = vm_map_entry_zone; /*0x176f73*/\n          else\n            v44 = vm_map_kentry_zone; /*0x176f7c*/\n          v98 = (int *)zalloc(v44); /*0x176f87*/\n          if ( !v98 ) /*0x176f8f*/\n            panic(aVmMapEntryCrea); /*0x176f96*/\n          qmemcpy(v98, v107, 0x2Cu); /*0x176fb4*/\n          v98[3] = a3; /*0x176fb9*/\n          v107[5] += a3 - v107[2]; /*0x176fc5*/\n          v107[2] = a3; /*0x176fc8*/\n          ++*(_DWORD *)(a1 + 28); /*0x176fcb*/\n          *v98 = *v107; /*0x176fd3*/\n          v98[1] = *(_DWORD *)(*v107 + 4); /*0x176fe0*/\n          v45 = *v98; /*0x176fe3*/\n          *(_DWORD *)v98[1] = v98; /*0x176fe8*/\n          *(_DWORD *)(v45 + 4) = v98; /*0x176fea*/\n          if ( (v107[6] & 5) != 0 ) /*0x176ff1*/\n          {\n            v46 = v98[4]; /*0x176ff3*/\n            if ( v46 ) /*0x176ff8*/\n            {\n              v47 = (volatile __int32 *)(v46 + 52); /*0x176ffa*/\n              do /*0x177012*/\n              {\n                while ( *v47 ) /*0x177000*/\n                  ; /*0x177002*/\n              }\n              while ( _InterlockedExchange(v47, 1) == 1 ); /*0x177012*/\n              ++*(_DWORD *)(v46 + 48); /*0x177014*/\n              _InterlockedExchange((volatile __int32 *)(v46 + 52), 0); /*0x177019*/\n            }\n          }\n          else\n          {\n            vm_object_reference(v98[4]); /*0x177027*/\n          }\n        }\n        if ( (_DWORD *)v105 != v107 ) /*0x177035*/\n          goto LABEL_190; /*0x177035*/\n        v48 = (volatile __int32 *)(a2 + 60); /*0x17703e*/\n        do /*0x177056*/\n        {\n          while ( *v48 ) /*0x177044*/\n            ; /*0x177046*/\n        }\n        while ( _InterlockedExchange(v48, 1) == 1 ); /*0x177056*/\n        v49 = *(_DWORD **)(a2 + 56); /*0x17705b*/\n        _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x177060*/\n        v50 = (_DWORD *)(a2 + 12); /*0x177065*/\n        if ( v49 == (_DWORD *)(a2 + 12) ) /*0x17706a*/\n          v49 = *(_DWORD **)(a2 + 16); /*0x17706c*/\n        if ( v49[2] > a5 ) /*0x177075*/\n        {\n          v50 = (_DWORD *)v49[1]; /*0x177088*/\n          v49 = *(_DWORD **)(a2 + 16); /*0x17708e*/\nLABEL_184:\n          while ( v49 != v50 ) /*0x1770d5*/\n          {\n            if ( v49[3] > a5 ) /*0x17709a*/\n            {\n              if ( v49[2] > a5 ) /*0x17709f*/\n                break; /*0x17709f*/\n              v108 = v49; /*0x1770a1*/\n              v51 = (volatile __int32 *)(a2 + 60); /*0x1770a7*/\n              do /*0x1770be*/\n              {\n                while ( *v51 ) /*0x1770ac*/\n                  ; /*0x1770ae*/\n              }\n              while ( _InterlockedExchange(v51, 1) == 1 ); /*0x1770be*/\n              *(_DWORD *)(a2 + 56) = v49; /*0x1770c3*/\n              _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x1770c8*/\n              goto LABEL_189; /*0x1770cb*/\n            }\n            v49 = (_DWORD *)v49[1]; /*0x1770d0*/\n          }\n        }\n        else if ( v49 != v50 ) /*0x177079*/\n        {\n          if ( v49[3] <= a5 ) /*0x17707e*/\n            goto LABEL_184; /*0x17707e*/\n          v108 = v49; /*0x177080*/\nLABEL_189:\n          v105 = (int)v108; /*0x177106*/\n          if ( v108 == (_DWORD *)v104 ) /*0x177111*/\n            goto LABEL_303; /*0x177111*/\nLABEL_190:\n          if ( a5 < v102 ) /*0x17711d*/\n          {\n            do /*0x1779f9*/\n            {\n              if ( *(_DWORD *)(v105 + 12) > v102 ) /*0x17712d*/\n              {\n                if ( *(_DWORD *)(a2 + 32) ) /*0x17713c*/\n                  v53 = vm_map_entry_zone; /*0x177142*/\n                else\n                  v53 = vm_map_kentry_zone; /*0x17714c*/\n                v54 = (int *)zalloc(v53); /*0x177155*/\n                if ( !v54 ) /*0x177164*/\n                  panic(aVmMapEntryCrea); /*0x17716e*/\n                qmemcpy(v54, (const void *)v105, 0x2Cu); /*0x177190*/\n                *(_DWORD *)(v105 + 12) = v102; /*0x177198*/\n                v54[2] = v102; /*0x17719e*/\n                v54[5] += v102 - *(_DWORD *)(v105 + 8); /*0x1771aa*/\n                ++*(_DWORD *)(a2 + 28); /*0x1771ad*/\n                *v54 = v105; /*0x1771b0*/\n                v54[1] = *(_DWORD *)(v105 + 4); /*0x1771b5*/\n                v55 = *v54; /*0x1771b8*/\n                *(_DWORD *)v54[1] = v54; /*0x1771bd*/\n                *(_DWORD *)(v55 + 4) = v54; /*0x1771bf*/\n                if ( (*(_BYTE *)(v105 + 24) & 5) != 0 ) /*0x1771c9*/\n                {\n                  v56 = v54[4]; /*0x1771ce*/\n                  if ( v56 ) /*0x1771d3*/\n                  {\n                    v57 = (volatile __int32 *)(v56 + 52); /*0x1771d5*/\n                    do /*0x1771ea*/\n                    {\n                      while ( *v57 ) /*0x1771d8*/\n                        ; /*0x1771da*/\n                    }\n                    while ( _InterlockedExchange(v57, 1) == 1 ); /*0x1771ea*/\n                    ++*(_DWORD *)(v56 + 48); /*0x1771ec*/\n                    _InterlockedExchange((volatile __int32 *)(v56 + 52), 0); /*0x1771f1*/\n                  }\n                }\n                else\n                {\n                  vm_object_reference(v54[4]); /*0x1771fc*/\n                }\n              }\n              if ( *(_DWORD *)(v104 + 12) > v101 ) /*0x17720d*/\n              {\n                if ( *(_DWORD *)(a1 + 32) ) /*0x17721c*/\n                  v58 = vm_map_entry_zone; /*0x177222*/\n                else\n                  v58 = vm_map_kentry_zone; /*0x17722c*/\n                v59 = (int *)zalloc(v58); /*0x177235*/\n                if ( !v59 ) /*0x177244*/\n                  panic(aVmMapEntryCrea); /*0x17724e*/\n                qmemcpy(v59, (const void *)v104, 0x2Cu); /*0x177270*/\n                *(_DWORD *)(v104 + 12) = v101; /*0x177278*/\n                v59[2] = v101; /*0x17727e*/\n                v59[5] += v101 - *(_DWORD *)(v104 + 8); /*0x17728a*/\n                ++*(_DWORD *)(a1 + 28); /*0x17728d*/\n                *v59 = v104; /*0x177290*/\n                v59[1] = *(_DWORD *)(v104 + 4); /*0x177295*/\n                v60 = *v59; /*0x177298*/\n                *(_DWORD *)v59[1] = v59; /*0x17729d*/\n                *(_DWORD *)(v60 + 4) = v59; /*0x17729f*/\n                if ( (*(_BYTE *)(v104 + 24) & 5) != 0 ) /*0x1772a9*/\n                {\n                  v61 = v59[4]; /*0x1772ae*/\n                  if ( v61 ) /*0x1772b3*/\n                  {\n                    v62 = (volatile __int32 *)(v61 + 52); /*0x1772b5*/\n                    do /*0x1772ca*/\n                    {\n                      while ( *v62 ) /*0x1772b8*/\n                        ; /*0x1772ba*/\n                    }\n                    while ( _InterlockedExchange(v62, 1) == 1 ); /*0x1772ca*/\n                    ++*(_DWORD *)(v61 + 48); /*0x1772cc*/\n                    _InterlockedExchange((volatile __int32 *)(v61 + 52), 0); /*0x1772d1*/\n                  }\n                }\n                else\n                {\n                  vm_object_reference(v59[4]); /*0x1772dc*/\n                }\n              }\n              v63 = *(_DWORD *)(v104 + 12) - *(_DWORD *)(v104 + 8) + *(_DWORD *)(v105 + 8); /*0x1772f3*/\n              if ( *(_DWORD *)(v105 + 12) > v63 ) /*0x1772f8*/\n              {\n                if ( *(_DWORD *)(a2 + 32) ) /*0x177307*/\n                  v64 = vm_map_entry_zone; /*0x17730d*/\n                else\n                  v64 = vm_map_kentry_zone; /*0x177314*/\n                v97 = (int *)zalloc(v64); /*0x177322*/\n                if ( !v97 ) /*0x17732d*/\n                  panic(aVmMapEntryCrea); /*0x177337*/\n                qmemcpy(v97, (const void *)v105, 0x2Cu); /*0x177359*/\n                *(_DWORD *)(v105 + 12) = v63; /*0x17735e*/\n                v97[2] = v63; /*0x177364*/\n                v97[5] += v63 - *(_DWORD *)(v105 + 8); /*0x17736c*/\n                ++*(_DWORD *)(a2 + 28); /*0x17736f*/\n                *v97 = v105; /*0x177372*/\n                v97[1] = *(_DWORD *)(v105 + 4); /*0x177377*/\n                v65 = *v97; /*0x17737a*/\n                *(_DWORD *)v97[1] = v97; /*0x17737f*/\n                *(_DWORD *)(v65 + 4) = v97; /*0x177381*/\n                if ( (*(_BYTE *)(v105 + 24) & 5) != 0 ) /*0x17738b*/\n                {\n                  v66 = v97[4]; /*0x177390*/\n                  if ( v66 ) /*0x177395*/\n                  {\n                    v67 = (volatile __int32 *)(v66 + 52); /*0x177397*/\n                    do /*0x1773ae*/\n                    {\n                      while ( *v67 ) /*0x17739c*/\n                        ; /*0x17739e*/\n                    }\n                    while ( _InterlockedExchange(v67, 1) == 1 ); /*0x1773ae*/\n                    ++*(_DWORD *)(v66 + 48); /*0x1773b0*/\n                    _InterlockedExchange((volatile __int32 *)(v66 + 52), 0); /*0x1773b5*/\n                  }\n                }\n                else\n                {\n                  vm_object_reference(v97[4]); /*0x1773c3*/\n                }\n              }\n              v68 = *(_DWORD *)(v105 + 12) - *(_DWORD *)(v105 + 8) + *(_DWORD *)(v104 + 8); /*0x1773da*/\n              if ( *(_DWORD *)(v104 + 12) > v68 ) /*0x1773df*/\n              {\n                if ( *(_DWORD *)(a1 + 32) ) /*0x1773ee*/\n                  v69 = vm_map_entry_zone; /*0x1773f4*/\n                else\n                  v69 = vm_map_kentry_zone; /*0x1773fc*/\n                v96 = (int *)zalloc(v69); /*0x17740a*/\n                if ( !v96 ) /*0x177415*/\n                  panic(aVmMapEntryCrea); /*0x17741f*/\n                qmemcpy(v96, (const void *)v104, 0x2Cu); /*0x177441*/\n                *(_DWORD *)(v104 + 12) = v68; /*0x177446*/\n                v96[2] = v68; /*0x17744c*/\n                v96[5] += v68 - *(_DWORD *)(v104 + 8); /*0x177454*/\n                ++*(_DWORD *)(a1 + 28); /*0x177457*/\n                *v96 = v104; /*0x17745a*/\n                v96[1] = *(_DWORD *)(v104 + 4); /*0x17745f*/\n                v70 = *v96; /*0x177462*/\n                *(_DWORD *)v96[1] = v96; /*0x177467*/\n                *(_DWORD *)(v70 + 4) = v96; /*0x177469*/\n                if ( (*(_BYTE *)(v104 + 24) & 5) != 0 ) /*0x177473*/\n                {\n                  v71 = v96[4]; /*0x177478*/\n                  if ( v71 ) /*0x17747d*/\n                  {\n                    v72 = (volatile __int32 *)(v71 + 52); /*0x17747f*/\n                    do /*0x177496*/\n                    {\n                      while ( *v72 ) /*0x177484*/\n                        ; /*0x177486*/\n                    }\n                    while ( _InterlockedExchange(v72, 1) == 1 ); /*0x177496*/\n                    ++*(_DWORD *)(v71 + 48); /*0x177498*/\n                    _InterlockedExchange((volatile __int32 *)(v71 + 52), 0); /*0x17749d*/\n                  }\n                }\n                else\n                {\n                  vm_object_reference(v96[4]); /*0x1774ab*/\n                }\n              }\n              v73 = *(_BYTE *)(v105 + 24); /*0x1774b6*/\n              if ( (v73 & 1) != 0 || (v74 = *(_BYTE *)(v104 + 24), (v74 & 1) != 0) ) /*0x1774ca*/\n              {\n                v94 = *(_DWORD *)(v104 + 12) - *(_DWORD *)(v104 + 8); /*0x177695*/\n                if ( (*(_BYTE *)(v105 + 24) & 1) != 0 ) /*0x17769f*/\n                {\n                  v93 = *(_DWORD **)(v105 + 16); /*0x1776a4*/\n                  v92 = *(_DWORD *)(v105 + 20); /*0x1776aa*/\n                }\n                else\n                {\n                  v93 = (_DWORD *)a2; /*0x1776b3*/\n                  v92 = *(_DWORD *)(v105 + 8); /*0x1776bc*/\n                  lock_set_recursive(a2); /*0x1776c0*/\n                }\n                if ( (*(_BYTE *)(v104 + 24) & 1) != 0 ) /*0x1776cf*/\n                {\n                  v79 = *(_DWORD **)(v104 + 16); /*0x1776d5*/\n                  v95 = *(_DWORD *)(v104 + 20); /*0x1776db*/\n                  v80 = v94 + v95; /*0x1776de*/\n                  v91 = v94 + v95; /*0x1776e1*/\n                  if ( v93 != v79 ) /*0x1776e7*/\n                  {\n                    lock_write((int)v79); /*0x1776ee*/\n                    ++v79[19]; /*0x1776f3*/\n                    vm_map_delete((int)v79, v95, v80); /*0x1776ff*/\n                    if ( v79[5] <= v95 && v79[6] >= v80 && v95 < v80 && !vm_map_lookup_entry((int)v79, v95, &v109) ) /*0x177727*/\n                    {\n                      v81 = v109; /*0x177737*/\n                      v82 = (_DWORD *)v109[1]; /*0x17773d*/\n                      if ( v82 == v79 + 3 || v82[2] >= v80 ) /*0x177747*/\n                      {\n                        if ( v109 != v79 + 3 /*0x1777a1*/\n                          && v109[3] == v95\n                          && (v109[6] & 5) == 0\n                          && v109[9] == 1\n                          && v109[7] == 3\n                          && v109[8] == 7\n                          && !*((_WORD *)v109 + 20)\n                          && (v88 = v109,\n                              v83 = vm_object_coalesce(v109[4], 0, v109[5], 0, v95 - v109[2], v94),\n                              v81 = v88,\n                              v83) )\n                        {\n                          v79[10] += v91 - v88[3]; /*0x1777a9*/\n                          v88[3] = v91; /*0x1777af*/\n                        }\n                        else\n                        {\n                          if ( v79[8] ) /*0x1777b8*/\n                            v84 = vm_map_entry_zone; /*0x1777be*/\n                          else\n                            v84 = vm_map_kentry_zone; /*0x1777c8*/\n                          v89 = v81; /*0x1777ce*/\n                          v90 = zalloc(v84); /*0x1777d6*/\n                          if ( !v90 ) /*0x1777e1*/\n                            panic(aVmMapEntryCrea); /*0x1777eb*/\n                          *(_DWORD *)(v90 + 8) = v95; /*0x1777fc*/\n                          *(_DWORD *)(v90 + 12) = v91; /*0x177802*/\n                          *(_BYTE *)(v90 + 24) &= 0xFAu; /*0x177805*/\n                          *(_DWORD *)(v90 + 16) = 0; /*0x177809*/\n                          *(_DWORD *)(v90 + 20) = 0; /*0x177810*/\n                          *(_BYTE *)(v90 + 24) &= 0xB7u; /*0x177817*/\n                          if ( v79[11] ) /*0x17781b*/\n                          {\n                            *(_DWORD *)(v90 + 36) = 1; /*0x177821*/\n                            *(_DWORD *)(v90 + 28) = 3; /*0x177828*/\n                            *(_DWORD *)(v90 + 32) = 7; /*0x17782f*/\n                            *(_WORD *)(v90 + 40) = 0; /*0x177836*/\n                          }\n                          ++v79[7]; /*0x17783c*/\n                          *(_DWORD *)v90 = v89; /*0x177842*/\n                          *(_DWORD *)(v90 + 4) = v89[1]; /*0x177847*/\n                          v85 = *(_DWORD *)v90; /*0x17784a*/\n                          **(_DWORD **)(v90 + 4) = v90; /*0x17784f*/\n                          *(_DWORD *)(v85 + 4) = v90; /*0x177851*/\n                          v79[10] += *(_DWORD *)(v90 + 12) - *(_DWORD *)(v90 + 8); /*0x17785a*/\n                          if ( (_DWORD *)v79[16] == v89 && v89[3] >= *(_DWORD *)(v90 + 8) ) /*0x17786b*/\n                            v79[16] = v90; /*0x17786d*/\n                        }\n                      }\n                    }\n                    lock_done((int)v79); /*0x177871*/\n                  }\n                }\n                else\n                {\n                  v79 = (_DWORD *)a1; /*0x177878*/\n                  v95 = *(_DWORD *)(v104 + 8); /*0x177881*/\n                  lock_set_recursive(a1); /*0x177885*/\n                }\n                vm_map_copy(v79, v93, v95, v94, v92, 0, 0); /*0x1778a2*/\n                if ( (_DWORD *)a1 == v79 ) /*0x1778ad*/\n                  lock_clear_recursive(a1); /*0x1778b3*/\n                if ( (_DWORD *)a2 == v93 ) /*0x1778c1*/\n                  lock_clear_recursive(a2); /*0x1778c7*/\n              }\n              else if ( (v73 & 4) == 0 && (v74 & 4) == 0 ) /*0x1774db*/\n              {\n                if ( *(_WORD *)(v104 + 40) ) /*0x1774e1*/\n                {\n                  vm_fault_unwire(a1, v104); /*0x1774ed*/\n                  *(_WORD *)(v104 + 40) = 0; /*0x1774f2*/\n                }\n                if ( !*(_DWORD *)(a1 + 44) ) /*0x1774fe*/\n                  vm_object_pmap_remove( /*0x17751b*/\n                    *(_DWORD *)(v104 + 16),\n                    *(_DWORD *)(v104 + 20),\n                    *(_DWORD *)(v104 + 20) + *(_DWORD *)(v104 + 12) - *(_DWORD *)(v104 + 8));\n                pmap_remove(*(_DWORD *)(a1 + 36), *(_DWORD *)(v104 + 8), *(_DWORD *)(v104 + 12)); /*0x177538*/\n                if ( *(_WORD *)(v105 + 40) ) /*0x177543*/\n                {\n                  vm_fault_copy_entry(a1, a2, (_DWORD *)v104, v105); /*0x17767c*/\n                }\n                else\n                {\n                  if ( (*(_BYTE *)(v105 + 24) & 0x40) == 0 ) /*0x177552*/\n                  {\n                    if ( *(_DWORD *)(a2 + 44) ) /*0x177557*/\n                      goto LABEL_258; /*0x177557*/\n                    v75 = (volatile __int32 *)(a2 + 52); /*0x17755f*/\n                    do /*0x177576*/\n                    {\n                      while ( *v75 ) /*0x177564*/\n                        ; /*0x177566*/\n                    }\n                    while ( _InterlockedExchange(v75, 1) == 1 ); /*0x177576*/\n                    v76 = *(_DWORD *)(a2 + 48) == 1; /*0x177582*/\n                    _InterlockedExchange((volatile __int32 *)(a2 + 52), 0); /*0x177587*/\n                    if ( v76 ) /*0x17758c*/\n                    {\nLABEL_258:\n                      v77 = *(_DWORD *)(v105 + 28); /*0x177591*/\n                      LOBYTE(v77) = v77 & 0xFD; /*0x177594*/\n                      pmap_protect(*(_DWORD *)(a2 + 36), *(_DWORD *)(v105 + 8), *(_DWORD *)(v105 + 12), v77); /*0x1775a6*/\n                    }\n                    else\n                    {\n                      vm_object_pmap_copy( /*0x1775c7*/\n                        *(_DWORD *)(v105 + 16),\n                        *(_DWORD *)(v105 + 20),\n                        *(_DWORD *)(v105 + 20) + *(_DWORD *)(v105 + 12) - *(_DWORD *)(v105 + 8));\n                    }\n                  }\n                  v78 = *(_DWORD *)(v104 + 16); /*0x1775d2*/\n                  vm_object_copy( /*0x1775ff*/\n                    *(_DWORD *)(v105 + 16),\n                    *(_DWORD *)(v105 + 20),\n                    *(_DWORD *)(v105 + 12) - *(_DWORD *)(v105 + 8),\n                    v104 + 16,\n                    v104 + 20,\n                    &v109);\n                  if ( v109 ) /*0x17760b*/\n                    *(_BYTE *)(v105 + 24) |= 0x40u; /*0x177610*/\n                  *(_BYTE *)(v104 + 24) |= 0x40u; /*0x177617*/\n                  *(_BYTE *)(v105 + 24) |= 8u; /*0x17761e*/\n                  *(_BYTE *)(v104 + 24) |= 8u; /*0x177622*/\n                  if ( (*(_BYTE *)(v105 + 28) & 4) != 0 ) /*0x17762a*/\n                    *(_DWORD *)(v104 + 28) |= *(_DWORD *)(v104 + 32) & 4; /*0x177632*/\n                  vm_object_deallocate(v78); /*0x177636*/\n                  pmap_copy( /*0x17765d*/\n                    *(_DWORD *)(a1 + 36),\n                    *(_DWORD *)(a2 + 36),\n                    *(_DWORD *)(v104 + 8),\n                    *(_DWORD *)(v104 + 12) - *(_DWORD *)(v104 + 8),\n                    *(_DWORD *)(v105 + 8));\n                }\n              }\n              v103 = *(_DWORD *)(v105 + 12); /*0x1778d5*/\n              v105 = *(_DWORD *)(v105 + 4); /*0x1778de*/\n              v104 = *(_DWORD *)(v104 + 4); /*0x1778e7*/\n            }\n            while ( v103 < v102 ); /*0x1779f9*/\n          }\n          goto LABEL_303; /*0x1779f9*/\n        }\n        v108 = (_DWORD *)*v49; /*0x1770d7*/\n        v52 = (volatile __int32 *)(a2 + 60); /*0x1770df*/\n        do /*0x1770f6*/\n        {\n          while ( *v52 ) /*0x1770e4*/\n            ; /*0x1770e6*/\n        }\n        while ( _InterlockedExchange(v52, 1) == 1 ); /*0x1770f6*/\n        *(_DWORD *)(a2 + 56) = v108; /*0x1770fe*/\n        _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x177103*/\n        goto LABEL_189; /*0x177103*/\n      }\n      v107 = (_DWORD *)*v40; /*0x176f23*/\n      v43 = (volatile __int32 *)(a1 + 60); /*0x176f2b*/\n      do /*0x176f42*/\n      {\n        while ( *v43 ) /*0x176f30*/\n          ; /*0x176f32*/\n      }\n      while ( _InterlockedExchange(v43, 1) == 1 ); /*0x176f42*/\n      *(_DWORD *)(a1 + 56) = v107; /*0x176f4a*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 60), 0); /*0x176f4f*/\n      goto LABEL_153; /*0x176f4f*/\n    }\n    v106 = (_DWORD *)*v31; /*0x176d7b*/\n    v34 = (volatile __int32 *)(a2 + 60); /*0x176d83*/\n    do /*0x176d9a*/\n    {\n      while ( *v34 ) /*0x176d88*/\n        ; /*0x176d8a*/\n    }\n    while ( _InterlockedExchange(v34, 1) == 1 ); /*0x176d9a*/\n    *(_DWORD *)(a2 + 56) = v106; /*0x176da2*/\n    _InterlockedExchange((volatile __int32 *)(a2 + 60), 0); /*0x176da7*/\n    goto LABEL_118; /*0x176da7*/\n  }\n  v100 = 1; /*0x176a58*/\nLABEL_303:\n  if ( a7 ) /*0x177a35*/\n    vm_map_delete(a2, a5, a4 + a5); /*0x177a46*/\n  lock_done(a2); /*0x177a52*/\n  if ( a2 != a1 ) /*0x177a5f*/\n    lock_done(a1); /*0x177a62*/\n  return v100; /*0x177a6d*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1749c4",
+        "name": "_vm_map_lookup_entry"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x179c28",
+        "name": "_vm_object_coalesce"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15bb9c",
+        "name": "_lock_set_recursive"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x176888",
+        "name": "_vm_map_copy"
+      },
+      {
+        "addr": "0x15bbe0",
+        "name": "_lock_clear_recursive"
+      },
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x179350",
+        "name": "_vm_object_pmap_remove"
+      },
+      {
+        "addr": "0x18fa44",
+        "name": "_pmap_remove"
+      },
+      {
+        "addr": "0x17369c",
+        "name": "_vm_fault_copy_entry"
+      },
+      {
+        "addr": "0x18fee4",
+        "name": "_pmap_protect"
+      },
+      {
+        "addr": "0x1792e8",
+        "name": "_vm_object_pmap_copy"
+      },
+      {
+        "addr": "0x1793b0",
+        "name": "_vm_object_copy"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x19113c",
+        "name": "_pmap_copy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00177a74",
+    "addr": "0x00177a74",
+    "code": "_DWORD *__cdecl vm_map_fork(int a1)\n{\n  int v1; // esi\n  _DWORD *v2; // ebx\n  int i; // edi\n  int v4; // eax\n  int v5; // esi\n  _DWORD *v6; // ebx\n  int v7; // eax\n  int v8; // edx\n  int v9; // eax\n  int *v10; // eax\n  int v11; // ebx\n  volatile __int32 *v12; // edx\n  int v13; // edx\n  int v14; // eax\n  int *v15; // eax\n  int v16; // edx\n  char v17; // al\n  volatile __int32 *v18; // edx\n  _BOOL4 v19; // edx\n  int v20; // eax\n  int v21; // ebx\n  int v23; // [esp+Ch] [ebp-18h]\n  int v24; // [esp+Ch] [ebp-18h]\n  int *v25; // [esp+Ch] [ebp-18h]\n  int v26; // [esp+Ch] [ebp-18h]\n  int v27; // [esp+10h] [ebp-14h]\n  int v28; // [esp+14h] [ebp-10h]\n  _DWORD *v29; // [esp+1Ch] [ebp-8h]\n  int v30; // [esp+20h] [ebp-4h] BYREF\n\n  lock_write(a1); /*0x177a81*/\n  ++*(_DWORD *)(a1 + 76); /*0x177a89*/\n  v23 = pmap_create(0); /*0x177a96*/\n  v28 = *(_DWORD *)(a1 + 20); /*0x177a9c*/\n  v27 = *(_DWORD *)(a1 + 24); /*0x177aa2*/\n  v1 = *(_DWORD *)(a1 + 32); /*0x177aa8*/\n  v2 = (_DWORD *)zalloc(vm_map_zone); /*0x177aba*/\n  if ( !v2 ) /*0x177ac1*/\n    panic(aVmMapCreate); /*0x177ac8*/\n  v2[4] = v2 + 3; /*0x177ad3*/\n  v2[3] = v2 + 3; /*0x177ad6*/\n  v2[7] = 0; /*0x177ad9*/\n  v2[8] = v1; /*0x177ae0*/\n  v2[10] = 0; /*0x177ae3*/\n  v2[12] = 1; /*0x177aea*/\n  v2[9] = v23; /*0x177af4*/\n  v2[11] = 1; /*0x177af7*/\n  v2[5] = v28; /*0x177b01*/\n  v2[6] = v27; /*0x177b07*/\n  v2[18] = 0; /*0x177b0a*/\n  v2[17] = 0; /*0x177b11*/\n  v2[16] = v2 + 3; /*0x177b18*/\n  v2[14] = v2 + 3; /*0x177b1b*/\n  v2[19] = 0; /*0x177b1e*/\n  lock_init(v2, 1); /*0x177b28*/\n  v2[19] = 0; /*0x177b2d*/\n  v2[13] = 0; /*0x177b37*/\n  v2[15] = 0; /*0x177b3e*/\n  v29 = v2; /*0x177b45*/\n  for ( i = *(_DWORD *)(a1 + 16); i != a1 + 12; i = *(_DWORD *)(i + 4) )\n  {\n    if ( (*(_BYTE *)(i + 24) & 4) != 0 ) /*0x177b5b*/\n      panic(aVmMapForkEncou); /*0x177b62*/\n    v4 = *(_DWORD *)(i + 36); /*0x177b6d*/\n    if ( v4 == 1 )\n    {\n      if ( v29[8] ) /*0x177d77*/\n        v14 = vm_map_entry_zone; /*0x177d7d*/\n      else\n        v14 = vm_map_kentry_zone; /*0x177d84*/\n      v15 = (int *)zalloc(v14); /*0x177d8a*/\n      if ( !v15 ) /*0x177d96*/\n        panic(aVmMapEntryCrea); /*0x177d9d*/\n      v26 = (int)v15; /*0x177da5*/\n      qmemcpy(v15, (const void *)i, 0x2Cu); /*0x177db6*/\n      *((_WORD *)v15 + 20) = 0; /*0x177db8*/\n      v15[4] = 0; /*0x177dc1*/\n      *((_BYTE *)v15 + 24) &= ~1u; /*0x177dc8*/\n      ++v29[7]; /*0x177dcf*/\n      *v15 = v29[3]; /*0x177dd5*/\n      v15[1] = *(_DWORD *)(v29[3] + 4); /*0x177de3*/\n      v16 = *v15; /*0x177de6*/\n      *(_DWORD *)v15[1] = v15; /*0x177deb*/\n      *(_DWORD *)(v16 + 4) = v15; /*0x177ded*/\n      v17 = *(_BYTE *)(i + 24); /*0x177df3*/\n      if ( (v17 & 1) != 0 )\n      {\n        if ( vm_map_copy(\n               (int)v29,\n               *(_DWORD *)(i + 16),\n               *(_DWORD *)(v26 + 8),\n               *(_DWORD *)(v26 + 12) - *(_DWORD *)(v26 + 8),\n               *(_DWORD *)(i + 20),\n               0,\n               0) )\n        {\n          printf(\"vm_map_fork: copy in share_map region failed\\n\");\n        }\n      }\n      else if ( (v17 & 4) == 0 && (*(_BYTE *)(v26 + 24) & 4) == 0 ) /*0x177e4b*/\n      {\n        if ( *(_WORD *)(v26 + 40) ) /*0x177e51*/\n        {\n          vm_fault_unwire((int)v29, v26); /*0x177e5d*/\n          *(_WORD *)(v26 + 40) = 0; /*0x177e62*/\n        }\n        if ( !v29[11] ) /*0x177e6e*/\n          vm_object_pmap_remove( /*0x177e8b*/\n            *(_DWORD *)(v26 + 16),\n            *(_DWORD *)(v26 + 20),\n            *(_DWORD *)(v26 + 20) + *(_DWORD *)(v26 + 12) - *(_DWORD *)(v26 + 8));\n        pmap_remove(v29[9], *(_DWORD *)(v26 + 8), *(_DWORD *)(v26 + 12)); /*0x177ea8*/\n        if ( *(_WORD *)(i + 40) ) /*0x177eb3*/\n        {\n          vm_fault_copy_entry((int)v29, a1, (_DWORD *)v26, i); /*0x177fe8*/\n        }\n        else\n        {\n          if ( (*(_BYTE *)(i + 24) & 0x40) == 0 ) /*0x177ec2*/\n          {\n            if ( *(_DWORD *)(a1 + 44) ) /*0x177ec7*/\n              goto LABEL_49; /*0x177ec7*/\n            v18 = (volatile __int32 *)(a1 + 52); /*0x177ecf*/\n            do /*0x177ee6*/\n            {\n              while ( *v18 ) /*0x177ed4*/\n                ; /*0x177ed6*/\n            }\n            while ( _InterlockedExchange(v18, 1) == 1 ); /*0x177ee6*/\n            v19 = *(_DWORD *)(a1 + 48) == 1; /*0x177ef2*/\n            _InterlockedExchange((volatile __int32 *)(a1 + 52), 0); /*0x177ef7*/\n            if ( v19 ) /*0x177efc*/\n            {\nLABEL_49:\n              v20 = *(_DWORD *)(i + 28); /*0x177f01*/\n              LOBYTE(v20) = v20 & 0xFD; /*0x177f04*/\n              pmap_protect(*(_DWORD *)(a1 + 36), *(_DWORD *)(i + 8), *(_DWORD *)(i + 12), v20); /*0x177f16*/\n            }\n            else\n            {\n              vm_object_pmap_copy( /*0x177f37*/\n                *(_DWORD *)(i + 16),\n                *(_DWORD *)(i + 20),\n                *(_DWORD *)(i + 20) + *(_DWORD *)(i + 12) - *(_DWORD *)(i + 8));\n            }\n          }\n          v21 = *(_DWORD *)(v26 + 16); /*0x177f42*/\n          vm_object_copy( /*0x177f6f*/\n            *(_DWORD *)(i + 16),\n            *(_DWORD *)(i + 20),\n            *(_DWORD *)(i + 12) - *(_DWORD *)(i + 8),\n            v26 + 16,\n            v26 + 20,\n            &v30);\n          if ( v30 ) /*0x177f7b*/\n            *(_BYTE *)(i + 24) |= 0x40u; /*0x177f80*/\n          *(_BYTE *)(v26 + 24) |= 0x40u; /*0x177f87*/\n          *(_BYTE *)(i + 24) |= 8u; /*0x177f8e*/\n          *(_BYTE *)(v26 + 24) |= 8u; /*0x177f92*/\n          if ( (*(_BYTE *)(i + 28) & 4) != 0 ) /*0x177f9a*/\n            *(_DWORD *)(v26 + 28) |= *(_DWORD *)(v26 + 32) & 4; /*0x177fa2*/\n          vm_object_deallocate(v21); /*0x177fa6*/\n          pmap_copy( /*0x177fcd*/\n            v29[9],\n            *(_DWORD *)(a1 + 36),\n            *(_DWORD *)(v26 + 8),\n            *(_DWORD *)(v26 + 12) - *(_DWORD *)(v26 + 8),\n            *(_DWORD *)(i + 8));\n        }\n      }\n    }\n    else if ( !v4 ) /*0x177b79*/\n    {\n      if ( (*(_BYTE *)(i + 24) & 1) == 0 ) /*0x177b8b*/\n      {\n        v5 = *(_DWORD *)(i + 8); /*0x177b91*/\n        v24 = *(_DWORD *)(i + 12); /*0x177b97*/\n        v6 = (_DWORD *)zalloc(vm_map_zone); /*0x177ba6*/\n        if ( !v6 ) /*0x177bad*/\n          panic(aVmMapCreate); /*0x177bb4*/\n        v6[4] = v6 + 3; /*0x177bbf*/\n        v6[3] = v6 + 3; /*0x177bc2*/\n        v6[7] = 0; /*0x177bc5*/\n        v6[8] = 1; /*0x177bcc*/\n        v6[10] = 0; /*0x177bd3*/\n        v6[12] = 1; /*0x177bda*/\n        v6[9] = 0; /*0x177be1*/\n        v6[11] = 1; /*0x177be8*/\n        v6[5] = v5; /*0x177bef*/\n        v6[6] = v24; /*0x177bf5*/\n        v6[18] = 0; /*0x177bf8*/\n        v6[17] = 0; /*0x177bff*/\n        v6[16] = v6 + 3; /*0x177c06*/\n        v6[14] = v6 + 3; /*0x177c09*/\n        v6[19] = 0; /*0x177c0c*/\n        lock_init(v6, 1); /*0x177c16*/\n        v6[19] = 0; /*0x177c1b*/\n        v6[13] = 0; /*0x177c25*/\n        v6[15] = 0; /*0x177c2c*/\n        v6[11] = 0; /*0x177c33*/\n        if ( v6[8] ) /*0x177c3a*/\n          v7 = vm_map_entry_zone; /*0x177c40*/\n        else\n          v7 = vm_map_kentry_zone; /*0x177c48*/\n        v25 = (int *)zalloc(v7); /*0x177c53*/\n        if ( !v25 ) /*0x177c5b*/\n          panic(aVmMapEntryCrea); /*0x177c62*/\n        qmemcpy(v25, (const void *)i, 0x2Cu); /*0x177c78*/\n        ++v6[7]; /*0x177c7a*/\n        *v25 = v6[3]; /*0x177c83*/\n        v25[1] = *(_DWORD *)(v6[3] + 4); /*0x177c8b*/\n        v8 = *v25; /*0x177c8e*/\n        *(_DWORD *)v25[1] = v25; /*0x177c93*/\n        *(_DWORD *)(v8 + 4) = v25; /*0x177c95*/\n        *(_BYTE *)(i + 24) |= 1u; /*0x177c9b*/\n        *(_DWORD *)(i + 16) = v6; /*0x177c9f*/\n        *(_DWORD *)(i + 20) = *(_DWORD *)(i + 8); /*0x177ca8*/\n      }\n      if ( v29[8] ) /*0x177cae*/\n        v9 = vm_map_entry_zone; /*0x177cb4*/\n      else\n        v9 = vm_map_kentry_zone; /*0x177cbc*/\n      v10 = (int *)zalloc(v9); /*0x177cc2*/\n      if ( !v10 ) /*0x177cce*/\n        panic(aVmMapEntryCrea); /*0x177cd5*/\n      qmemcpy(v10, (const void *)i, 0x2Cu); /*0x177cee*/\n      v11 = v10[4]; /*0x177cf0*/\n      if ( v11 ) /*0x177cf5*/\n      {\n        v12 = (volatile __int32 *)(v11 + 52); /*0x177cf7*/\n        do /*0x177d0e*/\n        {\n          while ( *v12 ) /*0x177cfc*/\n            ; /*0x177cfe*/\n        }\n        while ( _InterlockedExchange(v12, 1) == 1 ); /*0x177d0e*/\n        ++*(_DWORD *)(v11 + 48); /*0x177d10*/\n        _InterlockedExchange((volatile __int32 *)(v11 + 52), 0); /*0x177d15*/\n      }\n      ++v29[7]; /*0x177d1b*/\n      *v10 = v29[3]; /*0x177d24*/\n      v10[1] = *(_DWORD *)(v29[3] + 4); /*0x177d32*/\n      v13 = *v10; /*0x177d35*/\n      *(_DWORD *)v10[1] = v10; /*0x177d3a*/\n      *(_DWORD *)(v13 + 4) = v10; /*0x177d3c*/\n      pmap_copy(v29[9], *(_DWORD *)(a1 + 36), v10[2], *(_DWORD *)(i + 12) - *(_DWORD *)(i + 8), *(_DWORD *)(i + 8)); /*0x177d65*/\n    }\n  }\n  v29[10] = *(_DWORD *)(a1 + 40); /*0x178010*/\n  lock_done(a1); /*0x178017*/\n  return v29; /*0x178022*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18f644",
+        "name": "_pmap_create"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0aa2",
+        "name": "aVmMapCreate",
+        "string": "vm_map_create"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      },
+      {
+        "addr": "0x1e0ac4",
+        "name": "aVmMapForkEncou",
+        "string": "vm_map_fork: encountered a submap"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e0ae6",
+        "name": "aVmMapForkCopyI",
+        "string": "vm_map_fork: copy in share_map region failed\n"
+      },
+      {
+        "addr": "0x176888",
+        "name": "_vm_map_copy"
+      },
+      {
+        "addr": "0x1735f4",
+        "name": "_vm_fault_unwire"
+      },
+      {
+        "addr": "0x179350",
+        "name": "_vm_object_pmap_remove"
+      },
+      {
+        "addr": "0x18fa44",
+        "name": "_pmap_remove"
+      },
+      {
+        "addr": "0x17369c",
+        "name": "_vm_fault_copy_entry"
+      },
+      {
+        "addr": "0x18fee4",
+        "name": "_pmap_protect"
+      },
+      {
+        "addr": "0x1792e8",
+        "name": "_vm_object_pmap_copy"
+      },
+      {
+        "addr": "0x1793b0",
+        "name": "_vm_object_copy"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x19113c",
+        "name": "_pmap_copy"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017802c",
+    "addr": "0x0017802c",
+    "code": "int __cdecl vm_map_lookup(\n        int *a1,\n        unsigned int a2,\n        int a3,\n        _DWORD *a4,\n        _DWORD *a5,\n        _DWORD *a6,\n        _DWORD *a7,\n        _BOOL4 *a8,\n        _BOOL4 *a9)\n{\n  int v9; // edi\n  volatile __int32 *v10; // edx\n  _DWORD *v11; // edx\n  volatile __int32 *v12; // edx\n  _DWORD *v13; // ecx\n  _DWORD *v14; // eax\n  volatile __int32 *v15; // edx\n  volatile __int32 *v16; // edx\n  int v18; // eax\n  _BOOL4 v19; // eax\n  volatile __int32 *v20; // edx\n  _DWORD *v21; // ecx\n  _DWORD *v22; // eax\n  volatile __int32 *v23; // edx\n  volatile __int32 *v24; // edx\n  int v25; // esi\n  volatile __int32 *v26; // edx\n  _DWORD *v27; // [esp+Ch] [ebp-1Ch]\n  _DWORD *v28; // [esp+Ch] [ebp-1Ch]\n  int v29; // [esp+10h] [ebp-18h]\n  _BOOL4 v30; // [esp+14h] [ebp-14h]\n  int v31; // [esp+18h] [ebp-10h]\n  unsigned int v32; // [esp+1Ch] [ebp-Ch]\n  _DWORD *v33; // [esp+20h] [ebp-8h]\n  int v34; // [esp+20h] [ebp-8h]\n  _DWORD *v35; // [esp+24h] [ebp-4h]\n  int v36; // [esp+24h] [ebp-4h]\n\n  v9 = *a1; /*0x178038*/\n  while ( 1 ) /*0x17803b*/\n  {\n    lock_read(v9); /*0x17803b*/\n    v10 = (volatile __int32 *)(v9 + 60); /*0x178040*/\n    do /*0x17805a*/\n    {\n      while ( *v10 ) /*0x178048*/\n        ; /*0x17804a*/\n    }\n    while ( _InterlockedExchange(v10, 1) == 1 ); /*0x17805a*/\n    v11 = *(_DWORD **)(v9 + 56); /*0x17805c*/\n    _InterlockedExchange((volatile __int32 *)(v9 + 60), 0); /*0x178061*/\n    *a4 = v11; /*0x178067*/\n    if ( v11 == (_DWORD *)(v9 + 12) || v11[2] > a2 || v11[3] <= a2 ) /*0x17807b*/\n      break; /*0x17807b*/\nLABEL_31:\n    if ( (v11[6] & 4) != 0 ) /*0x178148*/\n    {\n      v18 = v9; /*0x17814a*/\n      v9 = v11[4]; /*0x17814c*/\n      *a1 = v9; /*0x178152*/\n      lock_done(v18); /*0x178155*/\n    }\n    else\n    {\n      v31 = v11[7]; /*0x17815f*/\n      if ( a3 != (v31 & a3) ) /*0x17816a*/\n      {\n        lock_done(v9); /*0x17816d*/\n        return 2; /*0x178177*/\n      }\n      v19 = *((_WORD *)v11 + 20) != 0; /*0x178184*/\n      *a8 = v19; /*0x17818c*/\n      if ( v19 ) /*0x178190*/\n      {\n        v31 = v11[7]; /*0x178195*/\n        a3 = v31; /*0x178198*/\n      }\n      v30 = (v11[6] & 1) == 0; /*0x1781a3*/\n      if ( (v11[6] & 1) != 0 ) /*0x1781a6*/\n      {\n        v29 = v11[4]; /*0x1781bb*/\n        v32 = v11[5] + a2 - v11[2]; /*0x1781c7*/\n        lock_read(v29); /*0x1781cb*/\n        v20 = (volatile __int32 *)(v29 + 60); /*0x1781d6*/\n        do /*0x1781ee*/\n        {\n          while ( *v20 ) /*0x1781dc*/\n            ; /*0x1781de*/\n        }\n        while ( _InterlockedExchange(v20, 1) == 1 ); /*0x1781ee*/\n        v21 = *(_DWORD **)(v29 + 56); /*0x1781f3*/\n        _InterlockedExchange((volatile __int32 *)(v29 + 60), 0); /*0x1781f8*/\n        v22 = (_DWORD *)(v29 + 12); /*0x1781fd*/\n        if ( v21 == (_DWORD *)(v29 + 12) ) /*0x178202*/\n          v21 = *(_DWORD **)(v29 + 16); /*0x178204*/\n        if ( v21[2] > v32 ) /*0x17820d*/\n        {\n          v22 = (_DWORD *)v21[1]; /*0x178220*/\n          v21 = *(_DWORD **)(v29 + 16); /*0x178226*/\nLABEL_56:\n          while ( v21 != v22 ) /*0x17826d*/\n          {\n            if ( v21[3] > v32 ) /*0x178232*/\n            {\n              if ( v21[2] > v32 ) /*0x178237*/\n                break; /*0x178237*/\n              v33 = v21; /*0x178239*/\n              v23 = (volatile __int32 *)(v29 + 60); /*0x17823f*/\n              do /*0x178256*/\n              {\n                while ( *v23 ) /*0x178244*/\n                  ; /*0x178246*/\n              }\n              while ( _InterlockedExchange(v23, 1) == 1 ); /*0x178256*/\n              *(_DWORD *)(v29 + 56) = v21; /*0x17825b*/\n              _InterlockedExchange((volatile __int32 *)(v29 + 60), 0); /*0x178260*/\n              goto LABEL_61; /*0x178263*/\n            }\n            v21 = (_DWORD *)v21[1]; /*0x178268*/\n          }\nLABEL_57:\n          v34 = *v21; /*0x17826f*/\n          v24 = (volatile __int32 *)(v29 + 60); /*0x178277*/\n          do /*0x17828e*/\n          {\n            while ( *v24 ) /*0x17827c*/\n              ; /*0x17827e*/\n          }\n          while ( _InterlockedExchange(v24, 1) == 1 ); /*0x17828e*/\n          *(_DWORD *)(v29 + 56) = v34; /*0x178296*/\n          _InterlockedExchange((volatile __int32 *)(v29 + 60), 0); /*0x17829b*/\n          lock_done(v29); /*0x17829f*/\n          lock_done(v9); /*0x1782a5*/\n          return 1; /*0x1782af*/\n        }\n        if ( v21 == v22 ) /*0x178211*/\n          goto LABEL_57; /*0x178211*/\n        if ( v21[3] <= v32 ) /*0x178216*/\n          goto LABEL_56; /*0x178216*/\n        v33 = v21; /*0x178218*/\nLABEL_61:\n        v11 = v33; /*0x1782b4*/\n      }\n      else\n      {\n        v29 = v9; /*0x1781a8*/\n        v32 = a2; /*0x1781ae*/\n      }\n      if ( (v11[6] & 0x40) != 0 ) /*0x1782bb*/\n      {\n        if ( (a3 & 2) != 0 ) /*0x1782c3*/\n        {\n          v25 = v29; /*0x1782c5*/\n          v27 = v11; /*0x1782c9*/\n          if ( lock_read_to_write(v29) ) /*0x1782cc*/\n            goto LABEL_69; /*0x1782d9*/\n          vm_object_shadow(v27 + 4, v27 + 5, v27[3] - v27[2]); /*0x1782ed*/\n          *((_BYTE *)v27 + 24) &= ~0x40u; /*0x1782f5*/\n          lock_write_to_read(v29); /*0x1782fd*/\n          v11 = v27; /*0x178305*/\n        }\n        else\n        {\n          v31 &= ~2u; /*0x17830c*/\n        }\n      }\n      if ( v11[4] ) /*0x178310*/\n        goto LABEL_72; /*0x178314*/\n      v25 = v29; /*0x178316*/\n      v28 = v11; /*0x17831a*/\n      if ( !lock_read_to_write(v29) ) /*0x17832a*/\n      {\n        v28[4] = vm_object_allocate(v28[3] - v28[2]); /*0x178356*/\n        v28[5] = 0; /*0x178359*/\n        lock_write_to_read(v29); /*0x178364*/\n        v11 = v28; /*0x178369*/\nLABEL_72:\n        *a6 = v11[5] + v32 - v11[2]; /*0x17836c*/\n        *a5 = v11[4]; /*0x178380*/\n        if ( !v30 ) /*0x178386*/\n        {\n          v26 = (volatile __int32 *)(v29 + 52); /*0x17838b*/\n          do /*0x1783a2*/\n          {\n            while ( *v26 ) /*0x178390*/\n              ; /*0x178392*/\n          }\n          while ( _InterlockedExchange(v26, 1) == 1 ); /*0x1783a2*/\n          v30 = *(_DWORD *)(v29 + 48) == 1; /*0x1783b3*/\n          _InterlockedExchange((volatile __int32 *)(v29 + 52), 0); /*0x1783b8*/\n        }\n        *a7 = v31; /*0x1783c1*/\n        *a9 = v30; /*0x1783c9*/\n        return 0; /*0x1783cb*/\n      }\nLABEL_69:\n      if ( v25 != v9 ) /*0x17832e*/\n        lock_done(v9); /*0x178335*/\n    }\n  }\n  v12 = (volatile __int32 *)(v9 + 60); /*0x178081*/\n  do /*0x178096*/\n  {\n    while ( *v12 ) /*0x178084*/\n      ; /*0x178086*/\n  }\n  while ( _InterlockedExchange(v12, 1) == 1 ); /*0x178096*/\n  v13 = *(_DWORD **)(v9 + 56); /*0x178098*/\n  _InterlockedExchange((volatile __int32 *)(v9 + 60), 0); /*0x17809d*/\n  v14 = (_DWORD *)(v9 + 12); /*0x1780a0*/\n  if ( v13 == (_DWORD *)(v9 + 12) ) /*0x1780a5*/\n    v13 = *(_DWORD **)(v9 + 16); /*0x1780a7*/\n  if ( v13[2] <= a2 ) /*0x1780b0*/\n  {\n    if ( v13 == v14 ) /*0x1780b4*/\n      goto LABEL_26; /*0x1780b4*/\n    if ( v13[3] <= a2 ) /*0x1780b9*/\n      goto LABEL_25; /*0x1780b9*/\n    v35 = v13; /*0x1780bb*/\nLABEL_30:\n    v11 = v35; /*0x17813c*/\n    *a4 = v35; /*0x178142*/\n    goto LABEL_31; /*0x178142*/\n  }\n  v14 = (_DWORD *)v13[1]; /*0x1780c0*/\n  v13 = *(_DWORD **)(v9 + 16); /*0x1780c3*/\nLABEL_25:\n  while ( v13 != v14 ) /*0x178101*/\n  {\n    if ( v13[3] > a2 ) /*0x1780ce*/\n    {\n      if ( v13[2] > a2 ) /*0x1780d3*/\n        break; /*0x1780d3*/\n      v35 = v13; /*0x1780d5*/\n      v15 = (volatile __int32 *)(v9 + 60); /*0x1780d8*/\n      do /*0x1780ee*/\n      {\n        while ( *v15 ) /*0x1780dc*/\n          ; /*0x1780de*/\n      }\n      while ( _InterlockedExchange(v15, 1) == 1 ); /*0x1780ee*/\n      *(_DWORD *)(v9 + 56) = v13; /*0x1780f0*/\n      _InterlockedExchange((volatile __int32 *)(v9 + 60), 0); /*0x1780f5*/\n      goto LABEL_30; /*0x1780f8*/\n    }\n    v13 = (_DWORD *)v13[1]; /*0x1780fc*/\n  }\nLABEL_26:\n  v36 = *v13; /*0x178103*/\n  v16 = (volatile __int32 *)(v9 + 60); /*0x178108*/\n  do /*0x17811e*/\n  {\n    while ( *v16 ) /*0x17810c*/\n      ; /*0x17810e*/\n  }\n  while ( _InterlockedExchange(v16, 1) == 1 ); /*0x17811e*/\n  *(_DWORD *)(v9 + 56) = v36; /*0x178123*/\n  _InterlockedExchange((volatile __int32 *)(v9 + 60), 0); /*0x178128*/\n  lock_done(v9); /*0x17812c*/\n  return 1; /*0x1783d0*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15b890",
+        "name": "_lock_read_to_write"
+      },
+      {
+        "addr": "0x1795a0",
+        "name": "_vm_object_shadow"
+      },
+      {
+        "addr": "0x15b9b0",
+        "name": "_lock_write_to_read"
+      },
+      {
+        "addr": "0x178b80",
+        "name": "_vm_object_allocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001783d8",
+    "addr": "0x001783d8",
+    "code": "__int32 __cdecl vm_map_lookup_done(int a1, int a2)\n{\n  if ( (*(_BYTE *)(a2 + 24) & 1) != 0 ) /*0x1783e2*/\n    lock_done(*(_DWORD *)(a2 + 16)); /*0x1783e8*/\n  return lock_done(a1); /*0x1783fb*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00178400",
+    "addr": "0x00178400",
+    "code": "int __cdecl vm_map_machine_attribute(_DWORD *a1, unsigned int a2, int a3, int a4, int a5)\n{\n  int v6; // esi\n\n  if ( a1[5] > a2 || a1[6] < a3 + a2 ) /*0x17841a*/\n    return 4; /*0x17841c*/\n  lock_write((int)a1); /*0x178425*/\n  ++a1[19]; /*0x17842a*/\n  v6 = pmap_attribute(a1[9], a2, a3, a4, a5); /*0x178443*/\n  lock_done((int)a1); /*0x178446*/\n  return v6; /*0x178450*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1914d0",
+        "name": "_pmap_attribute"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00178458",
+    "addr": "0x00178458",
+    "code": "kern_return_t __cdecl vm_region(\n        vm_map_t target_task,\n        vm_address_t *address,\n        vm_size_t *size,\n        vm_region_flavor_t flavor,\n        vm_region_info_t info,\n        mach_msg_type_number_t *infoCnt,\n        mach_port_t *object_name)\n{\n  vm_address_t v8; // ebx\n  volatile __int32 *v9; // edx\n  _DWORD *v10; // ecx\n  vm_map_t v11; // eax\n  volatile __int32 *v12; // edx\n  volatile __int32 *v13; // edx\n  _DWORD *v14; // edx\n  vm_address_t v15; // ebx\n  char v16; // al\n  int v17; // ebx\n  volatile __int32 *v18; // edx\n  _DWORD *v19; // ecx\n  _DWORD *v20; // eax\n  volatile __int32 *v21; // edx\n  volatile __int32 *v22; // edx\n  vm_size_t v23; // eax\n  unsigned int v24; // [esp+Ch] [ebp-8h]\n  _DWORD *v25; // [esp+10h] [ebp-4h]\n  int v26; // [esp+10h] [ebp-4h]\n  _DWORD *v27; // [esp+10h] [ebp-4h]\n  _DWORD *v28; // [esp+38h] [ebp+24h]\n  unsigned int *v29; // [esp+3Ch] [ebp+28h]\n\n  if ( !target_task ) /*0x178465*/\n    return 4; /*0x17846c*/\n  v8 = *address; /*0x178477*/\n  lock_read(target_task); /*0x17847d*/\n  v9 = (volatile __int32 *)(target_task + 60); /*0x178488*/\n  do /*0x17849e*/\n  {\n    while ( *v9 ) /*0x17848c*/\n      ; /*0x17848e*/\n  }\n  while ( _InterlockedExchange(v9, 1) == 1 ); /*0x17849e*/\n  v10 = *(_DWORD **)(target_task + 56); /*0x1784a3*/\n  _InterlockedExchange((volatile __int32 *)(target_task + 60), 0); /*0x1784a8*/\n  v11 = target_task + 12; /*0x1784ad*/\n  if ( v10 == (_DWORD *)(target_task + 12) ) /*0x1784b2*/\n    v10 = *(_DWORD **)(target_task + 16); /*0x1784b4*/\n  if ( v10[2] > v8 ) /*0x1784ba*/\n  {\n    v11 = v10[1]; /*0x1784d0*/\n    v10 = *(_DWORD **)(target_task + 16); /*0x1784d6*/\nLABEL_20:\n    while ( v10 != (_DWORD *)v11 ) /*0x178519*/\n    {\n      if ( v10[3] > v8 ) /*0x1784df*/\n      {\n        if ( v10[2] > v8 ) /*0x1784e4*/\n          break; /*0x1784e4*/\n        v25 = v10; /*0x1784e6*/\n        v12 = (volatile __int32 *)(target_task + 60); /*0x1784ec*/\n        do /*0x178502*/\n        {\n          while ( *v12 ) /*0x1784f0*/\n            ; /*0x1784f2*/\n        }\n        while ( _InterlockedExchange(v12, 1) == 1 ); /*0x178502*/\n        *(_DWORD *)(target_task + 56) = v10; /*0x178507*/\n        _InterlockedExchange((volatile __int32 *)(target_task + 60), 0); /*0x17850c*/\n        goto LABEL_26; /*0x17850f*/\n      }\n      v10 = (_DWORD *)v10[1]; /*0x178514*/\n    }\n  }\n  else if ( v10 != (_DWORD *)v11 ) /*0x1784be*/\n  {\n    if ( v10[3] <= v8 ) /*0x1784c3*/\n      goto LABEL_20; /*0x1784c3*/\n    v25 = v10; /*0x1784c5*/\nLABEL_26:\n    v14 = v25; /*0x17856c*/\n    goto LABEL_27; /*0x17856c*/\n  }\n  v26 = *v10; /*0x17851b*/\n  v13 = (volatile __int32 *)(target_task + 60); /*0x178523*/\n  do /*0x17853a*/\n  {\n    while ( *v13 ) /*0x178528*/\n      ; /*0x17852a*/\n  }\n  while ( _InterlockedExchange(v13, 1) == 1 ); /*0x17853a*/\n  *(_DWORD *)(target_task + 56) = v26; /*0x178542*/\n  _InterlockedExchange((volatile __int32 *)(target_task + 60), 0); /*0x178547*/\n  v14 = *(_DWORD **)(v26 + 4); /*0x17854d*/\n  if ( v14 == (_DWORD *)(target_task + 12) ) /*0x178558*/\n  {\n    lock_done(target_task); /*0x17855b*/\n    return 3; /*0x178565*/\n  }\nLABEL_27:\n  v15 = v14[2]; /*0x17856f*/\n  *(_DWORD *)flavor = v14[7]; /*0x178578*/\n  *info = v14[8]; /*0x178580*/\n  *infoCnt = v14[9]; /*0x178588*/\n  *address = v15; /*0x17858d*/\n  *size = v14[3] - v15; /*0x178597*/\n  v24 = v14[5]; /*0x17859c*/\n  v16 = *((_BYTE *)v14 + 24); /*0x17859f*/\n  if ( (v16 & 1) == 0 ) /*0x1785a4*/\n  {\n    *object_name = 0; /*0x1786b7*/\n    if ( (v16 & 4) != 0 ) /*0x1786b2*/\n      *v28 = 0; /*0x1786c0*/\n    else\n      *v28 = vm_object_name(v14[4]); /*0x1786e5*/\n    *v29 = v24; /*0x1786cc*/\n    goto LABEL_58; /*0x1786ce*/\n  }\n  v17 = v14[4]; /*0x1785aa*/\n  lock_read(v17); /*0x1785ae*/\n  v18 = (volatile __int32 *)(v17 + 60); /*0x1785b6*/\n  do /*0x1785ce*/\n  {\n    while ( *v18 ) /*0x1785bc*/\n      ; /*0x1785be*/\n  }\n  while ( _InterlockedExchange(v18, 1) == 1 ); /*0x1785ce*/\n  v19 = *(_DWORD **)(v17 + 56); /*0x1785d0*/\n  _InterlockedExchange((volatile __int32 *)(v17 + 60), 0); /*0x1785d5*/\n  v20 = (_DWORD *)(v17 + 12); /*0x1785d8*/\n  if ( v19 == (_DWORD *)(v17 + 12) ) /*0x1785dd*/\n    v19 = *(_DWORD **)(v17 + 16); /*0x1785df*/\n  if ( v19[2] > v24 ) /*0x1785e8*/\n  {\n    v20 = (_DWORD *)v19[1]; /*0x1785f8*/\n    v19 = *(_DWORD **)(v17 + 16); /*0x1785fb*/\nLABEL_45:\n    while ( v19 != v20 ) /*0x178635*/\n    {\n      if ( v19[3] > v24 ) /*0x178606*/\n      {\n        if ( v19[2] > v24 ) /*0x17860b*/\n          goto LABEL_46; /*0x17860b*/\n        v27 = v19; /*0x17860d*/\n        v21 = (volatile __int32 *)(v17 + 60); /*0x178610*/\n        do /*0x178626*/\n        {\n          while ( *v21 ) /*0x178614*/\n            ; /*0x178616*/\n        }\n        while ( _InterlockedExchange(v21, 1) == 1 ); /*0x178626*/\n        *(_DWORD *)(v17 + 56) = v19; /*0x178628*/\n        goto LABEL_50; /*0x17862b*/\n      }\n      v19 = (_DWORD *)v19[1]; /*0x178630*/\n    }\n    goto LABEL_46; /*0x178635*/\n  }\n  if ( v19 == v20 ) /*0x1785ec*/\n  {\nLABEL_46:\n    v27 = (_DWORD *)*v19; /*0x178637*/\n    v22 = (volatile __int32 *)(v17 + 60); /*0x17863c*/\n    do /*0x178652*/\n    {\n      while ( *v22 ) /*0x178640*/\n        ; /*0x178642*/\n    }\n    while ( _InterlockedExchange(v22, 1) == 1 ); /*0x178652*/\n    *(_DWORD *)(v17 + 56) = v27; /*0x178657*/\nLABEL_50:\n    _InterlockedExchange((volatile __int32 *)(v17 + 60), 0); /*0x17865a*/\n    goto LABEL_51; /*0x17865c*/\n  }\n  if ( v19[3] <= v24 ) /*0x1785f1*/\n    goto LABEL_45; /*0x1785f1*/\n  v27 = v19; /*0x1785f3*/\nLABEL_51:\n  v23 = v27[3] - v24; /*0x17865f*/\n  if ( *size > v23 ) /*0x17866d*/\n    *size = v23; /*0x17866f*/\n  *v28 = vm_object_name(v27[4]); /*0x178680*/\n  *v29 = v27[5] + v24 - v27[2]; /*0x178691*/\n  *object_name = *(_DWORD *)(v17 + 48) != 1; /*0x1786a5*/\n  lock_done(v17); /*0x1786a8*/\nLABEL_58:\n  lock_done(target_task); /*0x1786f2*/\n  return 0; /*0x178700*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x179d38",
+        "name": "_vm_object_name"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00178708",
+    "addr": "0x00178708",
+    "code": "kern_return_t __cdecl vm_move(int a1, int a2, vm_map_t target_task, int a4, int a5, _DWORD *a6)\n{\n  unsigned int v7; // edi\n  vm_size_t v8; // esi\n  kern_return_t v9; // ebx\n  vm_address_t address; // [esp+Ch] [ebp-4h] BYREF\n\n  if ( a4 ) /*0x178716*/\n  {\n    v7 = ~page_mask & a2; /*0x178733*/\n    v8 = (~page_mask & (page_mask + a2 + a4)) - v7; /*0x178742*/\n    address = 0; /*0x178744*/\n    v9 = vm_allocate(target_task, &address, v8, 1); /*0x17875b*/\n    if ( !v9 ) /*0x178762*/\n    {\n      v9 = vm_map_copy(target_task, a1, address, v8, v7, 0, a5); /*0x17877d*/\n      if ( v9 ) /*0x178784*/\n        vm_deallocate(target_task, address, v8); /*0x1787a1*/\n      else\n        *a6 = address + a2 - v7; /*0x178791*/\n    }\n    return v9; /*0x1787a6*/\n  }\n  else\n  {\n    *a6 = 0; /*0x17871b*/\n    return 0; /*0x178721*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x17c5b8",
+        "name": "_vm_allocate"
+      },
+      {
+        "addr": "0x176888",
+        "name": "_vm_map_copy"
+      },
+      {
+        "addr": "0x17c620",
+        "name": "_vm_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001787b4",
+    "addr": "0x001787b4",
+    "code": "int __cdecl vm_map_pmap_EXTERNAL(int a1)\n{\n  return *(_DWORD *)(a1 + 36); /*0x1787bf*/\n}"
+  },
+  {
+    "requested_address": "0x001787c4",
+    "addr": "0x001787c4",
+    "code": "int __cdecl vm_mem_ppi(unsigned int a1)\n{\n  int v1; // ebx\n  _DWORD *v2; // eax\n  unsigned int v3; // edx\n  char *v5; // [esp+Ch] [ebp-8h]\n\n  v1 = 0; /*0x1787d0*/\n  v5 = (char *)&mem_region; /*0x1787d2*/\n  if ( &mem_region >= (_UNKNOWN *)((char *)&mem_region + 28 * num_regions) ) /*0x1787ef*/\nLABEL_7:\n    panic(aMemPpi); /*0x17882e*/\n  v2 = &unk_1F6E6C; /*0x1787fc*/\n  while ( 1 ) /*0x178804*/\n  {\n    v3 = v2[2]; /*0x178804*/\n    if ( a1 >= v3 && v2[3] > a1 ) /*0x17880e*/\n      return v1 + ((a1 - v3) >> page_shift); /*0x17883b*/\n    v1 += *v2; /*0x178820*/\n    v2 += 7; /*0x178822*/\n    v5 += 28; /*0x178825*/\n    if ( v5 >= (char *)&mem_region + 28 * num_regions ) /*0x17882c*/\n      goto LABEL_7; /*0x17882c*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f6e60",
+        "name": "_mem_region"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0b14",
+        "name": "aMemPpi",
+        "string": "mem_ppi"
+      },
+      {
+        "addr": "0x1f6e98",
+        "name": "_num_regions"
+      },
+      {
+        "addr": "0x1f6e6c",
+        "name": "unk_1F6E6C"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00178844",
+    "addr": "0x00178844",
+    "code": "int __cdecl vm_valid_page(unsigned int a1)\n{\n  char *v1; // ecx\n  int *i; // eax\n\n  v1 = (char *)&mem_region; /*0x17884b*/\n  if ( &mem_region >= (_UNKNOWN *)((char *)&mem_region + 28 * num_regions) ) /*0x178865*/\n    return 0; /*0x17888a*/\n  for ( i = &dword_1F6E78; *(i - 1) > a1 || *i <= a1; i += 7 ) /*0x178869*/\n  {\n    v1 += 28; /*0x178883*/\n    if ( v1 >= (char *)&mem_region + 28 * num_regions ) /*0x178888*/\n      return 0; /*0x178888*/\n  }\n  return 1; /*0x17888c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6e60",
+        "name": "_mem_region"
+      },
+      {
+        "addr": "0x1f6e98",
+        "name": "_num_regions"
+      },
+      {
+        "addr": "0x1f6e78",
+        "name": "dword_1F6E78"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00178894",
+    "addr": "0x00178894",
+    "code": "int __cdecl vm_phys_to_vm_page(unsigned int a1)\n{\n  _DWORD *v1; // edi\n  _DWORD *i; // edx\n\n  v1 = &mem_region; /*0x17889d*/\n  if ( &mem_region >= (_UNKNOWN *)((char *)&mem_region + 28 * num_regions) ) /*0x1788b7*/\n    return 0; /*0x1788ee*/\n  for ( i = &unk_1F6E64; i[4] > a1 || i[5] <= a1; i += 7 ) /*0x1788c6*/\n  {\n    v1 += 7; /*0x1788e7*/\n    if ( v1 >= (_DWORD *)&mem_region + 7 * num_regions ) /*0x1788ec*/\n      return 0; /*0x1788ec*/\n  }\n  return *v1 + 48 * ((a1 >> page_shift) - *i); /*0x1788f3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6e60",
+        "name": "_mem_region"
+      },
+      {
+        "addr": "0x1f6e98",
+        "name": "_num_regions"
+      },
+      {
+        "addr": "0x1f6e64",
+        "name": "unk_1F6E64"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      }
+    ]
+  }
+]

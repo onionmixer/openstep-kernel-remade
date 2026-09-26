@@ -1,0 +1,379 @@
+[
+  {
+    "requested_address": "0x001cbeb8",
+    "addr": "0x001cbeb8",
+    "code": "char *__cdecl NXCopyStringBufferFromZone(const char *buffer, void *z)\n{\n  char *v2; // eax\n\n  v2 = (char *)(*((int (__cdecl **)(void *, unsigned int))z + 1))(z, strlen(buffer) + 1); /*0x1cbee2*/\n  return strcpy(v2, buffer); /*0x1cbef1*/\n}",
+    "refs": [
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbef8",
+    "addr": "0x001cbef8",
+    "code": "char *__cdecl NXCopyStringBuffer(const char *buffer)\n{\n  void *v1; // eax\n  int v3; // [esp+0h] [ebp-4h]\n  int savedregs; // [esp+4h] [ebp+0h]\n\n  v1 = (void *)NXDefaultMallocZone(v3, savedregs); /*0x1cbeff*/\n  return NXCopyStringBufferFromZone(buffer, v1); /*0x1cbf0b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1cbeb8",
+        "name": "_NXCopyStringBufferFromZone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbf14",
+    "addr": "0x001cbf14",
+    "code": "int __cdecl sub_1CBF14(unsigned int a1)\n{\n  if ( a1 <= 1 ) /*0x1cbf1d*/\n    return 0; /*0x1cbf2c*/\n  else\n    return sub_1CBF14(a1 >> 1) + 1; /*0x1cbf27*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbf14",
+        "name": "sub_1CBF14"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbf34",
+    "addr": "0x001cbf34",
+    "code": "uintptr_t __cdecl sub_1CBF34(void *info, int a2)\n{\n  uintptr_t v2; // esi\n  uintptr_t v3; // edi\n\n  v2 = NXPtrHash(info, *(const void **)a2); /*0x1cbf49*/\n  v3 = NXPtrHash(info, *(const void **)(a2 + 4)); /*0x1cbf58*/\n  return *(_DWORD *)(a2 + 12) ^ NXPtrHash(info, *(const void **)(a2 + 8)) ^ v3 ^ v2; /*0x1cbf78*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbb1c",
+        "name": "_NXPtrHash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbf80",
+    "addr": "0x001cbf80",
+    "code": "_BOOL4 __cdecl sub_1CBF80(int a1, _DWORD *a2, _DWORD *a3)\n{\n  int v3; // ebx\n\n  v3 = 0; /*0x1cbf8a*/\n  if ( *a3 == *a2 && a3[1] == a2[1] && a3[2] == a2[2] ) /*0x1cbfa0*/\n    return a3[3] == a2[3]; /*0x1cbfaa*/\n  return v3; /*0x1cbfad*/\n}"
+  },
+  {
+    "requested_address": "0x001cbfb4",
+    "addr": "0x001cbfb4",
+    "code": "_DWORD *__cdecl NXCreateMapTableFromZone(int data, int a2, int a3, int a4, unsigned int a5, int a6)\n{\n  _DWORD *v6; // esi\n  _DWORD *v8; // ebx\n  int v9; // ebx\n  int v10; // eax\n  _DWORD *v11; // ecx\n  int v12; // edx\n\n  v6 = (_DWORD *)(*(int (__cdecl **)(int, int))(a6 + 4))(a6, 16); /*0x1cbfc5*/\n  if ( !dword_1E557C ) /*0x1cbfd1*/\n    dword_1E557C = NXCreateHashTable(prototype, 0, nullptr); /*0x1cbff8*/\n  if ( data && a2 && a3 && !a4 )\n  {\n    v8 = NXHashGet(dword_1E557C, &data); /*0x1cc03c*/\n    if ( !v8 ) /*0x1cc043*/\n    {\n      v8 = malloc(0x10u); /*0x1cc04c*/\n      *v8 = data; /*0x1cc051*/\n      v8[1] = a2; /*0x1cc056*/\n      v8[2] = a3; /*0x1cc05c*/\n      v8[3] = a4; /*0x1cc062*/\n      NXHashInsert(dword_1E557C, v8); /*0x1cc06d*/\n    }\n    *v6 = v8; /*0x1cc075*/\n    v6[1] = 0; /*0x1cc077*/\n    v9 = 1 << (sub_1CBF14(a5) + 1); /*0x1cc092*/\n    v6[2] = v9 - 1; /*0x1cc097*/\n    v10 = (*(int (__stdcall **)(int))(a6 + 4))(a6); /*0x1cc0a5*/\n    v11 = (_DWORD *)v10; /*0x1cc0a7*/\n    v12 = v9 - 2; /*0x1cc0a9*/\n    if ( v9 != 1 ) /*0x1cc0af*/\n    {\n      do /*0x1cc0c8*/\n      {\n        *v11 = -1; /*0x1cc0b4*/\n        v11[1] = 0; /*0x1cc0ba*/\n        v11 += 2; /*0x1cc0c1*/\n        --v12; /*0x1cc0c4*/\n      }\n      while ( v12 != -1 ); /*0x1cc0c8*/\n    }\n    v6[3] = v10; /*0x1cc0ca*/\n    return v6; /*0x1cc0cd*/\n  }\n  else\n  {\n    _NXLogError(\"*** NXCreateMapTable: invalid creation parameters\\n\");\n    return nullptr; /*0x1cc022*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e557c",
+        "name": "dword_1E557C"
+      },
+      {
+        "addr": "0x1cafec",
+        "name": "_NXCreateHashTable"
+      },
+      {
+        "addr": "0x1e556c",
+        "name": "prototype"
+      },
+      {
+        "addr": "0x1cb464",
+        "name": "_NXHashGet"
+      },
+      {
+        "addr": "0x15a880",
+        "name": "_malloc"
+      },
+      {
+        "addr": "0x1cb5c8",
+        "name": "_NXHashInsert"
+      },
+      {
+        "addr": "0x1cbf14",
+        "name": "sub_1CBF14"
+      },
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9b78",
+        "name": "aNxcreatemaptab",
+        "string": "*** NXCreateMapTable: invalid creation parameters\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc0dc",
+    "addr": "0x001cc0dc",
+    "code": "_DWORD *__cdecl NXCreateMapTable(int data, int a2, int a3, int a4, unsigned int a5)\n{\n  int v5; // eax\n  int v7; // [esp+0h] [ebp-4h]\n  int savedregs; // [esp+4h] [ebp+0h]\n\n  v5 = NXDefaultMallocZone(v7, savedregs); /*0x1cc0e3*/\n  return NXCreateMapTableFromZone(data, a2, a3, a4, a5, v5); /*0x1cc0ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1cbfb4",
+        "name": "_NXCreateMapTableFromZone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc108",
+    "addr": "0x001cc108",
+    "code": "void __cdecl NXFreeMapTable(void **a1)\n{\n  NXResetMapTable(a1); /*0x1cc110*/\n  free(a1[3]); /*0x1cc119*/\n  free(a1); /*0x1cc11f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cc12c",
+        "name": "_NXResetMapTable"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc12c",
+    "addr": "0x001cc12c",
+    "code": "int __cdecl NXResetMapTable(_DWORD *a1)\n{\n  _DWORD *v1; // ebx\n  int result; // eax\n  int v3; // esi\n  int (__cdecl *v4)(_DWORD *, _DWORD, _DWORD); // [esp+Ch] [ebp-4h]\n\n  v1 = (_DWORD *)a1[3]; /*0x1cc138*/\n  result = *(_DWORD *)(*a1 + 8); /*0x1cc13d*/\n  v4 = (int (__cdecl *)(_DWORD *, _DWORD, _DWORD))result; /*0x1cc140*/\n  v3 = a1[2]; /*0x1cc143*/\n  while ( --v3 != -1 ) /*0x1cc16d*/\n  {\n    if ( *v1 != -1 ) /*0x1cc14b*/\n    {\n      result = v4(a1, *v1, v1[1]); /*0x1cc158*/\n      *v1 = -1; /*0x1cc15a*/\n      v1[1] = 0; /*0x1cc160*/\n    }\n    v1 += 2; /*0x1cc16a*/\n  }\n  a1[1] = 0; /*0x1cc173*/\n  return result; /*0x1cc17d*/\n}"
+  },
+  {
+    "requested_address": "0x001cc184",
+    "addr": "0x001cc184",
+    "code": "int __cdecl NXCompareMapTables(int a1, int a2)\n{\n  _BYTE v3[4]; // [esp+8h] [ebp-Ch] BYREF\n  int v4; // [esp+Ch] [ebp-8h] BYREF\n  int v5; // [esp+10h] [ebp-4h] BYREF\n\n  if ( a1 == a2 ) /*0x1cc194*/\n    return 1; /*0x1cc1ca*/\n  if ( *(_DWORD *)(a2 + 4) == *(_DWORD *)(a1 + 4) ) /*0x1cc19c*/\n  {\n    v5 = NXInitMapState(a1); /*0x1cc1a4*/\n    while ( NXNextMapState(a1, &v5, &v4, v3) ) /*0x1cc1c3*/\n    {\n      if ( NXMapMember(a2, v4, v3) == -1 ) /*0x1cc1e0*/\n        return 0; /*0x1cc1e0*/\n    }\n    return 1; /*0x1cc1c3*/\n  }\n  return 0; /*0x1cc1e7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cc9c4",
+        "name": "_NXInitMapState"
+      },
+      {
+        "addr": "0x1cc200",
+        "name": "_NXMapMember"
+      },
+      {
+        "addr": "0x1cc9d4",
+        "name": "_NXNextMapState"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc1f0",
+    "addr": "0x001cc1f0",
+    "code": "int __cdecl NXCountMapTable(int a1)\n{\n  return *(_DWORD *)(a1 + 4); /*0x1cc1fb*/\n}"
+  },
+  {
+    "requested_address": "0x001cc200",
+    "addr": "0x001cc200",
+    "code": "int __cdecl NXMapMember(_DWORD *a1, int a2, _DWORD *a3)\n{\n  unsigned int v3; // eax\n  _DWORD *v4; // esi\n  int v5; // eax\n  unsigned int v7; // ebx\n  unsigned int v8; // eax\n  _DWORD *v9; // esi\n  int v10; // eax\n  unsigned int v11; // [esp+14h] [ebp-8h]\n  int v12; // [esp+18h] [ebp-4h]\n\n  v12 = a1[3]; /*0x1cc20f*/\n  v3 = (*(int (__cdecl **)(_DWORD *, int))*a1)(a1, a2); /*0x1cc21b*/\n  v11 = (v3 + 65521 * (HIWORD(v3) ^ (unsigned __int16)v3)) % a1[2]; /*0x1cc23a*/\n  v4 = (_DWORD *)(v12 + 8 * v11); /*0x1cc243*/\n  if ( *v4 != -1 ) /*0x1cc249*/\n  {\n    ++dword_1E5580; /*0x1cc24f*/\n    if ( a2 == *v4 ) /*0x1cc25a*/\n      v5 = 1; /*0x1cc270*/\n    else\n      v5 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v4, a2); /*0x1cc267*/\n    if ( v5 ) /*0x1cc277*/\n    {\n      *a3 = v4[1]; /*0x1cc27f*/\n      ++dword_1E5584; /*0x1cc281*/\n      return *v4; /*0x1cc289*/\n    }\n    v7 = v11; /*0x1cc28c*/\n    while ( 1 ) /*0x1cc290*/\n    {\n      v8 = v7 + 1; /*0x1cc290*/\n      v7 = 0; /*0x1cc293*/\n      if ( a1[2] > v8 ) /*0x1cc298*/\n        v7 = v8; /*0x1cc29a*/\n      if ( v11 == v7 ) /*0x1cc29f*/\n        break; /*0x1cc29f*/\n      ++dword_1E5588; /*0x1cc2a1*/\n      v9 = (_DWORD *)(v12 + 8 * v7); /*0x1cc2aa*/\n      if ( *v9 == -1 ) /*0x1cc2b0*/\n        break; /*0x1cc2b0*/\n      if ( *v9 == a2 ) /*0x1cc2bc*/\n        v10 = 1; /*0x1cc2d0*/\n      else\n        v10 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v9, a2); /*0x1cc2c6*/\n      if ( v10 ) /*0x1cc2d7*/\n      {\n        *a3 = v9[1]; /*0x1cc2df*/\n        return *v9; /*0x1cc2e3*/\n      }\n    }\n  }\n  return -1; /*0x1cc2f0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e5580",
+        "name": "dword_1E5580"
+      },
+      {
+        "addr": "0x1e5584",
+        "name": "dword_1E5584"
+      },
+      {
+        "addr": "0x1e5588",
+        "name": "dword_1E5588"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc2f8",
+    "addr": "0x001cc2f8",
+    "code": "int __cdecl NXMapGet(_DWORD *a1, int a2)\n{\n  unsigned int v2; // eax\n  int *v3; // esi\n  int v4; // eax\n  int v5; // eax\n  unsigned int v6; // ebx\n  unsigned int v7; // eax\n  int *v8; // esi\n  int v9; // eax\n  int v10; // ebx\n  unsigned int v12; // [esp+14h] [ebp-Ch]\n  int v13; // [esp+18h] [ebp-8h]\n  int v14; // [esp+1Ch] [ebp-4h]\n\n  v13 = a1[3]; /*0x1cc307*/\n  v2 = (*(int (__cdecl **)(_DWORD *, int))*a1)(a1, a2); /*0x1cc313*/\n  v12 = (v2 + 65521 * (HIWORD(v2) ^ (unsigned __int16)v2)) % a1[2]; /*0x1cc332*/\n  v3 = (int *)(v13 + 8 * v12); /*0x1cc33b*/\n  if ( *v3 != -1 ) /*0x1cc341*/\n  {\n    ++dword_1E5580; /*0x1cc347*/\n    if ( a2 == *v3 ) /*0x1cc352*/\n      v4 = 1; /*0x1cc368*/\n    else\n      v4 = (*(int (__cdecl **)(_DWORD *, int, int))(*a1 + 4))(a1, *v3, a2); /*0x1cc35f*/\n    if ( v4 ) /*0x1cc36f*/\n    {\n      v14 = v3[1]; /*0x1cc374*/\n      ++dword_1E5584; /*0x1cc377*/\n      v5 = *v3; /*0x1cc37d*/\n      goto LABEL_18; /*0x1cc37f*/\n    }\n    v6 = v12; /*0x1cc384*/\n    while ( 1 ) /*0x1cc388*/\n    {\n      v7 = v6 + 1; /*0x1cc388*/\n      v6 = 0; /*0x1cc38b*/\n      if ( a1[2] > v7 ) /*0x1cc390*/\n        v6 = v7; /*0x1cc392*/\n      if ( v12 == v6 ) /*0x1cc397*/\n        break; /*0x1cc397*/\n      ++dword_1E5588; /*0x1cc399*/\n      v8 = (int *)(v13 + 8 * v6); /*0x1cc3a2*/\n      if ( *v8 == -1 ) /*0x1cc3a8*/\n        break; /*0x1cc3a8*/\n      if ( *v8 == a2 ) /*0x1cc3b4*/\n        v9 = 1; /*0x1cc3c8*/\n      else\n        v9 = (*(int (__cdecl **)(_DWORD *, int, int))(*a1 + 4))(a1, *v8, a2); /*0x1cc3be*/\n      if ( v9 ) /*0x1cc3cf*/\n      {\n        v14 = v8[1]; /*0x1cc3d4*/\n        v5 = *v8; /*0x1cc3d7*/\n        goto LABEL_18; /*0x1cc3d9*/\n      }\n    }\n  }\n  v5 = -1; /*0x1cc3dc*/\nLABEL_18:\n  v10 = 0; /*0x1cc3e1*/\n  if ( v5 != -1 ) /*0x1cc3e6*/\n    return v14; /*0x1cc3e8*/\n  return v10; /*0x1cc3f0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e5580",
+        "name": "dword_1E5580"
+      },
+      {
+        "addr": "0x1e5584",
+        "name": "dword_1E5584"
+      },
+      {
+        "addr": "0x1e5588",
+        "name": "dword_1E5588"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc3f8",
+    "addr": "0x001cc3f8",
+    "code": "void __cdecl sub_1CC3F8(_DWORD *a1)\n{\n  _DWORD *v1; // esi\n  int v2; // eax\n  int v3; // ebx\n  int v4; // eax\n  _DWORD *i; // edx\n  int v6; // [esp+Ch] [ebp-Ch]\n  int v7; // [esp+10h] [ebp-8h]\n  _DWORD *v8; // [esp+14h] [ebp-4h]\n\n  v8 = (_DWORD *)a1[3]; /*0x1cc407*/\n  v1 = v8; /*0x1cc40a*/\n  v6 = a1[2]; /*0x1cc413*/\n  v7 = a1[1]; /*0x1cc41c*/\n  a1[2] = v6 + 1 + v6; /*0x1cc426*/\n  a1[1] = 0; /*0x1cc429*/\n  v2 = NXZoneFromPtr(a1); /*0x1cc431*/\n  v3 = a1[2]; /*0x1cc438*/\n  v4 = (*(int (__cdecl **)(int, int))(v2 + 4))(v2, 8 * v3); /*0x1cc44a*/\n  for ( i = (_DWORD *)v4; --v3 != -1; i += 2 ) /*0x1cc44c*/\n  {\n    *i = -1; /*0x1cc454*/\n    i[1] = 0; /*0x1cc45a*/\n  }\n  a1[3] = v4; /*0x1cc46d*/\n  ++dword_1E558C; /*0x1cc470*/\n  dword_1E5590 += a1[1]; /*0x1cc479*/\n  while ( --v6 != -1 ) /*0x1cc49f*/\n  {\n    if ( *v1 != -1 ) /*0x1cc487*/\n      NXMapInsert(a1, *v1, v1[1]); /*0x1cc494*/\n    v1 += 2; /*0x1cc49c*/\n  }\n  if ( a1[1] != v7 )\n    _NXLogError(\n      \"*** maptable: count differs after rehashing; probably indicates a broken invariant: there are x and y such as isEq\"\n      \"ual(x, y) is TRUE but hash(x) != hash (y)\\n\");\n  free(v8); /*0x1cc4c4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x1e558c",
+        "name": "dword_1E558C"
+      },
+      {
+        "addr": "0x1e5590",
+        "name": "dword_1E5590"
+      },
+      {
+        "addr": "0x1cc4d4",
+        "name": "_NXMapInsert"
+      },
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9bac",
+        "name": "aMaptableCountD",
+        "string": "*** maptable: count differs after rehashing; probably indicates a broken invariant: there are x and y such as isEqual(x, y) is TRUE but hash(x) != hash (y)\n"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc4d4",
+    "addr": "0x001cc4d4",
+    "code": "int __cdecl NXMapInsert(_DWORD *a1, int a2, int a3)\n{\n  unsigned int v3; // eax\n  int v4; // eax\n  int result; // eax\n  unsigned int v6; // ecx\n  int v7; // ebx\n  int v8; // esi\n  unsigned int v9; // ecx\n  int v10; // eax\n  unsigned int v11; // [esp+14h] [ebp-1Ch]\n  unsigned int v12; // [esp+14h] [ebp-1Ch]\n  int v13; // [esp+18h] [ebp-18h]\n  int v14; // [esp+1Ch] [ebp-14h]\n  _DWORD *v15; // [esp+24h] [ebp-Ch]\n  _DWORD *v16; // [esp+24h] [ebp-Ch]\n  int *v17; // [esp+24h] [ebp-Ch]\n  unsigned int v18; // [esp+28h] [ebp-8h]\n  int v19; // [esp+2Ch] [ebp-4h]\n\n  while ( 1 )\n  {\n    v19 = a1[3]; /*0x1cc4e3*/\n    v3 = (*(int (__cdecl **)(_DWORD *, int))*a1)(a1, a2); /*0x1cc4fb*/\n    v18 = (65521 * (HIWORD(v3) ^ (unsigned __int16)v3) + v3) % a1[2]; /*0x1cc51d*/\n    v15 = (_DWORD *)(v19 + 8 * v18); /*0x1cc529*/\n    if ( a2 == -1 )\n    {\n      _NXLogError(\"*** NXMapInsert: invalid key: -1\\n\");\n      return 0; /*0x1cc6de*/\n    }\n    ++dword_1E5594; /*0x1cc53c*/\n    if ( *v15 == -1 ) /*0x1cc548*/\n    {\n      ++dword_1E5598; /*0x1cc54a*/\n      *v15 = a2; /*0x1cc553*/\n      v15[1] = a3; /*0x1cc558*/\n      ++a1[1]; /*0x1cc55e*/\n      return 0; /*0x1cc561*/\n    }\n    if ( a2 == *v15 ) /*0x1cc570*/\n      v4 = 1; /*0x1cc590*/\n    else\n      v4 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v15, a2); /*0x1cc589*/\n    if ( v4 ) /*0x1cc597*/\n    {\n      result = v15[1]; /*0x1cc59c*/\n      ++dword_1E5598; /*0x1cc59f*/\n      if ( a3 != result ) /*0x1cc5a8*/\n        v15[1] = a3; /*0x1cc5b1*/\n      return result; /*0x1cc5b4*/\n    }\n    if ( a1[2] != a1[1] ) /*0x1cc5c8*/\n      break; /*0x1cc5c8*/\n    sub_1CC3F8(a1); /*0x1cc5cb*/\n  }\n  v11 = v18; /*0x1cc5db*/\n  do\n  {\n    v6 = 0; /*0x1cc5e4*/\n    if ( a1[2] > v11 + 1 ) /*0x1cc5ec*/\n      v6 = v11 + 1; /*0x1cc5ee*/\n    v11 = v6; /*0x1cc5f0*/\n    if ( v6 == v18 )\n    {\n      _NXLogError(\"**** NXMapInsert: bug\\n\");\n      return 0; /*0x1cc6d9*/\n    }\n    ++dword_1E559C; /*0x1cc5fe*/\n    v16 = (_DWORD *)(v19 + 8 * v6); /*0x1cc60d*/\n    if ( *v16 == -1 ) /*0x1cc613*/\n    {\n      v7 = a2; /*0x1cc615*/\n      v8 = a3; /*0x1cc618*/\n      v12 = v18; /*0x1cc61e*/\n      do /*0x1cc660*/\n      {\n        v17 = (int *)(v19 + 8 * v12); /*0x1cc631*/\n        v13 = *v17; /*0x1cc636*/\n        v14 = v17[1]; /*0x1cc63c*/\n        *v17 = v7; /*0x1cc63f*/\n        v17[1] = v8; /*0x1cc641*/\n        v7 = v13; /*0x1cc644*/\n        v8 = v14; /*0x1cc647*/\n        v9 = 0; /*0x1cc64e*/\n        if ( a1[2] > v12 + 1 ) /*0x1cc656*/\n          v9 = v12 + 1; /*0x1cc658*/\n        v12 = v9; /*0x1cc65a*/\n      }\n      while ( v13 != -1 ); /*0x1cc660*/\n      ++a1[1]; /*0x1cc665*/\n      if ( 4 * a1[1] > (unsigned int)(3 * a1[2]) ) /*0x1cc67d*/\n        sub_1CC3F8(a1); /*0x1cc683*/\n      return 0; /*0x1cc688*/\n    }\n    if ( a2 == *v16 ) /*0x1cc694*/\n      v10 = 1; /*0x1cc6b4*/\n    else\n      v10 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v16, a2); /*0x1cc6ad*/\n  }\n  while ( !v10 );\n  result = v16[1]; /*0x1cc6c4*/\n  if ( a3 != result ) /*0x1cc6ca*/\n    v16[1] = a3; /*0x1cc6cf*/\n  return result; /*0x1cc6e3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9c4c",
+        "name": "aNxmapinsertInv",
+        "string": "*** NXMapInsert: invalid key: -1\n"
+      },
+      {
+        "addr": "0x1e5594",
+        "name": "dword_1E5594"
+      },
+      {
+        "addr": "0x1e5598",
+        "name": "dword_1E5598"
+      },
+      {
+        "addr": "0x1cc3f8",
+        "name": "sub_1CC3F8"
+      },
+      {
+        "addr": "0x1d9c70",
+        "name": "aNxmapinsertBug",
+        "string": "**** NXMapInsert: bug\n"
+      },
+      {
+        "addr": "0x1e559c",
+        "name": "dword_1E559C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc6ec",
+    "addr": "0x001cc6ec",
+    "code": "int __cdecl NXMapRemove(_DWORD *a1, int a2)\n{\n  unsigned int v2; // eax\n  _DWORD *v3; // esi\n  unsigned int v4; // ebx\n  int v5; // eax\n  unsigned int v6; // ecx\n  _DWORD *v7; // esi\n  int v8; // eax\n  int v10; // ebx\n  _DWORD *v11; // esi\n  int v12; // eax\n  int v13; // ecx\n  unsigned int v14; // ecx\n  int v15; // [esp+Ch] [ebp-A0h]\n  unsigned int v16; // [esp+Ch] [ebp-A0h]\n  unsigned int v17; // [esp+14h] [ebp-98h]\n  char *v18; // [esp+18h] [ebp-94h]\n  int v19; // [esp+1Ch] [ebp-90h]\n  unsigned int v20; // [esp+20h] [ebp-8Ch]\n  unsigned int v21; // [esp+24h] [ebp-88h]\n  int v22; // [esp+28h] [ebp-84h]\n  char v23; // [esp+2Ch] [ebp-80h] BYREF\n\n  v22 = a1[3]; /*0x1cc6fe*/\n  v2 = (*(int (__cdecl **)(_DWORD *, int))*a1)(a1, a2); /*0x1cc71f*/\n  v21 = (65521 * (HIWORD(v2) ^ (unsigned __int16)v2) + v2) % a1[2]; /*0x1cc741*/\n  v3 = (_DWORD *)(v22 + 8 * v21); /*0x1cc750*/\n  v20 = 1; /*0x1cc753*/\n  v15 = 0; /*0x1cc75d*/\n  v19 = 0; /*0x1cc767*/\n  if ( *v3 == -1 ) /*0x1cc774*/\n    return 0; /*0x1cc774*/\n  ++dword_1E55A0; /*0x1cc77a*/\n  v4 = v21; /*0x1cc780*/\n  if ( a2 == *v3 ) /*0x1cc78b*/\n    v5 = 1; /*0x1cc7b4*/\n  else\n    v5 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v3, a2); /*0x1cc7aa*/\n  if ( v5 ) /*0x1cc7bb*/\n  {\n    v15 = 1; /*0x1cc7bd*/\n    v19 = v3[1]; /*0x1cc7c6*/\n  }\n  while ( 1 ) /*0x1cc7cf*/\n  {\n    v6 = 0; /*0x1cc7cf*/\n    if ( a1[2] > v4 + 1 ) /*0x1cc7d7*/\n      v6 = v4 + 1; /*0x1cc7d9*/\n    v4 = v6; /*0x1cc7db*/\n    if ( v21 == v6 ) /*0x1cc7e3*/\n      break; /*0x1cc7e3*/\n    v7 = (_DWORD *)(v22 + 8 * v6); /*0x1cc7eb*/\n    if ( *v7 == -1 ) /*0x1cc7f1*/\n      break; /*0x1cc7f1*/\n    if ( a2 == *v7 ) /*0x1cc7f8*/\n      v8 = 1; /*0x1cc820*/\n    else\n      v8 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v7, a2); /*0x1cc817*/\n    if ( v8 ) /*0x1cc827*/\n    {\n      ++v15; /*0x1cc829*/\n      v19 = v7[1]; /*0x1cc832*/\n    }\n    ++v20; /*0x1cc838*/\n  }\n  if ( !v15 ) /*0x1cc847*/\n    return 0; /*0x1cc849*/\n  if ( v15 != 1 )\n    _NXLogError(\"**** NXMapRemove: incorrect table\\n\");\n  if ( v20 <= 0x10 ) /*0x1cc86d*/\n    v18 = &v23; /*0x1cc893*/\n  else\n    v18 = (char *)malloc(8 * v20 - 8); /*0x1cc885*/\n  v10 = 0; /*0x1cc899*/\n  v17 = v21; /*0x1cc8a1*/\n  v16 = v20 - 1; /*0x1cc8ae*/\n  if ( v20 ) /*0x1cc8b7*/\n  {\n    do /*0x1cc94b*/\n    {\n      v11 = (_DWORD *)(v22 + 8 * v17); /*0x1cc8cc*/\n      if ( a2 == *v11 ) /*0x1cc8d4*/\n        v12 = 1; /*0x1cc8fc*/\n      else\n        v12 = (*(int (__cdecl **)(_DWORD *, _DWORD, int))(*a1 + 4))(a1, *v11, a2); /*0x1cc8f3*/\n      if ( !v12 ) /*0x1cc903*/\n      {\n        v13 = v11[1]; /*0x1cc90d*/\n        *(_DWORD *)&v18[8 * v10] = *v11; /*0x1cc910*/\n        *(_DWORD *)&v18[8 * v10++ + 4] = v13; /*0x1cc913*/\n      }\n      *v11 = -1; /*0x1cc918*/\n      v11[1] = 0; /*0x1cc91e*/\n      v14 = 0; /*0x1cc92c*/\n      if ( a1[2] > v17 + 1 ) /*0x1cc934*/\n        v14 = v17 + 1; /*0x1cc936*/\n      v17 = v14; /*0x1cc938*/\n      --v16; /*0x1cc93e*/\n    }\n    while ( v16 != -1 ); /*0x1cc94b*/\n  }\n  a1[1] -= v20; /*0x1cc95a*/\n  if ( v10 != v20 - 1 )\n    _NXLogError(\"**** NXMapRemove: bug\\n\");\n  while ( --v10 != -1 ) /*0x1cc995*/\n    NXMapInsert(a1, *(_DWORD *)&v18[8 * v10], *(_DWORD *)&v18[8 * v10 + 4]); /*0x1cc98d*/\n  if ( v20 > 0x10 ) /*0x1cc9a2*/\n    free(v18); /*0x1cc9ab*/\n  return v19; /*0x1cc9bc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e55a0",
+        "name": "dword_1E55A0"
+      },
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9c88",
+        "name": "aNxmapremoveInc",
+        "string": "**** NXMapRemove: incorrect table\n"
+      },
+      {
+        "addr": "0x15a880",
+        "name": "_malloc"
+      },
+      {
+        "addr": "0x1d9cac",
+        "name": "aNxmapremoveBug",
+        "string": "**** NXMapRemove: bug\n"
+      },
+      {
+        "addr": "0x1cc4d4",
+        "name": "_NXMapInsert"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cc9c4",
+    "addr": "0x001cc9c4",
+    "code": "int __cdecl NXInitMapState(int a1)\n{\n  return *(_DWORD *)(a1 + 8); /*0x1cc9cf*/\n}"
+  },
+  {
+    "requested_address": "0x001cc9d4",
+    "addr": "0x001cc9d4",
+    "code": "int __cdecl NXNextMapState(int a1, _DWORD *a2, _DWORD *a3, _DWORD *a4)\n{\n  int v4; // ecx\n  _DWORD *v5; // eax\n\n  v4 = *(_DWORD *)(a1 + 12); /*0x1cc9e6*/\n  while ( --*a2 != -1 ) /*0x1cca0c*/\n  {\n    v5 = (_DWORD *)(v4 + 8 * *a2); /*0x1cc9f5*/\n    if ( *v5 != -1 ) /*0x1cc9fa*/\n    {\n      *a3 = *v5; /*0x1cc9fe*/\n      *a4 = v5[1]; /*0x1cca03*/\n      return 1; /*0x1cca0a*/\n    }\n  }\n  return 0; /*0x1cca18*/\n}"
+  },
+  {
+    "requested_address": "0x001cca20",
+    "addr": "0x001cca20",
+    "code": "int __cdecl _mapPtrHash(int a1, int a2)\n{\n  return a2 ^ HIWORD(a2); /*0x1cca2c*/\n}"
+  },
+  {
+    "requested_address": "0x001cca30",
+    "addr": "0x001cca30",
+    "code": "int __cdecl _mapStrHash(int a1, _BYTE *a2)\n{\n  int v2; // ecx\n  _BYTE *v3; // edx\n  _BYTE *v4; // edx\n  _BYTE *v5; // edx\n  int v6; // eax\n  _BYTE *v7; // edx\n\n  v2 = 0; /*0x1cca33*/\n  v3 = a2; /*0x1cca35*/\n  if ( a2 && *a2 ) /*0x1cca3c*/\n  {\n    do /*0x1cca73*/\n    {\n      v2 ^= (unsigned __int8)*v3; /*0x1cca47*/\n      v4 = v3 + 1; /*0x1cca49*/\n      if ( !*v4 ) /*0x1cca4a*/\n        break; /*0x1cca4d*/\n      v2 ^= (unsigned __int8)*v4 << 8; /*0x1cca55*/\n      v5 = v4 + 1; /*0x1cca57*/\n      if ( !*v5 ) /*0x1cca58*/\n        break; /*0x1cca5b*/\n      v6 = (unsigned __int8)*v5 << 16; /*0x1cca60*/\n      v2 ^= v6; /*0x1cca63*/\n      v7 = v5 + 1; /*0x1cca65*/\n      if ( !*v7 ) /*0x1cca66*/\n        break; /*0x1cca69*/\n      LOBYTE(v6) = *v7; /*0x1cca6b*/\n      v2 ^= v6 << 24; /*0x1cca70*/\n      v3 = v7 + 1; /*0x1cca72*/\n    }\n    while ( *v3 ); /*0x1cca73*/\n  }\n  return v2; /*0x1cca7c*/\n}"
+  },
+  {
+    "requested_address": "0x001cca80",
+    "addr": "0x001cca80",
+    "code": "id __cdecl _mapObjectHash(int a1, id a2)\n{\n  return objc_msgSend(a2, sel_hash); /*0x1cca95*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2072ec",
+        "name": "sel_hash",
+        "string": "hash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cca98",
+    "addr": "0x001cca98",
+    "code": "_BOOL4 __cdecl _mapPtrIsEqual(int a1, int a2, int a3)\n{\n  return a2 == a3; /*0x1ccaab*/\n}"
+  },
+  {
+    "requested_address": "0x001ccab0",
+    "addr": "0x001ccab0",
+    "code": "_BOOL4 __cdecl _mapStrIsEqual(int a1, char *__s1, char *__s2)\n{\n  const char *v4; // edi\n\n  if ( __s1 == __s2 ) /*0x1ccabc*/\n    return 1; /*0x1ccac3*/\n  if ( !__s1 ) /*0x1ccaca*/\n  {\n    v4 = __s2; /*0x1ccace*/\n    return strlen(v4) == 0; /*0x1ccaef*/\n  }\n  if ( !__s2 ) /*0x1ccad6*/\n  {\n    v4 = __s1; /*0x1ccada*/\n    return strlen(v4) == 0; /*0x1ccada*/\n  }\n  return *__s2 == *__s1 && strcmp(__s1, __s2) == 0; /*0x1ccb06*/\n}",
+    "refs": [
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ccb1c",
+    "addr": "0x001ccb1c",
+    "code": "int __cdecl _mapObjectIsEqual(int a1, id a2, int a3)\n{\n  return (char)objc_msgSend(a2, sel_isEqual_, a3); /*0x1ccb38*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205ea8",
+        "name": "sel_isEqual:",
+        "string": "isEqual:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ccb3c",
+    "addr": "0x001ccb3c",
+    "code": "void _mapNoFree()\n{\n  ; /*0x1ccb3c*/\n}"
+  }
+]

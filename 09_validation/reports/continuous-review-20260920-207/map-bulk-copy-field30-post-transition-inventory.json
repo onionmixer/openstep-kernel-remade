@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "method": "Python 3 selected exact VM-map-prefix REP MOVSD sites whose preceding local window contains MOV ECX,0xb. It checked listed copy and explicit increment instructions against original bytes and exports.",
+  "inputs": {"binary":"03_original/x86/binaries/mach_kernel","binary_sha256":"33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890","function_prefixes":["_vm_map","__vm_map"]},
+  "counts": {"bulk_copy_sites":22,"post_copy_incrementing_copy_sites":20,"distinct_increment_sites":20,"exceptional_copy_sites":2},
+  "copy_to_increment": [
+    ["0x00174e53","0x00174eac"],["0x00174f23","0x00174f78"],["0x00175113","0x0017516c"],["0x001751f7","0x0017524c"],
+    ["0x00175467","0x001754c0"],["0x001755b8","0x00175608"],["0x00175997","0x001759f4"],["0x00175a94","0x00175ae4"],
+    ["0x00175c9f","0x00175cf8"],["0x00175dd4","0x00175e24"],["0x00175ee0","0x00175f30"],["0x001762a1","0x001762f8"],
+    ["0x001763c9","0x0017641c"],["0x00176e0c","0x00176e6c"],["0x00176fb4","0x00177014"],["0x00177190","0x001771ec"],
+    ["0x00177270","0x001772cc"],["0x00177359","0x001773b0"],["0x00177441","0x00177498"],["0x00177cee","0x00177d10"]
+  ],
+  "exceptions": [
+    {"copy":"0x00177c78","shown_post_copy_flow":["0x00177c9f MOV [ECX+0x10],EBX","0x00177cee is a later distinct copy","0x00177d10 INC [EBX+0x30] after that later copy"],"limit":"The first copy is not assigned a unique immediate increment."},
+    {"copy":"0x00177db6","shown_post_copy_flow":["0x00177db8 MOV word [EAX+0x28],0","0x00177dc1 MOV dword [ECX+0x10],0"],"limit":"No ordinary post-copy +0x30 increment is asserted for this copied destination."}
+  ],
+  "representative_raw_byte_validation": [
+    ["0x00174e4e",478798,"b90b000000"],["0x00174e53",478803,"f3a5"],["0x00174e8c",478860,"8b5610"],["0x00174eac",478892,"ff4230"],["0x00174eb1",478897,"874234"],
+    ["0x0017629c",483996,"b90b000000"],["0x00177c73",490611,"b90b000000"],["0x00177c78",490616,"f3a5"],["0x00177c9f",490655,"895910"],
+    ["0x00177ce9",490729,"b90b000000"],["0x00177cee",490734,"f3a5"],["0x00177d10",490768,"ff4330"],["0x00177d15",490773,"874334"],
+    ["0x00177db1",490929,"b90b000000"],["0x00177db6",490934,"f3a5"],["0x00177db8",490936,"66c740280000"],["0x00177dc1",490945,"c7411000000000"]
+  ],
+  "limits": [
+    "The table records static instruction paths. It makes no runtime branch-execution or balance claim.",
+    "A numeric +0x30 displacement is not by itself a type proof; the report retains record/pointer provenance limits.",
+    "Computed aliases, bulk writers outside the selected prefix, indirect paths, concurrency, callback behavior, and runtime lifetime remain outside this inventory."
+  ]
+}

@@ -1,0 +1,1022 @@
+[
+  {
+    "requested_address": "0x0015db48",
+    "addr": "0x0015db48",
+    "code": "int mach_net_init()\n{\n  int *v0; // eax\n  int v2; // [esp+0h] [ebp-4h] BYREF\n\n  listener_zone = zinit(20, 2000, 20, 0, aNetListenerZon); /*0x15db63*/\n  dword_1E5BAC = 17; /*0x15db68*/\n  dword_1E5BB0 = 2028; /*0x15db72*/\n  dword_1E5BB4 = 0; /*0x15db7c*/\n  dword_1E5BB8 = 0; /*0x15db86*/\n  dword_1E5BC0 = 1959; /*0x15db90*/\n  v0 = (int *)&listeners; /*0x15db9a*/\n  if ( &listeners < (_UNKNOWN *)&mach_net_kmsg_zone ) /*0x15dba7*/\n  {\n    do /*0x15dbba*/\n    {\n      *v0 = 0; /*0x15dbac*/\n      v0 += 2; /*0x15dbb2*/\n    }\n    while ( v0 < &mach_net_kmsg_zone ); /*0x15dbba*/\n  }\n  mach_net_kmsg_zone = zinit(2048, 0x2000, 2048, 0, aMachNetMessage); /*0x15dbd7*/\n  zchange(mach_net_kmsg_zone, 0, 0, 0, 0); /*0x15dbe5*/\n  kmem_alloc_wired(kernel_map, &v2, 0x2000); /*0x15dbfd*/\n  return zcram(mach_net_kmsg_zone, v2, 0x2000); /*0x15dc17*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63fc",
+        "name": "_listener_zone"
+      },
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1def29",
+        "name": "aNetListenerZon",
+        "string": "net listener zone"
+      },
+      {
+        "addr": "0x1e5bac",
+        "name": "dword_1E5BAC"
+      },
+      {
+        "addr": "0x1e5bb0",
+        "name": "dword_1E5BB0"
+      },
+      {
+        "addr": "0x1e5bb4",
+        "name": "dword_1E5BB4"
+      },
+      {
+        "addr": "0x1e5bb8",
+        "name": "dword_1E5BB8"
+      },
+      {
+        "addr": "0x1e5bc0",
+        "name": "dword_1E5BC0"
+      },
+      {
+        "addr": "0x1f6400",
+        "name": "_listeners"
+      },
+      {
+        "addr": "0x1f6480",
+        "name": "_mach_net_kmsg_zone"
+      },
+      {
+        "addr": "0x1def3b",
+        "name": "aMachNetMessage",
+        "string": "mach_net messages"
+      },
+      {
+        "addr": "0x16b90c",
+        "name": "_zchange"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x16a5dc",
+        "name": "_zcram"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015dc1c",
+    "addr": "0x0015dc1c",
+    "code": "int __cdecl netipc_msg_release(int a1)\n{\n  return zfree(mach_net_kmsg_zone, a1); /*0x15dc30*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6480",
+        "name": "_mach_net_kmsg_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015dc34",
+    "addr": "0x0015dc34",
+    "code": "int __cdecl receive_ip_datagram(int *a1)\n{\n  int v1; // ecx\n  char *v2; // esi\n  int *v3; // eax\n  char *v5; // ebx\n  int *v6; // eax\n  __int16 v7; // dx\n  __int16 v8; // dx\n  int v9; // edx\n  int v10; // edx\n  int v11; // ecx\n  signed __int32 v12; // ebx\n  int *v13; // [esp+Ch] [ebp-24h]\n  _DWORD *v14; // [esp+Ch] [ebp-24h]\n  char *v15; // [esp+10h] [ebp-20h]\n  int v16; // [esp+10h] [ebp-20h]\n  unsigned int v17; // [esp+10h] [ebp-20h]\n  int v18; // [esp+14h] [ebp-1Ch]\n  int v19; // [esp+14h] [ebp-1Ch]\n  int v20; // [esp+14h] [ebp-1Ch]\n  char *v21; // [esp+28h] [ebp-8h]\n  int v22; // [esp+2Ch] [ebp-4h]\n\n  v1 = *a1; /*0x15dc40*/\n  v2 = (char *)(*(_DWORD *)(v1 + 4) + v1); /*0x15dc44*/\n  v15 = v2; /*0x15dc47*/\n  if ( (*v2 & 0xFu) > 5 ) /*0x15dc52*/\n  {\n    v18 = *a1; /*0x15dc57*/\n    ip_stripoptions((unsigned int)v2, 0); /*0x15dc5a*/\n    v1 = v18; /*0x15dc62*/\n  }\n  if ( *(_DWORD *)(v1 + 4) > 0x7Cu || *(_WORD *)(v1 + 8) <= 0x17u ) /*0x15dc70*/\n  {\n    v3 = m_pullup(v1, 24); /*0x15dc75*/\n    v1 = (int)v3; /*0x15dc7a*/\n    *a1 = (int)v3; /*0x15dc7c*/\n    if ( !v3 ) /*0x15dc83*/\n      return 1; /*0x15dc8a*/\n    v15 = (char *)v3 + v3[1]; /*0x15dc95*/\n  }\n  v5 = (char *)&listeners + 8 * (v15[9] & 0xF); /*0x15dcc9*/\n  v6 = *((int **)v5 + 1); /*0x15dcd0*/\n  v13 = v6; /*0x15dcd3*/\n  if ( v6 ) /*0x15dcd8*/\n  {\n    while ( 1 ) /*0x15dcdc*/\n    {\n      v7 = *((_WORD *)v6 + 7); /*0x15dcdc*/\n      if ( !v7 || *((_WORD *)v15 + 11) == v7 ) /*0x15dce9*/\n      {\n        v8 = *((_WORD *)v6 + 6); /*0x15dceb*/\n        if ( !v8 || *((_WORD *)v15 + 10) == v8 ) /*0x15dcf8*/\n        {\n          v9 = v6[1]; /*0x15dcfa*/\n          if ( !v9 || *((_DWORD *)v15 + 3) == v9 ) /*0x15dd04*/\n          {\n            v10 = v6[2]; /*0x15dd06*/\n            if ( !v10 || *((_DWORD *)v15 + 4) == v10 ) /*0x15dd10*/\n              break; /*0x15dd10*/\n          }\n        }\n      }\n      v13 = v6; /*0x15dd30*/\n      v6 = (int *)*v6; /*0x15dd33*/\n      if ( !v6 ) /*0x15dd37*/\n        goto LABEL_21; /*0x15dd37*/\n    }\n    if ( *((int **)v5 + 1) != v6 ) /*0x15dd15*/\n    {\n      *v13 = *v6; /*0x15dd1c*/\n      *v6 = *((_DWORD *)v5 + 1); /*0x15dd21*/\n      *((_DWORD *)v5 + 1) = v6; /*0x15dd23*/\n    }\n    v22 = v6[4]; /*0x15dd29*/\n  }\n  else\n  {\nLABEL_21:\n    v22 = 0; /*0x15dd39*/\n  }\n  if ( !v22 ) /*0x15dd44*/\n    return 0; /*0x15dd46*/\n  v19 = v1; /*0x15dd50*/\n  spl0(); /*0x15dd53*/\n  v14 = (_DWORD *)zget(mach_net_kmsg_zone); /*0x15dd64*/\n  v11 = v19; /*0x15dd6a*/\n  if ( v14 ) /*0x15dd6f*/\n  {\n    v14[2] = -3; /*0x15dd7f*/\n    v14[3] = 0; /*0x15dd86*/\n    v14[4] = 0; /*0x15dd8d*/\n    *((_WORD *)v15 + 1) += 4 * (*v15 & 0xF); /*0x15dda1*/\n    *((__int16 *)v15 + 3) >>= 3; /*0x15dda5*/\n    v16 = 2004; /*0x15ddaa*/\n    v21 = (char *)(v14 + 11); /*0x15ddb4*/\n    if ( v19 ) /*0x15ddb9*/\n    {\n      do /*0x15ddf9*/\n      {\n        if ( v16 <= 0 ) /*0x15ddc0*/\n          break; /*0x15ddc0*/\n        v12 = *(__int16 *)(v11 + 8); /*0x15ddc2*/\n        if ( v16 < v12 ) /*0x15ddc9*/\n          v12 = v16; /*0x15ddcb*/\n        v20 = v11; /*0x15ddd9*/\n        bcopy((const void *)(*(_DWORD *)(v11 + 4) + v11), v21, v12); /*0x15dddc*/\n        v21 += v12; /*0x15dde3*/\n        v16 -= v12; /*0x15dde6*/\n        v11 = m_free(v20); /*0x15ddf2*/\n      }\n      while ( v11 ); /*0x15ddf9*/\n    }\n    v14[4] = v16; /*0x15de01*/\n    v17 = v16 & 0xFFFFFFFC; /*0x15de07*/\n    v14[4] = v17 - v14[4]; /*0x15de10*/\n    qmemcpy(v14 + 5, &dword_1E5BAC, 0x18u); /*0x15de28*/\n    v14[6] -= v17; /*0x15de30*/\n    v14[7] = v22; /*0x15de36*/\n    ipc_object_reference(v22); /*0x15de3a*/\n    ipc_mqueue_send((int)v14, 0x10000, 0, 0); /*0x15de4c*/\n  }\n  else\n  {\n    m_freem(v19); /*0x15dd72*/\n  }\n  splnet(); /*0x15de54*/\n  return 1; /*0x15de61*/\n}",
+    "refs": [
+      {
+        "addr": "0x126e1c",
+        "name": "_ip_stripoptions"
+      },
+      {
+        "addr": "0x1145a4",
+        "name": "_m_pullup"
+      },
+      {
+        "addr": "0x1f6400",
+        "name": "_listeners"
+      },
+      {
+        "addr": "0x18b60c",
+        "name": "_spl0"
+      },
+      {
+        "addr": "0x16b7b8",
+        "name": "_zget"
+      },
+      {
+        "addr": "0x1f6480",
+        "name": "_mach_net_kmsg_zone"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x1e5bac",
+        "name": "dword_1E5BAC"
+      },
+      {
+        "addr": "0x14b844",
+        "name": "_ipc_object_reference"
+      },
+      {
+        "addr": "0x14a764",
+        "name": "_ipc_mqueue_send"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015de68",
+    "addr": "0x0015de68",
+    "code": "int __cdecl xxx_host_info(int a1, int *a2)\n{\n  qmemcpy(a2, &machine_info, 0x14u); /*0x15de7b*/\n  return 0; /*0x15de82*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6340",
+        "name": "_machine_info"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015de88",
+    "addr": "0x0015de88",
+    "code": "int __cdecl xxx_slot_info(int a1, int a2, int *a3)\n{\n  if ( a2 ) /*0x15de92*/\n    return 4; /*0x15de96*/\n  qmemcpy(a3, machine_slot, 0x20u); /*0x15deb2*/\n  return 0; /*0x15deb9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8e00",
+        "name": "_machine_slot"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015dec0",
+    "addr": "0x0015dec0",
+    "code": "int xxx_cpu_control()\n{\n  return 5; /*0x15deca*/\n}"
+  },
+  {
+    "requested_address": "0x0015decc",
+    "addr": "0x0015decc",
+    "code": "__int32 __cdecl cpu_up(int a1)\n{\n  int v1; // ebx\n  int v2; // esi\n  volatile __int32 *v3; // edx\n\n  v1 = processor_ptr[a1]; /*0x15ded5*/\n  do /*0x15def5*/\n  {\n    while ( dword_1E9768[0] ) /*0x15dee3*/\n      ; /*0x15dee1*/\n  }\n  while ( _InterlockedExchange(dword_1E9768, 1) == 1 ); /*0x15def5*/\n  v2 = splsched(); /*0x15defc*/\n  v3 = (volatile __int32 *)(v1 + 316); /*0x15defe*/\n  do /*0x15df16*/\n  {\n    while ( *v3 ) /*0x15df04*/\n      ; /*0x15df06*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x15df16*/\n  dword_1E8E0C[8 * a1] = 1; /*0x15df1d*/\n  ++dword_1F634C; /*0x15df27*/\n  pset_add_processor(&default_pset, v1); /*0x15df33*/\n  *(_DWORD *)(v1 + 276) = 1; /*0x15df38*/\n  _InterlockedExchange((volatile __int32 *)(v1 + 316), 0); /*0x15df47*/\n  splx(v2); /*0x15df4e*/\n  return _InterlockedExchange(dword_1E9768, 0); /*0x15df5e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e9050",
+        "name": "_processor_ptr"
+      },
+      {
+        "addr": "0x1e9768",
+        "name": "dword_1E9768"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1e8e0c",
+        "name": "dword_1E8E0C"
+      },
+      {
+        "addr": "0x1f634c",
+        "name": "dword_1F634C"
+      },
+      {
+        "addr": "0x1614a4",
+        "name": "_pset_add_processor"
+      },
+      {
+        "addr": "0x1e9610",
+        "name": "_default_pset"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015df68",
+    "addr": "0x0015df68",
+    "code": "int __cdecl cpu_down(int a1)\n{\n  int v1; // esi\n  int v2; // ecx\n  volatile __int32 *v3; // edx\n\n  v1 = splsched(); /*0x15df75*/\n  v2 = processor_ptr[a1]; /*0x15df77*/\n  v3 = (volatile __int32 *)(v2 + 316); /*0x15df7e*/\n  do /*0x15df96*/\n  {\n    while ( *v3 ) /*0x15df84*/\n      ; /*0x15df86*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x15df96*/\n  dword_1E8E0C[8 * a1] = 0; /*0x15df9d*/\n  --dword_1F634C; /*0x15dfa7*/\n  *(_DWORD *)(v2 + 304) = 0; /*0x15dfad*/\n  *(_DWORD *)(v2 + 276) = 0; /*0x15dfb7*/\n  _InterlockedExchange((volatile __int32 *)(v2 + 316), 0); /*0x15dfc3*/\n  return splx(v1); /*0x15dfd2*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1e9050",
+        "name": "_processor_ptr"
+      },
+      {
+        "addr": "0x1e8e0c",
+        "name": "dword_1E8E0C"
+      },
+      {
+        "addr": "0x1f634c",
+        "name": "dword_1F634C"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015dfd8",
+    "addr": "0x0015dfd8",
+    "code": "kern_return_t __cdecl processor_assign(processor_t processor, processor_set_t new_set, boolean_t wait)\n{\n  return 5; /*0x15dfe2*/\n}"
+  },
+  {
+    "requested_address": "0x0015dfe4",
+    "addr": "0x0015dfe4",
+    "code": "int mfs_init()\n{\n  int result; // eax\n  _BYTE v1[4]; // [esp+0h] [ebp-8h] BYREF\n  _BYTE v2[4]; // [esp+4h] [ebp-4h] BYREF\n\n  dword_1F64D4 = (int)&vm_info_queue; /*0x15dfea*/\n  vm_info_queue = (int)&vm_info_queue; /*0x15dff4*/\n  vm_info_lock_data = 0; /*0x15dffe*/\n  lock_init(mfs_alloc_lock_data, 1); /*0x15e00f*/\n  mfs_alloc_wanted = 0; /*0x15e014*/\n  mfs_map = kmem_suballoc(kernel_map, v2, v1, mfs_map_size, 1); /*0x15e03b*/\n  mfs_map_size = dword_1F6350; /*0x15e046*/\n  if ( (unsigned int)dword_1F6350 > 0x1000000 ) /*0x15e055*/\n    mfs_map_size = 0x1000000; /*0x15e057*/\n  if ( !mfs_max_window ) /*0x15e068*/\n    mfs_max_window = mfs_map_size / 0x14u; /*0x15e078*/\n  if ( (unsigned int)mfs_max_window <= 0xFFFF ) /*0x15e087*/\n    mfs_max_window = 0x10000; /*0x15e089*/\n  result = zinit(60, 600000, 0x2000, 0, aVmInfoZone); /*0x15e0a6*/\n  vm_info_zone = result; /*0x15e0ab*/\n  return result; /*0x15e0b0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      },
+      {
+        "addr": "0x1f6490",
+        "name": "_mfs_alloc_lock_data"
+      },
+      {
+        "addr": "0x1f649c",
+        "name": "_mfs_alloc_wanted"
+      },
+      {
+        "addr": "0x1f64a0",
+        "name": "_mfs_map"
+      },
+      {
+        "addr": "0x173fbc",
+        "name": "_kmem_suballoc"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x1def58",
+        "name": "_mfs_map_size"
+      },
+      {
+        "addr": "0x1f6350",
+        "name": "dword_1F6350"
+      },
+      {
+        "addr": "0x1def5c",
+        "name": "_mfs_max_window"
+      },
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1def68",
+        "name": "aVmInfoZone",
+        "string": "vm_info zone"
+      },
+      {
+        "addr": "0x1e90cc",
+        "name": "_vm_info_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e0b4",
+    "addr": "0x0015e0b4",
+    "code": "int __cdecl vm_info_init(int *a1)\n{\n  int v1; // ebx\n  int result; // eax\n\n  v1 = *a1; /*0x15e0bc*/\n  if ( !*a1 ) /*0x15e0bc*/\n    v1 = zalloc(vm_info_zone); /*0x15e0ce*/\n  *(_DWORD *)v1 = 0; /*0x15e0d3*/\n  *(_WORD *)(v1 + 4) = 0; /*0x15e0d9*/\n  *(_WORD *)(v1 + 6) = 0; /*0x15e0df*/\n  *(_DWORD *)(v1 + 8) = 0; /*0x15e0e5*/\n  *(_DWORD *)(v1 + 12) = 0; /*0x15e0ec*/\n  *(_DWORD *)(v1 + 16) = 0; /*0x15e0f3*/\n  *(_DWORD *)(v1 + 48) = 0; /*0x15e0fa*/\n  *(_DWORD *)(v1 + 52) = 0; /*0x15e101*/\n  *(_BYTE *)(v1 + 56) = *(_BYTE *)(v1 + 56) & 0xE8 | 4; /*0x15e10f*/\n  *(_DWORD *)(v1 + 20) = 0; /*0x15e112*/\n  result = lock_init((void *)(v1 + 24), 1); /*0x15e11f*/\n  *(_DWORD *)(v1 + 36) = 0; /*0x15e124*/\n  *a1 = v1; /*0x15e12b*/\n  return result; /*0x15e130*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1e90cc",
+        "name": "_vm_info_zone"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e138",
+    "addr": "0x0015e138",
+    "code": "int __cdecl vm_info_enqueue(int a1)\n{\n  int result; // eax\n\n  result = dword_1F64D4; /*0x15e13e*/\n  if ( (int *)dword_1F64D4 == &vm_info_queue ) /*0x15e148*/\n    vm_info_queue = a1; /*0x15e14a*/\n  else\n    *(_DWORD *)(dword_1F64D4 + 40) = a1; /*0x15e154*/\n  *(_DWORD *)(a1 + 44) = result; /*0x15e157*/\n  *(_DWORD *)(a1 + 40) = &vm_info_queue; /*0x15e15a*/\n  dword_1F64D4 = a1; /*0x15e161*/\n  *(_BYTE *)(a1 + 56) |= 1u; /*0x15e167*/\n  ++mfs_files_mapped; /*0x15e16b*/\n  ++vm_info_version; /*0x15e171*/\n  return result; /*0x15e179*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e17c",
+    "addr": "0x0015e17c",
+    "code": "int *__cdecl vm_info_dequeue(int a1)\n{\n  int *v1; // edx\n  int *result; // eax\n\n  v1 = *(int **)(a1 + 40); /*0x15e182*/\n  result = *(int **)(a1 + 44); /*0x15e185*/\n  if ( v1 == &vm_info_queue ) /*0x15e18e*/\n    dword_1F64D4 = *(_DWORD *)(a1 + 44); /*0x15e190*/\n  else\n    v1[11] = (int)result; /*0x15e198*/\n  if ( result == &vm_info_queue ) /*0x15e1a0*/\n    vm_info_queue = (int)v1; /*0x15e1a2*/\n  else\n    result[10] = (int)v1; /*0x15e1ac*/\n  *(_BYTE *)(a1 + 56) &= ~1u; /*0x15e1af*/\n  --mfs_files_mapped; /*0x15e1b3*/\n  ++vm_info_version; /*0x15e1b9*/\n  return result; /*0x15e1c1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e1c4",
+    "addr": "0x0015e1c4",
+    "code": "__int16 __cdecl map_vnode(int *a1)\n{\n  int v1; // ebx\n  __int16 result; // ax\n  int v3; // esi\n  int v4; // eax\n  unsigned int v5; // eax\n\n  v1 = *a1; /*0x15e1cd*/\n  result = *(_WORD *)(*a1 + 4); /*0x15e1cf*/\n  *(_WORD *)(*a1 + 4) = result + 1; /*0x15e1d3*/\n  if ( result <= 0 && (*(_BYTE *)(v1 + 56) & 0x10) == 0 ) /*0x15e1e4*/\n  {\n    vmp_get(v1); /*0x15e1eb*/\n    v3 = vnode_pager_setup(a1, 0, 1); /*0x15e1fa*/\n    *(_DWORD *)v1 = v3; /*0x15e1fc*/\n    lock_write(&vm_alloc_lock); /*0x15e203*/\n    *(_DWORD *)(v1 + 36) = vm_object_lookup(v3); /*0x15e20e*/\n    ++dword_1F651C; /*0x15e211*/\n    if ( *(_DWORD *)(v1 + 36) ) /*0x15e21a*/\n    {\n      ++dword_1F6520; /*0x15e244*/\n    }\n    else\n    {\n      v4 = vm_object_allocate(0); /*0x15e222*/\n      *(_DWORD *)(v1 + 36) = v4; /*0x15e227*/\n      vm_object_enter(v4, v3); /*0x15e22c*/\n      vm_object_setpager(*(_DWORD *)(v1 + 36), v3, 0); /*0x15e23a*/\n    }\n    lock_done(&vm_alloc_lock); /*0x15e24f*/\n    *(_DWORD *)(v1 + 52) = 0; /*0x15e254*/\n    *(_DWORD *)(v1 + 20) = vnode_size(a1); /*0x15e261*/\n    *(_DWORD *)(v1 + 8) = 0; /*0x15e264*/\n    *(_DWORD *)(v1 + 12) = 0; /*0x15e26b*/\n    *(_DWORD *)(v1 + 16) = 0; /*0x15e272*/\n    *(_BYTE *)(v1 + 56) |= 0x10u; /*0x15e279*/\n    v5 = *(_DWORD *)(v1 + 20); /*0x15e280*/\n    if ( v5 ) /*0x15e285*/\n    {\n      if ( mfs_max_window > v5 ) /*0x15e28d*/\n        remap_vnode(a1, 0, *(_DWORD *)(v1 + 20)); /*0x15e293*/\n    }\n    return vmp_put(v1); /*0x15e29c*/\n  }\n  return result; /*0x15e2a4*/\n}",
+    "refs": [
+      {
+        "addr": "0x15e9b8",
+        "name": "_vmp_get"
+      },
+      {
+        "addr": "0x17d1e4",
+        "name": "_vnode_pager_setup"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f64c0",
+        "name": "_vm_alloc_lock"
+      },
+      {
+        "addr": "0x179630",
+        "name": "_vm_object_lookup"
+      },
+      {
+        "addr": "0x1f651c",
+        "name": "dword_1F651C"
+      },
+      {
+        "addr": "0x1f6520",
+        "name": "dword_1F6520"
+      },
+      {
+        "addr": "0x178b80",
+        "name": "_vm_object_allocate"
+      },
+      {
+        "addr": "0x1796ec",
+        "name": "_vm_object_enter"
+      },
+      {
+        "addr": "0x1795f8",
+        "name": "_vm_object_setpager"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15efb4",
+        "name": "_vnode_size"
+      },
+      {
+        "addr": "0x15e380",
+        "name": "_remap_vnode"
+      },
+      {
+        "addr": "0x1def5c",
+        "name": "_mfs_max_window"
+      },
+      {
+        "addr": "0x15ea38",
+        "name": "_vmp_put"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e2ac",
+    "addr": "0x0015e2ac",
+    "code": "void __cdecl unmap_vnode(_DWORD *a1)\n{\n  int v1; // ebx\n  __int16 v2; // dx\n  __int16 v3; // ax\n  int v4; // esi\n  volatile __int32 *v5; // edx\n  int v6; // [esp+Ch] [ebp-4h] BYREF\n\n  v1 = *a1; /*0x15e2b8*/\n  if ( (*(_BYTE *)(*a1 + 56) & 0x10) != 0 ) /*0x15e2be*/\n  {\n    v2 = *(_WORD *)(v1 + 4); /*0x15e2c4*/\n    *(_WORD *)(v1 + 4) = v2 - 1; /*0x15e2cc*/\n    if ( (__int16)(v2 - 1) <= 0 ) /*0x15e2d7*/\n    {\n      *(_WORD *)(v1 + 4) = v2; /*0x15e2dd*/\n      (*(void (__cdecl **)(_DWORD *, int *))(a1[7] + 124))(a1, &v6); /*0x15e2ec*/\n      v3 = *(_WORD *)(v1 + 4); /*0x15e2ee*/\n      *(_WORD *)(v1 + 4) = v3 - 1; /*0x15e2f6*/\n      if ( v6 ) /*0x15e301*/\n      {\n        v4 = *(_DWORD *)(v1 + 36); /*0x15e310*/\n        if ( close_flush || (*(_BYTE *)(v1 + 56) & 4) != 0 ) /*0x15e320*/\n        {\n          *(_WORD *)(v1 + 4) = v3; /*0x15e322*/\n          vmp_get(v1); /*0x15e327*/\n          vmp_push(v1); /*0x15e32d*/\n        }\n        v5 = (volatile __int32 *)(v4 + 16); /*0x15e335*/\n        do /*0x15e34a*/\n        {\n          while ( *v5 ) /*0x15e338*/\n            ; /*0x15e33a*/\n        }\n        while ( _InterlockedExchange(v5, 1) == 1 ); /*0x15e34a*/\n        vm_object_deactivate_pages(v4); /*0x15e34d*/\n        _InterlockedExchange((volatile __int32 *)(v4 + 16), 0); /*0x15e357*/\n        if ( close_flush || (*(_BYTE *)(v1 + 56) & 4) != 0 ) /*0x15e367*/\n        {\n          vmp_put(v1); /*0x15e36a*/\n          --*(_WORD *)(v1 + 4); /*0x15e36f*/\n        }\n      }\n      else\n      {\n        mfs_memfree(v1, 0); /*0x15e306*/\n      }\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x15e9b8",
+        "name": "_vmp_get"
+      },
+      {
+        "addr": "0x15fc58",
+        "name": "_vmp_push"
+      },
+      {
+        "addr": "0x1def78",
+        "name": "_close_flush"
+      },
+      {
+        "addr": "0x179084",
+        "name": "_vm_object_deactivate_pages"
+      },
+      {
+        "addr": "0x15ea38",
+        "name": "_vmp_put"
+      },
+      {
+        "addr": "0x15eb0c",
+        "name": "_mfs_memfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e380",
+    "addr": "0x0015e380",
+    "code": "int __cdecl remap_vnode(int a1, int a2, int a3)\n{\n  _DWORD *v3; // edi\n  int v4; // eax\n  int v5; // eax\n  int v6; // esi\n  int v7; // ebx\n  int *v8; // edx\n  int *v9; // eax\n  int v11; // [esp+10h] [ebp-8h]\n  int v12; // [esp+14h] [ebp-4h] BYREF\n  unsigned int v13; // [esp+28h] [ebp+10h]\n\n  v3 = *(_DWORD **)a1; /*0x15e38f*/\n  v4 = *(_DWORD *)(*(_DWORD *)a1 + 12); /*0x15e391*/\n  if ( v4 ) /*0x15e396*/\n    mfs_map_remove(v3, v3[2], v3[2] + v4, 1); /*0x15e3a2*/\n  v11 = a2 & ~page_mask; /*0x15e3b8*/\n  v13 = (~page_mask & (page_mask + a2 + a3)) - v11; /*0x15e3c7*/\n  if ( v13 <= 0xFFFF ) /*0x15e3d0*/\n    v13 = 0x10000; /*0x15e3d2*/\n  do /*0x15e50b*/\n  {\n    v12 = *(_DWORD *)(mfs_map + 20); /*0x15e3e4*/\n    lock_write((int)mfs_alloc_lock_data); /*0x15e3ec*/\n    v5 = vm_allocate_with_pager(mfs_map, &v12, v13, 1, *v3, v11); /*0x15e409*/\n    v6 = v5; /*0x15e40e*/\n    if ( v5 == 3 ) /*0x15e416*/\n    {\n      do /*0x15e435*/\n      {\n        while ( vm_info_lock_data ) /*0x15e423*/\n          ; /*0x15e421*/\n      }\n      while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15e435*/\n      v7 = 0; /*0x15e437*/\n      if ( (int *)vm_info_queue != &vm_info_queue ) /*0x15e443*/\n      {\n        v7 = vm_info_queue; /*0x15e445*/\n        v8 = *(int **)(vm_info_queue + 40); /*0x15e447*/\n        v9 = *(int **)(vm_info_queue + 44); /*0x15e44a*/\n        if ( v8 == &vm_info_queue ) /*0x15e453*/\n          dword_1F64D4 = *(_DWORD *)(vm_info_queue + 44); /*0x15e455*/\n        else\n          v8[11] = (int)v9; /*0x15e45c*/\n        if ( v9 == &vm_info_queue ) /*0x15e464*/\n          vm_info_queue = (int)v8; /*0x15e49c*/\n        else\n          v9[10] = (int)v8; /*0x15e466*/\n        *(_BYTE *)(v7 + 56) &= ~1u; /*0x15e469*/\n        --mfs_files_mapped; /*0x15e46d*/\n        ++vm_info_version; /*0x15e473*/\n      }\n      _InterlockedExchange(&vm_info_lock_data, 0); /*0x15e47b*/\n      if ( v7 ) /*0x15e483*/\n      {\n        lock_done((int)mfs_alloc_lock_data); /*0x15e48a*/\n        mfs_memfree(v7, 1); /*0x15e492*/\n      }\n      else\n      {\n        mfs_alloc_wanted = 1; /*0x15e4a4*/\n        assert_wait(&mfs_map, 0); /*0x15e4b5*/\n        ++mfs_alloc_blocks; /*0x15e4ba*/\n        lock_done((int)mfs_alloc_lock_data); /*0x15e4c5*/\n        thread_block(); /*0x15e4ca*/\n      }\n      lock_write((int)mfs_alloc_lock_data); /*0x15e4d4*/\n    }\n    else if ( v5 ) /*0x15e4e2*/\n    {\n      printf(\"Unexpected error on file map, ret = %d.\\n\", v5); /*0x15e4ea*/\n      panic(aRemapVnode); /*0x15e4f4*/\n    }\n    lock_done((int)mfs_alloc_lock_data); /*0x15e501*/\n  }\n  while ( v6 ); /*0x15e50b*/\n  v3[2] = v12; /*0x15e514*/\n  v3[3] = v13; /*0x15e51a*/\n  v3[4] = v11; /*0x15e520*/\n  return 1; /*0x15e52b*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f64a0",
+        "name": "_mfs_map"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6490",
+        "name": "_mfs_alloc_lock_data"
+      },
+      {
+        "addr": "0x17c4f4",
+        "name": "_vm_allocate_with_pager"
+      },
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15eb0c",
+        "name": "_mfs_memfree"
+      },
+      {
+        "addr": "0x1f649c",
+        "name": "_mfs_alloc_wanted"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x1def54",
+        "name": "_mfs_alloc_blocks"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1def7c",
+        "name": "aUnexpectedErro",
+        "string": "Unexpected error on file map, ret = %d.\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1defa5",
+        "name": "aRemapVnode",
+        "string": "remap_vnode"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e534",
+    "addr": "0x0015e534",
+    "code": "int __cdecl mfs_trunc(__int32 *a1, unsigned int a2)\n{\n  __int32 v2; // edi\n  unsigned int v4; // ebx\n  unsigned int v5; // eax\n  unsigned int v6; // edx\n  unsigned int v7; // eax\n  size_t v8; // ebx\n  unsigned int v9; // eax\n  int v10; // eax\n  int v11; // ebx\n  int *v12; // edx\n  int *v13; // eax\n  unsigned int v14; // [esp+Ch] [ebp-1Ch]\n  int v15; // [esp+Ch] [ebp-1Ch]\n  int v16; // [esp+14h] [ebp-14h]\n  _DWORD *v17; // [esp+18h] [ebp-10h]\n  unsigned int v18; // [esp+1Ch] [ebp-Ch]\n  size_t v19; // [esp+20h] [ebp-8h]\n  int v20; // [esp+24h] [ebp-4h] BYREF\n\n  v2 = *a1; /*0x15e540*/\n  if ( (*(_BYTE *)(*a1 + 56) & 0x10) != 0 ) /*0x15e546*/\n  {\n    vmp_get(*a1); /*0x15e559*/\n    v4 = ~page_mask & (page_mask + a2); /*0x15e56c*/\n    v5 = *(_DWORD *)(v2 + 16); /*0x15e56e*/\n    v14 = 0; /*0x15e574*/\n    if ( v4 >= v5 ) /*0x15e57d*/\n      v14 = v4 - v5; /*0x15e583*/\n    v6 = *(_DWORD *)(v2 + 12); /*0x15e586*/\n    if ( v14 < v6 ) /*0x15e58c*/\n    {\n      mfs_map_remove(v2, v14 + *(_DWORD *)(v2 + 8), *(_DWORD *)(v2 + 8) + v6, 0); /*0x15e59b*/\n      *(_DWORD *)(v2 + 12) = v14; /*0x15e5a3*/\n    }\n    v7 = *(_DWORD *)(v2 + 20); /*0x15e5a9*/\n    if ( v7 > v4 ) /*0x15e5ae*/\n      vno_flush(a1, v4, v7 - v4); /*0x15e5b8*/\n    *(_DWORD *)(v2 + 20) = a2; /*0x15e5c3*/\n    if ( a2 != v4 ) /*0x15e5c8*/\n    {\n      v8 = v4 - a2; /*0x15e5ce*/\n      v19 = v8; /*0x15e5d0*/\n      v9 = *(_DWORD *)(v2 + 16); /*0x15e5d3*/\n      if ( a2 < v9 || v8 + a2 > *(_DWORD *)(v2 + 12) + v9 ) /*0x15e5e4*/\n      {\n        v17 = (_DWORD *)*a1; /*0x15e5ef*/\n        v10 = *(_DWORD *)(*a1 + 12); /*0x15e5f2*/\n        if ( v10 ) /*0x15e5f7*/\n          mfs_map_remove(*a1, *(_DWORD *)(*a1 + 8), *(_DWORD *)(*a1 + 8) + v10, 1); /*0x15e603*/\n        v16 = ~page_mask & a2; /*0x15e619*/\n        v18 = (~page_mask & (page_mask + v8 + a2)) - v16; /*0x15e628*/\n        if ( v18 <= 0xFFFF ) /*0x15e631*/\n          v18 = 0x10000; /*0x15e633*/\n        do /*0x15e776*/\n        {\n          v20 = *(_DWORD *)(mfs_map + 20); /*0x15e644*/\n          lock_write((int)mfs_alloc_lock_data); /*0x15e64c*/\n          v15 = vm_allocate_with_pager(mfs_map, &v20, v18, 1, *v17, v16); /*0x15e671*/\n          if ( v15 == 3 ) /*0x15e67a*/\n          {\n            do /*0x15e699*/\n            {\n              while ( vm_info_lock_data ) /*0x15e687*/\n                ; /*0x15e685*/\n            }\n            while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15e699*/\n            v11 = 0; /*0x15e69b*/\n            if ( (int *)vm_info_queue != &vm_info_queue ) /*0x15e6a7*/\n            {\n              v11 = vm_info_queue; /*0x15e6a9*/\n              v12 = *(int **)(vm_info_queue + 40); /*0x15e6ab*/\n              v13 = *(int **)(vm_info_queue + 44); /*0x15e6ae*/\n              if ( v12 == &vm_info_queue ) /*0x15e6b7*/\n                dword_1F64D4 = *(_DWORD *)(vm_info_queue + 44); /*0x15e6b9*/\n              else\n                v12[11] = (int)v13; /*0x15e6c0*/\n              if ( v13 == &vm_info_queue ) /*0x15e6c8*/\n                vm_info_queue = (int)v12; /*0x15e700*/\n              else\n                v13[10] = (int)v12; /*0x15e6ca*/\n              *(_BYTE *)(v11 + 56) &= ~1u; /*0x15e6cd*/\n              --mfs_files_mapped; /*0x15e6d1*/\n              ++vm_info_version; /*0x15e6d7*/\n            }\n            _InterlockedExchange(&vm_info_lock_data, 0); /*0x15e6df*/\n            if ( v11 ) /*0x15e6e7*/\n            {\n              lock_done((int)mfs_alloc_lock_data); /*0x15e6ee*/\n              mfs_memfree(v11, 1); /*0x15e6f6*/\n            }\n            else\n            {\n              mfs_alloc_wanted = 1; /*0x15e708*/\n              assert_wait(&mfs_map, 0); /*0x15e719*/\n              ++mfs_alloc_blocks; /*0x15e71e*/\n              lock_done((int)mfs_alloc_lock_data); /*0x15e729*/\n              thread_block(); /*0x15e72e*/\n            }\n            lock_write((int)mfs_alloc_lock_data); /*0x15e738*/\n          }\n          else if ( v15 ) /*0x15e748*/\n          {\n            printf(\"Unexpected error on file map, ret = %d.\\n\", v15); /*0x15e753*/\n            panic(aRemapVnode); /*0x15e75d*/\n          }\n          lock_done((int)mfs_alloc_lock_data); /*0x15e76a*/\n        }\n        while ( v15 ); /*0x15e776*/\n        v17[2] = v20; /*0x15e782*/\n        v17[3] = v18; /*0x15e788*/\n        v17[4] = v16; /*0x15e78e*/\n      }\n      bzero((void *)(*(_DWORD *)(v2 + 8) + a2 - *(_DWORD *)(v2 + 16)), v19); /*0x15e79f*/\n      ++*(_WORD *)(v2 + 4); /*0x15e7a4*/\n      *(_BYTE *)(v2 + 56) |= 2u; /*0x15e7a8*/\n      vmp_push(v2); /*0x15e7ad*/\n      --*(_WORD *)(v2 + 4); /*0x15e7b2*/\n    }\n    vmp_put(v2); /*0x15e7ba*/\n    return 1; /*0x15e7bf*/\n  }\n  else\n  {\n    *(_DWORD *)(v2 + 20) = a2; /*0x15e54b*/\n    return 0; /*0x15e54e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x15e9b8",
+        "name": "_vmp_get"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x15fa1c",
+        "name": "_vno_flush"
+      },
+      {
+        "addr": "0x1f64a0",
+        "name": "_mfs_map"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6490",
+        "name": "_mfs_alloc_lock_data"
+      },
+      {
+        "addr": "0x17c4f4",
+        "name": "_vm_allocate_with_pager"
+      },
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15eb0c",
+        "name": "_mfs_memfree"
+      },
+      {
+        "addr": "0x1f649c",
+        "name": "_mfs_alloc_wanted"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x1def54",
+        "name": "_mfs_alloc_blocks"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1def7c",
+        "name": "aUnexpectedErro",
+        "string": "Unexpected error on file map, ret = %d.\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1defa5",
+        "name": "aRemapVnode",
+        "string": "remap_vnode"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x15fc58",
+        "name": "_vmp_push"
+      },
+      {
+        "addr": "0x15ea38",
+        "name": "_vmp_put"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e7d0",
+    "addr": "0x0015e7d0",
+    "code": "__int32 __cdecl mfs_get(_DWORD *a1, int a2, unsigned int a3)\n{\n  unsigned int v3; // ebx\n  int v4; // esi\n  __int32 result; // eax\n  _DWORD *v6; // edi\n  int v7; // eax\n  int v8; // eax\n  int v9; // esi\n  int v10; // ebx\n  int *v11; // edx\n  int *v12; // eax\n  int v13; // [esp+10h] [ebp-Ch]\n  unsigned int v14; // [esp+14h] [ebp-8h]\n  int v15; // [esp+18h] [ebp-4h] BYREF\n\n  v3 = a3; /*0x15e7dc*/\n  v4 = *a1; /*0x15e7df*/\n  vmp_get(*a1); /*0x15e7e2*/\n  result = mfs_max_window; /*0x15e7e7*/\n  if ( a3 > mfs_max_window ) /*0x15e7f1*/\n    v3 = mfs_max_window; /*0x15e7f3*/\n  if ( *(_DWORD *)(v4 + 12) < v3 ) /*0x15e7f8*/\n  {\n    v6 = (_DWORD *)*a1; /*0x15e801*/\n    v7 = *(_DWORD *)(*a1 + 12); /*0x15e803*/\n    if ( v7 ) /*0x15e808*/\n      mfs_map_remove(v6, v6[2], v6[2] + v7, 1); /*0x15e814*/\n    v13 = ~page_mask & a2; /*0x15e82e*/\n    v14 = (~page_mask & (page_mask + v3 + a2)) - v13; /*0x15e83e*/\n    if ( v14 <= 0xFFFF ) /*0x15e847*/\n      v14 = 0x10000; /*0x15e849*/\n    do /*0x15e97f*/\n    {\n      v15 = *(_DWORD *)(mfs_map + 20); /*0x15e858*/\n      lock_write((int)mfs_alloc_lock_data); /*0x15e860*/\n      v8 = vm_allocate_with_pager(mfs_map, &v15, v14, 1, *v6, v13); /*0x15e87d*/\n      v9 = v8; /*0x15e882*/\n      if ( v8 == 3 ) /*0x15e88a*/\n      {\n        do /*0x15e8a9*/\n        {\n          while ( vm_info_lock_data ) /*0x15e897*/\n            ; /*0x15e895*/\n        }\n        while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15e8a9*/\n        v10 = 0; /*0x15e8ab*/\n        if ( (int *)vm_info_queue != &vm_info_queue ) /*0x15e8b7*/\n        {\n          v10 = vm_info_queue; /*0x15e8b9*/\n          v11 = *(int **)(vm_info_queue + 40); /*0x15e8bb*/\n          v12 = *(int **)(vm_info_queue + 44); /*0x15e8be*/\n          if ( v11 == &vm_info_queue ) /*0x15e8c7*/\n            dword_1F64D4 = *(_DWORD *)(vm_info_queue + 44); /*0x15e8c9*/\n          else\n            v11[11] = (int)v12; /*0x15e8d0*/\n          if ( v12 == &vm_info_queue ) /*0x15e8d8*/\n            vm_info_queue = (int)v11; /*0x15e910*/\n          else\n            v12[10] = (int)v11; /*0x15e8da*/\n          *(_BYTE *)(v10 + 56) &= ~1u; /*0x15e8dd*/\n          --mfs_files_mapped; /*0x15e8e1*/\n          ++vm_info_version; /*0x15e8e7*/\n        }\n        _InterlockedExchange(&vm_info_lock_data, 0); /*0x15e8ef*/\n        if ( v10 ) /*0x15e8f7*/\n        {\n          lock_done((int)mfs_alloc_lock_data); /*0x15e8fe*/\n          mfs_memfree(v10, 1); /*0x15e906*/\n        }\n        else\n        {\n          mfs_alloc_wanted = 1; /*0x15e918*/\n          assert_wait(&mfs_map, 0); /*0x15e929*/\n          ++mfs_alloc_blocks; /*0x15e92e*/\n          lock_done((int)mfs_alloc_lock_data); /*0x15e939*/\n          thread_block(); /*0x15e93e*/\n        }\n        lock_write((int)mfs_alloc_lock_data); /*0x15e948*/\n      }\n      else if ( v8 ) /*0x15e956*/\n      {\n        printf(\"Unexpected error on file map, ret = %d.\\n\", v8); /*0x15e95e*/\n        panic(aRemapVnode); /*0x15e968*/\n      }\n      result = lock_done((int)mfs_alloc_lock_data); /*0x15e975*/\n    }\n    while ( v9 ); /*0x15e97f*/\n    v6[2] = v15; /*0x15e988*/\n    v6[3] = v14; /*0x15e98e*/\n    v6[4] = v13; /*0x15e994*/\n  }\n  return result; /*0x15e99a*/\n}",
+    "refs": [
+      {
+        "addr": "0x15e9b8",
+        "name": "_vmp_get"
+      },
+      {
+        "addr": "0x1def5c",
+        "name": "_mfs_max_window"
+      },
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f64a0",
+        "name": "_mfs_map"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x1f6490",
+        "name": "_mfs_alloc_lock_data"
+      },
+      {
+        "addr": "0x17c4f4",
+        "name": "_vm_allocate_with_pager"
+      },
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15eb0c",
+        "name": "_mfs_memfree"
+      },
+      {
+        "addr": "0x1f649c",
+        "name": "_mfs_alloc_wanted"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x1def54",
+        "name": "_mfs_alloc_blocks"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1def7c",
+        "name": "aUnexpectedErro",
+        "string": "Unexpected error on file map, ret = %d.\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1defa5",
+        "name": "aRemapVnode",
+        "string": "remap_vnode"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e9a4",
+    "addr": "0x0015e9a4",
+    "code": "int __cdecl mfs_put(_DWORD *a1)\n{\n  return vmp_put(*a1); /*0x15e9b4*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ea38",
+        "name": "_vmp_put"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015e9b8",
+    "addr": "0x0015e9b8",
+    "code": "__int32 __cdecl vmp_get(int a1)\n{\n  int *v1; // edx\n  int *v2; // eax\n\n  do /*0x15e9d9*/\n  {\n    while ( vm_info_lock_data ) /*0x15e9c7*/\n      ; /*0x15e9c5*/\n  }\n  while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15e9d9*/\n  if ( (*(_BYTE *)(a1 + 56) & 1) != 0 ) /*0x15e9df*/\n  {\n    v1 = *(int **)(a1 + 40); /*0x15e9e1*/\n    v2 = *(int **)(a1 + 44); /*0x15e9e4*/\n    if ( v1 == &vm_info_queue ) /*0x15e9ed*/\n      dword_1F64D4 = *(_DWORD *)(a1 + 44); /*0x15e9ef*/\n    else\n      v1[11] = (int)v2; /*0x15e9f8*/\n    if ( v2 == &vm_info_queue ) /*0x15ea00*/\n      vm_info_queue = (int)v1; /*0x15ea02*/\n    else\n      v2[10] = (int)v1; /*0x15ea0c*/\n    *(_BYTE *)(a1 + 56) &= ~1u; /*0x15ea0f*/\n    --mfs_files_mapped; /*0x15ea13*/\n    ++vm_info_version; /*0x15ea19*/\n  }\n  ++*(_WORD *)(a1 + 6); /*0x15ea1f*/\n  _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ea25*/\n  return lock_write(a1 + 24); /*0x15ea36*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015ea38",
+    "addr": "0x0015ea38",
+    "code": "char __cdecl vmp_put(int a1)\n{\n  __int16 v1; // ax\n  int v2; // eax\n  char result; // al\n\n  do /*0x15ea59*/\n  {\n    while ( vm_info_lock_data ) /*0x15ea47*/\n      ; /*0x15ea45*/\n  }\n  while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15ea59*/\n  v1 = *(_WORD *)(a1 + 6); /*0x15ea5b*/\n  *(_WORD *)(a1 + 6) = v1 - 1; /*0x15ea63*/\n  if ( v1 == 1 ) /*0x15ea6b*/\n  {\n    v2 = dword_1F64D4; /*0x15ea6d*/\n    if ( (int *)dword_1F64D4 == &vm_info_queue ) /*0x15ea77*/\n      vm_info_queue = a1; /*0x15ea79*/\n    else\n      *(_DWORD *)(dword_1F64D4 + 40) = a1; /*0x15ea84*/\n    *(_DWORD *)(a1 + 44) = v2; /*0x15ea87*/\n    *(_DWORD *)(a1 + 40) = &vm_info_queue; /*0x15ea8a*/\n    dword_1F64D4 = a1; /*0x15ea91*/\n    *(_BYTE *)(a1 + 56) |= 1u; /*0x15ea97*/\n    ++mfs_files_mapped; /*0x15ea9b*/\n    ++vm_info_version; /*0x15eaa1*/\n  }\n  _InterlockedExchange(&vm_info_lock_data, 0); /*0x15eaa9*/\n  lock_done(a1 + 24); /*0x15eab3*/\n  if ( mfs_files_mapped > mfs_files_max ) /*0x15eac6*/\n    mfs_cache_trim(); /*0x15eac8*/\n  result = *(_BYTE *)(a1 + 56); /*0x15eacd*/\n  if ( (result & 8) != 0 ) /*0x15ead2*/\n  {\n    *(_BYTE *)(a1 + 56) = result & 0xF7; /*0x15ead6*/\n    return vmp_invalidate(a1); /*0x15eada*/\n  }\n  return result; /*0x15eadf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15ec00",
+        "name": "_mfs_cache_trim"
+      },
+      {
+        "addr": "0x1def60",
+        "name": "_mfs_files_max"
+      },
+      {
+        "addr": "0x15fb28",
+        "name": "_vmp_invalidate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015eae8",
+    "addr": "0x0015eae8",
+    "code": "int __cdecl mfs_uncache(int *a1)\n{\n  int result; // eax\n\n  result = *a1; /*0x15eaee*/\n  if ( (*(_BYTE *)(*a1 + 56) & 0x10) != 0 && !*(_WORD *)(result + 4) ) /*0x15eaf6*/\n    return mfs_memfree(result, 0); /*0x15eb00*/\n  return result; /*0x15eb07*/\n}",
+    "refs": [
+      {
+        "addr": "0x15eb0c",
+        "name": "_mfs_memfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015eb0c",
+    "addr": "0x0015eb0c",
+    "code": "int __cdecl mfs_memfree(int a1, int a2)\n{\n  int *v2; // edx\n  int *v3; // eax\n  int v4; // esi\n  int result; // eax\n\n  do /*0x15eb2d*/\n  {\n    while ( vm_info_lock_data ) /*0x15eb1b*/\n      ; /*0x15eb19*/\n  }\n  while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15eb2d*/\n  if ( (*(_BYTE *)(a1 + 56) & 1) != 0 ) /*0x15eb33*/\n  {\n    v2 = *(int **)(a1 + 40); /*0x15eb35*/\n    v3 = *(int **)(a1 + 44); /*0x15eb38*/\n    if ( v2 == &vm_info_queue ) /*0x15eb41*/\n      dword_1F64D4 = *(_DWORD *)(a1 + 44); /*0x15eb43*/\n    else\n      v2[11] = (int)v3; /*0x15eb4c*/\n    if ( v3 == &vm_info_queue ) /*0x15eb54*/\n      vm_info_queue = (int)v2; /*0x15eb56*/\n    else\n      v3[10] = (int)v2; /*0x15eb60*/\n    *(_BYTE *)(a1 + 56) &= ~1u; /*0x15eb63*/\n    --mfs_files_mapped; /*0x15eb67*/\n    ++vm_info_version; /*0x15eb6d*/\n  }\n  _InterlockedExchange(&vm_info_lock_data, 0); /*0x15eb75*/\n  lock_write(a1 + 24); /*0x15eb7f*/\n  if ( !*(_WORD *)(a1 + 4) ) /*0x15eb87*/\n    *(_BYTE *)(a1 + 56) &= ~0x10u; /*0x15eb8e*/\n  mfs_map_remove(a1, *(_DWORD *)(a1 + 8), *(_DWORD *)(a1 + 12) + *(_DWORD *)(a1 + 8), a2); /*0x15eba1*/\n  *(_DWORD *)(a1 + 12) = 0; /*0x15eba6*/\n  *(_DWORD *)(a1 + 8) = 0; /*0x15ebad*/\n  v4 = 0; /*0x15ebb4*/\n  if ( !*(_WORD *)(a1 + 4) ) /*0x15ebb9*/\n  {\n    v4 = *(_DWORD *)(a1 + 36); /*0x15ebc0*/\n    *(_DWORD *)(a1 + 36) = 0; /*0x15ebc3*/\n    if ( *(_DWORD *)(a1 + 48) ) /*0x15ebca*/\n    {\n      crfree(*(_DWORD *)(a1 + 48)); /*0x15ebd2*/\n      *(_DWORD *)(a1 + 48) = 0; /*0x15ebd7*/\n    }\n  }\n  result = lock_done(a1 + 24); /*0x15ebe5*/\n  if ( v4 ) /*0x15ebef*/\n    return vm_object_deallocate(v4); /*0x15ebf2*/\n  return result; /*0x15ebfa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x108384",
+        "name": "_crfree"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015ec00",
+    "addr": "0x0015ec00",
+    "code": "__int32 mfs_cache_trim()\n{\n  int v1; // ebx\n  int *v2; // edx\n  int *v3; // eax\n  int *v4; // edx\n  int *v5; // eax\n  int v6; // esi\n\n  while ( 1 ) /*0x15ec24*/\n  {\n    do /*0x15ec24*/\n    {\n      while ( vm_info_lock_data ) /*0x15ec12*/\n        ; /*0x15ec10*/\n    }\n    while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15ec24*/\n    if ( mfs_files_mapped <= mfs_files_max ) /*0x15ec31*/\n      break; /*0x15ec31*/\n    v1 = vm_info_queue; /*0x15ec54*/\n    v2 = *(int **)(vm_info_queue + 40); /*0x15ec5a*/\n    v3 = *(int **)(vm_info_queue + 44); /*0x15ec5d*/\n    if ( v2 == &vm_info_queue ) /*0x15ec66*/\n      dword_1F64D4 = *(_DWORD *)(vm_info_queue + 44); /*0x15ec68*/\n    else\n      v2[11] = (int)v3; /*0x15ec70*/\n    if ( v3 == &vm_info_queue ) /*0x15ec78*/\n      vm_info_queue = (int)v2; /*0x15ec40*/\n    else\n      v3[10] = (int)v2; /*0x15ec7a*/\n    *(_BYTE *)(v1 + 56) &= ~1u; /*0x15ec7d*/\n    --mfs_files_mapped; /*0x15ec81*/\n    ++vm_info_version; /*0x15ec87*/\n    _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ec8f*/\n    do /*0x15ecb1*/\n    {\n      while ( vm_info_lock_data ) /*0x15ec9f*/\n        ; /*0x15ec9d*/\n    }\n    while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15ecb1*/\n    if ( (*(_BYTE *)(v1 + 56) & 1) != 0 ) /*0x15ecb7*/\n    {\n      v4 = *(int **)(v1 + 40); /*0x15ecb9*/\n      v5 = *(int **)(v1 + 44); /*0x15ecbc*/\n      if ( v4 == &vm_info_queue ) /*0x15ecc5*/\n        dword_1F64D4 = *(_DWORD *)(v1 + 44); /*0x15ecc7*/\n      else\n        v4[11] = (int)v5; /*0x15ecd0*/\n      if ( v5 == &vm_info_queue ) /*0x15ecd8*/\n        vm_info_queue = (int)v4; /*0x15ec48*/\n      else\n        v5[10] = (int)v4; /*0x15ecde*/\n      *(_BYTE *)(v1 + 56) &= ~1u; /*0x15ece1*/\n      --mfs_files_mapped; /*0x15ece5*/\n      ++vm_info_version; /*0x15eceb*/\n    }\n    _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ecf3*/\n    lock_write(v1 + 24); /*0x15ecfd*/\n    if ( !*(_WORD *)(v1 + 4) ) /*0x15ed05*/\n      *(_BYTE *)(v1 + 56) &= ~0x10u; /*0x15ed0c*/\n    mfs_map_remove(v1, *(_DWORD *)(v1 + 8), *(_DWORD *)(v1 + 12) + *(_DWORD *)(v1 + 8), 1); /*0x15ed1d*/\n    *(_DWORD *)(v1 + 12) = 0; /*0x15ed22*/\n    *(_DWORD *)(v1 + 8) = 0; /*0x15ed29*/\n    v6 = 0; /*0x15ed30*/\n    if ( !*(_WORD *)(v1 + 4) ) /*0x15ed35*/\n    {\n      v6 = *(_DWORD *)(v1 + 36); /*0x15ed3c*/\n      *(_DWORD *)(v1 + 36) = 0; /*0x15ed3f*/\n      if ( *(_DWORD *)(v1 + 48) ) /*0x15ed46*/\n      {\n        crfree(*(_WORD **)(v1 + 48)); /*0x15ed4e*/\n        *(_DWORD *)(v1 + 48) = 0; /*0x15ed53*/\n      }\n    }\n    lock_done(v1 + 24); /*0x15ed61*/\n    if ( v6 ) /*0x15ed6b*/\n      vm_object_deallocate(v6); /*0x15ed72*/\n  }\n  return _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ed83*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x1def60",
+        "name": "_mfs_files_max"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x108384",
+        "name": "_crfree"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0015ed8c",
+    "addr": "0x0015ed8c",
+    "code": "__int32 mfs_cache_clear()\n{\n  int v0; // edi\n  int v1; // ebx\n  int *v2; // edx\n  int *v3; // eax\n  int v4; // esi\n\n  do /*0x15edad*/\n  {\n    while ( vm_info_lock_data ) /*0x15ed9b*/\n      ; /*0x15ed99*/\n  }\n  while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15edad*/\n  v0 = vm_info_version; /*0x15edaf*/\n  v1 = vm_info_queue; /*0x15edb5*/\n  while ( (int *)v1 != &vm_info_queue ) /*0x15edc1*/\n  {\n    if ( !*(_WORD *)(v1 + 4) ) /*0x15edc7*/\n    {\n      _InterlockedExchange(&vm_info_lock_data, 0); /*0x15edd4*/\n      do /*0x15edf5*/\n      {\n        while ( vm_info_lock_data ) /*0x15ede3*/\n          ; /*0x15ede1*/\n      }\n      while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15edf5*/\n      if ( (*(_BYTE *)(v1 + 56) & 1) != 0 ) /*0x15edfb*/\n      {\n        v2 = *(int **)(v1 + 40); /*0x15edfd*/\n        v3 = *(int **)(v1 + 44); /*0x15ee00*/\n        if ( v2 == &vm_info_queue ) /*0x15ee09*/\n          dword_1F64D4 = *(_DWORD *)(v1 + 44); /*0x15ee0b*/\n        else\n          v2[11] = (int)v3; /*0x15ee14*/\n        if ( v3 == &vm_info_queue ) /*0x15ee1c*/\n          vm_info_queue = (int)v2; /*0x15eee8*/\n        else\n          v3[10] = (int)v2; /*0x15ee22*/\n        *(_BYTE *)(v1 + 56) &= ~1u; /*0x15ee25*/\n        --mfs_files_mapped; /*0x15ee29*/\n        ++vm_info_version; /*0x15ee2f*/\n      }\n      _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ee37*/\n      lock_write(v1 + 24); /*0x15ee41*/\n      if ( !*(_WORD *)(v1 + 4) ) /*0x15ee49*/\n        *(_BYTE *)(v1 + 56) &= ~0x10u; /*0x15ee50*/\n      mfs_map_remove(v1, *(_DWORD *)(v1 + 8), *(_DWORD *)(v1 + 12) + *(_DWORD *)(v1 + 8), 1); /*0x15ee61*/\n      *(_DWORD *)(v1 + 12) = 0; /*0x15ee66*/\n      *(_DWORD *)(v1 + 8) = 0; /*0x15ee6d*/\n      v4 = 0; /*0x15ee74*/\n      if ( !*(_WORD *)(v1 + 4) ) /*0x15ee79*/\n      {\n        v4 = *(_DWORD *)(v1 + 36); /*0x15ee80*/\n        *(_DWORD *)(v1 + 36) = 0; /*0x15ee83*/\n        if ( *(_DWORD *)(v1 + 48) ) /*0x15ee8a*/\n        {\n          crfree(*(_WORD **)(v1 + 48)); /*0x15ee92*/\n          *(_DWORD *)(v1 + 48) = 0; /*0x15ee97*/\n        }\n      }\n      lock_done(v1 + 24); /*0x15eea5*/\n      if ( v4 ) /*0x15eeaf*/\n        vm_object_deallocate(v4); /*0x15eeb2*/\n      do /*0x15eed5*/\n      {\n        while ( vm_info_lock_data ) /*0x15eec3*/\n          ; /*0x15eec1*/\n      }\n      while ( _InterlockedExchange(&vm_info_lock_data, 1) == 1 ); /*0x15eed5*/\n    }\n    if ( v0 == vm_info_version ) /*0x15eede*/\n    {\n      v1 = *(_DWORD *)(v1 + 40); /*0x15eee0*/\n    }\n    else\n    {\n      v1 = vm_info_queue; /*0x15eef4*/\n      v0 = vm_info_version; /*0x15eefa*/\n    }\n  }\n  return _InterlockedExchange(&vm_info_lock_data, 0); /*0x15ef0f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64cc",
+        "name": "_vm_info_lock_data"
+      },
+      {
+        "addr": "0x1def50",
+        "name": "_vm_info_version"
+      },
+      {
+        "addr": "0x1f64d0",
+        "name": "_vm_info_queue"
+      },
+      {
+        "addr": "0x1f64d4",
+        "name": "dword_1F64D4"
+      },
+      {
+        "addr": "0x1def64",
+        "name": "_mfs_files_mapped"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15ef18",
+        "name": "_mfs_map_remove"
+      },
+      {
+        "addr": "0x108384",
+        "name": "_crfree"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      }
+    ]
+  }
+]

@@ -1,0 +1,67 @@
+0x001ba850	1	PUSH EBP
+0x001ba851	2	MOV EBP,ESP
+0x001ba853	3	SUB ESP,0xc
+0x001ba856	1	PUSH EDI
+0x001ba857	1	PUSH ESI
+0x001ba858	1	PUSH EBX
+0x001ba859	3	MOV ESI,dword ptr [EBP + 0x8]
+0x001ba85c	3	MOV EBX,dword ptr [EBP + 0x14]
+0x001ba85f	6	LEA ECX,[ESI + 0x8c]
+0x001ba865	6	MOV EAX,dword ptr [ESI + 0x8c]
+0x001ba86b	2	CMP ECX,EAX
+0x001ba86d	2	JZ 0x001ba89f
+0x001ba86f	2	MOV EDX,EAX
+0x001ba871	1	NOP
+0x001ba872	1	NOP
+0x001ba873	1	NOP
+0x001ba874	2	CMP dword ptr [EDX],EBX
+0x001ba876	2	JNZ 0x001ba898
+0x001ba878	3	MOV EAX,dword ptr [EDX + 0x4]
+0x001ba87b	7	MOV dword ptr [EDX + 0x4],0x0
+0x001ba882	3	MOV EDI,dword ptr [EDX + 0x8]
+0x001ba885	3	MOV dword ptr [EBP + -0x4],EDI
+0x001ba888	3	MOV EDI,dword ptr [EDX + 0xc]
+0x001ba88b	3	MOV dword ptr [EBP + -0x8],EDI
+0x001ba88e	3	MOV EDX,dword ptr [EDX + 0x10]
+0x001ba891	3	MOV dword ptr [EBP + -0xc],EDX
+0x001ba894	2	JMP 0x001ba8a1
+0x001ba898	3	MOV EDX,dword ptr [EDX + 0x14]
+0x001ba89b	2	CMP ECX,EDX
+0x001ba89d	2	JNZ 0x001ba874
+0x001ba89f	2	XOR EAX,EAX
+0x001ba8a1	3	ADD dword ptr [ESI + 0x20],EAX
+0x001ba8a4	3	MOV EDI,dword ptr [EBP + -0xc]
+0x001ba8a7	1	PUSH EDI
+0x001ba8a8	6	MOV EDI,dword ptr [0x001f9700]
+0x001ba8ae	1	PUSH EDI
+0x001ba8af	3	MOV EDI,dword ptr [ESI + 0x4]
+0x001ba8b2	1	PUSH EDI
+0x001ba8b3	5	CALL 0x001ce960
+0x001ba8b8	3	ADD ESP,0xc
+0x001ba8bb	7	CMP byte ptr [ESI + 0x94],0x0
+0x001ba8c2	2	JZ 0x001ba8fa
+0x001ba8c4	6	MOV EDI,dword ptr [ESI + 0x98]
+0x001ba8ca	1	PUSH EDI
+0x001ba8cb	6	LEA EBX,[ESI + 0xa4]
+0x001ba8d1	1	PUSH EBX
+0x001ba8d2	3	MOV EDI,dword ptr [EBP + -0x4]
+0x001ba8d5	1	PUSH EDI
+0x001ba8d6	6	MOV EDI,dword ptr [ESI + 0x9c]
+0x001ba8dc	1	PUSH EDI
+0x001ba8dd	5	CALL 0x001be98c
+0x001ba8e2	6	MOV EDI,dword ptr [ESI + 0x98]
+0x001ba8e8	1	PUSH EDI
+0x001ba8e9	1	PUSH EBX
+0x001ba8ea	3	MOV EDI,dword ptr [EBP + -0x8]
+0x001ba8ed	1	PUSH EDI
+0x001ba8ee	6	MOV EDI,dword ptr [ESI + 0xa0]
+0x001ba8f4	1	PUSH EDI
+0x001ba8f5	5	CALL 0x001be98c
+0x001ba8fa	2	MOV EAX,ESI
+0x001ba8fc	3	LEA ESP,[EBP + -0x18]
+0x001ba8ff	1	POP EBX
+0x001ba900	1	POP ESI
+0x001ba901	1	POP EDI
+0x001ba902	2	MOV ESP,EBP
+0x001ba904	1	POP EBP
+0x001ba905	1	RET

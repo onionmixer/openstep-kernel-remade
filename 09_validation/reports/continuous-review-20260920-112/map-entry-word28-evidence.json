@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "method": {"binary":"03_original/x86/binaries/mach_kernel","binary_sha256":"33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890","raw_decode":"Python capstone x86/32"},
+  "calculation": {"split_copy_dwords":11,"split_copy_bytes":44,"entry_word_offset_hex":"0x28","entry_word_offset_decimal":40},
+  "map_create": {"sites":["0x001746dc","0x001746f0"],"fact":"map base +0x28 is set to dword zero and map base +0x2c to dword one"},
+  "insert": {"sites":["0x00174968","0x00174983","0x001749a4"],"fact":"when map+0x2c is nonzero, writes zero to allocated entry WORD +0x28; map dword +0x28 separately receives range-size addition"},
+  "split": {"sites":["0x00175dcf","0x00175dd4"],"fact":"copies 11 dwords, covering entry bytes through +0x2b"},
+  "pageable_down": {"sites":["0x00175e3f","0x00175e45","0x00175e47","0x00175e4b","0x00175e56"],"fact":"loads entry word, decrements and stores it; old value one selects _vm_fault_unwire"},
+  "pageable_up": {"sites":["0x00175f4b","0x00175f51","0x00175f53","0x00175f57"],"fact":"loads entry word, increments and stores it; old value zero selects later setup path"},
+  "clear": {"sites":["0x00176075","0x0017609e","0x0017645d","0x001764cb"],"fact":"unwire/delete paths write entry WORD +0x28 to zero"},
+  "limit":"No unsigned-wrap, synchronization, or complete alias/lifetime claim is made."
+}

@@ -1,0 +1,62 @@
+0x0012f720	1	PUSH EBP
+0x0012f721	2	MOV EBP,ESP
+0x0012f723	1	PUSH EBX
+0x0012f724	3	MOV ECX,dword ptr [EBP + 0x8]
+0x0012f727	2	XOR EBX,EBX
+0x0012f729	3	MOV AL,byte ptr [ECX + 0x4a]
+0x0012f72c	3	XOR AL,byte ptr [ECX + 0x4b]
+0x0012f72f	3	XOR AL,byte ptr [ECX + 0x4c]
+0x0012f732	3	XOR AL,byte ptr [ECX + 0x4d]
+0x0012f735	3	XOR AL,byte ptr [ECX + 0x4e]
+0x0012f738	3	XOR AL,byte ptr [ECX + 0x4f]
+0x0012f73b	3	XOR AL,byte ptr [ECX + 0x50]
+0x0012f73e	3	XOR AL,byte ptr [ECX + 0x51]
+0x0012f741	3	XOR AL,byte ptr [ECX + 0x54]
+0x0012f744	3	XOR AL,byte ptr [ECX + 0x55]
+0x0012f747	3	XOR AL,byte ptr [ECX + 0x56]
+0x0012f74a	3	XOR AL,byte ptr [ECX + 0x57]
+0x0012f74d	3	XOR AL,byte ptr [ECX + 0x58]
+0x0012f750	3	XOR AL,byte ptr [ECX + 0x59]
+0x0012f753	3	XOR AL,byte ptr [ECX + 0x5a]
+0x0012f756	3	XOR AL,byte ptr [ECX + 0x5b]
+0x0012f759	3	AND EAX,0x3f
+0x0012f75c	7	MOV EDX,dword ptr [EAX*0x4 + 0x1ef040]
+0x0012f763	2	TEST EDX,EDX
+0x0012f765	2	JZ 0x0012f7c9
+0x0012f767	1	NOP
+0x0012f768	2	CMP EDX,ECX
+0x0012f76a	2	JNZ 0x0012f7c0
+0x0012f76c	2	TEST EBX,EBX
+0x0012f76e	2	JNZ 0x0012f7b0
+0x0012f770	3	MOV AL,byte ptr [EDX + 0x4a]
+0x0012f773	3	XOR AL,byte ptr [EDX + 0x4b]
+0x0012f776	3	XOR AL,byte ptr [EDX + 0x4c]
+0x0012f779	3	XOR AL,byte ptr [EDX + 0x4d]
+0x0012f77c	3	XOR AL,byte ptr [EDX + 0x4e]
+0x0012f77f	3	XOR AL,byte ptr [EDX + 0x4f]
+0x0012f782	3	XOR AL,byte ptr [EDX + 0x50]
+0x0012f785	3	XOR AL,byte ptr [EDX + 0x51]
+0x0012f788	3	XOR AL,byte ptr [EDX + 0x54]
+0x0012f78b	3	XOR AL,byte ptr [EDX + 0x55]
+0x0012f78e	3	XOR AL,byte ptr [EDX + 0x56]
+0x0012f791	3	XOR AL,byte ptr [EDX + 0x57]
+0x0012f794	3	XOR AL,byte ptr [EDX + 0x58]
+0x0012f797	3	XOR AL,byte ptr [EDX + 0x59]
+0x0012f79a	3	XOR AL,byte ptr [EDX + 0x5a]
+0x0012f79d	3	XOR AL,byte ptr [EDX + 0x5b]
+0x0012f7a0	3	AND EAX,0x3f
+0x0012f7a3	3	MOV EDX,dword ptr [EDX + 0x8]
+0x0012f7a6	7	MOV dword ptr [EAX*0x4 + 0x1ef040],EDX
+0x0012f7ad	2	JMP 0x0012f7b6
+0x0012f7b0	3	MOV EDX,dword ptr [EDX + 0x8]
+0x0012f7b3	3	MOV dword ptr [EBX + 0x8],EDX
+0x0012f7b6	6	DEC dword ptr [0x001ef02c]
+0x0012f7bc	2	JMP 0x0012f7c9
+0x0012f7c0	2	MOV EBX,EDX
+0x0012f7c2	3	MOV EDX,dword ptr [EDX + 0x8]
+0x0012f7c5	2	TEST EDX,EDX
+0x0012f7c7	2	JNZ 0x0012f768
+0x0012f7c9	3	MOV EBX,dword ptr [EBP + -0x4]
+0x0012f7cc	2	MOV ESP,EBP
+0x0012f7ce	1	POP EBP
+0x0012f7cf	1	RET

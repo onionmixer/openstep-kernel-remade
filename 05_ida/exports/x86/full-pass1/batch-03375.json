@@ -1,0 +1,766 @@
+[
+  {
+    "requested_address": "0x001a46e0",
+    "addr": "0x001a46e0",
+    "code": "char __cdecl +[IODevice removeFromBdevsw](id a1, SEL a2)\n{\n  id v2; // eax\n\n  v2 = objc_msgSend(a1, sel_blockMajor); /*0x1a46ef*/\n  if ( v2 == (id)-1 ) /*0x1a46fa*/\n    return 0; /*0x1a4718*/\n  IORemoveFromBdevsw(v2); /*0x1a46fd*/\n  objc_msgSend(a1, sel_setBlockMajor_, -1); /*0x1a470c*/\n  return 1; /*0x1a471a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2033e8",
+        "name": "sel_blockMajor",
+        "string": "blockMajor"
+      },
+      {
+        "addr": "0x1a9c44",
+        "name": "_IORemoveFromBdevsw"
+      },
+      {
+        "addr": "0x2033d8",
+        "name": "sel_setBlockMajor:",
+        "string": "setBlockMajor:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4724",
+    "addr": "0x001a4724",
+    "code": "int __cdecl +[IODevice driverKitVersion](id a1, SEL a2)\n{\n  return 420; /*0x1a472e*/\n}"
+  },
+  {
+    "requested_address": "0x001a4730",
+    "addr": "0x001a4730",
+    "code": "int __cdecl +[IODevice driverKitVersionForDriverNamed:](id a1, SEL a2, char *__src)\n{\n  unsigned int v3; // kr04_4\n  unsigned int v4; // kr08_4\n  SEL Uid; // esi\n  int v7; // esi\n  char *__dst; // [esp+Ch] [ebp-Ch]\n  char *__dsta; // [esp+Ch] [ebp-Ch]\n  Class Class; // [esp+14h] [ebp-4h]\n\n  v3 = strlen(__src) + 1; /*0x1a4746*/\n  __dst = (char *)IOMalloc(v3 + 7); /*0x1a4755*/\n  if ( !__dst ) /*0x1a475d*/\n    return -1; /*0x1a475d*/\n  strcpy(__dst, __src); /*0x1a4767*/\n  strcat(__dst, \"Version\"); /*0x1a4772*/\n  Class = objc_getClass(__dst); /*0x1a477d*/\n  IOFree((int)__dst, v3 + 7); /*0x1a4782*/\n  if ( !Class ) /*0x1a478e*/\n    return -1; /*0x1a478e*/\n  v4 = strlen(__src) + 1; /*0x1a479b*/\n  __dsta = (char *)IOMalloc(v4 + 19); /*0x1a47aa*/\n  if ( !__dsta ) /*0x1a47b2*/\n    return -1; /*0x1a47b4*/\n  strcpy(__dsta, \"driverKitVersionFor\"); /*0x1a47cc*/\n  strcat(__dsta, __src); /*0x1a47d6*/\n  Uid = sel_getUid(__dsta); /*0x1a47e1*/\n  if ( (unsigned __int8)-[objc_class respondsTo:](Class, sel_respondsTo_, Uid) ) /*0x1a47f3*/\n    v7 = (int)-[objc_class perform:](Class, sel_perform_, Uid); /*0x1a4809*/\n  else\n    v7 = -1; /*0x1a4810*/\n  IOFree((int)__dsta, v4 + 19); /*0x1a481a*/\n  return v7; /*0x1a4824*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      },
+      {
+        "addr": "0x101cb8",
+        "name": "_strcat"
+      },
+      {
+        "addr": "0x1d6dc8",
+        "name": "aVersion",
+        "string": "Version"
+      },
+      {
+        "addr": "0x1ced1c",
+        "name": "_objc_getClass"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1d0304",
+        "name": "_sel_getUid"
+      },
+      {
+        "addr": "0x209ac0",
+        "name": "-[objc_class perform:]"
+      },
+      {
+        "addr": "0x203438",
+        "name": "sel_perform:",
+        "string": "perform:"
+      },
+      {
+        "addr": "0x209ab8",
+        "name": "-[objc_class respondsTo:]"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a482c",
+    "addr": "0x001a482c",
+    "code": "int __cdecl -[IODevice getIntValues:forParameter:count:](\n        IODevice *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  id v5; // eax\n  unsigned int v6; // eax\n  id v7; // eax\n  int *v9; // [esp+Ch] [ebp-8h] BYREF\n  int *v10; // [esp+10h] [ebp-4h] BYREF\n\n  if ( !strcmp(a4, \"IOUnit\") ) /*0x1a4847*/\n  {\n    *a3 = self->_unit; /*0x1a4854*/\nLABEL_10:\n    *a5 = 1; /*0x1a48d3*/\n    return 0; /*0x1a48de*/\n  }\n  if ( !strcmp(a4, \"IOBlockMajor\") ) /*0x1a4867*/\n  {\n    v5 = -[Object class](self, sel_class); /*0x1a487a*/\n    if ( !sub_1A3E30((int)v5, &v10) ) /*0x1a4883*/\n    {\n      v6 = v10[2]; /*0x1a488f*/\nLABEL_9:\n      *a3 = v6; /*0x1a48ce*/\n      goto LABEL_10; /*0x1a48d1*/\n    }\n  }\n  else if ( !strcmp(a4, \"IOCharacterMajor\") ) /*0x1a48a3*/\n  {\n    v7 = -[Object class](self, sel_class); /*0x1a48b6*/\n    if ( !sub_1A3E30((int)v7, &v9) ) /*0x1a48bf*/\n    {\n      v6 = v9[3]; /*0x1a48cb*/\n      goto LABEL_9; /*0x1a48cb*/\n    }\n  }\n  return -711; /*0x1a48e8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d6de4",
+        "name": "aIounit",
+        "string": "IOUnit"
+      },
+      {
+        "addr": "0x1c9d08",
+        "name": "-[Object class]"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x1a3e30",
+        "name": "sub_1A3E30"
+      },
+      {
+        "addr": "0x1d6dfc",
+        "name": "aIocharactermaj",
+        "string": "IOCharacterMajor"
+      },
+      {
+        "addr": "0x1d6dec",
+        "name": "aIoblockmajor",
+        "string": "IOBlockMajor"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a48f0",
+    "addr": "0x001a48f0",
+    "code": "int __cdecl -[IODevice getCharValues:forParameter:count:](\n        IODevice *self,\n        SEL a2,\n        char *__dst,\n        char *a4,\n        unsigned int *a5)\n{\n  id v5; // eax\n  char *deviceName; // eax\n  size_t v7; // esi\n  char *__src; // [esp+Ch] [ebp-8h]\n  unsigned int v10; // [esp+10h] [ebp-4h]\n\n  v10 = *a5; /*0x1a4901*/\n  if ( !*a5 ) /*0x1a4901*/\n    v10 = 512; /*0x1a4908*/\n  if ( !strcmp(a4, \"IOClassName\") ) /*0x1a491f*/\n  {\n    v5 = -[Object class](self, sel_class); /*0x1a4932*/\n    __src = (char *)objc_msgSend(v5, sel_name); /*0x1a4940*/\n  }\n  else\n  {\n    if ( !strcmp(a4, \"IODeviceName\") ) /*0x1a4958*/\n    {\n      deviceName = self->_deviceName; /*0x1a495c*/\n    }\n    else\n    {\n      if ( strcmp(a4, \"IODeviceKind\") ) /*0x1a4974*/\n        return -711; /*0x1a49c0*/\n      deviceName = self->_deviceKind; /*0x1a4978*/\n    }\n    __src = deviceName; /*0x1a497d*/\n  }\n  v7 = strlen(__src); /*0x1a4991*/\n  if ( v10 <= v7 ) /*0x1a4997*/\n    v7 = v10 - 1; /*0x1a499c*/\n  *a5 = v7 + 1; /*0x1a49a3*/\n  strncpy(__dst, __src, v7); /*0x1a49ae*/\n  __dst[v7] = 0; /*0x1a49b6*/\n  return 0; /*0x1a49c8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9d08",
+        "name": "-[Object class]"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1d6e2c",
+        "name": "aIodevicekind",
+        "string": "IODeviceKind"
+      },
+      {
+        "addr": "0x1d6e1c",
+        "name": "aIodevicename",
+        "string": "IODeviceName"
+      },
+      {
+        "addr": "0x1d6e10",
+        "name": "aIoclassname",
+        "string": "IOClassName"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a49d0",
+    "addr": "0x001a49d0",
+    "code": "int __cdecl -[IODevice setIntValues:forParameter:count:](\n        IODevice *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5)\n{\n  return -711; /*0x1a49da*/\n}"
+  },
+  {
+    "requested_address": "0x001a49dc",
+    "addr": "0x001a49dc",
+    "code": "int __cdecl -[IODevice setCharValues:forParameter:count:](IODevice *self, SEL a2, char *a3, char *a4, unsigned int a5)\n{\n  return -711; /*0x1a49e6*/\n}"
+  },
+  {
+    "requested_address": "0x001a49e8",
+    "addr": "0x001a49e8",
+    "code": "const char *__cdecl -[IODevice stringFromReturn:](IODevice *self, SEL a2, int a3)\n{\n  return +[IODevice stringFromReturn:](aIodevice_0, sel_stringFromReturn_, a3); /*0x1a4a04*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a4a08",
+        "name": "+[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x1fdfcd",
+        "name": "aIodevice_0",
+        "string": "IODevice"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4a08",
+    "addr": "0x001a4a08",
+    "code": "const char *__cdecl +[IODevice stringFromReturn:](id a1, SEL a2, int a3)\n{\n  return (const char *)IOFindNameForValue(a3, &unk_1E4F98); /*0x1a4a1b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a553c",
+        "name": "_IOFindNameForValue"
+      },
+      {
+        "addr": "0x1e4f98",
+        "name": "unk_1E4F98"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4a20",
+    "addr": "0x001a4a20",
+    "code": "int __cdecl -[IODevice errnoFromReturn:](IODevice *self, SEL a2, int a3)\n{\n  if ( a3 == -711 ) /*0x1a4a2b*/\n    return 45; /*0x1a4b1c*/\n  if ( a3 <= -711 ) /*0x1a4a31*/\n  {\n    if ( a3 == -721 ) /*0x1a4a38*/\n      return 5; /*0x1a4a38*/\n    if ( a3 <= -721 ) /*0x1a4a3e*/\n    {\n      if ( a3 != -724 ) /*0x1a4a45*/\n      {\n        if ( a3 > -724 ) /*0x1a4a4b*/\n        {\n          if ( a3 != -722 ) /*0x1a4a65*/\n            return 5; /*0x1a4a65*/\n        }\n        else if ( a3 != -725 ) /*0x1a4a52*/\n        {\n          return 5; /*0x1a4a52*/\n        }\n        return 16; /*0x1a4b40*/\n      }\n      return 5; /*0x1a4b28*/\n    }\n    if ( a3 > -716 ) /*0x1a4a75*/\n    {\n      if ( a3 != -714 ) /*0x1a4a95*/\n        return 5; /*0x1a4a95*/\n      return 5; /*0x1a4a95*/\n    }\n    if ( a3 < -718 ) /*0x1a4a7c*/\n    {\n      if ( a3 == -719 ) /*0x1a4a83*/\n        return 30; /*0x1a4b34*/\n      return 5; /*0x1a4a83*/\n    }\n    return 13; /*0x1a4b04*/\n  }\n  if ( a3 == -705 ) /*0x1a4aa5*/\n    return 13; /*0x1a4aa5*/\n  if ( a3 > -705 ) /*0x1a4aa7*/\n  {\n    if ( a3 > -701 ) /*0x1a4ac5*/\n    {\n      if ( !a3 ) /*0x1a4ada*/\n        return 0; /*0x1a4ae1*/\n    }\n    else\n    {\n      if ( a3 >= -702 ) /*0x1a4acc*/\n        return 12; /*0x1a4aec*/\n      if ( a3 == -704 ) /*0x1a4ad3*/\n        return 6; /*0x1a4af8*/\n    }\n    return 5; /*0x1a4ad3*/\n  }\n  if ( a3 >= -709 ) /*0x1a4aae*/\n  {\n    if ( a3 > -707 ) /*0x1a4ab9*/\n      return 22; /*0x1a4b10*/\n    return 13; /*0x1a4ab9*/\n  }\n  return 5; /*0x1a4ae0*/\n}"
+  },
+  {
+    "requested_address": "0x001a4b50",
+    "addr": "0x001a4b50",
+    "code": "int __cdecl +[IODevice lookupByObjectNumber:deviceKind:deviceName:](\n        id a1,\n        SEL a2,\n        unsigned int a3,\n        char (*a4)[80],\n        char (*a5)[80])\n{\n  int v5; // ebx\n  const char *v6; // eax\n  const char *v7; // eax\n  id v9; // [esp+4h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4b68*/\n  v5 = sub_1A3D58(a3, (int *)&v9); /*0x1a4b77*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4b87*/\n  if ( !v5 ) /*0x1a4b91*/\n  {\n    v6 = (const char *)objc_msgSend(v9, sel_deviceKind); /*0x1a4ba0*/\n    strncpy((char *)a4, v6, 0x50u); /*0x1a4bad*/\n    v7 = (const char *)objc_msgSend(v9, sel_name); /*0x1a4bbf*/\n    strncpy((char *)a5, v7, 0x50u); /*0x1a4bcc*/\n  }\n  return v5; /*0x1a4bd3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x203418",
+        "name": "sel_deviceKind",
+        "string": "deviceKind"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4bdc",
+    "addr": "0x001a4bdc",
+    "code": "int __cdecl +[IODevice lookupByObjectNumber:instance:](id a1, SEL a2, unsigned int a3, id *a4)\n{\n  int v4; // ebx\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4bf5*/\n  v4 = sub_1A3D58(a3, (int *)a4); /*0x1a4c01*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4c11*/\n  return v4; /*0x1a4c1b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4c24",
+    "addr": "0x001a4c24",
+    "code": "int __cdecl +[IODevice lookupByDeviceName:objectNumber:deviceKind:](\n        id a1,\n        SEL a2,\n        char *__s1,\n        unsigned int *a4,\n        char (*a5)[80])\n{\n  int v5; // ebx\n  const char *v6; // eax\n  id v8; // [esp+8h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4c40*/\n  v5 = sub_1A3D9C(__s1, &v8, a4); /*0x1a4c50*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4c60*/\n  if ( !v5 ) /*0x1a4c6a*/\n  {\n    v6 = (const char *)objc_msgSend(v8, sel_deviceKind); /*0x1a4c79*/\n    strncpy((char *)a5, v6, 0x50u); /*0x1a4c86*/\n  }\n  return v5; /*0x1a4c90*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d9c",
+        "name": "sub_1A3D9C"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x203418",
+        "name": "sel_deviceKind",
+        "string": "deviceKind"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4c98",
+    "addr": "0x001a4c98",
+    "code": "int __cdecl +[IODevice getIntValues:forParameter:objectNumber:count:](\n        id a1,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5,\n        unsigned int *a6)\n{\n  int v6; // ebx\n  id v8; // [esp+4h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4cb0*/\n  v6 = sub_1A3D58(a5, (int *)&v8); /*0x1a4cbf*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4ccf*/\n  if ( !v6 ) /*0x1a4cd9*/\n    return (int)objc_msgSend(v8, sel_getIntValues_forParameter_count_, a3, a4, a6); /*0x1a4cf7*/\n  return v6; /*0x1a4cfb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x202e1c",
+        "name": "sel_getIntValues:forParameter:count:",
+        "string": "getIntValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4d04",
+    "addr": "0x001a4d04",
+    "code": "int __cdecl +[IODevice getCharValues:forParameter:objectNumber:count:](\n        id a1,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int a5,\n        unsigned int *a6)\n{\n  int v6; // ebx\n  id v8; // [esp+4h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4d1c*/\n  v6 = sub_1A3D58(a5, (int *)&v8); /*0x1a4d2b*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4d3b*/\n  if ( !v6 ) /*0x1a4d45*/\n    return (int)objc_msgSend(v8, sel_getCharValues_forParameter_count_, a3, a4, a6); /*0x1a4d63*/\n  return v6; /*0x1a4d67*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x202df8",
+        "name": "sel_getCharValues:forParameter:count:",
+        "string": "getCharValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4d70",
+    "addr": "0x001a4d70",
+    "code": "int __cdecl +[IODevice setIntValues:forParameter:objectNumber:count:](\n        id a1,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5,\n        unsigned int a6)\n{\n  int v6; // ebx\n  id v8; // [esp+4h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4d88*/\n  v6 = sub_1A3D58(a5, (int *)&v8); /*0x1a4d97*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4da7*/\n  if ( !v6 ) /*0x1a4db1*/\n    return (int)objc_msgSend(v8, sel_setIntValues_forParameter_count_, a3, a4, a6); /*0x1a4dcf*/\n  return v6; /*0x1a4dd3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4ddc",
+    "addr": "0x001a4ddc",
+    "code": "int __cdecl +[IODevice setCharValues:forParameter:objectNumber:count:](\n        id a1,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int a5,\n        unsigned int a6)\n{\n  int v6; // ebx\n  id v8; // [esp+4h] [ebp-4h] BYREF\n\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a4df4*/\n  v6 = sub_1A3D58(a5, (int *)&v8); /*0x1a4e03*/\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a4e13*/\n  if ( !v6 ) /*0x1a4e1d*/\n    return (int)objc_msgSend(v8, sel_setCharValues_forParameter_count_, a3, a4, a6); /*0x1a4e3b*/\n  return v6; /*0x1a4e3f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x202dd4",
+        "name": "sel_setCharValues:forParameter:count:",
+        "string": "setCharValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4e48",
+    "addr": "0x001a4e48",
+    "code": "int __cdecl +[IODevice addLoadedClass:description:](id a1, SEL a2, id a3, id a4)\n{\n  id v4; // eax\n  _DWORD *v5; // eax\n  int v6; // edi\n  int v7; // esi\n  _DWORD *v8; // ebx\n  char v10; // [esp+Ch] [ebp-10h]\n  _DWORD *v11; // [esp+10h] [ebp-Ch]\n  id v12; // [esp+14h] [ebp-8h] BYREF\n  int *v13; // [esp+18h] [ebp-4h] BYREF\n\n  v10 = 0; /*0x1a4e51*/\n  if ( !sub_1A3E30((int)a3, &v13) ) /*0x1a4e5d*/\n    v13[4] = (int)a4; /*0x1a4e6f*/\n  v4 = objc_msgSend(a3, sel_deviceStyle); /*0x1a4e7d*/\n  if ( v4 == (id)1 )\n  {\n    v5 = objc_msgSend(a3, sel_requiredProtocols); /*0x1a4eab*/\n    v11 = v5; /*0x1a4eb0*/\n    if ( v5 && *v5 ) /*0x1a4eba*/\n    {\n      v6 = 0; /*0x1a4ee0*/\n      do /*0x1a4f68*/\n      {\n        v7 = sub_1A3D58(v6, &v12); /*0x1a4eee*/\n        if ( !v7 ) /*0x1a4ef9*/\n        {\n          if ( *v11 ) /*0x1a4f04*/\n          {\n            v8 = v11; /*0x1a4f09*/\n            while ( (unsigned __int8)objc_msgSend(v12, sel_conformsTo_, *v8) ) /*0x1a4f24*/\n            {\n              if ( !*++v8 ) /*0x1a4f29*/\n                goto LABEL_16; /*0x1a4f2c*/\n            }\n          }\n          else\n          {\nLABEL_16:\n            objc_msgSend(a4, sel_setDirectDevice_, v12); /*0x1a4f2e*/\n            if ( (unsigned __int8)objc_msgSend(a3, sel_probe_, a4) ) /*0x1a4f51*/\n              v10 = 1; /*0x1a4f5d*/\n          }\n        }\n        ++v6; /*0x1a4f61*/\n      }\n      while ( v7 != -704 ); /*0x1a4f68*/\n    }\n    else\n    {\n      objc_msgSend(a3, sel_name); /*0x1a4eca*/\n      IOLog(\"Loaded class %s returns nil for +requiredProtocols\\n\"); /*0x1a4ed5*/\n    }\n  }\n  else if ( !v4 || v4 == (id)2 )\n  {\n    if ( (unsigned __int8)objc_msgSend(a3, sel_respondsTo_, sel_probe_) )\n    {\n      if ( (unsigned __int8)objc_msgSend(a3, sel_probe_, a4) ) /*0x1a4fbb*/\n        v10 = 1; /*0x1a4fc4*/\n    }\n    else\n    {\n      objc_msgSend(a3, sel_name); /*0x1a4f99*/\n      IOLog(\"addLoadedClass: Class %s does not respond to probe:\\n\");\n    }\n  }\n  if ( v10 ) /*0x1a4fcc*/\n    return 0; /*0x1a4fd8*/\n  else\n    return -704; /*0x1a4fce*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a3e30",
+        "name": "sub_1A3E30"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2029c8",
+        "name": "sel_deviceStyle",
+        "string": "deviceStyle"
+      },
+      {
+        "addr": "0x202980",
+        "name": "sel_requiredProtocols",
+        "string": "requiredProtocols"
+      },
+      {
+        "addr": "0x1a3d58",
+        "name": "sub_1A3D58"
+      },
+      {
+        "addr": "0x201988",
+        "name": "sel_conformsTo:",
+        "string": "conformsTo:"
+      },
+      {
+        "addr": "0x203444",
+        "name": "sel_setDirectDevice:",
+        "string": "setDirectDevice:"
+      },
+      {
+        "addr": "0x2029f8",
+        "name": "sel_probe:",
+        "string": "probe:"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d6e3c",
+        "name": "aLoadedClassSRe",
+        "string": "Loaded class %s returns nil for +requiredProtocols\n"
+      },
+      {
+        "addr": "0x1d6e70",
+        "name": "aAddloadedclass",
+        "string": "addLoadedClass: Class %s does not respond to probe:\n"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a4fe4",
+    "addr": "0x001a4fe4",
+    "code": "void __cdecl +[IODevice connectToIndirectDevices:](id a1, SEL a2, id a3)\n{\n  int v3; // esi\n  int v4; // eax\n  _DWORD *v5; // eax\n  _DWORD *v6; // ebx\n  id v7; // ebx\n  id v8; // eax\n  int v9; // [esp+Ch] [ebp-4h] BYREF\n\n  v3 = 0; /*0x1a4ff0*/\n  objc_msgSend(dword_1E8684, sel_lock); /*0x1a5000*/\n  while ( 1 ) /*0x1a500d*/\n  {\n    v4 = sub_1A3EAC(v3, &v9); /*0x1a500d*/\n    if ( v4 == -704 ) /*0x1a501a*/\n      break; /*0x1a501a*/\n    if ( v4 != -727 && objc_msgSend(*(id *)v9, sel_deviceStyle) == (id)1 ) /*0x1a5045*/\n    {\n      v5 = objc_msgSend(*(id *)v9, sel_requiredProtocols); /*0x1a5058*/\n      if ( v5 && *v5 ) /*0x1a5064*/\n      {\n        v6 = v5; /*0x1a5090*/\n        while ( (unsigned __int8)objc_msgSend(a3, sel_conformsTo_, *v6) ) /*0x1a50a9*/\n        {\n          if ( !*++v6 ) /*0x1a50b2*/\n          {\n            if ( *(_DWORD *)(v9 + 16) ) /*0x1a50ba*/\n            {\n              v7 = *(id *)(v9 + 16); /*0x1a50c1*/\n            }\n            else\n            {\n              v8 = objc_msgSend(&aIodevicedescri_0, sel_alloc); /*0x1a50dd*/\n              v7 = objc_msgSend(v8, sel_init); /*0x1a50eb*/\n            }\n            objc_msgSend(v7, sel_setDirectDevice_, a3); /*0x1a50c3*/\n            objc_msgSend(dword_1E8684, sel_unlock); /*0x1a510c*/\n            if ( !(unsigned __int8)objc_msgSend(*(id *)v9, sel_probe_, v7) ) /*0x1a511f*/\n              objc_msgSend(v7, sel_free); /*0x1a5133*/\n            objc_msgSend(dword_1E8684, sel_lock); /*0x1a5149*/\n            break; /*0x1a5149*/\n          }\n        }\n      }\n      else\n      {\n        objc_msgSend(*(id *)v9, sel_name); /*0x1a5076*/\n        IOLog(\"Loaded class %s returns nil for +requiredProtocols\\n\"); /*0x1a5081*/\n      }\n    }\n    ++v3; /*0x1a5151*/\n  }\n  objc_msgSend(dword_1E8684, sel_unlock); /*0x1a5166*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8684",
+        "name": "dword_1E8684"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a3eac",
+        "name": "sub_1A3EAC"
+      },
+      {
+        "addr": "0x202980",
+        "name": "sel_requiredProtocols",
+        "string": "requiredProtocols"
+      },
+      {
+        "addr": "0x1fe42f",
+        "name": "aIodevicedescri_0"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x203444",
+        "name": "sel_setDirectDevice:",
+        "string": "setDirectDevice:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x2029f8",
+        "name": "sel_probe:",
+        "string": "probe:"
+      },
+      {
+        "addr": "0x201988",
+        "name": "sel_conformsTo:",
+        "string": "conformsTo:"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d6e3c",
+        "name": "aLoadedClassSRe",
+        "string": "Loaded class %s returns nil for +requiredProtocols\n"
+      },
+      {
+        "addr": "0x2029c8",
+        "name": "sel_deviceStyle",
+        "string": "deviceStyle"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a5178",
+    "addr": "0x001a5178",
+    "code": "id __cdecl +[IODevice objectsForClass:](id a1, SEL a2, Class *a3)\n{\n  id *v3; // ebx\n  List *v4; // eax\n  List *v5; // esi\n\n  v3 = (id *)dword_1E866C; /*0x1a5181*/\n  v4 = +[Object alloc](aList, sel_alloc); /*0x1a519c*/\n  v5 = -[List init](v4, sel_init); /*0x1a51aa*/\n  objc_msgSend(dword_1E8674, sel_lock); /*0x1a51ba*/\n  for ( ; v3 != (id *)&dword_1E866C; v3 = (id *)v3[2] ) /*0x1a51c8*/\n  {\n    if ( objc_msgSend(*v3, sel_class) == a3 ) /*0x1a51e0*/\n      -[List addObject:](v5, sel_addObject_, *v3); /*0x1a51ed*/\n  }\n  objc_msgSend(dword_1E8674, sel_unlock); /*0x1a520e*/\n  return v5; /*0x1a5218*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e866c",
+        "name": "dword_1E866C"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9604",
+        "name": "-[List init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e8674",
+        "name": "dword_1E8674"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1c9914",
+        "name": "-[List addObject:]"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a5220",
+    "addr": "0x001a5220",
+    "code": "const char *__cdecl -[IOConfigTable valueForStringKey:](IOConfigTable *self, SEL a2, const char *a3)\n{\n  const char *v3; // esi\n  unsigned int v4; // kr04_4\n  unsigned int v5; // edi\n  int v6; // eax\n  void *v7; // esp\n  char *v8; // eax\n  const char *v10; // ebx\n  char *v11; // eax\n  size_t v12; // edi\n  char *v13; // esi\n  char v14; // [esp+0h] [ebp-14h] BYREF\n  char v15[11]; // [esp+1h] [ebp-13h] BYREF\n  char *v16; // [esp+Ch] [ebp-8h]\n  unsigned int v17; // [esp+10h] [ebp-4h]\n\n  v3 = (const char *)self->_private; /*0x1a522f*/\n  v4 = strlen(a3) + 1; /*0x1a523c*/\n  v5 = v4 - 1; /*0x1a5242*/\n  v16 = &v14; /*0x1a5245*/\n  v17 = v4 + 1; /*0x1a524b*/\n  v6 = v4 + 5; /*0x1a524e*/\n  LOBYTE(v6) = (v4 + 5) & 0xFC; /*0x1a5251*/\n  v7 = alloca(v6); /*0x1a5253*/\n  v14 = 34; /*0x1a5257*/\n  strcpy(v15, a3); /*0x1a5260*/\n  v15[v5] = 34; /*0x1a5265*/\n  v15[v5 + 1] = 0; /*0x1a526a*/\n  v8 = strstr(v3, &v14); /*0x1a5271*/\n  if ( !v8 ) /*0x1a527a*/\n    return nullptr; /*0x1a527c*/\n  v10 = strchr(&v8[v17], 34) + 1; /*0x1a5290*/\n  v11 = strchr(v10, 34); /*0x1a5294*/\n  if ( !v11 ) /*0x1a529e*/\n    return nullptr; /*0x1a52c0*/\n  v12 = v11 - v10; /*0x1a52a2*/\n  v13 = (char *)IOMalloc(v11 - v10 + 1); /*0x1a52ad*/\n  strncpy(v13, v10, v12); /*0x1a52b2*/\n  v13[v12] = 0; /*0x1a52b7*/\n  return v13; /*0x1a52c5*/\n}",
+    "refs": [
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      },
+      {
+        "addr": "0x1a52cc",
+        "name": "_strstr"
+      },
+      {
+        "addr": "0x101a10",
+        "name": "_strchr"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a52cc",
+    "addr": "0x001a52cc",
+    "code": "char *__cdecl strstr(const char *__big, const char *__little)\n{\n  char v3; // dl\n  const char *v4; // ebx\n  char v5; // al\n  char v7; // dl\n  const char *v8; // [esp+Ch] [ebp-8h]\n\n  while ( 1 ) /*0x1a531c*/\n  {\n    v7 = *__big++; /*0x1a531c*/\n    if ( !v7 ) /*0x1a5321*/\n      return nullptr; /*0x1a5328*/\n    if ( *__little == v7 ) /*0x1a52e7*/\n    {\n      v3 = __little[1]; /*0x1a52e9*/\n      v4 = __little + 2; /*0x1a52ec*/\n      v8 = __big + 1; /*0x1a52f2*/\n      if ( *__big == v3 ) /*0x1a52f7*/\n      {\n        while ( v3 ) /*0x1a52fe*/\n        {\n          v3 = *v4; /*0x1a5300*/\n          v5 = *v8; /*0x1a5305*/\n          ++v4; /*0x1a5307*/\n          ++v8; /*0x1a5309*/\n          if ( v5 != v3 ) /*0x1a530e*/\n            goto LABEL_6; /*0x1a530e*/\n        }\n        return (char *)(__big - 1); /*0x1a5317*/\n      }\nLABEL_6:\n      if ( !v3 ) /*0x1a5312*/\n        return (char *)(__big - 1); /*0x1a5312*/\n    }\n  }\n}"
+  },
+  {
+    "requested_address": "0x001a5330",
+    "addr": "0x001a5330",
+    "code": "id __cdecl -[IOConfigTable free](IOConfigTable *self, SEL a2)\n{\n  void *v2; // edx\n  objc_super v4; // [esp+Ch] [ebp-8h] BYREF\n\n  v2 = self->_private; /*0x1a533c*/\n  if ( v2 ) /*0x1a5341*/\n    IOFree((int)v2, strlen((const char *)self->_private) + 1); /*0x1a5355*/\n  v4.receiver = self; /*0x1a5364*/\n  v4.super_class = (Class)stru_1FA0B4.ext; /*0x1a536d*/\n  return -[Object free](&v4, sel_free); /*0x1a537c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1fa0b4",
+        "name": "stru_1FA0B4"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a5384",
+    "addr": "0x001a5384",
+    "code": "id __cdecl +[IOConfigTable newFromSystemConfig](id a1, SEL a2)\n{\n  return objc_msgSend(a1, sel_newForConfigData_, 79100); /*0x1a539e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202648",
+        "name": "sel_newForConfigData:",
+        "string": "newForConfigData:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a53a0",
+    "addr": "0x001a53a0",
+    "code": "void __cdecl +[IOConfigTable freeString:](id a1, SEL a2, const char *a3)\n{\n  IOFree(a3, strlen(a3) + 1); /*0x1a53b9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  }
+]

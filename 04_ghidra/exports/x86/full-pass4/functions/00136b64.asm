@@ -1,0 +1,2 @@
+0x00136b64	6	MOV dword ptr [EDX],0x0
+0x00136b6a	2	JMP 0x00136bc0

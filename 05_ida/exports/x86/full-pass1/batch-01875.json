@@ -1,0 +1,754 @@
+[
+  {
+    "requested_address": "0x0016727c",
+    "addr": "0x0016727c",
+    "code": "kern_return_t __cdecl thread_terminate(thread_act_t target_act)\n{\n  thread_act_t v1; // edi\n  int v3; // ecx\n  volatile __int32 *v4; // edx\n  int v5; // eax\n  int v6; // esi\n  int v7; // ecx\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // edx\n  volatile __int32 *v10; // edx\n  volatile __int32 *v11; // edx\n\n  v1 = active_threads; /*0x167285*/\n  if ( !target_act ) /*0x16728d*/\n    return 4; /*0x16728f*/\n  ipc_thread_disable(target_act); /*0x16729d*/\n  if ( target_act == v1 ) /*0x1672a7*/\n  {\n    v3 = splsched(); /*0x1672ae*/\n    v4 = (volatile __int32 *)(target_act + 32); /*0x1672b0*/\n    do /*0x1672c6*/\n    {\n      while ( *v4 ) /*0x1672b4*/\n        ; /*0x1672b6*/\n    }\n    while ( _InterlockedExchange(v4, 1) == 1 ); /*0x1672c6*/\n    if ( *(_DWORD *)(target_act + 376) ) /*0x1672c8*/\n    {\n      *(_DWORD *)(target_act + 376) = 0; /*0x1672d1*/\n      *(_BYTE *)(target_act + 380) |= 2u; /*0x1672db*/\n    }\n    _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1672e4*/\n    v5 = need_ast[0]; /*0x1672e7*/\n    LOBYTE(v5) = LOBYTE(need_ast[0]) | 2; /*0x1672ec*/\n    need_ast[0] = v5; /*0x1672ee*/\n    splx(v3); /*0x1672f9*/\n    return 0; /*0x1672fe*/\n  }\n  else\n  {\n    v6 = *(_DWORD *)(active_threads + 12); /*0x16730d*/\n    do /*0x167322*/\n    {\n      while ( *(_DWORD *)v6 ) /*0x167310*/\n        ; /*0x167312*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x167322*/\n    v7 = splsched(); /*0x167329*/\n    if ( target_act >= v1 ) /*0x16732d*/\n    {\n      v10 = (volatile __int32 *)(v1 + 32); /*0x167364*/\n      do /*0x16737a*/\n      {\n        while ( *v10 ) /*0x167368*/\n          ; /*0x16736a*/\n      }\n      while ( _InterlockedExchange(v10, 1) == 1 ); /*0x16737a*/\n      v11 = (volatile __int32 *)(target_act + 32); /*0x16737c*/\n      do /*0x167392*/\n      {\n        while ( *v11 ) /*0x167380*/\n          ; /*0x167382*/\n      }\n      while ( _InterlockedExchange(v11, 1) == 1 ); /*0x167392*/\n    }\n    else\n    {\n      v8 = (volatile __int32 *)(target_act + 32); /*0x16732f*/\n      do /*0x167346*/\n      {\n        while ( *v8 ) /*0x167334*/\n          ; /*0x167336*/\n      }\n      while ( _InterlockedExchange(v8, 1) == 1 ); /*0x167346*/\n      v9 = (volatile __int32 *)(v1 + 32); /*0x167348*/\n      do /*0x16735e*/\n      {\n        while ( *v9 ) /*0x16734c*/\n          ; /*0x16734e*/\n      }\n      while ( _InterlockedExchange(v9, 1) == 1 ); /*0x16735e*/\n    }\n    if ( *(_DWORD *)(v6 + 8) && *(_DWORD *)(v1 + 376) ) /*0x16739a*/\n    {\n      _InterlockedExchange((volatile __int32 *)(v1 + 32), 0); /*0x1673ca*/\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x1673cf*/\n      if ( *(_DWORD *)(target_act + 376) ) /*0x1673d1*/\n      {\n        *(_DWORD *)(target_act + 376) = 0; /*0x1673ec*/\n        _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1673f8*/\n        splx(v7); /*0x1673fc*/\n        thread_halt(target_act, 1); /*0x167404*/\n        ipc_thread_terminate(target_act); /*0x16740a*/\n        thread_deallocate(target_act); /*0x167410*/\n        return 0; /*0x167415*/\n      }\n      else\n      {\n        _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1673dc*/\n        splx(v7); /*0x1673e0*/\n        return 5; /*0x1673e5*/\n      }\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)(v1 + 32), 0); /*0x1673a5*/\n      _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1673aa*/\n      splx(v7); /*0x1673ae*/\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x1673b8*/\n      thread_terminate(v1); /*0x1673bb*/\n      return 5; /*0x1673c0*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x159728",
+        "name": "_ipc_thread_disable"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1e90ac",
+        "name": "_need_ast"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x167494",
+        "name": "_thread_halt"
+      },
+      {
+        "addr": "0x159770",
+        "name": "_ipc_thread_terminate"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x16727c",
+        "name": "_thread_terminate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167424",
+    "addr": "0x00167424",
+    "code": "void __cdecl thread_force_terminate(int a1)\n{\n  int v1; // ecx\n  volatile __int32 *v2; // edx\n  int v3; // ebx\n\n  ipc_thread_disable(a1); /*0x16742d*/\n  v1 = splsched(); /*0x167437*/\n  v2 = (volatile __int32 *)(a1 + 32); /*0x167439*/\n  do /*0x167452*/\n  {\n    while ( *v2 ) /*0x167440*/\n      ; /*0x167442*/\n  }\n  while ( _InterlockedExchange(v2, 1) == 1 ); /*0x167452*/\n  v3 = *(_DWORD *)(a1 + 376); /*0x167454*/\n  *(_DWORD *)(a1 + 376) = 0; /*0x16745a*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167466*/\n  splx(v1); /*0x16746a*/\n  thread_halt(a1, 1); /*0x167472*/\n  ipc_thread_terminate(a1); /*0x167478*/\n  if ( v3 ) /*0x167482*/\n    thread_deallocate(a1); /*0x167485*/\n}",
+    "refs": [
+      {
+        "addr": "0x159728",
+        "name": "_ipc_thread_disable"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x167494",
+        "name": "_thread_halt"
+      },
+      {
+        "addr": "0x159770",
+        "name": "_ipc_thread_terminate"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167494",
+    "addr": "0x00167494",
+    "code": "int __cdecl thread_halt(unsigned int a1, int a2)\n{\n  thread_act_t v2; // esi\n  int v3; // edi\n  volatile __int32 *v4; // edx\n  volatile __int32 *v5; // edx\n  volatile __int32 *v6; // edx\n  volatile __int32 *v7; // edx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  volatile __int32 *v11; // esi\n  int v12; // esi\n  int v13; // edi\n  volatile __int32 *v14; // edx\n  int (*v15)(); // eax\n  int (*v16)(void); // eax\n  int v17; // edi\n  volatile __int32 *v18; // edx\n  volatile __int32 *v19; // edx\n\n  v2 = active_threads; /*0x16749d*/\n  if ( a1 == active_threads ) /*0x1674a5*/\n    panic(aThreadHaltTryi); /*0x1674ac*/\n  if ( a2 ) /*0x1674b8*/\n  {\n    v3 = splsched(); /*0x16758d*/\n    v9 = (volatile __int32 *)(a1 + 32); /*0x16758f*/\n    do /*0x1675a6*/\n    {\n      while ( *v9 ) /*0x167594*/\n        ; /*0x167596*/\n    }\n    while ( _InterlockedExchange(v9, 1) == 1 ); /*0x1675a6*/\n    if ( (*(_BYTE *)(a1 + 76) & 0x10) != 0 ) /*0x1675ac*/\n    {\n      ++*(_DWORD *)(a1 + 64); /*0x1675ae*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x1675b3*/\n      splx(v3); /*0x1675b7*/\n      return 0; /*0x1675be*/\n    }\n  }\n  else\n  {\n    v3 = splsched(); /*0x1674c3*/\n    if ( a1 >= v2 ) /*0x1674c7*/\n    {\n      v6 = (volatile __int32 *)(v2 + 32); /*0x1674fc*/\n      do /*0x167512*/\n      {\n        while ( *v6 ) /*0x167500*/\n          ; /*0x167502*/\n      }\n      while ( _InterlockedExchange(v6, 1) == 1 ); /*0x167512*/\n      v7 = (volatile __int32 *)(a1 + 32); /*0x167514*/\n      do /*0x16752a*/\n      {\n        while ( *v7 ) /*0x167518*/\n          ; /*0x16751a*/\n      }\n      while ( _InterlockedExchange(v7, 1) == 1 ); /*0x16752a*/\n    }\n    else\n    {\n      v4 = (volatile __int32 *)(a1 + 32); /*0x1674c9*/\n      do /*0x1674de*/\n      {\n        while ( *v4 ) /*0x1674cc*/\n          ; /*0x1674ce*/\n      }\n      while ( _InterlockedExchange(v4, 1) == 1 ); /*0x1674de*/\n      v5 = (volatile __int32 *)(v2 + 32); /*0x1674e0*/\n      do /*0x1674f6*/\n      {\n        while ( *v5 ) /*0x1674e4*/\n          ; /*0x1674e6*/\n      }\n      while ( _InterlockedExchange(v5, 1) == 1 ); /*0x1674f6*/\n    }\n    if ( (*(_BYTE *)(a1 + 76) & 0x10) != 0 ) /*0x167530*/\n    {\n      ++*(_DWORD *)(a1 + 64); /*0x167532*/\n      _InterlockedExchange((volatile __int32 *)(v2 + 32), 0); /*0x167537*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x16753c*/\n      splx(v3); /*0x167540*/\n      return 0; /*0x167547*/\n    }\n    if ( (*(_BYTE *)(v2 + 380) & 1) != 0 ) /*0x167553*/\n    {\n      thread_wakeup_prim(v2 + 72, 0, 2); /*0x16755d*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167567*/\n      _InterlockedExchange((volatile __int32 *)(v2 + 32), 0); /*0x16756c*/\n      splx(v3); /*0x167570*/\n      return 5; /*0x16757a*/\n    }\n    _InterlockedExchange((volatile __int32 *)(v2 + 32), 0); /*0x167582*/\n  }\n  ++*(_DWORD *)(a1 + 64); /*0x1675ec*/\n  v10 = *(_DWORD *)(a1 + 76); /*0x1675ef*/\n  LOBYTE(v10) = v10 | 2; /*0x1675f2*/\n  *(_DWORD *)(a1 + 76) = v10; /*0x1675f4*/\n  if ( (*(_BYTE *)(a1 + 380) & 1) == 0 || (v10 & 0x10) != 0 ) /*0x167602*/\n  {\nLABEL_39:\n    *(_BYTE *)(a1 + 380) |= 1u; /*0x16765b*/\n    while ( 1 ) /*0x167666*/\n    {\n      _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167666*/\n      splx(v3); /*0x16766a*/\n      v12 = thread_dowait(a1, a2); /*0x167679*/\n      if ( v12 ) /*0x167680*/\n      {\n        v13 = splsched(); /*0x167687*/\n        v14 = (volatile __int32 *)(a1 + 32); /*0x167689*/\n        do /*0x16769e*/\n        {\n          while ( *v14 ) /*0x16768c*/\n            ; /*0x16768e*/\n        }\n        while ( _InterlockedExchange(v14, 1) == 1 ); /*0x16769e*/\n        *(_DWORD *)(a1 + 380) &= ~1u; /*0x1676a0*/\n        thread_wakeup_prim(a1 + 72, 0, 2); /*0x1676af*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x1676b9*/\n        splx(v13); /*0x1676bd*/\n        thread_release(a1); /*0x1676c3*/\n        return v12; /*0x1676ca*/\n      }\n      clear_wait(a1, 2, 1); /*0x1676d5*/\n      if ( (*(_BYTE *)(a1 + 76) & 0x10) != 0 ) /*0x1676e1*/\n        return 0; /*0x1676e5*/\n      v15 = *(int (**)())(a1 + 52); /*0x1676ec*/\n      if ( v15 == mach_msg_continue || v15 == mach_msg_receive_continue ) /*0x1676fb*/\n      {\n        if ( mach_msg_interrupt((_DWORD *)a1) ) /*0x1676fe*/\n          break; /*0x1676fe*/\n      }\n      v16 = *(int (**)(void))(a1 + 52); /*0x16770a*/\n      if ( v16 == thread_exception_return || v16 == thread_bootstrap_return ) /*0x167719*/\n        break; /*0x167719*/\n      v3 = splsched(); /*0x16775d*/\n      v19 = (volatile __int32 *)(a1 + 32); /*0x16775f*/\n      do /*0x167776*/\n      {\n        while ( *v19 ) /*0x167764*/\n          ; /*0x167766*/\n      }\n      while ( _InterlockedExchange(v19, 1) == 1 ); /*0x167776*/\n      if ( (*(_DWORD *)(a1 + 76) & 0xF) != 2 ) /*0x167781*/\n        panic(aThreadHalt); /*0x167788*/\n      *(_BYTE *)(a1 + 76) |= 0xCu; /*0x167790*/\n      thread_setrun((char **)a1, 0); /*0x167797*/\n    }\n    v17 = splsched(); /*0x167720*/\n    v18 = (volatile __int32 *)(a1 + 32); /*0x167722*/\n    do /*0x16773a*/\n    {\n      while ( *v18 ) /*0x167728*/\n        ; /*0x16772a*/\n    }\n    while ( _InterlockedExchange(v18, 1) == 1 ); /*0x16773a*/\n    *(_BYTE *)(a1 + 76) |= 0x10u; /*0x16773c*/\n    *(_DWORD *)(a1 + 380) &= ~1u; /*0x167740*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167749*/\n    splx(v17); /*0x16774d*/\n    return 0; /*0x167752*/\n  }\n  else\n  {\n    while ( 1 ) /*0x167604*/\n    {\n      *(_DWORD *)(a1 + 72) = 1; /*0x167604*/\n      v11 = (volatile __int32 *)(a1 + 32); /*0x16760d*/\n      thread_sleep(a1 + 72, (volatile __int32 *)(a1 + 32), 1); /*0x167615*/\n      if ( (*(_BYTE *)(a1 + 76) & 0x10) != 0 ) /*0x167621*/\n      {\n        splx(v3); /*0x1675c5*/\n        return 0; /*0x1675cc*/\n      }\n      if ( *(_DWORD *)(active_threads + 68) && !a2 ) /*0x167632*/\n        break; /*0x167632*/\n      do /*0x16764a*/\n      {\n        while ( *v11 ) /*0x167638*/\n          ; /*0x16763a*/\n      }\n      while ( _InterlockedExchange(v11, 1) == 1 ); /*0x16764a*/\n      if ( (*(_BYTE *)(a1 + 380) & 1) == 0 || (*(_BYTE *)(a1 + 76) & 0x10) != 0 ) /*0x167659*/\n        goto LABEL_39; /*0x167659*/\n    }\n    splx(v3); /*0x1675d5*/\n    thread_release(a1); /*0x1675db*/\n    return 5; /*0x1675e0*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc1f",
+        "name": "aThreadHaltTryi",
+        "string": "thread_halt: trying to halt current thread."
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1679ec",
+        "name": "_thread_dowait"
+      },
+      {
+        "addr": "0x167b2c",
+        "name": "_thread_release"
+      },
+      {
+        "addr": "0x16303c",
+        "name": "_clear_wait"
+      },
+      {
+        "addr": "0x154064",
+        "name": "_mach_msg_interrupt"
+      },
+      {
+        "addr": "0x153f34",
+        "name": "_mach_msg_continue"
+      },
+      {
+        "addr": "0x152904",
+        "name": "_mach_msg_receive_continue"
+      },
+      {
+        "addr": "0x18dec0",
+        "name": "_thread_exception_return"
+      },
+      {
+        "addr": "0x18dce0",
+        "name": "_thread_bootstrap_return"
+      },
+      {
+        "addr": "0x1dfc4b",
+        "name": "aThreadHalt",
+        "string": "thread_halt"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001677b0",
+    "addr": "0x001677b0",
+    "code": "void __noreturn walking_zombie()\n{\n  panic(aTheZombieWalks); /*0x1677b8*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc57",
+        "name": "aTheZombieWalks",
+        "string": "the zombie walks!"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001677c4",
+    "addr": "0x001677c4",
+    "code": "int thread_halt_self_with_continuation()\n{\n  int v0; // ebx\n  int v1; // ecx\n  volatile __int32 *v2; // edx\n  int v4; // ecx\n  volatile __int32 *v5; // edx\n  int v6; // [esp-14h] [ebp-1Ch]\n\n  v0 = active_threads; /*0x1677c9*/\n  if ( (*(_BYTE *)(active_threads + 380) & 2) != 0 ) /*0x1677d6*/\n  {\n    ipc_thread_terminate(active_threads); /*0x1677dd*/\n    thread_hold(v0); /*0x1677e3*/\n    v1 = splsched(); /*0x1677ed*/\n    do /*0x16780d*/\n    {\n      while ( reaper_lock ) /*0x1677fb*/\n        ; /*0x1677f9*/\n    }\n    while ( _InterlockedExchange(&reaper_lock, 1) == 1 ); /*0x16780d*/\n    *(_DWORD *)v0 = &reaper_queue; /*0x16780f*/\n    *(_DWORD *)(v0 + 4) = dword_1E979C; /*0x16781b*/\n    **(_DWORD **)(v0 + 4) = v0; /*0x167821*/\n    dword_1E979C = v0; /*0x167823*/\n    _InterlockedExchange(&reaper_lock, 0); /*0x16782b*/\n    v2 = (volatile __int32 *)(v0 + 32); /*0x167831*/\n    do /*0x167846*/\n    {\n      while ( *v2 ) /*0x167834*/\n        ; /*0x167836*/\n    }\n    while ( _InterlockedExchange(v2, 1) == 1 ); /*0x167846*/\n    *(_BYTE *)(v0 + 76) |= 0x10u; /*0x167848*/\n    _InterlockedExchange((volatile __int32 *)(v0 + 32), 0); /*0x16784e*/\n    splx(v1); /*0x167852*/\n    thread_wakeup_prim((int)&reaper_queue, 0, 0); /*0x167860*/\n    return thread_block_with_continuation((int)walking_zombie); /*0x16786a*/\n  }\n  else\n  {\n    v4 = splsched(); /*0x167871*/\n    v5 = (volatile __int32 *)(v0 + 32); /*0x167873*/\n    do /*0x16788a*/\n    {\n      while ( *v5 ) /*0x167878*/\n        ; /*0x16787a*/\n    }\n    while ( _InterlockedExchange(v5, 1) == 1 ); /*0x16788a*/\n    *(_BYTE *)(v0 + 76) |= 0x10u; /*0x16788c*/\n    *(_DWORD *)(v0 + 380) &= ~1u; /*0x167890*/\n    _InterlockedExchange((volatile __int32 *)(v0 + 32), 0); /*0x167899*/\n    splx(v4); /*0x16789d*/\n    return thread_block_with_continuation(v6); /*0x1678a6*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x159770",
+        "name": "_ipc_thread_terminate"
+      },
+      {
+        "addr": "0x1679a8",
+        "name": "_thread_hold"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1f6bf0",
+        "name": "_reaper_lock"
+      },
+      {
+        "addr": "0x1e9798",
+        "name": "_reaper_queue"
+      },
+      {
+        "addr": "0x1e979c",
+        "name": "dword_1E979C"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x163a18",
+        "name": "_thread_block_with_continuation"
+      },
+      {
+        "addr": "0x1677b0",
+        "name": "_walking_zombie"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001678b4",
+    "addr": "0x001678b4",
+    "code": "int thread_halt_self()\n{\n  int v0; // ebx\n  int v1; // ecx\n  volatile __int32 *v2; // edx\n  int v4; // ecx\n  volatile __int32 *v5; // edx\n  int v6; // [esp-14h] [ebp-1Ch]\n\n  v0 = active_threads; /*0x1678b9*/\n  if ( (*(_BYTE *)(active_threads + 380) & 2) != 0 ) /*0x1678c6*/\n  {\n    ipc_thread_terminate(active_threads); /*0x1678cd*/\n    thread_hold(v0); /*0x1678d3*/\n    v1 = splsched(); /*0x1678dd*/\n    do /*0x1678fd*/\n    {\n      while ( reaper_lock ) /*0x1678eb*/\n        ; /*0x1678e9*/\n    }\n    while ( _InterlockedExchange(&reaper_lock, 1) == 1 ); /*0x1678fd*/\n    *(_DWORD *)v0 = &reaper_queue; /*0x1678ff*/\n    *(_DWORD *)(v0 + 4) = dword_1E979C; /*0x16790b*/\n    **(_DWORD **)(v0 + 4) = v0; /*0x167911*/\n    dword_1E979C = v0; /*0x167913*/\n    _InterlockedExchange(&reaper_lock, 0); /*0x16791b*/\n    v2 = (volatile __int32 *)(v0 + 32); /*0x167921*/\n    do /*0x167936*/\n    {\n      while ( *v2 ) /*0x167924*/\n        ; /*0x167926*/\n    }\n    while ( _InterlockedExchange(v2, 1) == 1 ); /*0x167936*/\n    *(_BYTE *)(v0 + 76) |= 0x10u; /*0x167938*/\n    _InterlockedExchange((volatile __int32 *)(v0 + 32), 0); /*0x16793e*/\n    splx(v1); /*0x167942*/\n    thread_wakeup_prim((int)&reaper_queue, 0, 0); /*0x167950*/\n    return thread_block_with_continuation((int)walking_zombie); /*0x16795a*/\n  }\n  else\n  {\n    v4 = splsched(); /*0x167961*/\n    v5 = (volatile __int32 *)(v0 + 32); /*0x167963*/\n    do /*0x16797a*/\n    {\n      while ( *v5 ) /*0x167968*/\n        ; /*0x16796a*/\n    }\n    while ( _InterlockedExchange(v5, 1) == 1 ); /*0x16797a*/\n    *(_BYTE *)(v0 + 76) |= 0x10u; /*0x16797c*/\n    *(_DWORD *)(v0 + 380) &= ~1u; /*0x167980*/\n    _InterlockedExchange((volatile __int32 *)(v0 + 32), 0); /*0x167989*/\n    splx(v4); /*0x16798d*/\n    return thread_block_with_continuation(v6); /*0x167997*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x159770",
+        "name": "_ipc_thread_terminate"
+      },
+      {
+        "addr": "0x1679a8",
+        "name": "_thread_hold"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1f6bf0",
+        "name": "_reaper_lock"
+      },
+      {
+        "addr": "0x1e9798",
+        "name": "_reaper_queue"
+      },
+      {
+        "addr": "0x1e979c",
+        "name": "dword_1E979C"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x163a18",
+        "name": "_thread_block_with_continuation"
+      },
+      {
+        "addr": "0x1677b0",
+        "name": "_walking_zombie"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001679a8",
+    "addr": "0x001679a8",
+    "code": "int __cdecl thread_hold(int a1)\n{\n  int v1; // ecx\n  volatile __int32 *v2; // edx\n\n  v1 = splsched(); /*0x1679b4*/\n  v2 = (volatile __int32 *)(a1 + 32); /*0x1679b6*/\n  do /*0x1679ce*/\n  {\n    while ( *v2 ) /*0x1679bc*/\n      ; /*0x1679be*/\n  }\n  while ( _InterlockedExchange(v2, 1) == 1 ); /*0x1679ce*/\n  ++*(_DWORD *)(a1 + 64); /*0x1679d0*/\n  *(_BYTE *)(a1 + 76) |= 2u; /*0x1679d3*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x1679d9*/\n  return splx(v1); /*0x1679e2*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001679ec",
+    "addr": "0x001679ec",
+    "code": "int __cdecl thread_dowait(int a1, int a2)\n{\n  int v2; // edi\n  volatile __int32 *v3; // edx\n  volatile __int32 *v4; // esi\n  int v6; // [esp+Ch] [ebp-8h]\n  int v7; // [esp+10h] [ebp-4h]\n\n  v7 = 0; /*0x1679f8*/\n  if ( active_threads == a1 ) /*0x167a05*/\n    panic(aThreadDowait); /*0x167a0c*/\n  v2 = 0; /*0x167a14*/\n  v6 = splsched(); /*0x167a1b*/\n  v3 = (volatile __int32 *)(a1 + 32); /*0x167a1e*/\n  do /*0x167a36*/\n  {\n    while ( *v3 ) /*0x167a24*/\n      ; /*0x167a26*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x167a36*/\n  v4 = (volatile __int32 *)(a1 + 32); /*0x167a38*/\n  while ( 2 ) /*0x167a4e*/\n  {\n    switch ( *(_DWORD *)(a1 + 76) & 0xF ) /*0x167a4e*/\n    {\n      case 6: /*0x167a4e*/\n        if ( !rem_runq((_DWORD *)a1) ) /*0x167a9b*/\n          goto LABEL_10; /*0x167a9b*/\n        *(_DWORD *)(a1 + 76) &= ~4u; /*0x167a9d*/\n        v2 = *(_DWORD *)(a1 + 72); /*0x167aa1*/\n        *(_DWORD *)(a1 + 72) = 0; /*0x167aa4*/\n        break; /*0x167aab*/\n      case 7: /*0x167a4e*/\n      case 0xB: /*0x167a4e*/\n      case 0xE: /*0x167a4e*/\n      case 0xF: /*0x167a4e*/\nLABEL_10:\n        *(_DWORD *)(a1 + 72) = 1; /*0x167ab0*/\n        thread_sleep(a1 + 72, (volatile __int32 *)(a1 + 32), 1); /*0x167abe*/\n        do /*0x167ada*/\n        {\n          while ( *v4 ) /*0x167ac8*/\n            ; /*0x167aca*/\n        }\n        while ( _InterlockedExchange(v4, 1) == 1 ); /*0x167ada*/\n        if ( !*(_DWORD *)(active_threads + 68) || a2 ) /*0x167aef*/\n          continue; /*0x167aef*/\n        v7 = 5; /*0x167af5*/\n        break; /*0x167af5*/\n      default:\n        goto LABEL_16;\n    }\n    break;\n  }\nLABEL_16:\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167afc*/\n  splx(v6); /*0x167b05*/\n  if ( v2 ) /*0x167b0f*/\n    thread_wakeup_prim(a1 + 72, 0, 0); /*0x167b19*/\n  return v7; /*0x167b24*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc69",
+        "name": "aThreadDowait",
+        "string": "thread_dowait"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x164350",
+        "name": "_rem_runq"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167b2c",
+    "addr": "0x00167b2c",
+    "code": "int __cdecl thread_release(int a1)\n{\n  int v1; // esi\n  volatile __int32 *v2; // edx\n  int v3; // eax\n  int v4; // eax\n  int v5; // edx\n\n  v1 = splsched(); /*0x167b39*/\n  v2 = (volatile __int32 *)(a1 + 32); /*0x167b3b*/\n  do /*0x167b52*/\n  {\n    while ( *v2 ) /*0x167b40*/\n      ; /*0x167b42*/\n  }\n  while ( _InterlockedExchange(v2, 1) == 1 ); /*0x167b52*/\n  v3 = *(_DWORD *)(a1 + 64); /*0x167b54*/\n  *(_DWORD *)(a1 + 64) = v3 - 1; /*0x167b5a*/\n  if ( v3 == 1 ) /*0x167b60*/\n  {\n    v4 = *(_DWORD *)(a1 + 76); /*0x167b62*/\n    v5 = v4; /*0x167b65*/\n    LOBYTE(v5) = v4 & 0xED; /*0x167b67*/\n    *(_DWORD *)(a1 + 76) = v5; /*0x167b6a*/\n    if ( (v4 & 5) == 0 ) /*0x167b6f*/\n    {\n      LOBYTE(v5) = v4 & 0xE9 | 4; /*0x167b71*/\n      *(_DWORD *)(a1 + 76) = v5; /*0x167b74*/\n      thread_setrun((char **)a1, 1); /*0x167b7a*/\n    }\n  }\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x167b84*/\n  return splx(v1); /*0x167b90*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167b98",
+    "addr": "0x00167b98",
+    "code": "kern_return_t __cdecl thread_suspend(thread_act_t target_act)\n{\n  int v2; // edi\n  volatile __int32 *v3; // edx\n  int v4; // eax\n  volatile __int32 *v5; // esi\n  int v6; // eax\n  int v7; // edi\n  volatile __int32 *v8; // esi\n  int v9; // [esp+Ch] [ebp-8h]\n  int v10; // [esp+Ch] [ebp-8h]\n  int v11; // [esp+10h] [ebp-4h]\n\n  if ( !target_act ) /*0x167ba6*/\n    return 4; /*0x167ba8*/\n  v2 = 0; /*0x167bb4*/\n  v9 = splsched(); /*0x167bbb*/\n  v3 = (volatile __int32 *)(target_act + 32); /*0x167bbe*/\n  do /*0x167bd6*/\n  {\n    while ( *v3 ) /*0x167bc4*/\n      ; /*0x167bc6*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x167bd6*/\n  v4 = *(_DWORD *)(target_act + 140); /*0x167bd8*/\n  *(_DWORD *)(target_act + 140) = v4 + 1; /*0x167be1*/\n  if ( !v4 ) /*0x167be9*/\n  {\n    v2 = 1; /*0x167beb*/\n    ++*(_DWORD *)(target_act + 64); /*0x167bf0*/\n    *(_BYTE *)(target_act + 76) |= 2u; /*0x167bf3*/\n  }\n  v5 = (volatile __int32 *)(target_act + 32); /*0x167bf7*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167bfc*/\n  splx(v9); /*0x167c03*/\n  if ( v2 ) /*0x167c0d*/\n  {\n    if ( active_threads == target_act ) /*0x167c19*/\n    {\n      v10 = splsched(); /*0x167c20*/\n      v6 = need_ast[0]; /*0x167c23*/\n      LOBYTE(v6) = LOBYTE(need_ast[0]) | 4; /*0x167c28*/\n      need_ast[0] = v6; /*0x167c2a*/\n      splx(v10); /*0x167c38*/\n    }\n    else\n    {\n      v7 = 0; /*0x167c58*/\n      v11 = splsched(); /*0x167c5f*/\n      do /*0x167c76*/\n      {\n        while ( *v5 ) /*0x167c64*/\n          ; /*0x167c66*/\n      }\n      while ( _InterlockedExchange(v5, 1) == 1 ); /*0x167c76*/\n      v8 = (volatile __int32 *)(target_act + 32); /*0x167c78*/\n      while ( 2 ) /*0x167c8e*/\n      {\n        switch ( *(_DWORD *)(target_act + 76) & 0xF ) /*0x167c8e*/\n        {\n          case 6: /*0x167c8e*/\n            if ( !rem_runq((_DWORD *)target_act) ) /*0x167cd1*/\n              goto LABEL_18; /*0x167cdb*/\n            *(_DWORD *)(target_act + 76) &= ~4u; /*0x167c44*/\n            v7 = *(_DWORD *)(target_act + 72); /*0x167c48*/\n            *(_DWORD *)(target_act + 72) = 0; /*0x167c4b*/\n            break; /*0x167c52*/\n          case 7: /*0x167c8e*/\n          case 0xB: /*0x167c8e*/\n          case 0xE: /*0x167c8e*/\n          case 0xF: /*0x167c8e*/\nLABEL_18:\n            *(_DWORD *)(target_act + 72) = 1; /*0x167ce1*/\n            thread_sleep(target_act + 72, (volatile __int32 *)(target_act + 32), 1); /*0x167cef*/\n            do /*0x167d0e*/\n            {\n              while ( *v8 ) /*0x167cfc*/\n                ; /*0x167cfe*/\n            }\n            while ( _InterlockedExchange(v8, 1) == 1 ); /*0x167d0e*/\n            continue; /*0x167d0e*/\n          default:\n            goto LABEL_22;\n        }\n        break;\n      }\nLABEL_22:\n      _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167d18*/\n      splx(v11); /*0x167d21*/\n      if ( v7 ) /*0x167d2b*/\n        thread_wakeup_prim(target_act + 72, 0, 0); /*0x167d35*/\n    }\n  }\n  return 0; /*0x167d3f*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e90ac",
+        "name": "_need_ast"
+      },
+      {
+        "addr": "0x164350",
+        "name": "_rem_runq"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167d48",
+    "addr": "0x00167d48",
+    "code": "kern_return_t __cdecl thread_resume(thread_act_t target_act)\n{\n  kern_return_t v2; // esi\n  int v3; // edi\n  volatile __int32 *v4; // edx\n  int v5; // eax\n  int v6; // eax\n  int v7; // eax\n  int v8; // edx\n\n  if ( !target_act ) /*0x167d53*/\n    return 4; /*0x167d55*/\n  v2 = 0; /*0x167d5c*/\n  v3 = splsched(); /*0x167d63*/\n  v4 = (volatile __int32 *)(target_act + 32); /*0x167d65*/\n  do /*0x167d7a*/\n  {\n    while ( *v4 ) /*0x167d68*/\n      ; /*0x167d6a*/\n  }\n  while ( _InterlockedExchange(v4, 1) == 1 ); /*0x167d7a*/\n  v5 = *(_DWORD *)(target_act + 140); /*0x167d7c*/\n  if ( v5 <= 0 ) /*0x167d84*/\n  {\n    v2 = 5; /*0x167dc4*/\n  }\n  else\n  {\n    *(_DWORD *)(target_act + 140) = v5 - 1; /*0x167d89*/\n    if ( v5 == 1 ) /*0x167d92*/\n    {\n      v6 = *(_DWORD *)(target_act + 64); /*0x167d94*/\n      *(_DWORD *)(target_act + 64) = v6 - 1; /*0x167d9a*/\n      if ( v6 == 1 ) /*0x167da0*/\n      {\n        v7 = *(_DWORD *)(target_act + 76); /*0x167da2*/\n        v8 = v7; /*0x167da5*/\n        LOBYTE(v8) = v7 & 0xED; /*0x167da7*/\n        *(_DWORD *)(target_act + 76) = v8; /*0x167daa*/\n        if ( (v7 & 5) == 0 ) /*0x167daf*/\n        {\n          LOBYTE(v8) = v7 & 0xE9 | 4; /*0x167db1*/\n          *(_DWORD *)(target_act + 76) = v8; /*0x167db4*/\n          thread_setrun((char **)target_act, 1); /*0x167dba*/\n        }\n      }\n    }\n  }\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167dcb*/\n  splx(v3); /*0x167dcf*/\n  return v2; /*0x167dd9*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167de0",
+    "addr": "0x00167de0",
+    "code": "kern_return_t __cdecl thread_get_state(\n        thread_act_t target_act,\n        thread_state_flavor_t flavor,\n        thread_state_t old_state,\n        mach_msg_type_number_t *old_stateCnt)\n{\n  int v5; // edi\n  int v6; // edi\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // esi\n  volatile __int32 *v9; // esi\n  volatile __int32 *v10; // esi\n  int v11; // edi\n  int v12; // eax\n  int v13; // eax\n  int v14; // edx\n  int v15; // [esp+Ch] [ebp-8h]\n  kern_return_t v16; // [esp+10h] [ebp-4h]\n\n  if ( !target_act || active_threads == target_act ) /*0x167df6*/\n    return 4; /*0x167df8*/\n  v6 = splsched(); /*0x167e1d*/\n  v7 = (volatile __int32 *)(target_act + 32); /*0x167e1f*/\n  do /*0x167e36*/\n  {\n    while ( *v7 ) /*0x167e24*/\n      ; /*0x167e26*/\n  }\n  while ( _InterlockedExchange(v7, 1) == 1 ); /*0x167e36*/\n  ++*(_DWORD *)(target_act + 64); /*0x167e38*/\n  *(_BYTE *)(target_act + 76) |= 2u; /*0x167e3b*/\n  v8 = (volatile __int32 *)(target_act + 32); /*0x167e3f*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167e44*/\n  splx(v6); /*0x167e48*/\n  if ( active_threads == target_act ) /*0x167e56*/\n    panic(aThreadDowait); /*0x167e5d*/\n  v5 = 0; /*0x167e65*/\n  v15 = splsched(); /*0x167e6c*/\n  do /*0x167e86*/\n  {\n    while ( *v8 ) /*0x167e74*/\n      ; /*0x167e76*/\n  }\n  while ( _InterlockedExchange(v8, 1) == 1 ); /*0x167e86*/\n  v9 = (volatile __int32 *)(target_act + 32); /*0x167e88*/\n  while ( 2 ) /*0x167e9e*/\n  {\n    switch ( *(_DWORD *)(target_act + 76) & 0xF ) /*0x167e9e*/\n    {\n      case 6: /*0x167e9e*/\n        if ( !rem_runq((_DWORD *)target_act) ) /*0x167ee1*/\n          goto LABEL_16; /*0x167eeb*/\n        *(_DWORD *)(target_act + 76) &= ~4u; /*0x167e04*/\n        v5 = *(_DWORD *)(target_act + 72); /*0x167e08*/\n        *(_DWORD *)(target_act + 72) = 0; /*0x167e0b*/\n        break; /*0x167e12*/\n      case 7: /*0x167e9e*/\n      case 0xB: /*0x167e9e*/\n      case 0xE: /*0x167e9e*/\n      case 0xF: /*0x167e9e*/\nLABEL_16:\n        *(_DWORD *)(target_act + 72) = 1; /*0x167ef1*/\n        thread_sleep(target_act + 72, (volatile __int32 *)(target_act + 32), 1); /*0x167eff*/\n        do /*0x167f1e*/\n        {\n          while ( *v9 ) /*0x167f0c*/\n            ; /*0x167f0e*/\n        }\n        while ( _InterlockedExchange(v9, 1) == 1 ); /*0x167f1e*/\n        continue; /*0x167f1e*/\n      default:\n        goto LABEL_20;\n    }\n    break;\n  }\nLABEL_20:\n  v10 = (volatile __int32 *)(target_act + 32); /*0x167f28*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167f2d*/\n  splx(v15); /*0x167f34*/\n  if ( v5 ) /*0x167f3e*/\n    thread_wakeup_prim(target_act + 72, 0, 0); /*0x167f48*/\n  v16 = thread_getstatus(target_act, flavor, old_state, old_stateCnt); /*0x167f62*/\n  v11 = splsched(); /*0x167f6d*/\n  do /*0x167f86*/\n  {\n    while ( *v10 ) /*0x167f74*/\n      ; /*0x167f76*/\n  }\n  while ( _InterlockedExchange(v10, 1) == 1 ); /*0x167f86*/\n  v12 = *(_DWORD *)(target_act + 64); /*0x167f88*/\n  *(_DWORD *)(target_act + 64) = v12 - 1; /*0x167f8e*/\n  if ( v12 == 1 ) /*0x167f94*/\n  {\n    v13 = *(_DWORD *)(target_act + 76); /*0x167f96*/\n    v14 = v13; /*0x167f99*/\n    LOBYTE(v14) = v13 & 0xED; /*0x167f9b*/\n    *(_DWORD *)(target_act + 76) = v14; /*0x167f9e*/\n    if ( (v13 & 5) == 0 ) /*0x167fa3*/\n    {\n      LOBYTE(v14) = v13 & 0xE9 | 4; /*0x167fa5*/\n      *(_DWORD *)(target_act + 76) = v14; /*0x167fa8*/\n      thread_setrun((char **)target_act, 1); /*0x167fae*/\n    }\n  }\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x167fb8*/\n  splx(v11); /*0x167fbc*/\n  return v16; /*0x167fc7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc69",
+        "name": "aThreadDowait",
+        "string": "thread_dowait"
+      },
+      {
+        "addr": "0x164350",
+        "name": "_rem_runq"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x18e6ac",
+        "name": "_thread_getstatus"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00167fd0",
+    "addr": "0x00167fd0",
+    "code": "kern_return_t __cdecl thread_set_state(\n        thread_act_t target_act,\n        thread_state_flavor_t flavor,\n        thread_state_t new_state,\n        mach_msg_type_number_t new_stateCnt)\n{\n  int v5; // edi\n  int v6; // edi\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // esi\n  volatile __int32 *v9; // esi\n  volatile __int32 *v10; // esi\n  int v11; // edi\n  int v12; // eax\n  int v13; // eax\n  int v14; // edx\n  int v15; // [esp+Ch] [ebp-8h]\n  kern_return_t v16; // [esp+10h] [ebp-4h]\n\n  if ( !target_act || active_threads == target_act ) /*0x167fe6*/\n    return 4; /*0x167fe8*/\n  v6 = splsched(); /*0x16800d*/\n  v7 = (volatile __int32 *)(target_act + 32); /*0x16800f*/\n  do /*0x168026*/\n  {\n    while ( *v7 ) /*0x168014*/\n      ; /*0x168016*/\n  }\n  while ( _InterlockedExchange(v7, 1) == 1 ); /*0x168026*/\n  ++*(_DWORD *)(target_act + 64); /*0x168028*/\n  *(_BYTE *)(target_act + 76) |= 2u; /*0x16802b*/\n  v8 = (volatile __int32 *)(target_act + 32); /*0x16802f*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x168034*/\n  splx(v6); /*0x168038*/\n  if ( active_threads == target_act ) /*0x168046*/\n    panic(aThreadDowait); /*0x16804d*/\n  v5 = 0; /*0x168055*/\n  v15 = splsched(); /*0x16805c*/\n  do /*0x168076*/\n  {\n    while ( *v8 ) /*0x168064*/\n      ; /*0x168066*/\n  }\n  while ( _InterlockedExchange(v8, 1) == 1 ); /*0x168076*/\n  v9 = (volatile __int32 *)(target_act + 32); /*0x168078*/\n  while ( 2 ) /*0x16808e*/\n  {\n    switch ( *(_DWORD *)(target_act + 76) & 0xF ) /*0x16808e*/\n    {\n      case 6: /*0x16808e*/\n        if ( !rem_runq((_DWORD *)target_act) ) /*0x1680d1*/\n          goto LABEL_16; /*0x1680db*/\n        *(_DWORD *)(target_act + 76) &= ~4u; /*0x167ff4*/\n        v5 = *(_DWORD *)(target_act + 72); /*0x167ff8*/\n        *(_DWORD *)(target_act + 72) = 0; /*0x167ffb*/\n        break; /*0x168002*/\n      case 7: /*0x16808e*/\n      case 0xB: /*0x16808e*/\n      case 0xE: /*0x16808e*/\n      case 0xF: /*0x16808e*/\nLABEL_16:\n        *(_DWORD *)(target_act + 72) = 1; /*0x1680e1*/\n        thread_sleep(target_act + 72, (volatile __int32 *)(target_act + 32), 1); /*0x1680ef*/\n        do /*0x16810e*/\n        {\n          while ( *v9 ) /*0x1680fc*/\n            ; /*0x1680fe*/\n        }\n        while ( _InterlockedExchange(v9, 1) == 1 ); /*0x16810e*/\n        continue; /*0x16810e*/\n      default:\n        goto LABEL_20;\n    }\n    break;\n  }\nLABEL_20:\n  v10 = (volatile __int32 *)(target_act + 32); /*0x168118*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x16811d*/\n  splx(v15); /*0x168124*/\n  if ( v5 ) /*0x16812e*/\n    thread_wakeup_prim(target_act + 72, 0, 0); /*0x168138*/\n  v16 = thread_setstatus(target_act, flavor, new_state, new_stateCnt); /*0x168152*/\n  v11 = splsched(); /*0x16815d*/\n  do /*0x168176*/\n  {\n    while ( *v10 ) /*0x168164*/\n      ; /*0x168166*/\n  }\n  while ( _InterlockedExchange(v10, 1) == 1 ); /*0x168176*/\n  v12 = *(_DWORD *)(target_act + 64); /*0x168178*/\n  *(_DWORD *)(target_act + 64) = v12 - 1; /*0x16817e*/\n  if ( v12 == 1 ) /*0x168184*/\n  {\n    v13 = *(_DWORD *)(target_act + 76); /*0x168186*/\n    v14 = v13; /*0x168189*/\n    LOBYTE(v14) = v13 & 0xED; /*0x16818b*/\n    *(_DWORD *)(target_act + 76) = v14; /*0x16818e*/\n    if ( (v13 & 5) == 0 ) /*0x168193*/\n    {\n      LOBYTE(v14) = v13 & 0xE9 | 4; /*0x168195*/\n      *(_DWORD *)(target_act + 76) = v14; /*0x168198*/\n      thread_setrun((char **)target_act, 1); /*0x16819e*/\n    }\n  }\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1681a8*/\n  splx(v11); /*0x1681ac*/\n  return v16; /*0x1681b7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc69",
+        "name": "aThreadDowait",
+        "string": "thread_dowait"
+      },
+      {
+        "addr": "0x164350",
+        "name": "_rem_runq"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x18e1dc",
+        "name": "_thread_setstatus"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001681c0",
+    "addr": "0x001681c0",
+    "code": "kern_return_t __cdecl thread_info(\n        thread_inspect_t target_act,\n        thread_flavor_t flavor,\n        thread_info_t thread_info_out,\n        mach_msg_type_number_t *thread_info_outCnt)\n{\n  int v4; // edi\n  volatile __int32 *v5; // edx\n  int v6; // eax\n  int v7; // edx\n  integer_t v8; // eax\n  int v10; // edi\n  volatile __int32 *v11; // edx\n  int v12; // eax\n  integer_t v13; // [esp+Ch] [ebp-4h]\n\n  if ( !target_act ) /*0x1681d4*/\n    return 4; /*0x1681d4*/\n  if ( flavor != 1 ) /*0x1681dd*/\n  {\n    if ( flavor != 2 ) /*0x16830f*/\n      return 4; /*0x1683b8*/\n    if ( *thread_info_outCnt > 6 ) /*0x16831b*/\n    {\n      v10 = splsched(); /*0x16832f*/\n      v11 = (volatile __int32 *)(target_act + 32); /*0x168331*/\n      do /*0x168346*/\n      {\n        while ( *v11 ) /*0x168334*/\n          ; /*0x168336*/\n      }\n      while ( _InterlockedExchange(v11, 1) == 1 ); /*0x168346*/\n      *thread_info_out = *(_DWORD *)(target_act + 96); /*0x16834b*/\n      v12 = *(_DWORD *)(target_act + 96); /*0x16834d*/\n      if ( v12 == 2 || v12 == 4 ) /*0x168358*/\n        thread_info_out[1] = tick * *(_DWORD *)(target_act + 92) / 1000; /*0x16836c*/\n      else\n        thread_info_out[1] = 0; /*0x168374*/\n      thread_info_out[2] = *(_DWORD *)(target_act + 80); /*0x16837e*/\n      thread_info_out[3] = *(_DWORD *)(target_act + 84); /*0x168384*/\n      thread_info_out[4] = *(_DWORD *)(target_act + 88); /*0x16838a*/\n      thread_info_out[5] = *(_DWORD *)(target_act + 100) >= 0; /*0x168395*/\n      thread_info_out[6] = *(_DWORD *)(target_act + 100); /*0x16839b*/\n      _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1683a0*/\n      splx(v10); /*0x1683a4*/\n      *thread_info_outCnt = 7; /*0x1683ac*/\n      return 0; /*0x1683b4*/\n    }\n    return 4; /*0x168322*/\n  }\n  if ( *thread_info_outCnt <= 0xA ) /*0x1681e9*/\n    return 4; /*0x1681e9*/\n  v4 = splsched(); /*0x1681f6*/\n  v5 = (volatile __int32 *)(target_act + 32); /*0x1681f8*/\n  do /*0x16820e*/\n  {\n    while ( *v5 ) /*0x1681fc*/\n      ; /*0x1681fe*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x16820e*/\n  if ( (*(_BYTE *)(target_act + 76) & 4) == 0 && *(_DWORD *)(target_act + 112) != sched_tick ) /*0x16821e*/\n    update_priority((_DWORD *)target_act); /*0x168221*/\n  thread_read_times(target_act, thread_info_out, thread_info_out + 2); /*0x16822f*/\n  thread_info_out[5] = *(_DWORD *)(target_act + 80); /*0x168237*/\n  thread_info_out[6] = *(_DWORD *)(target_act + 88); /*0x16823d*/\n  thread_info_out[4] = (int)(3 * (*(_DWORD *)(target_act + 104) / 0x3E8u)) / 5; /*0x168257*/\n  v6 = *(_DWORD *)(target_act + 76); /*0x16825a*/\n  if ( (v6 & 0x100) != 0 ) /*0x168263*/\n  {\n    v13 = 1; /*0x168265*/\n  }\n  else\n  {\n    v13 = 0; /*0x168270*/\n    if ( (v6 & 0x80u) != 0 ) /*0x168279*/\n      v13 = 2; /*0x16827b*/\n  }\n  v7 = *(_DWORD *)(target_act + 76); /*0x168282*/\n  if ( (v7 & 0x10) != 0 ) /*0x168288*/\n  {\n    v8 = 5; /*0x16828a*/\n  }\n  else if ( (v7 & 4) != 0 ) /*0x168297*/\n  {\n    v8 = 1; /*0x168299*/\n  }\n  else if ( (v7 & 8) != 0 ) /*0x1682a3*/\n  {\n    v8 = 4; /*0x1682a5*/\n  }\n  else if ( (v7 & 2) != 0 ) /*0x1682af*/\n  {\n    v8 = 2; /*0x1682b1*/\n  }\n  else\n  {\n    v8 = 0; /*0x1682b8*/\n    if ( (v7 & 1) != 0 ) /*0x1682bd*/\n      v8 = 3; /*0x1682bf*/\n  }\n  thread_info_out[7] = v8; /*0x1682c4*/\n  thread_info_out[8] = v13; /*0x1682ca*/\n  thread_info_out[9] = *(_DWORD *)(target_act + 140); /*0x1682d3*/\n  if ( v8 == 1 ) /*0x1682d9*/\n    thread_info_out[10] = 0; /*0x1682db*/\n  else\n    thread_info_out[10] = sched_tick - *(_DWORD *)(target_act + 112); /*0x1682ed*/\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x1682f2*/\n  splx(v4); /*0x1682f6*/\n  *thread_info_outCnt = 11; /*0x1682fe*/\n  return 0; /*0x1683c0*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1dee34",
+        "name": "_tick"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x163dc8",
+        "name": "_update_priority"
+      },
+      {
+        "addr": "0x1f653c",
+        "name": "_sched_tick"
+      },
+      {
+        "addr": "0x16a280",
+        "name": "_thread_read_times"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001683c8",
+    "addr": "0x001683c8",
+    "code": "kern_return_t __cdecl thread_abort(thread_act_t target_act)\n{\n  int v2; // esi\n  volatile __int32 *v3; // edx\n  int v4; // eax\n  int v5; // eax\n  int v6; // edx\n\n  if ( !target_act || active_threads == target_act ) /*0x1683da*/\n    return 4; /*0x1683dc*/\n  if ( thread_halt(target_act, 0) ) /*0x1683eb*/\n    return 14; /*0x1683f7*/\n  mach_msg_abort_rpc(target_act); /*0x168401*/\n  v2 = splsched(); /*0x16840e*/\n  v3 = (volatile __int32 *)(target_act + 32); /*0x168410*/\n  do /*0x168426*/\n  {\n    while ( *v3 ) /*0x168414*/\n      ; /*0x168416*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x168426*/\n  v4 = *(_DWORD *)(target_act + 64); /*0x168428*/\n  *(_DWORD *)(target_act + 64) = v4 - 1; /*0x16842e*/\n  if ( v4 == 1 ) /*0x168434*/\n  {\n    v5 = *(_DWORD *)(target_act + 76); /*0x168436*/\n    v6 = v5; /*0x168439*/\n    LOBYTE(v6) = v5 & 0xED; /*0x16843b*/\n    *(_DWORD *)(target_act + 76) = v6; /*0x16843e*/\n    if ( (v5 & 5) == 0 ) /*0x168443*/\n    {\n      LOBYTE(v6) = v5 & 0xE9 | 4; /*0x168445*/\n      *(_DWORD *)(target_act + 76) = v6; /*0x168448*/\n      thread_setrun((char **)target_act, 1); /*0x16844e*/\n    }\n  }\n  _InterlockedExchange((volatile __int32 *)(target_act + 32), 0); /*0x168458*/\n  splx(v2); /*0x16845c*/\n  if ( *(_DWORD *)(target_act + 100) != -1 ) /*0x168468*/\n    thread_depress_abort(target_act); /*0x16846b*/\n  return 0; /*0x168475*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x167494",
+        "name": "_thread_halt"
+      },
+      {
+        "addr": "0x1584d4",
+        "name": "_mach_msg_abort_rpc"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x165704",
+        "name": "_thread_depress_abort"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016847c",
+    "addr": "0x0016847c",
+    "code": "int __cdecl thread_start(int a1, int a2)\n{\n  *(_DWORD *)(a1 + 52) = a2; /*0x168485*/\n  return a1; /*0x16848a*/\n}"
+  },
+  {
+    "requested_address": "0x0016848c",
+    "addr": "0x0016848c",
+    "code": "thread_act_t __cdecl kernel_thread(task_t parent_task, int a2, int a3)\n{\n  thread_act_t v3; // eax\n  thread_act_t v4; // eax\n  thread_act_t v5; // ebx\n  int v6; // esi\n  volatile __int32 *v7; // edx\n  int v8; // eax\n  int v9; // eax\n  int v10; // eax\n  int v11; // edx\n  thread_act_t child_act; // [esp+8h] [ebp-4h] BYREF\n\n  thread_create(parent_task, &child_act); /*0x1684a2*/\n  thread_deallocate(child_act); /*0x1684ab*/\n  v3 = child_act; /*0x1684b0*/\n  *(_DWORD *)(child_act + 52) = a2; /*0x1684b6*/\n  *(_DWORD *)(v3 + 196) = a3; /*0x1684b9*/\n  thread_doswapin(v3); /*0x1684c0*/\n  v4 = child_act; /*0x1684c5*/\n  *(_DWORD *)(child_act + 84) = 31; /*0x1684c8*/\n  *(_DWORD *)(v4 + 80) = 24; /*0x1684cf*/\n  *(_DWORD *)(v4 + 88) = 24; /*0x1684d6*/\n  v5 = v4; /*0x1684dd*/\n  if ( v4 ) /*0x1684e4*/\n  {\n    v6 = splsched(); /*0x1684eb*/\n    v7 = (volatile __int32 *)(v5 + 32); /*0x1684ed*/\n    do /*0x168502*/\n    {\n      while ( *v7 ) /*0x1684f0*/\n        ; /*0x1684f2*/\n    }\n    while ( _InterlockedExchange(v7, 1) == 1 ); /*0x168502*/\n    v8 = *(_DWORD *)(v5 + 140); /*0x168504*/\n    if ( v8 > 0 ) /*0x16850c*/\n    {\n      *(_DWORD *)(v5 + 140) = v8 - 1; /*0x168511*/\n      if ( v8 == 1 ) /*0x16851a*/\n      {\n        v9 = *(_DWORD *)(v5 + 64); /*0x16851c*/\n        *(_DWORD *)(v5 + 64) = v9 - 1; /*0x168522*/\n        if ( v9 == 1 ) /*0x168528*/\n        {\n          v10 = *(_DWORD *)(v5 + 76); /*0x16852a*/\n          v11 = v10; /*0x16852d*/\n          LOBYTE(v11) = v10 & 0xED; /*0x16852f*/\n          *(_DWORD *)(v5 + 76) = v11; /*0x168532*/\n          if ( (v10 & 5) == 0 ) /*0x168537*/\n          {\n            LOBYTE(v11) = v10 & 0xE9 | 4; /*0x168539*/\n            *(_DWORD *)(v5 + 76) = v11; /*0x16853c*/\n            thread_setrun((char **)v5, 1); /*0x168542*/\n          }\n        }\n      }\n    }\n    _InterlockedExchange((volatile __int32 *)(v5 + 32), 0); /*0x16854c*/\n    splx(v6); /*0x168550*/\n  }\n  return child_act; /*0x16855b*/\n}",
+    "refs": [
+      {
+        "addr": "0x166c48",
+        "name": "_thread_create"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x168f90",
+        "name": "_thread_doswapin"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x16400c",
+        "name": "_thread_setrun"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00168564",
+    "addr": "0x00168564",
+    "code": "void __noreturn reaper_thread_continue()\n{\n  int v0; // esi\n  int *v1; // edx\n  int v2; // ebx\n  int v3; // edi\n  volatile __int32 *v4; // edx\n  volatile __int32 *v5; // esi\n  int v6; // [esp+Ch] [ebp-4h]\n\n  while ( 1 ) /*0x168575*/\n  {\n    v0 = splsched(); /*0x168575*/\n    do /*0x168591*/\n    {\n      while ( reaper_lock ) /*0x16857f*/\n        ; /*0x16857d*/\n    }\n    while ( _InterlockedExchange(&reaper_lock, 1) == 1 ); /*0x168591*/\n    while ( 1 ) /*0x168594*/\n    {\n      v1 = (int *)reaper_queue; /*0x168594*/\n      if ( (int *)reaper_queue == &reaper_queue ) /*0x1685a0*/\n        break; /*0x1685a0*/\n      *(_DWORD *)(*(_DWORD *)reaper_queue + 4) = &reaper_queue; /*0x1685a8*/\n      reaper_queue = *v1; /*0x1685b1*/\n      v2 = (int)v1; /*0x1685b7*/\n      if ( !v1 ) /*0x1685bb*/\n        break; /*0x1685bb*/\n      _InterlockedExchange(&reaper_lock, 0); /*0x1685c3*/\n      splx(v0); /*0x1685ca*/\n      if ( active_threads == v2 ) /*0x1685d8*/\n        panic(aThreadDowait); /*0x1685df*/\n      v3 = 0; /*0x1685e7*/\n      v6 = splsched(); /*0x1685ee*/\n      v4 = (volatile __int32 *)(v2 + 32); /*0x1685f1*/\n      do /*0x168606*/\n      {\n        while ( *v4 ) /*0x1685f4*/\n          ; /*0x1685f6*/\n      }\n      while ( _InterlockedExchange(v4, 1) == 1 ); /*0x168606*/\n      v5 = (volatile __int32 *)(v2 + 32); /*0x168608*/\n      while ( 2 ) /*0x16861e*/\n      {\n        switch ( *(_DWORD *)(v2 + 76) & 0xF ) /*0x16861e*/\n        {\n          case 6: /*0x16861e*/\n            if ( !rem_runq((_DWORD *)v2) ) /*0x168661*/\n              goto LABEL_14; /*0x16866b*/\n            *(_DWORD *)(v2 + 76) &= ~4u; /*0x168700*/\n            v3 = *(_DWORD *)(v2 + 72); /*0x168704*/\n            *(_DWORD *)(v2 + 72) = 0; /*0x168707*/\n            goto LABEL_18; /*0x16870e*/\n          case 7: /*0x16861e*/\n          case 0xB: /*0x16861e*/\n          case 0xE: /*0x16861e*/\n          case 0xF: /*0x16861e*/\nLABEL_14:\n            *(_DWORD *)(v2 + 72) = 1; /*0x168671*/\n            thread_sleep(v2 + 72, (volatile __int32 *)(v2 + 32), 1); /*0x16867f*/\n            do /*0x16869e*/\n            {\n              while ( *v5 ) /*0x16868c*/\n                ; /*0x16868e*/\n            }\n            while ( _InterlockedExchange(v5, 1) == 1 ); /*0x16869e*/\n            continue; /*0x16869e*/\n          default:\nLABEL_18:\n            _InterlockedExchange((volatile __int32 *)(v2 + 32), 0); /*0x1686a8*/\n            splx(v6); /*0x1686b1*/\n            if ( v3 ) /*0x1686bb*/\n              thread_wakeup_prim(v2 + 72, 0, 0); /*0x1686c5*/\n            thread_deallocate(v2); /*0x1686ce*/\n            v0 = splsched(); /*0x1686d8*/\n            do /*0x1686f9*/\n            {\n              while ( reaper_lock ) /*0x1686e7*/\n                ; /*0x1686e5*/\n            }\n            while ( _InterlockedExchange(&reaper_lock, 1) == 1 ); /*0x1686f9*/\n            break; /*0x1686f9*/\n        }\n        break;\n      }\n    }\n    assert_wait((int)&reaper_queue, 0); /*0x168717*/\n    _InterlockedExchange(&reaper_lock, 0); /*0x168721*/\n    splx(v0); /*0x168728*/\n    thread_block_with_continuation((int)reaper_thread_continue); /*0x168732*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x1f6bf0",
+        "name": "_reaper_lock"
+      },
+      {
+        "addr": "0x1e9798",
+        "name": "_reaper_queue"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfc69",
+        "name": "aThreadDowait",
+        "string": "thread_dowait"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x164350",
+        "name": "_rem_runq"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x166ea0",
+        "name": "_thread_deallocate"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x163a18",
+        "name": "_thread_block_with_continuation"
+      },
+      {
+        "addr": "0x168564",
+        "name": "_reaper_thread_continue"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00168740",
+    "addr": "0x00168740",
+    "code": "void __noreturn reaper_thread()\n{\n  reaper_thread_continue(); /*0x168743*/\n}",
+    "refs": [
+      {
+        "addr": "0x168564",
+        "name": "_reaper_thread_continue"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016874c",
+    "addr": "0x0016874c",
+    "code": "kern_return_t __cdecl thread_assign(thread_act_t thread, processor_set_t new_set)\n{\n  return 5; /*0x168756*/\n}"
+  },
+  {
+    "requested_address": "0x00168758",
+    "addr": "0x00168758",
+    "code": "kern_return_t __cdecl thread_assign_default(thread_act_t thread)\n{\n  return 5; /*0x168762*/\n}"
+  },
+  {
+    "requested_address": "0x00168764",
+    "addr": "0x00168764",
+    "code": "kern_return_t __cdecl thread_get_assignment(thread_act_t thread, processor_set_name_t *assigned_set)\n{\n  processor_set_name_t v2; // edx\n\n  v2 = *(_DWORD *)(thread + 384); /*0x16876d*/\n  *assigned_set = v2; /*0x168773*/\n  pset_reference(v2); /*0x168776*/\n  return 0; /*0x16877f*/\n}",
+    "refs": [
+      {
+        "addr": "0x16174c",
+        "name": "_pset_reference"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00168784",
+    "addr": "0x00168784",
+    "code": "int __cdecl thread_priority(int a1, unsigned int a2, int a3)\n{\n  int v3; // edi\n  volatile __int32 *v5; // edx\n  int v6; // [esp+Ch] [ebp-4h]\n\n  v3 = 0; /*0x168793*/\n  if ( !a1 || a2 > 0x1F ) /*0x16879c*/\n    return 4; /*0x16879e*/\n  v6 = splsched(); /*0x1687ad*/\n  v5 = (volatile __int32 *)(a1 + 32); /*0x1687b0*/\n  do /*0x1687c6*/\n  {\n    while ( *v5 ) /*0x1687b4*/\n      ; /*0x1687b6*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x1687c6*/\n  if ( *(_DWORD *)(a1 + 84) >= (signed int)a2 ) /*0x1687cb*/\n  {\n    if ( *(int *)(a1 + 100) < 0 ) /*0x1687d8*/\n    {\n      *(_DWORD *)(a1 + 80) = a2; /*0x1687e0*/\n      compute_priority((_DWORD *)a1, 1); /*0x1687e6*/\n    }\n    else\n    {\n      *(_DWORD *)(a1 + 100) = a2; /*0x1687da*/\n    }\n    if ( a3 ) /*0x1687f2*/\n      *(_DWORD *)(a1 + 84) = a2; /*0x1687f4*/\n  }\n  else\n  {\n    v3 = 5; /*0x1687cd*/\n  }\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x1687f9*/\n  splx(v6); /*0x168800*/\n  return v3; /*0x16880a*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x163d28",
+        "name": "_compute_priority"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00168814",
+    "addr": "0x00168814",
+    "code": "int __cdecl thread_set_own_priority(int a1)\n{\n  thread_act_t v1; // ebx\n  int v2; // edi\n  volatile __int32 *v3; // edx\n\n  v1 = active_threads; /*0x16881d*/\n  v2 = splsched(); /*0x168828*/\n  v3 = (volatile __int32 *)(v1 + 32); /*0x16882a*/\n  do /*0x168842*/\n  {\n    while ( *v3 ) /*0x168830*/\n      ; /*0x168832*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x168842*/\n  if ( *(_DWORD *)(v1 + 84) > a1 ) /*0x168847*/\n    *(_DWORD *)(v1 + 84) = a1; /*0x168849*/\n  *(_DWORD *)(v1 + 80) = a1; /*0x16884c*/\n  compute_priority((_DWORD *)v1, 1); /*0x168852*/\n  _InterlockedExchange((volatile __int32 *)(v1 + 32), 0); /*0x16885c*/\n  return splx(v2); /*0x168868*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x163d28",
+        "name": "_compute_priority"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00168870",
+    "addr": "0x00168870",
+    "code": "int __cdecl thread_max_priority(int a1, int a2, signed int a3)\n{\n  int v4; // edi\n  volatile __int32 *v5; // edx\n  int v6; // eax\n\n  if ( !a1 || !a2 || (unsigned int)a3 > 0x1F ) /*0x168889*/\n    return 4; /*0x16888b*/\n  v4 = splsched(); /*0x168899*/\n  v5 = (volatile __int32 *)(a1 + 32); /*0x16889b*/\n  do /*0x1688b2*/\n  {\n    while ( *v5 ) /*0x1688a0*/\n      ; /*0x1688a2*/\n  }\n  while ( _InterlockedExchange(v5, 1) == 1 ); /*0x1688b2*/\n  *(_DWORD *)(a1 + 84) = a3; /*0x1688b4*/\n  if ( *(_DWORD *)(a1 + 80) <= a3 ) /*0x1688ba*/\n  {\n    v6 = *(_DWORD *)(a1 + 100); /*0x1688cc*/\n    if ( v6 >= 0 && v6 > a3 ) /*0x1688d5*/\n      *(_DWORD *)(a1 + 100) = a3; /*0x1688d7*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 80) = a3; /*0x1688bc*/\n    compute_priority((_DWORD *)a1, 1); /*0x1688c2*/\n  }\n  _InterlockedExchange((volatile __int32 *)(a1 + 32), 0); /*0x1688dc*/\n  splx(v4); /*0x1688e0*/\n  return 0; /*0x1688ea*/\n}",
+    "refs": [
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x163d28",
+        "name": "_compute_priority"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  }
+]

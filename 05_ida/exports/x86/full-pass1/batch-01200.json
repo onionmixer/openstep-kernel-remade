@@ -1,0 +1,580 @@
+[
+  {
+    "requested_address": "0x001427b4",
+    "addr": "0x001427b4",
+    "code": "void __cdecl sub_1427B4(_DWORD *a1, _DWORD *a2)\n{\n  int v2; // edx\n  _DWORD *v3; // ebx\n\n  v2 = a2[1]; /*0x1427c0*/\n  if ( a1[1] == v2 ) /*0x1427c6*/\n  {\n    a1[1] = a2[2] + 1; /*0x1427cc*/\n    a2[5] = a1; /*0x1427cf*/\n  }\n  else\n  {\n    if ( a1[2] == a2[2] ) /*0x1427da*/\n    {\n      a1[2] = v2 - 1; /*0x1427dd*/\n      a2[5] = a1[5]; /*0x1427e3*/\n    }\n    else\n    {\n      v3 = (_DWORD *)kalloc(0x1Cu); /*0x1427ef*/\n      bcopy(a1, v3, 0x1Cu); /*0x1427f5*/\n      ++*(_DWORD *)(v3[4] + 8); /*0x1427fd*/\n      v3[1] = a2[2] + 1; /*0x142804*/\n      v3[6] = 0; /*0x142807*/\n      a1[2] = a2[1] - 1; /*0x142812*/\n      v3[5] = a1[5]; /*0x142818*/\n      a2[5] = v3; /*0x14281b*/\n    }\n    a1[5] = a2; /*0x14281e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014282c",
+    "addr": "0x0014282c",
+    "code": "int __cdecl sub_14282C(int a1)\n{\n  int result; // eax\n  int v2; // ebx\n  int v3; // eax\n\n  result = a1; /*0x142830*/\n  v2 = *(_DWORD *)(a1 + 24); /*0x142833*/\n  for ( *(_DWORD *)(a1 + 24) = 0; v2; result = wakeup(v3) ) /*0x14283f*/\n  {\n    v3 = v2; /*0x142844*/\n    v2 = *(_DWORD *)(v2 + 24); /*0x142846*/\n    *(_DWORD *)(v3 + 24) = 0; /*0x142849*/\n    *(_DWORD *)(v3 + 20) = 0; /*0x142850*/\n  }\n  return result; /*0x142864*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014286c",
+    "addr": "0x0014286c",
+    "code": "int __cdecl sub_14286C(int a1)\n{\n  --*(_DWORD *)(*(_DWORD *)(a1 + 16) + 8); /*0x142875*/\n  return kfree(a1, 0x1Cu); /*0x142882*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142884",
+    "addr": "0x00142884",
+    "code": "void __cdecl update(__int16 a1, unsigned __int16 a2)\n{\n  int i; // esi\n  int v3; // eax\n  int v4; // ebx\n  int v5; // ebx\n  int v6; // esi\n  __int16 v7; // ax\n  int v8; // [esp+10h] [ebp-8h] BYREF\n\n  if ( syncprt ) /*0x1428a0*/\n    bufstats(); /*0x1428a2*/\n  if ( !updlock ) /*0x1428ae*/\n  {\n    updlock = 1; /*0x1428b4*/\n    for ( i = mounttab; i; i = *(_DWORD *)(i + 32) ) /*0x1428c6*/\n    {\n      if ( a1 == -1 || a1 == (*(_WORD *)(i + 4) & a2) ) /*0x1428d9*/\n      {\n        v3 = *(_DWORD *)(i + 12); /*0x1428db*/\n        if ( v3 ) /*0x1428e0*/\n        {\n          if ( *(_WORD *)(i + 4) != 0xFFFF ) /*0x1428e7*/\n          {\n            v4 = *(_DWORD *)(v3 + 32); /*0x1428e9*/\n            if ( *(_BYTE *)(v4 + 208) ) /*0x1428ec*/\n            {\n              if ( *(_BYTE *)(v4 + 210) ) /*0x1428f5*/\n              {\n                printf(\"fs = %s\\n\", (const char *)(v4 + 212)); /*0x14290a*/\n                panic(aUpdateRoFsMod); /*0x142914*/\n              }\n              *(_BYTE *)(v4 + 208) = 0; /*0x14291c*/\n              getthetime(&v8); /*0x142927*/\n              *(_DWORD *)(v4 + 32) = v8; /*0x14292f*/\n              sbupdate(i); /*0x142933*/\n            }\n          }\n        }\n      }\n    }\n    v5 = inode_list; /*0x142942*/\n    if ( inode_list ) /*0x14294a*/\n    {\n      while ( 1 ) /*0x14294c*/\n      {\n        if ( a1 == -1 ) /*0x142950*/\n          goto LABEL_19; /*0x142950*/\n        if ( a1 == (*(_WORD *)(v5 + 70) & a2) ) /*0x14295d*/\n          break; /*0x14295d*/\nLABEL_23:\n        v5 = *(_DWORD *)(v5 + 8); /*0x1429af*/\n        if ( !v5 ) /*0x1429b4*/\n          goto LABEL_24; /*0x1429b4*/\n      }\n      v6 = *(_DWORD *)(v5 + 12) + 24; /*0x142962*/\n      if ( lock_try_write(v6) == 1 ) /*0x142971*/\n      {\n        lock_done(v6); /*0x142974*/\n        mfs_fsync(v5 + 12); /*0x14297d*/\n      }\nLABEL_19:\n      v7 = *(_WORD *)(v5 + 68); /*0x142985*/\n      if ( (v7 & 1) == 0 && (v7 & 0x100) != 0 && (v7 & 0x4E) != 0 ) /*0x142994*/\n      {\n        *(_BYTE *)(v5 + 68) |= 1u; /*0x142996*/\n        ++*(_WORD *)(v5 + 18); /*0x14299a*/\n        iupdat(v5, 0); /*0x1429a1*/\n        iput(v5); /*0x1429a7*/\n      }\n      goto LABEL_23; /*0x1429a7*/\n    }\nLABEL_24:\n    updlock = 0; /*0x1429b6*/\n    bflush(0, a1, a2); /*0x1429cb*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x142e4c",
+        "name": "_bufstats"
+      },
+      {
+        "addr": "0x1de0a4",
+        "name": "_syncprt"
+      },
+      {
+        "addr": "0x1de0a8",
+        "name": "_updlock"
+      },
+      {
+        "addr": "0x1de3e4",
+        "name": "_mounttab"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1de0ac",
+        "name": "aFsS_0",
+        "string": "fs = %s\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de0b5",
+        "name": "aUpdateRoFsMod",
+        "string": "update: ro fs mod"
+      },
+      {
+        "addr": "0x10ac84",
+        "name": "_getthetime"
+      },
+      {
+        "addr": "0x1439f8",
+        "name": "_sbupdate"
+      },
+      {
+        "addr": "0x1e978c",
+        "name": "_inode_list"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x15f638",
+        "name": "_mfs_fsync"
+      },
+      {
+        "addr": "0x15ba2c",
+        "name": "_lock_try_write"
+      },
+      {
+        "addr": "0x140eb4",
+        "name": "_iupdat"
+      },
+      {
+        "addr": "0x140bf0",
+        "name": "_iput"
+      },
+      {
+        "addr": "0x11adc8",
+        "name": "_bflush"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001429dc",
+    "addr": "0x001429dc",
+    "code": "void __cdecl syncip(int a1)\n{\n  _DWORD *v1; // esi\n  int i; // ebx\n  unsigned int v3; // edx\n  unsigned int v4; // eax\n  unsigned int v5; // ebx\n  _DWORD *v6; // esi\n  int v7; // edx\n  int v8; // eax\n  int v9; // eax\n  int v10; // [esp+0h] [ebp-1Ch]\n  _DWORD *v11; // [esp+4h] [ebp-18h]\n  int v12; // [esp+Ch] [ebp-10h]\n  int v13; // [esp+10h] [ebp-Ch]\n  signed int v14; // [esp+14h] [ebp-8h]\n  unsigned int v15; // [esp+18h] [ebp-4h]\n\n  v1 = *(_DWORD **)(a1 + 80); /*0x1429e8*/\n  v14 = (unsigned int)(v1[12] + *(_DWORD *)(a1 + 108) - 1) / v1[12]; /*0x1429fa*/\n  if ( v14 >= nbuf / 2 ) /*0x142a0f*/\n  {\n    v15 = buf + 68 * nbuf; /*0x142a94*/\n    v5 = buf; /*0x142a97*/\n    if ( buf < v15 ) /*0x142a9b*/\n    {\n      v6 = (_DWORD *)(buf + 16); /*0x142a9d*/\n      do /*0x142b18*/\n      {\n        if ( v6[12] == *(_DWORD *)(a1 + 64) && (*(_BYTE *)(v5 + 1) & 2) != 0 ) /*0x142aaf*/\n        {\n          v7 = splbio(); /*0x142ab6*/\n          v8 = *(_DWORD *)v5; /*0x142ab8*/\n          if ( (*(_DWORD *)v5 & 8) != 0 ) /*0x142abc*/\n          {\n            LOBYTE(v8) = v8 | 0x40; /*0x142abe*/\n            *(_DWORD *)v5 = v8; /*0x142ac0*/\n            v12 = v7; /*0x142ac5*/\n            sleep(v5); /*0x142ac8*/\n            splx(v12); /*0x142ad1*/\n            v6 -= 17; /*0x142ad6*/\n            v5 -= 68; /*0x142ad9*/\n          }\n          else\n          {\n            splx(v7); /*0x142ae1*/\n            v9 = splbio(); /*0x142ae6*/\n            *(_DWORD *)(*v6 + 12) = *(v6 - 1); /*0x142af2*/\n            *(_DWORD *)(*(v6 - 1) + 16) = *v6; /*0x142afa*/\n            *(_BYTE *)v5 |= 8u; /*0x142afd*/\n            splx(v9); /*0x142b01*/\n            bwrite((int *)v5); /*0x142b07*/\n          }\n        }\n        v6 += 17; /*0x142b0f*/\n        v5 += 68; /*0x142b12*/\n      }\n      while ( v15 > v5 ); /*0x142b18*/\n    }\n  }\n  else\n  {\n    for ( i = 0; v14 > i; ++i ) /*0x142a16*/\n    {\n      v13 = bmap(a1, i, 1, v10, v11) << v1[25]; /*0x142a2f*/\n      if ( i <= 11 && (v3 = *(_DWORD *)(a1 + 108), v3 < (i + 1) << v1[20]) ) /*0x142a4c*/\n        v4 = v1[19] & (v1[13] + (v3 & ~v1[18]) - 1); /*0x142a5f*/\n      else\n        v4 = v1[12]; /*0x142a4e*/\n      blkflush(*(_DWORD *)(a1 + 64), v13, v4); /*0x142a6e*/\n    }\n  }\n  *(_BYTE *)(a1 + 68) |= 0x40u; /*0x142b1d*/\n  iupdat(a1, 1); /*0x142b24*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8870",
+        "name": "_buf"
+      },
+      {
+        "addr": "0x1e289c",
+        "name": "_nbuf"
+      },
+      {
+        "addr": "0x18b97c",
+        "name": "_splbio"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x11a168",
+        "name": "_bwrite"
+      },
+      {
+        "addr": "0x13d830",
+        "name": "_bmap"
+      },
+      {
+        "addr": "0x11ac28",
+        "name": "_blkflush"
+      },
+      {
+        "addr": "0x140eb4",
+        "name": "_iupdat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142b34",
+    "addr": "0x00142b34",
+    "code": "unsigned int __cdecl fragacct(int a1, int a2, int a3, int a4)\n{\n  int v4; // edi\n  unsigned int result; // eax\n  int v6; // esi\n  int v7; // eax\n  unsigned int v8; // edx\n  int v9; // ebx\n  int v10; // [esp+Ch] [ebp-10h]\n  int v11; // [esp+10h] [ebp-Ch]\n  _DWORD *v12; // [esp+14h] [ebp-8h]\n  unsigned int v13; // [esp+18h] [ebp-4h]\n  int v14; // [esp+28h] [ebp+Ch]\n\n  v4 = *(_DWORD *)(a1 + 56); /*0x142b40*/\n  result = 2 * *(unsigned __int8 *)(a2 + fragtbl[v4]); /*0x142b51*/\n  v13 = result; /*0x142b53*/\n  v14 = 2 * a2; /*0x142b58*/\n  v6 = 1; /*0x142b5b*/\n  if ( v4 > 1 )\n  {\n    v12 = (_DWORD *)(a3 + 4); /*0x142b6a*/\n    do\n    {\n      v7 = v4 + (v4 < 0 ? 7 : 0);\n      LOBYTE(v7) = v7 & 0xF8; /*0x142b79*/\n      result = v6 + v4 - v7; /*0x142b81*/\n      v8 = v13; /*0x142b83*/\n      if ( _bittest((const int *)&v8, result) ) /*0x142b86*/\n      {\n        v9 = around[v6]; /*0x142b8b*/\n        v10 = inside[v6]; /*0x142b99*/\n        v11 = v6; /*0x142b9c*/\n        if ( v6 <= v4 ) /*0x142ba1*/\n        {\n          do /*0x142bd1*/\n          {\n            result = v9 & v14; /*0x142ba7*/\n            if ( v10 == (v9 & v14) ) /*0x142bac*/\n            {\n              *v12 += a4; /*0x142bb4*/\n              v11 += v6; /*0x142bb6*/\n              v9 <<= v6; /*0x142bbb*/\n              v10 <<= v6; /*0x142bbd*/\n            }\n            v9 *= 2; /*0x142bc0*/\n            v10 *= 2; /*0x142bc2*/\n            ++v11; /*0x142bc5*/\n          }\n          while ( *(_DWORD *)(a1 + 56) >= v11 ); /*0x142bd1*/\n        }\n      }\n      ++v12; /*0x142bd3*/\n      ++v6; /*0x142bd7*/\n      v4 = *(_DWORD *)(a1 + 56); /*0x142bdb*/\n    }\n    while ( v6 < v4 );\n  }\n  return result; /*0x142be5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1de3a4",
+        "name": "_fragtbl"
+      },
+      {
+        "addr": "0x1de15c",
+        "name": "_around"
+      },
+      {
+        "addr": "0x1de180",
+        "name": "_inside"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142bec",
+    "addr": "0x00142bec",
+    "code": "int __cdecl badblock(int a1, unsigned int a2)\n{\n  if ( *(_DWORD *)(a1 + 36) > a2 ) /*0x142bf9*/\n    return 0; /*0x142c18*/\n  printf(\"bad block %d, \", a2); /*0x142c01*/\n  fserr(a1, (int)aBadBlock); /*0x142c0c*/\n  return 1; /*0x142c1a*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1de0c7",
+        "name": "aBadBlockD",
+        "string": "bad block %d, "
+      },
+      {
+        "addr": "0x13d810",
+        "name": "_fserr"
+      },
+      {
+        "addr": "0x1de0d6",
+        "name": "aBadBlock",
+        "string": "bad block"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142c24",
+    "addr": "0x00142c24",
+    "code": "_BOOL4 __cdecl isblock(int a1, int a2, int a3)\n{\n  int v3; // eax\n  unsigned __int8 v5; // dl\n  int v6; // eax\n\n  v3 = *(_DWORD *)(a1 + 56); /*0x142c32*/\n  if ( v3 == 2 ) /*0x142c38*/\n  {\n    v5 = 3 << (2 * (a3 & 3)); /*0x142c88*/\n    v6 = a3 >> 2; /*0x142c8c*/\n    return (v5 & *(_BYTE *)(v6 + a2)) == v5; /*0x142c8f*/\n  }\n  if ( v3 <= 2 ) /*0x142c3a*/\n  {\n    if ( v3 != 1 ) /*0x142c3f*/\nLABEL_12:\n      panic(aIsblock); /*0x142cb8*/\n    v5 = 1 << (a3 & 7); /*0x142ca0*/\n    v6 = a3 >> 3; /*0x142ca4*/\n    return (v5 & *(_BYTE *)(v6 + a2)) == v5; /*0x142ca4*/\n  }\n  if ( v3 == 4 ) /*0x142c47*/\n  {\n    v5 = 15 << (4 * (a3 & 1)); /*0x142c6f*/\n    v6 = a3 >> 1; /*0x142c73*/\n    return (v5 & *(_BYTE *)(v6 + a2)) == v5; /*0x142cb6*/\n  }\n  if ( v3 != 8 ) /*0x142c4c*/\n    goto LABEL_12; /*0x142c4c*/\n  return *(_BYTE *)(a3 + a2) == 0xFF; /*0x142cc7*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de0e0",
+        "name": "aIsblock",
+        "string": "isblock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142cd0",
+    "addr": "0x00142cd0",
+    "code": "char __cdecl clrblock(int a1, int a2, int a3)\n{\n  int v3; // eax\n  int v4; // edx\n  char v5; // cl\n\n  v3 = *(_DWORD *)(a1 + 56); /*0x142cdd*/\n  if ( v3 == 2 ) /*0x142ce3*/\n  {\n    v4 = a3 >> 2; /*0x142d1a*/\n    v5 = 2 * (a3 & 3); /*0x142d24*/\n    v3 = 3; /*0x142d26*/\n    goto LABEL_10; /*0x142d26*/\n  }\n  if ( v3 > 2 ) /*0x142ce5*/\n  {\n    if ( v3 != 4 ) /*0x142cf3*/\n    {\n      if ( v3 != 8 ) /*0x142cf8*/\n        goto LABEL_12; /*0x142cf8*/\n      *(_BYTE *)(a3 + a2) = 0; /*0x142cfa*/\n      return v3; /*0x142cfe*/\n    }\n    v4 = a3 >> 1; /*0x142d02*/\n    v5 = 4 * (a3 & 1); /*0x142d09*/\n    v3 = 15; /*0x142d10*/\nLABEL_10:\n    LOBYTE(v3) = ~(unsigned __int8)(v3 << v5); /*0x142d2b*/\n    *(_BYTE *)(v4 + a2) &= v3; /*0x142d2f*/\n    return v3; /*0x142d32*/\n  }\n  if ( v3 != 1 ) /*0x142cea*/\nLABEL_12:\n    panic(aClrblock); /*0x142d48*/\n  LOBYTE(v3) = __ROL4__(-2, a3 & 7); /*0x142d41*/\n  *(_BYTE *)((a3 >> 3) + a2) &= v3; /*0x142d43*/\n  return v3; /*0x142d52*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de0e8",
+        "name": "aClrblock",
+        "string": "clrblock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142d5c",
+    "addr": "0x00142d5c",
+    "code": "int __cdecl setblock(int a1, int a2, int a3)\n{\n  int result; // eax\n  char v4; // cl\n  int v5; // edx\n\n  result = *(_DWORD *)(a1 + 56); /*0x142d69*/\n  if ( result == 2 ) /*0x142d6f*/\n  {\n    result = a3 >> 2; /*0x142da6*/\n    v4 = 2 * (a3 & 3); /*0x142db0*/\n    v5 = 3; /*0x142db2*/\n    goto LABEL_10; /*0x142db2*/\n  }\n  if ( result > 2 ) /*0x142d71*/\n  {\n    if ( result != 4 ) /*0x142d7f*/\n    {\n      if ( result != 8 ) /*0x142d84*/\n        goto LABEL_12; /*0x142d84*/\n      *(_BYTE *)(a3 + a2) = -1; /*0x142d86*/\n      return result; /*0x142d8a*/\n    }\n    result = a3 >> 1; /*0x142d8e*/\n    v4 = 4 * (a3 & 1); /*0x142d95*/\n    v5 = 15; /*0x142d9c*/\nLABEL_10:\n    *(_BYTE *)(result + a2) |= v5 << v4; /*0x142db7*/\n    return result; /*0x142dbc*/\n  }\n  if ( result != 1 ) /*0x142d76*/\nLABEL_12:\n    panic(aSetblock); /*0x142dd4*/\n  result = 1 << (a3 & 7); /*0x142dcd*/\n  *(_BYTE *)((a3 >> 3) + a2) |= result; /*0x142dcf*/\n  return result; /*0x142dde*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de0f1",
+        "name": "aSetblock",
+        "string": "setblock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142de8",
+    "addr": "0x00142de8",
+    "code": "int __cdecl getmp(__int16 a1)\n{\n  int v1; // ebx\n  int v2; // eax\n  int v3; // eax\n\n  v1 = mounttab; /*0x142df0*/\n  if ( !mounttab ) /*0x142df8*/\n    return 0; /*0x142e43*/\n  while ( 1 ) /*0x142dfc*/\n  {\n    v2 = *(_DWORD *)(v1 + 12); /*0x142dfc*/\n    if ( v2 ) /*0x142e01*/\n    {\n      if ( *(_WORD *)(v1 + 4) == a1 ) /*0x142e07*/\n        break; /*0x142e07*/\n    }\n    v1 = *(_DWORD *)(v1 + 32); /*0x142e3c*/\n    if ( !v1 ) /*0x142e41*/\n      return 0; /*0x142e41*/\n  }\n  v3 = *(_DWORD *)(v2 + 32); /*0x142e09*/\n  if ( *(_DWORD *)(v3 + 1372) != 72020 ) /*0x142e16*/\n  {\n    printf(\"dev = 0x%x, fs = %s\\n\", a1, (const char *)(v3 + 212)); /*0x142e27*/\n    panic(aGetmpBadMagic); /*0x142e31*/\n  }\n  return v1; /*0x142e45*/\n}",
+    "refs": [
+      {
+        "addr": "0x1de3e4",
+        "name": "_mounttab"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1de0fa",
+        "name": "aDev0xXFsS",
+        "string": "dev = 0x%x, fs = %s\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de10f",
+        "name": "aGetmpBadMagic",
+        "string": "getmp: bad magic"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142e4c",
+    "addr": "0x00142e4c",
+    "code": "vm_size_t bufstats()\n{\n  vm_size_t result; // eax\n  void *v1; // esp\n  unsigned int v2; // ebx\n  vm_size_t v3; // ecx\n  int v4; // esi\n  vm_size_t v5; // ebx\n  vm_size_t v6; // ebx\n  vm_size_t v7; // ecx\n  int v8; // [esp+0h] [ebp-20h] BYREF\n  int v9; // [esp+Ch] [ebp-14h]\n  int *v10; // [esp+10h] [ebp-10h]\n  int *v11; // [esp+14h] [ebp-Ch]\n  int *v12; // [esp+18h] [ebp-8h]\n  int i; // [esp+1Ch] [ebp-4h]\n\n  result = 4 * (0x2000 / page_size) + 4; /*0x142e62*/\n  v1 = alloca(result); /*0x142e69*/\n  v11 = &v8; /*0x142e6b*/\n  v12 = &bfreelist; /*0x142e6e*/\n  for ( i = 0; v12 < (int *)&buf; ++i )\n  {\n    v9 = 0; /*0x142e8c*/\n    v2 = 0; /*0x142e93*/\n    v3 = page_size; /*0x142e95*/\n    do /*0x142ec3*/\n      v11[v2++] = 0; /*0x142eb3*/\n    while ( v2 <= 0x2000 / v3 ); /*0x142ec3*/\n    v4 = splbio(); /*0x142eca*/\n    v10 = (int *)v12[3]; /*0x142ed2*/\n    if ( v10 != v12 ) /*0x142eda*/\n    {\n      v5 = page_size; /*0x142edc*/\n      do /*0x142f05*/\n      {\n        ++v11[v10[6] / v5]; /*0x142ef1*/\n        ++v9; /*0x142ef4*/\n        v10 = (int *)v10[3]; /*0x142efd*/\n      }\n      while ( v10 != v12 ); /*0x142f05*/\n    }\n    splx(v4); /*0x142f08*/\n    printf(\"%s: total-%d\", (&off_1DE120)[i], v9);\n    v6 = 0; /*0x142f26*/\n    v7 = page_size; /*0x142f2b*/\n    do /*0x142f71*/\n    {\n      if ( v11[v6] ) /*0x142f47*/\n        printf(\", %d-%d\", v7 * v6, v11[v6]); /*0x142f5a*/\n      ++v6; /*0x142f62*/\n      v7 = page_size; /*0x142f63*/\n    }\n    while ( v6 <= 0x2000 / page_size ); /*0x142f71*/\n    result = printf(\"\\n\"); /*0x142f78*/\n    v12 += 17; /*0x142f80*/\n  }\n  return result; /*0x142f97*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e8760",
+        "name": "_bfreelist"
+      },
+      {
+        "addr": "0x18b97c",
+        "name": "_splbio"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1de145",
+        "name": "aSTotalD",
+        "string": "%s: total-%d"
+      },
+      {
+        "addr": "0x1de120",
+        "name": "off_1DE120"
+      },
+      {
+        "addr": "0x1de152",
+        "name": "aDD",
+        "string": ", %d-%d"
+      },
+      {
+        "addr": "0x1de15a",
+        "name": "asc_1DE15A",
+        "string": "\n"
+      },
+      {
+        "addr": "0x1e8870",
+        "name": "_buf"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00142fa0",
+    "addr": "0x00142fa0",
+    "code": "unsigned int __cdecl scanc(int a1, unsigned __int8 *a2, int a3, unsigned __int8 a4)\n{\n  unsigned __int8 *v4; // edx\n  unsigned int v5; // ecx\n\n  v4 = a2; /*0x142fa5*/\n  v5 = (unsigned int)&a2[a1]; /*0x142fb0*/\n  while ( (unsigned int)v4 < v5 && (a4 & *(_BYTE *)(*v4 + a3)) == 0 ) /*0x142fc3*/\n    ++v4; /*0x142fb8*/\n  return v5 - (_DWORD)v4; /*0x142fcc*/\n}"
+  },
+  {
+    "requested_address": "0x00142fd4",
+    "addr": "0x00142fd4",
+    "code": "unsigned int __cdecl skpc(char a1, int a2, _BYTE *a3)\n{\n  _BYTE *v3; // eax\n  unsigned int v4; // edx\n\n  v3 = a3; /*0x142fd7*/\n  v4 = (unsigned int)&a3[a2]; /*0x142fdf*/\n  if ( a3 < &a3[a2] ) /*0x142fe4*/\n  {\n    do /*0x142fef*/\n    {\n      if ( *v3 != a1 ) /*0x142fea*/\n        break; /*0x142fea*/\n      ++v3; /*0x142fec*/\n    }\n    while ( (unsigned int)v3 < v4 ); /*0x142fef*/\n  }\n  return v4 - (_DWORD)v3; /*0x142ff7*/\n}"
+  },
+  {
+    "requested_address": "0x00142ffc",
+    "addr": "0x00142ffc",
+    "code": "unsigned int __cdecl locc(char a1, int a2, _BYTE *a3)\n{\n  _BYTE *v3; // eax\n  unsigned int v4; // edx\n\n  v3 = a3; /*0x142fff*/\n  v4 = (unsigned int)&a3[a2]; /*0x143007*/\n  if ( a3 < &a3[a2] ) /*0x14300c*/\n  {\n    do /*0x143017*/\n    {\n      if ( *v3 == a1 ) /*0x143012*/\n        break; /*0x143012*/\n      ++v3; /*0x143014*/\n    }\n    while ( (unsigned int)v3 < v4 ); /*0x143017*/\n  }\n  return v4 - (_DWORD)v3; /*0x14301f*/\n}"
+  },
+  {
+    "requested_address": "0x00143024",
+    "addr": "0x00143024",
+    "code": null,
+    "error": "Decompilation failed at 0x143024"
+  },
+  {
+    "requested_address": "0x001430a8",
+    "addr": "0x001430a8",
+    "code": null,
+    "error": "Decompilation failed at 0x1430a8"
+  },
+  {
+    "requested_address": "0x00143184",
+    "addr": "0x00143184",
+    "code": "int __cdecl sub_143184(int *a1, int a2, int a3)\n{\n  int v3; // ecx\n  unsigned int v5; // ecx\n  int v6; // ebx\n  int v7; // ecx\n  _DWORD *v8; // ebx\n  int v9; // ecx\n  int v10; // ebx\n  int v11; // ecx\n  unsigned int v12; // edi\n  int v13; // esi\n  int v14; // ecx\n  int v15; // ecx\n  int v16; // ecx\n  int v17; // ebx\n  int v18; // [esp+0h] [ebp-90h]\n  unsigned int v19; // [esp+Ch] [ebp-84h]\n  int v20; // [esp+30h] [ebp-60h]\n  char *v21; // [esp+34h] [ebp-5Ch]\n  int v22; // [esp+38h] [ebp-58h]\n  int v23; // [esp+3Ch] [ebp-54h]\n  int *v24; // [esp+40h] [ebp-50h]\n  int v25; // [esp+44h] [ebp-4Ch]\n  _DWORD *v26; // [esp+48h] [ebp-48h]\n  _DWORD v27[17]; // [esp+4Ch] [ebp-44h] BYREF\n\n  v26 = nullptr; /*0x143190*/\n  v25 = 0; /*0x143197*/\n  if ( !dword_1DE3F0 ) /*0x1431a5*/\n  {\n    ihinit(); /*0x1431a7*/\n    dword_1DE3F0 = 1; /*0x1431ac*/\n  }\n  v3 = 3; /*0x1431c8*/\n  if ( (*(_BYTE *)(a3 + 12) & 1) != 0 ) /*0x1431d4*/\n    v3 = 1; /*0x1431d6*/\n  v23 = (**(int (__cdecl ***)(int *, int, _DWORD))(*a1 + 28))(a1, v3, *(_DWORD *)(active_u + 28)); /*0x1431e7*/\n  if ( v23 ) /*0x1431ef*/\n    return v23; /*0x1431f4*/\n  v20 = 1; /*0x1431fc*/\n  v5 = (*(int (__cdecl **)(int))(*(_DWORD *)(*a1 + 28) + 128))(*a1); /*0x143214*/\n  if ( !v5 ) /*0x14321b*/\n  {\n    v6 = 3; /*0x143231*/\n    if ( (*(_BYTE *)(a3 + 12) & 1) != 0 ) /*0x14323d*/\n      v6 = 1; /*0x14323f*/\n    (*(void (__stdcall **)(int, int, int, _DWORD, int))(*(_DWORD *)(*a1 + 28) + 4))( /*0x14324c*/\n      *a1,\n      v6,\n      1,\n      *(_DWORD *)(active_u + 28),\n      v18);\n    binval(*a1); /*0x143254*/\n    return 15; /*0x14325e*/\n  }\n  v24 = bread(*a1, 0x2000 / v5, 0x2000); /*0x143282*/\n  if ( (*(_BYTE *)v24 & 4) != 0 ) /*0x14328b*/\n    goto LABEL_65; /*0x14328b*/\n  v26 = (_DWORD *)mounttab; /*0x143296*/\n  if ( !mounttab )\n  {\nLABEL_18:\n    vol_notify_cancel(*(_WORD *)(*a1 + 44)); /*0x1432ed*/\n    v7 = *(_DWORD *)(a3 + 12); /*0x1432ff*/\n    if ( (v7 & 0x40) != 0 )\n    {\n      LOBYTE(v7) = v7 & 0xBF; /*0x14330a*/\n      *(_DWORD *)(a3 + 12) = v7; /*0x14330d*/\n      printf(\"mountfs: illegal remount request\\n\");\nLABEL_42:\n      v23 = 22; /*0x1434a3*/\nLABEL_65:\n      if ( !v23 ) /*0x14370b*/\n        v23 = 5; /*0x14370d*/\n      goto LABEL_67; /*0x14370d*/\n    }\n    v26 = (_DWORD *)mounttab; /*0x143321*/\n    if ( mounttab ) /*0x143326*/\n    {\n      while ( v26[3] ) /*0x14332f*/\n      {\n        v26 = (_DWORD *)v26[8]; /*0x143334*/\n        if ( !v26 ) /*0x143339*/\n          goto LABEL_23; /*0x143339*/\n      }\n    }\n    else\n    {\nLABEL_23:\n      v26 = (_DWORD *)kalloc(0x24u); /*0x14333b*/\n      bzero(v26, 0x24u); /*0x14334b*/\n      if ( !v26 ) /*0x143357*/\n      {\n        v23 = 24; /*0x143359*/\n        goto LABEL_67; /*0x143360*/\n      }\n      v26[8] = mounttab; /*0x143371*/\n      mounttab = (int)v26; /*0x143374*/\n    }\n    *(_DWORD *)(a3 + 296) = v26; /*0x143380*/\n    *v26 = a3; /*0x143386*/\n    v26[3] = v24; /*0x14338b*/\n    *((_WORD *)v26 + 2) = -1; /*0x14338e*/\n    v26[2] = *a1; /*0x143399*/\n    v8 = (_DWORD *)v24[8]; /*0x14339c*/\n    byte_swap_superblock(v8); /*0x1433a0*/\n    if ( v8[343] == 72020 ) /*0x1433b2*/\n    {\n      v9 = v8[12]; /*0x1433b4*/\n      if ( v9 <= 0x2000 && (unsigned int)v9 > 0x563 ) /*0x1433c5*/\n      {\n        v25 = geteblk(v8[26]); /*0x1433f1*/\n        v26[3] = v25; /*0x1433f7*/\n        bcopy((const void *)v24[8], *(void **)(v25 + 32), v8[26]); /*0x14340c*/\n        goto LABEL_32; /*0x14340c*/\n      }\n    }\n    v23 = 22; /*0x1433c7*/\nLABEL_67:\n    if ( v26 ) /*0x143718*/\n      v26[3] = 0; /*0x14371d*/\n    if ( v25 ) /*0x143728*/\n      brelse(v25); /*0x14372e*/\n    if ( v24 ) /*0x14373a*/\n      brelse((int)v24); /*0x143740*/\n    if ( v20 ) /*0x14374c*/\n    {\n      v17 = 3; /*0x143762*/\n      if ( (*(_BYTE *)(a3 + 12) & 1) != 0 ) /*0x14376e*/\n        v17 = 1; /*0x143770*/\n      (*(void (__stdcall **)(int, int, int, _DWORD, int))(*(_DWORD *)(*a1 + 28) + 4))( /*0x14377d*/\n        *a1,\n        v17,\n        1,\n        *(_DWORD *)(active_u + 28),\n        v18);\n      binval(*a1); /*0x143785*/\n    }\n    return v23; /*0x14378a*/\n  }\n  while ( !v26[3] || *(_WORD *)(*a1 + 44) != *((_WORD *)v26 + 2) ) /*0x1432b7*/\n  {\n    v26 = (_DWORD *)v26[8]; /*0x1432e6*/\n    if ( !v26 ) /*0x1432eb*/\n      goto LABEL_18; /*0x1432eb*/\n  }\n  if ( (*(_BYTE *)(a3 + 12) & 0x40) == 0 ) /*0x1432c0*/\n  {\n    v26 = nullptr; /*0x1432c6*/\n    v23 = 16; /*0x1432cd*/\n    v20 = 0; /*0x1432d4*/\n    goto LABEL_65; /*0x1432db*/\n  }\n  v25 = v26[3]; /*0x1433d4*/\n  v8 = (_DWORD *)v24[8]; /*0x1433da*/\n  byte_swap_superblock(v8); /*0x1433de*/\nLABEL_32:\n  if ( (*(_BYTE *)(a3 + 12) & 1) != 0 ) /*0x14341b*/\n  {\n    brelse((int)v24); /*0x143474*/\n  }\n  else\n  {\n    *(_BYTE *)(dword_1E875C + 104) = 0; /*0x143422*/\n    byte_swap_superblock(v8); /*0x143427*/\n    bwrite(v24); /*0x143430*/\n    if ( *(_BYTE *)(dword_1E875C + 104) == 30 ) /*0x143442*/\n    {\n      *(_BYTE *)(dword_1E875C + 104) = 0; /*0x143444*/\n      if ( *a1 == rootvp ) /*0x143452*/\n        panic(aRootDeviceIsPh); /*0x143459*/\n      *(_BYTE *)(a3 + 12) |= 1u; /*0x143464*/\n    }\n    byte_swap_superblock(v8); /*0x143469*/\n  }\n  v24 = nullptr; /*0x14347c*/\n  v10 = *(_DWORD *)(v25 + 32); /*0x143486*/\n  v11 = *(_DWORD *)(a3 + 12); /*0x14348c*/\n  if ( (v11 & 1) != 0 )\n  {\n    if ( (v11 & 0x40) != 0 )\n    {\n      printf(\"mountfs: can't remount ro\\n\");\n      goto LABEL_42; /*0x14349e*/\n    }\n    *(_BYTE *)(v10 + 208) = 0; /*0x1434b4*/\n    *(_BYTE *)(v10 + 210) = 1; /*0x1434bb*/\n  }\n  else\n  {\n    if ( *(_BYTE *)(v10 + 209) == 1 ) /*0x1434cb*/\n      *(_BYTE *)(v10 + 209) = 2; /*0x1434cd*/\n    else\n      *(_BYTE *)(v10 + 209) = 3; /*0x1434d8*/\n    *(_BYTE *)(v10 + 208) = 1; /*0x1434df*/\n    *(_BYTE *)(v10 + 210) = 0; /*0x1434e6*/\n    if ( (*(_BYTE *)(a3 + 12) & 0x40) != 0 ) /*0x1434f4*/\n    {\n      *(_DWORD *)(a3 + 12) &= ~0x40u; /*0x14350b*/\n      sbupdate(v26); /*0x143513*/\n      return 0; /*0x14351a*/\n    }\n  }\n  *(_DWORD *)(a3 + 16) = *(_DWORD *)(v10 + 48); /*0x143526*/\n  v12 = *(_DWORD *)(v10 + 156); /*0x143529*/\n  v22 = (int)(*(_DWORD *)(v10 + 52) + v12 - 1) / *(_DWORD *)(v10 + 52); /*0x14353c*/\n  v21 = (char *)kalloc(v12); /*0x143545*/\n  if ( !v21 ) /*0x14354d*/\n  {\n    v23 = 12; /*0x14354f*/\n    goto LABEL_67; /*0x143556*/\n  }\n  v13 = 0; /*0x14355c*/\n  if ( v22 > 0 ) /*0x143561*/\n  {\n    while ( 1 ) /*0x14356b*/\n    {\n      v19 = *(_DWORD *)(v10 + 48); /*0x14356b*/\n      if ( *(_DWORD *)(v10 + 56) + v13 > v22 ) /*0x14357b*/\n        v19 = *(_DWORD *)(v10 + 52) * (v22 - v13); /*0x143585*/\n      v24 = bread(v26[2], (v13 + *(_DWORD *)(v10 + 152)) << *(_DWORD *)(v10 + 100), v19); /*0x1435ac*/\n      if ( (*(_BYTE *)v24 & 4) != 0 ) /*0x1435b5*/\n        break; /*0x1435b5*/\n      bcopy((const void *)v24[8], v21, v19); /*0x1435c7*/\n      byte_swap_ints(v21, v19 >> 2); /*0x1435d7*/\n      *(_DWORD *)(v10 + 4 * (v13 >> *(_DWORD *)(v10 + 96)) + 728) = v21; /*0x1435e6*/\n      v21 += v19; /*0x1435f5*/\n      brelse((int)v24); /*0x1435fc*/\n      v13 += *(_DWORD *)(v10 + 56); /*0x143604*/\n      if ( v22 <= v13 ) /*0x14360a*/\n        goto LABEL_56; /*0x14360a*/\n    }\n    kfree((int)v21, *(_DWORD *)(v10 + 156)); /*0x1436ff*/\n    goto LABEL_65; /*0x1436ff*/\n  }\nLABEL_56:\n  if ( !*(_BYTE *)(v10 + 210) ) /*0x143610*/\n    sbupdate(v26); /*0x14361d*/\n  *(_BYTE *)(v10 + 211) &= 0xFCu; /*0x143625*/\n  v14 = *(_DWORD *)(v10 + 60) * *(_DWORD *)(v10 + 40) / 100; /*0x14363d*/\n  *(_DWORD *)(v10 + 140) = v14; /*0x14363f*/\n  *(_DWORD *)(v10 + 136) = v14; /*0x143645*/\n  if ( v14 <= 100 ) /*0x14364e*/\n    v15 = 2 * v14; /*0x143658*/\n  else\n    v15 = v14 + 100; /*0x143650*/\n  *(_DWORD *)(v10 + 136) = v15; /*0x14365a*/\n  v16 = *(_DWORD *)(v10 + 184) * *(_DWORD *)(v10 + 44) / 100; /*0x143674*/\n  *(_DWORD *)(v10 + 148) = v16; /*0x143676*/\n  if ( v16 > 50 ) /*0x14367f*/\n    *(_DWORD *)(v10 + 148) = 50; /*0x143681*/\n  *(_DWORD *)(v10 + 144) = *(_DWORD *)(v10 + 148); /*0x143691*/\n  *((_WORD *)v26 + 2) = *(_WORD *)(v26[2] + 44); /*0x1436a4*/\n  *(_DWORD *)(a3 + 20) = *((__int16 *)v26 + 2); /*0x1436af*/\n  *(_DWORD *)(a3 + 24) = 0; /*0x1436b2*/\n  copystr(a2, v10 + 212, 511, v27); /*0x1436cd*/\n  bzero((void *)(v10 + v27[0] + 212), 512 - v27[0]); /*0x1436e8*/\n  return 0; /*0x143793*/\n}",
+    "refs": [
+      {
+        "addr": "0x14073c",
+        "name": "_ihinit"
+      },
+      {
+        "addr": "0x1de3f0",
+        "name": "dword_1DE3F0"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11b1e8",
+        "name": "_binval"
+      },
+      {
+        "addr": "0x119b8c",
+        "name": "_bread"
+      },
+      {
+        "addr": "0x1de3e4",
+        "name": "_mounttab"
+      },
+      {
+        "addr": "0x184f50",
+        "name": "_vol_notify_cancel"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1de3f4",
+        "name": "aMountfsIllegal",
+        "string": "mountfs: illegal remount request\n"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x192c74",
+        "name": "_byte_swap_superblock"
+      },
+      {
+        "addr": "0x11a558",
+        "name": "_geteblk"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x11a288",
+        "name": "_brelse"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11a168",
+        "name": "_bwrite"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de416",
+        "name": "aRootDeviceIsPh",
+        "string": "Root device is physically write protected.  It must be writeable."
+      },
+      {
+        "addr": "0x1e99b0",
+        "name": "_rootvp"
+      },
+      {
+        "addr": "0x1de458",
+        "name": "aMountfsCanTRem",
+        "string": "mountfs: can't remount ro\n"
+      },
+      {
+        "addr": "0x1439f8",
+        "name": "_sbupdate"
+      },
+      {
+        "addr": "0x192c20",
+        "name": "_byte_swap_ints"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x18a034",
+        "name": "_copystr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014379c",
+    "addr": "0x0014379c",
+    "code": null,
+    "error": "Decompilation failed at 0x14379c"
+  },
+  {
+    "requested_address": "0x001437b0",
+    "addr": "0x001437b0",
+    "code": "int __cdecl sub_1437B0(int a1)\n{\n  int v1; // ebx\n  int v2; // edi\n  int v4; // esi\n  int v5; // eax\n  _BOOL4 v6; // [esp+10h] [ebp-4h]\n\n  v1 = *(_DWORD *)(a1 + 296); /*0x1437bc*/\n  v2 = iflush(*(_WORD *)(v1 + 4)); /*0x1437cc*/\n  if ( v2 < 0 ) /*0x1437d3*/\n    return 16; /*0x1437df*/\n  v4 = *(_DWORD *)(*(_DWORD *)(v1 + 12) + 32); /*0x1437ef*/\n  v6 = *(_BYTE *)(v4 + 210) == 0; /*0x143801*/\n  if ( !*(_BYTE *)(v4 + 210) && *(_BYTE *)(v4 + 209) == 2 ) /*0x14380f*/\n  {\n    *(_BYTE *)(v4 + 209) = 1; /*0x143811*/\n    sbupdate(v1); /*0x143819*/\n  }\n  kfree(*(_DWORD *)(v4 + 728), *(_DWORD *)(v4 + 156)); /*0x14382f*/\n  brelse(*(_DWORD *)(v1 + 12)); /*0x143838*/\n  *(_DWORD *)(v1 + 12) = 0; /*0x14383d*/\n  *(_WORD *)(v1 + 4) = 0; /*0x143844*/\n  if ( !v2 ) /*0x14384f*/\n  {\n    (*(void (__cdecl **)(_DWORD, _BOOL4, int, _DWORD))(*(_DWORD *)(*(_DWORD *)(v1 + 8) + 28) + 4))( /*0x143870*/\n      *(_DWORD *)(v1 + 8),\n      v6,\n      1,\n      *(_DWORD *)(active_u + 28));\n    binval(*(_DWORD *)(v1 + 8)); /*0x143876*/\n    vn_rele(*(_DWORD *)(v1 + 8)); /*0x14387f*/\n    *(_DWORD *)(v1 + 8) = 0; /*0x143884*/\n    v5 = mounttab; /*0x14388b*/\n    if ( v1 == mounttab ) /*0x143895*/\n    {\n      mounttab = *(_DWORD *)(v1 + 32); /*0x14389a*/\n    }\n    else\n    {\n      while ( v5 ) /*0x1438b4*/\n      {\n        if ( *(_DWORD *)(v5 + 32) == v1 ) /*0x1438a7*/\n          *(_DWORD *)(v5 + 32) = *(_DWORD *)(v1 + 32); /*0x1438ac*/\n        v5 = *(_DWORD *)(v5 + 32); /*0x1438af*/\n      }\n    }\n    kfree(v1, 0x24u); /*0x1438b9*/\n  }\n  return 0; /*0x1438c3*/\n}",
+    "refs": [
+      {
+        "addr": "0x141e70",
+        "name": "_iflush"
+      },
+      {
+        "addr": "0x1439f8",
+        "name": "_sbupdate"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x11a288",
+        "name": "_brelse"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11b1e8",
+        "name": "_binval"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x1de3e4",
+        "name": "_mounttab"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001438cc",
+    "addr": "0x001438cc",
+    "code": null,
+    "error": "Decompilation failed at 0x1438cc"
+  },
+  {
+    "requested_address": "0x00143934",
+    "addr": "0x00143934",
+    "code": null,
+    "error": "Decompilation failed at 0x143934"
+  },
+  {
+    "requested_address": "0x001439e4",
+    "addr": "0x001439e4",
+    "code": null,
+    "error": "Decompilation failed at 0x1439e4"
+  },
+  {
+    "requested_address": "0x001439f8",
+    "addr": "0x001439f8",
+    "code": "int __cdecl sbupdate(int a1)\n{\n  int result; // eax\n  int v2; // ebx\n  int i; // edi\n  unsigned int v4; // esi\n  int v5; // ebx\n  char *v6; // [esp+1Ch] [ebp-Ch]\n  int v7; // [esp+20h] [ebp-8h]\n  _DWORD *v8; // [esp+24h] [ebp-4h]\n\n  v8 = *(_DWORD **)(*(_DWORD *)(a1 + 12) + 32); /*0x143a0a*/\n  result = (*(int (__cdecl **)(_DWORD))(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 28) + 128))(*(_DWORD *)(a1 + 8)); /*0x143a20*/\n  if ( result >= 0 ) /*0x143a29*/\n  {\n    v2 = getblk(*(_DWORD *)(a1 + 8), 0x2000 / result, v8[26]); /*0x143a4f*/\n    bcopy(v8, *(void **)(v2 + 32), v8[26]); /*0x143a60*/\n    byte_swap_superblock(*(_DWORD *)(v2 + 32)); /*0x143a69*/\n    *(_DWORD *)(*(_DWORD *)(v2 + 32) + 140) = 0; /*0x143a71*/\n    *(_DWORD *)(*(_DWORD *)(v2 + 32) + 136) = 0; /*0x143a7e*/\n    *(_DWORD *)(*(_DWORD *)(v2 + 32) + 148) = 0; /*0x143a8b*/\n    *(_DWORD *)(*(_DWORD *)(v2 + 32) + 144) = 0; /*0x143a98*/\n    *(_BYTE *)(*(_DWORD *)(v2 + 32) + 211) = 0; /*0x143aa5*/\n    bwrite((int *)v2); /*0x143aad*/\n    result = (v8[13] + v8[39] - 1) / v8[13]; /*0x143ac7*/\n    v7 = result; /*0x143aca*/\n    v6 = (char *)v8[182]; /*0x143ad3*/\n    for ( i = 0; v7 > i; i += v8[14] ) /*0x143add*/\n    {\n      v4 = v8[12]; /*0x143ae3*/\n      if ( v8[14] + i > v7 ) /*0x143af0*/\n        v4 = v8[13] * (v7 - i); /*0x143af9*/\n      v5 = getblk(*(_DWORD *)(a1 + 8), (i + v8[38]) << v8[25], v4); /*0x143b20*/\n      bcopy(v6, *(void **)(v5 + 32), v4); /*0x143b2b*/\n      byte_swap_ints(*(_DWORD *)(v5 + 32), v4 >> 2); /*0x143b3a*/\n      v6 += v4; /*0x143b3f*/\n      result = bwrite((int *)v5); /*0x143b46*/\n    }\n  }\n  return result; /*0x143b5c*/\n}",
+    "refs": [
+      {
+        "addr": "0x11a3e8",
+        "name": "_getblk"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x192c74",
+        "name": "_byte_swap_superblock"
+      },
+      {
+        "addr": "0x11a168",
+        "name": "_bwrite"
+      },
+      {
+        "addr": "0x192c20",
+        "name": "_byte_swap_ints"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00143b64",
+    "addr": "0x00143b64",
+    "code": "int __cdecl sub_143B64(int a1, int a2)\n{\n  int v2; // edx\n  int v4; // [esp+4h] [ebp-4h] BYREF\n\n  v2 = lookupname(a1, 0, 1, 0, (int)&v4); /*0x143b81*/\n  if ( v2 ) /*0x143b88*/\n  {\n    if ( *(_BYTE *)(dword_1E875C + 104) == 2 ) /*0x143b93*/\n      return 19; /*0x143b95*/\n    else\n      return v2; /*0x143b9c*/\n  }\n  else if ( *(_DWORD *)(v4 + 40) == 3 ) /*0x143ba7*/\n  {\n    *(_WORD *)a2 = *(_WORD *)(v4 + 44); /*0x143bbc*/\n    vn_rele(v4); /*0x143bc3*/\n    if ( nblkdev <= *(unsigned __int8 *)(a2 + 1) ) /*0x143bd2*/\n      return 6; /*0x143bd8*/\n    else\n      return 0; /*0x143bd4*/\n  }\n  else\n  {\n    vn_rele(v4); /*0x143baa*/\n    return 15; /*0x143baf*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x11c0f8",
+        "name": "_lookupname"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x1e2f34",
+        "name": "_nblkdev"
+      }
+    ]
+  }
+]

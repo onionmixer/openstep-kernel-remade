@@ -1,0 +1,667 @@
+[
+  {
+    "requested_address": "0x001c80bc",
+    "addr": "0x001c80bc",
+    "code": "id __cdecl -[IOVPCodeDisplay setBrightness:token:](IOVPCodeDisplay *self, SEL a2, int a3, int a4)\n{\n  if ( (unsigned int)a3 <= 0x40 )\n  {\n    self->brightnessLevel = a3; /*0x1c80dc*/\n    -[IOVPCodeDisplay setGammaTable](self, sel_setGammaTable); /*0x1c80ea*/\n    return self; /*0x1c80ef*/\n  }\n  else\n  {\n    IOLog((int)\"QVision: Invalid brightness level `%d'.\\n\", a3);\n    return nullptr; /*0x1c80d6*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1c7048",
+        "name": "-[IOVPCodeDisplay setGammaTable]"
+      },
+      {
+        "addr": "0x207190",
+        "name": "sel_setGammaTable",
+        "string": "setGammaTable"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d95c4",
+        "name": "aQvisionInvalid",
+        "string": "QVision: Invalid brightness level `%d'.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c80f8",
+    "addr": "0x001c80f8",
+    "code": "id __cdecl -[IOVPCodeDisplay setTransferTable:count:](IOVPCodeDisplay *self, SEL a2, const unsigned int *a3, int a4)\n{\n  char *redTransferTable; // edx\n  char *v5; // eax\n  char *v6; // eax\n  unsigned int v7; // eax\n  int i; // esi\n  char *greenTransferTable; // ecx\n  char v10; // al\n  int v11; // esi\n  const unsigned int *v12; // ecx\n  char *v14; // [esp+Ch] [ebp-4h]\n\n  redTransferTable = self->redTransferTable; /*0x1c8104*/\n  if ( redTransferTable ) /*0x1c810c*/\n    IOFree((int)redTransferTable, 3 * self->transferTableCount); /*0x1c8119*/\n  self->transferTableCount = a4; /*0x1c8124*/\n  v5 = (char *)IOMalloc(3 * a4); /*0x1c812e*/\n  self->redTransferTable = v5; /*0x1c8133*/\n  v6 = &v5[a4]; /*0x1c8139*/\n  self->greenTransferTable = v6; /*0x1c813b*/\n  self->blueTransferTable = &v6[a4]; /*0x1c8143*/\n  v7 = *((_DWORD *)-[IODisplay displayInfo](self, sel_displayInfo) + 6); /*0x1c815c*/\n  if ( v7 <= 1 ) /*0x1c8162*/\n  {\n    for ( i = 0; a4 > i; ++i ) /*0x1c8171*/\n    {\n      v14 = self->redTransferTable; /*0x1c817e*/\n      greenTransferTable = self->greenTransferTable; /*0x1c8181*/\n      v10 = a3[i]; /*0x1c8190*/\n      self->blueTransferTable[i] = v10; /*0x1c8193*/\n      greenTransferTable[i] = v10; /*0x1c8196*/\n      v14[i] = v10; /*0x1c819c*/\n    }\n  }\n  else if ( v7 > 4 ) /*0x1c8167*/\n  {\n    IOFree((int)self->redTransferTable, 3 * a4); /*0x1c81f0*/\n    self->redTransferTable = nullptr; /*0x1c81f5*/\n  }\n  else\n  {\n    v11 = 0; /*0x1c81a8*/\n    if ( a4 > 0 ) /*0x1c81ad*/\n    {\n      v12 = a3; /*0x1c81af*/\n      do /*0x1c81e1*/\n      {\n        self->redTransferTable[v11] = *((_BYTE *)v12 + 3); /*0x1c81bd*/\n        self->greenTransferTable[v11] = *((_BYTE *)v12 + 2); /*0x1c81c9*/\n        self->blueTransferTable[v11++] = BYTE1(*v12++); /*0x1c81d7*/\n      }\n      while ( a4 > v11 ); /*0x1c81e1*/\n    }\n  }\n  -[IOVPCodeDisplay setGammaTable](self, sel_setGammaTable); /*0x1c820a*/\n  return self; /*0x1c8214*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      },
+      {
+        "addr": "0x1c7048",
+        "name": "-[IOVPCodeDisplay setGammaTable]"
+      },
+      {
+        "addr": "0x207190",
+        "name": "sel_setGammaTable",
+        "string": "setGammaTable"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c821c",
+    "addr": "0x001c821c",
+    "code": "id __cdecl -[IOVPCodeDisplay _setDefaultGammaTable:](IOVPCodeDisplay *self, SEL a2, unsigned int *a3)\n{\n  unsigned int i; // ebx\n  unsigned int v5; // ecx\n  unsigned int j; // eax\n  unsigned int m; // ebx\n  unsigned int v8; // ecx\n  unsigned int n; // eax\n  unsigned int ii; // ebx\n  unsigned int v11; // ecx\n  unsigned int jj; // eax\n  unsigned int k; // ebx\n  id result; // eax\n\n  switch ( *((_DWORD *)-[IODisplay displayInfo](self, sel_displayInfo) + 6) ) /*0x1c8244*/\n  {\n    case 0: /*0x1c8244*/\n      for ( i = 0; i <= 3; ++i ) /*0x1c8260*/\n      {\n        v5 = ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5420[i]) >> 6 << 8) /*0x1c8286*/\n           | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5420[i]) >> 6 << 16)\n           | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5420[i]) >> 6);\n        for ( j = 0; j <= 0x3F; ++j ) /*0x1c8288*/\n          *a3++ = v5; /*0x1c828c*/\n      }\n      goto LABEL_19; /*0x1c829b*/\n    case 1: /*0x1c8244*/\n    case 4: /*0x1c8244*/\n      for ( k = 0; k <= 0xFF; ++k ) /*0x1c8324*/\n        *a3++ = ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1D637C[k]) >> 6) /*0x1c834c*/\n              | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1D637C[k]) >> 6 << 8)\n              | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1D637C[k]) >> 6 << 16);\n      goto LABEL_19; /*0x1c8358*/\n    case 2: /*0x1c8244*/\n      for ( m = 0; m <= 0xF; ++m ) /*0x1c82a4*/\n      {\n        v8 = ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5424[m]) >> 6 << 8) /*0x1c82ca*/\n           | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5424[m]) >> 6 << 16)\n           | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5424[m]) >> 6);\n        for ( n = 0; n <= 0xF; ++n ) /*0x1c82cc*/\n          *a3++ = v8; /*0x1c82d0*/\n      }\n      goto LABEL_19; /*0x1c82df*/\n    case 3: /*0x1c8244*/\n      for ( ii = 0; ii <= 0x1F; ++ii ) /*0x1c82e4*/\n      {\n        v11 = ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5434[ii]) >> 6 << 8) /*0x1c830a*/\n            | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5434[ii]) >> 6 << 16)\n            | ((self->brightnessLevel * (unsigned int)(unsigned __int8)byte_1E5434[ii]) >> 6);\n        for ( jj = 0; jj <= 7; ++jj ) /*0x1c830c*/\n          *a3++ = v11; /*0x1c8310*/\n      }\nLABEL_19:\n      if ( -[IOVPCodeDisplay runVPCode:withRegs:](self, sel_runVPCode_withRegs_, 7, 0) ) /*0x1c8369*/\n        goto LABEL_20; /*0x1c8370*/\n      result = nullptr; /*0x1c8378*/\n      break; /*0x1c8378*/\n    default:\nLABEL_20:\n      result = self; /*0x1c8372*/\n      break; /*0x1c8375*/\n  }\n  return result; /*0x1c837d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e5420",
+        "name": "byte_1E5420"
+      },
+      {
+        "addr": "0x1d637c",
+        "name": "byte_1D637C"
+      },
+      {
+        "addr": "0x1e5424",
+        "name": "byte_1E5424"
+      },
+      {
+        "addr": "0x1e5434",
+        "name": "byte_1E5434"
+      },
+      {
+        "addr": "0x1c84dc",
+        "name": "-[IOVPCodeDisplay runVPCode:withRegs:]"
+      },
+      {
+        "addr": "0x207160",
+        "name": "sel_runVPCode:withRegs:",
+        "string": "runVPCode:withRegs:"
+      },
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8384",
+    "addr": "0x001c8384",
+    "code": "id __cdecl -[IOVPCodeDisplay initFromDeviceDescription:](IOVPCodeDisplay *self, SEL a2, id a3)\n{\n  unsigned int *v4; // eax\n  const char *v5; // eax\n  $514E7C50D28E54AB164B6500F83867A3 *v6; // esi\n  id v7; // eax\n  objc_super v8; // [esp+Ch] [ebp-8h] BYREF\n\n  v8.receiver = self; /*0x1c839b*/\n  v8.super_class = (Class)stru_1FA654.super_class; /*0x1c83a4*/\n  if ( -[IOFrameBufferDisplay initFromDeviceDescription:](&v8, sel_initFromDeviceDescription_, a3) )\n  {\n    self->_debug = 0; /*0x1c83d8*/\n    v4 = (unsigned int *)objc_msgSend(a3, sel_memoryRangeList); /*0x1c83e7*/\n    if ( v4 )\n    {\n      self->_videoRamAddress = *v4; /*0x1c842e*/\n      self->_videoRamSize = v4[1]; /*0x1c8437*/\n      self->blueTransferTable = nullptr; /*0x1c843d*/\n      self->greenTransferTable = nullptr; /*0x1c8447*/\n      self->redTransferTable = nullptr; /*0x1c8451*/\n      self->transferTableCount = 0; /*0x1c845b*/\n      self->brightnessLevel = 64; /*0x1c8465*/\n      v6 = -[IODisplay displayInfo](self, sel_displayInfo); /*0x1c847c*/\n      v7 = -[IOFrameBufferDisplay mapFrameBufferAtPhysicalAddress:length:]( /*0x1c848a*/\n             self,\n             sel_mapFrameBufferAtPhysicalAddress_length_,\n             0,\n             0);\n      v6->var5 = v7; /*0x1c848f*/\n      if ( v7 ) /*0x1c8497*/\n      {\n        if ( self->_debug ) /*0x1c84a8*/\n        {\n          IOLog((int)\"Video Ram Address = 0x%08x\\n\", self->_videoRamAddress); /*0x1c84bd*/\n          IOLog((int)\"Framebuffer Address = 0x%08x\\n\", v6->var5); /*0x1c84cb*/\n        }\n        return self; /*0x1c84d0*/\n      }\n      else\n      {\n        return -[IODirectDevice free](self, sel_free); /*0x1c84a1*/\n      }\n    }\n    else\n    {\n      v5 = -[IODevice name](self, sel_name); /*0x1c83fb*/\n      IOLog((int)\"%s: No memory range set.\\n\", v5);\n      v8.receiver = self; /*0x1c8412*/\n      v8.super_class = (Class)stru_1FA654.super_class; /*0x1c841b*/\n      return -[IODirectDevice free](&v8, sel_free); /*0x1c841f*/\n    }\n  }\n  else\n  {\n    v8.receiver = self; /*0x1c83be*/\n    v8.super_class = (Class)stru_1FA654.super_class; /*0x1c83c7*/\n    return -[IODirectDevice free](&v8, sel_free); /*0x1c83cb*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa654",
+        "name": "stru_1FA654"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203bb4",
+        "name": "sel_memoryRangeList",
+        "string": "memoryRangeList"
+      },
+      {
+        "addr": "0x1af0bc",
+        "name": "-[IODisplay displayInfo]"
+      },
+      {
+        "addr": "0x204aa8",
+        "name": "sel_displayInfo",
+        "string": "displayInfo"
+      },
+      {
+        "addr": "0x1c51e0",
+        "name": "-[IOFrameBufferDisplay mapFrameBufferAtPhysicalAddress:length:]"
+      },
+      {
+        "addr": "0x206e38",
+        "name": "sel_mapFrameBufferAtPhysicalAddress:length:",
+        "string": "mapFrameBufferAtPhysicalAddress:length:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d96e4",
+        "name": "aVideoRamAddres",
+        "string": "Video Ram Address = 0x%08x\n"
+      },
+      {
+        "addr": "0x1d9700",
+        "name": "aFramebufferAdd",
+        "string": "Framebuffer Address = 0x%08x\n"
+      },
+      {
+        "addr": "0x1a846c",
+        "name": "-[IODirectDevice free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1d96c8",
+        "name": "aSNoMemoryRange",
+        "string": "%s: No memory range set.\n"
+      },
+      {
+        "addr": "0x1c4dec",
+        "name": "-[IOFrameBufferDisplay initFromDeviceDescription:]"
+      },
+      {
+        "addr": "0x203260",
+        "name": "sel_initFromDeviceDescription:",
+        "string": "initFromDeviceDescription:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c84dc",
+    "addr": "0x001c84dc",
+    "code": "id __cdecl -[IOVPCodeDisplay runVPCode:withRegs:](IOVPCodeDisplay *self, SEL a2, unsigned int a3, unsigned int *a4)\n{\n  unsigned int *v4; // ebx\n  unsigned int *vpCode; // edx\n  unsigned int vpCodeCount; // eax\n  const char *v7; // eax\n  const char *v9; // eax\n  const char *v10; // eax\n  unsigned int v11; // [esp-4h] [ebp-30h]\n  _BYTE __b[32]; // [esp+Ch] [ebp-20h] BYREF\n\n  v4 = a4; /*0x1c84eb*/\n  vpCode = self->_vpCode; /*0x1c84ee*/\n  if ( vpCode && (vpCodeCount = self->_vpCodeCount) != 0 )\n  {\n    if ( a3 < vpCodeCount )\n    {\n      if ( vpCode[a3] )\n      {\n        if ( self->_debug )\n        {\n          v11 = vpCode[a3]; /*0x1c855d*/\n          v10 = -[IODevice name](self, sel_name); /*0x1c8566*/\n          IOLog((int)\"%s: Running vpcode at 0x%x\\n\", v10, v11);\n        }\n        if ( !a4 ) /*0x1c857e*/\n        {\n          v4 = (unsigned int *)__b; /*0x1c8584*/\n          memset(__b, 0, sizeof(__b)); /*0x1c8588*/\n        }\n        return -[IOVPCodeDisplay jumpTo:withInitialSRegs:](self, sel_jumpTo_withInitialSRegs_, self->_vpCode[a3], v4); /*0x1c85a3*/\n      }\n      else\n      {\n        return self; /*0x1c854f*/\n      }\n    }\n    else\n    {\n      v9 = -[IODevice name](self, sel_name); /*0x1c8531*/\n      IOLog((int)\"%s: entry point is out of range: 0x%x.\\n\", v9, a3);\n      return nullptr; /*0x1c8544*/\n    }\n  }\n  else\n  {\n    v7 = -[IODevice name](self, sel_name); /*0x1c850a*/\n    IOLog((int)\"%s: No vpcode to run.\\n\", v7);\n    return nullptr; /*0x1c851a*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d9838",
+        "name": "aSRunningVpcode",
+        "string": "%s: Running vpcode at 0x%x\n"
+      },
+      {
+        "addr": "0x101630",
+        "name": "_memset"
+      },
+      {
+        "addr": "0x1c72c0",
+        "name": "-[IOVPCodeDisplay jumpTo:withInitialSRegs:]"
+      },
+      {
+        "addr": "0x207174",
+        "name": "sel_jumpTo:withInitialSRegs:",
+        "string": "jumpTo:withInitialSRegs:"
+      },
+      {
+        "addr": "0x1d9810",
+        "name": "aSEntryPointIsO",
+        "string": "%s: entry point is out of range: 0x%x.\n"
+      },
+      {
+        "addr": "0x1d9720",
+        "name": "aSNoVpcodeToRun",
+        "string": "%s: No vpcode to run.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c85b4",
+    "addr": "0x001c85b4",
+    "code": "int __cdecl -[IOVPCodeDisplay getCharValues:forParameter:count:](\n        IOVPCodeDisplay *self,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  const char *v5; // eax\n  objc_super v7; // [esp+Ch] [ebp-8h] BYREF\n\n  if ( self->_debug )\n  {\n    v5 = -[IODevice name](self, sel_name); /*0x1c85d8*/\n    IOLog((int)\"%s: received parameter `%s'.\\n\", v5, a4);\n  }\n  if ( !strcmp(a4, \"VPGetVPCodeFilename\") ) /*0x1c85fd*/\n  {\n    if ( -[IOVPCodeDisplay getVPCodeFilename:count:](self, sel_getVPCodeFilename_count_, a3, a5) ) /*0x1c8614*/\n      return 0; /*0x1c8624*/\n    else\n      return -711; /*0x1c861d*/\n  }\n  else\n  {\n    v7.receiver = self; /*0x1c863b*/\n    v7.super_class = (Class)stru_1FA654.super_class; /*0x1c8644*/\n    return -[IOFrameBufferDisplay getCharValues:forParameter:count:]( /*0x1c864b*/\n             &v7,\n             sel_getCharValues_forParameter_count_,\n             a3,\n             a4,\n             a5);\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d98a8",
+        "name": "aSReceivedParam",
+        "string": "%s: received parameter `%s'.\n"
+      },
+      {
+        "addr": "0x1c7bac",
+        "name": "-[IOVPCodeDisplay getVPCodeFilename:count:]"
+      },
+      {
+        "addr": "0x207144",
+        "name": "sel_getVPCodeFilename:count:",
+        "string": "getVPCodeFilename:count:"
+      },
+      {
+        "addr": "0x1fa654",
+        "name": "stru_1FA654"
+      },
+      {
+        "addr": "0x1c4ecc",
+        "name": "-[IOFrameBufferDisplay getCharValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202df8",
+        "name": "sel_getCharValues:forParameter:count:",
+        "string": "getCharValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1d98c8",
+        "name": "aVpgetvpcodefil",
+        "string": "VPGetVPCodeFilename"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c865c",
+    "addr": "0x001c865c",
+    "code": "int __cdecl -[IOVPCodeDisplay setIntValues:forParameter:count:](\n        IOVPCodeDisplay *self,\n        SEL a2,\n        unsigned int *__src,\n        char *a4,\n        unsigned int a5)\n{\n  unsigned int *vpCode; // ecx\n  unsigned int *v6; // eax\n  unsigned int *v8; // ecx\n  unsigned int vpCodeReceived; // edi\n  objc_super v10; // [esp+14h] [ebp-8h] BYREF\n\n  if ( !strcmp(a4, \"VPSetVPCodeSize\") ) /*0x1c867d*/\n  {\n    if ( a5 == 1 ) /*0x1c8685*/\n    {\n      vpCode = self->_vpCode; /*0x1c868b*/\n      if ( vpCode ) /*0x1c8693*/\n        IOFree((int)vpCode, 4 * self->_vpCodeCount); /*0x1c86a4*/\n      self->_vpCodeCount = *__src; /*0x1c86b1*/\n      self->_vpCodeReceived = 0; /*0x1c86b7*/\n      v6 = (unsigned int *)IOMalloc(4 * self->_vpCodeCount); /*0x1c86cf*/\n      self->_vpCode = v6; /*0x1c86d4*/\n      if ( v6 ) /*0x1c86df*/\n      {\n        IOLog((int)\"About to receive %d bytes of VPCode!\\n\", self->_vpCodeCount); /*0x1c86ed*/\n        return 0; /*0x1c86f4*/\n      }\n      return -701; /*0x1c86df*/\n    }\n    return -706; /*0x1c873c*/\n  }\n  if ( !strcmp(a4, \"VPSetVPCode\") ) /*0x1c870b*/\n  {\n    v8 = self->_vpCode; /*0x1c870f*/\n    if ( !v8 ) /*0x1c8717*/\n      return -701; /*0x1c871e*/\n    vpCodeReceived = self->_vpCodeReceived; /*0x1c8724*/\n    if ( self->_vpCodeCount < vpCodeReceived + a5 ) /*0x1c8735*/\n      return -706; /*0x1c8735*/\n    memcpy(&v8[vpCodeReceived], __src, 4 * a5); /*0x1c875d*/\n    self->_vpCodeReceived += a5; /*0x1c8768*/\n    IOLog((int)\"Received %d bytes of VPCode!\\n\", a5); /*0x1c8774*/\n    return 0; /*0x1c8779*/\n  }\n  else if ( !strcmp(a4, \"VPEndVPCode\") ) /*0x1c878f*/\n  {\n    if ( -[IOVPCodeDisplay getDisplayInfo](self, sel_getDisplayInfo) ) /*0x1c879b*/\n      return 0; /*0x1c87ac*/\n    else\n      return -711; /*0x1c87a4*/\n  }\n  else\n  {\n    v10.receiver = self; /*0x1c87c0*/\n    v10.super_class = (Class)stru_1FA654.super_class; /*0x1c87c9*/\n    return -[IOFrameBufferDisplay setIntValues:forParameter:count:]( /*0x1c87d0*/\n             &v10,\n             sel_setIntValues_forParameter_count_,\n             __src,\n             a4,\n             a5);\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d98ec",
+        "name": "aAboutToReceive",
+        "string": "About to receive %d bytes of VPCode!\n"
+      },
+      {
+        "addr": "0x1d98dc",
+        "name": "aVpsetvpcodesiz",
+        "string": "VPSetVPCodeSize"
+      },
+      {
+        "addr": "0x1013e4",
+        "name": "_memcpy"
+      },
+      {
+        "addr": "0x1d9920",
+        "name": "aReceivedDBytes",
+        "string": "Received %d bytes of VPCode!\n"
+      },
+      {
+        "addr": "0x1c6ec8",
+        "name": "-[IOVPCodeDisplay getDisplayInfo]"
+      },
+      {
+        "addr": "0x2071b8",
+        "name": "sel_getDisplayInfo",
+        "string": "getDisplayInfo"
+      },
+      {
+        "addr": "0x1fa654",
+        "name": "stru_1FA654"
+      },
+      {
+        "addr": "0x1c4188",
+        "name": "-[IOFrameBufferDisplay setIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1d9940",
+        "name": "aVpendvpcode",
+        "string": "VPEndVPCode"
+      },
+      {
+        "addr": "0x1d9914",
+        "name": "aVpsetvpcode",
+        "string": "VPSetVPCode"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c87e0",
+    "addr": "0x001c87e0",
+    "code": "int __cdecl IOMallocLow(int a1)\n{\n  int v1; // esi\n  int *v3; // eax\n  int v4; // edx\n  int v5; // eax\n\n  v1 = IOMalloc(8u); /*0x1c87ef*/\n  if ( dma_buf_alloc(v1, a1) ) /*0x1c87f3*/\n  {\n    v3 = (int *)IOMalloc(0xCu); /*0x1c882a*/\n    v4 = (int)v3; /*0x1c882f*/\n    *v3 = v1; /*0x1c8831*/\n    if ( (int *)dmaBufQueue == &dmaBufQueue ) /*0x1c883d*/\n    {\n      dmaBufQueue = (int)v3; /*0x1c880c*/\n      dword_1F7494 = (int)v3; /*0x1c8812*/\n      v3[1] = (int)&dmaBufQueue; /*0x1c8818*/\n      v3[2] = (int)&dmaBufQueue; /*0x1c881f*/\n    }\n    else\n    {\n      v5 = dword_1F7494; /*0x1c883f*/\n      *(_DWORD *)(v4 + 8) = dword_1F7494; /*0x1c8844*/\n      *(_DWORD *)(v4 + 4) = &dmaBufQueue; /*0x1c8847*/\n      dword_1F7494 = v4; /*0x1c884e*/\n      *(_DWORD *)(v5 + 4) = v4; /*0x1c8854*/\n    }\n    return *(_DWORD *)v1; /*0x1c8857*/\n  }\n  else\n  {\n    IOFree(v1, 8); /*0x1c8802*/\n    return 0; /*0x1c8807*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1f7490",
+        "name": "_dmaBufQueue"
+      },
+      {
+        "addr": "0x1f7494",
+        "name": "dword_1F7494"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x18980c",
+        "name": "_dma_buf_alloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8864",
+    "addr": "0x001c8864",
+    "code": "int __cdecl IOFreeLow(int a1)\n{\n  int *v1; // ebx\n  int *v2; // ecx\n  int *v3; // edx\n  int *v4; // eax\n  int *v5; // eax\n\n  v1 = (int *)dmaBufQueue; /*0x1c886c*/\n  if ( (int *)dmaBufQueue == &dmaBufQueue )\n    return IOLog(\"IOFreeLow: buf 0x%x not found\\n\");\n  while ( *(_DWORD *)*v1 != a1 )\n  {\n    v1 = (int *)v1[1]; /*0x1c88cc*/\n    if ( v1 == &dmaBufQueue )\n      return IOLog(\"IOFreeLow: buf 0x%x not found\\n\");\n  }\n  v2 = (int *)v1[1]; /*0x1c8882*/\n  v3 = (int *)v1[2]; /*0x1c8885*/\n  v4 = &dmaBufQueue; /*0x1c8888*/\n  if ( v2 != &dmaBufQueue ) /*0x1c8893*/\n    v4 = v2 + 1; /*0x1c8895*/\n  v4[1] = (int)v3; /*0x1c8898*/\n  v5 = &dmaBufQueue; /*0x1c889b*/\n  if ( v3 != &dmaBufQueue ) /*0x1c88a6*/\n    v5 = v3 + 1; /*0x1c88a8*/\n  *v5 = (int)v2; /*0x1c88ab*/\n  dma_buf_free(*v1); /*0x1c88b0*/\n  IOFree(*v1, 8); /*0x1c88ba*/\n  return IOFree((int)v1, 12); /*0x1c88e5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7490",
+        "name": "_dmaBufQueue"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d994c",
+        "name": "aIofreelowBuf0x",
+        "string": "IOFreeLow: buf 0x%x not found\n"
+      },
+      {
+        "addr": "0x18987c",
+        "name": "_dma_buf_free"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c88ec",
+    "addr": "0x001c88ec",
+    "code": "void IOBreakToDebugger()\n{\n  __debugbreak(); /*0x1c88ef*/\n}"
+  },
+  {
+    "requested_address": "0x001c8900",
+    "addr": "0x001c8900",
+    "code": "int __cdecl sub_1C8900(unsigned int a1)\n{\n  if ( a1 <= 1 ) /*0x1c8909*/\n    return 0; /*0x1c8918*/\n  else\n    return sub_1C8900(a1 >> 1) + 1; /*0x1c8913*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8900",
+        "name": "sub_1C8900"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8920",
+    "addr": "0x001c8920",
+    "code": "int __cdecl sub_1C8920(char a1)\n{\n  return (1 << a1) - 1; /*0x1c8934*/\n}"
+  },
+  {
+    "requested_address": "0x001c8938",
+    "addr": "0x001c8938",
+    "code": "unsigned int __cdecl sub_1C8938(char *a1, unsigned int a2, unsigned int a3)\n{\n  _BYTE *v3; // edx\n  char v4; // al\n  unsigned int v5; // eax\n  unsigned int v6; // ecx\n  _BYTE *v7; // edx\n  _BYTE *v8; // edx\n  int v9; // eax\n  _BYTE *v10; // edx\n\n  v3 = (_BYTE *)a2; /*0x1c8940*/\n  v4 = *a1; /*0x1c8946*/\n  if ( *a1 != 42 ) /*0x1c894a*/\n  {\n    if ( *a1 > 42 ) /*0x1c894c*/\n    {\n      if ( v4 == 64 ) /*0x1c8956*/\n      {\n        v5 = (unsigned int)objc_msgSend((id)a2, sel_hash); /*0x1c8960*/\n        return v5 % a3; /*0x1c89b9*/\n      }\nLABEL_16:\n      v5 = a2 ^ HIWORD(a2); /*0x1c89b0*/\n      return v5 % a3; /*0x1c89b5*/\n    }\n    if ( v4 != 37 ) /*0x1c8950*/\n      goto LABEL_16; /*0x1c8950*/\n  }\n  if ( a2 ) /*0x1c896a*/\n  {\n    v6 = 0; /*0x1c896c*/\n    while ( *v3 ) /*0x1c8970*/\n    {\n      v6 ^= (unsigned __int8)*v3; /*0x1c8978*/\n      v7 = v3 + 1; /*0x1c897a*/\n      if ( !*v7 ) /*0x1c897b*/\n        break; /*0x1c897b*/\n      v6 ^= (unsigned __int8)*v7 << 8; /*0x1c8986*/\n      v8 = v7 + 1; /*0x1c8988*/\n      if ( !*v8 ) /*0x1c8989*/\n        break; /*0x1c8989*/\n      v9 = (unsigned __int8)*v8 << 16; /*0x1c8991*/\n      v6 ^= v9; /*0x1c8994*/\n      v10 = v8 + 1; /*0x1c8996*/\n      if ( !*v10 ) /*0x1c8997*/\n        break; /*0x1c8997*/\n      LOBYTE(v9) = *v10; /*0x1c899c*/\n      v6 ^= v9 << 24; /*0x1c89a1*/\n      v3 = v10 + 1; /*0x1c89a3*/\n    }\n    v5 = v6; /*0x1c89a8*/\n    return v5 % a3; /*0x1c89aa*/\n  }\n  return 0; /*0x1c89c0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2072ec",
+        "name": "sel_hash",
+        "string": "hash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c89c8",
+    "addr": "0x001c89c8",
+    "code": "int __cdecl sub_1C89C8(char *a1, char *a2, char *__s2)\n{\n  char v4; // al\n  const char *v5; // edi\n\n  if ( a2 == __s2 ) /*0x1c89d8*/\n    return 1; /*0x1c89df*/\n  v4 = *a1; /*0x1c89e4*/\n  if ( *a1 == 42 ) /*0x1c89e8*/\n    goto LABEL_9; /*0x1c89e8*/\n  if ( v4 > 42 ) /*0x1c89ea*/\n  {\n    if ( v4 == 64 ) /*0x1c89f6*/\n      return (char)objc_msgSend(a2, sel_isEqual_, __s2); /*0x1c8a09*/\n    return 0; /*0x1c89f6*/\n  }\n  if ( v4 == 37 ) /*0x1c89ee*/\n  {\nLABEL_9:\n    if ( a2 ) /*0x1c8a0e*/\n    {\n      if ( __s2 ) /*0x1c8a1a*/\n      {\n        if ( *__s2 == *a2 ) /*0x1c8a3c*/\n          return strcmp(a2, __s2) == 0; /*0x1c8a4f*/\n        return 0; /*0x1c8a3c*/\n      }\n      v5 = a2; /*0x1c8a1e*/\n    }\n    else\n    {\n      v5 = __s2; /*0x1c8a12*/\n    }\n    return strlen(v5) == 0; /*0x1c8a33*/\n  }\n  return 0; /*0x1c8a59*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205ea8",
+        "name": "sel_isEqual:",
+        "string": "isEqual:"
+      },
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8a60",
+    "addr": "0x001c8a60",
+    "code": "id __cdecl sub_1C8A60(id a1)\n{\n  return objc_msgSend(a1, sel_free); /*0x1c8a75*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8a78",
+    "addr": "0x001c8a78",
+    "code": "void sub_1C8A78()\n{\n  ; /*0x1c8a78*/\n}"
+  },
+  {
+    "requested_address": "0x001c8a80",
+    "addr": "0x001c8a80",
+    "code": "id __cdecl +[HashTable initialize](id a1, SEL a2)\n{\n  objc_msgSend(a1, sel_setVersion_, 1); /*0x1c8a91*/\n  return a1; /*0x1c8a98*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2072f4",
+        "name": "sel_setVersion:",
+        "string": "setVersion:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8aa0",
+    "addr": "0x001c8aa0",
+    "code": "id __cdecl -[HashTable _initBare:::](HashTable *self, SEL a2, const char *a3, const char *a4, unsigned int a5)\n{\n  self->count = 0; /*0x1c8aad*/\n  self->_nbBuckets = a5; /*0x1c8ab7*/\n  self->keyDesc = (char *)a3; /*0x1c8aba*/\n  if ( !a3 ) /*0x1c8abf*/\n    self->keyDesc = \"@\"; /*0x1c8ac1*/\n  self->valueDesc = (char *)a4; /*0x1c8ac8*/\n  if ( !a4 ) /*0x1c8acd*/\n    self->valueDesc = \"@\"; /*0x1c8acf*/\n  self->_buckets = nullptr; /*0x1c8ad6*/\n  return self; /*0x1c8adf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d996c",
+        "name": "asc_1D996C",
+        "string": "@"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8ae8",
+    "addr": "0x001c8ae8",
+    "code": "id __cdecl +[HashTable _newBare:::](id a1, SEL a2, const char *a3, const char *a4, unsigned int a5)\n{\n  int v5; // eax\n  id v6; // eax\n  SEL v8; // [esp-10h] [ebp-14h]\n\n  v5 = NXDefaultMallocZone(sel__initBare_::, a3, a4, a5); /*0x1c8b02*/\n  v6 = objc_msgSend(a1, sel_allocFromZone_, v5); /*0x1c8b10*/\n  return objc_msgSend(v6, v8); /*0x1c8b1e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x2072dc",
+        "name": "sel__initBare:::",
+        "string": "_initBare:::"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207300",
+        "name": "sel_allocFromZone:",
+        "string": "allocFromZone:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8b28",
+    "addr": "0x001c8b28",
+    "code": "id __cdecl -[HashTable initKeyDesc:valueDesc:](HashTable *self, SEL a2, const char *a3, const char *a4)\n{\n  return -[HashTable initKeyDesc:valueDesc:capacity:](self, sel_initKeyDesc_valueDesc_capacity_, a3, a4, 1); /*0x1c8b47*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8b88",
+        "name": "-[HashTable initKeyDesc:valueDesc:capacity:]"
+      },
+      {
+        "addr": "0x2072bc",
+        "name": "sel_initKeyDesc:valueDesc:capacity:",
+        "string": "initKeyDesc:valueDesc:capacity:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8b4c",
+    "addr": "0x001c8b4c",
+    "code": "id __cdecl -[HashTable initKeyDesc:](HashTable *self, SEL a2, const char *a3)\n{\n  return -[HashTable initKeyDesc:valueDesc:](self, sel_initKeyDesc_valueDesc_, a3, 0); /*0x1c8b67*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8b28",
+        "name": "-[HashTable initKeyDesc:valueDesc:]"
+      },
+      {
+        "addr": "0x202468",
+        "name": "sel_initKeyDesc:valueDesc:",
+        "string": "initKeyDesc:valueDesc:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8b6c",
+    "addr": "0x001c8b6c",
+    "code": "HashTable *__cdecl -[HashTable init](HashTable *self, SEL a2)\n{\n  return (HashTable *)-[HashTable initKeyDesc:](self, sel_initKeyDesc_, 0); /*0x1c8b83*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8b4c",
+        "name": "-[HashTable initKeyDesc:]"
+      },
+      {
+        "addr": "0x201e5c",
+        "name": "sel_initKeyDesc:",
+        "string": "initKeyDesc:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8b88",
+    "addr": "0x001c8b88",
+    "code": "id __cdecl -[HashTable initKeyDesc:valueDesc:capacity:](\n        HashTable *self,\n        SEL a2,\n        const char *a3,\n        const char *a4,\n        unsigned int a5)\n{\n  char v5; // al\n  int v6; // eax\n  $3D27A55567FB06BC0E416B979767FD15 *v7; // eax\n  size_t nbBuckets; // [esp-24h] [ebp-30h]\n\n  v5 = sub_1C8900(a5); /*0x1c8b9b*/\n  v6 = sub_1C8920(v5 + 1); /*0x1c8ba2*/\n  -[HashTable _initBare:::](self, sel__initBare_::, a3, a4, v6); /*0x1c8bb2*/\n  nbBuckets = self->_nbBuckets; /*0x1c8bbc*/\n  v7 = -[Object zone](self, sel_zone); /*0x1c8bc5*/\n  self->_buckets = (void *)NXZoneCalloc((int)v7, nbBuckets, 8u); /*0x1c8bd3*/\n  return self; /*0x1c8bdb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8900",
+        "name": "sub_1C8900"
+      },
+      {
+        "addr": "0x1c8920",
+        "name": "sub_1C8920"
+      },
+      {
+        "addr": "0x1c8aa0",
+        "name": "-[HashTable _initBare:::]"
+      },
+      {
+        "addr": "0x2072dc",
+        "name": "sel__initBare:::",
+        "string": "_initBare:::"
+      },
+      {
+        "addr": "0x1c9d20",
+        "name": "-[Object zone]"
+      },
+      {
+        "addr": "0x207310",
+        "name": "sel_zone",
+        "string": "zone"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8be4",
+    "addr": "0x001c8be4",
+    "code": "id __cdecl +[HashTable newKeyDesc:valueDesc:capacity:](id a1, SEL a2, const char *a3, const char *a4, unsigned int a5)\n{\n  int v5; // eax\n  id v6; // eax\n  SEL v8; // [esp-10h] [ebp-14h]\n\n  v5 = NXDefaultMallocZone(sel_initKeyDesc_valueDesc_capacity_, a3, a4, a5); /*0x1c8bfe*/\n  v6 = objc_msgSend(a1, sel_allocFromZone_, v5); /*0x1c8c0c*/\n  return objc_msgSend(v6, v8); /*0x1c8c1a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x2072bc",
+        "name": "sel_initKeyDesc:valueDesc:capacity:",
+        "string": "initKeyDesc:valueDesc:capacity:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207300",
+        "name": "sel_allocFromZone:",
+        "string": "allocFromZone:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8c24",
+    "addr": "0x001c8c24",
+    "code": "id __cdecl +[HashTable newKeyDesc:valueDesc:](id a1, SEL a2, const char *a3, const char *a4)\n{\n  return objc_msgSend(a1, sel_newKeyDesc_valueDesc_capacity_, a3, a4, 1); /*0x1c8c43*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207230",
+        "name": "sel_newKeyDesc:valueDesc:capacity:",
+        "string": "newKeyDesc:valueDesc:capacity:"
+      }
+    ]
+  }
+]

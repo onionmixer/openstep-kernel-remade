@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "method": "Python 3 decoded original full-pass5 function ranges with Capstone 4.0.2 x86-32 and counted exact WORD memory write operands at displacement 0x28. All addresses and counts were calculated in Python.",
+  "inputs": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890"
+  },
+  "map_insert_allocation": [
+    "0x00174918 CMP dword ptr [EDI+0x20],0",
+    "0x0017491e MOV EAX,[0x001f6ebc] or 0x00174928 MOV EAX,[0x001f6ec0]",
+    "0x0017492e CALL 0x0016b790",
+    "0x00174933 MOV EBX,EAX",
+    "0x00174946 MOV EAX,EBX"
+  ],
+  "post_allocation_writes_before_guard": [
+    "0x0017494b MOV [EAX+8],ECX",
+    "0x00174951 MOV [EAX+0xc],ECX",
+    "0x00174954 AND byte ptr [EAX+0x18],0xfa",
+    "0x0017495b MOV [EAX+0x10],ECX",
+    "0x00174961 MOV [EAX+0x14],ECX",
+    "0x00174964 AND byte ptr [EAX+0x18],0xb7"
+  ],
+  "guard": [
+    "0x00174968 CMP dword ptr [EDI+0x2c],0",
+    "0x0017496c JE 0x00174989",
+    "0x0017496e MOV [EAX+0x24],1",
+    "0x00174975 MOV [EAX+0x1c],3",
+    "0x0017497c MOV [EAX+0x20],7",
+    "0x00174983 MOV word ptr [EAX+0x28],0"
+  ],
+  "map_insert_explicit_word_offset_0x28_write_count": 1,
+  "allocator_wrapper": "0x0016b790 PUSH 1; PUSH [EBP+8]; CALL 0x0016b364; RET",
+  "free_list_pop": [
+    "0x0016b807 MOV ESI,[EBX+0x10]",
+    "0x0016b80a TEST ESI,ESI; JE 0x0016b822",
+    "0x0016b80e INC dword ptr [EBX+8]",
+    "0x0016b811 MOV ECX,[ESI]",
+    "0x0016b813 MOV [EBX+0x10],ECX",
+    "0x0016b841 MOV EAX,ESI; RET"
+  ],
+  "free_list_pop_explicit_word_offset_0x28_write_count": 0,
+  "stale_value_preconditions": [
+    "free-list pop returns nonzero ESI",
+    "caller map +0x2c is zero and guard branch is taken",
+    "no unshown intervening writer changes returned entry +0x28 before its consumer"
+  ],
+  "limit": "This is a conditional static dataflow result, not a runtime observation. It does not prove zone selection/content, guard-zero map reachability at vm_map_insert, alias/concurrent writers, later writes, field semantics, or actual entry lifetime."
+}

@@ -1,0 +1,409 @@
+[
+  {
+    "requested_address": "0x001cb2b4",
+    "addr": "0x001cb2b4",
+    "code": "BOOL __cdecl NXCompareHashTables(NXHashTable *table1, NXHashTable *table2)\n{\n  unsigned int v2; // ebx\n  void *data; // [esp+Ch] [ebp-Ch] BYREF\n  NXHashState state; // [esp+10h] [ebp-8h] BYREF\n\n  if ( table1 == table2 ) /*0x1cb2c5*/\n    return 1; /*0x1cb306*/\n  v2 = NXCountHashTable(table1); /*0x1cb2cd*/\n  if ( v2 == NXCountHashTable(table2) ) /*0x1cb2da*/\n  {\n    state = NXInitHashState(table1); /*0x1cb2e2*/\n    while ( NXNextHashState(table1, &state, &data) ) /*0x1cb2ff*/\n    {\n      if ( !NXHashMember(table2, data) ) /*0x1cb30d*/\n        return 0; /*0x1cb317*/\n    }\n    return 1; /*0x1cb2ff*/\n  }\n  return 0; /*0x1cb31e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cb3ac",
+        "name": "_NXCountHashTable"
+      },
+      {
+        "addr": "0x1cbaa0",
+        "name": "_NXInitHashState"
+      },
+      {
+        "addr": "0x1cb3bc",
+        "name": "_NXHashMember"
+      },
+      {
+        "addr": "0x1cbab8",
+        "name": "_NXNextHashState"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cb328",
+    "addr": "0x001cb328",
+    "code": "NXHashTable *__cdecl NXCopyHashTable(NXHashTable *table)\n{\n  int v1; // esi\n  NXHashTable *v2; // ebx\n  size_t nbBuckets; // ecx\n  void *data; // [esp+Ch] [ebp-Ch] BYREF\n  NXHashState state; // [esp+10h] [ebp-8h] BYREF\n\n  state = NXInitHashState(table); /*0x1cb33a*/\n  v1 = NXZoneFromPtr(table); /*0x1cb346*/\n  v2 = (NXHashTable *)(*(int (__cdecl **)(int, int))(v1 + 4))(v1, 20); /*0x1cb350*/\n  v2->prototype = table->prototype; /*0x1cb354*/\n  v2->count = 0; /*0x1cb356*/\n  v2->info = table->info; /*0x1cb360*/\n  nbBuckets = table->nbBuckets; /*0x1cb363*/\n  v2->nbBuckets = nbBuckets; /*0x1cb366*/\n  v2->buckets = (void *)NXZoneCalloc(v1, nbBuckets, 8u); /*0x1cb372*/\n  while ( NXNextHashState(table, &state, &data) ) /*0x1cb38c*/\n    NXHashInsert(v2, data); /*0x1cb393*/\n  return v2; /*0x1cb3a5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbaa0",
+        "name": "_NXInitHashState"
+      },
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x1cb5c8",
+        "name": "_NXHashInsert"
+      },
+      {
+        "addr": "0x1cbab8",
+        "name": "_NXNextHashState"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cb3ac",
+    "addr": "0x001cb3ac",
+    "code": "unsigned int __cdecl NXCountHashTable(NXHashTable *table)\n{\n  return table->count; /*0x1cb3b7*/\n}"
+  },
+  {
+    "requested_address": "0x001cb3bc",
+    "addr": "0x001cb3bc",
+    "code": "int __cdecl NXHashMember(NXHashTable *table, const void *data)\n{\n  int *v2; // edx\n  int v3; // ebx\n  int v4; // ebx\n  const void **i; // esi\n\n  v2 = (int *)((char *)table->buckets + 8 * (table->prototype->hash(table->info, data) % table->nbBuckets)); /*0x1cb3e1*/\n  v3 = *v2; /*0x1cb3e4*/\n  if ( !*v2 ) /*0x1cb3eb*/\n    return 0; /*0x1cb455*/\n  if ( v3 != 1 ) /*0x1cb3f0*/\n  {\n    for ( i = (const void **)v2[1]; --v3 != -1; ++i ) /*0x1cb41c*/\n    {\n      if ( *i == data || table->prototype->isEqual(table->info, data, *i) ) /*0x1cb43b*/\n        return 1; /*0x1cb449*/\n    }\n    return 0; /*0x1cb453*/\n  }\n  v4 = 0; /*0x1cb3f2*/\n  if ( (const void *)v2[1] == data /*0x1cb40a*/\n    || ((int (__stdcall *)(const void *, const void *, int))table->prototype->isEqual)(table->info, data, v2[1]) )\n  {\n    return 1; /*0x1cb410*/\n  }\n  return v4; /*0x1cb45a*/\n}"
+  },
+  {
+    "requested_address": "0x001cb464",
+    "addr": "0x001cb464",
+    "code": "void *__cdecl NXHashGet(NXHashTable *table, const void *data)\n{\n  char *v2; // ebx\n  int v3; // esi\n  void **i; // ebx\n\n  v2 = (char *)table->buckets + 8 * (table->prototype->hash(table->info, data) % table->nbBuckets); /*0x1cb489*/\n  v3 = *(_DWORD *)v2; /*0x1cb48c*/\n  if ( *(_DWORD *)v2 ) /*0x1cb48c*/\n  {\n    if ( v3 == 1 ) /*0x1cb498*/\n    {\n      if ( *((const void **)v2 + 1) == data /*0x1cb4b3*/\n        || ((int (__stdcall *)(const void *, const void *, _DWORD))table->prototype->isEqual)(\n             table->info,\n             data,\n             *((_DWORD *)v2 + 1)) )\n      {\n        return *((void **)v2 + 1); /*0x1cb4bc*/\n      }\n    }\n    else\n    {\n      for ( i = *((void ***)v2 + 1); --v3 != -1; ++i ) /*0x1cb4c0*/\n      {\n        if ( *i == data || table->prototype->isEqual(table->info, data, *i) ) /*0x1cb4df*/\n          return *i; /*0x1cb4ea*/\n      }\n    }\n  }\n  return nullptr; /*0x1cb4fa*/\n}"
+  },
+  {
+    "requested_address": "0x001cb504",
+    "addr": "0x001cb504",
+    "code": "void __cdecl sub_1CB504(NXHashTable *table)\n{\n  int v1; // esi\n  NXHashTable *v2; // ebx\n  void *data; // [esp+Ch] [ebp-Ch] BYREF\n  NXHashState state; // [esp+10h] [ebp-8h] BYREF\n\n  v1 = NXZoneFromPtr(table); /*0x1cb516*/\n  v2 = (NXHashTable *)(*(int (__cdecl **)(int, int))(v1 + 4))(v1, 20); /*0x1cb520*/\n  v2->prototype = table->prototype; /*0x1cb524*/\n  v2->count = table->count; /*0x1cb529*/\n  v2->nbBuckets = table->nbBuckets; /*0x1cb52f*/\n  v2->buckets = table->buckets; /*0x1cb535*/\n  table->nbBuckets += 1 + table->nbBuckets; /*0x1cb53c*/\n  table->count = 0; /*0x1cb53f*/\n  table->buckets = (void *)NXZoneCalloc(v1, table->nbBuckets, 8u); /*0x1cb552*/\n  state = NXInitHashState(v2); /*0x1cb55b*/\n  while ( NXNextHashState(v2, &state, &data) ) /*0x1cb578*/\n    NXHashInsert(table, data); /*0x1cb57f*/\n  sub_1CB174(v2, 0); /*0x1cb58f*/\n  if ( table->count != v2->count )\n    _NXLogError(\n      \"*** hashtable: count differs after rehashing; probably indicates a broken invariant: there are x and y such as isE\"\n      \"qual(x, y) is TRUE but hash(x) != hash (y)\\n\");\n  free(v2->buckets); /*0x1cb5b0*/\n  free(v2); /*0x1cb5b6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x1cbaa0",
+        "name": "_NXInitHashState"
+      },
+      {
+        "addr": "0x1cb5c8",
+        "name": "_NXHashInsert"
+      },
+      {
+        "addr": "0x1cbab8",
+        "name": "_NXNextHashState"
+      },
+      {
+        "addr": "0x1cb174",
+        "name": "sub_1CB174"
+      },
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9ab0",
+        "name": "aHashtableCount",
+        "string": "*** hashtable: count differs after rehashing; probably indicates a broken invariant: there are x and y such as isEqual(x, y) is TRUE but hash(x) != hash (y)\n"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cb5c8",
+    "addr": "0x001cb5c8",
+    "code": "void *__cdecl NXHashInsert(NXHashTable *table, const void *data)\n{\n  char *v2; // edi\n  int v3; // esi\n  void *result; // eax\n  const void **v5; // eax\n  NXHashTable *v6; // ecx\n  const void **i; // ebx\n  const void **v8; // ebx\n  int v9; // [esp+Ch] [ebp-4h]\n\n  v2 = (char *)table->buckets + 8 * (table->prototype->hash(table->info, data) % table->nbBuckets); /*0x1cb5f5*/\n  v3 = *(_DWORD *)v2; /*0x1cb5f8*/\n  v9 = NXZoneFromPtr(table); /*0x1cb600*/\n  if ( v3 ) /*0x1cb608*/\n  {\n    if ( v3 == 1 ) /*0x1cb623*/\n    {\n      if ( *((const void **)v2 + 1) == data || table->prototype->isEqual(table->info, data, *((const void **)v2 + 1)) ) /*0x1cb644*/\n      {\n        result = *((void **)v2 + 1); /*0x1cb64d*/\n        *((_DWORD *)v2 + 1) = data; /*0x1cb653*/\n        return result; /*0x1cb656*/\n      }\n      v5 = (const void **)NXZoneCalloc(v9, 2u, 4u); /*0x1cb664*/\n      v5[1] = *((const void **)v2 + 1); /*0x1cb66e*/\n      *v5 = data; /*0x1cb674*/\n      ++*(_DWORD *)v2; /*0x1cb676*/\n      *((_DWORD *)v2 + 1) = v5; /*0x1cb678*/\n      v6 = table; /*0x1cb67b*/\n      ++table->count; /*0x1cb67e*/\n    }\n    else\n    {\n      for ( i = *((const void ***)v2 + 1); --v3 != -1; ++i ) /*0x1cb68c*/\n      {\n        if ( *i == data || table->prototype->isEqual(table->info, data, *i) ) /*0x1cb6b1*/\n        {\n          result = (void *)*i; /*0x1cb6ba*/\n          *i = data; /*0x1cb6bf*/\n          return result; /*0x1cb6c1*/\n        }\n      }\n      v8 = (const void **)NXZoneCalloc(v9, *(_DWORD *)v2 + 1, 4u); /*0x1cb6dc*/\n      if ( *(_DWORD *)v2 ) /*0x1cb6e1*/\n        memmove(v8 + 1, *((const void **)v2 + 1), 4 * *(_DWORD *)v2); /*0x1cb6f8*/\n      *v8 = data; /*0x1cb703*/\n      free(*((void **)v2 + 1)); /*0x1cb709*/\n      ++*(_DWORD *)v2; /*0x1cb70e*/\n      *((_DWORD *)v2 + 1) = v8; /*0x1cb710*/\n      v6 = table; /*0x1cb713*/\n      ++table->count; /*0x1cb716*/\n    }\n    if ( v6->nbBuckets < v6->count ) /*0x1cb722*/\n      sub_1CB504(v6); /*0x1cb725*/\n  }\n  else\n  {\n    ++*(_DWORD *)v2; /*0x1cb60a*/\n    *((_DWORD *)v2 + 1) = data; /*0x1cb60f*/\n    ++table->count; /*0x1cb615*/\n  }\n  return nullptr; /*0x1cb72f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      },
+      {
+        "addr": "0x1cb504",
+        "name": "sub_1CB504"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cb738",
+    "addr": "0x001cb738",
+    "code": "void *__cdecl NXHashInsertIfAbsent(NXHashTable *table, const void *data)\n{\n  char *v2; // edi\n  int v3; // esi\n  const void **v5; // eax\n  void **i; // ebx\n  const void **v7; // ebx\n  int v8; // [esp+Ch] [ebp-4h]\n\n  v2 = (char *)table->buckets + 8 * (table->prototype->hash(table->info, data) % table->nbBuckets); /*0x1cb765*/\n  v3 = *(_DWORD *)v2; /*0x1cb768*/\n  v8 = NXZoneFromPtr(table); /*0x1cb770*/\n  if ( !v3 ) /*0x1cb778*/\n  {\n    ++*(_DWORD *)v2; /*0x1cb77a*/\n    *((_DWORD *)v2 + 1) = data; /*0x1cb77f*/\n    ++table->count; /*0x1cb785*/\n    return (void *)data; /*0x1cb788*/\n  }\n  if ( v3 != 1 ) /*0x1cb793*/\n  {\n    for ( i = *((void ***)v2 + 1); --v3 != -1; ++i ) /*0x1cb804*/\n    {\n      if ( *i == data || table->prototype->isEqual(table->info, data, *i) ) /*0x1cb829*/\n        return *i; /*0x1cb834*/\n    }\n    v7 = (const void **)NXZoneCalloc(v8, *(_DWORD *)v2 + 1, 4u); /*0x1cb850*/\n    if ( *(_DWORD *)v2 ) /*0x1cb855*/\n      memmove(v7 + 1, *((const void **)v2 + 1), 4 * *(_DWORD *)v2); /*0x1cb86c*/\n    *v7 = data; /*0x1cb877*/\n    free(*((void **)v2 + 1)); /*0x1cb87d*/\n    ++*(_DWORD *)v2; /*0x1cb882*/\n    *((_DWORD *)v2 + 1) = v7; /*0x1cb884*/\n    if ( table->nbBuckets >= ++table->count ) /*0x1cb896*/\n      return (void *)data; /*0x1cb896*/\n    goto LABEL_18; /*0x1cb896*/\n  }\n  if ( *((const void **)v2 + 1) == data || table->prototype->isEqual(table->info, data, *((const void **)v2 + 1)) ) /*0x1cb7b4*/\n    return *((void **)v2 + 1); /*0x1cb7c0*/\n  v5 = (const void **)NXZoneCalloc(v8, 2u, 4u); /*0x1cb7d0*/\n  v5[1] = *((const void **)v2 + 1); /*0x1cb7da*/\n  *v5 = data; /*0x1cb7e0*/\n  ++*(_DWORD *)v2; /*0x1cb7e2*/\n  *((_DWORD *)v2 + 1) = v5; /*0x1cb7e4*/\n  if ( table->nbBuckets < ++table->count ) /*0x1cb7f6*/\nLABEL_18:\n    sub_1CB504(table); /*0x1cb898*/\n  return (void *)data; /*0x1cb8a4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      },
+      {
+        "addr": "0x1cb504",
+        "name": "sub_1CB504"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cb8ac",
+    "addr": "0x001cb8ac",
+    "code": "void *__cdecl NXHashRemove(NXHashTable *table, const void *data)\n{\n  char *v2; // edi\n  int v3; // esi\n  const void **v5; // ebx\n  char *v6; // ebx\n  int v7; // [esp+14h] [ebp-4h]\n  void *datac; // [esp+24h] [ebp+Ch]\n  void *dataa; // [esp+24h] [ebp+Ch]\n  void *datab; // [esp+24h] [ebp+Ch]\n\n  v2 = (char *)table->buckets + 8 * (table->prototype->hash(table->info, data) % table->nbBuckets); /*0x1cb8d9*/\n  v3 = *(_DWORD *)v2; /*0x1cb8dc*/\n  v7 = NXZoneFromPtr(table); /*0x1cb8e4*/\n  if ( v3 ) /*0x1cb8ec*/\n  {\n    if ( v3 == 1 ) /*0x1cb8f5*/\n    {\n      if ( *((const void **)v2 + 1) == data /*0x1cb916*/\n        || ((int (__stdcall *)(const void *, const void *, _DWORD))table->prototype->isEqual)(\n             table->info,\n             data,\n             *((_DWORD *)v2 + 1)) )\n      {\n        datac = *((void **)v2 + 1); /*0x1cb923*/\n        --table->count; /*0x1cb929*/\n        --*(_DWORD *)v2; /*0x1cb92c*/\n        *((_DWORD *)v2 + 1) = 0; /*0x1cb92e*/\n        return datac; /*0x1cb938*/\n      }\n      return nullptr; /*0x1cb91a*/\n    }\n    v5 = *((const void ***)v2 + 1); /*0x1cb940*/\n    if ( v3 == 2 ) /*0x1cb946*/\n    {\n      if ( *v5 == data || table->prototype->isEqual(table->info, data, *v5) ) /*0x1cb969*/\n      {\n        *((_DWORD *)v2 + 1) = v5[1]; /*0x1cb975*/\n        dataa = (void *)*v5; /*0x1cb97a*/\nLABEL_13:\n        free(v5); /*0x1cb9b7*/\n        --table->count; /*0x1cb9c0*/\n        --*(_DWORD *)v2; /*0x1cb9c3*/\n        return dataa; /*0x1cb9c8*/\n      }\n      if ( v5[1] == data || table->prototype->isEqual(table->info, data, v5[1]) ) /*0x1cb99f*/\n      {\n        *((_DWORD *)v2 + 1) = *v5; /*0x1cb9ae*/\n        dataa = (void *)v5[1]; /*0x1cb9b4*/\n        goto LABEL_13; /*0x1cb9b4*/\n      }\n    }\n    else\n    {\n      while ( --v3 != -1 ) /*0x1cba87*/\n      {\n        if ( *v5 == data || table->prototype->isEqual(table->info, data, *v5) ) /*0x1cb9ed*/\n        {\n          datab = (void *)*v5; /*0x1cb9fc*/\n          if ( *(_DWORD *)v2 == 1 ) /*0x1cba02*/\n            v6 = nullptr; /*0x1cba1c*/\n          else\n            v6 = (char *)NXZoneCalloc(v7, *(_DWORD *)v2 - 1, 4u); /*0x1cba16*/\n          if ( *(_DWORD *)v2 - 1 != v3 ) /*0x1cba23*/\n            memmove(v6, *((const void **)v2 + 1), 4 * (*(_DWORD *)v2 - v3) - 4); /*0x1cba36*/\n          if ( v3 ) /*0x1cba40*/\n            memmove( /*0x1cba63*/\n              &v6[4 * *(_DWORD *)v2 - 4 + -4 * v3],\n              (const void *)(*((_DWORD *)v2 + 1) + 4 * *(_DWORD *)v2 - 4 * v3),\n              4 * v3);\n          free(*((void **)v2 + 1)); /*0x1cba6f*/\n          --table->count; /*0x1cba77*/\n          --*(_DWORD *)v2; /*0x1cba7a*/\n          *((_DWORD *)v2 + 1) = v6; /*0x1cba7c*/\n          return datab; /*0x1cba82*/\n        }\n        ++v5; /*0x1cba84*/\n      }\n    }\n  }\n  return nullptr; /*0x1cba96*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdefc",
+        "name": "_NXZoneFromPtr"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbaa0",
+    "addr": "0x001cbaa0",
+    "code": "NXHashState __cdecl NXInitHashState(NXHashTable *table)\n{\n  return (NXHashState)table->nbBuckets; /*0x1cbab0*/\n}"
+  },
+  {
+    "requested_address": "0x001cbab8",
+    "addr": "0x001cbab8",
+    "code": "int __cdecl NXNextHashState(NXHashTable *table, NXHashState *state, void **data)\n{\n  _DWORD *buckets; // ecx\n  int v4; // eax\n  _DWORD *v5; // ecx\n  void *v6; // eax\n\n  buckets = table->buckets; /*0x1cbac6*/\n  if ( state->j ) /*0x1cbac9*/\n  {\nLABEL_4:\n    --state->j; /*0x1cbae3*/\n    v5 = &buckets[2 * state->i]; /*0x1cbaef*/\n    if ( *v5 == 1 ) /*0x1cbaf4*/\n      v6 = (void *)v5[1]; /*0x1cbaf6*/\n    else\n      v6 = *(void **)(v5[1] + 4 * state->j); /*0x1cbb06*/\n    *data = v6; /*0x1cbb09*/\n    return 1; /*0x1cbb0b*/\n  }\n  else\n  {\n    while ( state->i ) /*0x1cbad3*/\n    {\n      --state->i; /*0x1cbad5*/\n      v4 = buckets[2 * state->i]; /*0x1cbad9*/\n      state->j = v4; /*0x1cbadc*/\n      if ( v4 ) /*0x1cbae1*/\n        goto LABEL_4; /*0x1cbae1*/\n    }\n    return 0; /*0x1cbafc*/\n  }\n}"
+  },
+  {
+    "requested_address": "0x001cbb1c",
+    "addr": "0x001cbb1c",
+    "code": "uintptr_t __cdecl NXPtrHash(const void *info, const void *data)\n{\n  return (unsigned int)data ^ HIWORD(data); /*0x1cbb28*/\n}"
+  },
+  {
+    "requested_address": "0x001cbb2c",
+    "addr": "0x001cbb2c",
+    "code": "uintptr_t __cdecl NXStrHash(const void *info, const void *data)\n{\n  uintptr_t v2; // ecx\n  _BYTE *v3; // edx\n  _BYTE *v4; // edx\n  _BYTE *v5; // edx\n  int v6; // eax\n  _BYTE *v7; // edx\n\n  v2 = 0; /*0x1cbb2f*/\n  v3 = data; /*0x1cbb31*/\n  if ( data && *(_BYTE *)data ) /*0x1cbb38*/\n  {\n    do /*0x1cbb6f*/\n    {\n      v2 ^= (unsigned __int8)*v3; /*0x1cbb43*/\n      v4 = v3 + 1; /*0x1cbb45*/\n      if ( !*v4 ) /*0x1cbb46*/\n        break; /*0x1cbb49*/\n      v2 ^= (unsigned __int8)*v4 << 8; /*0x1cbb51*/\n      v5 = v4 + 1; /*0x1cbb53*/\n      if ( !*v5 ) /*0x1cbb54*/\n        break; /*0x1cbb57*/\n      v6 = (unsigned __int8)*v5 << 16; /*0x1cbb5c*/\n      v2 ^= v6; /*0x1cbb5f*/\n      v7 = v5 + 1; /*0x1cbb61*/\n      if ( !*v7 ) /*0x1cbb62*/\n        break; /*0x1cbb65*/\n      LOBYTE(v6) = *v7; /*0x1cbb67*/\n      v2 ^= v6 << 24; /*0x1cbb6c*/\n      v3 = v7 + 1; /*0x1cbb6e*/\n    }\n    while ( *v3 ); /*0x1cbb6f*/\n  }\n  return v2; /*0x1cbb78*/\n}"
+  },
+  {
+    "requested_address": "0x001cbb7c",
+    "addr": "0x001cbb7c",
+    "code": "int __cdecl NXPtrIsEqual(const void *info, const void *data1, const void *data2)\n{\n  return data1 == data2; /*0x1cbb8f*/\n}"
+  },
+  {
+    "requested_address": "0x001cbb94",
+    "addr": "0x001cbb94",
+    "code": "int __cdecl NXStrIsEqual(const void *info, const void *data1, const void *data2)\n{\n  const char *v4; // edi\n\n  if ( data1 == data2 ) /*0x1cbba0*/\n    return 1; /*0x1cbba7*/\n  if ( !data1 ) /*0x1cbbae*/\n  {\n    v4 = (const char *)data2; /*0x1cbbb2*/\n    return strlen(v4) == 0; /*0x1cbbd3*/\n  }\n  if ( !data2 ) /*0x1cbbba*/\n  {\n    v4 = (const char *)data1; /*0x1cbbbe*/\n    return strlen(v4) == 0; /*0x1cbbbe*/\n  }\n  return *(_BYTE *)data2 == *(_BYTE *)data1 && strcmp((const char *)data1, (const char *)data2) == 0; /*0x1cbbea*/\n}",
+    "refs": [
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc00",
+    "addr": "0x001cbc00",
+    "code": "void __cdecl NXNoEffectFree(const void *info, void *data)\n{\n  ; /*0x1cbc00*/\n}"
+  },
+  {
+    "requested_address": "0x001cbc08",
+    "addr": "0x001cbc08",
+    "code": "void __cdecl NXReallyFree(const void *info, void *data)\n{\n  free(data); /*0x1cbc0f*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc18",
+    "addr": "0x001cbc18",
+    "code": "uintptr_t __cdecl hashPtrStructKey(void *info, const void **a2)\n{\n  return NXPtrHash(info, *a2); /*0x1cbc2c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbb1c",
+        "name": "_NXPtrHash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc30",
+    "addr": "0x001cbc30",
+    "code": "int __cdecl isEqualPtrStructKey(void *info, const void **a2, const void **a3)\n{\n  return NXPtrIsEqual(info, *a2, *a3); /*0x1cbc4a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbb7c",
+        "name": "_NXPtrIsEqual"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc4c",
+    "addr": "0x001cbc4c",
+    "code": "uintptr_t __cdecl hashStrStructKey(void *info, const void **a2)\n{\n  return NXStrHash(info, *a2); /*0x1cbc60*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbb2c",
+        "name": "_NXStrHash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc64",
+    "addr": "0x001cbc64",
+    "code": "int __cdecl isEqualStrStructKey(void *info, const void **a2, const void **a3)\n{\n  return NXStrIsEqual(info, *a2, *a3); /*0x1cbc7e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cbb94",
+        "name": "_NXStrIsEqual"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbc80",
+    "addr": "0x001cbc80",
+    "code": "void *__cdecl sub_1CBC80(const char *__src)\n{\n  size_t v1; // ebx\n  void *v2; // edi\n  volatile __int32 *v3; // edi\n\n  v1 = strlen(__src) + 1; /*0x1cbc96*/\n  if ( v1 <= 0xB4 ) /*0x1cbca2*/\n  {\n    if ( !dword_1E5568 ) /*0x1cbcc3*/\n    {\n      dword_1E5568 = simple_lock_alloc(); /*0x1cbcca*/\n      *(_DWORD *)dword_1E5568 = 0; /*0x1cbccf*/\n    }\n    v3 = (volatile __int32 *)dword_1E5568; /*0x1cbcd5*/\n    do /*0x1cbced*/\n    {\n      while ( *v3 ) /*0x1cbcdc*/\n        ; /*0x1cbcdc*/\n    }\n    while ( _InterlockedExchange(v3, 1) == 1 ); /*0x1cbced*/\n    if ( dword_1E5564 < v1 ) /*0x1cbcf5*/\n    {\n      dword_1E5564 = 360 * ((v1 + 359) / 0x168); /*0x1cbd1d*/\n      dword_1E5560 = (void *)kalloc(dword_1E5564); /*0x1cbd2b*/\n    }\n    v2 = dword_1E5560; /*0x1cbd34*/\n    memmove(dword_1E5560, __src, v1); /*0x1cbd3d*/\n    dword_1E5560 = (char *)dword_1E5560 + v1; /*0x1cbd42*/\n    dword_1E5564 -= v1; /*0x1cbd48*/\n    _InterlockedExchange((volatile __int32 *)dword_1E5568, 0); /*0x1cbd55*/\n  }\n  else\n  {\n    v2 = (void *)kalloc(v1); /*0x1cbcaa*/\n    memmove(v2, __src, v1); /*0x1cbcaf*/\n  }\n  return v2; /*0x1cbd5c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e5568",
+        "name": "dword_1E5568"
+      },
+      {
+        "addr": "0x15b504",
+        "name": "_simple_lock_alloc"
+      },
+      {
+        "addr": "0x1e5564",
+        "name": "dword_1E5564"
+      },
+      {
+        "addr": "0x1e5560",
+        "name": "dword_1E5560"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbd64",
+    "addr": "0x001cbd64",
+    "code": "NXAtom __cdecl NXUniqueString(const char *buffer)\n{\n  NXAtom result; // eax\n  const char *v2; // ebx\n\n  if ( !buffer ) /*0x1cbd6e*/\n    return nullptr; /*0x1cbdee*/\n  ++dword_1E555C; /*0x1cbd70*/\n  if ( !dword_1E5558 ) /*0x1cbd7d*/\n    dword_1E5558 = NXCreateHashTable(NXStrPrototype, 0, nullptr); /*0x1cbda4*/\n  result = (NXAtom)NXHashGet(dword_1E5558, buffer); /*0x1cbdb4*/\n  if ( !result )\n  {\n    v2 = (const char *)sub_1CBC80(buffer); /*0x1cbdc8*/\n    if ( !NXHashInsert(dword_1E5558, v2) ) /*0x1cbdd2*/\n      return v2; /*0x1cbde0*/\n    _NXLogError(\"*** NXUniqueString: invariant broken\\n\");\n    return nullptr; /*0x1cbde9*/\n  }\n  return result; /*0x1cbdf3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e555c",
+        "name": "dword_1E555C"
+      },
+      {
+        "addr": "0x1e5558",
+        "name": "dword_1E5558"
+      },
+      {
+        "addr": "0x1cafec",
+        "name": "_NXCreateHashTable"
+      },
+      {
+        "addr": "0x1cde50",
+        "name": "_NXStrPrototype"
+      },
+      {
+        "addr": "0x1cb464",
+        "name": "_NXHashGet"
+      },
+      {
+        "addr": "0x1cbc80",
+        "name": "sub_1CBC80"
+      },
+      {
+        "addr": "0x1cb5c8",
+        "name": "_NXHashInsert"
+      },
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9b50",
+        "name": "aNxuniquestring",
+        "string": "*** NXUniqueString: invariant broken\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbdfc",
+    "addr": "0x001cbdfc",
+    "code": "NXAtom __cdecl NXUniqueStringNoCopy(const char *string)\n{\n  ++dword_1E555C; /*0x1cbdff*/\n  if ( !dword_1E5558 ) /*0x1cbe0c*/\n    dword_1E5558 = NXCreateHashTable(NXStrPrototype, 0, nullptr); /*0x1cbe33*/\n  return (NXAtom)NXHashInsertIfAbsent(dword_1E5558, string); /*0x1cbe4d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e555c",
+        "name": "dword_1E555C"
+      },
+      {
+        "addr": "0x1e5558",
+        "name": "dword_1E5558"
+      },
+      {
+        "addr": "0x1cafec",
+        "name": "_NXCreateHashTable"
+      },
+      {
+        "addr": "0x1cde50",
+        "name": "_NXStrPrototype"
+      },
+      {
+        "addr": "0x1cb738",
+        "name": "_NXHashInsertIfAbsent"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cbe50",
+    "addr": "0x001cbe50",
+    "code": "NXAtom __cdecl NXUniqueStringWithLength(const char *buffer, int length)\n{\n  char *v2; // ebx\n  const char *v3; // edi\n  char v5; // [esp+Ch] [ebp-100h] BYREF\n\n  if ( length + 1 <= 256 ) /*0x1cbe67*/\n    v2 = &v5; /*0x1cbe78*/\n  else\n    v2 = (char *)malloc(length + 1); /*0x1cbe6f*/\n  memmove(v2, buffer, length); /*0x1cbe84*/\n  v2[length] = 0; /*0x1cbe89*/\n  v3 = NXUniqueString(v2); /*0x1cbe93*/\n  if ( length + 1 > 256 ) /*0x1cbea0*/\n    free(v2); /*0x1cbea3*/\n  return v3; /*0x1cbeb0*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a880",
+        "name": "_malloc"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      },
+      {
+        "addr": "0x1cbd64",
+        "name": "_NXUniqueString"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  }
+]

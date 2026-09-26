@@ -1,0 +1,46 @@
+/* Hex-Rays analysis output; not reconstructed GCC 2.7 source.
+ * Database: ps2 snapshot; requested VA: 0x18bd98. */
+int splusclock()
+{
+  int v0; // eax
+  int v1; // esi
+  int *i; // ebx
+  int v3; // eax
+  __int16 v4; // cx
+
+  _disable(); /*0x18bda3*/
+  v0 = dword_1E7714; /*0x18bda4*/
+  dword_1E7714 = 6; /*0x18bda9*/
+  v1 = v0; /*0x18bdb3*/
+  if ( v0 > 6 ) /*0x18bdb7*/
+  {
+    for ( i = &dword_1E76F4[v0]; i > &dword_1E770C; --i ) /*0x18bdca*/
+    {
+      v3 = *i; /*0x18bdcc*/
+      if ( *i ) /*0x18bdcc*/
+      {
+        *i = 0; /*0x18bdd2*/
+        dword_1E7714 = *(_DWORD *)(v3 + 8); /*0x18bddb*/
+        _enable(); /*0x18bde1*/
+        (*(void (__cdecl **)(_DWORD, _DWORD, int))(v3 + 4))(*(_DWORD *)v3, 0, 6); /*0x18bdec*/
+        _disable(); /*0x18bdf1*/
+      }
+    }
+    dword_1E7714 = 6; /*0x18bdfd*/
+    if ( dword_1E7718 > 6 ) /*0x18be0d*/
+    {
+      v4 = word_1E771E | word_1E76F0; /*0x18be16*/
+      if ( word_1E771C != ((unsigned __int16)word_1E771E | (unsigned __int16)word_1E76F0) ) /*0x18be24*/
+      {
+        word_1E771C = word_1E771E | word_1E76F0; /*0x18be26*/
+        __outbyte(0x21u, v4); /*0x18be34*/
+        _InterlockedIncrement(dword_1E7618); /*0x18be35*/
+        __outbyte(0xA1u, HIBYTE(v4)); /*0x18be47*/
+        _InterlockedIncrement(dword_1E7618); /*0x18be48*/
+      }
+      dword_1E7718 = 6; /*0x18be4f*/
+    }
+  }
+  _enable(); /*0x18be59*/
+  return v1; /*0x18be5f*/
+}

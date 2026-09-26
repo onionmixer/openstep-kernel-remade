@@ -1,0 +1,1218 @@
+[
+  {
+    "requested_address": "0x001acb7c",
+    "addr": "0x001acb7c",
+    "code": "int __cdecl -[SCSIDisk target](SCSIDisk *self, SEL a2)\n{\n  return self->_target; /*0x1acb8b*/\n}"
+  },
+  {
+    "requested_address": "0x001acb90",
+    "addr": "0x001acb90",
+    "code": "int __cdecl -[SCSIDisk lun](SCSIDisk *self, SEL a2)\n{\n  return self->_lun; /*0x1acb9f*/\n}"
+  },
+  {
+    "requested_address": "0x001acba4",
+    "addr": "0x001acba4",
+    "code": "unsigned __int8 __cdecl -[SCSIDisk inquiryDeviceType](SCSIDisk *self, SEL a2)\n{\n  return self->_inquiryDeviceType; /*0x1acbb3*/\n}"
+  },
+  {
+    "requested_address": "0x001acbb8",
+    "addr": "0x001acbb8",
+    "code": "id __cdecl -[SCSIDisk controller](SCSIDisk *self, SEL a2)\n{\n  return self->_controller; /*0x1acbc6*/\n}"
+  },
+  {
+    "requested_address": "0x001acbc8",
+    "addr": "0x001acbc8",
+    "code": "int __cdecl -[SCSIDisk SCSIDiskInit:targetId:lun:controller:](\n        SCSIDisk *self,\n        SEL a2,\n        int a3,\n        unsigned __int8 a4,\n        unsigned __int8 a5,\n        id a6)\n{\n  id v6; // eax\n  char *v8; // ebx\n  char *v9; // ebx\n  const char *v10; // eax\n  char *v11; // ebx\n  char *v12; // ebx\n  const char *v13; // eax\n  objc_super v14; // [esp+20h] [ebp-10Ch] BYREF\n  char v15[80]; // [esp+28h] [ebp-104h] BYREF\n  char v16[32]; // [esp+78h] [ebp-B4h] BYREF\n  char v17[80]; // [esp+98h] [ebp-94h] BYREF\n  _BYTE v18[8]; // [esp+E8h] [ebp-44h] BYREF\n  _BYTE v19[8]; // [esp+F0h] [ebp-3Ch] BYREF\n  _BYTE v20[16]; // [esp+F8h] [ebp-34h] BYREF\n  _BYTE v21[36]; // [esp+108h] [ebp-24h] BYREF\n\n  self->_controller = a6; /*0x1acbe3*/\n  self->_target = a4; /*0x1acbe9*/\n  self->_lun = a5; /*0x1acbef*/\n  -[IODevice setUnit:](self, sel_setUnit_, a3); /*0x1acbfe*/\n  sprintf(v16, \"sd%d\", a3); /*0x1acc10*/\n  -[IODevice setName:](self, sel_setName_, v16); /*0x1acc1e*/\n  bzero(v18, 0x41u); /*0x1acc2c*/\n  v6 = -[SCSIDisk sdInquiry:](self, sel_sdInquiry_, v18); /*0x1acc3a*/\n  if ( v6 ) /*0x1acc44*/\n  {\n    if ( v6 == (id)1 ) /*0x1acc49*/\n      return 2; /*0x1acc4b*/\n    else\n      return 3; /*0x1acc58*/\n  }\n  if ( (v18[0] & 0xE0) != 0 ) /*0x1acc69*/\n    return 1; /*0x1acc69*/\n  if ( (v18[0] & 0x1Fu) > 5 ) /*0x1acc71*/\n  {\n    if ( (v18[0] & 0x1F) == 7 ) /*0x1acc83*/\n      goto LABEL_12; /*0x1acc83*/\n    return 1; /*0x1acc8a*/\n  }\n  if ( (v18[0] & 0x1Fu) < 4 && (v18[0] & 0x1F) != 0 ) /*0x1acc7a*/\n    return 1; /*0x1acc7a*/\nLABEL_12:\n  self->_inquiryDeviceType = v18[0] & 0x1F; /*0x1acc90*/\n  if ( v18[1] < 0 ) /*0x1acca0*/\n    -[IODisk setRemovable:](self, sel_setRemovable_, 1); /*0x1accac*/\n  v8 = &v17[sub_1ACEEC(v19, v17, 8, 80)]; /*0x1accdd*/\n  if ( *(v8 - 1) != 32 ) /*0x1acce7*/\n    *v8++ = 32; /*0x1acce9*/\n  v9 = &v8[sub_1ACEEC(v20, v8, 16, v17 - (v8 - 80))]; /*0x1acd09*/\n  if ( *(v9 - 1) != 32 ) /*0x1acd12*/\n    *v9++ = 32; /*0x1acd14*/\n  v9[sub_1ACEEC(v21, v9, 4, v17 - (v9 - 80))] = 0; /*0x1acd34*/\n  -[IODisk setDriveName:](self, sel_setDriveName_, v17); /*0x1acd41*/\n  v10 = (const char *)objc_msgSend(a6, sel_name); /*0x1acd51*/\n  sprintf(v15, \"Target %d LUN %d at %s\", self->_target, self->_lun, v10); /*0x1acd79*/\n  -[IODevice setLocation:](self, sel_setLocation_, v15); /*0x1acd90*/\n  IOLog((int)\"%s: %s\\n\", v16, v17);\n  -[SCSIDisk updateReadyState](self, sel_updateReadyState); /*0x1acdaf*/\n  -[SCSIDisk scsiStartStop:inhibitRetry:](self, sel_scsiStartStop_inhibitRetry_, 0, 1); /*0x1acdc3*/\n  -[IODisk setFormattedInternal:](self, sel_setFormattedInternal_, 0); /*0x1acdd2*/\n  -[SCSIDisk updatePhysicalParameters](self, sel_updatePhysicalParameters); /*0x1acddf*/\n  bzero(v17, 0x50u); /*0x1acdea*/\n  v11 = &v17[sub_1ACEEC(v19, v17, 8, 80)]; /*0x1ace05*/\n  if ( *(v11 - 1) != 32 ) /*0x1ace0f*/\n    *v11++ = 32; /*0x1ace11*/\n  v12 = &v11[sub_1ACEEC(v20, v11, 16, v17 - (v11 - 80))]; /*0x1ace2e*/\n  if ( *(v12 - 1) != 32 ) /*0x1ace37*/\n    *v12++ = 32; /*0x1ace39*/\n  v12[sub_1ACEEC(v21, v12, 32, v17 - (v12 - 80))] = 0; /*0x1ace56*/\n  -[IODisk setDriveName:](self, sel_setDriveName_, v17); /*0x1ace63*/\n  v13 = (const char *)objc_msgSend(a6, sel_name); /*0x1ace73*/\n  sprintf(v15, \"Target %d LUN %d at %s\", self->_target, self->_lun, v13); /*0x1ace95*/\n  -[IODevice setLocation:](self, sel_setLocation_, v15); /*0x1aceac*/\n  v14.receiver = self; /*0x1aceb8*/\n  v14.super_class = objc_getOrigClass(\"IODisk\"); /*0x1acecb*/\n  -[IODevice init](&v14, sel_init); /*0x1aced8*/\n  return 0; /*0x1acee5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a43f8",
+        "name": "-[IODevice setUnit:]"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d7718",
+        "name": "aSdD",
+        "string": "sd%d"
+      },
+      {
+        "addr": "0x1a42e8",
+        "name": "-[IODevice setName:]"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1ad0fc",
+        "name": "-[SCSIDisk sdInquiry:]"
+      },
+      {
+        "addr": "0x20496c",
+        "name": "sel_sdInquiry:",
+        "string": "sdInquiry:"
+      },
+      {
+        "addr": "0x1a5810",
+        "name": "-[IODisk setRemovable:]"
+      },
+      {
+        "addr": "0x2037b8",
+        "name": "sel_setRemovable:",
+        "string": "setRemovable:"
+      },
+      {
+        "addr": "0x1aceec",
+        "name": "sub_1ACEEC"
+      },
+      {
+        "addr": "0x1a5828",
+        "name": "-[IODisk setDriveName:]"
+      },
+      {
+        "addr": "0x2037a8",
+        "name": "sel_setDriveName:",
+        "string": "setDriveName:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1d7720",
+        "name": "aTargetDLunDAtS",
+        "string": "Target %d LUN %d at %s"
+      },
+      {
+        "addr": "0x1a4398",
+        "name": "-[IODevice setLocation:]"
+      },
+      {
+        "addr": "0x202c18",
+        "name": "sel_setLocation:",
+        "string": "setLocation:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7738",
+        "name": "aSS",
+        "string": "%s: %s\n"
+      },
+      {
+        "addr": "0x1ac88c",
+        "name": "-[SCSIDisk updateReadyState]"
+      },
+      {
+        "addr": "0x203828",
+        "name": "sel_updateReadyState",
+        "string": "updateReadyState"
+      },
+      {
+        "addr": "0x1ad548",
+        "name": "-[SCSIDisk scsiStartStop:inhibitRetry:]"
+      },
+      {
+        "addr": "0x204914",
+        "name": "sel_scsiStartStop:inhibitRetry:",
+        "string": "scsiStartStop:inhibitRetry:"
+      },
+      {
+        "addr": "0x1a58a8",
+        "name": "-[IODisk setFormattedInternal:]"
+      },
+      {
+        "addr": "0x203758",
+        "name": "sel_setFormattedInternal:",
+        "string": "setFormattedInternal:"
+      },
+      {
+        "addr": "0x1ac5a0",
+        "name": "-[SCSIDisk updatePhysicalParameters]"
+      },
+      {
+        "addr": "0x202834",
+        "name": "sel_updatePhysicalParameters",
+        "string": "updatePhysicalParameters"
+      },
+      {
+        "addr": "0x1ccf18",
+        "name": "_objc_getOrigClass"
+      },
+      {
+        "addr": "0x1d7740",
+        "name": "aIodisk",
+        "string": "IODisk"
+      },
+      {
+        "addr": "0x1a40f8",
+        "name": "-[IODevice init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aceec",
+    "addr": "0x001aceec",
+    "code": "_BYTE *__cdecl sub_1ACEEC(_BYTE *a1, _BYTE *a2, int a3, int a4)\n{\n  _BYTE *v5; // ebx\n  int v8; // esi\n\n  v5 = a2; /*0x1acef8*/\n  v8 = 0; /*0x1acf01*/\n  while ( a3 && a4 ) /*0x1acf0c*/\n  {\n    if ( !*a1 ) /*0x1acf15*/\n      goto LABEL_7; /*0x1acf15*/\n    if ( *a1 == 32 ) /*0x1acf1a*/\n    {\n      if ( !v8 ) /*0x1acf1e*/\n      {\n        v8 = 1; /*0x1acf24*/\n        goto LABEL_10; /*0x1acf29*/\n      }\nLABEL_7:\n      ++a1; /*0x1acf20*/\n      --a3; /*0x1acf21*/\n    }\n    else\n    {\n      v8 = 0; /*0x1acf2c*/\nLABEL_10:\n      *v5++ = *a1++; /*0x1acf2e*/\n      --a3; /*0x1acf34*/\n      --a4; /*0x1acf35*/\n    }\n  }\n  return (_BYTE *)(v5 - a2); /*0x1acf40*/\n}"
+  },
+  {
+    "requested_address": "0x001acf48",
+    "addr": "0x001acf48",
+    "code": "id __cdecl -[SCSIDisk initResources](SCSIDisk *self, SEL a2)\n{\n  NXConditionLock *v2; // eax\n  NXConditionLock *v3; // eax\n  int i; // ebx\n\n  self->_ioQueueDisk.prev = (queue_entry *)&self->_ioQueueDisk; /*0x1acf56*/\n  self->_ioQueueDisk.next = (queue_entry *)&self->_ioQueueDisk; /*0x1acf5c*/\n  self->_ioQueueNodisk.prev = (queue_entry *)&self->_ioQueueNodisk; /*0x1acf68*/\n  self->_ioQueueNodisk.next = (queue_entry *)&self->_ioQueueNodisk; /*0x1acf6e*/\n  v2 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x1acf82*/\n  self->_ioQLock = v2; /*0x1acf87*/\n  -[NXConditionLock initWith:](v2, sel_initWith_, 0); /*0x1acf97*/\n  -[SCSIDisk setLastReadyState:](self, sel_setLastReadyState_, 1); /*0x1acfa6*/\n  v3 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x1acfbc*/\n  self->_ejectLock = v3; /*0x1acfc1*/\n  -[NXConditionLock initWith:](v3, sel_initWith_, 0); /*0x1acfd1*/\n  self->_numDiskIos = 0; /*0x1acfd6*/\n  self->_ejectPending = 0; /*0x1acfe0*/\n  *((_BYTE *)self + 394) &= 0xFCu; /*0x1acfe7*/\n  self->_numThreads = 0; /*0x1acfee*/\n  for ( i = 0; i <= 5; ++i ) /*0x1acff8*/\n  {\n    self->_thread[i] = (void *)IOForkThread((int)sdIoThread, (int)self); /*0x1ad00b*/\n    ++self->_numThreads; /*0x1ad012*/\n  }\n  return self; /*0x1ad026*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfbd",
+        "name": "aNxconditionloc",
+        "string": "NXConditionLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1a8df8",
+        "name": "-[NXConditionLock initWith:]"
+      },
+      {
+        "addr": "0x201908",
+        "name": "sel_initWith:",
+        "string": "initWith:"
+      },
+      {
+        "addr": "0x1aca48",
+        "name": "-[SCSIDisk setLastReadyState:]"
+      },
+      {
+        "addr": "0x203784",
+        "name": "sel_setLastReadyState:",
+        "string": "setLastReadyState:"
+      },
+      {
+        "addr": "0x1a90ec",
+        "name": "_IOForkThread"
+      },
+      {
+        "addr": "0x1adf7c",
+        "name": "_sdIoThread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad02c",
+    "addr": "0x001ad02c",
+    "code": "id __cdecl -[SCSIDisk free](SCSIDisk *self, SEL a2)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v2; // esi\n  int i; // ebx\n  objc_super v5; // [esp+Ch] [ebp-8h] BYREF\n\n  v2 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad047*/\n  v2->var0 = 7; /*0x1ad049*/\n  *((_BYTE *)v2 + 32) &= ~1u; /*0x1ad04f*/\n  for ( i = 0; self->_numThreads > i; ++i ) /*0x1ad05e*/\n    -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v2); /*0x1ad069*/\n  -[SCSIDisk freeSdBuf:](self, sel_freeSdBuf_, v2); /*0x1ad083*/\n  if ( (*((_BYTE *)self + 394) & 1) != 0 ) /*0x1ad092*/\n    objc_msgSend(self->_controller, sel_releaseTarget_lun_forOwner_, self->_target, self->_lun, self); /*0x1ad0b3*/\n  objc_msgSend(self->_ioQLock, sel_free); /*0x1ad0c9*/\n  v5.receiver = self; /*0x1ad0d5*/\n  v5.super_class = objc_getOrigClass(\"IODisk\"); /*0x1ad0e5*/\n  return -[IODevice free](&v5, sel_free); /*0x1ad0f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1ad880",
+        "name": "-[SCSIDisk freeSdBuf:]"
+      },
+      {
+        "addr": "0x204908",
+        "name": "sel_freeSdBuf:",
+        "string": "freeSdBuf:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204748",
+        "name": "sel_releaseTarget:lun:forOwner:",
+        "string": "releaseTarget:lun:forOwner:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1ccf18",
+        "name": "_objc_getOrigClass"
+      },
+      {
+        "addr": "0x1d7740",
+        "name": "aIodisk",
+        "string": "IODisk"
+      },
+      {
+        "addr": "0x1a4130",
+        "name": "-[IODevice free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad0fc",
+    "addr": "0x001ad0fc",
+    "code": "int __cdecl -[SCSIDisk sdInquiry:](SCSIDisk *self, SEL a2, $0A9FCFA3D4DB35C0C6B455691B389FC3 *a3)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v3; // ebx\n  const char *v4; // eax\n  int v5; // ebx\n  unsigned int v7; // [esp-4h] [ebp-80h]\n  char *v8; // [esp+Ch] [ebp-70h]\n  int v9; // [esp+10h] [ebp-6Ch] BYREF\n  int v10; // [esp+14h] [ebp-68h] BYREF\n  _BYTE v11[8]; // [esp+18h] [ebp-64h] BYREF\n  unsigned int v12; // [esp+20h] [ebp-5Ch]\n  _BYTE v13[3]; // [esp+28h] [ebp-54h] BYREF\n  char v14; // [esp+2Bh] [ebp-51h]\n  char v15; // [esp+2Eh] [ebp-4Eh]\n  char v16; // [esp+36h] [ebp-46h]\n  int v17; // [esp+38h] [ebp-44h]\n  int v18; // [esp+3Ch] [ebp-40h]\n  char v19; // [esp+40h] [ebp-3Ch]\n  int v20; // [esp+44h] [ebp-38h]\n  unsigned int v21; // [esp+4Ch] [ebp-30h]\n\n  v8 = (char *)objc_msgSend(self->_controller, sel_allocateBufferOfLength_actualStart_actualLength_, 65, &v10, &v9); /*0x1ad12b*/\n  bzero(v8, 0x41u); /*0x1ad134*/\n  bzero(v13, 0x54u); /*0x1ad13c*/\n  v13[0] = self->_target; /*0x1ad147*/\n  v13[1] = self->_lun; /*0x1ad150*/\n  v16 = 1; /*0x1ad153*/\n  objc_msgSend(self->_controller, sel_getDMAAlignment_, v11); /*0x1ad16c*/\n  if ( v12 <= 1 ) /*0x1ad17a*/\n    v17 = 65; /*0x1ad188*/\n  else\n    v17 = -v12 & (v12 + 64); /*0x1ad183*/\n  v18 = 20; /*0x1ad18f*/\n  v19 |= 1u; /*0x1ad196*/\n  v3 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad1a9*/\n  v3->var0 = 2; /*0x1ad1ab*/\n  v3->var5 = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)v13; /*0x1ad1b4*/\n  v3->var3 = v8; /*0x1ad1ba*/\n  v3->var4 = IOVmTaskSelf(); /*0x1ad1c2*/\n  v13[2] = 18; /*0x1ad1c5*/\n  v14 = (32 * self->_lun) | v14 & 0x1F; /*0x1ad1d9*/\n  v15 = 65; /*0x1ad1dc*/\n  *((_BYTE *)v3 + 32) = *((_BYTE *)v3 + 32) & 0xFC | 2; /*0x1ad1e7*/\n  -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v3); /*0x1ad1f3*/\n  if ( v20 )\n  {\n    v5 = v20; /*0x1ad25c*/\n  }\n  else if ( v21 >= 5 )\n  {\n    if ( v21 != 65 ) /*0x1ad237*/\n      bzero(&v8[v21], 65 - v21); /*0x1ad23e*/\n    qmemcpy(a3, v8, sizeof($0A9FCFA3D4DB35C0C6B455691B389FC3)); /*0x1ad252*/\n    v5 = v20; /*0x1ad255*/\n  }\n  else\n  {\n    v7 = v21; /*0x1ad20a*/\n    v4 = -[IODevice name](self, sel_name); /*0x1ad213*/\n    IOLog((int)\"%s: bad DMA Transfer count (%d) on Inquiry\\n\", v4, v7);\n    v5 = 22; /*0x1ad226*/\n  }\n  IOFree(v10, v9); /*0x1ad266*/\n  return v5; /*0x1ad270*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2026f0",
+        "name": "sel_allocateBufferOfLength:actualStart:actualLength:",
+        "string": "allocateBufferOfLength:actualStart:actualLength:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7748",
+        "name": "aSBadDmaTransfe",
+        "string": "%s: bad DMA Transfer count (%d) on Inquiry\n"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad278",
+    "addr": "0x001ad278",
+    "code": "int __cdecl -[SCSIDisk sdReadCapacity:](SCSIDisk *self, SEL a2, $BA838A1BD45D3F0978456B4EB2CEA418 *a3)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v3; // ebx\n  int v4; // ebx\n  $BA838A1BD45D3F0978456B4EB2CEA418 *v6; // [esp+14h] [ebp-70h]\n  int v7; // [esp+18h] [ebp-6Ch] BYREF\n  int v8; // [esp+1Ch] [ebp-68h] BYREF\n  _BYTE v9[8]; // [esp+20h] [ebp-64h] BYREF\n  unsigned int v10; // [esp+28h] [ebp-5Ch]\n  _BYTE v11[3]; // [esp+30h] [ebp-54h] BYREF\n  char v12; // [esp+33h] [ebp-51h]\n  char v13; // [esp+3Eh] [ebp-46h]\n  int v14; // [esp+40h] [ebp-44h]\n  int v15; // [esp+44h] [ebp-40h]\n  char v16; // [esp+48h] [ebp-3Ch]\n  int v17; // [esp+4Ch] [ebp-38h]\n\n  v6 = ($BA838A1BD45D3F0978456B4EB2CEA418 *)objc_msgSend( /*0x1ad2aa*/\n                                              self->_controller,\n                                              sel_allocateBufferOfLength_actualStart_actualLength_,\n                                              8,\n                                              &v8,\n                                              &v7);\n  bzero(v11, 0x54u); /*0x1ad2b0*/\n  v11[0] = self->_target; /*0x1ad2bb*/\n  v11[1] = self->_lun; /*0x1ad2c4*/\n  v13 = 1; /*0x1ad2c7*/\n  objc_msgSend(self->_controller, sel_getDMAAlignment_, v9); /*0x1ad2dd*/\n  if ( v10 <= 1 ) /*0x1ad2eb*/\n    v14 = 8; /*0x1ad2fc*/\n  else\n    v14 = -v10 & (v10 + 7); /*0x1ad2f4*/\n  v15 = 20; /*0x1ad303*/\n  v16 |= 1u; /*0x1ad30a*/\n  v3 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad31d*/\n  v3->var0 = 2; /*0x1ad31f*/\n  v3->var5 = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)v11; /*0x1ad328*/\n  v3->var3 = v6; /*0x1ad32e*/\n  v3->var4 = IOVmTaskSelf(); /*0x1ad336*/\n  v11[2] = 37; /*0x1ad33c*/\n  v12 = (32 * self->_lun) | v12 & 0x1F; /*0x1ad353*/\n  *((_BYTE *)v3 + 32) &= ~1u; /*0x1ad356*/\n  -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v3); /*0x1ad363*/\n  if ( !v17 ) /*0x1ad370*/\n    *a3 = *v6; /*0x1ad37a*/\n  v4 = v17; /*0x1ad382*/\n  IOFree(v8, v7); /*0x1ad392*/\n  return v4; /*0x1ad39f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2026f0",
+        "name": "sel_allocateBufferOfLength:actualStart:actualLength:",
+        "string": "allocateBufferOfLength:actualStart:actualLength:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad3a8",
+    "addr": "0x001ad3a8",
+    "code": "int __cdecl -[SCSIDisk sdModeSense:](SCSIDisk *self, SEL a2, $F578ED3057E37945D41387235BAFAD6B *a3)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v3; // ebx\n  int v4; // ebx\n  id v6; // [esp+Ch] [ebp-70h]\n  int v7; // [esp+10h] [ebp-6Ch] BYREF\n  int v8; // [esp+14h] [ebp-68h] BYREF\n  _BYTE v9[8]; // [esp+18h] [ebp-64h] BYREF\n  unsigned int v10; // [esp+20h] [ebp-5Ch]\n  _BYTE v11[3]; // [esp+28h] [ebp-54h] BYREF\n  char v12; // [esp+2Bh] [ebp-51h]\n  char v13; // [esp+2Eh] [ebp-4Eh]\n  char v14; // [esp+36h] [ebp-46h]\n  int v15; // [esp+38h] [ebp-44h]\n  int v16; // [esp+3Ch] [ebp-40h]\n  char v17; // [esp+40h] [ebp-3Ch]\n  int v18; // [esp+44h] [ebp-38h]\n\n  v6 = objc_msgSend(self->_controller, sel_allocateBufferOfLength_actualStart_actualLength_, 60, &v8, &v7); /*0x1ad3d7*/\n  bzero(v11, 0x54u); /*0x1ad3dd*/\n  v11[0] = self->_target; /*0x1ad3e8*/\n  v11[1] = self->_lun; /*0x1ad3f1*/\n  v14 = 1; /*0x1ad3f4*/\n  objc_msgSend(self->_controller, sel_getDMAAlignment_, v9); /*0x1ad40a*/\n  if ( v10 <= 1 ) /*0x1ad418*/\n    v15 = 60; /*0x1ad428*/\n  else\n    v15 = -v10 & (v10 + 59); /*0x1ad421*/\n  v16 = 20; /*0x1ad42f*/\n  v17 |= 1u; /*0x1ad436*/\n  v3 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad449*/\n  v3->var0 = 2; /*0x1ad44b*/\n  v3->var5 = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)v11; /*0x1ad454*/\n  v3->var3 = v6; /*0x1ad45a*/\n  v3->var4 = IOVmTaskSelf(); /*0x1ad462*/\n  v11[2] = 26; /*0x1ad465*/\n  v12 = (32 * self->_lun) | v12 & 0x1F; /*0x1ad478*/\n  v13 = 60; /*0x1ad47b*/\n  *((_BYTE *)v3 + 32) |= 1u; /*0x1ad47f*/\n  -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v3); /*0x1ad48c*/\n  if ( !v18 ) /*0x1ad499*/\n    qmemcpy(a3, v6, sizeof($F578ED3057E37945D41387235BAFAD6B)); /*0x1ad4a7*/\n  v4 = v18; /*0x1ad4a9*/\n  IOFree(v8, v7); /*0x1ad4ba*/\n  return v4; /*0x1ad4c4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2026f0",
+        "name": "sel_allocateBufferOfLength:actualStart:actualLength:",
+        "string": "allocateBufferOfLength:actualStart:actualLength:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad4cc",
+    "addr": "0x001ad4cc",
+    "code": "int __cdecl -[SCSIDisk sdRawRead:blockCnt:buffer:](SCSIDisk *self, SEL a2, int a3, int a4, void *a5)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v5; // eax\n  id v6; // esi\n  $BB0ECD142E749ABD0946980FC80D177E *v8; // [esp+Ch] [ebp-4h]\n\n  v5 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad4eb*/\n  v5->var0 = 0; /*0x1ad4f2*/\n  v5->var1 = a3; /*0x1ad4f8*/\n  v5->var2 = a4; /*0x1ad4fb*/\n  v5->var3 = a5; /*0x1ad4fe*/\n  v8 = v5; /*0x1ad501*/\n  v5->var4 = IOVmTaskSelf(); /*0x1ad50c*/\n  *((_BYTE *)v8 + 32) |= 3u; /*0x1ad50f*/\n  v6 = -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v8); /*0x1ad524*/\n  -[SCSIDisk freeSdBuf:](self, sel_freeSdBuf_, v8); /*0x1ad535*/\n  return (int)v6; /*0x1ad53f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1ad880",
+        "name": "-[SCSIDisk freeSdBuf:]"
+      },
+      {
+        "addr": "0x204908",
+        "name": "sel_freeSdBuf:",
+        "string": "freeSdBuf:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad548",
+    "addr": "0x001ad548",
+    "code": "int __cdecl -[SCSIDisk scsiStartStop:inhibitRetry:](SCSIDisk *self, SEL a2, int a3, char a4)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v4; // esi\n  id v5; // ebx\n  _BYTE v7[3]; // [esp+10h] [ebp-54h] BYREF\n  char v8; // [esp+13h] [ebp-51h]\n  char v9; // [esp+16h] [ebp-4Eh]\n  int v10; // [esp+24h] [ebp-40h]\n  char v11; // [esp+28h] [ebp-3Ch]\n\n  bzero(v7, 0x54u); /*0x1ad560*/\n  v7[0] = self->_target; /*0x1ad56b*/\n  v7[1] = self->_lun; /*0x1ad574*/\n  v10 = 20; /*0x1ad577*/\n  v11 |= 1u; /*0x1ad57e*/\n  v4 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, 0); /*0x1ad591*/\n  v4->var5 = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)v7; /*0x1ad593*/\n  *((_BYTE *)v4 + 32) = (2 * (a4 != 0)) | *((_BYTE *)v4 + 32) & 0xFD | 1; /*0x1ad5ab*/\n  v7[2] = 27; /*0x1ad5ae*/\n  v8 = (32 * self->_lun) | v8 & 0x1F; /*0x1ad5c2*/\n  switch ( a3 ) /*0x1ad5c9*/\n  {\n    case 1: /*0x1ad5c9*/\n      v9 = 0; /*0x1ad5e0*/\nLABEL_7:\n      v4->var0 = 3; /*0x1ad5ec*/\n      break; /*0x1ad5ec*/\n    case 0: /*0x1ad5c9*/\n      v9 = 1; /*0x1ad5e8*/\n      goto LABEL_7; /*0x1ad5e8*/\n    case 2: /*0x1ad5c9*/\n      v9 = 2; /*0x1ad5d3*/\n      v4->var0 = 4; /*0x1ad5d7*/\n      break;\n  }\n  v5 = -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v4); /*0x1ad5f2*/\n  -[SCSIDisk freeSdBuf:](self, sel_freeSdBuf_, v4); /*0x1ad60b*/\n  return (int)v5; /*0x1ad615*/\n}",
+    "refs": [
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1ad880",
+        "name": "-[SCSIDisk freeSdBuf:]"
+      },
+      {
+        "addr": "0x204908",
+        "name": "sel_freeSdBuf:",
+        "string": "freeSdBuf:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad61c",
+    "addr": "0x001ad61c",
+    "code": "int __cdecl -[SCSIDisk deviceRwCommon:block:length:buffer:client:pending:actualLength:](\n        SCSIDisk *self,\n        SEL a2,\n        int a3,\n        unsigned int a4,\n        unsigned int a5,\n        void *a6,\n        unsigned int a7,\n        void *a8,\n        unsigned int *a9)\n{\n  id v9; // eax\n  id v10; // esi\n  unsigned int v13; // ebx\n  unsigned int v14; // esi\n  $BB0ECD142E749ABD0946980FC80D177E *v15; // ebx\n  id v16; // [esp+Ch] [ebp-4h]\n\n  v9 = -[SCSIDisk isDiskReady:](self, sel_isDiskReady_, 1); /*0x1ad631*/\n  v10 = v9; /*0x1ad636*/\n  if ( v9 == (id)-1102 ) /*0x1ad641*/\n    return -1102; /*0x1ad651*/\n  if ( v9 )\n  {\n    -[IODisk stringFromReturn:](self, sel_stringFromReturn_, v9); /*0x1ad661*/\n    -[IODevice name](self, sel_name); /*0x1ad670*/\n    IOLog(\"%s deviceRwCommon: bogus return from isDiskReady (%s)\\n\");\n  }\n  else\n  {\n    if ( !-[IODisk isFormatted](self, sel_isFormatted) ) /*0x1ad694*/\n      return -1101; /*0x1ad6a7*/\n    v13 = -[IODisk blockSize](self, sel_blockSize); /*0x1ad6b8*/\n    v16 = -[IODisk diskSize](self, sel_diskSize); /*0x1ad6c7*/\n    if ( a5 % v13 ) /*0x1ad6d1*/\n      return -1; /*0x1ad6e1*/\n    v14 = a5 / v13; /*0x1ad6e8*/\n    if ( (unsigned int)v16 < a5 / v13 + a4 ) /*0x1ad6f2*/\n    {\n      if ( a4 >= (unsigned int)v16 ) /*0x1ad6fa*/\n        return -706; /*0x1ad701*/\n      v14 = (unsigned int)v16 - a4; /*0x1ad707*/\n    }\n    v15 = -[SCSIDisk allocSdBuf:](self, sel_allocSdBuf_, a8); /*0x1ad71a*/\n    v15->var0 = a3; /*0x1ad71f*/\n    v15->var1 = a4; /*0x1ad724*/\n    v15->var2 = v14; /*0x1ad727*/\n    v15->var3 = a6; /*0x1ad72d*/\n    v15->var4 = a7; /*0x1ad733*/\n    *((_BYTE *)v15 + 32) |= 1u; /*0x1ad736*/\n    v10 = -[SCSIDisk enqueueSdBuf:](self, sel_enqueueSdBuf_, v15); /*0x1ad748*/\n    if ( !a8 ) /*0x1ad751*/\n    {\n      *a9 = v15->var10; /*0x1ad759*/\n      -[SCSIDisk freeSdBuf:](self, sel_freeSdBuf_, v15); /*0x1ad763*/\n    }\n  }\n  return (int)v10; /*0x1ad76d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ac9d0",
+        "name": "-[SCSIDisk isDiskReady:]"
+      },
+      {
+        "addr": "0x202670",
+        "name": "sel_isDiskReady:",
+        "string": "isDiskReady:"
+      },
+      {
+        "addr": "0x1a5d0c",
+        "name": "-[IODisk stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d6fc0",
+        "name": "aSDevicerwcommo",
+        "string": "%s deviceRwCommon: bogus return from isDiskReady (%s)\n"
+      },
+      {
+        "addr": "0x1a5748",
+        "name": "-[IODisk isFormatted]"
+      },
+      {
+        "addr": "0x2026c4",
+        "name": "sel_isFormatted",
+        "string": "isFormatted"
+      },
+      {
+        "addr": "0x1a5724",
+        "name": "-[IODisk blockSize]"
+      },
+      {
+        "addr": "0x202724",
+        "name": "sel_blockSize",
+        "string": "blockSize"
+      },
+      {
+        "addr": "0x1a5714",
+        "name": "-[IODisk diskSize]"
+      },
+      {
+        "addr": "0x2027e4",
+        "name": "sel_diskSize",
+        "string": "diskSize"
+      },
+      {
+        "addr": "0x1ad828",
+        "name": "-[SCSIDisk allocSdBuf:]"
+      },
+      {
+        "addr": "0x2048ec",
+        "name": "sel_allocSdBuf:",
+        "string": "allocSdBuf:"
+      },
+      {
+        "addr": "0x1ad774",
+        "name": "-[SCSIDisk enqueueSdBuf:]"
+      },
+      {
+        "addr": "0x2048f8",
+        "name": "sel_enqueueSdBuf:",
+        "string": "enqueueSdBuf:"
+      },
+      {
+        "addr": "0x1ad880",
+        "name": "-[SCSIDisk freeSdBuf:]"
+      },
+      {
+        "addr": "0x204908",
+        "name": "sel_freeSdBuf:",
+        "string": "freeSdBuf:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad774",
+    "addr": "0x001ad774",
+    "code": "int __cdecl -[SCSIDisk enqueueSdBuf:](SCSIDisk *self, SEL a2, $BB0ECD142E749ABD0946980FC80D177E *a3)\n{\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_ioQueueDisk; // edx\n  queue_entry *prev; // eax\n\n  a3->var11 = -1; /*0x1ad77f*/\n  objc_msgSend(self->_ioQLock, sel_lock); /*0x1ad794*/\n  if ( (*((_BYTE *)a3 + 32) & 1) != 0 ) /*0x1ad7a0*/\n    p_ioQueueDisk = &self->_ioQueueDisk; /*0x1ad7a2*/\n  else\n    p_ioQueueDisk = &self->_ioQueueNodisk; /*0x1ad7bc*/\n  if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)p_ioQueueDisk->next == p_ioQueueDisk ) /*0x1ad7c4*/\n  {\n    p_ioQueueDisk->next = (queue_entry *)a3; /*0x1ad7ac*/\n    p_ioQueueDisk->prev = (queue_entry *)a3; /*0x1ad7ae*/\n    a3->var12.var0 = (queue_entry *)p_ioQueueDisk; /*0x1ad7b1*/\n    a3->var12.var1 = (queue_entry *)p_ioQueueDisk; /*0x1ad7b4*/\n  }\n  else\n  {\n    prev = p_ioQueueDisk->prev; /*0x1ad7c6*/\n    a3->var12.var1 = prev; /*0x1ad7c9*/\n    a3->var12.var0 = (queue_entry *)p_ioQueueDisk; /*0x1ad7cc*/\n    p_ioQueueDisk->prev = (queue_entry *)a3; /*0x1ad7cf*/\n    *((_DWORD *)prev + 11) = a3; /*0x1ad7d2*/\n  }\n  objc_msgSend(self->_ioQLock, sel_unlockWith_, 1); /*0x1ad7e5*/\n  if ( a3->var6 ) /*0x1ad7ed*/\n    return 0; /*0x1ad81c*/\n  objc_msgSend(a3->var7, sel_lockWhen_, 1); /*0x1ad800*/\n  objc_msgSend(a3->var7, sel_unlockWith_, 0); /*0x1ad812*/\n  return a3->var11; /*0x1ad821*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad828",
+    "addr": "0x001ad828",
+    "code": "$BB0ECD142E749ABD0946980FC80D177E *__cdecl -[SCSIDisk allocSdBuf:](SCSIDisk *self, SEL a2, void *a3)\n{\n  $BB0ECD142E749ABD0946980FC80D177E *v3; // ebx\n  NXConditionLock *v4; // eax\n\n  v3 = ($BB0ECD142E749ABD0946980FC80D177E *)IOMalloc(0x44u); /*0x1ad837*/\n  bzero(v3, 0x44u); /*0x1ad83c*/\n  if ( a3 ) /*0x1ad846*/\n  {\n    v3->var6 = a3; /*0x1ad870*/\n  }\n  else\n  {\n    v4 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x1ad856*/\n    v3->var7 = v4; /*0x1ad85b*/\n    -[NXConditionLock initWith:](v4, sel_initWith_, 0); /*0x1ad868*/\n  }\n  return v3; /*0x1ad878*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfbd",
+        "name": "aNxconditionloc",
+        "string": "NXConditionLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1a8df8",
+        "name": "-[NXConditionLock initWith:]"
+      },
+      {
+        "addr": "0x201908",
+        "name": "sel_initWith:",
+        "string": "initWith:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad880",
+    "addr": "0x001ad880",
+    "code": "void __cdecl -[SCSIDisk freeSdBuf:](SCSIDisk *self, SEL a2, $BB0ECD142E749ABD0946980FC80D177E *a3)\n{\n  if ( !a3->var6 ) /*0x1ad887*/\n    objc_msgSend(a3->var7, sel_free); /*0x1ad898*/\n  IOFree((int)a3, 68); /*0x1ad8a3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ad8b0",
+    "addr": "0x001ad8b0",
+    "code": "void __cdecl -[SCSIDisk doSdBuf:](SCSIDisk *self, SEL a2, $BB0ECD142E749ABD0946980FC80D177E *a3)\n{\n  int v3; // ebx\n  id v4; // eax\n  unsigned int v5; // eax\n  int v6; // edi\n  char *v7; // eax\n  int v8; // ecx\n  int v9; // edi\n  int v10; // ecx\n  char *v11; // eax\n  int v12; // edi\n  char *v13; // eax\n  int v14; // edi\n  char *v15; // eax\n  int v16; // ebx\n  char *v17; // eax\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *var5; // edx\n  const char *v19; // [esp+10h] [ebp-74h]\n  _BYTE v20[24]; // [esp+14h] [ebp-70h] BYREF\n  __int16 v21; // [esp+2Ch] [ebp-58h]\n  _BYTE v22[28]; // [esp+30h] [ebp-54h] BYREF\n  int v23; // [esp+4Ch] [ebp-38h]\n  unsigned __int8 v24; // [esp+50h] [ebp-34h]\n  unsigned int v25; // [esp+54h] [ebp-30h]\n  int v26; // [esp+58h] [ebp-2Ch]\n  int v27; // [esp+5Ch] [ebp-28h]\n  int v28; // [esp+60h] [ebp-24h]\n  int v29; // [esp+64h] [ebp-20h]\n  _BYTE v30[24]; // [esp+68h] [ebp-1Ch] BYREF\n  __int16 v31; // [esp+80h] [ebp-4h]\n\n  v3 = 100; /*0x1ad8b9*/\n  v19 = -[IODevice name](self, sel_name); /*0x1ad8ce*/\n  a3->var13 = 10; /*0x1ad8d4*/\n  a3->var14 = 5; /*0x1ad8db*/\n  a3->var15 = 10; /*0x1ad8e2*/\n  if ( !a3->var13 ) /*0x1ad8f0*/\n    goto LABEL_59; /*0x1ad8f0*/\n  if ( !a3->var14 ) /*0x1ad8fa*/\n    goto LABEL_56; /*0x1ad8fa*/\n  while ( 1 )\n  {\n    if ( !a3->var15 ) /*0x1ad90f*/\n      goto LABEL_56; /*0x1ad90f*/\n    if ( -[SCSIDisk setupScsiReq:scsiReq:](self, sel_setupScsiReq_scsiReq_, a3, v22) ) /*0x1ad925*/\n      return; /*0x1ad931*/\n    v20[0] &= ~0x80u; /*0x1ad937*/\n    v4 = objc_msgSend(self->_controller, sel_executeRequest_buffer_client_, v22, a3->var3, a3->var4); /*0x1ad95b*/\n    v3 = (int)v4; /*0x1ad960*/\n    if ( !v4 )\n    {\n      if ( a3->var0 > 1u || (v5 = -[IODisk blockSize](self, sel_blockSize), v25 == v5 * a3->var2) ) /*0x1ad994*/\n      {\n        if ( (*((_BYTE *)self + 394) & 2) != 0 ) /*0x1ad9ea*/\n        {\n          if ( a3->var0 ) /*0x1ad9f3*/\n          {\n            if ( a3->var0 == 1 ) /*0x1ad9fc*/\n              -[IODisk addToBytesWritten:totalTime:latentTime:]( /*0x1ada47*/\n                self,\n                sel_addToBytesWritten_totalTime_latentTime_,\n                v25,\n                v26,\n                v27,\n                v28,\n                v29);\n          }\n          else\n          {\n            -[IODisk addToBytesRead:totalTime:latentTime:]( /*0x1ada23*/\n              self,\n              sel_addToBytesRead_totalTime_latentTime_,\n              v25,\n              v26,\n              v27,\n              v28,\n              v29);\n          }\n        }\n        goto LABEL_56; /*0x1ada4f*/\n      }\n      v6 = a3->var14 - 1; /*0x1ad999*/\n      a3->var14 = v6; /*0x1ad99c*/\n      if ( v6 <= 0 )\n      {\n        IOLog((int)\"%s: TRANSFER COUNT ERROR;  FATAL.\\n\", v19);\n        -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1ade95*/\n        v3 = 15; /*0x1ade9a*/\n        goto LABEL_56; /*0x1adea2*/\n      }\n      IOLog((int)\"%s: TRANSFER COUNT ERROR.  Expected = %d Received %d; Retrying.\\n\", v19, v5 * a3->var2, a3->var10);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, 0); /*0x1ad9d2*/\n      goto LABEL_48; /*0x1ad9da*/\n    }\n    if ( (*((_BYTE *)a3 + 32) & 2) != 0 ) /*0x1ada5b*/\n      goto LABEL_56; /*0x1ada5b*/\n    if ( (unsigned int)v4 > 9 ) /*0x1ada64*/\n    {\n      if ( (unsigned int)v4 > 0x13 ) /*0x1ada87*/\n      {\n        if ( v4 == (id)100 ) /*0x1ada9b*/\n          goto LABEL_27; /*0x1ada9b*/\n      }\n      else\n      {\n        if ( (unsigned int)v4 >= 0xE ) /*0x1ada8c*/\n          goto LABEL_27; /*0x1ada8c*/\n        if ( v4 == (id)13 ) /*0x1ada91*/\n          break; /*0x1ada91*/\n      }\n      goto LABEL_46; /*0x1ada91*/\n    }\n    if ( (unsigned int)v4 >= 7 || v4 == (id)1 )\n    {\nLABEL_27:\n      v7 = IOFindNameForValue((int)v4, IOScStatusStrings); /*0x1adaa1*/\n      IOLog((int)\"%s: %s : FATAL ERROR\\n\", v19, v7);\n      goto LABEL_64; /*0x1adabf*/\n    }\n    if ( (unsigned int)v4 <= 3 ) /*0x1ada79*/\n      break; /*0x1ada79*/\nLABEL_46:\n    v14 = a3->var14 - 1; /*0x1add20*/\n    a3->var14 = v14; /*0x1add29*/\n    if ( v14 <= 0 ) /*0x1add2f*/\n    {\n      v17 = IOFindNameForValue((int)v4, IOScStatusStrings); /*0x1addea*/\n      goto LABEL_63; /*0x1addea*/\n    }\n    v15 = IOFindNameForValue((int)v4, IOScStatusStrings); /*0x1add3b*/\n    IOLog((int)\"%s: %s; Retrying.\\n\", v19, v15);\n    -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1add62*/\nLABEL_48:\n    if ( (*((_BYTE *)self + 394) & 2) != 0 ) /*0x1add74*/\n    {\n      if ( a3->var0 ) /*0x1add79*/\n      {\n        if ( a3->var0 == 1 ) /*0x1add82*/\n          -[IODisk incrementWriteRetries](self, sel_incrementWriteRetries); /*0x1adda3*/\n        else\n          -[IODisk incrementOtherRetries](self, sel_incrementOtherRetries); /*0x1add84*/\n      }\n      else\n      {\n        -[IODisk incrementReadRetries](self, sel_incrementReadRetries); /*0x1add8e*/\n      }\n    }\n    if ( !a3->var13 ) /*0x1addb2*/\n      goto LABEL_59; /*0x1addb2*/\n    if ( !a3->var14 ) /*0x1addb4*/\n      goto LABEL_56; /*0x1addb8*/\n  }\n  if ( v24 != 2 )\n  {\n    if ( v24 != 8 )\n    {\n      IOLog((int)\"%s: BOGUS SCSI STATUS (0x%x): FATAL.\\n\", v19, v24);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1add0e*/\n      v3 = 13; /*0x1add13*/\n      goto LABEL_56; /*0x1add1b*/\n    }\n    v8 = a3->var13 - 1; /*0x1adadc*/\n    a3->var13 = v8; /*0x1adadf*/\n    if ( v8 <= 0 )\n    {\n      IOLog((int)\"%s: BUSY STATUS; FATAL.\\n\", v19);\n      goto LABEL_67; /*0x1ade4d*/\n    }\n    IOLog((int)\"%s: BUSY STATUS; Retrying.\\n\", v19);\n    IOSleep(0x3E8u); /*0x1adafe*/\n    goto LABEL_48; /*0x1adb06*/\n  }\n  if ( v4 == (id)2 )\n  {\n    qmemcpy(v20, v30, sizeof(v20)); /*0x1adb50*/\n    v21 = v31; /*0x1adb52*/\n  }\n  else\n  {\n    v3 = -[SCSIDisk reqSense:](self, sel_reqSense_, v20); /*0x1adb25*/\n    if ( v3 )\n    {\n      IOLog((int)\"%s: REQUEST SENSE ERROR;  FATAL.\\n\", v19);\n      goto LABEL_56; /*0x1adb3f*/\n    }\n  }\n  switch ( v20[2] & 0xF )\n  {\n    case 0:\n    case 1:\n    case 3:\n    case 4:\n      v10 = a3->var14 - 1; /*0x1adbe2*/\n      a3->var14 = v10; /*0x1adbe5*/\n      if ( v10 > 0 )\n      {\n        v11 = IOFindNameForValue(v20[2] & 0xF, IOSCSISenseStrings); /*0x1adbfd*/\n        IOLog((int)\"%s: %s; Retrying.\\n\", v19, v11);\n        -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1adc24*/\n        goto LABEL_48; /*0x1adc24*/\n      }\n      v17 = IOFindNameForValue(v20[2] & 0xF, IOSCSISenseStrings); /*0x1ade04*/\nLABEL_63:\n      IOLog((int)\"%s: %s; FATAL.\\n\", v19, v17);\nLABEL_64:\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1ade1c*/\nLABEL_56:\n      if ( a3->var13 && a3->var14 && a3->var15 ) /*0x1addcd*/\n      {\n        if ( v3 ) /*0x1adeaa*/\n          v16 = (int)objc_msgSend(self->_controller, sel_returnFromScStatus_, v3); /*0x1adec3*/\n        else\n          v16 = 0; /*0x1adecc*/\n        if ( v16 ) /*0x1aded0*/\n          goto LABEL_73; /*0x1aded0*/\n      }\n      else\n      {\nLABEL_59:\n        v16 = -714; /*0x1addd7*/\nLABEL_73:\n        if ( (*((_BYTE *)self + 394) & 2) != 0 ) /*0x1adedc*/\n        {\n          if ( a3->var0 ) /*0x1adee1*/\n          {\n            if ( a3->var0 == 1 ) /*0x1adeea*/\n            {\n              -[IODisk incrementWriteErrors](self, sel_incrementWriteErrors); /*0x1adf0b*/\n            }\n            else if ( (*((_BYTE *)a3 + 32) & 2) == 0 ) /*0x1adf17*/\n            {\n              -[IODisk incrementOtherErrors](self, sel_incrementOtherErrors); /*0x1adf24*/\n            }\n          }\n          else\n          {\n            -[IODisk incrementReadErrors](self, sel_incrementReadErrors); /*0x1adefb*/\n          }\n        }\n      }\n      var5 = a3->var5; /*0x1adf2f*/\n      if ( var5 ) /*0x1adf34*/\n      {\n        *((_DWORD *)var5 + 7) = v23; /*0x1adf39*/\n        *((_BYTE *)a3->var5 + 32) = v24; /*0x1adf42*/\n        *((_DWORD *)a3->var5 + 9) = v25; /*0x1adf4e*/\n      }\n      a3->var10 = v25; /*0x1adf57*/\n      a3->var11 = v16; /*0x1adf5a*/\n      -[SCSIDisk sdIoComplete:](self, sel_sdIoComplete_, a3); /*0x1adf69*/\n      return;\n    case 2:\n      v9 = a3->var15 - 1; /*0x1adb92*/\n      a3->var15 = v9; /*0x1adb95*/\n      if ( v9 <= 0 )\n      {\n        IOLog((int)\"%s: NOT READY; FATAL.\\n\", v19);\n        goto LABEL_67; /*0x1ade41*/\n      }\n      IOLog((int)\"%s: NOT READY; Retrying.\\n\", v19);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1adbc2*/\n      IOSleep(0x3E8u); /*0x1adbcc*/\n      goto LABEL_48; /*0x1adbd4*/\n    case 6:\n      v12 = a3->var14 - 1; /*0x1adc32*/\n      a3->var14 = v12; /*0x1adc35*/\n      if ( v12 <= 0 )\n      {\n        IOLog((int)\"%s: UNIT ATTENTION; FATAL.\\n\", v19);\nLABEL_67:\n        -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1ade52*/\n        goto LABEL_56; /*0x1ade6d*/\n      }\n      IOLog((int)\"%s: UNIT ATTENTION; Retrying.\\n\", v19);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1adc62*/\n      goto LABEL_48; /*0x1adc6a*/\n    case 7:\n      IOLog((int)\"%s: WRITE PROTECTED. FATAL.\\n\", v19);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1adc91*/\n      v3 = 17; /*0x1adc96*/\n      goto LABEL_56; /*0x1adc9e*/\n    default:\n      v13 = IOFindNameForValue(v20[2] & 0xF, IOSCSISenseStrings); /*0x1adcb0*/\n      IOLog((int)\"%s: %s; FATAL.\\n\", v19, v13);\n      -[SCSIDisk logOpInfo:sense:](self, sel_logOpInfo_sense_, a3, v20); /*0x1adcd7*/\n      v3 = 2; /*0x1adcdc*/\n      goto LABEL_56; /*0x1adce4*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1ae510",
+        "name": "-[SCSIDisk setupScsiReq:scsiReq:]"
+      },
+      {
+        "addr": "0x2049a4",
+        "name": "sel_setupScsiReq:scsiReq:",
+        "string": "setupScsiReq:scsiReq:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2046d4",
+        "name": "sel_executeRequest:buffer:client:",
+        "string": "executeRequest:buffer:client:"
+      },
+      {
+        "addr": "0x1a591c",
+        "name": "-[IODisk addToBytesWritten:totalTime:latentTime:]"
+      },
+      {
+        "addr": "0x203708",
+        "name": "sel_addToBytesWritten:totalTime:latentTime:",
+        "string": "addToBytesWritten:totalTime:latentTime:"
+      },
+      {
+        "addr": "0x1a58c0",
+        "name": "-[IODisk addToBytesRead:totalTime:latentTime:]"
+      },
+      {
+        "addr": "0x203730",
+        "name": "sel_addToBytesRead:totalTime:latentTime:",
+        "string": "addToBytesRead:totalTime:latentTime:"
+      },
+      {
+        "addr": "0x1a5724",
+        "name": "-[IODisk blockSize]"
+      },
+      {
+        "addr": "0x202724",
+        "name": "sel_blockSize",
+        "string": "blockSize"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7774",
+        "name": "aSTransferCount",
+        "string": "%s: TRANSFER COUNT ERROR;  FATAL.\n"
+      },
+      {
+        "addr": "0x1ae348",
+        "name": "-[SCSIDisk logOpInfo:sense:]"
+      },
+      {
+        "addr": "0x2049e0",
+        "name": "sel_logOpInfo:sense:",
+        "string": "logOpInfo:sense:"
+      },
+      {
+        "addr": "0x1d7798",
+        "name": "aSTransferCount_0",
+        "string": "%s: TRANSFER COUNT ERROR.  Expected = %d Received %d; Retrying.\n"
+      },
+      {
+        "addr": "0x1a553c",
+        "name": "_IOFindNameForValue"
+      },
+      {
+        "addr": "0x1e5184",
+        "name": "_IOScStatusStrings"
+      },
+      {
+        "addr": "0x1d77dc",
+        "name": "aSSFatalError",
+        "string": "%s: %s : FATAL ERROR\n"
+      },
+      {
+        "addr": "0x1d7894",
+        "name": "aSSRetrying",
+        "string": "%s: %s; Retrying.\n"
+      },
+      {
+        "addr": "0x1a5998",
+        "name": "-[IODisk incrementWriteRetries]"
+      },
+      {
+        "addr": "0x2036c4",
+        "name": "sel_incrementWriteRetries",
+        "string": "incrementWriteRetries"
+      },
+      {
+        "addr": "0x1a59b8",
+        "name": "-[IODisk incrementOtherRetries]"
+      },
+      {
+        "addr": "0x203694",
+        "name": "sel_incrementOtherRetries",
+        "string": "incrementOtherRetries"
+      },
+      {
+        "addr": "0x1a5978",
+        "name": "-[IODisk incrementReadRetries]"
+      },
+      {
+        "addr": "0x2036f0",
+        "name": "sel_incrementReadRetries",
+        "string": "incrementReadRetries"
+      },
+      {
+        "addr": "0x1d7904",
+        "name": "aSBogusScsiStat",
+        "string": "%s: BOGUS SCSI STATUS (0x%x): FATAL.\n"
+      },
+      {
+        "addr": "0x1d77f4",
+        "name": "aSBusyStatusFat",
+        "string": "%s: BUSY STATUS; FATAL.\n"
+      },
+      {
+        "addr": "0x1d7810",
+        "name": "aSBusyStatusRet",
+        "string": "%s: BUSY STATUS; Retrying.\n"
+      },
+      {
+        "addr": "0x1a5488",
+        "name": "_IOSleep"
+      },
+      {
+        "addr": "0x1ae600",
+        "name": "-[SCSIDisk reqSense:]"
+      },
+      {
+        "addr": "0x204998",
+        "name": "sel_reqSense:",
+        "string": "reqSense:"
+      },
+      {
+        "addr": "0x1d782c",
+        "name": "aSRequestSenseE",
+        "string": "%s: REQUEST SENSE ERROR;  FATAL.\n"
+      },
+      {
+        "addr": "0x1e5254",
+        "name": "_IOSCSISenseStrings"
+      },
+      {
+        "addr": "0x1d7884",
+        "name": "aSSFatal",
+        "string": "%s: %s; FATAL.\n"
+      },
+      {
+        "addr": "0x20469c",
+        "name": "sel_returnFromScStatus:",
+        "string": "returnFromScStatus:"
+      },
+      {
+        "addr": "0x1a59a8",
+        "name": "-[IODisk incrementWriteErrors]"
+      },
+      {
+        "addr": "0x2036ac",
+        "name": "sel_incrementWriteErrors",
+        "string": "incrementWriteErrors"
+      },
+      {
+        "addr": "0x1a59c8",
+        "name": "-[IODisk incrementOtherErrors]"
+      },
+      {
+        "addr": "0x20367c",
+        "name": "sel_incrementOtherErrors",
+        "string": "incrementOtherErrors"
+      },
+      {
+        "addr": "0x1a5988",
+        "name": "-[IODisk incrementReadErrors]"
+      },
+      {
+        "addr": "0x2036dc",
+        "name": "sel_incrementReadErrors",
+        "string": "incrementReadErrors"
+      },
+      {
+        "addr": "0x1ae6f8",
+        "name": "-[SCSIDisk sdIoComplete:]"
+      },
+      {
+        "addr": "0x204988",
+        "name": "sel_sdIoComplete:",
+        "string": "sdIoComplete:"
+      },
+      {
+        "addr": "0x1d7850",
+        "name": "aSNotReadyFatal",
+        "string": "%s: NOT READY; FATAL.\n"
+      },
+      {
+        "addr": "0x1d7868",
+        "name": "aSNotReadyRetry",
+        "string": "%s: NOT READY; Retrying.\n"
+      },
+      {
+        "addr": "0x1d78a8",
+        "name": "aSUnitAttention",
+        "string": "%s: UNIT ATTENTION; FATAL.\n"
+      },
+      {
+        "addr": "0x1d78c4",
+        "name": "aSUnitAttention_0",
+        "string": "%s: UNIT ATTENTION; Retrying.\n"
+      },
+      {
+        "addr": "0x1d78e4",
+        "name": "aSWriteProtecte",
+        "string": "%s: WRITE PROTECTED. FATAL.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001adf7c",
+    "addr": "0x001adf7c",
+    "code": "void __cdecl __noreturn sdIoThread(id *a1)\n{\n  char *v1; // edi\n  id v2; // eax\n  id v3; // esi\n\n  v1 = (char *)(a1 + 106); /*0x1adf85*/\n  while ( 1 ) /*0x1adf9c*/\n  {\n    objc_msgSend(a1[110], sel_lockWhen_, 1); /*0x1adf9c*/\n    while ( a1[108] != a1 + 108 ) /*0x1adfb0*/\n      sub_1AE094(a1, 0); /*0x1adfb7*/\n    if ( a1[106] != v1 ) /*0x1adfcd*/\n    {\n      do /*0x1ae01c*/\n      {\n        if ( objc_msgSend(a1, sel_lastReadyState) == (id)2 ) /*0x1adfeb*/\n          break; /*0x1adfeb*/\n        if ( objc_msgSend(a1, sel_lastReadyState) == (id)3 ) /*0x1ae000*/\n          break; /*0x1ae000*/\n        if ( *((_BYTE *)a1 + 456) ) /*0x1ae002*/\n          break; /*0x1ae009*/\n        sub_1AE094(a1, 1); /*0x1ae00e*/\n      }\n      while ( a1[106] != a1 + 106 ); /*0x1ae01c*/\n    }\n    v2 = objc_msgSend(a1, sel_lastReadyState); /*0x1ae026*/\n    v3 = v2; /*0x1ae02b*/\n    if ( a1[106] != v1 /*0x1ae056*/\n      && (v2 == (id)1 && (unsigned __int8)objc_msgSend(a1, sel_isRemovable) || v3 == (id)2 || *((_BYTE *)a1 + 456)) )\n    {\n      objc_msgSend(a1, sel_unlockIoQLock); /*0x1ae067*/\n      volCheckRequest((int)a1, 2); /*0x1ae06f*/\n    }\n    else\n    {\n      objc_msgSend(a1, sel_unlockIoQLock); /*0x1ae084*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      },
+      {
+        "addr": "0x1ae094",
+        "name": "sub_1AE094"
+      },
+      {
+        "addr": "0x203798",
+        "name": "sel_lastReadyState",
+        "string": "lastReadyState"
+      },
+      {
+        "addr": "0x204978",
+        "name": "sel_unlockIoQLock",
+        "string": "unlockIoQLock"
+      },
+      {
+        "addr": "0x1a7654",
+        "name": "_volCheckRequest"
+      },
+      {
+        "addr": "0x2027d0",
+        "name": "sel_isRemovable",
+        "string": "isRemovable"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae094",
+    "addr": "0x001ae094",
+    "code": "id __cdecl sub_1AE094(id *a1, char a2)\n{\n  char *v2; // ecx\n  id *v3; // eax\n  id result; // eax\n  char *v5; // ebx\n  char *v6; // esi\n  char *v7; // eax\n  _DWORD *v8; // eax\n  char *v9; // ebx\n  int v10; // esi\n  char *v11; // ecx\n  char *v12; // eax\n  char **v13; // eax\n  int v14; // eax\n  int v15; // [esp+Ch] [ebp-Ch]\n  id *v16; // [esp+10h] [ebp-8h]\n\n  if ( a2 ) /*0x1ae0a8*/\n    v2 = (char *)(a1 + 106); /*0x1ae0aa*/\n  else\n    v2 = (char *)(a1 + 108); /*0x1ae0b4*/\n  v3 = *(id **)v2; /*0x1ae0ba*/\n  if ( v2 == *(char **)v2 )\n    return (id)IOLog((int)\"sdThreadDequeue: Empty queue!\\n\");\n  v16 = *(id **)v2; /*0x1ae0d0*/\n  v5 = (char *)v3[11]; /*0x1ae0d3*/\n  v6 = (char *)v3[12]; /*0x1ae0d6*/\n  v7 = v2; /*0x1ae0d9*/\n  if ( v2 != v5 ) /*0x1ae0dd*/\n    v7 = v5 + 44; /*0x1ae0df*/\n  *((_DWORD *)v7 + 1) = v6; /*0x1ae0e2*/\n  v8 = v2; /*0x1ae0e5*/\n  if ( v2 != v6 ) /*0x1ae0e9*/\n    v8 = v6 + 44; /*0x1ae0eb*/\n  *v8 = v5; /*0x1ae0ee*/\n  if ( a2 ) /*0x1ae0f4*/\n  {\n    objc_msgSend(a1[112], sel_lock); /*0x1ae104*/\n    a1[113] = (char *)a1[113] + 1; /*0x1ae109*/\n    if ( *v16 == (id)4 ) /*0x1ae118*/\n    {\n      *((_BYTE *)a1 + 456) = 1; /*0x1ae11a*/\n      volCheckEjecting((int)a1, 2); /*0x1ae124*/\n    }\n    objc_msgSend(a1[112], sel_unlockWith_, a1[113]); /*0x1ae141*/\n  }\n  result = *v16; /*0x1ae14c*/\n  switch ( (unsigned int)*v16 ) /*0x1ae157*/\n  {\n    case 0u: /*0x1ae157*/\n    case 1u: /*0x1ae157*/\n    case 2u: /*0x1ae157*/\n    case 3u: /*0x1ae157*/\n      objc_msgSend(a1[110], sel_unlock); /*0x1ae2a2*/\n      objc_msgSend(a1, sel_doSdBuf_, v16); /*0x1ae2b3*/\n      result = objc_msgSend(a1[110], sel_lock); /*0x1ae2c6*/\n      break; /*0x1ae2ce*/\n    case 4u: /*0x1ae157*/\n      objc_msgSend(a1[110], sel_unlock); /*0x1ae23a*/\n      objc_msgSend(a1[112], sel_lockWhen_, 1); /*0x1ae24f*/\n      objc_msgSend(a1[112], sel_unlock); /*0x1ae262*/\n      objc_msgSend(a1, sel_doSdBuf_, v16); /*0x1ae273*/\n      result = objc_msgSend(a1[110], sel_lock); /*0x1ae289*/\n      break; /*0x1ae291*/\n    case 5u: /*0x1ae157*/\n      v9 = (char *)(a1 + 106); /*0x1ae180*/\n      if ( a1[106] != a1 + 106 ) /*0x1ae18c*/\n      {\n        do /*0x1ae209*/\n        {\n          v10 = *(_DWORD *)v9; /*0x1ae190*/\n          v11 = *(char **)(*(_DWORD *)v9 + 44); /*0x1ae192*/\n          v15 = *(_DWORD *)(*(_DWORD *)v9 + 48); /*0x1ae198*/\n          v12 = (char *)(a1 + 106); /*0x1ae19b*/\n          if ( v9 != v11 ) /*0x1ae19f*/\n            v12 = v11 + 44; /*0x1ae1a1*/\n          *((_DWORD *)v12 + 1) = v15; /*0x1ae1a7*/\n          v13 = (char **)(a1 + 106); /*0x1ae1aa*/\n          if ( v9 != (char *)v15 ) /*0x1ae1ae*/\n            v13 = (char **)(v15 + 44); /*0x1ae1b3*/\n          *v13 = v11; /*0x1ae1b6*/\n          objc_msgSend(a1[110], sel_unlock); /*0x1ae1c6*/\n          *(_DWORD *)(v10 + 40) = -1102; /*0x1ae1cb*/\n          v14 = *(_DWORD *)(v10 + 20); /*0x1ae1d5*/\n          if ( v14 ) /*0x1ae1da*/\n            *(_DWORD *)(v14 + 28) = 16; /*0x1ae1dc*/\n          objc_msgSend(a1, sel_sdIoComplete_, v10); /*0x1ae1ec*/\n          objc_msgSend(a1[110], sel_lock); /*0x1ae1ff*/\n        }\n        while ( *(char **)v9 != v9 ); /*0x1ae209*/\n      }\n      goto LABEL_23; /*0x1ae209*/\n    case 6u: /*0x1ae157*/\nLABEL_23:\n      v16[10] = nullptr; /*0x1ae20b*/\n      result = objc_msgSend(a1, sel_sdIoComplete_, v16); /*0x1ae21e*/\n      break; /*0x1ae226*/\n    case 7u: /*0x1ae157*/\n      objc_msgSend(a1[110], sel_unlock); /*0x1ae2de*/\n      v16[10] = nullptr; /*0x1ae2e6*/\n      objc_msgSend(a1, sel_sdIoComplete_, v16); /*0x1ae2f6*/\n      result = (id)IOExitThread(); /*0x1ae2fb*/\n      break; /*0x1ae2fb*/\n    default:\n      break;\n  }\n  if ( a2 ) /*0x1ae307*/\n  {\n    objc_msgSend(a1[112], sel_lock); /*0x1ae317*/\n    a1[113] = (char *)a1[113] - 1; /*0x1ae31c*/\n    return objc_msgSend(a1[112], sel_unlockWith_, a1[113]); /*0x1ae337*/\n  }\n  return result; /*0x1ae33f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d79a0",
+        "name": "aSdthreaddequeu",
+        "string": "sdThreadDequeue: Empty queue!\n"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a7670",
+        "name": "_volCheckEjecting"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x2049f4",
+        "name": "sel_doSdBuf:",
+        "string": "doSdBuf:"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      },
+      {
+        "addr": "0x204988",
+        "name": "sel_sdIoComplete:",
+        "string": "sdIoComplete:"
+      },
+      {
+        "addr": "0x1a9220",
+        "name": "_IOExitThread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae348",
+    "addr": "0x001ae348",
+    "code": "void __cdecl -[SCSIDisk logOpInfo:sense:](\n        SCSIDisk *self,\n        SEL a2,\n        $BB0ECD142E749ABD0946980FC80D177E *a3,\n        $55B996686E2E2C4974FEF7D53845AF12 *a4)\n{\n  unsigned __int16 v4; // dx\n  int var0; // eax\n  int v6; // edx\n  int v7; // edx\n  char *v8; // eax\n  char v9[80]; // [esp+Ch] [ebp-78h] BYREF\n  char __dst[40]; // [esp+5Ch] [ebp-28h] BYREF\n\n  v9[0] = 0; /*0x1ae35a*/\n  var0 = a3->var0; /*0x1ae35e*/\n  switch ( a3->var0 ) /*0x1ae369*/\n  {\n    case 0: /*0x1ae369*/\n      strcpy(__dst, \"Read\"); /*0x1ae38a*/\n      goto LABEL_4; /*0x1ae396*/\n    case 1: /*0x1ae369*/\n      strcpy(__dst, \"Write\"); /*0x1ae39e*/\nLABEL_4:\n      if ( a4 && *(_BYTE *)a4 < 0 ) /*0x1ae3b3*/\n      {\n        LOBYTE(var0) = a4->var9; /*0x1ae3b5*/\n        v6 = (a4->var10 << 16) | (var0 << 24) | v4; /*0x1ae3d0*/\n        BYTE1(v6) = 0; /*0x1ae3d9*/\n        v7 = (a4->var11 << 8) | v6; /*0x1ae3db*/\n        LOBYTE(v7) = a4->var12; /*0x1ae3dd*/\n        sprintf(v9, \"block:%d\", v7); /*0x1ae3ea*/\n      }\n      else\n      {\n        sprintf(v9, \"block:%d blockCount:%d\", a3->var1, a3->var2); /*0x1ae405*/\n      }\n      break; /*0x1ae3f2*/\n    case 2: /*0x1ae369*/\n    case 3: /*0x1ae369*/\n      v8 = IOFindNameForValue(*((unsigned __int8 *)a3->var5 + 2), IOSCSIOpcodeStrings); /*0x1ae41d*/\n      strcpy(__dst, v8); /*0x1ae427*/\n      break; /*0x1ae42f*/\n    case 4: /*0x1ae369*/\n      strcpy(__dst, \"Eject\"); /*0x1ae43a*/\n      break; /*0x1ae448*/\n    default:\n      panic(\"Bogus op in logOpInfo\"); /*0x1ae451*/\n      return; /*0x1ae451*/\n  }\n  IOLog((int)\"   target:%d lun:%d op:%s %s\\n\", self->_target, self->_lun, __dst, v9); /*0x1ae476*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d793c",
+        "name": "aBlockD",
+        "string": "block:%d"
+      },
+      {
+        "addr": "0x1d7948",
+        "name": "aBlockDBlockcou",
+        "string": "block:%d blockCount:%d"
+      },
+      {
+        "addr": "0x1a553c",
+        "name": "_IOFindNameForValue"
+      },
+      {
+        "addr": "0x1e52b4",
+        "name": "_IOSCSIOpcodeStrings"
+      },
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1d7968",
+        "name": "aBogusOpInLogop",
+        "string": "Bogus op in logOpInfo"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7980",
+        "name": "aTargetDLunDOpS",
+        "string": "   target:%d lun:%d op:%s %s\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae488",
+    "addr": "0x001ae488",
+    "code": "// local variable allocation has failed, the output may be wrong!\nvoid __cdecl -[SCSIDisk genRwCdb:readFlag:block:blockCnt:](\n        SCSIDisk *self,\n        SEL a2,\n        {cdb_6 *a3,\n        cdb_6s a4,\n        cdb_10 a5,\n        cdb_12 a6)\n{\n  unsigned __int8 lun; // al\n\n  lun = self->_lun; /*0x1ae4a3*/\n  if ( a4.var0 ) /*0x1ae4a1*/\n    *(_BYTE *)a3 = 40; /*0x1ae4b3*/\n  else\n    *(_BYTE *)a3 = 42; /*0x1ae4c8*/\n  *((_BYTE *)a3 + 1) = (32 * lun) | *((_BYTE *)a3 + 1) & 0x1F; /*0x1ae4d7*/\n  *((_BYTE *)a3 + 2) = *((_BYTE *)&a4 + 7); /*0x1ae4df*/\n  *((_BYTE *)a3 + 3) = *((_BYTE *)&a4 + 6); /*0x1ae4e7*/\n  *((_BYTE *)a3 + 4) = a4.var7; /*0x1ae4ef*/\n  *((_BYTE *)a3 + 5) = a4.var6; /*0x1ae4f4*/\n  *((_BYTE *)a3 + 7) = *((_BYTE *)&a5 + 1); /*0x1ae4fd*/\n  *((_BYTE *)a3 + 8) = a5.var0; /*0x1ae503*/\n}"
+  },
+  {
+    "requested_address": "0x001ae510",
+    "addr": "0x001ae510",
+    "code": "int __cdecl -[SCSIDisk setupScsiReq:scsiReq:](\n        SCSIDisk *self,\n        int a2,\n        $BB0ECD142E749ABD0946980FC80D177E *a3,\n        $71639E5036F17B36840F09F8ED9B0E88 *a4)\n{\n  unsigned int v4; // esi\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *var5; // esi\n\n  v4 = -[IODisk blockSize](self, sel_blockSize); /*0x1ae52c*/\n  bzero(a4, 0x54u); /*0x1ae531*/\n  *(_BYTE *)a4 = self->_target; /*0x1ae53f*/\n  *((_BYTE *)a4 + 1) = self->_lun; /*0x1ae54a*/\n  if ( a3->var0 == 1 ) /*0x1ae555*/\n  {\n    *((_BYTE *)a4 + 14) = 0; /*0x1ae574*/\n    -[SCSIDisk genRwCdb:readFlag:block:blockCnt:]( /*0x1ae591*/\n      self,\n      sel_genRwCdb_readFlag_block_blockCnt_,\n      (char *)a4 + 2,\n      0,\n      a3->var1,\n      a3->var2);\n    goto LABEL_7; /*0x1ae591*/\n  }\n  if ( !a3->var0 ) /*0x1ae557*/\n  {\n    *((_BYTE *)a4 + 14) = 1; /*0x1ae564*/\n    -[SCSIDisk genRwCdb:readFlag:block:blockCnt:]( /*0x1ae572*/\n      self,\n      sel_genRwCdb_readFlag_block_blockCnt_,\n      (char *)a4 + 2,\n      1,\n      a3->var1,\n      a3->var2);\nLABEL_7:\n    a3->var5 = nullptr; /*0x1ae596*/\n    *((_DWORD *)a4 + 4) = a3->var2 * v4; /*0x1ae5a1*/\n    *((_DWORD *)a4 + 5) = 30; /*0x1ae5a4*/\n    *((_BYTE *)a4 + 24) |= 1u; /*0x1ae5ab*/\n    return 0; /*0x1ae5af*/\n  }\n  if ( a3->var0 <= 4u ) /*0x1ae55c*/\n  {\n    var5 = a3->var5; /*0x1ae5b4*/\n    if ( *(_WORD *)var5 != *(_WORD *)&self->_target ) /*0x1ae5c4*/\n    {\n      *((_DWORD *)var5 + 7) = 7; /*0x1ae5c6*/\n      a3->var11 = -706; /*0x1ae5cd*/\n      -[SCSIDisk sdIoComplete:](self, sel_sdIoComplete_, a3); /*0x1ae5e0*/\n      return 7; /*0x1ae5ea*/\n    }\n    qmemcpy(a4, var5, 0x54u); /*0x1ae5f2*/\n  }\n  return 0; /*0x1ae5f9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5724",
+        "name": "-[IODisk blockSize]"
+      },
+      {
+        "addr": "0x202724",
+        "name": "sel_blockSize",
+        "string": "blockSize"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1ae488",
+        "name": "-[SCSIDisk genRwCdb:readFlag:block:blockCnt:]"
+      },
+      {
+        "addr": "0x2049bc",
+        "name": "sel_genRwCdb:readFlag:block:blockCnt:",
+        "string": "genRwCdb:readFlag:block:blockCnt:"
+      },
+      {
+        "addr": "0x1ae6f8",
+        "name": "-[SCSIDisk sdIoComplete:]"
+      },
+      {
+        "addr": "0x204988",
+        "name": "sel_sdIoComplete:",
+        "string": "sdIoComplete:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae600",
+    "addr": "0x001ae600",
+    "code": "int __cdecl -[SCSIDisk reqSense:](SCSIDisk *self, SEL a2, $55B996686E2E2C4974FEF7D53845AF12 *a3)\n{\n  int v3; // eax\n  id v4; // ebx\n  id v6; // [esp+Ch] [ebp-70h]\n  int v7; // [esp+10h] [ebp-6Ch] BYREF\n  int v8; // [esp+14h] [ebp-68h] BYREF\n  _BYTE v9[8]; // [esp+18h] [ebp-64h] BYREF\n  unsigned int v10; // [esp+20h] [ebp-5Ch]\n  _BYTE v11[3]; // [esp+28h] [ebp-54h] BYREF\n  char v12; // [esp+2Bh] [ebp-51h]\n  char v13; // [esp+2Eh] [ebp-4Eh]\n  char v14; // [esp+36h] [ebp-46h]\n  int v15; // [esp+38h] [ebp-44h]\n  int v16; // [esp+3Ch] [ebp-40h]\n  char v17; // [esp+40h] [ebp-3Ch]\n\n  v6 = objc_msgSend(self->_controller, sel_allocateBufferOfLength_actualStart_actualLength_, 26, &v8, &v7); /*0x1ae62c*/\n  bzero(v11, 0x54u); /*0x1ae632*/\n  v11[2] = 3; /*0x1ae637*/\n  v12 = (32 * self->_lun) | v12 & 0x1F; /*0x1ae64b*/\n  v13 = 26; /*0x1ae64e*/\n  v11[0] = self->_target; /*0x1ae658*/\n  v11[1] = self->_lun; /*0x1ae661*/\n  v14 = 1; /*0x1ae664*/\n  objc_msgSend(self->_controller, sel_getDMAAlignment_, v9); /*0x1ae67a*/\n  if ( v10 <= 1 ) /*0x1ae688*/\n    v15 = 26; /*0x1ae698*/\n  else\n    v15 = -v10 & (v10 + 25); /*0x1ae691*/\n  v16 = 20; /*0x1ae69f*/\n  v17 |= 1u; /*0x1ae6a6*/\n  v3 = IOVmTaskSelf(); /*0x1ae6aa*/\n  v4 = objc_msgSend(self->_controller, sel_executeRequest_buffer_client_, v11, v6, v3); /*0x1ae6cb*/\n  qmemcpy(a3, v6, sizeof($55B996686E2E2C4974FEF7D53845AF12)); /*0x1ae6d9*/\n  IOFree(v8, v7); /*0x1ae6e5*/\n  return (int)v4; /*0x1ae6ef*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2026f0",
+        "name": "sel_allocateBufferOfLength:actualStart:actualLength:",
+        "string": "allocateBufferOfLength:actualStart:actualLength:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1a9238",
+        "name": "_IOVmTaskSelf"
+      },
+      {
+        "addr": "0x2046d4",
+        "name": "sel_executeRequest:buffer:client:",
+        "string": "executeRequest:buffer:client:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ae6f8",
+    "addr": "0x001ae6f8",
+    "code": "void __cdecl -[SCSIDisk sdIoComplete:](SCSIDisk *self, SEL a2, $BB0ECD142E749ABD0946980FC80D177E *a3)\n{\n  void *var6; // eax\n\n  var6 = a3->var6; /*0x1ae703*/\n  if ( var6 ) /*0x1ae708*/\n  {\n    -[SCSIDisk completeTransfer:withStatus:actualLength:]( /*0x1ae71b*/\n      self,\n      sel_completeTransfer_withStatus_actualLength_,\n      var6,\n      a3->var11,\n      a3->var10);\n    -[SCSIDisk freeSdBuf:](self, sel_freeSdBuf_, a3); /*0x1ae729*/\n  }\n  else\n  {\n    objc_msgSend(a3->var7, sel_unlockWith_, 1); /*0x1ae73d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x209ad4",
+        "name": "-[SCSIDisk completeTransfer:withStatus:actualLength:]"
+      },
+      {
+        "addr": "0x204794",
+        "name": "sel_completeTransfer:withStatus:actualLength:",
+        "string": "completeTransfer:withStatus:actualLength:"
+      },
+      {
+        "addr": "0x1ad880",
+        "name": "-[SCSIDisk freeSdBuf:]"
+      },
+      {
+        "addr": "0x204908",
+        "name": "sel_freeSdBuf:",
+        "string": "freeSdBuf:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      }
+    ]
+  }
+]

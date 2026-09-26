@@ -1,0 +1,3 @@
+# Scope
+
+Only original OPENSTEP x86 kernel bytes and binary-derived full-pass5 metadata were used. Python calculated all exact absolute-memory write counts and decoded ranges with Capstone x86-32. No reference source, runtime execution, reconstructed code, or Ghidra mutation was used.

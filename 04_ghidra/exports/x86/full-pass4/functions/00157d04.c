@@ -1,0 +1,13 @@
+/* Ghidra decompiler output, not reconstructed GCC 2.7 source.
+ * Binary SHA-256: 33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890; entry: 0x00157d04 */
+
+void _host_self(void)
+
+{
+  undefined4 uVar1;
+  
+  uVar1 = _ipc_port_make_send(_realhost);
+  _ipc_port_copyout_send_compat(uVar1,*(undefined4 *)(*(int *)(_active_threads + 0xc) + 0x88));
+  return;
+}
+

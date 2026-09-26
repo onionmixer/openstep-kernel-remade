@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "method": {"binary":"03_original/x86/binaries/mach_kernel","binary_sha256":"33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890","raw_decode":"Python capstone x86/32"},
+  "measurement": {
+    "vm_pager_get":{"body_bytes":54,"decoded_instruction_count":26,"indirect_call_count":0},
+    "vm_pager_put":{"body_bytes":53,"decoded_instruction_count":23,"indirect_call_count":0},
+    "vm_pager_deallocate":{"body_bytes":47,"decoded_instruction_count":19,"indirect_call_count":0},
+    "vm_pager_has_page":{"body_bytes":43,"decoded_instruction_count":18,"indirect_call_count":0},
+    "vnode_pager_init":{"body_bytes":68,"decoded_instruction_count":16,"indirect_call_count":0},
+    "vnode_pager_file_init":{"body_bytes":494,"decoded_instruction_count":161,"indirect_call_count":3},
+    "vnode_pager_shutdown":{"body_bytes":99,"decoded_instruction_count":29,"indirect_call_count":0},
+    "vnode_pagein":{"body_bytes":233,"decoded_instruction_count":85,"indirect_call_count":1},
+    "vnode_pageout":{"body_bytes":366,"decoded_instruction_count":129,"indirect_call_count":1},
+    "vnode_pager_truncate":{"body_bytes":280,"decoded_instruction_count":103,"indirect_call_count":1},
+    "vnode_dealloc":{"body_bytes":1147,"decoded_instruction_count":376,"indirect_call_count":1},
+    "FUN_0017cd58":{"body_bytes":1023,"decoded_instruction_count":350,"indirect_call_count":0}
+  },
+  "table_lifetime": [
+    {"site":"0x0017e1d0","instruction":"sentinel prev = 0x001e7288"},
+    {"site":"0x0017e1da","instruction":"sentinel next = 0x001e7288"},
+    {"site":"0x0017d749","instruction":"INC dword ptr [0x001e7290]"},
+    {"site":"0x0017d755","instruction":"record +0x30 = global index"},
+    {"site":"0x0017d75d","instruction":"table[global index] = record", "table_base":"0x001e7294"},
+    {"site":"0x0017d7c6","instruction":"DEC dword ptr [0x001e7290]", "note":"shutdown body has no table-base indexed store"}
+  ],
+  "dispatch": [
+    {"site":"0x0017d358","path":"pagein","load":"table[zero_extended_byte] then record+8 then +0x1c then +0x74", "call":"0x0017d373 CALL EAX"},
+    {"site":"0x0017d498","path":"pageout","load":"table[zero_extended_byte] then record+8 then +0x1c then +0x78", "call":"0x0017d4cd CALL EAX"},
+    {"site":"0x0017dc39","path":"truncate","call":"CALL EAX"},
+    {"site":"0x0017e0a6","path":"dealloc","call":"CALL EAX"}
+  ],
+  "wrapper_branch": [
+    {"function":"vm_pager_get","null":"vm_page_zero_fill","nonzero_first_word":"device helper","zero_first_word":"vnode helper"},
+    {"function":"vm_pager_put","nonzero_first_word":"device helper","zero_first_word":"vnode helper"},
+    {"function":"vm_pager_deallocate","nonzero_first_word":"device helper","zero_first_word":"vnode helper"},
+    {"function":"vm_pager_has_page","condition":"requires nonnull pager and first word zero before vnode helper"}
+  ]
+}

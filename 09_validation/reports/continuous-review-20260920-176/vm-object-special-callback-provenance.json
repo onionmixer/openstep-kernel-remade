@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "method": "Python 3 calculated all original __text CALL rel32 targets and the callback-table address formula. Capstone 4.0.2 x86-32 decoded the cited original instruction paths.",
+  "inputs": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890"
+  },
+  "callee": {
+    "entry": "0x0017c17c",
+    "export_label_hypothesis": "_vm_object_special",
+    "indirect_call": [
+      "0x0017c215 MOV EDX,[EBP+0x0c]",
+      "0x0017c218 CALL EDX"
+    ],
+    "direct_rel32_call_sites_in_entire_text": [
+      "0x00107007"
+    ],
+    "direct_rel32_call_count": 1
+  },
+  "caller": {
+    "entry": "0x00106e58",
+    "export_label_hypothesis": "_smmap",
+    "callback_derivation": [
+      "0x00106f5b MOVZX EAX,byte ptr [EAX+0x43]",
+      "0x00106f5f LEA EDX,[EAX+EAX*4]",
+      "0x00106f62 LEA EDX,[EAX+EDX*2]",
+      "0x00106f65 MOV ESI,[EDX*4+0x001e2f58]",
+      "0x00107001 PUSH ESI",
+      "0x00107007 CALL 0x0017c17c"
+    ],
+    "address_formula": "0x001e2f58 + 44 * zero_extended_byte_value",
+    "skip_gates": [
+      "0x00106f6c CMP ESI,0x0010ccb0; JE 0x0010719e",
+      "0x00106f78 CMP ESI,0x0010cca4; JE 0x0010719e",
+      "0x00106f84 TEST ESI,ESI; JE 0x0010719e"
+    ],
+    "earlier_same_target_transfer": "0x00106fae CALL ESI"
+  },
+  "callee_post_callback_flow": [
+    "0x0017c218 CALL EDX",
+    "0x0017c21a MOV ECX,[0x001f6ea4]",
+    "0x0017c220 SHL EAX,CL",
+    "0x0017c222 MOV [ESI],EAX"
+  ],
+  "limit": "The unique direct rel32 site does not exclude indirect/computed callers. The static formula does not prove a table type, byte-value range, valid cell count, table initialization/writers, callback type/result, allocation success, or runtime lifetime. Labels are hypotheses."
+}

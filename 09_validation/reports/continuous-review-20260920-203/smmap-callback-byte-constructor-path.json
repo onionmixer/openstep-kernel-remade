@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "method": "Python 3 scanned full-pass5 .asm exports, calculated offsets from the original Mach base 0x00100000, and read the cited original bytes. Counts and all derived values were calculated in Python.",
+  "inputs": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890",
+    "function_body_records": 5253
+  },
+  "smmap_chain": [
+    ["0x00106e97", "CALL 0x0011de44", "binary-labelled _getvnodefp"],
+    ["0x00106eb9", "MOV EDI,[EBP-4]", "successful result retained as the file pointer"],
+    ["0x00106ec9", "MOV ESI,[ECX+0x18]", "takes the object pointer from file+0x18"],
+    ["0x00106f50", "MOV EAX,[ESI+0x30]", "takes its backing pointer"],
+    ["0x00106f53", "MOV CX,[EAX+0x42]", "reads adjacent 16-bit value"],
+    ["0x00106f5b", "MOVZX EAX,byte ptr [EAX+0x43]", "reads high-addressed byte of that word"]
+  ],
+  "constructor_layout": {
+    "_specvp_0x00139648": [
+      ["0x001396f0", "MOV word ptr [EBX+0x42],DI", "stores 16-bit input"],
+      ["0x001396f4", "MOV word ptr [EBX+0x30],DI", "a separate field"],
+      ["0x001396fe", "MOV [EBX+0x34],EBX", "writes backing self-pointer"],
+      ["0x001396ed", "MOV [EBX+0x38],ESI", "other constructor state"],
+      ["0x001397a3", "LEA EAX,[EBX+4]", "returns backing+4"]
+    ],
+    "_makespecvp_0x001397b0": [
+      ["0x00139808", "MOV [EBX+0x38],0", "constructor state"],
+      ["0x0013980f", "MOV word ptr [EBX+0x42],SI", "stores 16-bit input"],
+      ["0x00139813", "MOV word ptr [EBX+0x30],SI", "a separate field"],
+      ["0x0013981d", "MOV [EBX+0x34],EBX", "writes backing self-pointer"],
+      ["0x00139820", "MOV [EBX+0x28],0", "constructor state"],
+      ["0x00139850", "LEA EAX,[EBX+4]", "returns backing+4"]
+    ],
+    "pointer_relation": "When a caller holds the returned pointer EBX+4, its +0x30 address equals backing+0x34. Both constructors store EBX at backing+0x34, so the +0x30 field leads back to backing. The +0x42/+0x43 accesses in _smmap are then relative to that backing pointer.",
+    "little_endian_relation": "The 16-bit store at backing+0x42 occupies bytes +0x42 and +0x43; the byte read at +0x43 is its high-addressed byte."
+  },
+  "complete_literal_operand_scan": {
+    "plus_0x43_occurrences": 8,
+    "plus_0x43_functions": 6,
+    "plus_0x43_all_are_reads": true,
+    "plus_0x43_sites": ["0x00106f5b", "0x00139866", "0x0013987c", "0x0013989e", "0x001398c0", "0x0013999f", "0x0013a0c5", "0x0013a10d"],
+    "modifying_plus_0x42_occurrences": 7,
+    "modifying_plus_0x42_functions": 6,
+    "modifying_plus_0x42_sites": ["0x00114bae", "0x001182e9", "0x00118491", "0x001396f0", "0x0013980f", "0x001899c0", "0x0018aa34"]
+  },
+  "raw_byte_validation": [
+    ["0x00106e97", 28311, "e8a86f0100"],
+    ["0x00106eb9", 28345, "8b7dfc"],
+    ["0x00106ec9", 28361, "8b7118"],
+    ["0x00106f50", 28496, "8b4630"],
+    ["0x00106f53", 28499, "668b4842"],
+    ["0x00106f5b", 28507, "0fb64043"],
+    ["0x001396ed", 235245, "897338"],
+    ["0x001396f0", 235248, "66897b42"],
+    ["0x001396fe", 235262, "895b34"],
+    ["0x001397a3", 235427, "8d4304"],
+    ["0x00139808", 235528, "c7433800000000"],
+    ["0x0013980f", 235535, "66897342"],
+    ["0x0013981d", 235549, "895b34"],
+    ["0x00139850", 235600, "8d4304"]
+  ],
+  "limits": [
+    "The scan is limited to literal exported-body operands; computed addressing, alias writes, bulk copy, non-exported code, and runtime modification are outside it.",
+    "The constructor relation proves a producer path only. It does not prove universal provenance for every object passed to _smmap.",
+    "No execution, callback-table runtime value, bounds guarantee, ABI, or lifetime conclusion is made."
+  ]
+}

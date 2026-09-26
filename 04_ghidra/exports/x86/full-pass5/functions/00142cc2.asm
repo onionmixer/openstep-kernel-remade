@@ -1,0 +1,1 @@
+0x00142cc2	2	XOR EAX,EAX

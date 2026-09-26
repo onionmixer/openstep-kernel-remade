@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "method": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890",
+    "export": "04_ghidra/exports/x86/full-pass5",
+    "raw_decode": "Python capstone x86/32 over each exported body range",
+    "text_section": {"address": "0x001012d0", "file_offset": 4816}
+  },
+  "python_calculation": {
+    "page_size_hex": "0x2000",
+    "page_size_decimal": 8192,
+    "page_mask_hex": "0x1fff",
+    "page_mask_decimal": 8191,
+    "page_shift": 13,
+    "page_size_is_power_of_two": true,
+    "vm_page_template_copy_bytes": 48
+  },
+  "measurement": {
+    "i386_init": {"body_bytes": 209, "decoded_instruction_count": 46, "direct_call_count": 11, "indirect_call_count": 0},
+    "vm_set_page_size": {"body_bytes": 83, "decoded_instruction_count": 26, "direct_call_count": 1, "indirect_call_count": 0},
+    "vm_mem_init": {"body_bytes": 107, "decoded_instruction_count": 28, "direct_call_count": 10, "indirect_call_count": 0},
+    "vm_page_startup": {"body_bytes": 1024, "decoded_instruction_count": 286, "direct_call_count": 11, "indirect_call_count": 0},
+    "vm_page_init": {"body_bytes": 199, "decoded_instruction_count": 73, "direct_call_count": 3, "indirect_call_count": 0},
+    "vm_object_init": {"body_bytes": 431, "decoded_instruction_count": 81, "direct_call_count": 4, "indirect_call_count": 0},
+    "vm_map_init": {"body_bytes": 159, "decoded_instruction_count": 49, "direct_call_count": 6, "indirect_call_count": 0},
+    "vm_map_create": {"body_bytes": 161, "decoded_instruction_count": 43, "direct_call_count": 3, "indirect_call_count": 0},
+    "vm_map_insert": {"body_bytes": 372, "decoded_instruction_count": 131, "direct_call_count": 4, "indirect_call_count": 0},
+    "vm_map_pageable": {"body_bytes": 1294, "decoded_instruction_count": 459, "direct_call_count": 20, "indirect_call_count": 0},
+    "vm_map_entry_delete": {"body_bytes": 219, "decoded_instruction_count": 86, "direct_call_count": 7, "indirect_call_count": 0},
+    "vm_map_delete": {"body_bytes": 1072, "decoded_instruction_count": 394, "direct_call_count": 17, "indirect_call_count": 0},
+    "pmap_bootstrap": {"body_bytes": 1050, "decoded_instruction_count": 313, "direct_call_count": 5, "indirect_call_count": 0},
+    "pmap_init": {"body_bytes": 220, "decoded_instruction_count": 56, "direct_call_count": 4, "indirect_call_count": 0}
+  },
+  "initializer_edges": [
+    {"site": "0x0018ab2b", "instruction": "MOV dword ptr [0x001e0d0c],0x2000"},
+    {"site": "0x0018ab35", "instruction": "CALL 0x0017a9b4", "target": "_vm_set_page_size"},
+    {"site": "0x0018ab7f", "instruction": "CALL 0x0018eee8", "target": "_pmap_bootstrap"},
+    {"site": "0x00173a7e", "target": "_vm_page_startup"},
+    {"site": "0x00173a88", "target": "_zone_bootstrap"},
+    {"site": "0x00173a8d", "target": "_vm_object_init"},
+    {"site": "0x00173a92", "target": "_vm_map_init"},
+    {"site": "0x00173aa5", "target": "_kmem_init"},
+    {"site": "0x00173ab6", "target": "_pmap_init"},
+    {"site": "0x00173abb", "target": "_zone_init"},
+    {"site": "0x00173ac0", "target": "_vm_object_pager_wakeup"},
+    {"site": "0x00173ac5", "target": "_vm_pager_init"},
+    {"site": "0x00173aca", "target": "_vm_user_init"}
+  ],
+  "page_and_object_initialization": [
+    {"range": "0x0017a9b7-0x0017aa01", "fact": "computes page mask and shift from page_size; nonzero (page_size & (page_size-1)) enters panic"},
+    {"range": "0x0017b143-0x0017b150", "fact": "copies 12 dwords from vm_page_template"},
+    {"range": "0x0017b177-0x0017b1f1", "fact": "uses page shift and bucket mask, links page, sets byte +0x20 bit 0x04"},
+    {"range": "0x001789d4-0x00178a0e", "fact": "creates object and hash-entry zones"},
+    {"range": "0x00178a13-0x00178b73", "fact": "initializes hash/cache sentinels and invokes __vm_object_allocate for two static object storage regions"}
+  ],
+  "map_and_entry_offset_0x28": [
+    {"range": "0x001746c6-0x00174734", "subject": "map", "fact": "vm_map_create initializes dword +0x28=0, +0x30=1, +0x2c=1"},
+    {"range": "0x00174946-0x00174983", "subject": "entry", "fact": "vm_map_insert initializes entry fields and writes WORD +0x28=0 only on the map +0x2c nonzero branch"},
+    {"range": "0x00175e3f-0x00175e5e", "subject": "entry", "fact": "vm_map_pageable reads WORD +0x28, decrements it, and calls vm_fault_unwire when prior value equals 1"},
+    {"range": "0x00176090-0x0017609e", "subject": "entry", "fact": "vm_map_entry_delete unwires when nonzero then writes WORD +0x28=0"},
+    {"range": "0x0017644c-0x001764cb", "subject": "entry", "fact": "vm_map_delete repeats nonzero-unwire-clear behavior in both selected paths"},
+    {"range": "0x00175dcf-0x00175dd4", "subject": "entry", "fact": "split path copies 11 dwords (44 bytes) from existing entry"}
+  ],
+  "pmap_initialization": [
+    {"range": "0x0018eefa-0x0018ef10", "fact": "derives two pmap globals from page_size"},
+    {"range": "0x0018efa4-0x0018f169", "fact": "builds bootstrap mappings in page-size increments and reloads CR3"},
+    {"range": "0x0018f2a3-0x0018f323", "fact": "writes final CR3 and ORs CR0 with 0x80010000"},
+    {"range": "0x0018f336-0x0018f3f8", "fact": "pmap_init allocates resident table storage and three zones, then initializes sentinel/global fields"}
+  ]
+}

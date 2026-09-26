@@ -1,0 +1,637 @@
+[
+  {
+    "requested_address": "0x001aaea0",
+    "addr": "0x001aaea0",
+    "code": "_DWORD *__cdecl sub_1AAEA0(_DWORD *a1)\n{\n  _DWORD *result; // eax\n  id v2; // eax\n  _DWORD v3[6]; // [esp+8h] [ebp-18h] BYREF\n\n  result = a1; /*0x1aaea8*/\n  qmemcpy(v3, &unk_1D5D78, sizeof(v3)); /*0x1aaeb9*/\n  if ( a1[86] || a1[87] ) /*0x1aaec4*/\n  {\n    a1[86] = 0; /*0x1aaecd*/\n    a1[87] = 0; /*0x1aaed7*/\n    v3[1] = 24; /*0x1aaee1*/\n    v2 = objc_msgSend(a1, sel_interruptPort); /*0x1aaef0*/\n    v3[4] = IOGetKernPort((int)v2); /*0x1aaefb*/\n    v3[5] = 2302755; /*0x1aaefe*/\n    return (_DWORD *)msg_send_from_kernel(v3, 0, 0); /*0x1aaf0d*/\n  }\n  return result; /*0x1aaf15*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5d78",
+        "name": "unk_1D5D78"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203e64",
+        "name": "sel_interruptPort",
+        "string": "interruptPort"
+      },
+      {
+        "addr": "0x1a9274",
+        "name": "_IOGetKernPort"
+      },
+      {
+        "addr": "0x1586d4",
+        "name": "_msg_send_from_kernel"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aaf1c",
+    "addr": "0x001aaf1c",
+    "code": "id __cdecl -[DriverCmdtr initPort:](DriverCmdtr *self, SEL a2, int a3)\n{\n  NXConditionLock *v3; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  v5.receiver = self; /*0x1aaf31*/\n  v5.super_class = (Class)stru_1FA334.super_class; /*0x1aaf3a*/\n  -[Object init](&v5, sel_init); /*0x1aaf41*/\n  v3 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x1aaf5d*/\n  self->_interLock = -[NXConditionLock initWith:](v3, sel_initWith_); /*0x1aaf6b*/\n  self->_driverPort_kern = IOGetKernPort(a3); /*0x1aaf74*/\n  return self; /*0x1aaf7c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfbd",
+        "name": "aNxconditionloc",
+        "string": "NXConditionLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1a8df8",
+        "name": "-[NXConditionLock initWith:]"
+      },
+      {
+        "addr": "0x201908",
+        "name": "sel_initWith:",
+        "string": "initWith:"
+      },
+      {
+        "addr": "0x1a9274",
+        "name": "_IOGetKernPort"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aaf84",
+    "addr": "0x001aaf84",
+    "code": "id __cdecl -[DriverCmdtr free](DriverCmdtr *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->_interLock, sel_free); /*0x1aaf99*/\n  port_release(self->_driverPort_kern); /*0x1aafa2*/\n  v3.receiver = self; /*0x1aafae*/\n  v3.super_class = (Class)stru_1FA334.super_class; /*0x1aafb7*/\n  return -[Object free](&v3, sel_free); /*0x1aafc3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x15a614",
+        "name": "_port_release"
+      },
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aafcc",
+    "addr": "0x001aafcc",
+    "code": "int __cdecl -[DriverCmdtr oper](DriverCmdtr *self, SEL a2)\n{\n  return self->_oper; /*0x1aafd7*/\n}"
+  },
+  {
+    "requested_address": "0x001aafdc",
+    "addr": "0x001aafdc",
+    "code": "void __cdecl -[DriverCmdtr done:](DriverCmdtr *self, SEL a2, int a3)\n{\n  if ( objc_msgSend(self->_interLock, sel_condition) == (id)2 ) /*0x1aaff9*/\n  {\n    objc_msgSend(self->_interLock, sel_lock); /*0x1ab006*/\n    self->_ret = a3; /*0x1ab00e*/\n    objc_msgSend(self->_interLock, sel_unlockWith_, 1); /*0x1ab01e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x203ec4",
+        "name": "sel_condition",
+        "string": "condition"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab02c",
+    "addr": "0x001ab02c",
+    "code": "int __cdecl -[DriverCmdtr send:](DriverCmdtr *self, SEL a2, int a3)\n{\n  int ret; // ebx\n  _DWORD v5[6]; // [esp+Ch] [ebp-18h] BYREF\n\n  qmemcpy(v5, &unk_1D5D78, sizeof(v5)); /*0x1ab046*/\n  objc_msgSend(self->_interLock, sel_lockWhen_, 3); /*0x1ab058*/\n  self->_oper = a3; /*0x1ab060*/\n  v5[1] = 24; /*0x1ab063*/\n  v5[4] = self->_driverPort_kern; /*0x1ab06d*/\n  v5[5] = 2302756; /*0x1ab070*/\n  objc_msgSend(self->_interLock, sel_unlockWith_, 2); /*0x1ab087*/\n  ret = msg_send_from_kernel(v5, 0, 0); /*0x1ab099*/\n  if ( ret ) /*0x1ab0a0*/\n  {\n    objc_msgSend(self->_interLock, sel_lock); /*0x1ab0d2*/\n  }\n  else\n  {\n    objc_msgSend(self->_interLock, sel_lockWhen_, 1); /*0x1ab0b2*/\n    ret = self->_ret; /*0x1ab0ba*/\n  }\n  objc_msgSend(self->_interLock, sel_unlockWith_, 3); /*0x1ab0ea*/\n  return ret; /*0x1ab0f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5d78",
+        "name": "unk_1D5D78"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x1586d4",
+        "name": "_msg_send_from_kernel"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab0fc",
+    "addr": "0x001ab0fc",
+    "code": "void __cdecl -[IOTokenRing _set8025FrameSizes](IOTokenRing *self, SEL a2)\n{\n  if ( self->_ringSpeed == 4 ) /*0x1ab109*/\n    self->_maxInfoFieldSize = 4472; /*0x1ab10b*/\n  if ( self->_ringSpeed == 16 ) /*0x1ab11c*/\n    self->_maxInfoFieldSize = 17800; /*0x1ab11e*/\n}"
+  },
+  {
+    "requested_address": "0x001ab12c",
+    "addr": "0x001ab12c",
+    "code": "int __cdecl -[IOTokenRing _getInstanceTable:](IOTokenRing *self, SEL a2, id a3)\n{\n  const char *v3; // eax\n  const char *v5; // ebx\n  const char *v6; // esi\n  const char *v7; // edi\n  int v8; // ecx\n  bool v9; // zf\n  int v10; // eax\n  const char *v11; // eax\n  id v12; // eax\n  _BYTE *v13; // ebx\n  _BYTE *v14; // esi\n  const char *v15; // edi\n  int v16; // ecx\n  bool v17; // zf\n  int v18; // eax\n  _BYTE *v19; // ebx\n  _BYTE *v20; // esi\n  const char *v21; // edi\n  int v22; // ecx\n  bool v23; // zf\n  int v24; // eax\n  id v25; // [esp-Ch] [ebp-1Ch]\n  id v26; // [esp+Ch] [ebp-4h]\n\n  v26 = objc_msgSend(a3, sel_configTable); /*0x1ab145*/\n  if ( v26 )\n  {\n    v5 = (const char *)objc_msgSend(v26, sel_valueForStringKey_, \"Ring Speed\"); /*0x1ab19d*/\n    v6 = v5; /*0x1ab19f*/\n    v7 = \"4\"; /*0x1ab1a1*/\n    v8 = 2; /*0x1ab1a6*/\n    v10 = 0; /*0x1ab1ac*/\n    v9 = 1; /*0x1ab1ac*/\n    do /*0x1ab1ae*/\n    {\n      if ( !v8 ) /*0x1ab1ae*/\n        break; /*0x1ab1ae*/\n      v9 = *v6++ == *v7++; /*0x1ab1ae*/\n      --v8; /*0x1ab1ae*/\n    }\n    while ( v9 ); /*0x1ab1ae*/\n    if ( !v9 ) /*0x1ab1b0*/\n      v10 = *((unsigned __int8 *)v6 - 1) - *((unsigned __int8 *)v7 - 1); /*0x1ab1ba*/\n    if ( v10 )\n    {\n      if ( strcmp(v5, \"16\") )\n      {\n        v11 = -[IODevice name](self, sel_name); /*0x1ab203*/\n        IOLog((int)\"%s: invalid ring speed in Instance.table\\n\", v11);\n      }\n      self->_ringSpeed = 16; /*0x1ab1ea*/\n    }\n    else\n    {\n      self->_ringSpeed = 4; /*0x1ab1c6*/\n    }\n    objc_msgSend(v26, sel_freeString_, v5); /*0x1ab22f*/\n    v12 = objc_msgSend(v26, sel_valueForStringKey_, \"Node Address\"); /*0x1ab244*/\n    objc_msgSend(v26, sel_freeString_, v12); /*0x1ab257*/\n    v13 = objc_msgSend(v26, sel_valueForStringKey_, \"16Mb Early Token\"); /*0x1ab274*/\n    v14 = v13; /*0x1ab276*/\n    v15 = \"YES\"; /*0x1ab278*/\n    v16 = 4; /*0x1ab27d*/\n    v18 = 0; /*0x1ab283*/\n    v17 = 1; /*0x1ab283*/\n    do /*0x1ab285*/\n    {\n      if ( !v16 ) /*0x1ab285*/\n        break; /*0x1ab285*/\n      v17 = *v14++ == *v15++; /*0x1ab285*/\n      --v16; /*0x1ab285*/\n    }\n    while ( v17 ); /*0x1ab285*/\n    if ( !v17 ) /*0x1ab287*/\n      v18 = (unsigned __int8)*(v14 - 1) - *((unsigned __int8 *)v15 - 1); /*0x1ab291*/\n    if ( v18 ) /*0x1ab298*/\n      *(_BYTE *)&self->_flags &= ~2u; /*0x1ab2ab*/\n    else\n      *(_BYTE *)&self->_flags |= 2u; /*0x1ab29d*/\n    objc_msgSend(v26, sel_freeString_, v13); /*0x1ab2be*/\n    v19 = objc_msgSend(v26, sel_valueForStringKey_, \"Auto Recovery\"); /*0x1ab2d8*/\n    v20 = v19; /*0x1ab2da*/\n    v21 = \"YES\"; /*0x1ab2dc*/\n    v22 = 4; /*0x1ab2e1*/\n    v24 = 0; /*0x1ab2e7*/\n    v23 = 1; /*0x1ab2e7*/\n    do /*0x1ab2e9*/\n    {\n      if ( !v22 ) /*0x1ab2e9*/\n        break; /*0x1ab2e9*/\n      v23 = *v20++ == *v21++; /*0x1ab2e9*/\n      --v22; /*0x1ab2e9*/\n    }\n    while ( v23 ); /*0x1ab2e9*/\n    if ( !v23 ) /*0x1ab2eb*/\n      v24 = (unsigned __int8)*(v20 - 1) - *((unsigned __int8 *)v21 - 1); /*0x1ab2f5*/\n    if ( v24 ) /*0x1ab2fc*/\n      *(_BYTE *)&self->_flags &= ~4u; /*0x1ab30f*/\n    else\n      *(_BYTE *)&self->_flags |= 4u; /*0x1ab301*/\n    objc_msgSend(v26, sel_freeString_, v19); /*0x1ab322*/\n    *(_BYTE *)&self->_flags |= 8u; /*0x1ab32a*/\n    self->_ipMtu = 8100; /*0x1ab331*/\n    self->_ipTokenPriority = 8; /*0x1ab33b*/\n    *(_BYTE *)&self->_flags |= 0x20u; /*0x1ab345*/\n    ipforwarding = 0; /*0x1ab34c*/\n    return 0; /*0x1ab356*/\n  }\n  else\n  {\n    v25 = -[IODevice unit](self, sel_unit); /*0x1ab15f*/\n    v3 = -[IODevice name](self, sel_name); /*0x1ab16b*/\n    IOLog((int)\"%s: couldn't get Instance%d.table\\n\", v3, v25);\n    return 1; /*0x1ab17e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20245c",
+        "name": "sel_configTable",
+        "string": "configTable"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1d5ccc",
+        "name": "aRingSpeed",
+        "string": "Ring Speed"
+      },
+      {
+        "addr": "0x1d7524",
+        "name": "a4",
+        "string": "4"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d752c",
+        "name": "aSInvalidRingSp",
+        "string": "%s: invalid ring speed in Instance.table\n"
+      },
+      {
+        "addr": "0x1d7528",
+        "name": "a16",
+        "string": "16"
+      },
+      {
+        "addr": "0x202494",
+        "name": "sel_freeString:",
+        "string": "freeString:"
+      },
+      {
+        "addr": "0x1d5cd7",
+        "name": "aNodeAddress",
+        "string": "Node Address"
+      },
+      {
+        "addr": "0x1d5d05",
+        "name": "a16mbEarlyToken",
+        "string": "16Mb Early Token"
+      },
+      {
+        "addr": "0x1d7558",
+        "name": "aYes",
+        "string": "YES"
+      },
+      {
+        "addr": "0x1d5d16",
+        "name": "aAutoRecovery",
+        "string": "Auto Recovery"
+      },
+      {
+        "addr": "0x1dbdd4",
+        "name": "_ipforwarding"
+      },
+      {
+        "addr": "0x1a43e8",
+        "name": "-[IODevice unit]"
+      },
+      {
+        "addr": "0x203404",
+        "name": "sel_unit",
+        "string": "unit"
+      },
+      {
+        "addr": "0x1d7500",
+        "name": "aSCouldnTGetIns",
+        "string": "%s: couldn't get Instance%d.table\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab364",
+    "addr": "0x001ab364",
+    "code": "id __cdecl -[IOTokenRing initFromDeviceDescription:](IOTokenRing *self, SEL a2, id a3)\n{\n  int v4; // esi\n  DriverCmdtr *v5; // eax\n  char v6[8]; // [esp+Ch] [ebp-10h] BYREF\n  objc_super v7; // [esp+14h] [ebp-8h] BYREF\n\n  v7.receiver = self; /*0x1ab37b*/\n  v7.super_class = (Class)stru_1FA2E4.ext; /*0x1ab384*/\n  if ( !-[IODirectDevice initFromDeviceDescription:](&v7, sel_initFromDeviceDescription_, a3) ) /*0x1ab38b*/\n    return nullptr; /*0x1ab397*/\n  if ( -[IODirectDevice startIOThread](self, sel_startIOThread) ) /*0x1ab3a8*/\n  {\n    -[IOTokenRing free](self, sel_free); /*0x1ab3bc*/\n    return nullptr; /*0x1ab3c1*/\n  }\n  else\n  {\n    v4 = dword_1E5168++; /*0x1ab3c8*/\n    sprintf(v6, \"%s%d\", \"tr\", v4); /*0x1ab3e3*/\n    -[IODevice setName:](self, sel_setName_, v6); /*0x1ab3f1*/\n    -[IODevice setDeviceKind:](self, sel_setDeviceKind_, aTokenring); /*0x1ab403*/\n    -[IODevice setUnit:](self, sel_setUnit_, v4); /*0x1ab414*/\n    if ( -[IOTokenRing _getInstanceTable:](self, sel__getInstanceTable_, a3) ) /*0x1ab425*/\n    {\n      -[IOTokenRing free](self, sel_free); /*0x1ab439*/\n      return nullptr; /*0x1ab43e*/\n    }\n    else\n    {\n      -[IODirectDevice interruptPort](self, sel_interruptPort); /*0x1ab44c*/\n      v5 = +[Object alloc](aDrivercmdtr, sel_alloc); /*0x1ab467*/\n      self->_driverCmd = -[DriverCmdtr initPort:](v5, sel_initPort_); /*0x1ab475*/\n      -[IOTokenRing _set8025FrameSizes](self, sel__set8025FrameSizes); /*0x1ab483*/\n      return self; /*0x1ab488*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa2e4",
+        "name": "stru_1FA2E4"
+      },
+      {
+        "addr": "0x1a83e8",
+        "name": "-[IODirectDevice initFromDeviceDescription:]"
+      },
+      {
+        "addr": "0x203260",
+        "name": "sel_initFromDeviceDescription:",
+        "string": "initFromDeviceDescription:"
+      },
+      {
+        "addr": "0x1ab494",
+        "name": "-[IOTokenRing free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1e5168",
+        "name": "dword_1E5168"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d7464",
+        "name": "aSD",
+        "string": "%s%d"
+      },
+      {
+        "addr": "0x1e5158",
+        "name": "aTr",
+        "string": "tr"
+      },
+      {
+        "addr": "0x1a42e8",
+        "name": "-[IODevice setName:]"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1a433c",
+        "name": "-[IODevice setDeviceKind:]"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1e515b",
+        "name": "aTokenring",
+        "string": "TokenRing"
+      },
+      {
+        "addr": "0x1a43f8",
+        "name": "-[IODevice setUnit:]"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x1a8604",
+        "name": "-[IODirectDevice interruptPort]"
+      },
+      {
+        "addr": "0x203e64",
+        "name": "sel_interruptPort",
+        "string": "interruptPort"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe93a",
+        "name": "aDrivercmdtr",
+        "string": "DriverCmdtr"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1aaf1c",
+        "name": "-[DriverCmdtr initPort:]"
+      },
+      {
+        "addr": "0x204448",
+        "name": "sel_initPort:",
+        "string": "initPort:"
+      },
+      {
+        "addr": "0x1ab0fc",
+        "name": "-[IOTokenRing _set8025FrameSizes]"
+      },
+      {
+        "addr": "0x2045c4",
+        "name": "sel__set8025FrameSizes",
+        "string": "_set8025FrameSizes"
+      },
+      {
+        "addr": "0x1ab12c",
+        "name": "-[IOTokenRing _getInstanceTable:]"
+      },
+      {
+        "addr": "0x2045b0",
+        "name": "sel__getInstanceTable:",
+        "string": "_getInstanceTable:"
+      },
+      {
+        "addr": "0x1a8744",
+        "name": "-[IODirectDevice startIOThread]"
+      },
+      {
+        "addr": "0x203e04",
+        "name": "sel_startIOThread",
+        "string": "startIOThread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab494",
+    "addr": "0x001ab494",
+    "code": "id __cdecl -[IOTokenRing free](IOTokenRing *self, SEL a2)\n{\n  id driverCmd; // eax\n  IONetwork *netif; // eax\n  objc_super v5; // [esp+4h] [ebp-8h] BYREF\n\n  -[IOTokenRing clearTimeout](self, sel_clearTimeout); /*0x1ab4a6*/\n  driverCmd = self->_driverCmd; /*0x1ab4ae*/\n  if ( driverCmd ) /*0x1ab4b6*/\n  {\n    objc_msgSend(driverCmd, sel_send_, 4); /*0x1ab4c2*/\n    objc_msgSend(self->_driverCmd, sel_free); /*0x1ab4d5*/\n  }\n  netif = self->_netif; /*0x1ab4dd*/\n  if ( netif ) /*0x1ab4e5*/\n    -[IONetwork free](netif, sel_free); /*0x1ab4ef*/\n  v5.receiver = self; /*0x1ab4fe*/\n  v5.super_class = (Class)stru_1FA2E4.ext; /*0x1ab507*/\n  return -[IODirectDevice free](&v5, sel_free); /*0x1ab513*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ab78c",
+        "name": "-[IOTokenRing clearTimeout]"
+      },
+      {
+        "addr": "0x2043b4",
+        "name": "sel_clearTimeout",
+        "string": "clearTimeout"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204430",
+        "name": "sel_send:",
+        "string": "send:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a9704",
+        "name": "-[IONetwork free]"
+      },
+      {
+        "addr": "0x1fa2e4",
+        "name": "stru_1FA2E4"
+      },
+      {
+        "addr": "0x1a846c",
+        "name": "-[IODirectDevice free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab51c",
+    "addr": "0x001ab51c",
+    "code": "id __cdecl -[IOTokenRing attachToNetworkWithAddress:](IOTokenRing *self, SEL a2, $D91DDCA3822F03E96939068EA8DE741A a3)\n{\n  IONetwork *v3; // eax\n  char flags; // al\n  id v5; // eax\n  const char *v6; // eax\n  int v8; // [esp-18h] [ebp-20h]\n  int v9; // [esp-14h] [ebp-1Ch]\n  int v10; // [esp-10h] [ebp-18h]\n  _BOOL4 v11; // [esp-Ch] [ebp-14h]\n  int v12; // [esp-Ch] [ebp-14h]\n  unsigned int ipMtu; // [esp-8h] [ebp-10h]\n  int v14; // [esp-8h] [ebp-10h]\n  unsigned int ipTokenPriority; // [esp-4h] [ebp-Ch]\n  int v16; // [esp-4h] [ebp-Ch]\n\n  -[IODevice registerDevice](self, sel_registerDevice); /*0x1ab52e*/\n  self->_nodeAddress = ($7DB4241D942A6BFA756C8894CCB53340)a3; /*0x1ab536*/\n  -[IODevice unit](self, sel_unit); /*0x1ab55d*/\n  v3 = +[Object alloc](aIonetwork, sel_alloc); /*0x1ab581*/\n  self->_netif = (IONetwork *)-[IONetwork initForNetworkDevice:name:unit:type:maxTransferUnit:flags:]( /*0x1ab58f*/\n                                v3,\n                                sel_initForNetworkDevice_name_unit_type_maxTransferUnit_flags_);\n  flags = (char)self->_flags; /*0x1ab595*/\n  if ( (flags & 8) != 0 ) /*0x1ab5a0*/\n  {\n    ipTokenPriority = self->_ipTokenPriority; /*0x1ab5b1*/\n    ipMtu = self->_ipMtu; /*0x1ab5b8*/\n    v11 = (flags & 0x20) != 0; /*0x1ab5b9*/\n    v5 = -[IODevice unit](self, sel_unit); /*0x1ab5c2*/\n    vtrip_config((int)v5, v11, ipMtu, ipTokenPriority); /*0x1ab5cb*/\n  }\n  v16 = self->_nodeAddress.token_addr_octet[5]; /*0x1ab5da*/\n  v14 = self->_nodeAddress.token_addr_octet[4]; /*0x1ab5e2*/\n  v12 = self->_nodeAddress.token_addr_octet[3]; /*0x1ab5ea*/\n  v10 = self->_nodeAddress.token_addr_octet[2]; /*0x1ab5f2*/\n  v9 = self->_nodeAddress.token_addr_octet[1]; /*0x1ab5fa*/\n  v8 = self->_nodeAddress.token_addr_octet[0]; /*0x1ab602*/\n  v6 = -[IODevice name](self, sel_name); /*0x1ab60b*/\n  IOLog((int)\"%s: Token Ring Node address %02x:%02x:%02x:%02x:%02x:%02x\\n\", v6, v8, v9, v10, v12, v14, v16);\n  return self->_netif; /*0x1ab627*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a416c",
+        "name": "-[IODevice registerDevice]"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      },
+      {
+        "addr": "0x1a43e8",
+        "name": "-[IODevice unit]"
+      },
+      {
+        "addr": "0x203404",
+        "name": "sel_unit",
+        "string": "unit"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe870",
+        "name": "aIonetwork",
+        "string": "IONetwork"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1a9694",
+        "name": "-[IONetwork initForNetworkDevice:name:unit:type:maxTransferUnit:flags:]"
+      },
+      {
+        "addr": "0x2040c4",
+        "name": "sel_initForNetworkDevice:name:unit:type:maxTransferUnit:flags:",
+        "string": "initForNetworkDevice:name:unit:type:maxTransferUnit:flags:"
+      },
+      {
+        "addr": "0x120614",
+        "name": "_vtrip_config"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7570",
+        "name": "aSTokenRingNode",
+        "string": "%s: Token Ring Node address %02x:%02x:%02x:%02x:%02x:%02x\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab630",
+    "addr": "0x001ab630",
+    "code": "id __cdecl -[IOTokenRing networkInterface](IOTokenRing *self, SEL a2)\n{\n  return self->_netif; /*0x1ab63e*/\n}"
+  },
+  {
+    "requested_address": "0x001ab640",
+    "addr": "0x001ab640",
+    "code": "char __cdecl -[IOTokenRing isRunning](IOTokenRing *self, SEL a2)\n{\n  return *(_BYTE *)&self->_flags & 1; /*0x1ab651*/\n}"
+  },
+  {
+    "requested_address": "0x001ab654",
+    "addr": "0x001ab654",
+    "code": "void __cdecl -[IOTokenRing setRunning:](IOTokenRing *self, SEL a2, char a3)\n{\n  *(_BYTE *)&self->_flags = a3 & 1 | *(_BYTE *)&self->_flags & 0xFE; /*0x1ab66b*/\n}"
+  },
+  {
+    "requested_address": "0x001ab678",
+    "addr": "0x001ab678",
+    "code": "unsigned int __cdecl -[IOTokenRing relativeTimeout](IOTokenRing *self, SEL a2)\n{\n  __int64 v2; // rax\n  unsigned __int64 v4; // [esp+4h] [ebp-8h] BYREF\n\n  if ( LODWORD(self->_absTimeout) || HIDWORD(self->_absTimeout) ) /*0x1ab68b*/\n  {\n    IOGetTimestamp((int *)&v4); /*0x1ab69c*/\n    if ( self->_absTimeout > v4 ) /*0x1ab6bc*/\n    {\n      return (self->_absTimeout - v4) / 0xF4240; /*0x1ab6f3*/\n    }\n    else\n    {\n      self->_absTimeout = 0; /*0x1ab6be*/\n      LODWORD(v2) = 0; /*0x1ab6d2*/\n    }\n  }\n  else\n  {\n    LODWORD(v2) = 0; /*0x1ab694*/\n  }\n  return v2; /*0x1ab6f8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab700",
+    "addr": "0x001ab700",
+    "code": "void __cdecl -[IOTokenRing setRelativeTimeout:](IOTokenRing *self, SEL a2, unsigned int a3)\n{\n  unsigned __int64 v3; // [esp+Ch] [ebp-Ch]\n\n  if ( LODWORD(self->_absTimeout) || HIDWORD(self->_absTimeout) ) /*0x1ab718*/\n    ns_untimeout((int)sub_1AAEA0, (int)self); /*0x1ab727*/\n  IOGetTimestamp((int *)&self->_absTimeout); /*0x1ab736*/\n  v3 = 1000000LL * a3 + self->_absTimeout; /*0x1ab756*/\n  self->_absTimeout = v3; /*0x1ab75f*/\n  ns_abstimeout((int)sub_1AAEA0, (int)self, v3, SHIDWORD(v3)); /*0x1ab77c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1604fc",
+        "name": "_ns_untimeout"
+      },
+      {
+        "addr": "0x1aaea0",
+        "name": "sub_1AAEA0"
+      },
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1604e0",
+        "name": "_ns_abstimeout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab78c",
+    "addr": "0x001ab78c",
+    "code": "void __cdecl -[IOTokenRing clearTimeout](IOTokenRing *self, SEL a2)\n{\n  if ( LODWORD(self->_absTimeout) || HIDWORD(self->_absTimeout) ) /*0x1ab79c*/\n  {\n    ns_untimeout((int)sub_1AAEA0, (int)self); /*0x1ab7ab*/\n    self->_absTimeout = 0; /*0x1ab7b0*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1604fc",
+        "name": "_ns_untimeout"
+      },
+      {
+        "addr": "0x1aaea0",
+        "name": "sub_1AAEA0"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab7cc",
+    "addr": "0x001ab7cc",
+    "code": "char __cdecl -[IOTokenRing earlyTokenEnabled](IOTokenRing *self, SEL a2)\n{\n  return (*(_BYTE *)&self->_flags & 2) != 0; /*0x1ab7df*/\n}"
+  },
+  {
+    "requested_address": "0x001ab7e4",
+    "addr": "0x001ab7e4",
+    "code": "char __cdecl -[IOTokenRing shouldAutoRecover](IOTokenRing *self, SEL a2)\n{\n  return (*(_BYTE *)&self->_flags & 4) != 0; /*0x1ab7f8*/\n}"
+  },
+  {
+    "requested_address": "0x001ab7fc",
+    "addr": "0x001ab7fc",
+    "code": "unsigned int __cdecl -[IOTokenRing ringSpeed](IOTokenRing *self, SEL a2)\n{\n  return self->_ringSpeed; /*0x1ab80a*/\n}"
+  },
+  {
+    "requested_address": "0x001ab80c",
+    "addr": "0x001ab80c",
+    "code": "unsigned int __cdecl -[IOTokenRing maxInfoFieldSize](IOTokenRing *self, SEL a2)\n{\n  return self->_maxInfoFieldSize; /*0x1ab81a*/\n}"
+  },
+  {
+    "requested_address": "0x001ab81c",
+    "addr": "0x001ab81c",
+    "code": "void __cdecl -[IOTokenRing setMaxInfoFieldSize:](IOTokenRing *self, SEL a2, unsigned int a3)\n{\n  self->_maxInfoFieldSize = a3; /*0x1ab825*/\n}"
+  },
+  {
+    "requested_address": "0x001ab830",
+    "addr": "0x001ab830",
+    "code": "$D91DDCA3822F03E96939068EA8DE741A *__cdecl -[IOTokenRing nodeAddress](\n        $D91DDCA3822F03E96939068EA8DE741A *__return_ptr retstr,\n        IOTokenRing *self,\n        SEL a3)\n{\n  int v3; // ebx\n\n  *(_DWORD *)v3 = *(_DWORD *)&retstr[52].var0[4]; /*0x1ab83d*/\n  *(_WORD *)(v3 + 4) = *(_WORD *)&retstr[53].var0[2]; /*0x1ab846*/\n  return ($D91DDCA3822F03E96939068EA8DE741A *)v3; /*0x1ab84c*/\n}"
+  },
+  {
+    "requested_address": "0x001ab854",
+    "addr": "0x001ab854",
+    "code": "int __cdecl -[IOTokenRing finishInitialization](IOTokenRing *self, SEL a2)\n{\n  int result; // eax\n\n  result = 0; /*0x1ab85a*/\n  if ( (*(_BYTE *)&self->_flags & 1) == 0 ) /*0x1ab863*/\n    return (int)objc_msgSend(self->_driverCmd, sel_send_, 1); /*0x1ab875*/\n  return result; /*0x1ab87c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204430",
+        "name": "sel_send:",
+        "string": "send:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab880",
+    "addr": "0x001ab880",
+    "code": "char __cdecl -[IOTokenRing resetAndEnable:](IOTokenRing *self, SEL a2, char a3)\n{\n  return 1; /*0x1ab88a*/\n}"
+  }
+]

@@ -1,0 +1,3 @@
+0x00101898	3	MOV byte ptr [EDX + 0xe],CL
+0x0010189b	4	MOV word ptr [EDX + 0xc],CX
+0x0010189f	2	JMP 0x0010184f

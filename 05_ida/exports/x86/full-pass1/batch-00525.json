@@ -1,0 +1,553 @@
+[
+  {
+    "requested_address": "0x0011cc68",
+    "addr": "0x0011cc68",
+    "code": "int __cdecl chdirec(int a1, _DWORD *a2)\n{\n  int result; // eax\n  int v3; // [esp+8h] [ebp-8h]\n  int v4; // [esp+Ch] [ebp-4h] BYREF\n\n  result = lookupname(a1, 0, 1, 0, (int)&v4); /*0x11cc81*/\n  if ( !result ) /*0x11cc8b*/\n  {\n    if ( *(_DWORD *)(v4 + 40) != 2 ) /*0x11cc94*/\n    {\n      result = 20; /*0x11cc96*/\nLABEL_5:\n      v3 = result; /*0x11ccbc*/\n      vn_rele(v4); /*0x11ccc3*/\n      return v3; /*0x11cccb*/\n    }\n    result = (*(int (__cdecl **)(int, int, _DWORD))(*(_DWORD *)(v4 + 28) + 28))(v4, 64, *(_DWORD *)(active_u + 28)); /*0x11ccb3*/\n    if ( result ) /*0x11ccba*/\n      goto LABEL_5; /*0x11ccba*/\n    *a2 = v4; /*0x11ccd3*/\n  }\n  return result; /*0x11ccd8*/\n}",
+    "refs": [
+      {
+        "addr": "0x11c0f8",
+        "name": "_lookupname"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011cce0",
+    "addr": "0x0011cce0",
+    "code": "int open(const char *a1, int a2, ...)\n{\n  int *v2; // ebx\n  int posix_proc; // esi\n  char v4; // dl\n  int result; // eax\n\n  v2 = *(int **)(dword_1E875C + 36); /*0x11ccea*/\n  posix_proc = get_posix_proc(*(__int16 *)(*(_DWORD *)active_u + 48)); /*0x11ccfe*/\n  *(_BYTE *)(posix_proc + 24) = (2 * ((v2[1] & 0x10) != 0)) | *(_BYTE *)(posix_proc + 24) & 0xFD; /*0x11cd14*/\n  v4 = copen(*v2, v2[1] + 1, v2[2]); /*0x11cd28*/\n  result = dword_1E875C; /*0x11cd2a*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11cd2f*/\n  *(_BYTE *)(posix_proc + 24) &= ~2u; /*0x11cd32*/\n  return result; /*0x11cd39*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11cd6c",
+        "name": "_copen"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011cd40",
+    "addr": "0x0011cd40",
+    "code": "int __cdecl creat(const char *a1, mode_t a2)\n{\n  char v2; // dl\n  int result; // eax\n\n  v2 = copen(**(_DWORD **)(dword_1E875C + 36), 0x602u, *(_DWORD *)(*(_DWORD *)(dword_1E875C + 36) + 4)); /*0x11cd5c*/\n  result = dword_1E875C; /*0x11cd5e*/\n  *(_BYTE *)(dword_1E875C + 104) = v2; /*0x11cd63*/\n  return result; /*0x11cd68*/\n}",
+    "refs": [
+      {
+        "addr": "0x11cd6c",
+        "name": "_copen"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011cd6c",
+    "addr": "0x0011cd6c",
+    "code": "int __cdecl copen(int a1, unsigned int a2, __int16 a3)\n{\n  int v3; // ebx\n  int v5; // edi\n  int v6; // [esp+Ch] [ebp-8h]\n  int v7; // [esp+10h] [ebp-4h] BYREF\n\n  v3 = falloc(); /*0x11cd7d*/\n  if ( !v3 ) /*0x11cd81*/\n    return *(char *)(dword_1E875C + 104); /*0x11cd88*/\n  v6 = *(_DWORD *)(dword_1E875C + 96); /*0x11cd9c*/\n  v5 = vn_open(a1, 0, a2, a3 & ~*(_WORD *)(active_u + 366) & 0xFFF, &v7); /*0x11cdc6*/\n  if ( v5 ) /*0x11cdcd*/\n  {\n    *(_DWORD *)(*(_DWORD *)(active_u + 336) + 4 * v6) = 0; /*0x11cddd*/\n    crfree(*(_DWORD *)(v3 + 32)); /*0x11cde8*/\n    *(_WORD *)(v3 + 14) = 0; /*0x11cded*/\n    free_file(v3); /*0x11cdf4*/\n  }\n  else\n  {\n    *(_DWORD *)(v3 + 8) = a2 & 0xA000004B; /*0x11ce04*/\n    if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 && *(_DWORD *)(v7 + 40) == 1 ) /*0x11ce1b*/\n      *(_DWORD *)(v3 + 8) = a2 & 0xA000004B | 0x40001000; /*0x11ce23*/\n    *(_WORD *)(v3 + 12) = 1; /*0x11ce26*/\n    *(_DWORD *)(v3 + 24) = v7; /*0x11ce2f*/\n    *(_DWORD *)(v3 + 20) = &vnodefops; /*0x11ce32*/\n    if ( *(_DWORD *)(v7 + 40) == 8 ) /*0x11ce40*/\n      *(_DWORD *)(v3 + 8) |= a2 & 4; /*0x11ce47*/\n    *(_DWORD *)(*(_DWORD *)(active_u + 336) + 4 * v6) = v3; /*0x11ce58*/\n  }\n  return v5; /*0x11ce60*/\n}",
+    "refs": [
+      {
+        "addr": "0x104800",
+        "name": "_falloc"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11df9c",
+        "name": "_vn_open"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x108384",
+        "name": "_crfree"
+      },
+      {
+        "addr": "0x1049c0",
+        "name": "_free_file"
+      },
+      {
+        "addr": "0x1db710",
+        "name": "_vnodefops"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011ce68",
+    "addr": "0x0011ce68",
+    "code": "int __cdecl mknod(const char *a1, mode_t a2, dev_t a3)\n{\n  int v3; // ebx\n  int v4; // eax\n  int result; // eax\n  __int16 v6; // dx\n  int v7; // [esp+4h] [ebp-44h] BYREF\n  int v8; // [esp+8h] [ebp-40h] BYREF\n  __int16 v9; // [esp+Ch] [ebp-3Ch]\n  __int16 v10; // [esp+40h] [ebp-8h]\n\n  v3 = *(_DWORD *)(dword_1E875C + 36); /*0x11ce74*/\n  v4 = *(_DWORD *)(v3 + 4); /*0x11ce77*/\n  if ( (v4 & 0xF000) == 0 ) /*0x11ce7d*/\n  {\n    BYTE1(v4) |= 0x80u; /*0x11ce7f*/\n    *(_DWORD *)(v3 + 4) = v4; /*0x11ce82*/\n  }\n  if ( (*(_DWORD *)(v3 + 4) & 0xF000) == 0x1000 || (result = suser()) != 0 ) /*0x11ce9b*/\n  {\n    vattr_null(&v8); /*0x11cea5*/\n    v8 = mftovt_tab[(*(_DWORD *)(v3 + 4) & 0xF000) >> 13]; /*0x11cebc*/\n    v6 = *(_WORD *)(v3 + 4); /*0x11cebf*/\n    HIBYTE(v6) &= 0xFu; /*0x11cec3*/\n    v9 = ~*(_WORD *)(active_u + 366) & v6; /*0x11ced8*/\n    switch ( v8 ) /*0x11cee7*/\n    {\n      case 0: /*0x11cee7*/\n        result = dword_1E875C; /*0x11cf30*/\n        *(_BYTE *)(dword_1E875C + 104) = 22; /*0x11cf35*/\n        break; /*0x11cf39*/\n      case 2: /*0x11cee7*/\n        result = dword_1E875C; /*0x11cf18*/\n        *(_BYTE *)(dword_1E875C + 104) = 21; /*0x11cf1d*/\n        break; /*0x11cf21*/\n      case 3: /*0x11cee7*/\n      case 4: /*0x11cee7*/\n      case 7: /*0x11cee7*/\n      case 9: /*0x11cee7*/\n        v10 = *(_WORD *)(v3 + 8); /*0x11cf28*/\n        goto LABEL_9; /*0x11cf2c*/\n      default:\nLABEL_9:\n        *(_BYTE *)(dword_1E875C + 104) = vn_create(*(_DWORD *)v3, 0, &v8, 1, 0, &v7); /*0x11cf3c*/\n        result = dword_1E875C; /*0x11cf5c*/\n        if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11cf64*/\n          LOWORD(result) = vn_rele(v7); /*0x11cf6e*/\n        break; /*0x11cf6e*/\n    }\n  }\n  return result; /*0x11cf73*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x1db430",
+        "name": "_mftovt_tab"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11e204",
+        "name": "_vn_create"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011cf7c",
+    "addr": "0x0011cf7c",
+    "code": "int __cdecl mkdir(const char *a1, mode_t a2)\n{\n  int v2; // esi\n  __int16 v3; // dx\n  int result; // eax\n  int v5; // [esp+8h] [ebp-44h] BYREF\n  int v6; // [esp+Ch] [ebp-40h] BYREF\n  __int16 v7; // [esp+10h] [ebp-3Ch]\n\n  v2 = *(_DWORD *)(dword_1E875C + 36); /*0x11cf89*/\n  vattr_null(&v6); /*0x11cf90*/\n  v6 = 2; /*0x11cf95*/\n  v3 = *(_WORD *)(v2 + 4); /*0x11cf9c*/\n  HIBYTE(v3) &= 1u; /*0x11cfa0*/\n  v7 = ~*(_WORD *)(active_u + 366) & v3; /*0x11cfb5*/\n  *(_BYTE *)(dword_1E875C + 104) = vn_create(*(_DWORD *)v2, 0, &v6, 1, 0, &v5); /*0x11cfd3*/\n  result = dword_1E875C; /*0x11cfd6*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11cfde*/\n    LOWORD(result) = vn_rele(v5); /*0x11cfe8*/\n  return result; /*0x11cff0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11e204",
+        "name": "_vn_create"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011cff8",
+    "addr": "0x0011cff8",
+    "code": "int __cdecl link(const char *a1, const char *a2)\n{\n  char v2; // dl\n  int result; // eax\n\n  v2 = vn_link(**(_DWORD **)(dword_1E875C + 36), *(_DWORD *)(*(_DWORD *)(dword_1E875C + 36) + 4), 0); /*0x11d011*/\n  result = dword_1E875C; /*0x11d013*/\n  *(_BYTE *)(dword_1E875C + 104) = v2; /*0x11d018*/\n  return result; /*0x11d01d*/\n}",
+    "refs": [
+      {
+        "addr": "0x11e510",
+        "name": "_vn_link"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d020",
+    "addr": "0x0011d020",
+    "code": "int __cdecl rename(const char *__old, const char *__new)\n{\n  char v2; // dl\n  int result; // eax\n\n  v2 = vn_rename(**(_DWORD **)(dword_1E875C + 36), *(_DWORD *)(*(_DWORD *)(dword_1E875C + 36) + 4), 0); /*0x11d039*/\n  result = dword_1E875C; /*0x11d03b*/\n  *(_BYTE *)(dword_1E875C + 104) = v2; /*0x11d040*/\n  return result; /*0x11d045*/\n}",
+    "refs": [
+      {
+        "addr": "0x11e658",
+        "name": "_vn_rename"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d048",
+    "addr": "0x0011d048",
+    "code": "int __cdecl symlink(const char *a1, const char *a2)\n{\n  int *v2; // edi\n  int result; // eax\n  int v4; // [esp+10h] [ebp-5Ch] BYREF\n  int v5[3]; // [esp+14h] [ebp-58h] BYREF\n  int v6[3]; // [esp+20h] [ebp-4Ch] BYREF\n  _BYTE v7[4]; // [esp+2Ch] [ebp-40h] BYREF\n  __int16 v8; // [esp+30h] [ebp-3Ch]\n\n  v2 = *(int **)(dword_1E875C + 36); /*0x11d056*/\n  *(_BYTE *)(dword_1E875C + 104) = pn_get(v2[1], 0, v5); /*0x11d06f*/\n  result = dword_1E875C; /*0x11d072*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d07a*/\n  {\n    *(_BYTE *)(dword_1E875C + 104) = lookuppn((int)v5, 0, &v4, nullptr); /*0x11d099*/\n    if ( *(_BYTE *)(dword_1E875C + 104) ) /*0x11d0a5*/\n    {\n      return pn_free(v5); /*0x11d0ac*/\n    }\n    else\n    {\n      if ( (*(_BYTE *)(*(_DWORD *)(v4 + 36) + 12) & 1) != 0 ) /*0x11d0c2*/\n      {\n        *(_BYTE *)(dword_1E875C + 104) = 30; /*0x11d0c4*/\n      }\n      else\n      {\n        *(_BYTE *)(dword_1E875C + 104) = pn_get(*v2, 0, v6); /*0x11d0e1*/\n        vattr_null(v7); /*0x11d0e8*/\n        v8 = 511; /*0x11d0ed*/\n        if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d0fb*/\n        {\n          *(_BYTE *)(dword_1E875C + 104) = (*(int (__cdecl **)(int, int, _BYTE *, int, _DWORD))(*(_DWORD *)(v4 + 28) + 64))( /*0x11d12c*/\n                                             v4,\n                                             v5[1],\n                                             v7,\n                                             v6[1],\n                                             *(_DWORD *)(active_u + 28));\n          pn_free(v6); /*0x11d130*/\n        }\n      }\n      pn_free(v5); /*0x11d13c*/\n      LOWORD(result) = vn_rele(v4); /*0x11d145*/\n    }\n  }\n  return result; /*0x11d14d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11c9a0",
+        "name": "_pn_get"
+      },
+      {
+        "addr": "0x11c13c",
+        "name": "_lookuppn"
+      },
+      {
+        "addr": "0x11cb84",
+        "name": "_pn_free"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d154",
+    "addr": "0x0011d154",
+    "code": "int __cdecl unlink(const char *a1)\n{\n  char v1; // dl\n  int result; // eax\n\n  v1 = vn_remove(**(_DWORD **)(dword_1E875C + 36), 0, 0); /*0x11d16b*/\n  result = dword_1E875C; /*0x11d16d*/\n  *(_BYTE *)(dword_1E875C + 104) = v1; /*0x11d172*/\n  return result; /*0x11d177*/\n}",
+    "refs": [
+      {
+        "addr": "0x11e83c",
+        "name": "_vn_remove"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d17c",
+    "addr": "0x0011d17c",
+    "code": "int __cdecl rmdir(const char *a1)\n{\n  char v1; // dl\n  int result; // eax\n\n  v1 = vn_remove(**(_DWORD **)(dword_1E875C + 36), 0, 1); /*0x11d193*/\n  result = dword_1E875C; /*0x11d195*/\n  *(_BYTE *)(dword_1E875C + 104) = v1; /*0x11d19a*/\n  return result; /*0x11d19f*/\n}",
+    "refs": [
+      {
+        "addr": "0x11e83c",
+        "name": "_vn_remove"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d1a4",
+    "addr": "0x0011d1a4",
+    "code": "int __cdecl getdirentries(int a1, char *a2, int a3, __int32 *a4)\n{\n  _DWORD *v4; // esi\n  char v5; // dl\n  int result; // eax\n  _DWORD v7[2]; // [esp+Ch] [ebp-24h] BYREF\n  int v8; // [esp+14h] [ebp-1Ch] BYREF\n  _DWORD v9[2]; // [esp+18h] [ebp-18h] BYREF\n  int v10; // [esp+20h] [ebp-10h]\n  int v11; // [esp+24h] [ebp-Ch]\n  int v12; // [esp+2Ch] [ebp-4h]\n\n  v4 = *(_DWORD **)(dword_1E875C + 36); /*0x11d1b2*/\n  v5 = getvnodefp(*v4, &v8); /*0x11d1c1*/\n  result = dword_1E875C; /*0x11d1c3*/\n  *(_BYTE *)(dword_1E875C + 104) = v5; /*0x11d1c8*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d1d4*/\n  {\n    result = v8; /*0x11d1de*/\n    if ( (*(_BYTE *)(v8 + 8) & 1) != 0 ) /*0x11d1e5*/\n    {\n      while ( 1 ) /*0x11d1f3*/\n      {\n        v7[0] = v4[1]; /*0x11d1f3*/\n        v7[1] = v4[2]; /*0x11d1f9*/\n        v9[0] = v7; /*0x11d1ff*/\n        v9[1] = 1; /*0x11d202*/\n        v10 = *(_DWORD *)(v8 + 28); /*0x11d20f*/\n        v11 = 0; /*0x11d212*/\n        v12 = v4[2]; /*0x11d21c*/\n        if ( v10 < 0 ) /*0x11d223*/\n          break; /*0x11d223*/\n        *(_BYTE *)(dword_1E875C + 104) = (*(int (__cdecl **)(_DWORD, _DWORD *, _DWORD))(*(_DWORD *)(*(_DWORD *)(v8 + 24) /*0x11d240*/\n                                                                                                  + 28)\n                                                                                      + 60))(\n                                           *(_DWORD *)(v8 + 24),\n                                           v9,\n                                           *(_DWORD *)(v8 + 32));\n        if ( v4[2] != v12 ) /*0x11d24c*/\n          goto LABEL_8; /*0x11d24c*/\n        *(_DWORD *)(v8 + 28) = -1024; /*0x11d251*/\n      }\n      *(_BYTE *)(dword_1E875C + 104) = getfakedirentries(*(_DWORD *)(v8 + 24), v9); /*0x11d274*/\nLABEL_8:\n      result = dword_1E875C; /*0x11d27a*/\n      if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d27f*/\n      {\n        *(_BYTE *)(dword_1E875C + 104) = copyout(v8 + 28, v4[3], 4); /*0x11d29e*/\n        *(_DWORD *)(dword_1E875C + 96) = v4[2] - v12; /*0x11d2ac*/\n        result = v8; /*0x11d2af*/\n        *(_DWORD *)(v8 + 28) = v10; /*0x11d2b5*/\n      }\n    }\n    else\n    {\n      *(_BYTE *)(dword_1E875C + 104) = 9; /*0x11d1e7*/\n    }\n  }\n  return result; /*0x11d2bb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11de44",
+        "name": "_getvnodefp"
+      },
+      {
+        "addr": "0x11d2c4",
+        "name": "_getfakedirentries"
+      },
+      {
+        "addr": "0x189cec",
+        "name": "_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d2c4",
+    "addr": "0x0011d2c4",
+    "code": "int __cdecl getfakedirentries(int a1, _DWORD *a2)\n{\n  unsigned int v2; // esi\n  unsigned int v3; // edx\n  int v4; // ebx\n  int v5; // esi\n  int v6; // eax\n  int v7; // edx\n  unsigned __int16 v8; // cx\n  __int16 v9; // ax\n  int v10; // eax\n  int v11; // eax\n  int v12; // eax\n  int v13; // ebx\n  int v15; // [esp+14h] [ebp-11Ch]\n  unsigned int v16; // [esp+18h] [ebp-118h]\n  int v17; // [esp+1Ch] [ebp-114h]\n  int v18; // [esp+20h] [ebp-110h]\n  unsigned int v19; // [esp+24h] [ebp-10Ch]\n\n  if ( !*(_DWORD *)(a1 + 16) ) /*0x11d2d3*/\n    return 0; /*0x11d2d3*/\n  v16 = a2[5]; /*0x11d2e4*/\n  v19 = -1024 - a2[2]; /*0x11d2f5*/\n  if ( !v16 ) /*0x11d302*/\n    return 0; /*0x11d302*/\n  v2 = 0; /*0x11d308*/\n  v15 = *(_DWORD *)(a1 + 16); /*0x11d30a*/\n  if ( v19 ) /*0x11d316*/\n  {\n    while ( v15 ) /*0x11d327*/\n    {\n      v3 = (((unsigned __int16)strlen((const char *)(v15 + 32)) + 4) & 0xFFFFFFFC) + 8; /*0x11d365*/\n      if ( v3 + (v2 & 0xFFFFFC00) <= 0x400 ) /*0x11d378*/\n        v2 += v3; /*0x11d384*/\n      else\n        v2 = (v2 & 0xFFFFFC00) + 1024; /*0x11d37a*/\n      v15 = *(_DWORD *)(v15 + 288); /*0x11d392*/\n      if ( v19 <= v2 ) /*0x11d39e*/\n        goto LABEL_9; /*0x11d39e*/\n    }\n    return 0; /*0x11d327*/\n  }\nLABEL_9:\n  if ( !v15 ) /*0x11d3a7*/\n    return 0; /*0x11d544*/\n  v17 = a2[5]; /*0x11d3b3*/\n  v18 = kalloc(v16); /*0x11d3bf*/\n  v4 = v18; /*0x11d3c5*/\n  v5 = 0; /*0x11d3cb*/\n  while ( 1 ) /*0x11d3e0*/\n  {\n    *(_DWORD *)v4 = -1; /*0x11d3e0*/\n    *(_WORD *)(v4 + 6) = strlen((const char *)(v15 + 32)); /*0x11d412*/\n    strcpy((char *)(v4 + 8), (const char *)(v15 + 32)); /*0x11d41b*/\n    v6 = *(_DWORD *)(v15 + 288); /*0x11d426*/\n    v15 = v6; /*0x11d42c*/\n    if ( !v6 ) /*0x11d437*/\n      break; /*0x11d437*/\n    v7 = (unsigned __int16)strlen((const char *)(v6 + 32)) + 4; /*0x11d469*/\n    LOBYTE(v7) = v7 & 0xFC; /*0x11d46c*/\n    v8 = *(_WORD *)(v4 + 6); /*0x11d473*/\n    if ( ((v8 + 4) & 0xFFFFFFFC) + v5 + v7 + 16 <= 0x400 ) /*0x11d488*/\n    {\n      v9 = v8 + 4; /*0x11d49e*/\n      LOBYTE(v9) = (v8 + 4) & 0xFC; /*0x11d4a2*/\n      *(_WORD *)(v4 + 4) = v9 + 8; /*0x11d4a8*/\n      v10 = *(unsigned __int16 *)(v4 + 6) + 4; /*0x11d4b0*/\n      LOBYTE(v10) = v10 & 0xFC; /*0x11d4b3*/\n      v5 += v10 + 8; /*0x11d4b5*/\n    }\n    else\n    {\n      *(_WORD *)(v4 + 4) = 1024 - v5; /*0x11d492*/\n      v5 = 0; /*0x11d496*/\n    }\n    v11 = *(unsigned __int16 *)(v4 + 4); /*0x11d4b9*/\n    v16 -= v11; /*0x11d4bd*/\n    v19 += v11; /*0x11d4c3*/\n    v4 += *(unsigned __int16 *)(v4 + 4); /*0x11d4f0*/\n    if ( !v16 ) /*0x11d4f9*/\n      goto LABEL_18; /*0x11d4f9*/\n  }\n  *(_WORD *)(v4 + 4) = 1024 - v5; /*0x11d4d4*/\n  v12 = (unsigned __int16)(1024 - v5); /*0x11d4d8*/\n  v16 -= v12; /*0x11d4dd*/\n  v19 += v12; /*0x11d4e3*/\nLABEL_18:\n  v13 = uiomove(v18, a2[5] - v16, 0, a2); /*0x11d4ff*/\n  kfree(v18, v17); /*0x11d525*/\n  if ( !v13 ) /*0x11d52c*/\n  {\n    a2[2] = -(v19 + 1024); /*0x11d53f*/\n    return 0; /*0x11d53f*/\n  }\n  return v13; /*0x11d550*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      },
+      {
+        "addr": "0x10a384",
+        "name": "_uiomove"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d558",
+    "addr": "0x0011d558",
+    "code": "off_t __cdecl lseek(int a1, off_t a2, int a3)\n{\n  _DWORD *v3; // ebx\n  char v4; // dl\n  off_t result; // rax\n  int v6; // ecx\n  int v7; // eax\n  char v8; // dl\n  _BYTE v9[24]; // [esp+Ch] [ebp-44h] BYREF\n  int v10; // [esp+24h] [ebp-2Ch]\n  int v11; // [esp+4Ch] [ebp-4h] BYREF\n\n  v3 = *(_DWORD **)(dword_1E875C + 36); /*0x11d566*/\n  v4 = getvnodefp(*v3, &v11); /*0x11d575*/\n  LODWORD(result) = dword_1E875C; /*0x11d577*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11d57c*/\n  HIDWORD(result) = dword_1E875C; /*0x11d57f*/\n  LOBYTE(result) = *(_BYTE *)(dword_1E875C + 104); /*0x11d588*/\n  if ( (_BYTE)result ) /*0x11d58d*/\n  {\n    if ( (_BYTE)result != 22 ) /*0x11d591*/\n      return result; /*0x11d591*/\n    goto LABEL_3; /*0x11d591*/\n  }\n  v6 = *(_DWORD *)(v11 + 24); /*0x11d5a3*/\n  if ( *(_DWORD *)(v6 + 40) == 8 ) /*0x11d5aa*/\n  {\nLABEL_3:\n    *(_BYTE *)(dword_1E875C + 104) = 29; /*0x11d597*/\n    return result; /*0x11d59b*/\n  }\n  v7 = v3[2]; /*0x11d5ac*/\n  if ( v7 == 1 ) /*0x11d5b2*/\n  {\n    if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x11d5db*/\n    {\n      LODWORD(result) = v3[1] + *(_DWORD *)(v11 + 28); /*0x11d5e0*/\n      if ( (int)result < 0 ) /*0x11d5e3*/\n        goto LABEL_20; /*0x11d5e3*/\n    }\n    *(_DWORD *)(v11 + 28) += v3[1]; /*0x11d5eb*/\n  }\n  else if ( v7 > 1 ) /*0x11d5b4*/\n  {\n    if ( v7 != 2 ) /*0x11d5c7*/\n      goto LABEL_22; /*0x11d5c7*/\n    v8 = (*(int (__stdcall **)(int, _BYTE *, _DWORD))(*(_DWORD *)(v6 + 28) + 20))(v6, v9, *(_DWORD *)(active_u + 28)); /*0x11d60a*/\n    LODWORD(result) = dword_1E875C; /*0x11d60c*/\n    *(_BYTE *)(dword_1E875C + 104) = v8; /*0x11d611*/\n    HIDWORD(result) = dword_1E875C; /*0x11d614*/\n    if ( *(_BYTE *)(dword_1E875C + 104) ) /*0x11d61a*/\n      return result; /*0x11d61e*/\n    if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x11d62b*/\n    {\n      LODWORD(result) = v10 + v3[1]; /*0x11d630*/\n      if ( (int)result < 0 ) /*0x11d633*/\n        goto LABEL_20; /*0x11d633*/\n    }\n    *(_DWORD *)(v11 + 28) = v10 + v3[1]; /*0x11d63e*/\n  }\n  else\n  {\n    if ( v7 ) /*0x11d5b8*/\n    {\nLABEL_22:\n      *(_BYTE *)(dword_1E875C + 104) = 22; /*0x11d66c*/\n      goto LABEL_23; /*0x11d671*/\n    }\n    LODWORD(result) = *(_DWORD *)active_u; /*0x11d649*/\n    if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 && (int)v3[1] < 0 ) /*0x11d655*/\n    {\nLABEL_20:\n      *(_BYTE *)(HIDWORD(result) + 104) = 22; /*0x11d657*/\n      return result; /*0x11d65b*/\n    }\n    *(_DWORD *)(v11 + 28) = v3[1]; /*0x11d666*/\n  }\nLABEL_23:\n  HIDWORD(result) = dword_1E875C; /*0x11d675*/\n  LODWORD(result) = *(_DWORD *)(v11 + 28); /*0x11d67e*/\n  *(_DWORD *)(dword_1E875C + 96) = result; /*0x11d681*/\n  return result; /*0x11d687*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11de44",
+        "name": "_getvnodefp"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d690",
+    "addr": "0x0011d690",
+    "code": "int __cdecl access(const char *a1, int a2)\n{\n  int *v2; // esi\n  int result; // eax\n  _WORD *v4; // eax\n  __int16 v5; // di\n  unsigned __int16 v6; // bx\n  int v7; // eax\n  __int16 v8; // [esp+Ch] [ebp-8h]\n  int v9; // [esp+10h] [ebp-4h] BYREF\n\n  v2 = *(int **)(dword_1E875C + 36); /*0x11d69e*/\n  *(_BYTE *)(dword_1E875C + 104) = lookupname(*v2, 0, 1, 0, (int)&v9); /*0x11d6ba*/\n  result = dword_1E875C; /*0x11d6bd*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d6c5*/\n  {\n    v4 = *(_WORD **)(active_u + 28); /*0x11d6d4*/\n    v5 = v4[1]; /*0x11d6d7*/\n    v8 = v4[2]; /*0x11d6df*/\n    v4[1] = v4[3]; /*0x11d6e6*/\n    *(_WORD *)(*(_DWORD *)(active_u + 28) + 4) = *(_WORD *)(*(_DWORD *)(active_u + 28) + 8); /*0x11d6f6*/\n    v6 = 0; /*0x11d6fa*/\n    v7 = v2[1]; /*0x11d6fc*/\n    if ( v7 ) /*0x11d701*/\n    {\n      if ( (v7 & 4) != 0 ) /*0x11d705*/\n        v6 = 256; /*0x11d707*/\n      if ( (v7 & 2) != 0 ) /*0x11d70e*/\n      {\n        if ( isrofile(v9) ) /*0x11d714*/\n        {\n          *(_BYTE *)(dword_1E875C + 104) = 30; /*0x11d725*/\n          goto LABEL_12; /*0x11d729*/\n        }\n        LOBYTE(v6) = v6 | 0x80; /*0x11d72c*/\n      }\n      if ( (v2[1] & 1) != 0 ) /*0x11d733*/\n        LOBYTE(v6) = v6 | 0x40; /*0x11d735*/\n      *(_BYTE *)(dword_1E875C + 104) = (*(int (__cdecl **)(int, _DWORD, _DWORD))(*(_DWORD *)(v9 + 28) + 28))( /*0x11d758*/\n                                         v9,\n                                         v6,\n                                         *(_DWORD *)(active_u + 28));\n    }\nLABEL_12:\n    vn_rele(v9); /*0x11d75e*/\n    *(_WORD *)(*(_DWORD *)(active_u + 28) + 2) = v5; /*0x11d76f*/\n    result = *(_DWORD *)(active_u + 28); /*0x11d778*/\n    *(_WORD *)(result + 4) = v8; /*0x11d77f*/\n  }\n  return result; /*0x11d786*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11c0f8",
+        "name": "_lookupname"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11ea5c",
+        "name": "_isrofile"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d790",
+    "addr": "0x0011d790",
+    "code": "int __cdecl stat(const char *a1, stat *a2)\n{\n  char v2; // dl\n  int result; // eax\n\n  v2 = stat1(*(int **)(dword_1E875C + 36), 1); /*0x11d7a3*/\n  result = dword_1E875C; /*0x11d7a5*/\n  *(_BYTE *)(dword_1E875C + 104) = v2; /*0x11d7aa*/\n  return result; /*0x11d7af*/\n}",
+    "refs": [
+      {
+        "addr": "0x11d7d8",
+        "name": "_stat1"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d7b4",
+    "addr": "0x0011d7b4",
+    "code": "int __cdecl lstat(const char *a1, stat *a2)\n{\n  char v2; // dl\n  int result; // eax\n\n  v2 = stat1(*(int **)(dword_1E875C + 36), 0); /*0x11d7c7*/\n  result = dword_1E875C; /*0x11d7c9*/\n  *(_BYTE *)(dword_1E875C + 104) = v2; /*0x11d7ce*/\n  return result; /*0x11d7d3*/\n}",
+    "refs": [
+      {
+        "addr": "0x11d7d8",
+        "name": "_stat1"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d7d8",
+    "addr": "0x0011d7d8",
+    "code": "int __cdecl stat1(int *a1, int a2)\n{\n  int result; // eax\n  int v3; // [esp+8h] [ebp-48h]\n  int v4; // [esp+Ch] [ebp-44h] BYREF\n  _BYTE v5[64]; // [esp+10h] [ebp-40h] BYREF\n\n  result = lookupname(*a1, 0, a2, 0, (int)&v4); /*0x11d7f2*/\n  if ( !result ) /*0x11d7fc*/\n  {\n    v3 = vno_stat(v4, v5); /*0x11d80f*/\n    vn_rele(v4); /*0x11d812*/\n    result = v3; /*0x11d81a*/\n    if ( !v3 ) /*0x11d81f*/\n      return copyout(v5, a1[1], 64); /*0x11d828*/\n  }\n  return result; /*0x11d830*/\n}",
+    "refs": [
+      {
+        "addr": "0x11c0f8",
+        "name": "_lookupname"
+      },
+      {
+        "addr": "0x11bc50",
+        "name": "_vno_stat"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x189cec",
+        "name": "_copyout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d838",
+    "addr": "0x0011d838",
+    "code": "ssize_t __cdecl readlink(const char *a1, char *a2, size_t a3)\n{\n  int *v3; // ebx\n  ssize_t result; // eax\n  _DWORD v5[2]; // [esp+8h] [ebp-24h] BYREF\n  int v6; // [esp+10h] [ebp-1Ch] BYREF\n  _DWORD v7[5]; // [esp+14h] [ebp-18h] BYREF\n  int v8; // [esp+28h] [ebp-4h]\n\n  v3 = *(int **)(dword_1E875C + 36); /*0x11d845*/\n  *(_BYTE *)(dword_1E875C + 104) = lookupname(*v3, 0, 0, 0, (int)&v6); /*0x11d861*/\n  result = dword_1E875C; /*0x11d864*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11d86c*/\n  {\n    if ( *(_DWORD *)(v6 + 40) == 5 ) /*0x11d879*/\n    {\n      v5[0] = v3[1]; /*0x11d887*/\n      v5[1] = v3[2]; /*0x11d88d*/\n      v7[0] = v5; /*0x11d893*/\n      v7[1] = 1; /*0x11d896*/\n      v7[2] = 0; /*0x11d89d*/\n      v7[3] = 0; /*0x11d8a4*/\n      v8 = v3[2]; /*0x11d8ae*/\n      *(_BYTE *)(dword_1E875C + 104) = (*(int (__cdecl **)(int, _DWORD *, _DWORD))(*(_DWORD *)(v6 + 28) + 68))( /*0x11d8ce*/\n                                         v6,\n                                         v7,\n                                         *(_DWORD *)(active_u + 28));\n    }\n    else\n    {\n      *(_BYTE *)(dword_1E875C + 104) = 22; /*0x11d87b*/\n    }\n    vn_rele(v6); /*0x11d8d8*/\n    result = dword_1E875C; /*0x11d8dd*/\n    *(_DWORD *)(dword_1E875C + 96) = v3[2] - v8; /*0x11d8e8*/\n  }\n  return result; /*0x11d8ee*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11c0f8",
+        "name": "_lookupname"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d8f4",
+    "addr": "0x0011d8f4",
+    "code": "int __cdecl chmod(const char *a1, mode_t a2)\n{\n  int v2; // esi\n  __int16 v3; // cx\n  char v4; // dl\n  int result; // eax\n  _BYTE v6[4]; // [esp+8h] [ebp-40h] BYREF\n  __int16 v7; // [esp+Ch] [ebp-3Ch]\n\n  v2 = *(_DWORD *)(dword_1E875C + 36); /*0x11d901*/\n  vattr_null(v6); /*0x11d908*/\n  v3 = *(_WORD *)(v2 + 4); /*0x11d90d*/\n  HIBYTE(v3) &= 0xFu; /*0x11d911*/\n  v7 = v3; /*0x11d914*/\n  v4 = namesetattr(*(_DWORD *)v2, 1, v6); /*0x11d923*/\n  result = dword_1E875C; /*0x11d925*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11d92a*/\n  return result; /*0x11d930*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x11dc54",
+        "name": "_namesetattr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d938",
+    "addr": "0x0011d938",
+    "code": "int __cdecl fchmod(int a1, mode_t a2)\n{\n  int v2; // esi\n  __int16 v3; // cx\n  char v4; // dl\n  int result; // eax\n  _BYTE v6[4]; // [esp+8h] [ebp-40h] BYREF\n  __int16 v7; // [esp+Ch] [ebp-3Ch]\n\n  v2 = *(_DWORD *)(dword_1E875C + 36); /*0x11d945*/\n  vattr_null(v6); /*0x11d94c*/\n  v3 = *(_WORD *)(v2 + 4); /*0x11d951*/\n  HIBYTE(v3) &= 0xFu; /*0x11d955*/\n  v7 = v3; /*0x11d958*/\n  v4 = fdsetattr(*(_DWORD *)v2, v6); /*0x11d965*/\n  result = dword_1E875C; /*0x11d967*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11d96c*/\n  return result; /*0x11d972*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x11dcbc",
+        "name": "_fdsetattr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d978",
+    "addr": "0x0011d978",
+    "code": "int __cdecl chown(const char *a1, uid_t a2, gid_t a3)\n{\n  int v3; // ebx\n  char v4; // dl\n  int result; // eax\n  _BYTE v6[6]; // [esp+8h] [ebp-40h] BYREF\n  __int16 v7; // [esp+Eh] [ebp-3Ah]\n  __int16 v8; // [esp+10h] [ebp-38h]\n\n  v3 = *(_DWORD *)(dword_1E875C + 36); /*0x11d985*/\n  vattr_null(v6); /*0x11d98c*/\n  v7 = *(_WORD *)(v3 + 4); /*0x11d995*/\n  v8 = *(_WORD *)(v3 + 8); /*0x11d99d*/\n  v4 = namesetattr(*(_DWORD *)v3, 0, v6); /*0x11d9ac*/\n  result = dword_1E875C; /*0x11d9ae*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11d9b3*/\n  return result; /*0x11d9b9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x11dc54",
+        "name": "_namesetattr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011d9c0",
+    "addr": "0x0011d9c0",
+    "code": "int __cdecl fchown(int a1, uid_t a2, gid_t a3)\n{\n  int v3; // ebx\n  char v4; // dl\n  int result; // eax\n  _BYTE v6[6]; // [esp+8h] [ebp-40h] BYREF\n  __int16 v7; // [esp+Eh] [ebp-3Ah]\n  __int16 v8; // [esp+10h] [ebp-38h]\n\n  v3 = *(_DWORD *)(dword_1E875C + 36); /*0x11d9cd*/\n  vattr_null(v6); /*0x11d9d4*/\n  v7 = *(_WORD *)(v3 + 4); /*0x11d9dd*/\n  v8 = *(_WORD *)(v3 + 8); /*0x11d9e5*/\n  v4 = fdsetattr(*(_DWORD *)v3, v6); /*0x11d9f2*/\n  result = dword_1E875C; /*0x11d9f4*/\n  *(_BYTE *)(dword_1E875C + 104) = v4; /*0x11d9f9*/\n  return result; /*0x11d9ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x11dcbc",
+        "name": "_fdsetattr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011da08",
+    "addr": "0x0011da08",
+    "code": "int __cdecl utimes(const char *a1, const timeval *a2)\n{\n  _DWORD *v2; // esi\n  int result; // eax\n  _BYTE v4[32]; // [esp+8h] [ebp-50h] BYREF\n  int v5; // [esp+28h] [ebp-30h]\n  int v6; // [esp+2Ch] [ebp-2Ch]\n  int v7; // [esp+30h] [ebp-28h]\n  int v8; // [esp+34h] [ebp-24h]\n  _DWORD v9[4]; // [esp+48h] [ebp-10h] BYREF\n\n  v2 = *(_DWORD **)(dword_1E875C + 36); /*0x11da16*/\n  result = copyin(v2[1], v9, 16); /*0x11da23*/\n  *(_BYTE *)(dword_1E875C + 104) = result; /*0x11da2e*/\n  if ( !*(_BYTE *)(dword_1E875C + 104) ) /*0x11da3a*/\n  {\n    vattr_null(v4); /*0x11da44*/\n    v5 = v9[0]; /*0x11da4f*/\n    v6 = v9[1]; /*0x11da52*/\n    v7 = v9[2]; /*0x11da5b*/\n    v8 = v9[3]; /*0x11da5e*/\n    result = namesetattr(*v2, 1, v4); /*0x11da67*/\n    *(_BYTE *)(dword_1E875C + 104) = result; /*0x11da72*/\n  }\n  return result; /*0x11da78*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x189a5c",
+        "name": "_copyin"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x11dc54",
+        "name": "_namesetattr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011da80",
+    "addr": "0x0011da80",
+    "code": "char _utime()\n{\n  _DWORD *v0; // esi\n  _DWORD *posix_proc; // ebx\n  char result; // al\n  int v3; // edx\n  _DWORD v4[2]; // [esp+Ch] [ebp-50h] BYREF\n  int v5; // [esp+14h] [ebp-48h] BYREF\n  int v6; // [esp+18h] [ebp-44h]\n  _BYTE v7[32]; // [esp+1Ch] [ebp-40h] BYREF\n  int v8; // [esp+3Ch] [ebp-20h]\n  int v9; // [esp+40h] [ebp-1Ch]\n  int v10; // [esp+44h] [ebp-18h]\n  int v11; // [esp+48h] [ebp-14h]\n\n  v0 = *(_DWORD **)(dword_1E875C + 36); /*0x11da8e*/\n  posix_proc = get_posix_proc(*(__int16 *)(*(_DWORD *)active_u + 48)); /*0x11daa2*/\n  getthetime(&v5); /*0x11daa8*/\n  vattr_null(v7); /*0x11dab1*/\n  if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) == 0 || v0[1] ) /*0x11dac6*/\n  {\n    *(_BYTE *)(dword_1E875C + 104) = copyin(v0[1], v4, 8); /*0x11dafa*/\n    result = dword_1E875C; /*0x11dafd*/\n    if ( *(_BYTE *)(dword_1E875C + 104) ) /*0x11db05*/\n      return result; /*0x11db09*/\n    v8 = v4[0]; /*0x11db0e*/\n    v10 = v4[1]; /*0x11db14*/\n    v11 = 0; /*0x11db17*/\n    v9 = 0; /*0x11db1e*/\n  }\n  else\n  {\n    v10 = v5; /*0x11dacf*/\n    v8 = v5; /*0x11dad2*/\n    v11 = v6; /*0x11dad8*/\n    v9 = v6; /*0x11dadb*/\n    *((_BYTE *)posix_proc + 24) |= 1u; /*0x11dade*/\n  }\n  v3 = namesetattr(*v0, 1, v7); /*0x11db33*/\n  *((_BYTE *)posix_proc + 24) &= ~1u; /*0x11db35*/\n  if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 && v3 == 1 && !v0[1] ) /*0x11db55*/\n    result = 13; /*0x11db5c*/\n  else\n    result = v3; /*0x11db57*/\n  *(_BYTE *)(dword_1E875C + 104) = result; /*0x11db5e*/\n  return result; /*0x11db64*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x10ac84",
+        "name": "_getthetime"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x189a5c",
+        "name": "_copyin"
+      },
+      {
+        "addr": "0x11dc54",
+        "name": "_namesetattr"
+      }
+    ]
+  }
+]

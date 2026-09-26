@@ -1,0 +1,9 @@
+0x0015bda8	1	PUSH EBP
+0x0015bda9	2	MOV EBP,ESP
+0x0015bdab	3	MOV EAX,dword ptr [EBP + 0x8]
+0x0015bdae	7	MOV dword ptr [EAX + 0x8],0x15c0ac
+0x0015bdb5	3	MOV dword ptr [EAX + 0x10],EAX
+0x0015bdb8	7	MOV dword ptr [EAX + 0x1c],0x0
+0x0015bdbf	2	MOV ESP,EBP
+0x0015bdc1	1	POP EBP
+0x0015bdc2	1	RET

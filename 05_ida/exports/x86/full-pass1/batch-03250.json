@@ -1,0 +1,885 @@
+[
+  {
+    "requested_address": "0x0019f1e0",
+    "addr": "0x0019f1e0",
+    "code": "id __cdecl -[EventSrcPCKeyboard autoRepeat](EventSrcPCKeyboard *self, SEL a2)\n{\n  int v2; // ecx\n  int keyRepeat; // edx\n  bool v4; // cf\n  unsigned __int64 v6; // [esp+8h] [ebp-8h] BYREF\n\n  IOGetTimestamp(&v6); /*0x19f1ef*/\n  objc_msgSend(self->deviceLock, sel_lock); /*0x19f202*/\n  if ( self->calloutPending ) /*0x19f20a*/\n  {\n    self->calloutPending = 0; /*0x19f217*/\n    self->isRepeat = 1; /*0x19f21e*/\n    if ( (LODWORD(self->downRepeatTime) || HIDWORD(self->downRepeatTime)) && v6 >= self->downRepeatTime ) /*0x19f24a*/\n    {\n      v2 = HIDWORD(v6); /*0x19f24f*/\n      LODWORD(self->lastEventTime) = v6; /*0x19f252*/\n      HIDWORD(self->lastEventTime) = v2; /*0x19f258*/\n      objc_msgSend(self->keyMap, sel_doKeyboardEvent_direction_keyBits_, self->codeToRepeat, 1, self->keyState); /*0x19f27c*/\n      keyRepeat = self->keyRepeat; /*0x19f281*/\n      v4 = __CFADD__(keyRepeat, self->downRepeatTime); /*0x19f287*/\n      LODWORD(self->downRepeatTime) += keyRepeat; /*0x19f287*/\n      HIDWORD(self->downRepeatTime) += HIDWORD(self->keyRepeat) + v4; /*0x19f293*/\n    }\n    self->isRepeat = 0; /*0x19f29c*/\n    -[EventSrcPCKeyboard scheduleAutoRepeat](self, sel_scheduleAutoRepeat); /*0x19f2ab*/\n  }\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x19f2be*/\n  return self; /*0x19f2c8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202f9c",
+        "name": "sel_doKeyboardEvent:direction:keyBits:",
+        "string": "doKeyboardEvent:direction:keyBits:"
+      },
+      {
+        "addr": "0x19f17c",
+        "name": "-[EventSrcPCKeyboard scheduleAutoRepeat]"
+      },
+      {
+        "addr": "0x202f44",
+        "name": "sel_scheduleAutoRepeat",
+        "string": "scheduleAutoRepeat"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f2d0",
+    "addr": "0x0019f2d0",
+    "code": "id __cdecl -[EventSrcPCKeyboard setRepeat:forCode:](EventSrcPCKeyboard *self, SEL a2, unsigned int a3, unsigned int a4)\n{\n  int initialKeyRepeat; // edx\n  bool v5; // cf\n\n  if ( !self->isRepeat ) /*0x19f2de*/\n  {\n    if ( a3 == 10 ) /*0x19f2ea*/\n    {\n      initialKeyRepeat = self->initialKeyRepeat; /*0x19f2ec*/\n      v5 = __CFADD__(self->lastEventTime, initialKeyRepeat); /*0x19f2f2*/\n      LODWORD(self->downRepeatTime) = LODWORD(self->lastEventTime) + initialKeyRepeat; /*0x19f2f8*/\n      HIDWORD(self->downRepeatTime) = HIDWORD(self->lastEventTime) + v5 + HIDWORD(self->initialKeyRepeat); /*0x19f30a*/\n      self->codeToRepeat = a4; /*0x19f310*/\nLABEL_7:\n      -[EventSrcPCKeyboard scheduleAutoRepeat](self, sel_scheduleAutoRepeat); /*0x19f343*/\n      return self; /*0x19f34b*/\n    }\n    if ( a3 == 11 && self->codeToRepeat == a4 ) /*0x19f323*/\n    {\n      self->downRepeatTime = 0; /*0x19f325*/\n      self->codeToRepeat = -1; /*0x19f339*/\n      goto LABEL_7; /*0x19f339*/\n    }\n  }\n  return self; /*0x19f355*/\n}",
+    "refs": [
+      {
+        "addr": "0x19f17c",
+        "name": "-[EventSrcPCKeyboard scheduleAutoRepeat]"
+      },
+      {
+        "addr": "0x202f44",
+        "name": "sel_scheduleAutoRepeat",
+        "string": "scheduleAutoRepeat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f35c",
+    "addr": "0x0019f35c",
+    "code": "id __cdecl -[EventSrcPCKeyboard initKeyboard](EventSrcPCKeyboard *self, SEL a2)\n{\n  int v2; // eax\n\n  v2 = IOGetObjectForDeviceName(aPckeyboard0_0, (int)&self->kbdDevice); /*0x19f36f*/\n  if ( !v2 ) /*0x19f379*/\n    return self; /*0x19f398*/\n  -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v2); /*0x19f384*/\n  IOLog(aInitkeyboardCa); /*0x19f38f*/\n  return nullptr; /*0x19f39a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a3d0c",
+        "name": "_IOGetObjectForDeviceName"
+      },
+      {
+        "addr": "0x1e4890",
+        "name": "aPckeyboard0_0",
+        "string": "PCKeyboard0"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e489c",
+        "name": "aInitkeyboardCa",
+        "string": "initKeyboard: Can't find PCKeyboard0 (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f3a4",
+    "addr": "0x0019f3a4",
+    "code": "id __cdecl -[EventSrcPCKeyboard keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        int a3,\n        unsigned int a4,\n        unsigned int a5,\n        unsigned int a6,\n        unsigned int a7,\n        unsigned int a8,\n        unsigned int a9)\n{\n  id v9; // eax\n\n  v9 = -[IOEventSource owner](self, sel_owner); /*0x19f3f4*/\n  objc_msgSend(v9, sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_repeat_atTime_); /*0x19f3fd*/\n  return -[EventSrcPCKeyboard setRepeat:forCode:](self, sel_setRepeat_forCode_, a3, a5); /*0x19f417*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202fc8",
+        "name": "sel_keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:repeat:atTime:",
+        "string": "keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:repeat:atTime:"
+      },
+      {
+        "addr": "0x19f2d0",
+        "name": "-[EventSrcPCKeyboard setRepeat:forCode:]"
+      },
+      {
+        "addr": "0x202f24",
+        "name": "sel_setRepeat:forCode:",
+        "string": "setRepeat:forCode:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f420",
+    "addr": "0x0019f420",
+    "code": "id __cdecl -[EventSrcPCKeyboard keyboardSpecialEvent:flags:keyCode:specialty:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        unsigned int a5,\n        unsigned int a6)\n{\n  id v6; // eax\n  id result; // eax\n\n  v6 = -[IOEventSource owner](self, sel_owner); /*0x19f45c*/\n  result = objc_msgSend(v6, sel_keyboardSpecialEvent_flags_keyCode_specialty_atTime_); /*0x19f465*/\n  if ( a6 != 4 ) /*0x19f470*/\n    return -[EventSrcPCKeyboard setRepeat:forCode:](self, sel_setRepeat_forCode_, a3, a5); /*0x19f47f*/\n  return result; /*0x19f487*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203028",
+        "name": "sel_keyboardSpecialEvent:flags:keyCode:specialty:atTime:",
+        "string": "keyboardSpecialEvent:flags:keyCode:specialty:atTime:"
+      },
+      {
+        "addr": "0x19f2d0",
+        "name": "-[EventSrcPCKeyboard setRepeat:forCode:]"
+      },
+      {
+        "addr": "0x202f24",
+        "name": "sel_setRepeat:forCode:",
+        "string": "setRepeat:forCode:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f490",
+    "addr": "0x0019f490",
+    "code": "id __cdecl -[EventSrcPCKeyboard updateEventFlags:](EventSrcPCKeyboard *self, SEL a2, unsigned int a3)\n{\n  id v3; // eax\n\n  v3 = -[IOEventSource owner](self, sel_owner); /*0x19f4a9*/\n  return objc_msgSend(v3, sel_updateEventFlags_); /*0x19f4b9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202e80",
+        "name": "sel_updateEventFlags:",
+        "string": "updateEventFlags:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f4bc",
+    "addr": "0x0019f4bc",
+    "code": "unsigned int __cdecl -[EventSrcPCKeyboard eventFlags](EventSrcPCKeyboard *self, SEL a2)\n{\n  return self->eventFlags; /*0x19f4ca*/\n}"
+  },
+  {
+    "requested_address": "0x0019f4cc",
+    "addr": "0x0019f4cc",
+    "code": "unsigned int __cdecl -[EventSrcPCKeyboard deviceFlags](EventSrcPCKeyboard *self, SEL a2)\n{\n  return self->eventFlags; /*0x19f4da*/\n}"
+  },
+  {
+    "requested_address": "0x0019f4dc",
+    "addr": "0x0019f4dc",
+    "code": "id __cdecl -[EventSrcPCKeyboard setDeviceFlags:](EventSrcPCKeyboard *self, SEL a2, unsigned int a3)\n{\n  self->eventFlags = a3; /*0x19f4e5*/\n  return self; /*0x19f4ed*/\n}"
+  },
+  {
+    "requested_address": "0x0019f4f0",
+    "addr": "0x0019f4f0",
+    "code": "char __cdecl -[EventSrcPCKeyboard alphaLock](EventSrcPCKeyboard *self, SEL a2)\n{\n  return self->alphaLock; /*0x19f4ff*/\n}"
+  },
+  {
+    "requested_address": "0x0019f504",
+    "addr": "0x0019f504",
+    "code": "id __cdecl -[EventSrcPCKeyboard setAlphaLock:](EventSrcPCKeyboard *self, SEL a2, char a3)\n{\n  self->alphaLock = a3; /*0x19f50e*/\n  objc_msgSend(self->kbdDevice, aSetalphalockfe, a3); /*0x19f526*/\n  return self; /*0x19f52d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203060",
+        "name": "aSetalphalockfe",
+        "string": "setAlphaLockFeedback:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f534",
+    "addr": "0x0019f534",
+    "code": "char __cdecl -[EventSrcPCKeyboard charKeyActive](EventSrcPCKeyboard *self, SEL a2)\n{\n  return self->charKeyActive; /*0x19f543*/\n}"
+  },
+  {
+    "requested_address": "0x0019f548",
+    "addr": "0x0019f548",
+    "code": "id __cdecl -[EventSrcPCKeyboard setCharKeyActive:](EventSrcPCKeyboard *self, SEL a2, char a3)\n{\n  self->charKeyActive = a3; /*0x19f551*/\n  return self; /*0x19f559*/\n}"
+  },
+  {
+    "requested_address": "0x0019f55c",
+    "addr": "0x0019f55c",
+    "code": "void __cdecl -[EventSrcPCKeyboard dispatchKeyboardEvent:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        $88DEA2CADEC1641AD84155FE76C340B7 *a3)\n{\n  int var0_high; // ecx\n  unsigned int var1; // edx\n  int v5; // edx\n\n  var0_high = HIDWORD(a3->var0); /*0x19f569*/\n  LODWORD(self->lastEventTime) = a3->var0; /*0x19f56c*/\n  HIDWORD(self->lastEventTime) = var0_high; /*0x19f572*/\n  var1 = a3->var1; /*0x19f578*/\n  if ( var1 == 127 ) /*0x19f57e*/\n    return; /*0x19f57e*/\n  if ( var1 == 54 ) /*0x19f587*/\n  {\n    v5 = 4; /*0x19f5b8*/\n    goto LABEL_19; /*0x19f5bd*/\n  }\n  if ( var1 > 0x36 ) /*0x19f589*/\n  {\n    if ( var1 != 96 ) /*0x19f59b*/\n    {\n      if ( var1 > 0x60 ) /*0x19f59d*/\n      {\n        if ( var1 != 97 ) /*0x19f5ab*/\n          goto LABEL_18; /*0x19f5ab*/\n        v5 = 64; /*0x19f5c8*/\n      }\n      else\n      {\n        if ( var1 != 56 ) /*0x19f5a2*/\n          goto LABEL_18; /*0x19f5a2*/\n        v5 = 32; /*0x19f5c0*/\n      }\n      goto LABEL_19; /*0x19f5c5*/\n    }\nLABEL_17:\n    v5 = 1; /*0x19f5d0*/\n    goto LABEL_19; /*0x19f5d5*/\n  }\n  if ( var1 == 29 ) /*0x19f58e*/\n    goto LABEL_17; /*0x19f58e*/\n  if ( var1 != 42 ) /*0x19f593*/\n  {\nLABEL_18:\n    v5 = 0; /*0x19f5d8*/\n    goto LABEL_19; /*0x19f5d8*/\n  }\n  v5 = 2; /*0x19f5b0*/\nLABEL_19:\n  if ( a3->var2 ) /*0x19f5da*/\n    self->deviceDependentFlags |= v5; /*0x19f5e0*/\n  else\n    self->deviceDependentFlags &= ~v5; /*0x19f5ea*/\n  objc_msgSend(self->deviceLock, sel_lock); /*0x19f5fe*/\n  objc_msgSend(self->keyMap, sel_doKeyboardEvent_direction_keyBits_, a3->var1, a3->var2, self->keyState); /*0x19f621*/\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x19f634*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202f9c",
+        "name": "sel_doKeyboardEvent:direction:keyBits:",
+        "string": "doKeyboardEvent:direction:keyBits:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f644",
+    "addr": "0x0019f644",
+    "code": "int __cdecl -[EventSrcPCKeyboard relinquishOwnershipRequest:](EventSrcPCKeyboard *self, SEL a2, id a3)\n{\n  id v3; // eax\n  int v4; // ebx\n  id v5; // eax\n\n  v3 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x19f65b*/\n  objc_msgSend(v3, sel_lock); /*0x19f664*/\n  if ( -[IOEventSource owner](self, sel_owner) ) /*0x19f671*/\n  {\n    v4 = -725; /*0x19f688*/\n  }\n  else\n  {\n    self->ownDevice = 0; /*0x19f67d*/\n    v4 = 0; /*0x19f684*/\n  }\n  v5 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x19f69c*/\n  objc_msgSend(v5, sel_unlock); /*0x19f6a5*/\n  return v4; /*0x19f6af*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b38c0",
+        "name": "-[IOEventSource ownerLock]"
+      },
+      {
+        "addr": "0x203078",
+        "name": "sel_ownerLock",
+        "string": "ownerLock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f6b8",
+    "addr": "0x0019f6b8",
+    "code": "int __cdecl -[EventSrcPCKeyboard canBecomeOwner:](EventSrcPCKeyboard *self, SEL a2, id a3)\n{\n  int result; // eax\n\n  result = (int)objc_msgSend(a3, sel_becomeOwner_, self); /*0x19f6cc*/\n  if ( result ) /*0x19f6d6*/\n  {\n    -[IODevice stringFromReturn:](self, sel_stringFromReturn_, result); /*0x19f6e1*/\n    objc_msgSend(a3, sel_name); /*0x19f6ef*/\n    -[IODevice name](self, sel_name); /*0x19f700*/\n    return IOLog(aSBecomeownerOf_1); /*0x19f70e*/\n  }\n  else\n  {\n    self->ownDevice = 1; /*0x19f718*/\n  }\n  return result; /*0x19f722*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e48c7",
+        "name": "aSBecomeownerOf_1",
+        "string": "%s: becomeOwner of %s failed (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f728",
+    "addr": "0x0019f728",
+    "code": "EventSrcPCKeyboard *__cdecl -[EventSrcPCKeyboard init](EventSrcPCKeyboard *self, SEL a2)\n{\n  id keyMap; // eax\n  KeyMap *v3; // eax\n  id v4; // eax\n  objc_super v6; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->deviceLock, sel_lock); /*0x19f740*/\n  v6.receiver = self; /*0x19f74c*/\n  v6.super_class = (Class)stru_1FA014.ext; /*0x19f755*/\n  -[IOEventSource init](&v6, sel_init); /*0x19f75c*/\n  keyMap = self->keyMap; /*0x19f764*/\n  if ( keyMap ) /*0x19f76c*/\n    objc_msgSend(keyMap, sel_free); /*0x19f776*/\n  v3 = +[Object alloc](aKeymap, sel_alloc); /*0x19f79f*/\n  v4 = -[KeyMap initFromKeyMapping:length:canFree:](v3, sel_initFromKeyMapping_length_canFree_); /*0x19f7a8*/\n  self->keyMap = v4; /*0x19f7ad*/\n  objc_msgSend(v4, sel_setDelegate_, self); /*0x19f7bc*/\n  -[EventSrcPCKeyboard initKeyboard](self, sel_initKeyboard); /*0x19f7cc*/\n  self->keyRepeat = 125000000; /*0x19f7d1*/\n  self->initialKeyRepeat = 500000000; /*0x19f7e5*/\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x19f807*/\n  return self; /*0x19f80e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1b37ec",
+        "name": "-[IOEventSource init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe5af",
+        "name": "aKeymap",
+        "string": "KeyMap"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1b4430",
+        "name": "-[KeyMap initFromKeyMapping:length:canFree:]"
+      },
+      {
+        "addr": "0x202f68",
+        "name": "sel_initFromKeyMapping:length:canFree:",
+        "string": "initFromKeyMapping:length:canFree:"
+      },
+      {
+        "addr": "0x202f8c",
+        "name": "sel_setDelegate:",
+        "string": "setDelegate:"
+      },
+      {
+        "addr": "0x19f35c",
+        "name": "-[EventSrcPCKeyboard initKeyboard]"
+      },
+      {
+        "addr": "0x202f14",
+        "name": "sel_initKeyboard",
+        "string": "initKeyboard"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f818",
+    "addr": "0x0019f818",
+    "code": "id __cdecl +[EventSrcPCKeyboard probe](id a1, SEL a2)\n{\n  id result; // eax\n  NXLock *v3; // edx\n  id v4; // eax\n\n  result = dword_1E488C; /*0x19f81b*/\n  if ( !dword_1E488C ) /*0x19f822*/\n  {\n    dword_1E488C = objc_msgSend(a1, sel_alloc); /*0x19f838*/\n    v3 = +[Object new](aNxlock, sel_new); /*0x19f850*/\n    v4 = dword_1E488C; /*0x19f852*/\n    *((_DWORD *)dword_1E488C + 73) = v3; /*0x19f857*/\n    objc_msgSend(v4, sel_setName_, aEventsrcpckeyb_0); /*0x19f86a*/\n    objc_msgSend(dword_1E488C, sel_setDeviceKind_, aEventsrcpckeyb_1); /*0x19f882*/\n    if ( !objc_msgSend(dword_1E488C, sel_init) ) /*0x19f898*/\n      objc_msgSend(dword_1E488C, sel_free); /*0x19f8b2*/\n    return dword_1E488C; /*0x19f8b7*/\n  }\n  return result; /*0x19f8be*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e488c",
+        "name": "dword_1E488C"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1e48ea",
+        "name": "aEventsrcpckeyb_0",
+        "string": "EventSrcPCKeyboard0"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1e48fe",
+        "name": "aEventsrcpckeyb_1",
+        "string": "EventSrcPCKeyboard"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f8c0",
+    "addr": "0x0019f8c0",
+    "code": "id __cdecl -[EventSrcPCKeyboard free](EventSrcPCKeyboard *self, SEL a2)\n{\n  id deviceLock; // ebx\n  id keyMap; // eax\n  id kbdDevice; // eax\n  objc_super v6; // [esp+8h] [ebp-8h] BYREF\n\n  deviceLock = self->deviceLock; /*0x19f8cb*/\n  objc_msgSend(deviceLock, sel_lock); /*0x19f8d9*/\n  dword_1E488C = nullptr; /*0x19f8de*/\n  self->deviceLock = nullptr; /*0x19f8e8*/\n  keyMap = self->keyMap; /*0x19f8f5*/\n  if ( keyMap ) /*0x19f8fd*/\n    objc_msgSend(keyMap, sel_free); /*0x19f907*/\n  kbdDevice = self->kbdDevice; /*0x19f90f*/\n  if ( kbdDevice ) /*0x19f917*/\n    objc_msgSend(kbdDevice, sel_relinquishOwnership_, self); /*0x19f922*/\n  objc_msgSend(deviceLock, sel_unlock); /*0x19f932*/\n  objc_msgSend(deviceLock, sel_free); /*0x19f93f*/\n  v6.receiver = self; /*0x19f94b*/\n  v6.super_class = (Class)stru_1FA014.ext; /*0x19f954*/\n  return -[IOEventSource free](&v6, sel_free); /*0x19f963*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1e488c",
+        "name": "dword_1E488C"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x202dbc",
+        "name": "sel_relinquishOwnership:",
+        "string": "relinquishOwnership:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1b3868",
+        "name": "-[IOEventSource free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019f96c",
+    "addr": "0x0019f96c",
+    "code": "int __cdecl -[EventSrcPCKeyboard getIntValues:forParameter:count:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  int result; // eax\n  int v6; // edx\n  bool v7; // cf\n  int v8; // edx\n  id keyMap; // edx\n  unsigned int v10; // [esp+14h] [ebp-14h]\n  objc_super v11; // [esp+18h] [ebp-10h] BYREF\n  unsigned __int64 initialKeyRepeat; // [esp+20h] [ebp-8h]\n\n  result = -706; /*0x19f97b*/\n  v10 = *a5; /*0x19f985*/\n  if ( !strcmp(a4, aEvsCurrentkeyr) ) /*0x19f99f*/\n  {\n    if ( v10 <= 3 ) /*0x19f9ab*/\n      return result; /*0x19f9ab*/\n    *a5 = 4; /*0x19f9b4*/\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19f9cb*/\n    initialKeyRepeat = self->initialKeyRepeat; /*0x19f9dc*/\n    v6 = 0; /*0x19f9e8*/\n    do /*0x19f9f7*/\n    {\n      a3[v6] = *((_DWORD *)&initialKeyRepeat + v6); /*0x19f9f0*/\n      v7 = v6++ == -1; /*0x19f9f4*/\n    }\n    while ( v7 || v6 == 1 ); /*0x19f9f7*/\n    initialKeyRepeat = self->keyRepeat; /*0x19fa05*/\n    v8 = 0; /*0x19fa11*/\n    do /*0x19fa1f*/\n    {\n      a3[v8 + 2] = *((_DWORD *)&initialKeyRepeat + v8); /*0x19fa18*/\n      v7 = v8++ == -1; /*0x19fa1c*/\n    }\n    while ( v7 || v8 == 1 ); /*0x19fa1f*/\n    objc_msgSend(self->deviceLock, sel_unlock); /*0x19fa32*/\n    return 0; /*0x19fab2*/\n  }\n  if ( !strcmp(a4, aEvsCurrentkeym) ) /*0x19fa43*/\n  {\n    if ( !v10 ) /*0x19fa4b*/\n      return result; /*0x19fa4b*/\n    *a5 = 1; /*0x19fa54*/\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19fa6b*/\n    keyMap = self->keyMap; /*0x19fa76*/\n    if ( keyMap ) /*0x19fa7e*/\n      *a3 = (unsigned int)objc_msgSend(keyMap, sel_keyMappingLength); /*0x19fa95*/\n    else\n      *a3 = 0; /*0x19fa80*/\n    objc_msgSend(self->deviceLock, sel_unlock); /*0x19faab*/\n    return 0; /*0x19faab*/\n  }\n  if ( !strcmp(a4, aEvsEventdevice_0) ) /*0x19fac7*/\n  {\n    *a5 = 0; /*0x19face*/\n    *a3 = (unsigned int)objc_msgSend(self->kbdDevice, aInterfaceid); /*0x19faea*/\n    a3[2] = 1; /*0x19faec*/\n    a3[1] = 0; /*0x19faf3*/\n    a3[3] = (unsigned int)objc_msgSend(self->kbdDevice, aHandlerid); /*0x19fb10*/\n    *a5 = 4; /*0x19fb16*/\n    return 0; /*0x19fb1c*/\n  }\n  else\n  {\n    v11.receiver = self; /*0x19fb30*/\n    v11.super_class = (Class)stru_1FA014.ext; /*0x19fb39*/\n    result = -[IODevice getIntValues:forParameter:count:](&v11, sel_getIntValues_forParameter_count_, a3, a4, a5); /*0x19fb40*/\n    if ( result == -711 ) /*0x19fb4a*/\n      return -706; /*0x19fb4c*/\n  }\n  return result; /*0x19fb54*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1e4911",
+        "name": "aEvsCurrentkeyr",
+        "string": "Evs_CurrentKeyRepeat"
+      },
+      {
+        "addr": "0x203084",
+        "name": "sel_keyMappingLength",
+        "string": "keyMappingLength"
+      },
+      {
+        "addr": "0x1e4926",
+        "name": "aEvsCurrentkeym",
+        "string": "Evs_CurrentKeyMappingLength"
+      },
+      {
+        "addr": "0x203098",
+        "name": "aInterfaceid",
+        "string": "interfaceId"
+      },
+      {
+        "addr": "0x2030a4",
+        "name": "aHandlerid",
+        "string": "handlerId"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1a482c",
+        "name": "-[IODevice getIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202e1c",
+        "name": "sel_getIntValues:forParameter:count:",
+        "string": "getIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1e4942",
+        "name": "aEvsEventdevice_0",
+        "string": "Evs_EventDeviceInfo"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019fb5c",
+    "addr": "0x0019fb5c",
+    "code": "int __cdecl -[EventSrcPCKeyboard getCharValues:forParameter:count:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  id keyMap; // eax\n  id v6; // eax\n  id v7; // eax\n  int v8; // ebx\n  size_t v10; // [esp-4h] [ebp-20h]\n  unsigned int v11; // [esp+10h] [ebp-Ch]\n  objc_super v12; // [esp+14h] [ebp-8h] BYREF\n\n  v11 = *a5; /*0x19fb6d*/\n  if ( !strcmp(a4, aEvsCurrentkeym_0) ) /*0x19fb84*/\n  {\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19fb9d*/\n    keyMap = self->keyMap; /*0x19fba8*/\n    if ( keyMap ) /*0x19fbb0*/\n    {\n      v6 = objc_msgSend(keyMap, sel_keyMappingLength); /*0x19fbba*/\n      if ( v11 <= (unsigned int)v6 ) /*0x19fbc5*/\n        v6 = (id)v11; /*0x19fbc7*/\n      *a5 = (unsigned int)v6; /*0x19fbca*/\n      v10 = (size_t)v6; /*0x19fbcc*/\n      v7 = objc_msgSend(self->keyMap, sel_keyMapping_, 0); /*0x19fbe4*/\n      bcopy(v7, a3, v10); /*0x19fbed*/\n      v8 = 0; /*0x19fbf2*/\n    }\n    else\n    {\n      v8 = -729; /*0x19fbfc*/\n    }\n    objc_msgSend(self->deviceLock, sel_unlock); /*0x19fc12*/\n  }\n  else\n  {\n    v12.receiver = self; /*0x19fc2c*/\n    v12.super_class = (Class)stru_1FA014.ext; /*0x19fc35*/\n    v8 = -[IODevice getCharValues:forParameter:count:](&v12, sel_getCharValues_forParameter_count_, a3, a4, a5); /*0x19fc41*/\n    if ( v8 == -711 ) /*0x19fc49*/\n      return -706; /*0x19fc4b*/\n  }\n  return v8; /*0x19fc55*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x203084",
+        "name": "sel_keyMappingLength",
+        "string": "keyMappingLength"
+      },
+      {
+        "addr": "0x2030b0",
+        "name": "sel_keyMapping:",
+        "string": "keyMapping:"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1a48f0",
+        "name": "-[IODevice getCharValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202df8",
+        "name": "sel_getCharValues:forParameter:count:",
+        "string": "getCharValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1e4956",
+        "name": "aEvsCurrentkeym_0",
+        "string": "Evs_CurrentKeyMapping"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019fc5c",
+    "addr": "0x0019fc5c",
+    "code": "int __cdecl -[EventSrcPCKeyboard setIntValues:forParameter:count:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5)\n{\n  int result; // eax\n  int v6; // edx\n  bool v7; // cf\n  int v8; // ecx\n  int v9; // edx\n  int v10; // ecx\n  objc_super v11; // [esp+14h] [ebp-10h] BYREF\n  int v12; // [esp+1Ch] [ebp-8h]\n  int v13; // [esp+20h] [ebp-4h]\n\n  result = -706; /*0x19fc6b*/\n  if ( !strcmp(a4, aEvsSetkeyrepea) ) /*0x19fc87*/\n  {\n    if ( a5 != 2 ) /*0x19fc93*/\n      return result; /*0x19fc93*/\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19fca7*/\n    v6 = 0; /*0x19fcb5*/\n    do /*0x19fcc6*/\n    {\n      *(&v12 + v6) = a3[v6]; /*0x19fcbe*/\n      v7 = v6++ == -1; /*0x19fcc3*/\n    }\n    while ( v7 || v6 == 1 ); /*0x19fcc6*/\n    v8 = v13; /*0x19fccb*/\n    LODWORD(self->keyRepeat) = v12; /*0x19fcce*/\n    HIDWORD(self->keyRepeat) = v8; /*0x19fcd0*/\n    if ( self->keyRepeat <= 0xFED25F ) /*0x19fce9*/\n      self->keyRepeat = 16700000; /*0x19fceb*/\nLABEL_7:\n    objc_msgSend(self->deviceLock, sel_unlock); /*0x19fcff*/\n    return 0; /*0x19fdce*/\n  }\n  if ( !strcmp(a4, aEvsSetinitialk) ) /*0x19fd23*/\n  {\n    if ( a5 != 2 ) /*0x19fd2f*/\n      return result; /*0x19fd2f*/\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19fd43*/\n    v9 = 0; /*0x19fd51*/\n    do /*0x19fd62*/\n    {\n      *(&v12 + v9) = a3[v9]; /*0x19fd5a*/\n      v7 = v9++ == -1; /*0x19fd5f*/\n    }\n    while ( v7 || v9 == 1 ); /*0x19fd62*/\n    v10 = v13; /*0x19fd67*/\n    LODWORD(self->initialKeyRepeat) = v12; /*0x19fd6a*/\n    HIDWORD(self->initialKeyRepeat) = v10; /*0x19fd6c*/\n    if ( self->initialKeyRepeat <= 0xFED25F ) /*0x19fd85*/\n      self->initialKeyRepeat = 16700000; /*0x19fd87*/\n    goto LABEL_7; /*0x19fd87*/\n  }\n  if ( !strcmp(a4, aEvsResetkeyboa_0) ) /*0x19fdbb*/\n  {\n    -[EventSrcPCKeyboard resetKeyboard](self, sel_resetKeyboard); /*0x19fdc7*/\n    return 0; /*0x19fdc7*/\n  }\n  v11.receiver = self; /*0x19fde0*/\n  v11.super_class = (Class)stru_1FA014.ext; /*0x19fde9*/\n  result = -[IODevice setIntValues:forParameter:count:](&v11, sel_setIntValues_forParameter_count_, a3, a4, a5); /*0x19fdf0*/\n  if ( result == -711 ) /*0x19fdfa*/\n    return -706; /*0x19fdfc*/\n  return result; /*0x19fe04*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1e496c",
+        "name": "aEvsSetkeyrepea",
+        "string": "Evs_SetKeyRepeat"
+      },
+      {
+        "addr": "0x1e497d",
+        "name": "aEvsSetinitialk",
+        "string": "Evs_SetInitialKeyRepeat"
+      },
+      {
+        "addr": "0x19f0b8",
+        "name": "-[EventSrcPCKeyboard resetKeyboard]"
+      },
+      {
+        "addr": "0x202f58",
+        "name": "sel_resetKeyboard",
+        "string": "resetKeyboard"
+      },
+      {
+        "addr": "0x1e4995",
+        "name": "aEvsResetkeyboa_0",
+        "string": "Evs_ResetKeyboard"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1a49d0",
+        "name": "-[IODevice setIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019fe0c",
+    "addr": "0x0019fe0c",
+    "code": "int __cdecl -[EventSrcPCKeyboard setCharValues:forParameter:count:](\n        EventSrcPCKeyboard *self,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int a5)\n{\n  int v5; // ebx\n  void *v6; // edi\n  id keyMap; // esi\n  KeyMap *v8; // eax\n  id v9; // eax\n  objc_super v11; // [esp+10h] [ebp-8h] BYREF\n\n  v5 = -706; /*0x19fe18*/\n  if ( !strcmp(a4, aEvsSetkeymappi) ) /*0x19fe31*/\n  {\n    v6 = (void *)IOMalloc(a5); /*0x19fe42*/\n    bcopy(a3, v6, a5); /*0x19fe4d*/\n    objc_msgSend(self->deviceLock, sel_lock); /*0x19fe63*/\n    keyMap = self->keyMap; /*0x19fe6b*/\n    v8 = +[Object alloc](aKeymap, sel_alloc); /*0x19fe8d*/\n    v9 = -[KeyMap initFromKeyMapping:length:canFree:](v8, sel_initFromKeyMapping_length_canFree_); /*0x19fe96*/\n    self->keyMap = v9; /*0x19fe9e*/\n    if ( v9 ) /*0x19fea9*/\n    {\n      if ( keyMap ) /*0x19fead*/\n        objc_msgSend(keyMap, sel_free); /*0x19feb7*/\n      objc_msgSend(self->keyMap, sel_setDelegate_, self); /*0x19fed1*/\n      v5 = 0; /*0x19fed6*/\n    }\n    else\n    {\n      self->keyMap = keyMap; /*0x19fee3*/\n    }\n    objc_msgSend(self->deviceLock, sel_unlock); /*0x19fefa*/\n  }\n  else\n  {\n    v11.receiver = self; /*0x19ff17*/\n    v11.super_class = (Class)stru_1FA014.ext; /*0x19ff20*/\n    v5 = -[IODevice setCharValues:forParameter:count:](&v11, sel_setCharValues_forParameter_count_, a3, a4, a5); /*0x19ff2c*/\n    if ( v5 == -711 ) /*0x19ff34*/\n      return -706; /*0x19ff36*/\n  }\n  return v5; /*0x19ff40*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe5af",
+        "name": "aKeymap",
+        "string": "KeyMap"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1b4430",
+        "name": "-[KeyMap initFromKeyMapping:length:canFree:]"
+      },
+      {
+        "addr": "0x202f68",
+        "name": "sel_initFromKeyMapping:length:canFree:",
+        "string": "initFromKeyMapping:length:canFree:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x202f8c",
+        "name": "sel_setDelegate:",
+        "string": "setDelegate:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1a49dc",
+        "name": "-[IODevice setCharValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202dd4",
+        "name": "sel_setCharValues:forParameter:count:",
+        "string": "setCharValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1e49a7",
+        "name": "aEvsSetkeymappi",
+        "string": "Evs_SetKeyMapping"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019ff48",
+    "addr": "0x0019ff48",
+    "code": "int __cdecl -[EventSrcPCKeyboard relinquishOwnership:](EventSrcPCKeyboard *self, SEL a2, id a3)\n{\n  id v3; // esi\n  id v4; // eax\n  id v5; // eax\n  objc_super v7; // [esp+8h] [ebp-8h] BYREF\n\n  v7.receiver = self; /*0x19ff5e*/\n  v7.super_class = (Class)stru_1FA014.ext; /*0x19ff67*/\n  v3 = -[IOEventSource relinquishOwnership:](&v7, sel_relinquishOwnership_, a3); /*0x19ff73*/\n  v4 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x19ff84*/\n  objc_msgSend(v4, sel_lock); /*0x19ff8d*/\n  if ( !v3 && !-[IOEventSource owner](self, sel_owner) && !objc_msgSend(self->kbdDevice, sel_relinquishOwnership_, self) ) /*0x19ffbc*/\n    self->ownDevice = 0; /*0x19ffc8*/\n  v5 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x19ffde*/\n  objc_msgSend(v5, sel_unlock); /*0x19ffe7*/\n  return (int)v3; /*0x19fff1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1b3988",
+        "name": "-[IOEventSource relinquishOwnership:]"
+      },
+      {
+        "addr": "0x202dbc",
+        "name": "sel_relinquishOwnership:",
+        "string": "relinquishOwnership:"
+      },
+      {
+        "addr": "0x1b38c0",
+        "name": "-[IOEventSource ownerLock]"
+      },
+      {
+        "addr": "0x203078",
+        "name": "sel_ownerLock",
+        "string": "ownerLock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019fff8",
+    "addr": "0x0019fff8",
+    "code": "int __cdecl -[EventSrcPCKeyboard becomeOwner:](EventSrcPCKeyboard *self, SEL a2, id a3)\n{\n  int v3; // esi\n  id v4; // eax\n  id v5; // eax\n  objc_super v7; // [esp+Ch] [ebp-8h] BYREF\n\n  v7.receiver = self; /*0x1a000f*/\n  v7.super_class = (Class)stru_1FA014.ext; /*0x1a0018*/\n  v3 = -[IOEventSource becomeOwner:](&v7, sel_becomeOwner_, a3); /*0x1a0024*/\n  v4 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x1a0035*/\n  objc_msgSend(v4, sel_lock); /*0x1a003e*/\n  if ( !v3 && !self->ownDevice ) /*0x1a004a*/\n  {\n    if ( objc_msgSend(self->kbdDevice, sel_becomeOwner_, self) ) /*0x1a0062*/\n    {\n      if ( objc_msgSend(self->kbdDevice, sel_desireOwnership_, self) ) /*0x1a0087*/\n      {\n        v7.receiver = self; /*0x1a009e*/\n        v7.super_class = (Class)stru_1FA014.ext; /*0x1a00a7*/\n        -[IOEventSource relinquishOwnership:](&v7, sel_relinquishOwnership_, a3); /*0x1a00ab*/\n        v3 = -725; /*0x1a00b0*/\n      }\n    }\n    else\n    {\n      self->ownDevice = 1; /*0x1a006e*/\n    }\n  }\n  v5 = -[IOEventSource ownerLock](self, sel_ownerLock); /*0x1a00c7*/\n  objc_msgSend(v5, sel_unlock); /*0x1a00d0*/\n  return v3; /*0x1a00da*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1b38d0",
+        "name": "-[IOEventSource becomeOwner:]"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1b38c0",
+        "name": "-[IOEventSource ownerLock]"
+      },
+      {
+        "addr": "0x203078",
+        "name": "sel_ownerLock",
+        "string": "ownerLock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b3988",
+        "name": "-[IOEventSource relinquishOwnership:]"
+      },
+      {
+        "addr": "0x202dbc",
+        "name": "sel_relinquishOwnership:",
+        "string": "relinquishOwnership:"
+      },
+      {
+        "addr": "0x202c5c",
+        "name": "sel_desireOwnership:",
+        "string": "desireOwnership:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  }
+]

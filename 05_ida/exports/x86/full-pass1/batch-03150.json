@@ -1,0 +1,1036 @@
+[
+  {
+    "requested_address": "0x00194e70",
+    "addr": "0x00194e70",
+    "code": "int __cdecl rtcget(int a1)\n{\n  int i; // ebx\n\n  if ( dword_1E36A8 ) /*0x194e7f*/\n  {\n    outb(0x70u, 0xAu); /*0x194e85*/\n    outb(0x71u, 0x26u); /*0x194e8e*/\n    outb(0x70u, 0xBu); /*0x194e97*/\n    outb(0x71u, 2u); /*0x194ea0*/\n    dword_1E36A8 = 0; /*0x194ea8*/\n  }\n  outb(0x70u, 0xDu); /*0x194eb6*/\n  inb(0x71u); /*0x194ebd*/\n  do /*0x194edd*/\n    outb(0x70u, 0xAu); /*0x194ec9*/\n  while ( (inb(0x71u) & 0x80u) != 0 ); /*0x194edd*/\n  for ( i = 0; i <= 13; ++i ) /*0x194edf*/\n  {\n    outb(0x70u, i); /*0x194ee7*/\n    *(_BYTE *)(i + a1) = inb(0x71u); /*0x194ef3*/\n  }\n  return 0; /*0x194f04*/\n}",
+    "refs": [
+      {
+        "addr": "0x18ca18",
+        "name": "_outb"
+      },
+      {
+        "addr": "0x1e36a8",
+        "name": "dword_1E36A8"
+      },
+      {
+        "addr": "0x18c9dc",
+        "name": "_inb"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194f0c",
+    "addr": "0x00194f0c",
+    "code": "unsigned __int8 __cdecl rtcput(int a1, unsigned __int8 a2)\n{\n  int i; // ebx\n  char v4; // [esp+8h] [ebp-4h]\n\n  if ( dword_1E36A8 ) /*0x194f1e*/\n  {\n    outb(0x70u, 0xAu); /*0x194f24*/\n    outb(0x71u, 0x26u); /*0x194f2d*/\n    outb(0x70u, 0xBu); /*0x194f36*/\n    outb(0x71u, 2u); /*0x194f3f*/\n    dword_1E36A8 = 0; /*0x194f47*/\n  }\n  outb(0x70u, 0xBu); /*0x194f55*/\n  v4 = inb(0x71u); /*0x194f61*/\n  outb(0x70u, 0xBu); /*0x194f68*/\n  outb(0x71u, v4 | 0x80); /*0x194f7a*/\n  for ( i = 0; i <= 9; ++i ) /*0x194f7f*/\n  {\n    outb(0x70u, i); /*0x194f87*/\n    outb(0x71u, *(_BYTE *)(i + a1)); /*0x194f93*/\n  }\n  outb(0x70u, 0x32u); /*0x194fa5*/\n  outb(0x71u, a2); /*0x194fb0*/\n  outb(0x70u, 0xBu); /*0x194fb9*/\n  return outb(0x71u, v4 & 0x7F); /*0x194fcf*/\n}",
+    "refs": [
+      {
+        "addr": "0x18ca18",
+        "name": "_outb"
+      },
+      {
+        "addr": "0x1e36a8",
+        "name": "dword_1E36A8"
+      },
+      {
+        "addr": "0x18c9dc",
+        "name": "_inb"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194fd8",
+    "addr": "0x00194fd8",
+    "code": "int __cdecl yeartoday(char a1)\n{\n  int result; // eax\n\n  result = 366; /*0x194fdb*/\n  if ( (a1 & 3) != 0 ) /*0x194fe4*/\n    return 365; /*0x194fe6*/\n  return result; /*0x194fed*/\n}"
+  },
+  {
+    "requested_address": "0x00194ff0",
+    "addr": "0x00194ff0",
+    "code": "int __cdecl hexdectodec(unsigned __int8 a1)\n{\n  return 10 * (a1 >> 4) + (a1 & 0xF); /*0x19500c*/\n}"
+  },
+  {
+    "requested_address": "0x00195010",
+    "addr": "0x00195010",
+    "code": "int __cdecl dectohexdec(int a1)\n{\n  return (char)((a1 % 10) & 0xF | (16 * (a1 / 10))); /*0x19502b*/\n}"
+  },
+  {
+    "requested_address": "0x00195030",
+    "addr": "0x00195030",
+    "code": "int __cdecl readtodc(_DWORD *a1)\n{\n  int v1; // esi\n  int i; // ebx\n  int v3; // ecx\n  int v4; // eax\n  int v5; // ecx\n  int v6; // eax\n  int j; // eax\n  int k; // eax\n  int v9; // edx\n  int v11; // [esp+10h] [ebp-20h]\n  int v12; // [esp+14h] [ebp-1Ch]\n  _BYTE v13[2]; // [esp+20h] [ebp-10h] BYREF\n  unsigned __int8 v14; // [esp+22h] [ebp-Eh]\n  unsigned __int8 v15; // [esp+24h] [ebp-Ch]\n  unsigned __int8 v16; // [esp+27h] [ebp-9h]\n  unsigned __int8 v17; // [esp+28h] [ebp-8h]\n  unsigned __int8 v18; // [esp+29h] [ebp-7h]\n\n  v1 = 0; /*0x195039*/\n  v11 = splusclock(); /*0x195040*/\n  if ( dword_1E36A8 ) /*0x195050*/\n  {\n    outb(0x70u, 0xAu); /*0x195056*/\n    outb(0x71u, 0x26u); /*0x19505f*/\n    outb(0x70u, 0xBu); /*0x195068*/\n    outb(0x71u, 2u); /*0x195071*/\n    dword_1E36A8 = 0; /*0x195079*/\n  }\n  outb(0x70u, 0xDu); /*0x195087*/\n  inb(0x71u); /*0x19508e*/\n  do /*0x1950ae*/\n    outb(0x70u, 0xAu); /*0x19509a*/\n  while ( (inb(0x71u) & 0x80u) != 0 ); /*0x1950ae*/\n  for ( i = 0; i <= 13; ++i ) /*0x1950b0*/\n  {\n    outb(0x70u, i); /*0x1950b7*/\n    v13[i] = inb(0x71u); /*0x1950c6*/\n  }\n  splx(v11); /*0x1950d6*/\n  v12 = (v17 & 0xF) + 10 * (v17 >> 4); /*0x195158*/\n  v3 = (v18 & 0xF) + 10 * (v18 >> 4); /*0x195170*/\n  v4 = v3; /*0x195173*/\n  if ( v3 <= 69 ) /*0x195178*/\n    v4 = v3 + 100; /*0x19517a*/\n  v5 = v4; /*0x19517d*/\n  v6 = 366; /*0x1951b6*/\n  if ( (v5 & 3) != 0 ) /*0x1951be*/\n    v6 = 365; /*0x1951c0*/\n  if ( v6 == 366 ) /*0x1951ca*/\n    dword_1E36B0 = 29; /*0x1951cc*/\n  for ( j = v12 - 2; j >= 0; --j ) /*0x1951dc*/\n    v1 += dword_1E36AC[j]; /*0x1951e0*/\n  dword_1E36B0 = 28; /*0x1951ea*/\n  for ( k = 70; k < v5; ++k ) /*0x1951fb*/\n  {\n    v9 = 366; /*0x195200*/\n    if ( (k & 3) != 0 ) /*0x195207*/\n      v9 = 365; /*0x195209*/\n    v1 += v9; /*0x19520e*/\n  }\n  *a1 = 86400 * v1 /*0x19522b*/\n      + 86400 * ((v16 & 0xF) + 10 * (v16 >> 4) - 1)\n      + 3600 * ((v15 & 0xF) + 10 * (v15 >> 4))\n      + (v13[0] & 0xF)\n      + 10 * (v13[0] >> 4)\n      + 60 * ((v14 & 0xF) + 10 * (v14 >> 4));\n  return 0; /*0x195232*/\n}",
+    "refs": [
+      {
+        "addr": "0x18bd98",
+        "name": "_splusclock"
+      },
+      {
+        "addr": "0x18ca18",
+        "name": "_outb"
+      },
+      {
+        "addr": "0x1e36a8",
+        "name": "dword_1E36A8"
+      },
+      {
+        "addr": "0x18c9dc",
+        "name": "_inb"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e36b0",
+        "name": "dword_1E36B0"
+      },
+      {
+        "addr": "0x1e36ac",
+        "name": "dword_1E36AC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019523c",
+    "addr": "0x0019523c",
+    "code": "int __cdecl writetodc(_DWORD *a1)\n{\n  int i; // ebx\n  int v2; // ebx\n  int v3; // ebx\n  int v4; // edi\n  int v5; // ecx\n  int v6; // ecx\n  int *v7; // edi\n  int j; // ebx\n  int v10; // [esp+Ch] [ebp-2Ch]\n  int v11; // [esp+Ch] [ebp-2Ch]\n  char v12; // [esp+20h] [ebp-18h]\n  unsigned __int8 v13; // [esp+24h] [ebp-14h]\n  _BYTE v14[16]; // [esp+28h] [ebp-10h] BYREF\n\n  v10 = splusclock(); /*0x19524a*/\n  if ( dword_1E36A8 ) /*0x195257*/\n  {\n    outb(0x70u, 0xAu); /*0x19525d*/\n    outb(0x71u, 0x26u); /*0x195266*/\n    outb(0x70u, 0xBu); /*0x19526f*/\n    outb(0x71u, 2u); /*0x195278*/\n    dword_1E36A8 = 0; /*0x195280*/\n  }\n  outb(0x70u, 0xDu); /*0x19528e*/\n  inb(0x71u); /*0x195295*/\n  do /*0x1952b5*/\n    outb(0x70u, 0xAu); /*0x1952a1*/\n  while ( (inb(0x71u) & 0x80u) != 0 ); /*0x1952b5*/\n  for ( i = 0; i <= 13; ++i ) /*0x1952b7*/\n  {\n    outb(0x70u, i); /*0x1952bf*/\n    v14[i] = inb(0x71u); /*0x1952cb*/\n  }\n  splx(v10); /*0x1952db*/\n  v2 = *a1 % 86400 / 60; /*0x1952fd*/\n  v14[0] = (*a1 % 86400 % 60 % 10) & 0xF | (16 * (*a1 % 86400 % 60 / 10)); /*0x19531b*/\n  v14[2] = (v2 % 60 % 10) & 0xF | (16 * (v2 % 60 / 10)); /*0x195345*/\n  v14[4] = (v2 / 60 % 10) & 0xF | (16 * (v2 / 60 / 10)); /*0x195361*/\n  v3 = *a1 / 86400; /*0x195373*/\n  v14[6] = (v3 + 4) % 7; /*0x195384*/\n  v4 = 1970; /*0x195387*/\n  v5 = 365; /*0x19538c*/\n  while ( v3 >= v5 ) /*0x195397*/\n  {\n    v3 -= v5; /*0x19539c*/\n    ++v4; /*0x19539e*/\n    v5 = 366; /*0x19539f*/\n    if ( (v4 & 3) != 0 ) /*0x1953aa*/\n      v5 = 365; /*0x1953ac*/\n  }\n  v14[9] = (v4 % 100 % 10) & 0xF | (16 * (v4 % 100 / 10)); /*0x1953e3*/\n  v13 = (v4 / 100 % 10) & 0xF | (16 * (v4 / 100 / 10)); /*0x1953fe*/\n  if ( v5 == 366 ) /*0x195407*/\n    dword_1E36B0 = 29; /*0x195409*/\n  v6 = 0; /*0x195413*/\n  if ( dword_1E36AC[0] <= v3 ) /*0x19541b*/\n  {\n    v7 = dword_1E36AC; /*0x19541d*/\n    do /*0x19542c*/\n    {\n      v3 -= *v7++; /*0x195424*/\n      ++v6; /*0x195429*/\n    }\n    while ( *v7 <= v3 ); /*0x19542c*/\n  }\n  dword_1E36B0 = 28; /*0x19542e*/\n  v14[8] = ((v6 + 1) % 10) & 0xF | (16 * ((v6 + 1) / 10)); /*0x195452*/\n  v14[7] = ((v3 + 1) % 10) & 0xF | (16 * ((v3 + 1) / 10)); /*0x19546f*/\n  v11 = splusclock(); /*0x195477*/\n  if ( dword_1E36A8 ) /*0x195484*/\n  {\n    outb(0x70u, 0xAu); /*0x19548a*/\n    outb(0x71u, 0x26u); /*0x195493*/\n    outb(0x70u, 0xBu); /*0x19549c*/\n    outb(0x71u, 2u); /*0x1954a5*/\n    dword_1E36A8 = 0; /*0x1954ad*/\n  }\n  outb(0x70u, 0xBu); /*0x1954bb*/\n  v12 = inb(0x71u); /*0x1954c7*/\n  outb(0x70u, 0xBu); /*0x1954ce*/\n  outb(0x71u, v12 | 0x80); /*0x1954e0*/\n  for ( j = 0; j <= 9; ++j ) /*0x1954e5*/\n  {\n    outb(0x70u, j); /*0x1954ef*/\n    outb(0x71u, v14[j]); /*0x1954fb*/\n  }\n  outb(0x70u, 0x32u); /*0x19550d*/\n  outb(0x71u, v13); /*0x195518*/\n  outb(0x70u, 0xBu); /*0x195521*/\n  outb(0x71u, v12 & 0x7F); /*0x19552f*/\n  splx(v11); /*0x19553b*/\n  return 0; /*0x195545*/\n}",
+    "refs": [
+      {
+        "addr": "0x18bd98",
+        "name": "_splusclock"
+      },
+      {
+        "addr": "0x18ca18",
+        "name": "_outb"
+      },
+      {
+        "addr": "0x1e36a8",
+        "name": "dword_1E36A8"
+      },
+      {
+        "addr": "0x18c9dc",
+        "name": "_inb"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e36b0",
+        "name": "dword_1E36B0"
+      },
+      {
+        "addr": "0x1e36ac",
+        "name": "dword_1E36AC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019554c",
+    "addr": "0x0019554c",
+    "code": "void *defaultEventSources()\n{\n  return &unk_1E36DC; /*0x195556*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e36dc",
+        "name": "unk_1E36DC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195558",
+    "addr": "0x00195558",
+    "code": "int __cdecl createEventShmem(int a1, int a2, int *a3, unsigned int *a4, int *a5)\n{\n  int v5; // eax\n  int v6; // ebx\n  int v8; // esi\n  unsigned int v9; // edi\n  unsigned int v10; // ebx\n  unsigned int v11; // eax\n\n  *a3 = 0; /*0x195567*/\n  v5 = IOGetKernPort(a1); /*0x19556e*/\n  v6 = v5; /*0x195573*/\n  if ( !v5 ) /*0x19557a*/\n    return 4; /*0x19557c*/\n  v8 = convert_port_to_map(v5); /*0x19558e*/\n  if ( v8 ) /*0x195595*/\n  {\n    port_release(v6); /*0x1955a9*/\n    v9 = ~page_mask & (page_mask + a2); /*0x1955bc*/\n    if ( kmem_alloc_wired(kernel_map, a5, v9) ) /*0x1955ca*/\n    {\n      vm_map_deallocate(v8); /*0x1955d7*/\n      return 3; /*0x1955dc*/\n    }\n    else\n    {\n      *a4 = *(_DWORD *)(v8 + 20); /*0x1955ee*/\n      if ( vm_map_find(v8, 0, 0, a4, v9, 1) ) /*0x1955f9*/\n      {\n        IOLog(aCreateeventshm); /*0x19560b*/\n        vm_map_deallocate(v8); /*0x195611*/\n        return 3; /*0x195616*/\n      }\n      else\n      {\n        v10 = 0; /*0x195658*/\n        if ( v9 ) /*0x19565c*/\n        {\n          while ( 1 ) /*0x19566f*/\n          {\n            v11 = pmap_extract(kernel_pmap, v10 + *a5); /*0x19566f*/\n            if ( !v11 ) /*0x195679*/\n              break; /*0x195679*/\n            pmap_enter(*(_DWORD **)(v8 + 36), v10 + *a4, v11, 3, 1); /*0x19568c*/\n            v10 += page_size; /*0x195694*/\n            if ( v10 >= v9 ) /*0x19569c*/\n              goto LABEL_13; /*0x19569c*/\n          }\n          IOLog(aCreateeventshm_0); /*0x19562d*/\n          kmem_free(kernel_map, *a5, a2); /*0x195643*/\n          vm_map_deallocate(v8); /*0x195649*/\n          return 3; /*0x19564e*/\n        }\n        else\n        {\nLABEL_13:\n          *a3 = v8; /*0x19569e*/\n          return 0; /*0x1956a3*/\n        }\n      }\n    }\n  }\n  else\n  {\n    port_release(v6); /*0x195598*/\n    return 4; /*0x19559d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a9274",
+        "name": "_IOGetKernPort"
+      },
+      {
+        "addr": "0x15a244",
+        "name": "_convert_port_to_map"
+      },
+      {
+        "addr": "0x15a614",
+        "name": "_port_release"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1747d8",
+        "name": "_vm_map_deallocate"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e370d",
+        "name": "aCreateeventshm",
+        "string": "createEventShmem: vm_map_find() returned %d\n"
+      },
+      {
+        "addr": "0x190c24",
+        "name": "_pmap_extract"
+      },
+      {
+        "addr": "0x1f63f0",
+        "name": "_kernel_pmap"
+      },
+      {
+        "addr": "0x19065c",
+        "name": "_pmap_enter"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e373a",
+        "name": "aCreateeventshm_0",
+        "string": "createEventShmem: no paddr for vaddr 0x%x\n"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x173d1c",
+        "name": "_kmem_alloc_wired"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001956b0",
+    "addr": "0x001956b0",
+    "code": "int __cdecl destroyEventShmem(int a1, int a2, int a3, unsigned int a4, int a5)\n{\n  unsigned int v6; // esi\n  unsigned int i; // ebx\n  int v8; // ebx\n\n  if ( !a2 ) /*0x1956ba*/\n    return 4; /*0x1956bc*/\n  v6 = ~page_mask & (page_mask + a3); /*0x1956d6*/\n  for ( i = 0; i < v6; i += page_size ) /*0x1956dc*/\n    pmap_remove(*(_DWORD **)(a2 + 36), (char *)(i + a4), page_size + i + a4); /*0x1956f6*/\n  v8 = vm_map_remove((_DWORD *)a2, a4, v6 + a4); /*0x19571b*/\n  if ( v8 ) /*0x195722*/\n    IOLog(aDestroyeventsh); /*0x19572a*/\n  kmem_free(kernel_map, a5, v6); /*0x19573e*/\n  vm_map_deallocate(a2); /*0x195747*/\n  return v8; /*0x195751*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x18fa44",
+        "name": "_pmap_remove"
+      },
+      {
+        "addr": "0x1765ac",
+        "name": "_vm_map_remove"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e3765",
+        "name": "aDestroyeventsh",
+        "string": "destroyEventShmem: vm_map_remove() returned %d\n"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x1747d8",
+        "name": "_vm_map_deallocate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195758",
+    "addr": "0x00195758",
+    "code": "int DoRestore()\n{\n  int v0; // ebx\n  _DWORD *v2; // edx\n  int v3; // eax\n  int v4; // ecx\n\n  v0 = 0; /*0x19575c*/\n  if ( kmAlertConsole ) /*0x195765*/\n  {\n    (*(void (__stdcall **)(int))(kmAlertConsole + 8))(kmAlertConsole); /*0x19576b*/\n    (*(void (__stdcall **)(int))kmAlertConsole)(kmAlertConsole); /*0x195775*/\n    kmAlertConsole = 0; /*0x195777*/\n    return 0; /*0x195781*/\n  }\n  else if ( kmId ) /*0x19578f*/\n  {\n    dword_1E776C(*((_DWORD *)kmId + 66), sel_lock); /*0x1957ab*/\n    v2 = kmId; /*0x1957ad*/\n    if ( *((_DWORD *)kmId + 69) == 3 ) /*0x1957bd*/\n    {\n      v3 = *((_DWORD *)kmId + 71); /*0x1957bf*/\n      if ( v3 ) /*0x1957c7*/\n      {\n        *((_DWORD *)kmId + 71) = v3 - 1; /*0x1957d3*/\n        if ( v3 == 1 ) /*0x1957dc*/\n        {\n          v4 = v2[70]; /*0x1957de*/\n          v2[69] = v4; /*0x1957e4*/\n          if ( v4 == 3 ) /*0x1957ed*/\n          {\n            IOLog(aKmdeviceRecurs); /*0x195829*/\n          }\n          else\n          {\n            v0 = (*(int (__cdecl **)(_DWORD))(v2[68] + 8))(v2[68]); /*0x1957fb*/\n            (**((void (***)(void))kmId + 68))(); /*0x19580b*/\n            *((_DWORD *)kmId + 68) = 0; /*0x195812*/\n          }\n        }\n      }\n      else\n      {\n        v0 = 16; /*0x1957c9*/\n      }\n    }\n    else\n    {\n      v0 = 22; /*0x195834*/\n    }\n    dword_1E7770(*((_DWORD *)kmId + 66), sel_unlock); /*0x195851*/\n    return v0; /*0x195853*/\n  }\n  else\n  {\n    return 0; /*0x195791*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b44",
+        "name": "_kmAlertConsole"
+      },
+      {
+        "addr": "0x1e776c",
+        "name": "dword_1E776C"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e3997",
+        "name": "aKmdeviceRecurs",
+        "string": "kmDevice: Recursive SCM_ALERT in restore!\n"
+      },
+      {
+        "addr": "0x1e7770",
+        "name": "dword_1E7770"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019585c",
+    "addr": "0x0019585c",
+    "code": "__int32 sub_19585C()\n{\n  int v0; // ecx\n  int v1; // edx\n\n  do /*0x195879*/\n  {\n    while ( dword_1E7774 ) /*0x195867*/\n      ; /*0x195865*/\n  }\n  while ( _InterlockedExchange(&dword_1E7774, 1) == 1 ); /*0x195879*/\n  if ( kmId ) /*0x195882*/\n  {\n    v0 = *((_DWORD *)kmId + 67); /*0x1958a0*/\n    v1 = *((_DWORD *)kmId + 69); /*0x1958a6*/\n  }\n  else\n  {\n    v0 = basicConsole; /*0x195884*/\n    v1 = 1; /*0x19588a*/\n    if ( MEMORY[0x1114C] ) /*0x195896*/\n      v1 = 2; /*0x195898*/\n  }\n  if ( dword_1E38E8 > 0 ) /*0x1958b3*/\n  {\n    if ( v1 == 2 ) /*0x1958b8*/\n    {\n      if ( v0 ) /*0x1958c6*/\n        (*(void (__cdecl **)(int, char *))(v0 + 12))(v0, &byte_1E384C[12 * dword_1E38E8]); /*0x1958d7*/\n      if ( ++dword_1E38E8 > 3 ) /*0x1958e9*/\n        dword_1E38E8 = 1; /*0x1958eb*/\n      ns_timeout((int)sub_19585C, 0, 111111111); /*0x195905*/\n    }\n    else\n    {\n      dword_1E38E8 = -dword_1E38E8; /*0x1958bc*/\n    }\n  }\n  return _InterlockedExchange(&dword_1E7774, 0); /*0x195914*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7774",
+        "name": "dword_1E7774"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x1e384c",
+        "name": "byte_1E384C"
+      },
+      {
+        "addr": "0x1e38e8",
+        "name": "dword_1E38E8"
+      },
+      {
+        "addr": "0x1604b0",
+        "name": "_ns_timeout"
+      },
+      {
+        "addr": "0x19585c",
+        "name": "sub_19585C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195918",
+    "addr": "0x00195918",
+    "code": "__int32 kmEnableAnimation()\n{\n  int v0; // ecx\n  int v1; // edx\n  __int32 result; // eax\n\n  if ( !dword_1E7778 ) /*0x195922*/\n  {\n    dword_1E7774 = 0; /*0x195924*/\n    dword_1E7778 = 1; /*0x19592e*/\n  }\n  if ( MEMORY[0x1114C] ) /*0x19593f*/\n  {\n    do /*0x195961*/\n    {\n      while ( dword_1E7774 ) /*0x19594f*/\n        ; /*0x19594d*/\n    }\n    while ( _InterlockedExchange(&dword_1E7774, 1) == 1 ); /*0x195961*/\n    dword_1E38E8 = 1; /*0x195963*/\n    _InterlockedExchange(&dword_1E7774, 0); /*0x19596f*/\n    do /*0x195991*/\n    {\n      while ( dword_1E7774 ) /*0x19597f*/\n        ; /*0x19597d*/\n    }\n    while ( _InterlockedExchange(&dword_1E7774, 1) == 1 ); /*0x195991*/\n    if ( kmId ) /*0x19599a*/\n    {\n      v0 = *((_DWORD *)kmId + 67); /*0x1959b8*/\n      v1 = *((_DWORD *)kmId + 69); /*0x1959be*/\n    }\n    else\n    {\n      v0 = basicConsole; /*0x19599c*/\n      v1 = 1; /*0x1959a2*/\n      if ( MEMORY[0x1114C] ) /*0x1959ae*/\n        v1 = 2; /*0x1959b0*/\n    }\n    if ( dword_1E38E8 > 0 ) /*0x1959cb*/\n    {\n      if ( v1 == 2 ) /*0x1959d0*/\n      {\n        if ( v0 ) /*0x1959de*/\n          (*(void (__cdecl **)(int, char *))(v0 + 12))(v0, &byte_1E384C[12 * dword_1E38E8]); /*0x1959ef*/\n        if ( ++dword_1E38E8 > 3 ) /*0x195a01*/\n          dword_1E38E8 = 1; /*0x195a03*/\n        ns_timeout((int)sub_19585C, 0, 111111111); /*0x195a1d*/\n      }\n      else\n      {\n        dword_1E38E8 = -dword_1E38E8; /*0x1959d4*/\n      }\n    }\n    return _InterlockedExchange(&dword_1E7774, 0); /*0x195a24*/\n  }\n  return result; /*0x195a2c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7774",
+        "name": "dword_1E7774"
+      },
+      {
+        "addr": "0x1e7778",
+        "name": "dword_1E7778"
+      },
+      {
+        "addr": "0x1e38e8",
+        "name": "dword_1E38E8"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x1e384c",
+        "name": "byte_1E384C"
+      },
+      {
+        "addr": "0x1604b0",
+        "name": "_ns_timeout"
+      },
+      {
+        "addr": "0x19585c",
+        "name": "sub_19585C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195a30",
+    "addr": "0x00195a30",
+    "code": "id kmDisableAnimation()\n{\n  id result; // eax\n\n  result = kmId; /*0x195a33*/\n  if ( kmId ) /*0x195a3a*/\n    return objc_msgSend(kmId, sel_animationCtl_, 0); /*0x195a46*/\n  return result; /*0x195a4d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202b64",
+        "name": "sel_animationCtl:",
+        "string": "animationCtl:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195a50",
+    "addr": "0x00195a50",
+    "code": "// bad sp value at call has been detected, the output may be wrong!\nvoid __cdecl -[kmDevice dispatchKeyboardEvent:](kmDevice *self, SEL a2, $88DEA2CADEC1641AD84155FE76C340B7 *a3)\n{\n  int v3; // edx\n  unsigned int var1; // eax\n  int v5; // ebx\n  int v6; // edx\n  unsigned int v7; // eax\n  int v8; // edx\n  int v9; // ebx\n  int v10; // ebx\n  $06E236A3989EA52BCBC585244E9C0693 *p_inBufLock; // edx\n  int inDex; // edx\n  int v13; // eax\n  int v14; // eax\n\n  v3 = 0; /*0x195a5c*/\n  var1 = a3->var1; /*0x195a5e*/\n  if ( var1 == 54 ) /*0x195a64*/\n  {\n    dword_1E7758 = a3->var2; /*0x195ad4*/\n    a3->var1 = 0; /*0x195ada*/\n  }\n  else if ( var1 > 0x36 ) /*0x195a66*/\n  {\n    if ( var1 == 96 ) /*0x195a7b*/\n    {\n      dword_1E7750 = a3->var2; /*0x195aac*/\n      a3->var1 = 0; /*0x195ab2*/\n    }\n    else if ( var1 > 0x60 ) /*0x195a7d*/\n    {\n      if ( var1 != 97 ) /*0x195a8f*/\n        goto LABEL_18; /*0x195a8f*/\n      dword_1E7760 = a3->var2; /*0x195afc*/\n      a3->var1 = 0; /*0x195b02*/\n    }\n    else\n    {\n      if ( var1 != 56 ) /*0x195a82*/\n        goto LABEL_18; /*0x195a82*/\n      dword_1E775C = a3->var2; /*0x195ae8*/\n      a3->var1 = 0; /*0x195aee*/\n    }\n  }\n  else if ( var1 == 29 ) /*0x195a6b*/\n  {\n    dword_1E774C = a3->var2; /*0x195a98*/\n    a3->var1 = 0; /*0x195a9e*/\n  }\n  else\n  {\n    if ( var1 != 42 ) /*0x195a70*/\n    {\nLABEL_18:\n      v3 = 1; /*0x195b0c*/\n      goto LABEL_19; /*0x195b0c*/\n    }\n    dword_1E7754 = a3->var2; /*0x195ac0*/\n    a3->var1 = 0; /*0x195ac6*/\n  }\nLABEL_19:\n  if ( !v3 ) /*0x195b13*/\n    goto LABEL_34; /*0x195b13*/\n  v5 = 0; /*0x195b19*/\n  if ( dword_1E7758 || dword_1E7754 ) /*0x195b2b*/\n    v5 = 1; /*0x195b2d*/\n  v6 = dword_1E774C || dword_1E7750 ? 220 : 0;\n  v7 = v6 + (v5 | (2 * a3->var1)); /*0x195b57*/\n  v8 = (unsigned __int16)ascii[v7]; /*0x195b59*/\n  if ( dword_1E7760 || dword_1E775C ) /*0x195b71*/\n    v9 = 128; /*0x195b73*/\n  else\n    v9 = 0; /*0x195b7c*/\n  switch ( ascii[v7] ) /*0x195b89*/\n  {\n    case 257: /*0x195b89*/\n    case 258: /*0x195b89*/\n    case 260: /*0x195b89*/\n    case 262: /*0x195b89*/\n    case 263: /*0x195b89*/\n    case 264: /*0x195b89*/\n      break;\n    default:\n      v8 |= v9; /*0x195bb0*/\n      break; /*0x195bb0*/\n  }\n  v10 = v8; /*0x195bb2*/\n  if ( !a3->var2 ) /*0x195bb4*/\nLABEL_34:\n    v10 = 256; /*0x195bba*/\n  if ( v10 != 256 ) /*0x195bc5*/\n  {\n    if ( (*((_BYTE *)self + 292) & 1) != 0 ) /*0x195bd2*/\n    {\n      p_inBufLock = &self->inBufLock; /*0x195bd4*/\n      do /*0x195bee*/\n      {\n        while ( p_inBufLock->locked ) /*0x195bdc*/\n          ; /*0x195bde*/\n      }\n      while ( _InterlockedExchange((volatile __int32 *)p_inBufLock, 1) == 1 ); /*0x195bee*/\n      inDex = self->inDex; /*0x195bf0*/\n      v13 = inDex + 1; /*0x195bf6*/\n      if ( inDex == 15 ) /*0x195bfc*/\n        v13 = 0; /*0x195bfe*/\n      if ( self->outDex != v13 ) /*0x195c06*/\n      {\n        self->inBuf[inDex] = v10; /*0x195c08*/\n        v14 = self->inDex + 1; /*0x195c15*/\n        if ( self->inDex == 15 ) /*0x195c19*/\n          v14 = 0; /*0x195c1b*/\n        self->inDex = v14; /*0x195c1d*/\n        thread_wakeup_prim((int)self->inBuf, 0, 0); /*0x195c2e*/\n      }\n      _InterlockedExchange((volatile __int32 *)&self->inBufLock, 0); /*0x195c35*/\n    }\n    else\n    {\n      (*(&off_1DAFFC + 12 * SHIBYTE(cons._lb._base)))(v10, &cons); /*0x195c59*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e7758",
+        "name": "dword_1E7758"
+      },
+      {
+        "addr": "0x1e7750",
+        "name": "dword_1E7750"
+      },
+      {
+        "addr": "0x1e7760",
+        "name": "dword_1E7760"
+      },
+      {
+        "addr": "0x1e775c",
+        "name": "dword_1E775C"
+      },
+      {
+        "addr": "0x1e774c",
+        "name": "dword_1E774C"
+      },
+      {
+        "addr": "0x1e7754",
+        "name": "dword_1E7754"
+      },
+      {
+        "addr": "0x1e39c2",
+        "name": "_ascii"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1daffc",
+        "name": "off_1DAFFC"
+      },
+      {
+        "addr": "0x1e97d0",
+        "name": "_cons"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195c68",
+    "addr": "0x00195c68",
+    "code": "int __cdecl -[kmDevice canBecomeOwner:](kmDevice *self, SEL a2, id a3)\n{\n  id v3; // eax\n  int v4; // ebx\n  char *v6; // [esp-4h] [ebp-18h]\n  char *__s1; // [esp+Ch] [ebp-8h]\n  char *__s1a; // [esp+Ch] [ebp-8h]\n  id v9; // [esp+10h] [ebp-4h]\n\n  v3 = objc_msgSend(self->kbId, sel_becomeOwner_, self); /*0x195c83*/\n  if ( v3 ) /*0x195c8d*/\n  {\n    -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v3); /*0x195c9b*/\n    IOLog(aKmCanbecomeown); /*0x195ca6*/\n  }\n  if ( !word_1E3D88 ) /*0x195cb6*/\n  {\n    word_1E3D88 = 1; /*0x195cbc*/\n    v9 = +[IOConfigTable newFromSystemConfig](aIoconfigtable, sel_newFromSystemConfig); /*0x195cd8*/\n    __s1 = (char *)objc_msgSend(v9, sel_valueForStringKey_, aShutdownGraphi); /*0x195cf0*/\n    if ( __s1 ) /*0x195cf8*/\n    {\n      if ( !strcmp(__s1, aNo) ) /*0x195d0c*/\n        word_1E3D8A = 1; /*0x195d10*/\n      +[IOConfigTable freeString:](aIoconfigtable, sel_freeString_, __s1); /*0x195d2b*/\n    }\n    __s1a = (char *)objc_msgSend(v9, sel_valueForStringKey_, aLanguage); /*0x195d48*/\n    if ( __s1a ) /*0x195d50*/\n    {\n      v4 = 0; /*0x195d52*/\n      while ( strcmp(__s1a, (&off_1E3D34)[v4]) ) /*0x195d6a*/\n      {\n        if ( ++v4 > 6 ) /*0x195d70*/\n          goto LABEL_12; /*0x195d70*/\n      }\n      glLanguage = v4; /*0x195de4*/\nLABEL_12:\n      +[IOConfigTable freeString:](aIoconfigtable, sel_freeString_, __s1a); /*0x195d72*/\n    }\n    objc_msgSend(v9, sel_free); /*0x195d97*/\n  }\n  if ( word_1E3D8A ) /*0x195da7*/\n    prettyShutdown = 0; /*0x195da9*/\n  if ( dword_1E7768 && !prettyShutdown ) /*0x195dc3*/\n  {\n    self->fbp[0] = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)objc_msgSend(dword_1E7768, sel_allocateConsoleInfo); /*0x195dfc*/\n  }\n  else\n  {\n    -[kmDevice returnToVGAMode](self, sel_returnToVGAMode); /*0x195dd0*/\n    self->fbp[0] = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)basicConsole; /*0x195ddb*/\n  }\n  if ( prettyShutdown ) /*0x195e0d*/\n    self->fbMode = 2; /*0x195e12*/\n  else\n    self->fbMode = 1; /*0x195e23*/\n  (*((void (__cdecl **)($8EF4127CF77ECA3DDB612FCF233DC3A8 *, int, int, int, char *))self->fbp[0] + 1))( /*0x195e4c*/\n    self->fbp[0],\n    self->fbMode,\n    1,\n    1,\n    mach_title);\n  -[kmDevice drawGraphicPanel:](self, sel_drawGraphicPanel_, 1); /*0x195e5b*/\n  if ( prettyShutdown == 1 ) /*0x195e6d*/\n  {\n    v6 = aRestartingTheC; /*0x195e78*/\n  }\n  else if ( prettyShutdown == 2 ) /*0x195e73*/\n  {\n    v6 = aPleaseWaitUnti_0; /*0x195e80*/\n  }\n  else\n  {\n    v6 = aPleaseWait; /*0x195e88*/\n  }\n  -[kmDevice graphicPanelString:](self, sel_graphicPanelString_, v6); /*0x195e98*/\n  -[kmDevice animationCtl:](self, sel_animationCtl_, 2); /*0x195ead*/\n  return 0; /*0x195eb7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e3d8c",
+        "name": "aKmCanbecomeown",
+        "string": "km canBecomeOwner: becomeOwner failed (%s)\n"
+      },
+      {
+        "addr": "0x1e3d88",
+        "name": "word_1E3D88"
+      },
+      {
+        "addr": "0x1a5384",
+        "name": "+[IOConfigTable newFromSystemConfig]"
+      },
+      {
+        "addr": "0x1fe305",
+        "name": "aIoconfigtable",
+        "string": "IOConfigTable"
+      },
+      {
+        "addr": "0x202c94",
+        "name": "sel_newFromSystemConfig",
+        "string": "newFromSystemConfig"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1e3db8",
+        "name": "aShutdownGraphi",
+        "string": "Shutdown Graphics"
+      },
+      {
+        "addr": "0x1e3d8a",
+        "name": "word_1E3D8A"
+      },
+      {
+        "addr": "0x1e3dca",
+        "name": "aNo",
+        "string": "No"
+      },
+      {
+        "addr": "0x1a53a0",
+        "name": "+[IOConfigTable freeString:]"
+      },
+      {
+        "addr": "0x202494",
+        "name": "sel_freeString:",
+        "string": "freeString:"
+      },
+      {
+        "addr": "0x1e3dcd",
+        "name": "aLanguage",
+        "string": "Language"
+      },
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      },
+      {
+        "addr": "0x1e3d34",
+        "name": "off_1E3D34"
+      },
+      {
+        "addr": "0x1f7a1c",
+        "name": "_glLanguage"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1f7a44",
+        "name": "_prettyShutdown"
+      },
+      {
+        "addr": "0x1e7768",
+        "name": "dword_1E7768"
+      },
+      {
+        "addr": "0x202c70",
+        "name": "sel_allocateConsoleInfo",
+        "string": "allocateConsoleInfo"
+      },
+      {
+        "addr": "0x196bd4",
+        "name": "-[kmDevice returnToVGAMode]"
+      },
+      {
+        "addr": "0x202b04",
+        "name": "sel_returnToVGAMode",
+        "string": "returnToVGAMode"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x1e38a4",
+        "name": "_mach_title"
+      },
+      {
+        "addr": "0x197918",
+        "name": "-[kmDevice drawGraphicPanel:]"
+      },
+      {
+        "addr": "0x202ca8",
+        "name": "sel_drawGraphicPanel:",
+        "string": "drawGraphicPanel:"
+      },
+      {
+        "addr": "0x1e3dd6",
+        "name": "aRestartingTheC",
+        "string": "Restarting the computer...\n"
+      },
+      {
+        "addr": "0x1e3df2",
+        "name": "aPleaseWaitUnti_0",
+        "string": "Please wait until it's safe\nto turn off the computer.\n"
+      },
+      {
+        "addr": "0x1e3e29",
+        "name": "aPleaseWait",
+        "string": "Please wait..."
+      },
+      {
+        "addr": "0x1975d0",
+        "name": "-[kmDevice graphicPanelString:]"
+      },
+      {
+        "addr": "0x202cbc",
+        "name": "sel_graphicPanelString:",
+        "string": "graphicPanelString:"
+      },
+      {
+        "addr": "0x1969f4",
+        "name": "-[kmDevice animationCtl:]"
+      },
+      {
+        "addr": "0x202b64",
+        "name": "sel_animationCtl:",
+        "string": "animationCtl:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00195ec0",
+    "addr": "0x00195ec0",
+    "code": "int (__cdecl **__cdecl DoAlert(int a1, _BYTE *a2))(id, int, _DWORD, int, int)\n{\n  _BYTE *v2; // ebx\n  int (__cdecl **result)(id, int, _DWORD, int, int); // eax\n  int v4; // eax\n  _DWORD *v5; // esi\n  id Console; // eax\n  _DWORD *v7; // eax\n  int v8; // esi\n  int v9; // [esp-4h] [ebp-10h]\n  int v10; // [esp-4h] [ebp-10h]\n  int v11; // [esp-4h] [ebp-10h]\n\n  v2 = a2; /*0x195ec9*/\n  result = (int (__cdecl **)(id, int, _DWORD, int, int))kmId; /*0x195ecc*/\n  if ( kmId ) /*0x195ed3*/\n  {\n    dword_1E776C(*((_DWORD *)kmId + 66), sel_lock); /*0x195f8b*/\n    v4 = *((_DWORD *)kmId + 69); /*0x195f96*/\n    if ( v4 != 1 && v4 != 3 ) /*0x195fa8*/\n    {\n      v5 = kmId; /*0x195faa*/\n      if ( dword_1E7768 ) /*0x195fb3*/\n        Console = objc_msgSend(dword_1E7768, sel_allocateConsoleInfo); /*0x195fc4*/\n      else\n        Console = (id)BasicAllocateConsole(); /*0x195fb5*/\n      v5[68] = Console; /*0x195fcc*/\n      if ( !*((_DWORD *)kmId + 68) ) /*0x195fd7*/\n        *((_DWORD *)kmId + 68) = basicConsole; /*0x195fe6*/\n      (*(void (__cdecl **)(_DWORD, int, _DWORD, int, int))(*((_DWORD *)kmId + 68) + 4))( /*0x196002*/\n        *((_DWORD *)kmId + 68),\n        3,\n        0,\n        1,\n        a1);\n      v7 = kmId; /*0x196004*/\n      *((_DWORD *)kmId + 70) = *((_DWORD *)kmId + 69); /*0x19600f*/\n      v7[69] = 3; /*0x196015*/\n      ++v7[71]; /*0x19601f*/\n    }\n    dword_1E7770(*((_DWORD *)kmId + 66), sel_unlock); /*0x196040*/\n    result = (int (__cdecl **)(id, int, _DWORD, int, int))kmId; /*0x196042*/\n    if ( *((_DWORD *)kmId + 69) == 3 ) /*0x196051*/\n      v8 = *((_DWORD *)kmId + 68); /*0x196053*/\n    else\n      v8 = *((_DWORD *)kmId + 67); /*0x19605c*/\n    while ( *v2 ) /*0x196075*/\n    {\n      v11 = (char)*v2++; /*0x196067*/\n      result = (int (__cdecl **)(id, int, _DWORD, int, int))(*(int (__cdecl **)(int, int))(v8 + 20))(v8, v11); /*0x19606d*/\n    }\n  }\n  else if ( !kmAlertConsole ) /*0x195ee0*/\n  {\n    result = (int (__cdecl **)(id, int, _DWORD, int, int))basicConsoleMode; /*0x195ee6*/\n    if ( basicConsoleMode == 3 || basicConsoleMode == 1 ) /*0x195ef3*/\n    {\n      if ( basicConsole && *a2 ) /*0x195f02*/\n      {\n        do /*0x195f1f*/\n        {\n          v9 = (char)*v2++; /*0x195f14*/\n          result = (int (__cdecl **)(id, int, _DWORD, int, int))(*(int (__cdecl **)(int, int))(basicConsole + 20))( /*0x195f1a*/\n                                                                  basicConsole,\n                                                                  v9);\n        }\n        while ( *v2 ); /*0x195f1f*/\n      }\n    }\n    else\n    {\n      result = (int (__cdecl **)(id, int, _DWORD, int, int))BasicAllocateConsole(); /*0x195f2c*/\n      kmAlertConsole = (int)result; /*0x195f31*/\n      if ( result ) /*0x195f38*/\n      {\n        result = (int (__cdecl **)(id, int, _DWORD, int, int))result[1](result, 3, 0, 1, a1); /*0x195f49*/\n        if ( *a2 ) /*0x195f4e*/\n        {\n          do /*0x195f6b*/\n          {\n            v10 = (char)*v2++; /*0x195f60*/\n            result = (int (__cdecl **)(id, int, _DWORD, int, int))(*(int (__cdecl **)(int, int))(kmAlertConsole + 20))( /*0x195f66*/\n                                                                    kmAlertConsole,\n                                                                    v10);\n          }\n          while ( *v2 ); /*0x195f6b*/\n        }\n      }\n    }\n  }\n  return result; /*0x19607a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1e776c",
+        "name": "dword_1E776C"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e7768",
+        "name": "dword_1E7768"
+      },
+      {
+        "addr": "0x202c70",
+        "name": "sel_allocateConsoleInfo",
+        "string": "allocateConsoleInfo"
+      },
+      {
+        "addr": "0x197c58",
+        "name": "_BasicAllocateConsole"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x1e7770",
+        "name": "dword_1E7770"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1f7b40",
+        "name": "_basicConsoleMode"
+      },
+      {
+        "addr": "0x1f7b44",
+        "name": "_kmAlertConsole"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00196084",
+    "addr": "0x00196084",
+    "code": "int kmtrygetc()\n{\n  int v0; // eax\n  int v1; // edx\n  int v3; // ecx\n  unsigned int v4; // eax\n  int v5; // ebx\n  int v6; // ecx\n  int v7; // eax\n  int v8; // ecx\n  int v9; // ebx\n  int v10; // eax\n  int v11; // edx\n\n  v0 = steal_keyboard_event(); /*0x196089*/\n  v1 = v0; /*0x19608e*/\n  if ( !v0 ) /*0x196092*/\n    return -1; /*0x196099*/\n  v3 = 0; /*0x1960a0*/\n  v4 = *(_DWORD *)(v0 + 8); /*0x1960a2*/\n  if ( v4 == 54 ) /*0x1960a8*/\n  {\n    dword_1E7758 = *(char *)(v1 + 12); /*0x196118*/\n    *(_DWORD *)(v1 + 8) = 0; /*0x19611e*/\n    goto LABEL_21; /*0x196125*/\n  }\n  if ( v4 > 0x36 ) /*0x1960aa*/\n  {\n    if ( v4 == 96 ) /*0x1960bf*/\n    {\n      dword_1E7750 = *(char *)(v1 + 12); /*0x1960f0*/\n      *(_DWORD *)(v1 + 8) = 0; /*0x1960f6*/\n      goto LABEL_21; /*0x1960fd*/\n    }\n    if ( v4 > 0x60 ) /*0x1960c1*/\n    {\n      if ( v4 == 97 ) /*0x1960d3*/\n      {\n        dword_1E7760 = *(char *)(v1 + 12); /*0x196140*/\n        *(_DWORD *)(v1 + 8) = 0; /*0x196146*/\n        goto LABEL_21; /*0x19614d*/\n      }\n    }\n    else if ( v4 == 56 ) /*0x1960c6*/\n    {\n      dword_1E775C = *(char *)(v1 + 12); /*0x19612c*/\n      *(_DWORD *)(v1 + 8) = 0; /*0x196132*/\n      goto LABEL_21; /*0x196139*/\n    }\n  }\n  else\n  {\n    if ( v4 == 29 ) /*0x1960af*/\n    {\n      dword_1E774C = *(char *)(v1 + 12); /*0x1960dc*/\n      *(_DWORD *)(v1 + 8) = 0; /*0x1960e2*/\n      goto LABEL_21; /*0x1960e9*/\n    }\n    if ( v4 == 42 ) /*0x1960b4*/\n    {\n      dword_1E7754 = *(char *)(v1 + 12); /*0x196104*/\n      *(_DWORD *)(v1 + 8) = 0; /*0x19610a*/\n      goto LABEL_21; /*0x196111*/\n    }\n  }\n  v3 = 1; /*0x196150*/\nLABEL_21:\n  if ( !v3 ) /*0x196157*/\n    goto LABEL_36; /*0x196157*/\n  v5 = 0; /*0x19615d*/\n  if ( dword_1E7758 || dword_1E7754 ) /*0x19616f*/\n    v5 = 1; /*0x196171*/\n  v6 = dword_1E774C || dword_1E7750 ? 220 : 0;\n  v7 = v6 + (v5 | (2 * *(_DWORD *)(v1 + 8))); /*0x19619b*/\n  v8 = (unsigned __int16)ascii[v7]; /*0x19619d*/\n  if ( dword_1E7760 || dword_1E775C ) /*0x1961b5*/\n    v9 = 128; /*0x1961b7*/\n  else\n    v9 = 0; /*0x1961c0*/\n  switch ( ascii[v7] ) /*0x1961cd*/\n  {\n    case 257: /*0x1961cd*/\n    case 258: /*0x1961cd*/\n    case 260: /*0x1961cd*/\n    case 262: /*0x1961cd*/\n    case 263: /*0x1961cd*/\n    case 264: /*0x1961cd*/\n      break;\n    default:\n      v8 |= v9; /*0x1961f4*/\n      break; /*0x1961f4*/\n  }\n  v10 = v8; /*0x1961f6*/\n  if ( !*(_BYTE *)(v1 + 12) ) /*0x1961f8*/\nLABEL_36:\n    v10 = 256; /*0x1961fe*/\n  v11 = -1; /*0x196203*/\n  if ( v10 != 256 ) /*0x19620d*/\n    return v10; /*0x19620f*/\n  return v11; /*0x196216*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a0df0",
+        "name": "_steal_keyboard_event"
+      },
+      {
+        "addr": "0x1e7758",
+        "name": "dword_1E7758"
+      },
+      {
+        "addr": "0x1e7750",
+        "name": "dword_1E7750"
+      },
+      {
+        "addr": "0x1e7760",
+        "name": "dword_1E7760"
+      },
+      {
+        "addr": "0x1e775c",
+        "name": "dword_1E775C"
+      },
+      {
+        "addr": "0x1e774c",
+        "name": "dword_1E774C"
+      },
+      {
+        "addr": "0x1e7754",
+        "name": "dword_1E7754"
+      },
+      {
+        "addr": "0x1e39c2",
+        "name": "_ascii"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019621c",
+    "addr": "0x0019621c",
+    "code": "char __cdecl +[kmDevice probe:](id a1, SEL a2, id a3)\n{\n  id v3; // ebx\n  int v4; // edx\n\n  if ( !kmId || dword_1E7764 ) /*0x196230*/\n    v3 = objc_msgSend(a1, sel_new); /*0x196248*/\n  else\n    v3 = kmId; /*0x196232*/\n  v4 = 1; /*0x196252*/\n  if ( MEMORY[0x1114C] ) /*0x196259*/\n    v4 = 2; /*0x19625b*/\n  if ( objc_msgSend(v3, sel_init_fb_mode_, 1, v4) ) /*0x19626b*/\n    return 1; /*0x19629c*/\n  IOLog(aKmdeviceContin); /*0x19627c*/\n  objc_msgSend(v3, sel_free); /*0x196289*/\n  kmId = nullptr; /*0x19628e*/\n  return 0; /*0x1962a1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1e7764",
+        "name": "dword_1E7764"
+      },
+      {
+        "addr": "0x202bcc",
+        "name": "sel_init:fb_mode:",
+        "string": "init:fb_mode:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e38b4",
+        "name": "aKmdeviceContin",
+        "string": "kmDevice: continuing with bad kmDevice instance\n"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001962a8",
+    "addr": "0x001962a8",
+    "code": "int __cdecl +[kmDevice deviceStyle](id a1, SEL a2)\n{\n  return 2; /*0x1962b2*/\n}"
+  },
+  {
+    "requested_address": "0x001962b4",
+    "addr": "0x001962b4",
+    "code": "id __cdecl +[kmDevice new](id a1, SEL a2)\n{\n  id v2; // esi\n  NXLock *v3; // eax\n  int i; // eax\n  int v5; // eax\n  int v7; // [esp-10h] [ebp-2Ch]\n  char v8[20]; // [esp+8h] [ebp-14h] BYREF\n\n  if ( !dword_1E7778 ) /*0x1962c3*/\n  {\n    dword_1E7774 = 0; /*0x1962c5*/\n    dword_1E7778 = 1; /*0x1962cf*/\n  }\n  v2 = objc_msgSend(a1, sel_alloc); /*0x1962e9*/\n  v3 = +[Object new](aNxlock, sel_new); /*0x1962f9*/\n  *((_DWORD *)v2 + 66) = v3; /*0x1962fe*/\n  dword_1E776C = -[Object methodFor:](v3, sel_methodFor_, sel_lock); /*0x196318*/\n  dword_1E7770 = (int (__stdcall *)(_DWORD, _DWORD))objc_msgSend(*((id *)v2 + 66), sel_methodFor_, sel_unlock); /*0x196337*/\n  *((_DWORD *)v2 + 72) = 0; /*0x19633c*/\n  for ( i = 1; i >= 0; --i ) /*0x196349*/\n    *((_DWORD *)v2 + i + 67) = 0; /*0x196350*/\n  v5 = dword_1E7764; /*0x19635e*/\n  if ( !dword_1E7764 ) /*0x196365*/\n    kmId = v2; /*0x196367*/\n  *((_DWORD *)v2 + 67) = basicConsole; /*0x196373*/\n  objc_msgSend(kmId, sel_setUnit_, v5); /*0x196388*/\n  v7 = dword_1E7764++; /*0x196393*/\n  sprintf(v8, \"kmDevice%d\", v7); /*0x1963a3*/\n  objc_msgSend(kmId, sel_setName_, v8); /*0x1963b7*/\n  objc_msgSend(kmId, sel_setDeviceKind_, aKmdevice_0); /*0x1963d2*/\n  objc_msgSend(kmId, sel_setLocation_, 0); /*0x1963e7*/\n  return v2; /*0x1963f1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7774",
+        "name": "dword_1E7774"
+      },
+      {
+        "addr": "0x1e7778",
+        "name": "dword_1E7778"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1e776c",
+        "name": "dword_1E776C"
+      },
+      {
+        "addr": "0x1c9ea0",
+        "name": "-[Object methodFor:]"
+      },
+      {
+        "addr": "0x202bdc",
+        "name": "sel_methodFor:",
+        "string": "methodFor:"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1e7770",
+        "name": "dword_1E7770"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1e7764",
+        "name": "dword_1E7764"
+      },
+      {
+        "addr": "0x1f7b48",
+        "name": "_kmId"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1e38ec",
+        "name": "aKmdeviceD",
+        "string": "kmDevice%d"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1e38f7",
+        "name": "aKmdevice_0",
+        "string": "kmDevice"
+      },
+      {
+        "addr": "0x202c18",
+        "name": "sel_setLocation:",
+        "string": "setLocation:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001963f8",
+    "addr": "0x001963f8",
+    "code": "id __cdecl -[kmDevice init:fb_mode:](kmDevice *self, SEL a2, char a3, int a4)\n{\n  objc_super v5; // [esp+Ch] [ebp-8h] BYREF\n\n  objc_msgSend(self->kmOpenLock, sel_lock); /*0x196417*/\n  self->outDex = 0; /*0x19641c*/\n  self->inDex = 0; /*0x196426*/\n  *((_BYTE *)self + 292) &= ~1u; /*0x196430*/\n  self->alertRefCount = 0; /*0x196437*/\n  self->fbMode = a4; /*0x196444*/\n  self->inBufLock.locked = 0; /*0x19644d*/\n  if ( a3 && !-[kmDevice initKb](self, sel_initKb) ) /*0x196463*/\n    IOLog(aKmdeviceNoKeyb); /*0x196474*/\n  v5.receiver = self; /*0x196483*/\n  v5.super_class = (Class)stru_1FA014.super_class; /*0x19648c*/\n  -[IODevice init](&v5, sel_init); /*0x196493*/\n  if ( !self->hasRegistered ) /*0x19649b*/\n  {\n    -[IODevice registerDevice](self, sel_registerDevice); /*0x1964ac*/\n    self->hasRegistered = 1; /*0x1964b1*/\n  }\n  objc_msgSend(self->kmOpenLock, sel_unlock); /*0x1964c9*/\n  return self; /*0x1964d3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e3900",
+        "name": "aKmdeviceNoKeyb",
+        "string": "kmDevice: No Keyboard Found\n"
+      },
+      {
+        "addr": "0x1964dc",
+        "name": "-[kmDevice initKb]"
+      },
+      {
+        "addr": "0x202bc4",
+        "name": "sel_initKb",
+        "string": "initKb"
+      },
+      {
+        "addr": "0x1fa014",
+        "name": "stru_1FA014"
+      },
+      {
+        "addr": "0x1a40f8",
+        "name": "-[IODevice init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1a416c",
+        "name": "-[IODevice registerDevice]"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001964dc",
+    "addr": "0x001964dc",
+    "code": "id __cdecl -[kmDevice initKb](kmDevice *self, SEL a2)\n{\n  int v2; // eax\n  id v4; // eax\n  id v5; // eax\n\n  v2 = IOGetObjectForDeviceName(aPckeyboard0, (int)&self->kbId); /*0x1964ef*/\n  if ( v2 ) /*0x1964f9*/\n  {\n    -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v2); /*0x196504*/\n    IOLog(aKmInitCanTFind); /*0x19650f*/\n    return nullptr; /*0x196514*/\n  }\n  else\n  {\n    v4 = objc_msgSend(self->kbId, sel_becomeOwner_, self); /*0x196527*/\n    if ( v4 ) /*0x196531*/\n    {\n      -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v4); /*0x19653c*/\n      IOLog(aKmInitBecomeow); /*0x196547*/\n      return nullptr; /*0x19654c*/\n    }\n    else\n    {\n      v5 = objc_msgSend(self->kbId, sel_desireOwnership_, self); /*0x19655f*/\n      if ( v5 ) /*0x196569*/\n      {\n        -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v5); /*0x196574*/\n        IOLog(aKmInitDesireow); /*0x19657f*/\n        return nullptr; /*0x196584*/\n      }\n      else\n      {\n        return self; /*0x196588*/\n      }\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a3d0c",
+        "name": "_IOGetObjectForDeviceName"
+      },
+      {
+        "addr": "0x1e391d",
+        "name": "aPckeyboard0",
+        "string": "PCKeyboard0"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e3929",
+        "name": "aKmInitCanTFind",
+        "string": "km init: Can't find PCKeyboard0 (%s)\n"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1e394f",
+        "name": "aKmInitBecomeow",
+        "string": "km init: becomeOwner failed (%s)\n"
+      },
+      {
+        "addr": "0x202c5c",
+        "name": "sel_desireOwnership:",
+        "string": "desireOwnership:"
+      },
+      {
+        "addr": "0x1e3971",
+        "name": "aKmInitDesireow",
+        "string": "km init: desireOwnership failed (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00196594",
+    "addr": "0x00196594",
+    "code": "int __cdecl -[kmDevice kmOpen:](kmDevice *self, SEL a2, int a3)\n{\n  int v3; // edi\n  int fbMode; // eax\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *Console; // eax\n\n  v3 = 0; /*0x1965a0*/\n  objc_msgSend(self->kmOpenLock, sel_lock); /*0x1965b0*/\n  if ( (a3 & 0xA0000000) != 0 ) /*0x1965be*/\n  {\n    fbMode = self->fbMode; /*0x1965c4*/\n    if ( fbMode != 1 && fbMode != 3 ) /*0x1965d6*/\n    {\n      if ( suser() ) /*0x1965dc*/\n      {\n        if ( self->fbMode == 4 ) /*0x1965f3*/\n        {\n          v3 = 16; /*0x1965f5*/\n        }\n        else\n        {\n          if ( dword_1E7768 ) /*0x196603*/\n            Console = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)objc_msgSend(dword_1E7768, sel_allocateConsoleInfo); /*0x196614*/\n          else\n            Console = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)BasicAllocateConsole(); /*0x196605*/\n          self->fbp[1] = Console; /*0x19661c*/\n          if ( !Console ) /*0x196624*/\n            self->fbp[1] = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)basicConsole; /*0x19662c*/\n          (*((void (__cdecl **)($8EF4127CF77ECA3DDB612FCF233DC3A8 *, int, _DWORD, int, char *))self->fbp[1] + 1))( /*0x196649*/\n            self->fbp[1],\n            3,\n            0,\n            1,\n            off_1E38B0);\n          self->savedFbMode = self->fbMode; /*0x196651*/\n          self->fbMode = 3; /*0x196657*/\n          ++self->alertRefCount; /*0x196661*/\n        }\n      }\n      else\n      {\n        v3 = 13; /*0x1965e5*/\n      }\n    }\n  }\n  objc_msgSend(self->kmOpenLock, sel_unlock); /*0x196678*/\n  return v3; /*0x196682*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1e7768",
+        "name": "dword_1E7768"
+      },
+      {
+        "addr": "0x202c70",
+        "name": "sel_allocateConsoleInfo",
+        "string": "allocateConsoleInfo"
+      },
+      {
+        "addr": "0x197c58",
+        "name": "_BasicAllocateConsole"
+      },
+      {
+        "addr": "0x1f7b3c",
+        "name": "_basicConsole"
+      },
+      {
+        "addr": "0x1e38b0",
+        "name": "off_1E38B0"
+      },
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0019668c",
+    "addr": "0x0019668c",
+    "code": "int __cdecl -[kmDevice kmPutc:](kmDevice *self, SEL a2, int a3)\n{\n  int fbMode; // eax\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *v4; // eax\n\n  fbMode = self->fbMode; /*0x196695*/\n  if ( fbMode == 1 ) /*0x19669e*/\n  {\n    v4 = self->fbp[0]; /*0x1966a8*/\n  }\n  else\n  {\n    if ( fbMode != 3 ) /*0x1966a3*/\n      return 0; /*0x1966a3*/\n    v4 = self->fbp[1]; /*0x1966c0*/\n  }\n  (*((void (__stdcall **)($8EF4127CF77ECA3DDB612FCF233DC3A8 *, _DWORD))v4 + 5))(v4, (char)a3); /*0x1966b6*/\n  return 0; /*0x1966bc*/\n}"
+  }
+]

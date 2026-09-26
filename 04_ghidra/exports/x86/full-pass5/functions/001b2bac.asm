@@ -1,0 +1,11 @@
+0x001b2bac	1	PUSH EBP
+0x001b2bad	2	MOV EBP,ESP
+0x001b2baf	3	MOV EAX,dword ptr [EBP + 0x8]
+0x001b2bb2	2	XOR EDX,EDX
+0x001b2bb4	7	CMP byte ptr [EAX + 0x1d2],0x0
+0x001b2bbb	2	JZ 0x001b2bc2
+0x001b2bbd	5	MOV EDX,0xfffffd2b
+0x001b2bc2	2	MOV EAX,EDX
+0x001b2bc4	2	MOV ESP,EBP
+0x001b2bc6	1	POP EBP
+0x001b2bc7	1	RET

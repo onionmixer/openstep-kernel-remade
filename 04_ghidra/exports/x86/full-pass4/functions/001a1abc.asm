@@ -1,0 +1,9 @@
+0x001a1abc	1	PUSH EBP
+0x001a1abd	2	MOV EBP,ESP
+0x001a1abf	3	MOV EAX,dword ptr [EBP + 0x8]
+0x001a1ac2	4	TEST byte ptr [EAX + 0x78],0x6
+0x001a1ac6	3	SETNZ AL
+0x001a1ac9	5	AND EAX,0xff
+0x001a1ace	2	MOV ESP,EBP
+0x001a1ad0	1	POP EBP
+0x001a1ad1	1	RET

@@ -1,0 +1,68 @@
+0x0016ce6c	1	PUSH EBP
+0x0016ce6d	2	MOV EBP,ESP
+0x0016ce6f	1	PUSH EDI
+0x0016ce70	1	PUSH ESI
+0x0016ce71	1	PUSH EBX
+0x0016ce72	3	MOV EDI,dword ptr [EBP + 0xc]
+0x0016ce75	3	MOV ECX,dword ptr [EBP + 0x8]
+0x0016ce78	2	MOV EBX,dword ptr [ECX]
+0x0016ce7a	3	CMP dword ptr [EBX + 0x30],EDI
+0x0016ce7d	6	JL 0x0016cf1c
+0x0016ce83	4	CMP dword ptr [EBX + 0x24],0x0
+0x0016ce87	6	JZ 0x0016cf1c
+0x0016ce8d	5	CALL 0x0018c0d8
+0x0016ce92	2	MOV EDX,EAX
+0x0016ce94	2	MOV EAX,dword ptr [EBX]
+0x0016ce96	2	TEST EAX,EAX
+0x0016ce98	2	JNZ 0x0016ce96
+0x0016ce9a	5	MOV EAX,0x1
+0x0016ce9f	2	XCHG dword ptr [EBX],EAX
+0x0016cea1	3	XOR EAX,0x1
+0x0016cea4	2	TEST EAX,EAX
+0x0016cea6	2	JZ 0x0016ce94
+0x0016cea8	3	MOV ESI,dword ptr [EBX + 0x28]
+0x0016ceab	4	ADD dword ptr [EBX + 0x28],0x20
+0x0016ceaf	3	MOV EAX,dword ptr [EBX + 0x28]
+0x0016ceb2	3	CMP dword ptr [EBX + 0x2c],EAX
+0x0016ceb5	2	JNZ 0x0016cecc
+0x0016ceb7	3	ADD EAX,-0x20
+0x0016ceba	3	MOV dword ptr [EBX + 0x28],EAX
+0x0016cebd	2	XOR EAX,EAX
+0x0016cebf	2	XCHG dword ptr [EBX],EAX
+0x0016cec1	1	PUSH EDX
+0x0016cec2	5	CALL 0x0018b544
+0x0016cec7	2	JMP 0x0016cf1c
+0x0016cecc	2	XOR EAX,EAX
+0x0016cece	2	XCHG dword ptr [EBX],EAX
+0x0016ced0	1	PUSH EDX
+0x0016ced1	5	CALL 0x0018b544
+0x0016ced6	3	MOV ECX,dword ptr [EBP + 0x10]
+0x0016ced9	2	MOV dword ptr [ESI],ECX
+0x0016cedb	3	MOV ECX,dword ptr [EBP + 0x14]
+0x0016cede	3	MOV dword ptr [ESI + 0x4],ECX
+0x0016cee1	3	MOV ECX,dword ptr [EBP + 0x18]
+0x0016cee4	3	MOV dword ptr [ESI + 0x8],ECX
+0x0016cee7	3	MOV ECX,dword ptr [EBP + 0x1c]
+0x0016ceea	3	MOV dword ptr [ESI + 0xc],ECX
+0x0016ceed	3	MOV ECX,dword ptr [EBP + 0x20]
+0x0016cef0	3	MOV dword ptr [ESI + 0x10],ECX
+0x0016cef3	3	MOV ECX,dword ptr [EBP + 0x24]
+0x0016cef6	3	MOV dword ptr [ESI + 0x14],ECX
+0x0016cef9	5	CALL 0x00187e94
+0x0016cefe	3	MOV dword ptr [ESI + 0x18],EAX
+0x0016cf01	3	MOV dword ptr [ESI + 0x1c],EDI
+0x0016cf04	3	ADD ESP,0x4
+0x0016cf07	4	CMP dword ptr [EBX + 0x18],0x0
+0x0016cf0b	2	JZ 0x0016cf1c
+0x0016cf0d	1	PUSH EBX
+0x0016cf0e	5	PUSH 0x16cf28
+0x0016cf13	3	MOV ECX,dword ptr [EBP + 0x8]
+0x0016cf16	1	PUSH ECX
+0x0016cf17	5	CALL 0x0016d090
+0x0016cf1c	3	LEA ESP,[EBP + -0xc]
+0x0016cf1f	1	POP EBX
+0x0016cf20	1	POP ESI
+0x0016cf21	1	POP EDI
+0x0016cf22	2	MOV ESP,EBP
+0x0016cf24	1	POP EBP
+0x0016cf25	1	RET

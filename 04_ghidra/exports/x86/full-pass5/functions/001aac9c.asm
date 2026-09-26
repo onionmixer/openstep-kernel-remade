@@ -1,0 +1,32 @@
+0x001aac9c	1	PUSH EBP
+0x001aac9d	2	MOV EBP,ESP
+0x001aac9f	1	PUSH EDI
+0x001aaca0	1	PUSH ESI
+0x001aaca1	1	PUSH EBX
+0x001aaca2	3	MOV EAX,dword ptr [EBP + 0x8]
+0x001aaca5	3	MOV EBX,dword ptr [EBP + 0x10]
+0x001aaca8	6	MOV EDX,dword ptr [EAX + 0x144]
+0x001aacae	5	ADD EAX,0x144
+0x001aacb3	2	CMP EAX,EDX
+0x001aacb5	2	JZ 0x001aacd3
+0x001aacb7	1	NOP
+0x001aacb8	2	MOV ESI,EDX
+0x001aacba	2	MOV EDI,EBX
+0x001aacbc	5	MOV ECX,0x6
+0x001aacc1	1	CLD
+0x001aacc2	2	TEST AL,0x0
+0x001aacc4	2	CMPSB.REPE ES:EDI,ESI
+0x001aacc6	2	JNZ 0x001aaccc
+0x001aacc8	2	MOV EAX,EDX
+0x001aacca	2	JMP 0x001aacd5
+0x001aaccc	3	MOV EDX,dword ptr [EDX + 0x8]
+0x001aaccf	2	CMP EAX,EDX
+0x001aacd1	2	JNZ 0x001aacb8
+0x001aacd3	2	XOR EAX,EAX
+0x001aacd5	3	LEA ESP,[EBP + -0xc]
+0x001aacd8	1	POP EBX
+0x001aacd9	1	POP ESI
+0x001aacda	1	POP EDI
+0x001aacdb	2	MOV ESP,EBP
+0x001aacdd	1	POP EBP
+0x001aacde	1	RET

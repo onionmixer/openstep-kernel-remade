@@ -1,0 +1,967 @@
+[
+  {
+    "requested_address": "0x00193e58",
+    "addr": "0x00193e58",
+    "code": "unsigned __int32 __cdecl pagemove(unsigned int a1, unsigned int a2, int a3)\n{\n  int v4; // esi\n  _DWORD *v5; // ebx\n  unsigned __int32 result; // eax\n\n  v4 = a3; /*0x193e61*/\n  if ( (a3 & 0xFFF) != 0 ) /*0x193e6a*/\n    panic(aPagemove); /*0x193e71*/\n  while ( v4 > 0 ) /*0x193ebd*/\n  {\n    v5 = (_DWORD *)pmap_pt_entry((_DWORD *)kernel_pmap, a1); /*0x193e8c*/\n    *(_DWORD *)pmap_pt_entry((_DWORD *)kernel_pmap, a2) = *v5; /*0x193e9d*/\n    *v5 = 0; /*0x193e9f*/\n    a1 += 4096; /*0x193ea5*/\n    a2 += 4096; /*0x193eac*/\n    v4 -= 4096; /*0x193eb2*/\n  }\n  result = __readcr3(); /*0x193ebf*/\n  __writecr3(result); /*0x193ec2*/\n  return result; /*0x193ec8*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e294a",
+        "name": "aPagemove",
+        "string": "pagemove"
+      },
+      {
+        "addr": "0x18ec70",
+        "name": "_pmap_pt_entry"
+      },
+      {
+        "addr": "0x1f63f0",
+        "name": "_kernel_pmap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00193ed0",
+    "addr": "0x00193ed0",
+    "code": "int __cdecl kernacc(int a1, int a2, int a3)\n{\n  unsigned int v3; // ebx\n  char *v4; // eax\n  char v5; // al\n\n  v3 = ~page_mask & a1; /*0x193ee8*/\n  if ( v3 >= a2 + a1 ) /*0x193eec*/\n    return 1; /*0x193f22*/\n  while ( 1 ) /*0x193ef8*/\n  {\n    v4 = (char *)pmap_pt_entry((_DWORD *)kernel_pmap, v3); /*0x193ef8*/\n    if ( !v4 ) /*0x193f02*/\n      break; /*0x193f02*/\n    v5 = *v4; /*0x193f04*/\n    if ( (v5 & 1) == 0 || !a3 && (v5 & 6) == 0 ) /*0x193f10*/\n      break; /*0x193f10*/\n    v3 += page_size; /*0x193f18*/\n    if ( v3 >= a2 + a1 ) /*0x193f20*/\n      return 1; /*0x193f20*/\n  }\n  return 0; /*0x193f2a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x18ec70",
+        "name": "_pmap_pt_entry"
+      },
+      {
+        "addr": "0x1f63f0",
+        "name": "_kernel_pmap"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00193f34",
+    "addr": "0x00193f34",
+    "code": "int probeNativeDevices()\n{\n  int BootConfigString; // eax\n  const char *v1; // eax\n  const char *v2; // ebx\n  const char *v3; // eax\n  Class Class; // eax\n  int j; // esi\n  id v6; // eax\n  int v7; // eax\n  char *v9; // [esp+Ch] [ebp-10h]\n  id v10; // [esp+10h] [ebp-Ch]\n  int i; // [esp+14h] [ebp-8h]\n  int k; // [esp+14h] [ebp-8h]\n  int v13; // [esp+18h] [ebp-4h] BYREF\n\n  sub_194890(); /*0x193f3d*/\n  v9 = (char *)IOMalloc(128); /*0x193f4c*/\n  for ( i = 1; ; ++i ) /*0x193f4f*/\n  {\n    BootConfigString = findBootConfigString(i); /*0x193f60*/\n    if ( !BootConfigString ) /*0x193f6a*/\n      break; /*0x193f6a*/\n    v10 = +[IOConfigTable newForConfigData:](aIoconfigtable, sel_newForConfigData_, BootConfigString); /*0x193f84*/\n    v1 = (const char *)objc_msgSend(v10, sel_valueForStringKey_, aFamily); /*0x193f97*/\n    v2 = v1; /*0x193f9c*/\n    if ( v1 ) /*0x193fa3*/\n    {\n      if ( !strcmp(v1, aBus_0) ) /*0x193fb4*/\n      {\n        v3 = (const char *)objc_msgSend(v10, sel_valueForStringKey_, aBusClass); /*0x193fc8*/\n        Class = objc_getClass(v3); /*0x193fce*/\n        -[objc_class probeBus:](Class, sel_probeBus_, v10); /*0x193fdf*/\n      }\n      objc_msgSend(v10, sel_freeString_, v2); /*0x193ff3*/\n    }\n  }\n  defaultBusClass = +[KernBus lookupBusClassWithName:](aKernbus, sel_lookupBusClassWithName_, aEisa_0); /*0x19401c*/\n  if ( !defaultBusClass ) /*0x194026*/\n  {\n    sprintf(v9, \"Missing %s kernel bus class\", aEisa_1); /*0x194036*/\n    panic(v9); /*0x19403f*/\n  }\n  defaultBus = +[KernBus lookupBusInstanceWithName:busId:](aKernbus, sel_lookupBusInstanceWithName_busId_, aEisa_2, 0); /*0x194061*/\n  if ( eisa_id(0, &v13) ) /*0x19406c*/\n  {\n    printf(\"CPU:\\tEISA id %08x\\n\", v13); /*0x194081*/\n    for ( j = 1; j <= 15; ++j ) /*0x194086*/\n    {\n      if ( eisa_id(j, &v13) ) /*0x194092*/\n        printf(\"slot %x:\\tEISA id %08x\\n\", j, v13); /*0x1940a8*/\n    }\n    led_msg(aNext_1); /*0x1940bb*/\n    is_ISA = 0; /*0x1940c0*/\n  }\n  else\n  {\n    printf(\"ISA bus\\n\"); /*0x1940d1*/\n    is_ISA = 1; /*0x1940d6*/\n  }\n  v6 = +[IODevice driverKitVersion](aIodevice_0, sel_driverKitVersion); /*0x1940ee*/\n  printf(\"DriverKit version %d\\n\", v6); /*0x1940f9*/\n  for ( k = 1; ; ++k ) /*0x1940fe*/\n  {\n    v7 = findBootConfigString(k); /*0x19410c*/\n    if ( !v7 ) /*0x194116*/\n      break; /*0x194116*/\n    sub_194140(v7); /*0x194119*/\n  }\n  return IOFree(v9, 128); /*0x194139*/\n}",
+    "refs": [
+      {
+        "addr": "0x194890",
+        "name": "sub_194890"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x194814",
+        "name": "_findBootConfigString"
+      },
+      {
+        "addr": "0x1a53e4",
+        "name": "+[IOConfigTable newForConfigData:]"
+      },
+      {
+        "addr": "0x1fe305",
+        "name": "aIoconfigtable",
+        "string": "IOConfigTable"
+      },
+      {
+        "addr": "0x202648",
+        "name": "sel_newForConfigData:",
+        "string": "newForConfigData:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1e2a0b",
+        "name": "aFamily",
+        "string": "Family"
+      },
+      {
+        "addr": "0x1e2a16",
+        "name": "aBusClass",
+        "string": "Bus Class"
+      },
+      {
+        "addr": "0x1ced1c",
+        "name": "_objc_getClass"
+      },
+      {
+        "addr": "0x209a98",
+        "name": "-[objc_class probeBus:]"
+      },
+      {
+        "addr": "0x201a8c",
+        "name": "sel_probeBus:",
+        "string": "probeBus:"
+      },
+      {
+        "addr": "0x1e2a12",
+        "name": "aBus_0",
+        "string": "Bus"
+      },
+      {
+        "addr": "0x202494",
+        "name": "sel_freeString:",
+        "string": "freeString:"
+      },
+      {
+        "addr": "0x1f7b34",
+        "name": "_defaultBusClass"
+      },
+      {
+        "addr": "0x17f488",
+        "name": "+[KernBus lookupBusClassWithName:]"
+      },
+      {
+        "addr": "0x1fe02d",
+        "name": "aKernbus",
+        "string": "KernBus"
+      },
+      {
+        "addr": "0x201afc",
+        "name": "sel_lookupBusClassWithName:",
+        "string": "lookupBusClassWithName:"
+      },
+      {
+        "addr": "0x1e2a20",
+        "name": "aEisa_0",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1e2a2a",
+        "name": "aMissingSKernel",
+        "string": "Missing %s kernel bus class"
+      },
+      {
+        "addr": "0x1e2a25",
+        "name": "aEisa_1",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1f7b30",
+        "name": "_defaultBus"
+      },
+      {
+        "addr": "0x17f4a8",
+        "name": "+[KernBus lookupBusInstanceWithName:busId:]"
+      },
+      {
+        "addr": "0x201ad8",
+        "name": "sel_lookupBusInstanceWithName:busId:",
+        "string": "lookupBusInstanceWithName:busId:"
+      },
+      {
+        "addr": "0x1e2a46",
+        "name": "aEisa_2",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e2a4b",
+        "name": "aCpuEisaId08x",
+        "string": "CPU:\tEISA id %08x\n"
+      },
+      {
+        "addr": "0x1e2a5e",
+        "name": "aSlotXEisaId08x",
+        "string": "slot %x:\tEISA id %08x\n"
+      },
+      {
+        "addr": "0x194720",
+        "name": "_eisa_id"
+      },
+      {
+        "addr": "0x18cc74",
+        "name": "_led_msg"
+      },
+      {
+        "addr": "0x1e2a75",
+        "name": "aNext_1",
+        "string": "NeXT"
+      },
+      {
+        "addr": "0x1f7b38",
+        "name": "_is_ISA"
+      },
+      {
+        "addr": "0x1e2a7a",
+        "name": "aIsaBus",
+        "string": "ISA bus\n"
+      },
+      {
+        "addr": "0x1a4724",
+        "name": "+[IODevice driverKitVersion]"
+      },
+      {
+        "addr": "0x1fdfcd",
+        "name": "aIodevice_0",
+        "string": "IODevice"
+      },
+      {
+        "addr": "0x2029b4",
+        "name": "sel_driverKitVersion",
+        "string": "driverKitVersion"
+      },
+      {
+        "addr": "0x1e2a83",
+        "name": "aDriverkitVersi",
+        "string": "DriverKit version %d\n"
+      },
+      {
+        "addr": "0x194140",
+        "name": "sub_194140"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194140",
+    "addr": "0x00194140",
+    "code": "int __cdecl sub_194140(int a1)\n{\n  id v1; // esi\n  const char *v2; // ebx\n  KernStringList *v3; // eax\n  const char *v4; // eax\n  const char *v5; // ebx\n  Class v6; // edi\n  int v7; // edx\n  char v8; // dl\n  id v9; // eax\n  id v10; // eax\n  KernDevice *v11; // eax\n  KernDevice *v12; // eax\n  Class v13; // eax\n  objc_class *v14; // eax\n  int dev_port; // eax\n  KernDeviceDescription *v16; // eax\n  id v17; // eax\n  id v18; // eax\n  Class Class; // [esp+10h] [ebp-30h]\n  char *name; // [esp+14h] [ebp-2Ch]\n  const char *v22; // [esp+18h] [ebp-28h]\n  const char *v23; // [esp+1Ch] [ebp-24h]\n  char v24; // [esp+20h] [ebp-20h]\n  int v25; // [esp+24h] [ebp-1Ch]\n  unsigned int i; // [esp+28h] [ebp-18h]\n  id v27; // [esp+2Ch] [ebp-14h]\n  KernDevice *v28; // [esp+30h] [ebp-10h]\n  id v29; // [esp+34h] [ebp-Ch]\n  id v30; // [esp+38h] [ebp-8h]\n  KernStringList *v31; // [esp+3Ch] [ebp-4h]\n\n  v1 = nullptr; /*0x19414c*/\n  v28 = nullptr; /*0x19414e*/\n  v27 = nullptr; /*0x194155*/\n  v24 = 0; /*0x19415c*/\n  name = (char *)IOMalloc(0x80u); /*0x19416a*/\n  v29 = +[IOConfigTable newForConfigData:](aIoconfigtable, sel_newForConfigData_, a1); /*0x19417f*/\n  v30 = objc_msgSend(v29, sel_valueForStringKey_, aServerName_0); /*0x194196*/\n  v2 = (const char *)objc_msgSend(v29, sel_valueForStringKey_, aClassNames); /*0x1941ad*/\n  if ( !v2 ) /*0x1941b4*/\n    v2 = (const char *)objc_msgSend(v29, sel_valueForStringKey_, aDriverName_0); /*0x1941ca*/\n  v3 = +[Object alloc](aKernstringlist, sel_alloc); /*0x1941e2*/\n  v31 = -[KernStringList initWithWhitespaceDelimitedString:](v3, sel_initWithWhitespaceDelimitedString_); /*0x1941f2*/\n  IOFree((int)v2, strlen(v2) + 1); /*0x194209*/\n  v4 = (const char *)objc_msgSend(v29, sel_valueForStringKey_, aBusType_0); /*0x19421d*/\n  v22 = v4; /*0x194222*/\n  if ( v4 && *v4 ) /*0x19422c*/\n  {\n    v23 = v4; /*0x19424b*/\n    sprintf(name, \"%sKernBus\", v4); /*0x19425b*/\n  }\n  else\n  {\n    v23 = aEisa_3; /*0x194231*/\n    sprintf(name, \"%sKernBus\", aEisa_3); /*0x194238*/\n  }\n  Class = objc_getClass(name); /*0x194269*/\n  if ( !Class ) /*0x194271*/\n  {\n    Class = (Class)defaultBusClass; /*0x194278*/\n    v23 = aEisa_4; /*0x19427b*/\n  }\n  v25 = 0; /*0x194282*/\n  for ( i = 0; ; ++i ) /*0x194289*/\n  {\n    if ( i >= -[KernStringList count](v31, sel_count) ) /*0x1942a7*/\n      goto LABEL_42; /*0x1942a7*/\n    v5 = -[KernStringList stringAt:](v31, sel_stringAt_, i); /*0x1942c0*/\n    v6 = objc_getClass(v5); /*0x1942c8*/\n    if ( !v6 ) /*0x1942cf*/\n      break; /*0x1942cf*/\n    if ( !v24 ) /*0x1942d9*/\n    {\n      if ( v30 ) /*0x1942df*/\n      {\n        v7 = +[IODevice driverKitVersionForDriverNamed:](aIodevice_0, sel_driverKitVersionForDriverNamed_, v30); /*0x1942f6*/\n        if ( v7 == -1 ) /*0x1942fe*/\n          v7 = 310; /*0x194300*/\n        if ( v7 > 310 ) /*0x19430b*/\n        {\n          v8 = 1; /*0x194334*/\n        }\n        else\n        {\n          IOLog(aWarningDriverS); /*0x194317*/\n          IOLog(aDriverSCouldNo); /*0x194325*/\n          v8 = 0; /*0x19432a*/\n        }\n        if ( !v8 ) /*0x19433b*/\n          goto LABEL_53; /*0x19433b*/\n      }\n      v24 = 1; /*0x194341*/\n    }\n    if ( (unsigned __int8)-[objc_class configureDriverWithTable:](Class, sel_configureDriverWithTable_, v29) ) /*0x194358*/\n    {\n      v25 = 1; /*0x19423c*/\nLABEL_42:\n      IOFree((int)name, 128); /*0x194570*/\n      -[KernStringList free](v31, sel_free); /*0x194588*/\n      if ( v30 ) /*0x194594*/\n        objc_msgSend(v29, sel_freeString_, v30); /*0x1945a4*/\n      if ( v22 ) /*0x1945b0*/\n        objc_msgSend(v29, sel_freeString_, v22); /*0x1945c0*/\n      if ( v25 ) /*0x1945cc*/\n        return 1; /*0x1945d3*/\n      objc_msgSend(v29, sel_free); /*0x1945e2*/\n      objc_msgSend(v27, sel_free); /*0x1945f1*/\n      objc_msgSend(v1, sel_free); /*0x1945fd*/\nLABEL_64:\n      -[KernDevice free](v28, sel_free); /*0x1946c5*/\n      return 0; /*0x1946cf*/\n    }\n    v9 = -[objc_class deviceStyle](v6, sel_deviceStyle); /*0x19436c*/\n    if ( v9 ) /*0x194378*/\n    {\n      if ( (unsigned int)v9 > 2 ) /*0x19437d*/\n      {\n        IOLog(aInvalidStyleFo); /*0x194512*/\n        goto LABEL_53; /*0x194512*/\n      }\n      v16 = +[Object alloc](aKerndevicedesc, sel_alloc); /*0x1944ba*/\n      v17 = -[KernDeviceDescription initFromConfigTable:](v16, sel_initFromConfigTable_); /*0x1944c5*/\n      v1 = v17; /*0x1944ca*/\n      if ( !v17 ) /*0x1944d1*/\n        goto LABEL_53; /*0x1944d1*/\n      v18 = objc_msgSend(&aIodevicedescri_0, sel_alloc); /*0x1944ea*/\n      v27 = objc_msgSend(v18, sel__initWithDelegate_); /*0x1944fa*/\n      if ( !v27 ) /*0x194502*/\n        goto LABEL_53; /*0x194502*/\n    }\n    else\n    {\n      v1 = -[objc_class deviceDescriptionFromConfigTable:](Class, sel_deviceDescriptionFromConfigTable_, v29); /*0x19439b*/\n      if ( !v1 ) /*0x1943a2*/\n      {\n        IOLog(aConfiguredrive_0); /*0x19460e*/\n        goto LABEL_53; /*0x19460e*/\n      }\n      if ( !objc_msgSend(v1, sel_bus) ) /*0x1943af*/\n        objc_msgSend(v1, sel_setBus_, defaultBus); /*0x1943ca*/\n      v10 = objc_msgSend(v1, sel_bus); /*0x1943e0*/\n      if ( !objc_msgSend(v10, sel_allocateResourcesForDeviceDescription_) ) /*0x1943f7*/\n      {\n        IOLog(aConfiguredrive_1); /*0x194616*/\n        goto LABEL_53; /*0x194616*/\n      }\n      v11 = +[Object alloc](aKerndevice, sel_alloc); /*0x194410*/\n      v12 = -[KernDevice initWithDeviceDescription:](v11, sel_initWithDeviceDescription_); /*0x19441b*/\n      v28 = v12; /*0x194420*/\n      if ( !v12 ) /*0x194428*/\n      {\n        IOLog(aConfiguredrive_2); /*0x19461e*/\n        goto LABEL_53; /*0x194626*/\n      }\n      objc_msgSend(v1, sel_setDevice_, v12); /*0x194436*/\n      sprintf(name, \"IO%sDeviceDescription\", v23); /*0x194448*/\n      v13 = objc_getClass(name); /*0x194451*/\n      v14 = -[objc_class alloc](v13, sel_alloc); /*0x194466*/\n      v27 = -[objc_class _initWithDelegate:](v14, sel__initWithDelegate_); /*0x194476*/\n      if ( !v27 ) /*0x19447e*/\n        goto LABEL_53; /*0x19447e*/\n      dev_port = create_dev_port((int)v28); /*0x194488*/\n      objc_msgSend(v27, sel_setDevicePort_, dev_port); /*0x19449a*/\n    }\n    if ( (unsigned __int8)-[objc_class respondsTo:](v6, sel_respondsTo_, sel_probe_) ) /*0x19452a*/\n    {\n      if ( !+[IODevice addLoadedClass:description:](aIodevice_0, sel_addLoadedClass_description_, v6, v27) ) /*0x194555*/\n        ++v25; /*0x194563*/\n    }\n    else\n    {\n      IOLog(aConfiguredrive); /*0x194539*/\n    }\n  }\n  IOLog(aConfiguredrive_3); /*0x19462e*/\n  IOLog(aDriverSCouldNo_0); /*0x19463c*/\nLABEL_53:\n  if ( v30 ) /*0x194648*/\n    objc_msgSend(v29, sel_freeString_, v30); /*0x194658*/\n  if ( v22 ) /*0x194664*/\n    objc_msgSend(v29, sel_freeString_, v22); /*0x194674*/\n  if ( v29 ) /*0x194680*/\n    objc_msgSend(v29, sel_free); /*0x19468c*/\n  if ( v27 ) /*0x194698*/\n    objc_msgSend(v27, sel_free); /*0x1946a4*/\n  if ( v1 ) /*0x1946ae*/\n    objc_msgSend(v1, sel_free); /*0x1946b7*/\n  if ( v28 ) /*0x1946c3*/\n    goto LABEL_64; /*0x1946c3*/\n  return 0; /*0x1946d9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1a53e4",
+        "name": "+[IOConfigTable newForConfigData:]"
+      },
+      {
+        "addr": "0x1fe305",
+        "name": "aIoconfigtable",
+        "string": "IOConfigTable"
+      },
+      {
+        "addr": "0x202648",
+        "name": "sel_newForConfigData:",
+        "string": "newForConfigData:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1e2a99",
+        "name": "aServerName_0",
+        "string": "Server Name"
+      },
+      {
+        "addr": "0x1e2aa5",
+        "name": "aClassNames",
+        "string": "Class Names"
+      },
+      {
+        "addr": "0x1e2ab1",
+        "name": "aDriverName_0",
+        "string": "Driver Name"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe26b",
+        "name": "aKernstringlist",
+        "string": "KernStringList"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x181a60",
+        "name": "-[KernStringList initWithWhitespaceDelimitedString:]"
+      },
+      {
+        "addr": "0x20250c",
+        "name": "sel_initWithWhitespaceDelimitedString:",
+        "string": "initWithWhitespaceDelimitedString:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1e2abd",
+        "name": "aBusType_0",
+        "string": "Bus Type"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1e2acb",
+        "name": "aSkernbus",
+        "string": "%sKernBus"
+      },
+      {
+        "addr": "0x1e2ac6",
+        "name": "aEisa_3",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x1ced1c",
+        "name": "_objc_getClass"
+      },
+      {
+        "addr": "0x1f7b34",
+        "name": "_defaultBusClass"
+      },
+      {
+        "addr": "0x1e2ad5",
+        "name": "aEisa_4",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x181c54",
+        "name": "-[KernStringList count]"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x181c64",
+        "name": "-[KernStringList stringAt:]"
+      },
+      {
+        "addr": "0x202500",
+        "name": "sel_stringAt:",
+        "string": "stringAt:"
+      },
+      {
+        "addr": "0x1a4730",
+        "name": "+[IODevice driverKitVersionForDriverNamed:]"
+      },
+      {
+        "addr": "0x1fdfcd",
+        "name": "aIodevice_0",
+        "string": "IODevice"
+      },
+      {
+        "addr": "0x202994",
+        "name": "sel_driverKitVersionForDriverNamed:",
+        "string": "driverKitVersionForDriverNamed:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e29ad",
+        "name": "aWarningDriverS",
+        "string": "WARNING: driver %s uses incompatible DriverKit version %d\n"
+      },
+      {
+        "addr": "0x1e29e8",
+        "name": "aDriverSCouldNo",
+        "string": "Driver %s could not be configured\n"
+      },
+      {
+        "addr": "0x181bdc",
+        "name": "-[KernStringList free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x202494",
+        "name": "sel_freeString:",
+        "string": "freeString:"
+      },
+      {
+        "addr": "0x18042c",
+        "name": "-[KernDevice free]"
+      },
+      {
+        "addr": "0x209aa8",
+        "name": "-[objc_class configureDriverWithTable:]"
+      },
+      {
+        "addr": "0x201a98",
+        "name": "sel_configureDriverWithTable:",
+        "string": "configureDriverWithTable:"
+      },
+      {
+        "addr": "0x209aac",
+        "name": "-[objc_class deviceStyle]"
+      },
+      {
+        "addr": "0x2029c8",
+        "name": "sel_deviceStyle",
+        "string": "deviceStyle"
+      },
+      {
+        "addr": "0x1e2bfc",
+        "name": "aInvalidStyleFo",
+        "string": "Invalid style for class %s"
+      },
+      {
+        "addr": "0x1fe0d3",
+        "name": "aKerndevicedesc",
+        "string": "KernDeviceDescription"
+      },
+      {
+        "addr": "0x1810b8",
+        "name": "-[KernDeviceDescription initFromConfigTable:]"
+      },
+      {
+        "addr": "0x201e90",
+        "name": "sel_initFromConfigTable:",
+        "string": "initFromConfigTable:"
+      },
+      {
+        "addr": "0x1fe42f",
+        "name": "aIodevicedescri_0"
+      },
+      {
+        "addr": "0x2029d4",
+        "name": "sel__initWithDelegate:",
+        "string": "_initWithDelegate:"
+      },
+      {
+        "addr": "0x209ab0",
+        "name": "-[objc_class deviceDescriptionFromConfigTable:]"
+      },
+      {
+        "addr": "0x201ab4",
+        "name": "sel_deviceDescriptionFromConfigTable:",
+        "string": "deviceDescriptionFromConfigTable:"
+      },
+      {
+        "addr": "0x1e2b30",
+        "name": "aConfiguredrive_0",
+        "string": "configureDriver: initFromConfigTable failed for class %s\n"
+      },
+      {
+        "addr": "0x202434",
+        "name": "sel_setBus:",
+        "string": "setBus:"
+      },
+      {
+        "addr": "0x1f7b30",
+        "name": "_defaultBus"
+      },
+      {
+        "addr": "0x202430",
+        "name": "sel_bus",
+        "string": "bus"
+      },
+      {
+        "addr": "0x1e2b6a",
+        "name": "aConfiguredrive_1",
+        "string": "configureDriver: could not allocate resources for class %s\n"
+      },
+      {
+        "addr": "0x201bc8",
+        "name": "sel_allocateResourcesForDeviceDescription:",
+        "string": "allocateResourcesForDeviceDescription:"
+      },
+      {
+        "addr": "0x1fe1cb",
+        "name": "aKerndevice",
+        "string": "KernDevice"
+      },
+      {
+        "addr": "0x1803c4",
+        "name": "-[KernDevice initWithDeviceDescription:]"
+      },
+      {
+        "addr": "0x202220",
+        "name": "sel_initWithDeviceDescription:",
+        "string": "initWithDeviceDescription:"
+      },
+      {
+        "addr": "0x1e2ba6",
+        "name": "aConfiguredrive_2",
+        "string": "configureDriver: initFromDeviceDescription failed for class %s\n"
+      },
+      {
+        "addr": "0x202450",
+        "name": "sel_setDevice:",
+        "string": "setDevice:"
+      },
+      {
+        "addr": "0x1e2be6",
+        "name": "aIoSdevicedescr",
+        "string": "IO%sDeviceDescription"
+      },
+      {
+        "addr": "0x209ab4",
+        "name": "-[objc_class alloc]"
+      },
+      {
+        "addr": "0x209abc",
+        "name": "-[objc_class _initWithDelegate:]"
+      },
+      {
+        "addr": "0x181ce8",
+        "name": "_create_dev_port"
+      },
+      {
+        "addr": "0x2029e8",
+        "name": "sel_setDevicePort:",
+        "string": "setDevicePort:"
+      },
+      {
+        "addr": "0x1a4e48",
+        "name": "+[IODevice addLoadedClass:description:]"
+      },
+      {
+        "addr": "0x201944",
+        "name": "sel_addLoadedClass:description:",
+        "string": "addLoadedClass:description:"
+      },
+      {
+        "addr": "0x1e2c17",
+        "name": "aConfiguredrive",
+        "string": "configureDriver: Class %s does not respond to probe:\n"
+      },
+      {
+        "addr": "0x209ab8",
+        "name": "-[objc_class respondsTo:]"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      },
+      {
+        "addr": "0x2029f8",
+        "name": "sel_probe:",
+        "string": "probe:"
+      },
+      {
+        "addr": "0x1e2ada",
+        "name": "aConfiguredrive_3",
+        "string": "configureDriver: driver class '%s' was not loaded\n"
+      },
+      {
+        "addr": "0x1e2b0d",
+        "name": "aDriverSCouldNo_0",
+        "string": "Driver %s could not be configured\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001946e0",
+    "addr": "0x001946e0",
+    "code": "int eisa_present()\n{\n  if ( !dword_1E7744 ) /*0x1946ea*/\n  {\n    if ( !strncmp((const char *)0xFFFD9, aEisa_5, 4u) ) /*0x1946f8*/\n      dword_1E2C50 = 1; /*0x194701*/\n    dword_1E7744 = 1; /*0x19470b*/\n  }\n  return dword_1E2C50; /*0x19471c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2c50",
+        "name": "dword_1E2C50"
+      },
+      {
+        "addr": "0x101efc",
+        "name": "_strncmp"
+      },
+      {
+        "addr": "0x1e2c54",
+        "name": "aEisa_5",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x1e7744",
+        "name": "dword_1E7744"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194720",
+    "addr": "0x00194720",
+    "code": "_BOOL4 __cdecl eisa_id(__int16 a1, _BYTE *a2)\n{\n  _BOOL4 result; // eax\n\n  if ( !dword_1E7744 ) /*0x194732*/\n  {\n    if ( !strncmp((const char *)0xFFFD9, aEisa_5, 4u) ) /*0x194740*/\n      dword_1E2C50 = 1; /*0x19474c*/\n    dword_1E7744 = 1; /*0x194756*/\n  }\n  result = false; /*0x1947b8*/\n  if ( dword_1E2C50 ) /*0x194767*/\n  {\n    a2[3] = inb((a1 << 12) | 0xC80); /*0x19477f*/\n    a2[2] = inb(((a1 << 12) | 0xC80) + 1); /*0x19478d*/\n    a2[1] = inb(((a1 << 12) | 0xC80) + 2); /*0x19479b*/\n    *a2 = inb(((a1 << 12) | 0xC80) + 3); /*0x1947a9*/\n    if ( *(_DWORD *)a2 != -1 ) /*0x1947ae*/\n      return true; /*0x194767*/\n  }\n  return result; /*0x1947bd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2c50",
+        "name": "dword_1E2C50"
+      },
+      {
+        "addr": "0x101efc",
+        "name": "_strncmp"
+      },
+      {
+        "addr": "0x1e2c54",
+        "name": "aEisa_5",
+        "string": "EISA"
+      },
+      {
+        "addr": "0x1e7744",
+        "name": "dword_1E7744"
+      },
+      {
+        "addr": "0x18c9dc",
+        "name": "_inb"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001947c4",
+    "addr": "0x001947c4",
+    "code": "int __cdecl configureThread(int a1)\n{\n  *(_BYTE *)(a1 + 8) = sub_194140(*(_DWORD *)(a1 + 4)); /*0x1947d4*/\n  objc_msgSend(*(id *)a1, sel_lock); /*0x1947e1*/\n  objc_msgSend(*(id *)a1, sel_unlockWith_, 1); /*0x1947f2*/\n  return IOExitThread(); /*0x1947fc*/\n}",
+    "refs": [
+      {
+        "addr": "0x194140",
+        "name": "sub_194140"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x1a9220",
+        "name": "_IOExitThread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194804",
+    "addr": "0x00194804",
+    "code": "void probeHardware()\n{\n  ; /*0x194804*/\n}"
+  },
+  {
+    "requested_address": "0x0019480c",
+    "addr": "0x0019480c",
+    "code": "void probeDirectDevices()\n{\n  ; /*0x19480c*/\n}"
+  },
+  {
+    "requested_address": "0x00194814",
+    "addr": "0x00194814",
+    "code": "int __cdecl findBootConfigString(int a1)\n{\n  int v1; // esi\n  int v3; // ebx\n  unsigned int v4; // kr04_4\n  int v5; // eax\n  int v6; // [esp+10h] [ebp-4h]\n\n  v1 = 79100; /*0x19481d*/\n  v6 = 0; /*0x194822*/\n  if ( MEMORY[0x134FC] ) /*0x194830*/\n  {\n    v3 = 0; /*0x194840*/\n    if ( a1 <= 0 ) /*0x194845*/\n    {\n      return v1; /*0x194882*/\n    }\n    else\n    {\n      while ( 1 ) /*0x194852*/\n      {\n        v4 = strlen((const char *)v1) + 1; /*0x194852*/\n        v5 = v4 + v6; /*0x19485f*/\n        v6 += v4; /*0x194863*/\n        v1 += v4; /*0x194866*/\n        if ( v4 == 1 || v5 > 53248 || !*(_BYTE *)v1 ) /*0x194873*/\n          break; /*0x194873*/\n        if ( a1 <= ++v3 ) /*0x194880*/\n          return v1; /*0x194880*/\n      }\n      return 0; /*0x194878*/\n    }\n  }\n  else\n  {\n    IOLog(aWarningNoConfi); /*0x194837*/\n    return 0; /*0x19483c*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e2cb7",
+        "name": "aWarningNoConfi",
+        "string": "WARNING: No config table in KERNBOOTSTRUCT!\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194890",
+    "addr": "0x00194890",
+    "code": "void sub_194890()\n{\n  int i; // ebx\n  mach_header *v1; // esi\n  const section *v2; // eax\n\n  for ( i = 0; i < MEMORY[0x11154]; ++i ) /*0x1948a3*/\n  {\n    v1 = *(mach_header **)(8 * i + 0x11168); /*0x1948a8*/\n    v2 = getsectbynamefromheader(v1, aData_0, sectname); /*0x1948ba*/\n    if ( v2 ) /*0x1948c4*/\n      bzero((void *)v2->addr, v2->size); /*0x1948ce*/\n    objc_registerModule(v1, 0); /*0x1948d9*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x15c38c",
+        "name": "_getsectbynamefromheader"
+      },
+      {
+        "addr": "0x1e2cea",
+        "name": "aData_0",
+        "string": "__DATA"
+      },
+      {
+        "addr": "0x1e2ce4",
+        "name": "sectname",
+        "string": "__bss"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1ce0cc",
+        "name": "_objc_registerModule"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001948f8",
+    "addr": "0x001948f8",
+    "code": "int __cdecl cnopen(__int16 a1, int a2)\n{\n  int v2; // edi\n  int v3; // esi\n  _DWORD *posix_proc; // eax\n  _DWORD *v5; // ebx\n  int v6; // eax\n  __int16 v7; // ax\n  unsigned __int16 v9; // [esp+Ch] [ebp-8h]\n\n  v2 = ttynty(cons_tp); /*0x194915*/\n  v9 = *(_WORD *)(cons_tp + 56); /*0x194920*/\n  v3 = *(_DWORD *)active_u; /*0x194929*/\n  posix_proc = get_posix_proc(*(__int16 *)(*(_DWORD *)active_u + 48)); /*0x194930*/\n  v5 = posix_proc; /*0x194935*/\n  if ( (*(_BYTE *)(v3 + 22) & 2) != 0 ) /*0x19493e*/\n  {\n    v6 = *(_DWORD *)(posix_proc[4] + 8); /*0x194947*/\n    if ( *(_DWORD *)(v6 + 4) == v3 && !*(_DWORD *)(v6 + 8) && !*(_DWORD *)(v2 + 8) && (v5[6] & 2) == 0 ) /*0x19496b*/\n    {\n      *(_DWORD *)(active_u + 360) = cons_tp; /*0x19497c*/\n      *(_WORD *)(active_u + 364) = a1; /*0x19498b*/\n      *(_DWORD *)(v2 + 8) = *(_DWORD *)(v5[4] + 8); /*0x194998*/\n      *(_DWORD *)(*(_DWORD *)(v5[4] + 8) + 8) = cons_tp; /*0x1949a7*/\n      *(_DWORD *)(v2 + 12) = v5[4]; /*0x1949ad*/\n      *(_WORD *)(cons_tp + 68) = *(_WORD *)(v5[4] + 12); /*0x1949bd*/\n      *(_DWORD *)(v3 + 40) |= 0x40000000u; /*0x1949c1*/\n    }\n  }\n  else if ( (*(_BYTE *)(v3 + 43) & 0x40) == 0 ) /*0x1949d4*/\n  {\n    *(_DWORD *)(active_u + 360) = cons_tp; /*0x1949e5*/\n    *(_WORD *)(active_u + 364) = a1; /*0x1949f4*/\n    *(_DWORD *)(v2 + 8) = *(_DWORD *)(posix_proc[4] + 8); /*0x194a01*/\n    *(_DWORD *)(*(_DWORD *)(posix_proc[4] + 8) + 8) = cons_tp; /*0x194a10*/\n    v7 = *(_WORD *)(cons_tp + 68); /*0x194a18*/\n    if ( v7 ) /*0x194a1f*/\n    {\n      if ( *(_WORD *)(v3 + 46) != v7 ) /*0x194a4c*/\n        enterpgrp(v3, v7, 0); /*0x194a53*/\n    }\n    else\n    {\n      enterpgrp(v3, *(__int16 *)(v3 + 48), 0); /*0x194a29*/\n      *(_DWORD *)(v2 + 12) = v5[4]; /*0x194a31*/\n      *(_WORD *)(cons_tp + 68) = *(_WORD *)(v5[4] + 12); /*0x194a41*/\n    }\n  }\n  return (*(&cdevsw + 11 * HIBYTE(v9)))(v9, a2); /*0x194a7f*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x107504",
+        "name": "_enterpgrp"
+      },
+      {
+        "addr": "0x1e2f38",
+        "name": "_cdevsw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194a88",
+    "addr": "0x00194a88",
+    "code": "int __cdecl cnread(int a1, int a2)\n{\n  return funcs_1137BF[11 * *(unsigned __int8 *)(cons_tp + 57)](*(__int16 *)(cons_tp + 56), a2); /*0x194aae*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f40",
+        "name": "funcs_1137BF"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194ab8",
+    "addr": "0x00194ab8",
+    "code": "int __cdecl cnwrite(int a1, int a2)\n{\n  return (*(&funcs_113803 + 11 * *(unsigned __int8 *)(cons_tp + 57)))(*(__int16 *)(cons_tp + 56), a2); /*0x194ade*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f44",
+        "name": "funcs_113803"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194ae8",
+    "addr": "0x00194ae8",
+    "code": "int __cdecl cnioctl(int a1, int a2, int a3, int a4)\n{\n  int v4; // ebx\n  _DWORD *posix_proc; // edx\n  int v6; // eax\n\n  if ( a2 != 536900721 ) /*0x194af6*/\n    return (*(&funcs_10EA24 + 11 * *(unsigned __int8 *)(cons_tp + 57)))(*(__int16 *)(cons_tp + 56), a2, a3, a4); /*0x194b65*/\n  v4 = *(_DWORD *)active_u; /*0x194afd*/\n  posix_proc = get_posix_proc(*(__int16 *)(*(_DWORD *)active_u + 48)); /*0x194b09*/\n  cons_tp = (int)&cons; /*0x194b0b*/\n  v6 = *(_DWORD *)(posix_proc[4] + 8); /*0x194b18*/\n  if ( *(_DWORD *)(v6 + 4) == v4 ) /*0x194b1e*/\n  {\n    *(_DWORD *)(v6 + 8) = 0; /*0x194b20*/\n    *(_WORD *)(*(_DWORD *)(posix_proc[4] + 8) + 12) = 0; /*0x194b2d*/\n  }\n  *(_DWORD *)(v4 + 40) &= ~0x40000000u; /*0x194b33*/\n  return 0; /*0x194b6a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f48",
+        "name": "funcs_10EA24"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x1e97d0",
+        "name": "_cons"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194b70",
+    "addr": "0x00194b70",
+    "code": "int __cdecl cnselect(int a1, int a2)\n{\n  return (*(&funcs_1138FB + 11 * *(unsigned __int8 *)(cons_tp + 57)))(*(__int16 *)(cons_tp + 56), a2); /*0x194b96*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f54",
+        "name": "funcs_1138FB"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194ba0",
+    "addr": "0x00194ba0",
+    "code": "int cngetc()\n{\n  return ((int (__cdecl *)(_DWORD))*(&funcs_194BBF + 11 * *(unsigned __int8 *)(cons_tp + 57)))(*(__int16 *)(cons_tp + 56)); /*0x194bc3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f5c",
+        "name": "funcs_194BBF"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194bc8",
+    "addr": "0x00194bc8",
+    "code": "int cnputc()\n{\n  return ((int (__cdecl *)())funcs_194BEC[11 * *(unsigned __int8 *)(cons_tp + 57)])(); /*0x194bf0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e2f60",
+        "name": "funcs_194BEC"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194bf4",
+    "addr": "0x00194bf4",
+    "code": "int __cdecl mmread(__int16 a1, int a2)\n{\n  return mmrw(a1, a2, 0); /*0x194c09*/\n}",
+    "refs": [
+      {
+        "addr": "0x194c24",
+        "name": "_mmrw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194c0c",
+    "addr": "0x00194c0c",
+    "code": "int __cdecl mmwrite(__int16 a1, int a2)\n{\n  return mmrw(a1, a2, 1); /*0x194c21*/\n}",
+    "refs": [
+      {
+        "addr": "0x194c24",
+        "name": "_mmrw"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194c24",
+    "addr": "0x00194c24",
+    "code": "int __usercall mmrw@<eax>(unsigned int a1@<edi>, __int16 a2, _DWORD *a3, int a4)\n{\n  int v4; // ebx\n  _DWORD *v5; // esi\n  int v6; // eax\n  int v7; // edx\n  unsigned int v8; // eax\n  unsigned int v9; // ebx\n  unsigned int v10; // ebx\n  int v12; // [esp+14h] [ebp-8h]\n  unsigned int v13; // [esp+18h] [ebp-4h] BYREF\n\n  v4 = 0; /*0x194c31*/\n  if ( (int)a3[5] <= 0 ) /*0x194c3a*/\n    return v4; /*0x194ddd*/\n  while ( 1 ) /*0x194c4b*/\n  {\n    v5 = (_DWORD *)*a3; /*0x194c4b*/\n    v6 = *(_DWORD *)(*a3 + 4); /*0x194c4d*/\n    if ( !v6 ) /*0x194c52*/\n    {\n      *a3 = v5 + 2; /*0x194c57*/\n      v7 = a3[1] - 1; /*0x194c5c*/\n      a3[1] = v7; /*0x194c5f*/\n      if ( v7 < 0 ) /*0x194c63*/\n        panic(aMmrw); /*0x194c6e*/\n      goto LABEL_17; /*0x194c63*/\n    }\n    if ( (unsigned __int8)a2 != 1 ) /*0x194c81*/\n      break; /*0x194c81*/\n    a1 = *(_DWORD *)(*a3 + 4); /*0x194d74*/\n    if ( !kernacc(a3[2], v6, a4 == 0) ) /*0x194d95*/\n      return 14; /*0x194d95*/\n    v4 = uiomove(a3[2], a1, a4, a3); /*0x194da9*/\nLABEL_17:\n    if ( (int)a3[5] <= 0 || v4 ) /*0x194dd5*/\n      return v4; /*0x194dd5*/\n  }\n  if ( (unsigned __int8)a2 > 1u ) /*0x194c87*/\n  {\n    if ( (unsigned __int8)a2 == 2 ) /*0x194c9d*/\n    {\n      if ( !a4 ) /*0x194db4*/\n        return 0; /*0x194de2*/\n      a1 = *(_DWORD *)(*a3 + 4); /*0x194db6*/\n    }\n    *v5 += a1; /*0x194dbc*/\n    v5[1] -= a1; /*0x194dbe*/\n    a3[2] += a1; /*0x194dc4*/\n    a3[5] -= a1; /*0x194dc7*/\n    goto LABEL_17; /*0x194dc7*/\n  }\n  v8 = a3[2]; /*0x194cb3*/\n  v9 = v8 & ~page_mask; /*0x194cb8*/\n  if ( mem_size <= v8 ) /*0x194cc0*/\n    return 14; /*0x194cc0*/\n  v12 = splvm(); /*0x194ccb*/\n  v13 = *(_DWORD *)(kernel_map + 20); /*0x194cda*/\n  if ( !vm_map_find(kernel_map, 0, 0, &v13, page_size, 1) ) /*0x194cf2*/\n  {\n    pmap_enter(*(_DWORD **)(kernel_map + 36), v13, v9, 3, 1); /*0x194d14*/\n    v10 = a3[2] - v9; /*0x194d21*/\n    a1 = min(page_size - v10, v5[1]); /*0x194d34*/\n    v4 = uiomove(v13 + v10, a1, a4, a3); /*0x194d48*/\n    vm_map_remove((_DWORD *)kernel_map, v13, page_size + v13); /*0x194d61*/\n    splx(v12); /*0x194d6a*/\n    goto LABEL_17; /*0x194d72*/\n  }\n  splx(v12); /*0x194de8*/\n  return 14; /*0x194df5*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e36a0",
+        "name": "aMmrw",
+        "string": "mmrw"
+      },
+      {
+        "addr": "0x193ed0",
+        "name": "_kernacc"
+      },
+      {
+        "addr": "0x10a384",
+        "name": "_uiomove"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f63f4",
+        "name": "_mem_size"
+      },
+      {
+        "addr": "0x18b964",
+        "name": "_splvm"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x19065c",
+        "name": "_pmap_enter"
+      },
+      {
+        "addr": "0x10cd2c",
+        "name": "_min"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1765ac",
+        "name": "_vm_map_remove"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00194dfc",
+    "addr": "0x00194dfc",
+    "code": "__int16 __cdecl kd_slmwd(_WORD *a1, int a2, __int16 a3)\n{\n  __int16 result; // ax\n\n  result = a3; /*0x194e06*/\n  while ( a2 ) /*0x194e0a*/\n  {\n    *a1++ = a3; /*0x194e0a*/\n    --a2; /*0x194e0a*/\n  }\n  return result; /*0x194e0d*/\n}"
+  },
+  {
+    "requested_address": "0x00194e10",
+    "addr": "0x00194e10",
+    "code": "void __cdecl kd_slmscu(_WORD *a1, _WORD *a2, int a3)\n{\n  while ( a3 ) /*0x194e20*/\n  {\n    *a2++ = *a1++; /*0x194e20*/\n    --a3; /*0x194e20*/\n  }\n}"
+  },
+  {
+    "requested_address": "0x00194e28",
+    "addr": "0x00194e28",
+    "code": "void __cdecl kd_slmscd(_WORD *a1, _WORD *a2, int a3)\n{\n  while ( a3 ) /*0x194e39*/\n  {\n    *a2-- = *a1--; /*0x194e39*/\n    --a3; /*0x194e39*/\n  }\n}"
+  },
+  {
+    "requested_address": "0x00194e44",
+    "addr": "0x00194e44",
+    "code": "unsigned __int8 rtcinit()\n{\n  outb(0x70u, 0xAu); /*0x194e4b*/\n  outb(0x71u, 0x26u); /*0x194e54*/\n  outb(0x70u, 0xBu); /*0x194e5d*/\n  return outb(0x71u, 2u); /*0x194e6d*/\n}",
+    "refs": [
+      {
+        "addr": "0x18ca18",
+        "name": "_outb"
+      }
+    ]
+  }
+]

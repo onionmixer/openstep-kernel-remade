@@ -1,0 +1,2 @@
+0x001a2f7c	3	MOV EDX,dword ptr [EBP + 0x8]
+0x001a2f7f	7	MOV dword ptr [EDX + 0x74],0x0

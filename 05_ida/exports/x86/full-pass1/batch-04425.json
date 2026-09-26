@@ -1,0 +1,562 @@
+[
+  {
+    "requested_address": "0x001c8c48",
+    "addr": "0x001c8c48",
+    "code": "id __cdecl +[HashTable newKeyDesc:](id a1, SEL a2, const char *a3)\n{\n  return objc_msgSend(a1, sel_newKeyDesc_valueDesc_, a3, 0); /*0x1c8c63*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207218",
+        "name": "sel_newKeyDesc:valueDesc:",
+        "string": "newKeyDesc:valueDesc:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8c68",
+    "addr": "0x001c8c68",
+    "code": "id __cdecl +[HashTable new](id a1, SEL a2)\n{\n  return objc_msgSend(a1, sel_newKeyDesc_, 0); /*0x1c8c7f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20720c",
+        "name": "sel_newKeyDesc:",
+        "string": "newKeyDesc:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8c84",
+    "addr": "0x001c8c84",
+    "code": "id __cdecl -[HashTable free](HashTable *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  -[HashTable freeKeys:values:](self, sel_freeKeys_values_, sub_1C8A78, sub_1C8A78); /*0x1c8ca0*/\n  free(self->_buckets); /*0x1c8ca9*/\n  v3.receiver = self; /*0x1c8cb5*/\n  v3.super_class = (Class)stru_1FA654.ext; /*0x1c8cbe*/\n  return -[Object free](&v3, sel_free); /*0x1c8cca*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8d18",
+        "name": "-[HashTable freeKeys:values:]"
+      },
+      {
+        "addr": "0x2024a0",
+        "name": "sel_freeKeys:values:",
+        "string": "freeKeys:values:"
+      },
+      {
+        "addr": "0x1c8a78",
+        "name": "sub_1C8A78"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      },
+      {
+        "addr": "0x1fa654",
+        "name": "stru_1FA654"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8cd4",
+    "addr": "0x001c8cd4",
+    "code": "id __cdecl -[HashTable freeObjects](HashTable *self, SEL a2)\n{\n  void *v2; // edx\n  void *v3; // edx\n  void *v5; // [esp-4h] [ebp-8h]\n\n  v2 = sub_1C8A78; /*0x1c8cde*/\n  if ( *self->valueDesc == 64 ) /*0x1c8ce6*/\n    v2 = sub_1C8A60; /*0x1c8ce8*/\n  v5 = v2; /*0x1c8ced*/\n  v3 = sub_1C8A78; /*0x1c8cf1*/\n  if ( *self->keyDesc == 64 ) /*0x1c8cf9*/\n    v3 = sub_1C8A60; /*0x1c8cfb*/\n  return -[HashTable freeKeys:values:](self, sel_freeKeys_values_, v3, v5); /*0x1c8d0e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8a78",
+        "name": "sub_1C8A78"
+      },
+      {
+        "addr": "0x1c8a60",
+        "name": "sub_1C8A60"
+      },
+      {
+        "addr": "0x1c8d18",
+        "name": "-[HashTable freeKeys:values:]"
+      },
+      {
+        "addr": "0x2024a0",
+        "name": "sel_freeKeys:values:",
+        "string": "freeKeys:values:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8d18",
+    "addr": "0x001c8d18",
+    "code": "id __cdecl -[HashTable freeKeys:values:](HashTable *self, SEL a2, void *a3, void *a4)\n{\n  char *buckets; // edi\n  _DWORD *v5; // esi\n  int v6; // ebx\n  unsigned int v8; // [esp+Ch] [ebp-4h]\n\n  buckets = (char *)self->_buckets; /*0x1c8d24*/\n  v8 = self->_nbBuckets - 1; /*0x1c8d2b*/\n  if ( self->_nbBuckets ) /*0x1c8d27*/\n  {\n    do /*0x1c8d80*/\n    {\n      if ( *(_DWORD *)buckets ) /*0x1c8d34*/\n      {\n        v5 = *((_DWORD **)buckets + 1); /*0x1c8d39*/\n        v6 = *(_DWORD *)buckets; /*0x1c8d3c*/\n        while ( --v6 != -1 ) /*0x1c8d57*/\n        {\n          ((void (__cdecl *)(_DWORD))a3)(*v5); /*0x1c8d46*/\n          ((void (__cdecl *)(_DWORD))a4)(v5[1]); /*0x1c8d4f*/\n          v5 += 2; /*0x1c8d51*/\n        }\n        free(*((void **)buckets + 1)); /*0x1c8d61*/\n        *(_DWORD *)buckets = 0; /*0x1c8d66*/\n        *((_DWORD *)buckets + 1) = 0; /*0x1c8d6c*/\n      }\n      buckets += 8; /*0x1c8d76*/\n      --v8; /*0x1c8d79*/\n    }\n    while ( v8 != -1 ); /*0x1c8d80*/\n  }\n  self->count = 0; /*0x1c8d85*/\n  return self; /*0x1c8d92*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8d9c",
+    "addr": "0x001c8d9c",
+    "code": "id __cdecl -[HashTable empty](HashTable *self, SEL a2)\n{\n  void **buckets; // ebx\n  unsigned int nbBuckets; // esi\n\n  buckets = (void **)self->_buckets; /*0x1c8da5*/\n  nbBuckets = self->_nbBuckets; /*0x1c8da8*/\n  while ( --nbBuckets != -1 ) /*0x1c8dd1*/\n  {\n    if ( *buckets ) /*0x1c8db0*/\n      free(buckets[1]); /*0x1c8db9*/\n    *buckets = nullptr; /*0x1c8dc1*/\n    buckets[1] = nullptr; /*0x1c8dc7*/\n    buckets += 2; /*0x1c8dce*/\n  }\n  self->count = 0; /*0x1c8dd7*/\n  return self; /*0x1c8de3*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8dec",
+    "addr": "0x001c8dec",
+    "code": "id __cdecl -[HashTable copyFromZone:](HashTable *self, SEL a2, $3D27A55567FB06BC0E416B979767FD15 *a3)\n{\n  id v3; // eax\n  id v4; // eax\n  id v5; // ebx\n  int v6; // edx\n  int v8; // [esp+8h] [ebp-10h] BYREF\n  int v9; // [esp+Ch] [ebp-Ch] BYREF\n  _DWORD v10[2]; // [esp+10h] [ebp-8h] BYREF\n\n  v3 = -[Object class](self, sel_class); /*0x1c8e1d*/\n  v4 = objc_msgSend(v3, sel_allocFromZone_); /*0x1c8e26*/\n  v5 = objc_msgSend(v4, sel_initKeyDesc_valueDesc_capacity_); /*0x1c8e34*/\n  v10[0] = -[HashTable initState](self, sel_initState); /*0x1c8e43*/\n  v10[1] = v6; /*0x1c8e46*/\n  while ( -[HashTable nextState:key:value:](self, sel_nextState_key_value_, v10, &v9, &v8) ) /*0x1c8e6a*/\n    objc_msgSend(v5, sel_insertKey_value_, v9, v8); /*0x1c8e7c*/\n  return v5; /*0x1c8e8d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9d08",
+        "name": "-[Object class]"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207300",
+        "name": "sel_allocFromZone:",
+        "string": "allocFromZone:"
+      },
+      {
+        "addr": "0x2072bc",
+        "name": "sel_initKeyDesc:valueDesc:capacity:",
+        "string": "initKeyDesc:valueDesc:capacity:"
+      },
+      {
+        "addr": "0x1c9330",
+        "name": "-[HashTable initState]"
+      },
+      {
+        "addr": "0x2024c8",
+        "name": "sel_initState",
+        "string": "initState"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      },
+      {
+        "addr": "0x1c9348",
+        "name": "-[HashTable nextState:key:value:]"
+      },
+      {
+        "addr": "0x2024d4",
+        "name": "sel_nextState:key:value:",
+        "string": "nextState:key:value:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8e94",
+    "addr": "0x001c8e94",
+    "code": "unsigned int __cdecl -[HashTable count](HashTable *self, SEL a2)\n{\n  return self->count; /*0x1c8e9f*/\n}"
+  },
+  {
+    "requested_address": "0x001c8ea4",
+    "addr": "0x001c8ea4",
+    "code": "char __cdecl -[HashTable isKey:](HashTable *self, SEL a2, const void *a3)\n{\n  _DWORD *buckets; // ebx\n  unsigned int v4; // eax\n  int v5; // ebx\n  char **i; // esi\n  char **v8; // [esp+10h] [ebp-4h]\n\n  buckets = self->_buckets; /*0x1c8eb0*/\n  v4 = sub_1C8938(self->keyDesc, (unsigned int)a3, self->_nbBuckets); /*0x1c8ebf*/\n  v8 = (char **)buckets[2 * v4 + 1]; /*0x1c8ece*/\n  v5 = buckets[2 * v4]; /*0x1c8ed1*/\n  if ( v5 ) /*0x1c8ed9*/\n  {\n    for ( i = v8; --v5 != -1; i += 2 ) /*0x1c8ee8*/\n    {\n      if ( sub_1C89C8(self->keyDesc, (char *)a3, *i) ) /*0x1c8efb*/\n        return 1; /*0x1c8ee5*/\n    }\n  }\n  return 0; /*0x1c8f15*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8938",
+        "name": "sub_1C8938"
+      },
+      {
+        "addr": "0x1c89c8",
+        "name": "sub_1C89C8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8f1c",
+    "addr": "0x001c8f1c",
+    "code": "void *__cdecl -[HashTable valueForKey:](HashTable *self, SEL a2, const void *a3)\n{\n  _DWORD *buckets; // ebx\n  unsigned int v4; // eax\n  int v5; // ebx\n  int i; // esi\n  int v8; // [esp+10h] [ebp-4h]\n\n  buckets = self->_buckets; /*0x1c8f28*/\n  v4 = sub_1C8938(self->keyDesc, (unsigned int)a3, self->_nbBuckets); /*0x1c8f37*/\n  v8 = buckets[2 * v4 + 1]; /*0x1c8f46*/\n  v5 = buckets[2 * v4]; /*0x1c8f49*/\n  if ( v5 ) /*0x1c8f51*/\n  {\n    for ( i = v8; --v5 != -1; i += 8 ) /*0x1c8f60*/\n    {\n      if ( sub_1C89C8(self->keyDesc, (char *)a3, *(char **)i) ) /*0x1c8f73*/\n        return *(void **)(i + 4); /*0x1c8f5b*/\n    }\n  }\n  return nullptr; /*0x1c8f8d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8938",
+        "name": "sub_1C8938"
+      },
+      {
+        "addr": "0x1c89c8",
+        "name": "sub_1C89C8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c8f94",
+    "addr": "0x001c8f94",
+    "code": "void *__cdecl -[HashTable _insertKeyNoRehash:value:](HashTable *self, SEL a2, const void *a3, void *a4)\n{\n  const void **i; // ebx\n  void *result; // eax\n  $3D27A55567FB06BC0E416B979767FD15 *v6; // ebx\n  $3D27A55567FB06BC0E416B979767FD15 *v7; // eax\n  int v8; // eax\n  const void **v9; // ebx\n  int v10; // [esp+Ch] [ebp-14h]\n  int v11; // [esp+10h] [ebp-10h]\n  const void **__src; // [esp+14h] [ebp-Ch]\n  unsigned int v13; // [esp+18h] [ebp-8h]\n  _DWORD *buckets; // [esp+1Ch] [ebp-4h]\n\n  buckets = self->_buckets; /*0x1c8fa3*/\n  v13 = sub_1C8938(self->keyDesc, (unsigned int)a3, self->_nbBuckets); /*0x1c8fbd*/\n  v11 = buckets[2 * v13]; /*0x1c8fc6*/\n  __src = (const void **)buckets[2 * v13 + 1]; /*0x1c8fcd*/\n  v10 = v11; /*0x1c8fd3*/\n  for ( i = __src; --v10 != -1; i += 2 ) /*0x1c8fd6*/\n  {\n    if ( sub_1C89C8(self->keyDesc, (char *)a3, (char *)*i) ) /*0x1c8fee*/\n    {\n      result = (void *)i[1]; /*0x1c8ffa*/\n      *i = a3; /*0x1c8ffd*/\n      i[1] = a4; /*0x1c9002*/\n      return result; /*0x1c9005*/\n    }\n  }\n  v6 = -[Object zone](self, sel_zone); /*0x1c9028*/\n  v7 = -[Object zone](self, sel_zone); /*0x1c903d*/\n  v8 = ((int (__cdecl *)($3D27A55567FB06BC0E416B979767FD15 *))v6->var1)(v7); /*0x1c9049*/\n  v9 = (const void **)v8; /*0x1c904b*/\n  if ( v11 ) /*0x1c9054*/\n    memmove((void *)(v8 + 8), __src, 8 * v11); /*0x1c9065*/\n  *v9 = a3; /*0x1c9070*/\n  v9[1] = a4; /*0x1c9075*/\n  if ( v11 ) /*0x1c907c*/\n    free(__src); /*0x1c9082*/\n  ++buckets[2 * v13]; /*0x1c908d*/\n  buckets[2 * v13 + 1] = v9; /*0x1c9090*/\n  ++self->count; /*0x1c9097*/\n  return nullptr; /*0x1c909f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8938",
+        "name": "sub_1C8938"
+      },
+      {
+        "addr": "0x1c89c8",
+        "name": "sub_1C89C8"
+      },
+      {
+        "addr": "0x1c9d20",
+        "name": "-[Object zone]"
+      },
+      {
+        "addr": "0x207310",
+        "name": "sel_zone",
+        "string": "zone"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c90a8",
+    "addr": "0x001c90a8",
+    "code": "void *__cdecl -[HashTable insertKey:value:](HashTable *self, SEL a2, const void *a3, void *a4)\n{\n  void *result; // eax\n  $3D27A55567FB06BC0E416B979767FD15 *v5; // eax\n  id v6; // eax\n  _DWORD *v7; // esi\n  $3D27A55567FB06BC0E416B979767FD15 *v8; // eax\n  int v9; // edx\n  size_t nbBuckets; // [esp-1Ch] [ebp-34h]\n  int v11; // [esp+8h] [ebp-10h] BYREF\n  int v12; // [esp+Ch] [ebp-Ch] BYREF\n  _DWORD v13[2]; // [esp+10h] [ebp-8h] BYREF\n\n  result = -[HashTable _insertKeyNoRehash:value:](self, sel__insertKeyNoRehash_value_, a3, a4); /*0x1c90c3*/\n  if ( !result ) /*0x1c90cd*/\n  {\n    if ( self->_nbBuckets < self->count ) /*0x1c90d9*/\n    {\n      v5 = -[Object zone](self, sel_zone); /*0x1c90fa*/\n      v6 = +[Object allocFromZone:](aHashtable, sel_allocFromZone_, v5); /*0x1c9111*/\n      v7 = objc_msgSend(v6, sel__initBare_::); /*0x1c911f*/\n      v7[1] = self->count; /*0x1c9124*/\n      v7[5] = self->_buckets; /*0x1c912a*/\n      self->_nbBuckets += 1 + self->_nbBuckets; /*0x1c9131*/\n      self->count = 0; /*0x1c9134*/\n      nbBuckets = self->_nbBuckets; /*0x1c9140*/\n      v8 = -[Object zone](self, sel_zone); /*0x1c9149*/\n      self->_buckets = (void *)NXZoneCalloc((int)v8, nbBuckets, 8u); /*0x1c9157*/\n      v13[0] = objc_msgSend(v7, sel_initState); /*0x1c916a*/\n      v13[1] = v9; /*0x1c916d*/\n      while ( (unsigned __int8)objc_msgSend(v7, sel_nextState_key_value_, v13, &v12, &v11) ) /*0x1c9192*/\n        -[HashTable insertKey:value:](self, sel_insertKey_value_, v12, v11); /*0x1c91a4*/\n      objc_msgSend(v7, sel_free); /*0x1c91b8*/\n    }\n    return nullptr; /*0x1c91bd*/\n  }\n  return result; /*0x1c91c2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8f94",
+        "name": "-[HashTable _insertKeyNoRehash:value:]"
+      },
+      {
+        "addr": "0x207290",
+        "name": "sel__insertKeyNoRehash:value:",
+        "string": "_insertKeyNoRehash:value:"
+      },
+      {
+        "addr": "0x1c9d20",
+        "name": "-[Object zone]"
+      },
+      {
+        "addr": "0x207310",
+        "name": "sel_zone",
+        "string": "zone"
+      },
+      {
+        "addr": "0x1c9c70",
+        "name": "+[Object allocFromZone:]"
+      },
+      {
+        "addr": "0x1fe0c9",
+        "name": "aHashtable",
+        "string": "HashTable"
+      },
+      {
+        "addr": "0x207300",
+        "name": "sel_allocFromZone:",
+        "string": "allocFromZone:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2072dc",
+        "name": "sel__initBare:::",
+        "string": "_initBare:::"
+      },
+      {
+        "addr": "0x1cdf1c",
+        "name": "_NXZoneCalloc"
+      },
+      {
+        "addr": "0x2024c8",
+        "name": "sel_initState",
+        "string": "initState"
+      },
+      {
+        "addr": "0x1c90a8",
+        "name": "-[HashTable insertKey:value:]"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      },
+      {
+        "addr": "0x2024d4",
+        "name": "sel_nextState:key:value:",
+        "string": "nextState:key:value:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c91c8",
+    "addr": "0x001c91c8",
+    "code": "void *__cdecl -[HashTable removeKey:](HashTable *self, SEL a2, const void *a3)\n{\n  int v3; // edi\n  $3D27A55567FB06BC0E416B979767FD15 *v4; // eax\n  int v6; // [esp+10h] [ebp-28h]\n  char *__src; // [esp+14h] [ebp-24h]\n  $3D27A55567FB06BC0E416B979767FD15 *v8; // [esp+20h] [ebp-18h]\n  void *v9; // [esp+24h] [ebp-14h]\n  char *__dst; // [esp+28h] [ebp-10h]\n  char *v11; // [esp+2Ch] [ebp-Ch]\n  unsigned int v12; // [esp+30h] [ebp-8h]\n  _DWORD *buckets; // [esp+34h] [ebp-4h]\n\n  buckets = self->_buckets; /*0x1c91d7*/\n  v12 = sub_1C8938(self->keyDesc, (unsigned int)a3, self->_nbBuckets); /*0x1c91f1*/\n  v6 = buckets[2 * v12]; /*0x1c91fa*/\n  __src = (char *)buckets[2 * v12 + 1]; /*0x1c9201*/\n  v11 = __src; /*0x1c920a*/\n  v3 = v6 - 1; /*0x1c9210*/\n  if ( !v6 ) /*0x1c9214*/\n    return nullptr; /*0x1c9322*/\n  while ( !sub_1C89C8(self->keyDesc, (char *)a3, *(char **)v11) ) /*0x1c9247*/\n  {\n    v11 += 8; /*0x1c9314*/\n    if ( --v3 == -1 ) /*0x1c931c*/\n      return nullptr; /*0x1c931c*/\n  }\n  v9 = *((void **)v11 + 1); /*0x1c9253*/\n  if ( v6 == 1 ) /*0x1c925a*/\n  {\n    __dst = nullptr; /*0x1c9298*/\n  }\n  else\n  {\n    v8 = -[Object zone](self, sel_zone); /*0x1c926f*/\n    v4 = -[Object zone](self, sel_zone); /*0x1c927e*/\n    __dst = (char *)((int (__cdecl *)($3D27A55567FB06BC0E416B979767FD15 *))v8->var1)(v4); /*0x1c9292*/\n  }\n  if ( v6 - 1 != v3 ) /*0x1c92a2*/\n    memmove(__dst, __src, 8 * (v6 - v3) - 8); /*0x1c92b9*/\n  if ( v3 ) /*0x1c92c3*/\n    memmove(&__dst[8 * v6 - 8 + -8 * v3], &__src[8 * v6 + -8 * v3], 8 * v3); /*0x1c92e7*/\n  free(__src); /*0x1c92f3*/\n  --self->count; /*0x1c92fb*/\n  --buckets[2 * v12]; /*0x1c9304*/\n  buckets[2 * v12 + 1] = __dst; /*0x1c930a*/\n  return v9; /*0x1c9327*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c8938",
+        "name": "sub_1C8938"
+      },
+      {
+        "addr": "0x1c89c8",
+        "name": "sub_1C89C8"
+      },
+      {
+        "addr": "0x1c9d20",
+        "name": "-[Object zone]"
+      },
+      {
+        "addr": "0x207310",
+        "name": "sel_zone",
+        "string": "zone"
+      },
+      {
+        "addr": "0x101504",
+        "name": "_memmove"
+      },
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c9330",
+    "addr": "0x001c9330",
+    "code": "$2825F4736939C4A6D3AD43837233062D __cdecl -[HashTable initState](HashTable *self, SEL a2)\n{\n  return ($2825F4736939C4A6D3AD43837233062D)self->_nbBuckets; /*0x1c9340*/\n}"
+  },
+  {
+    "requested_address": "0x001c9348",
+    "addr": "0x001c9348",
+    "code": "char __cdecl -[HashTable nextState:key:value:](\n        HashTable *self,\n        SEL a2,\n        $2825F4736939C4A6D3AD43837233062D *a3,\n        const void **a4,\n        void **a5)\n{\n  _DWORD *buckets; // eax\n  int v7; // edx\n  int v8; // ecx\n  const void *v9; // edx\n  void *v10; // ecx\n\n  buckets = self->_buckets; /*0x1c9359*/\n  if ( a3->var1 ) /*0x1c935c*/\n  {\nLABEL_5:\n    --a3->var1; /*0x1c938a*/\n    v8 = buckets[2 * a3->var0 + 1] + 8 * a3->var1; /*0x1c9396*/\n    v9 = *(const void **)v8; /*0x1c9399*/\n    v10 = *(void **)(v8 + 4); /*0x1c939b*/\n    *a4 = v9; /*0x1c939e*/\n    *a5 = v10; /*0x1c93a0*/\n    return 1; /*0x1c93a2*/\n  }\n  else\n  {\n    while ( a3->var0 ) /*0x1c9367*/\n    {\n      --a3->var0; /*0x1c937c*/\n      v7 = buckets[2 * a3->var0]; /*0x1c9380*/\n      a3->var1 = v7; /*0x1c9383*/\n      if ( v7 ) /*0x1c9388*/\n        goto LABEL_5; /*0x1c9388*/\n    }\n    *a4 = nullptr; /*0x1c9369*/\n    *a5 = nullptr; /*0x1c936f*/\n    return 0; /*0x1c9375*/\n  }\n}"
+  },
+  {
+    "requested_address": "0x001c93b0",
+    "addr": "0x001c93b0",
+    "code": "id __cdecl -[HashTable write:](HashTable *self, SEL a2, void *a3)\n{\n  return nullptr; /*0x1c93b7*/\n}"
+  },
+  {
+    "requested_address": "0x001c93bc",
+    "addr": "0x001c93bc",
+    "code": "id __cdecl -[HashTable read:](HashTable *self, SEL a2, void *a3)\n{\n  return nullptr; /*0x1c93c3*/\n}"
+  },
+  {
+    "requested_address": "0x001c93c8",
+    "addr": "0x001c93c8",
+    "code": "int __cdecl sub_1C93C8(int a1, char *a2, id a3)\n{\n  char v3; // al\n  id v5; // [esp-8h] [ebp-Ch]\n\n  v3 = *a2; /*0x1c93d5*/\n  if ( *a2 == 64 ) /*0x1c93d9*/\n  {\n    v5 = objc_msgSend(a3, sel_name); /*0x1c9401*/\n    return NXPrintf(a1, (int)\"%s[0x%x]\", v5, a3); /*0x1c9407*/\n  }\n  if ( *a2 <= 64 ) /*0x1c93db*/\n  {\n    if ( v3 == 37 || v3 == 42 ) /*0x1c93e3*/\n      return NXPrintf(a1, (int)\"\\\"%s\\\"\", a3); /*0x1c9422*/\n    return NXPrintf(a1, (int)\"0x%x\", a3); /*0x1c93e3*/\n  }\n  if ( v3 != 105 ) /*0x1c93ea*/\n    return NXPrintf(a1, (int)\"0x%x\", a3); /*0x1c942b*/\n  return NXPrintf(a1, (int)\"%d[0x%x]\", a3, a3); /*0x1c9430*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x17e1f4",
+        "name": "_NXPrintf"
+      },
+      {
+        "addr": "0x1d9970",
+        "name": "aS0xX",
+        "string": "%s[0x%x]"
+      },
+      {
+        "addr": "0x1d9988",
+        "name": "aS_0",
+        "string": "\"%s\""
+      },
+      {
+        "addr": "0x1d9990",
+        "name": "a0xX",
+        "string": "0x%x"
+      },
+      {
+        "addr": "0x1d997c",
+        "name": "aD0xX",
+        "string": "%d[0x%x]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c9438",
+    "addr": "0x001c9438",
+    "code": "void __cdecl -[HashTable printForDebugger:](HashTable *self, SEL a2, $FDB6067EFA2BACD1029BBA668871BE41 *a3)\n{\n  int v3; // ebx\n  id *v4; // esi\n  _DWORD *buckets; // [esp+Ch] [ebp-8h]\n  unsigned int nbBuckets; // [esp+10h] [ebp-4h]\n\n  nbBuckets = self->_nbBuckets; /*0x1c944a*/\n  buckets = self->_buckets; /*0x1c9453*/\n  NXPrintf(\n    (int)a3,\n    (int)\"Table [%s -> %s]: \\tcount: %d\\tcapacity: %d\\n\",\n    self->keyDesc,\n    self->valueDesc,\n    self->count,\n    nbBuckets);\n  while ( --nbBuckets != -1 )\n  {\n    if ( *buckets )\n    {\n      v3 = *buckets; /*0x1c9484*/\n      v4 = (id *)buckets[1]; /*0x1c9486*/\n      NXPrintf((int)a3, (int)\"%d\\t\", *buckets); /*0x1c9490*/\n      while ( --v3 != -1 )\n      {\n        sub_1C93C8((int)a3, self->keyDesc, *v4); /*0x1c94a7*/\n        NXPrintf((int)a3, (int)\": \");\n        sub_1C93C8((int)a3, self->valueDesc, v4[1]); /*0x1c94c3*/\n        NXPrintf((int)a3, (int)\"\\t\"); /*0x1c94d1*/\n        v4 += 2; /*0x1c94d6*/\n      }\n      NXPrintf((int)a3, (int)\"\\n\"); /*0x1c94e8*/\n    }\n    buckets += 2; /*0x1c94f0*/\n  }\n  NXPrintf((int)a3, (int)\"\\n\"); /*0x1c9507*/\n  NXFlush(); /*0x1c950d*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e1f4",
+        "name": "_NXPrintf"
+      },
+      {
+        "addr": "0x1d9998",
+        "name": "aTableSSCountDC",
+        "string": "Table [%s -> %s]: \tcount: %d\tcapacity: %d\n"
+      },
+      {
+        "addr": "0x1d99c4",
+        "name": "aD",
+        "string": "%d\t"
+      },
+      {
+        "addr": "0x1c93c8",
+        "name": "sub_1C93C8"
+      },
+      {
+        "addr": "0x1d99c8",
+        "name": "asc_1D99C8",
+        "string": ": "
+      },
+      {
+        "addr": "0x1d99cc",
+        "name": "asc_1D99CC",
+        "string": "\t"
+      },
+      {
+        "addr": "0x1d7058",
+        "name": "asc_1D7058",
+        "string": "\n"
+      },
+      {
+        "addr": "0x17e1e8",
+        "name": "_NXFlush"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c951c",
+    "addr": "0x001c951c",
+    "code": "id __cdecl -[HashTable _debugPrint:](HashTable *self, SEL a2, $FDB6067EFA2BACD1029BBA668871BE41 *a3)\n{\n  -[HashTable printForDebugger:](self, sel_printForDebugger_, a3); /*0x1c952f*/\n  return self; /*0x1c9536*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9438",
+        "name": "-[HashTable printForDebugger:]"
+      },
+      {
+        "addr": "0x20726c",
+        "name": "sel_printForDebugger:",
+        "string": "printForDebugger:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c9560",
+    "addr": "0x001c9560",
+    "code": "id __cdecl -[List initCount:](List *self, SEL a2, unsigned int a3)\n{\n  $3D27A55567FB06BC0E416B979767FD15 *v3; // esi\n  $3D27A55567FB06BC0E416B979767FD15 *v4; // eax\n  unsigned int v6; // [esp-Ch] [ebp-14h]\n  int v7; // [esp-8h] [ebp-10h]\n  int v8; // [esp-4h] [ebp-Ch]\n\n  self->maxElements = a3; /*0x1c956b*/\n  if ( a3 ) /*0x1c9570*/\n  {\n    v3 = -[Object zone](self, sel_zone); /*0x1c957f*/\n    v6 = 4 * self->maxElements; /*0x1c958b*/\n    v4 = -[Object zone](self, sel_zone); /*0x1c9594*/\n    self->dataPtr = (id *)((int (__stdcall *)($3D27A55567FB06BC0E416B979767FD15 *, unsigned int, int, int))v3->var1)( /*0x1c95a2*/\n                            v4,\n                            v6,\n                            v7,\n                            v8);\n  }\n  return self; /*0x1c95aa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9d20",
+        "name": "-[Object zone]"
+      },
+      {
+        "addr": "0x207310",
+        "name": "sel_zone",
+        "string": "zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c95b0",
+    "addr": "0x001c95b0",
+    "code": "id __cdecl +[List newCount:](id a1, SEL a2, unsigned int a3)\n{\n  int v3; // eax\n  id v4; // eax\n  SEL v6; // [esp-8h] [ebp-Ch]\n\n  v3 = NXDefaultMallocZone(sel_initCount_, a3); /*0x1c95c2*/\n  v4 = objc_msgSend(a1, sel_allocFromZone_, v3); /*0x1c95d0*/\n  return objc_msgSend(v4, v6); /*0x1c95de*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x202244",
+        "name": "sel_initCount:",
+        "string": "initCount:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207300",
+        "name": "sel_allocFromZone:",
+        "string": "allocFromZone:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c95e8",
+    "addr": "0x001c95e8",
+    "code": "id __cdecl +[List new](id a1, SEL a2)\n{\n  return objc_msgSend(a1, sel_newCount_, 0); /*0x1c95ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x207338",
+        "name": "sel_newCount:",
+        "string": "newCount:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c9604",
+    "addr": "0x001c9604",
+    "code": "List *__cdecl -[List init](List *self, SEL a2)\n{\n  return (List *)-[List initCount:](self, sel_initCount_, 0); /*0x1c961b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9560",
+        "name": "-[List initCount:]"
+      },
+      {
+        "addr": "0x202244",
+        "name": "sel_initCount:",
+        "string": "initCount:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001c9620",
+    "addr": "0x001c9620",
+    "code": "id __cdecl -[List free](List *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  free(self->dataPtr); /*0x1c962e*/\n  v3.receiver = self; /*0x1c963a*/\n  v3.super_class = (Class)stru_1FA6A4.super_class; /*0x1c9643*/\n  return -[Object free](&v3, sel_free); /*0x1c964f*/\n}",
+    "refs": [
+      {
+        "addr": "0x15ab30",
+        "name": "_free"
+      },
+      {
+        "addr": "0x1fa6a4",
+        "name": "stru_1FA6A4"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  }
+]

@@ -1,0 +1,962 @@
+[
+  {
+    "requested_address": "0x0010ddb4",
+    "addr": "0x0010ddb4",
+    "code": "int __cdecl ttywflush(FILE *a1)\n{\n  ttywait(a1); /*0x10ddbc*/\n  return ttyflush(a1, 1); /*0x10ddc9*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ddd0",
+        "name": "_ttywait"
+      },
+      {
+        "addr": "0x10de30",
+        "name": "_ttyflush"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ddd0",
+    "addr": "0x0010ddd0",
+    "code": "int __cdecl ttywait(int a1)\n{\n  int v1; // esi\n\n  v1 = spltty(); /*0x10dddd*/\n  while ( (*(_DWORD *)(a1 + 24) || (*(_DWORD *)(a1 + 64) & 0x2000020) != 0) /*0x10ddf8*/\n       && ((*(_BYTE *)(a1 + 64) & 0x10) != 0 || *(__int16 *)(ttynty(a1) + 16) < 0) )\n  {\n    (*(void (__cdecl **)(int))(a1 + 36))(a1); /*0x10ddfe*/\n    *(_BYTE *)(a1 + 64) |= 0x40u; /*0x10de00*/\n    sleep(a1 + 24); /*0x10de0a*/\n  }\n  return splx(v1); /*0x10de2a*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010de30",
+    "addr": "0x0010de30",
+    "code": "int __cdecl ttyflush(FILE *a1, int a2)\n{\n  int v3; // [esp+Ch] [ebp-4h]\n\n  v3 = spltty(); /*0x10de44*/\n  if ( (a2 & 1) != 0 ) /*0x10de4d*/\n  {\n    while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10de5f*/\n      ; /*0x10de54*/\n    wakeup((int)a1); /*0x10de62*/\n  }\n  if ( (a2 & 2) != 0 ) /*0x10de70*/\n  {\n    wakeup((int)&a1->_lbfsize); /*0x10de76*/\n    *(_DWORD *)a1->_ubuf &= ~0x100u; /*0x10de7b*/\n    ((void (__cdecl *)(FILE *, int))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, a2); /*0x10de95*/\n    while ( getc((FILE *)&a1->_lbfsize) >= 0 ) /*0x10dea7*/\n      ; /*0x10de9c*/\n  }\n  if ( (a2 & 1) != 0 ) /*0x10deaf*/\n  {\n    while ( getc(a1) >= 0 ) /*0x10debf*/\n      ; /*0x10deb4*/\n    HIBYTE(a1->_lb._size) = 0; /*0x10dec1*/\n    LOBYTE(a1->_blksize) = 0; /*0x10dec5*/\n    *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10dec9*/\n  }\n  return splx(v3); /*0x10dedc*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1e2f4c",
+        "name": "funcs_10DE95"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010dee4",
+    "addr": "0x0010dee4",
+    "code": "int __cdecl ttrstrt(int a1)\n{\n  int v1; // esi\n  int v3; // [esp+0h] [ebp-8h]\n\n  v1 = spltty(); /*0x10def1*/\n  if ( !a1 ) /*0x10def5*/\n    panic(aTtrstrt); /*0x10defc*/\n  *(_DWORD *)(a1 + 64) &= ~1u; /*0x10df04*/\n  ((void (__stdcall *)(int, int))*(&off_1DB008 + 12 * *(char *)(a1 + 71)))(a1, v3); /*0x10df19*/\n  return splx(v1); /*0x10df24*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1daf3a",
+        "name": "aTtrstrt",
+        "string": "ttrstrt"
+      },
+      {
+        "addr": "0x1db008",
+        "name": "off_1DB008"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010df2c",
+    "addr": "0x0010df2c",
+    "code": "int __cdecl ttstart(int a1)\n{\n  int v1; // esi\n  void (__cdecl *v2)(int); // eax\n\n  v1 = spltty(); /*0x10df39*/\n  if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x10df42*/\n  {\n    v2 = *(void (__cdecl **)(int))(a1 + 36); /*0x10df44*/\n    if ( v2 ) /*0x10df49*/\n      v2(a1); /*0x10df4c*/\n  }\n  return splx(v1); /*0x10df5a*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010df60",
+    "addr": "0x0010df60",
+    "code": "int __cdecl ttioctl(FILE *a1, int a2, int *a3, char a4)\n{\n  _BYTE *v4; // edi\n  __int16 v5; // dx\n  int ur_high; // esi\n  int base_low; // esi\n  int v8; // ebx\n  int v10; // edi\n  int v11; // edx\n  int v12; // edx\n  int v13; // ebx\n  int (__cdecl *v14)(void *, char *, int); // edx\n  int v15; // eax\n  int v16; // ebx\n  int v17; // ebx\n  int (__cdecl *read)(void *, char *, int); // edx\n  _DWORD *v19; // edi\n  int ur_low; // edi\n  int v21; // edi\n  _DWORD *v22; // ebx\n  _DWORD *posix_proc; // eax\n  int v24; // edx\n  int v25; // ebx\n  int v26; // edx\n  int v27; // eax\n  int v28; // edx\n  int ur; // eax\n  int v30; // edi\n  int v31; // ebx\n  FILE *v32; // [esp+Ch] [ebp-34h]\n  int v33; // [esp+Ch] [ebp-34h]\n  unsigned int v34; // [esp+Ch] [ebp-34h]\n  FILE *v35; // [esp+Ch] [ebp-34h]\n  FILE *v36; // [esp+Ch] [ebp-34h]\n  int v37; // [esp+14h] [ebp-2Ch]\n  int v38; // [esp+1Ch] [ebp-24h]\n  int v39; // [esp+20h] [ebp-20h]\n  int v40; // [esp+24h] [ebp-1Ch]\n  int v41; // [esp+28h] [ebp-18h]\n  int v42; // [esp+28h] [ebp-18h]\n  int v43; // [esp+28h] [ebp-18h]\n  int v44; // [esp+28h] [ebp-18h]\n  int v45; // [esp+28h] [ebp-18h]\n  int extra_low; // [esp+2Ch] [ebp-14h]\n  int v47; // [esp+30h] [ebp-10h]\n  unsigned __int8 *v48; // [esp+34h] [ebp-Ch]\n  unsigned __int8 *p; // [esp+34h] [ebp-Ch]\n  __sbuf v50; // [esp+38h] [ebp-8h]\n  __sbuf v51; // [esp+38h] [ebp-8h]\n\n  v47 = ttynty(a1); /*0x10df75*/\n  extra_low = SLOWORD(a1->_extra); /*0x10df7c*/\n  if ( a2 != -2147060719 ) /*0x10df88*/\n  {\n    if ( a2 > -2147060719 ) /*0x10df8e*/\n    {\n      if ( a2 != 536900702 ) /*0x10e00e*/\n      {\n        if ( a2 > 536900702 ) /*0x10e010*/\n        {\n          if ( a2 < 536900718 || a2 > 536900719 && (a2 > 536900731 || a2 < 536900730) ) /*0x10e05e*/\n            goto LABEL_36; /*0x10e05e*/\n        }\n        else if ( a2 != -2146929561 ) /*0x10e018*/\n        {\n          if ( a2 > -2146929561 ) /*0x10e01a*/\n          {\n            if ( a2 > -2145094634 || a2 < -2145094636 ) /*0x10e03a*/\n              goto LABEL_36; /*0x10e03a*/\n          }\n          else if ( a2 != -2147060619 ) /*0x10e022*/\n          {\n            goto LABEL_36; /*0x10e022*/\n          }\n        }\n      }\n    }\n    else if ( a2 != -2147191690 ) /*0x10df96*/\n    {\n      if ( a2 > -2147191690 ) /*0x10df9c*/\n      {\n        if ( a2 < -2147191683 || a2 > -2147191681 && (a2 > -2147060726 || a2 < -2147060727) ) /*0x10dffe*/\n          goto LABEL_36; /*0x10dffe*/\n      }\n      else if ( a2 != -2147191807 ) /*0x10dfa4*/\n      {\n        if ( a2 > -2147191807 ) /*0x10dfaa*/\n        {\n          if ( a2 != -2147191792 ) /*0x10dfc6*/\n            goto LABEL_36; /*0x10dfc6*/\n        }\n        else if ( a2 != -2147388302 ) /*0x10dfb2*/\n        {\n          goto LABEL_36; /*0x10dfb2*/\n        }\n      }\n    }\n  }\n  while ( 1 ) /*0x10e083*/\n  {\n    v4 = *(_BYTE **)active_u; /*0x10e083*/\n    v5 = *(_WORD *)(*(_DWORD *)active_u + 46); /*0x10e088*/\n    if ( LOWORD(a1->_lb._base) == v5 /*0x10e0aa*/\n      || *(FILE **)(active_u + 360) != a1\n      || (v4[41] & 0x10) != 0\n      || (v4[34] & 0x20) != 0\n      || (v4[30] & 0x20) != 0 )\n    {\n      break; /*0x10e0aa*/\n    }\n    gsignal((_DWORD *)v5, (char *)0x16); /*0x10e06a*/\n    sleep((unsigned int)&lbolt); /*0x10e076*/\n  }\nLABEL_36:\n  if ( a2 == 536900610 ) /*0x10e0b2*/\n  {\n    v42 = spltty(); /*0x10e3c5*/\n    *(_DWORD *)a1->_ubuf |= 0x200u; /*0x10e3c8*/\nLABEL_134:\n    v10 = v42; /*0x10e539*/\nLABEL_135:\n    splx(v10); /*0x10e53c*/\n    return 0; /*0x10e542*/\n  }\n  if ( a2 <= 536900610 ) /*0x10e0b8*/\n  {\n    if ( a2 == -2147191682 ) /*0x10e0c4*/\n    {\n      a1->_ur &= ~(*a3 << 16); /*0x10e84e*/\n    }\n    else\n    {\n      if ( a2 <= -2147191682 ) /*0x10e0ca*/\n      {\n        if ( a2 == -2147191807 ) /*0x10e0d2*/\n        {\n          v8 = *a3; /*0x10e2eb*/\n          if ( nldisp <= (unsigned int)*a3 || (char *)*(&linesw + 12 * v8) == (char *)nodev ) /*0x10e308*/\n            return 6; /*0x10e30f*/\n          if ( v8 == SHIBYTE(a1->_lb._base) ) /*0x10e31a*/\n            return 0; /*0x10e31a*/\n          v41 = spltty(); /*0x10e325*/\n          (*(&off_1DAFEC + 12 * SHIBYTE(a1->_lb._base)))(a1); /*0x10e339*/\n          a1[1]._write = nullptr; /*0x10e33b*/\n          v32 = (FILE *)(*(&linesw + 12 * v8))(extra_low, a1); /*0x10e355*/\n          if ( v32 ) /*0x10e35d*/\n          {\n            a1[1]._write = nullptr; /*0x10e35f*/\n            (*(&linesw + 12 * SHIBYTE(a1->_lb._base)))(extra_low, a1); /*0x10e37b*/\n            splx(v41); /*0x10e381*/\n            return (int)v32; /*0x10e389*/\n          }\n          HIBYTE(a1->_lb._base) = v8; /*0x10e390*/\n          goto LABEL_237; /*0x10e393*/\n        }\n        if ( a2 <= -2147191807 ) /*0x10e0d8*/\n        {\n          if ( a2 == -2147195267 ) /*0x10e0e0*/\n          {\n            v41 = spltty(); /*0x10e7c5*/\n            if ( *a3 ) /*0x10e7cb*/\n              *(_DWORD *)a1->_ubuf |= 0x4000u; /*0x10e7d0*/\n            else\n              *(_DWORD *)a1->_ubuf &= ~0x4000u; /*0x10e7dc*/\n          }\n          else\n          {\n            if ( a2 <= -2147195267 ) /*0x10e0e6*/\n            {\n              if ( a2 != -2147388302 ) /*0x10e0ee*/\n                return -1; /*0x10ec81*/\n              if ( !*(_WORD *)(*(_DWORD *)(active_u + 28) + 2) ) /*0x10e555*/\n                goto LABEL_140; /*0x10e555*/\n              if ( (a4 & 1) != 0 ) /*0x10e55d*/\n              {\n                if ( *(FILE **)(active_u + 360) != a1 ) /*0x10e569*/\n                  return 13; /*0x10e570*/\nLABEL_140:\n                v45 = spltty(); /*0x10e578*/\n                (*(&off_1DAFFC + 12 * SHIBYTE(a1->_lb._base)))(*(unsigned __int8 *)a3, a1); /*0x10e598*/\n                splx(v45); /*0x10e59a*/\n                return 0; /*0x10e59a*/\n              }\n              return 1; /*0x10e947*/\n            }\n            if ( a2 != -2147195266 ) /*0x10e102*/\n              return -1; /*0x10e102*/\n            v41 = spltty(); /*0x10e79d*/\n            if ( *a3 ) /*0x10e7a3*/\n              *(_DWORD *)a1->_ubuf |= 0x2000u; /*0x10e7a8*/\n            else\n              *(_DWORD *)a1->_ubuf &= ~0x2000u; /*0x10e7b4*/\n          }\nLABEL_237:\n          splx(v41); /*0x10ec1a*/\n          return 0; /*0x10ec23*/\n        }\n        if ( a2 != -2147191690 ) /*0x10e116*/\n        {\n          if ( a2 <= -2147191690 ) /*0x10e11c*/\n          {\n            if ( a2 != -2147191792 ) /*0x10e124*/\n              return -1; /*0x10e124*/\n            if ( *a3 ) /*0x10e3d9*/\n              v33 = *a3 & 3; /*0x10e3ec*/\n            else\n              v33 = 3; /*0x10e3e0*/\n            v40 = spltty(); /*0x10e3f5*/\n            if ( (v33 & 1) != 0 ) /*0x10e401*/\n            {\n              while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10e413*/\n                ; /*0x10e408*/\n              wakeup((int)a1); /*0x10e416*/\n            }\n            if ( (v33 & 2) != 0 ) /*0x10e424*/\n            {\n              wakeup((int)&a1->_lbfsize); /*0x10e42a*/\n              *(_DWORD *)a1->_ubuf &= ~0x100u; /*0x10e42f*/\n              ((void (__cdecl *)(FILE *, int))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, v33); /*0x10e452*/\n              while ( getc((FILE *)&a1->_lbfsize) >= 0 ) /*0x10e463*/\n                ; /*0x10e458*/\n            }\n            if ( (v33 & 1) != 0 ) /*0x10e46b*/\n            {\n              while ( getc(a1) >= 0 ) /*0x10e47b*/\n                ; /*0x10e470*/\n              HIBYTE(a1->_lb._size) = 0; /*0x10e47d*/\n              LOBYTE(a1->_blksize) = 0; /*0x10e481*/\n              *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10e485*/\n            }\n            v10 = v40; /*0x10e48c*/\n            goto LABEL_135; /*0x10e48f*/\n          }\n          if ( a2 != -2147191683 ) /*0x10e136*/\n            return -1; /*0x10e136*/\n          ur_low = LOWORD(a1->_ur); /*0x10e874*/\n          a1->_ur = ur_low; /*0x10e878*/\n          a1->_ur = ur_low | (*a3 << 16); /*0x10e885*/\n          v19 = (_DWORD *)v47; /*0x10e888*/\n          *(_DWORD *)(v47 + 16) = 472193564; /*0x10e88b*/\n          *(_BYTE *)(v47 + 20) = 92; /*0x10e892*/\n          *(_BYTE *)(v47 + 21) = 1; /*0x10e896*/\n          *(_BYTE *)(v47 + 22) = 0; /*0x10e89a*/\nLABEL_179:\n          ttysetspec(v19); /*0x10e89e*/\n          return 0; /*0x10e8a4*/\n        }\n        v21 = *(_DWORD *)active_u; /*0x10e8c2*/\n        v38 = *(_DWORD *)active_u; /*0x10e8c4*/\n        v35 = (FILE *)*a3; /*0x10e8cc*/\n        if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) == 0 ) /*0x10e8d3*/\n        {\n          if ( !*(_WORD *)(*(_DWORD *)(active_u + 28) + 2) || (a4 & 1) != 0 ) /*0x10e940*/\n          {\n            LOWORD(a1->_lb._base) = (_WORD)v35; /*0x10e950*/\n            return 0; /*0x10e954*/\n          }\n          return 1; /*0x10e940*/\n        }\n        v22 = pgfind(*a3); /*0x10e8db*/\n        posix_proc = get_posix_proc(*(__int16 *)(v21 + 48)); /*0x10e8e2*/\n        if ( (int)v35 <= 0 || !v22 ) /*0x10e8ef*/\n          return 22; /*0x10e8f6*/\n        v24 = *(_DWORD *)(posix_proc[4] + 8); /*0x10e8ff*/\n        if ( *(_DWORD *)(v47 + 8) == v24 && (*(_BYTE *)(v38 + 43) & 0x40) != 0 ) /*0x10e915*/\n        {\n          if ( v22[2] == v24 ) /*0x10e91a*/\n          {\n            *(_DWORD *)(v47 + 12) = v22; /*0x10e91f*/\n            LOWORD(a1->_lb._base) = *((_WORD *)v22 + 6); /*0x10e926*/\n            return 0; /*0x10e92a*/\n          }\n          return 1; /*0x10e91a*/\n        }\n        return 25; /*0x10e993*/\n      }\n      if ( a2 == -2147060719 ) /*0x10e14a*/\n      {\n        bcopy(a3, (char *)&a1->_blksize + 3, 6u); /*0x10e7fe*/\n        v19 = (_DWORD *)v47; /*0x10e803*/\n        goto LABEL_179; /*0x10e806*/\n      }\n      if ( a2 > -2147060719 ) /*0x10e150*/\n      {\n        if ( a2 == -2146929561 ) /*0x10e182*/\n        {\n          if ( bcmp(&a1[1]._r, a3, 8u) ) /*0x10e9b2*/\n          {\n            a1[1]._r = *a3; /*0x10e9c7*/\n            a1[1]._w = a3[1]; /*0x10e9cd*/\n            gsignal((_DWORD *)SLOWORD(a1->_lb._base), (char *)0x1C); /*0x10e9d7*/\n          }\n          return 0; /*0x10e9dc*/\n        }\n        if ( a2 > -2146929561 ) /*0x10e188*/\n        {\n          if ( a2 > -2145094634 || a2 < -2145094636 ) /*0x10e1ae*/\n            return -1; /*0x10e1ae*/\n          v41 = spltty(); /*0x10ea53*/\n          if ( !*((_BYTE *)a3 + 33) ) /*0x10ea56*/\n            *((_BYTE *)a3 + 33) = *((_BYTE *)a3 + 34); /*0x10ea61*/\n          if ( (unsigned int)(a2 + 2145094635) <= 1 ) /*0x10ea6d*/\n          {\n            v36 = (FILE *)spltty(); /*0x10ea78*/\n            while ( (a1->_lbfsize || (*(_DWORD *)a1->_ubuf & 0x2000020) != 0) /*0x10ea94*/\n                 && ((a1->_ubuf[0] & 0x10) != 0 || *(__int16 *)(ttynty(a1) + 16) < 0) )\n            {\n              ((void (__cdecl *)(FILE *))a1->_read)(a1); /*0x10ea9a*/\n              a1->_ubuf[0] |= 0x40u; /*0x10ea9c*/\n              sleep((unsigned int)&a1->_lbfsize); /*0x10eaa6*/\n            }\n            splx(v36); /*0x10eac1*/\n            if ( a2 == -2145094634 ) /*0x10eacf*/\n            {\n              v37 = spltty(); /*0x10ead6*/\n              while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10eaee*/\n                ; /*0x10eae0*/\n              wakeup((int)a1); /*0x10eaf1*/\n              while ( getc(a1) >= 0 ) /*0x10eb07*/\n                ; /*0x10eafc*/\n              HIBYTE(a1->_lb._size) = 0; /*0x10eb09*/\n              LOBYTE(a1->_blksize) = 0; /*0x10eb0d*/\n              *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10eb11*/\n              splx(v37); /*0x10eb1c*/\n            }\n          }\n          v27 = a3[2]; /*0x10eb27*/\n          if ( (v27 & 1) == 0 ) /*0x10eb2c*/\n          {\n            v28 = *(_DWORD *)a1->_ubuf; /*0x10eb2e*/\n            if ( (v28 & 0x10) == 0 && *(__int16 *)(v47 + 16) < 0 && (v27 & 0x8000u) == 0 ) /*0x10eb43*/\n            {\n              LOBYTE(v28) = v28 & 0xF9 | 2; /*0x10eb48*/\n              *(_DWORD *)a1->_ubuf = v28; /*0x10eb4b*/\n              ttwakeup(a1); /*0x10eb4f*/\n            }\n          }\n          ur = a1->_ur; /*0x10eb57*/\n          v30 = ((unsigned int)a3[3] >> 5) & 1; /*0x10eb6e*/\n          if ( a2 != -2145094634 && v30 != ((ur & 0x22) == 0) ) /*0x10eb7e*/\n          {\n            if ( v30 ) /*0x10eb82*/\n            {\n              a1->_ur = ur | 0x20000000; /*0x10eb89*/\n              ttwakeup(a1); /*0x10eb8d*/\n            }\n            else\n            {\n              catq(a1, &a1->_flags); /*0x10eb9d*/\n              p = a1->_p; /*0x10eba4*/\n              v51 = *(__sbuf *)&a1->_r; /*0x10ebaa*/\n              a1->_p = *(unsigned __int8 **)&a1->_flags; /*0x10ebb6*/\n              *(__sbuf *)&a1->_r = a1->_bf; /*0x10ebbb*/\n              *(_DWORD *)&a1->_flags = p; /*0x10ebc7*/\n              a1->_bf = v51; /*0x10ebcd*/\n            }\n          }\n          if ( !v30 && (*(_DWORD *)(v47 + 20) & 0xFFFF00) != (a3[6] & 0xFFFF00) ) /*0x10ebf9*/\n            ttwakeup(a1); /*0x10ebfc*/\n          ttsettermios(v47, a3); /*0x10ec0c*/\n          ttysetspec((_DWORD *)v47); /*0x10ec15*/\n          goto LABEL_237; /*0x10ec15*/\n        }\n        if ( a2 != -2147060619 ) /*0x10e190*/\n          return -1; /*0x10e190*/\n        bcopy(a3, (char *)&a1->_offset + 5, 6u); /*0x10e816*/\n        v19 = (_DWORD *)v47; /*0x10e81b*/\n        goto LABEL_179; /*0x10e81e*/\n      }\n      if ( a2 != -2147191681 ) /*0x10e158*/\n      {\n        if ( a2 > -2147060726 || a2 < -2147060727 ) /*0x10e170*/\n          return -1; /*0x10e170*/\n        BYTE1(a1->_blksize) = *((_BYTE *)a3 + 2); /*0x10e5a6*/\n        BYTE2(a1->_blksize) = *((_BYTE *)a3 + 3); /*0x10e5af*/\n        BYTE1(a1->_lb._size) = *(_BYTE *)a3; /*0x10e5b7*/\n        BYTE2(a1->_lb._size) = *((_BYTE *)a3 + 1); /*0x10e5c0*/\n        v34 = a1->_ur & 0xFFFF0000 | *((unsigned __int16 *)a3 + 2); /*0x10e5d5*/\n        v41 = spltty(); /*0x10e5dd*/\n        v15 = a1->_ur; /*0x10e5e0*/\n        if ( (v15 & 0x20) != 0 || (v34 & 0x20) != 0 || a2 == -2147060727 ) /*0x10e5f8*/\n        {\n          v16 = spltty(); /*0x10e603*/\n          while ( (a1->_lbfsize || (*(_DWORD *)a1->_ubuf & 0x2000020) != 0) /*0x10e61c*/\n               && ((a1->_ubuf[0] & 0x10) != 0 || *(__int16 *)(ttynty(a1) + 16) < 0) )\n          {\n            ((void (__cdecl *)(FILE *))a1->_read)(a1); /*0x10e622*/\n            a1->_ubuf[0] |= 0x40u; /*0x10e624*/\n            sleep((unsigned int)&a1->_lbfsize); /*0x10e62e*/\n          }\n          splx(v16); /*0x10e646*/\n          v39 = spltty(); /*0x10e653*/\n          while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10e667*/\n            ; /*0x10e65c*/\n          wakeup((int)a1); /*0x10e66a*/\n          while ( getc(a1) >= 0 ) /*0x10e67f*/\n            ; /*0x10e674*/\n          HIBYTE(a1->_lb._size) = 0; /*0x10e681*/\n          LOBYTE(a1->_blksize) = 0; /*0x10e685*/\n          *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10e689*/\n          splx(v39); /*0x10e694*/\n        }\n        else if ( (a1->_ur & 2) != (v34 & 2) ) /*0x10e6a9*/\n        {\n          if ( (v34 & 2) != 0 ) /*0x10e6ad*/\n          {\n            catq(a1, &a1->_flags); /*0x10e6b4*/\n            v48 = a1->_p; /*0x10e6bb*/\n            v50 = *(__sbuf *)&a1->_r; /*0x10e6c1*/\n            a1->_p = *(unsigned __int8 **)&a1->_flags; /*0x10e6cd*/\n            *(__sbuf *)&a1->_r = a1->_bf; /*0x10e6d2*/\n            *(_DWORD *)&a1->_flags = v48; /*0x10e6de*/\n            a1->_bf = v50; /*0x10e6e4*/\n          }\n          else\n          {\n            a1->_ur = v15 | 0x20000000; /*0x10e6f9*/\n            v34 |= 0x20000000u; /*0x10e6fc*/\n            ttwakeup(a1); /*0x10e704*/\n          }\n        }\n        a1->_ur = v34; /*0x10e70f*/\n        *(_DWORD *)(v47 + 16) = 472193564; /*0x10e715*/\n        *(_BYTE *)(v47 + 20) = 92; /*0x10e71c*/\n        *(_BYTE *)(v47 + 21) = 1; /*0x10e720*/\n        *(_BYTE *)(v47 + 22) = 0; /*0x10e724*/\n        ttysetspec((_DWORD *)v47); /*0x10e729*/\n        if ( (a1->_ur & 0x20) != 0 ) /*0x10e735*/\n        {\n          *(_DWORD *)a1->_ubuf &= ~0x100u; /*0x10e73b*/\n          v17 = spltty(); /*0x10e747*/\n          if ( (*(_DWORD *)a1->_ubuf & 0x4000121) == 0 ) /*0x10e750*/\n          {\n            read = a1->_read; /*0x10e752*/\n            if ( read ) /*0x10e757*/\n              ((void (__cdecl *)(FILE *))read)(a1); /*0x10e75a*/\n          }\n          splx(v17); /*0x10e760*/\n        }\n        goto LABEL_237; /*0x10e768*/\n      }\n      a1->_ur |= *a3 << 16; /*0x10e83c*/\n    }\n    *(_DWORD *)(v47 + 16) = 472193564; /*0x10e854*/\n    *(_BYTE *)(v47 + 20) = 92; /*0x10e85b*/\n    *(_BYTE *)(v47 + 21) = 1; /*0x10e85f*/\n    *(_BYTE *)(v47 + 22) = 0; /*0x10e863*/\n    ttysetspec((_DWORD *)v47); /*0x10e868*/\n    return 0; /*0x10e86d*/\n  }\n  if ( a2 == 1074033760 ) /*0x10e1c2*/\n  {\n    ur_high = *(_DWORD *)a1->_ubuf; /*0x10e2d4*/\n    goto LABEL_181; /*0x10e2d7*/\n  }\n  if ( a2 > 1074033760 ) /*0x10e1c8*/\n  {\n    if ( a2 == 1074164744 ) /*0x10e256*/\n    {\n      *(_BYTE *)a3 = BYTE1(a1->_lb._size); /*0x10e776*/\n      *((_BYTE *)a3 + 1) = BYTE2(a1->_lb._size); /*0x10e77b*/\n      *((_BYTE *)a3 + 2) = BYTE1(a1->_blksize); /*0x10e781*/\n      *((_BYTE *)a3 + 3) = BYTE2(a1->_blksize); /*0x10e787*/\n      *((_WORD *)a3 + 2) = a1->_ur; /*0x10e78e*/\n      return 0; /*0x10e792*/\n    }\n    if ( a2 > 1074164744 ) /*0x10e25c*/\n    {\n      if ( a2 == 1074164852 ) /*0x10e29a*/\n      {\n        bcopy((char *)&a1->_offset + 5, a3, 6u); /*0x10e82a*/\n      }\n      else if ( a2 > 1074164852 ) /*0x10e2a0*/\n      {\n        if ( a2 == 1074295912 ) /*0x10e2ba*/\n        {\n          *a3 = a1[1]._r; /*0x10e9ea*/\n          a3[1] = a1[1]._w; /*0x10e9ef*/\n        }\n        else\n        {\n          if ( a2 != 1076130835 ) /*0x10e2c6*/\n            return -1; /*0x10e2c6*/\n          ttgettermios(v47, a3); /*0x10ea3c*/\n        }\n      }\n      else\n      {\n        if ( a2 != 1074164754 ) /*0x10e2a8*/\n          return -1; /*0x10e2a8*/\n        bcopy((char *)&a1->_blksize + 3, a3, 6u); /*0x10e7f1*/\n      }\n      return 0; /*0x10e7f1*/\n    }\n    if ( a2 == 1074033783 ) /*0x10e264*/\n    {\n      v25 = *(_DWORD *)active_u; /*0x10e962*/\n      if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x10e968*/\n      {\n        v26 = *(_DWORD *)(get_posix_proc(*(__int16 *)(v25 + 48))[4] + 8); /*0x10e977*/\n        if ( *(_DWORD *)(v47 + 8) != v26 || (*(_BYTE *)(v25 + 43) & 0x40) == 0 || !*(_DWORD *)(v26 + 8) ) /*0x10e988*/\n          return 25; /*0x10e98c*/\n      }\n      base_low = SLOWORD(a1->_lb._base); /*0x10e998*/\n      goto LABEL_200; /*0x10e998*/\n    }\n    if ( a2 <= 1074033783 ) /*0x10e26a*/\n    {\n      if ( a2 != 1074033779 ) /*0x10e272*/\n        return -1; /*0x10e272*/\n      base_low = a1->_lbfsize; /*0x10e4b0*/\n      goto LABEL_200; /*0x10e4b3*/\n    }\n    if ( a2 != 1074033788 ) /*0x10e286*/\n      return -1; /*0x10e286*/\n    ur_high = HIWORD(a1->_ur); /*0x10e8ac*/\nLABEL_181:\n    *a3 = ur_high; /*0x10e8b0*/\n    return 0; /*0x10e8b5*/\n  }\n  if ( a2 == 536900712 ) /*0x10e1d4*/\n  {\n    if ( a1 != &cons ) /*0x10e9fe*/\n      (*(&funcs_10EA24 + 11 * *(unsigned __int8 *)(cons_tp + 57)))(*(__int16 *)(cons_tp + 56), 536898312, 0, 0); /*0x10ea24*/\n    cons_tp = (int)a1; /*0x10ea26*/\n    return 0; /*0x10ea2c*/\n  }\n  if ( a2 > 536900712 ) /*0x10e1da*/\n  {\n    if ( a2 == 536900719 ) /*0x10e216*/\n    {\n      v41 = spltty(); /*0x10e4bd*/\n      v11 = *(_DWORD *)a1->_ubuf; /*0x10e4c0*/\n      if ( (v11 & 0x100) == 0 ) /*0x10e4c6*/\n      {\n        BYTE1(v11) |= 1u; /*0x10e4cc*/\n        *(_DWORD *)a1->_ubuf = v11; /*0x10e4cf*/\n        ((void (__cdecl *)(FILE *, _DWORD))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, 0); /*0x10e4e6*/\n      }\n      goto LABEL_237; /*0x10e4eb*/\n    }\n    if ( a2 <= 536900719 ) /*0x10e21c*/\n    {\n      if ( a2 != 536900718 ) /*0x10e224*/\n        return -1; /*0x10e224*/\n      v42 = spltty(); /*0x10e4f5*/\n      v12 = *(_DWORD *)a1->_ubuf; /*0x10e4f8*/\n      if ( (v12 & 0x100) != 0 || (a1->_ur & 0x800000) != 0 ) /*0x10e504*/\n      {\n        BYTE1(v12) &= ~1u; /*0x10e506*/\n        *(_DWORD *)a1->_ubuf = v12; /*0x10e509*/\n        a1->_ur &= ~0x800000u; /*0x10e50c*/\n        v13 = spltty(); /*0x10e518*/\n        if ( (*(_DWORD *)a1->_ubuf & 0x4000121) == 0 ) /*0x10e521*/\n        {\n          v14 = a1->_read; /*0x10e523*/\n          if ( v14 ) /*0x10e528*/\n            ((void (__cdecl *)(FILE *))v14)(a1); /*0x10e52b*/\n        }\n        splx(v13); /*0x10e531*/\n      }\n      goto LABEL_134; /*0x10e531*/\n    }\n    if ( a2 == 1074030207 ) /*0x10e236*/\n    {\n      v44 = spltty(); /*0x10e499*/\n      *a3 = ttnread(v47); /*0x10e4a8*/\n      splx(v44); /*0x10e4aa*/\n      return 0; /*0x10e4aa*/\n    }\n    if ( a2 != 1074033664 ) /*0x10e242*/\n      return -1; /*0x10e242*/\n    base_low = SHIBYTE(a1->_lb._base); /*0x10e2dc*/\nLABEL_200:\n    *a3 = base_low; /*0x10e99c*/\n    return 0; /*0x10e9a1*/\n  }\n  if ( a2 == 536900622 ) /*0x10e1e2*/\n  {\n    v43 = spltty(); /*0x10e3b1*/\n    *(_DWORD *)a1->_ubuf &= ~0x80u; /*0x10e3b4*/\n    splx(v43); /*0x10e3bb*/\n  }\n  else\n  {\n    if ( a2 <= 536900622 ) /*0x10e1e8*/\n    {\n      if ( a2 != 536900621 ) /*0x10e1f0*/\n        return -1; /*0x10e1f0*/\n      v42 = spltty(); /*0x10e39d*/\n      a1->_ubuf[0] |= 0x80u; /*0x10e3a0*/\n      goto LABEL_134; /*0x10e3a4*/\n    }\n    if ( a2 != 536900702 ) /*0x10e202*/\n      return -1; /*0x10e202*/\n    v31 = spltty(); /*0x10ec2d*/\n    while ( (a1->_lbfsize || (*(_DWORD *)a1->_ubuf & 0x2000020) != 0) /*0x10ec48*/\n         && ((a1->_ubuf[0] & 0x10) != 0 || *(__int16 *)(ttynty(a1) + 16) < 0) )\n    {\n      ((void (__cdecl *)(FILE *))a1->_read)(a1); /*0x10ec4e*/\n      a1->_ubuf[0] |= 0x40u; /*0x10ec50*/\n      sleep((unsigned int)&a1->_lbfsize); /*0x10ec5a*/\n    }\n    splx(v31); /*0x10ec72*/\n  }\n  return 0; /*0x10ec89*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x1097f8",
+        "name": "_gsignal"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x1e8df0",
+        "name": "_lbolt"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1db1c8",
+        "name": "_nldisp"
+      },
+      {
+        "addr": "0x1dafe8",
+        "name": "_linesw"
+      },
+      {
+        "addr": "0x10cca4",
+        "name": "_nodev"
+      },
+      {
+        "addr": "0x1dafec",
+        "name": "off_1DAFEC"
+      },
+      {
+        "addr": "0x1daffc",
+        "name": "off_1DAFFC"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1e2f4c",
+        "name": "funcs_10DE95"
+      },
+      {
+        "addr": "0x10daf0",
+        "name": "_ttysetspec"
+      },
+      {
+        "addr": "0x1074d8",
+        "name": "_pgfind"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1012fc",
+        "name": "_bcmp"
+      },
+      {
+        "addr": "0x1111b0",
+        "name": "_ttwakeup"
+      },
+      {
+        "addr": "0x113500",
+        "name": "_catq"
+      },
+      {
+        "addr": "0x111474",
+        "name": "_ttsettermios"
+      },
+      {
+        "addr": "0x1117e8",
+        "name": "_ttgettermios"
+      },
+      {
+        "addr": "0x1e2f48",
+        "name": "funcs_10EA24"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      },
+      {
+        "addr": "0x1e97d0",
+        "name": "_cons"
+      },
+      {
+        "addr": "0x10ec90",
+        "name": "_ttnread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ec90",
+    "addr": "0x0010ec90",
+    "code": "int __cdecl ttnread(int a1)\n{\n  FILE *v1; // ebx\n  int v2; // edx\n\n  v1 = *(FILE **)a1; /*0x10ec98*/\n  if ( (*(_BYTE *)(*(_DWORD *)a1 + 63) & 0x20) != 0 ) /*0x10ec9e*/\n    ttypend(*(FILE **)a1); /*0x10eca1*/\n  v2 = *(_DWORD *)&v1->_flags; /*0x10eca6*/\n  if ( (v1->_ur & 0x22) != 0 ) /*0x10ecad*/\n  {\n    v2 += (int)v1->_p; /*0x10ecaf*/\n    if ( v2 < *(unsigned __int8 *)(a1 + 21) ) /*0x10ecb7*/\n      return 0; /*0x10ecb9*/\n  }\n  return v2; /*0x10ecc0*/\n}",
+    "refs": [
+      {
+        "addr": "0x10f260",
+        "name": "_ttypend"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ecc8",
+    "addr": "0x0010ecc8",
+    "code": "int __cdecl ttselect(int a1, int a2)\n{\n  int v2; // esi\n  FILE *v3; // ebx\n  int v4; // edx\n  int v6; // [esp+Ch] [ebp-4h]\n\n  v2 = ttynty(a1); /*0x10ecdd*/\n  v6 = spltty(); /*0x10ece4*/\n  if ( a2 == 1 ) /*0x10eced*/\n  {\n    v3 = *(FILE **)v2; /*0x10ecf8*/\n    if ( (*(_BYTE *)(*(_DWORD *)v2 + 63) & 0x20) != 0 ) /*0x10ecfe*/\n      ttypend(*(FILE **)v2); /*0x10ed01*/\n    v4 = *(_DWORD *)&v3->_flags; /*0x10ed09*/\n    if ( (v3->_ur & 0x22) != 0 ) /*0x10ed10*/\n    {\n      v4 += (int)v3->_p; /*0x10ed12*/\n      if ( v4 < *(unsigned __int8 *)(v2 + 21) ) /*0x10ed1a*/\n        v4 = 0; /*0x10ed1c*/\n    }\n    if ( v4 <= 0 && (*(__int16 *)(v2 + 16) < 0 || (*(_BYTE *)(a1 + 64) & 0x10) != 0) ) /*0x10ed2d*/\n    {\n      if ( selthreadcache((thread_act_t *)(a1 + 40)) ) /*0x10ed33*/\n        *(_DWORD *)(a1 + 64) |= 0x800u; /*0x10ed3f*/\n      goto LABEL_17; /*0x10ed46*/\n    }\n  }\n  else\n  {\n    if ( a2 != 2 ) /*0x10ecf2*/\n    {\nLABEL_17:\n      splx(v6); /*0x10ed72*/\n      return 0; /*0x10ed7d*/\n    }\n    if ( *(_DWORD *)(a1 + 24) > ttlowat[*(_BYTE *)(a1 + 74) & 0x1F] ) /*0x10ed59*/\n    {\n      if ( selthreadcache((thread_act_t *)(a1 + 44)) ) /*0x10ed5f*/\n        *(_DWORD *)(a1 + 64) |= 0x1000u; /*0x10ed6b*/\n      goto LABEL_17; /*0x10ed6b*/\n    }\n  }\n  splx(v6); /*0x10ed84*/\n  return 1; /*0x10ed91*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x10f260",
+        "name": "_ttypend"
+      },
+      {
+        "addr": "0x10d740",
+        "name": "_selthreadcache"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1daeac",
+        "name": "_ttlowat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ed98",
+    "addr": "0x0010ed98",
+    "code": "int __cdecl ttyopen(__int16 a1, FILE *a2)\n{\n  int v2; // esi\n  _DWORD *posix_proc; // eax\n  _DWORD *v4; // ebx\n  int v5; // eax\n  __int16 base; // ax\n  int v7; // esi\n  int v8; // eax\n  int v9; // ebx\n  int v11; // [esp+Ch] [ebp-8h]\n\n  v11 = ttynty(a2); /*0x10edb2*/\n  v2 = *(_DWORD *)active_u; /*0x10edba*/\n  posix_proc = get_posix_proc(*(__int16 *)(*(_DWORD *)active_u + 48)); /*0x10edc1*/\n  v4 = posix_proc; /*0x10edc6*/\n  if ( (*(_BYTE *)(v2 + 22) & 2) == 0 ) /*0x10edcf*/\n  {\n    if ( (*(_BYTE *)(v2 + 43) & 0x40) != 0 ) /*0x10ee48*/\n      goto LABEL_13; /*0x10ee48*/\n    *(_DWORD *)(active_u + 360) = a2; /*0x10ee4f*/\n    *(_WORD *)(active_u + 364) = a1; /*0x10ee5e*/\n    *(_DWORD *)(v11 + 8) = *(_DWORD *)(posix_proc[4] + 8); /*0x10ee6e*/\n    *(_DWORD *)(*(_DWORD *)(posix_proc[4] + 8) + 8) = a2; /*0x10ee77*/\n    base = (__int16)a2->_lb._base; /*0x10ee7a*/\n    if ( base ) /*0x10ee81*/\n    {\n      if ( *(_WORD *)(v2 + 46) != base ) /*0x10eeac*/\n        enterpgrp(v2, base, 0); /*0x10eeb3*/\n    }\n    else\n    {\n      enterpgrp(v2, *(__int16 *)(v2 + 48), 1); /*0x10ee8b*/\n      *(_DWORD *)(v11 + 12) = v4[4]; /*0x10ee96*/\n      LOWORD(a2->_lb._base) = *(_WORD *)(v4[4] + 12); /*0x10eea0*/\n    }\n    goto LABEL_12; /*0x10eea4*/\n  }\n  v5 = *(_DWORD *)(posix_proc[4] + 8); /*0x10edd4*/\n  if ( *(_DWORD *)(v5 + 4) == v2 && !*(_DWORD *)(v5 + 8) && !*(_DWORD *)(v11 + 8) && (v4[6] & 2) == 0 ) /*0x10edfb*/\n  {\n    *(_DWORD *)(active_u + 360) = a2; /*0x10ee06*/\n    *(_WORD *)(active_u + 364) = a1; /*0x10ee15*/\n    *(_DWORD *)(v11 + 8) = *(_DWORD *)(v4[4] + 8); /*0x10ee22*/\n    *(_DWORD *)(*(_DWORD *)(v4[4] + 8) + 8) = a2; /*0x10ee2b*/\n    *(_DWORD *)(v11 + 12) = v4[4]; /*0x10ee31*/\n    LOWORD(a2->_lb._base) = *(_WORD *)(v4[4] + 12); /*0x10ee3b*/\nLABEL_12:\n    *(_DWORD *)(v2 + 40) |= 0x40000000u; /*0x10eebb*/\n  }\nLABEL_13:\n  LOWORD(a2->_extra) = a1; /*0x10eec2*/\n  v7 = spltty(); /*0x10eecf*/\n  v8 = *(_DWORD *)a2->_ubuf; /*0x10eed1*/\n  v9 = v8; /*0x10eed4*/\n  LOBYTE(v9) = v8 & 0xFD; /*0x10eed6*/\n  *(_DWORD *)a2->_ubuf = v9; /*0x10eed9*/\n  if ( (v8 & 4) != 0 ) /*0x10eede*/\n  {\n    splx(v7); /*0x10ef2d*/\n  }\n  else\n  {\n    LOBYTE(v9) = v8 & 0xF9 | 4; /*0x10eee0*/\n    *(_DWORD *)a2->_ubuf = v9; /*0x10eee3*/\n    splx(v7); /*0x10eee7*/\n    *(_DWORD *)(v11 + 16) = 472193564; /*0x10eeef*/\n    *(_BYTE *)(v11 + 20) = 92; /*0x10eef6*/\n    *(_BYTE *)(v11 + 21) = 1; /*0x10eefa*/\n    *(_BYTE *)(v11 + 22) = 0; /*0x10eefe*/\n    bzero(&a2[1]._r, 8u); /*0x10ef08*/\n    if ( HIBYTE(a2->_lb._base) != 2 ) /*0x10ef14*/\n    {\n      ttywait((int)a2); /*0x10ef17*/\n      ttyflush(a2, 1); /*0x10ef1f*/\n    }\n  }\n  ttysetspec((_DWORD *)v11); /*0x10ef39*/\n  return 0; /*0x10ef43*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x107504",
+        "name": "_enterpgrp"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x10ddd0",
+        "name": "_ttywait"
+      },
+      {
+        "addr": "0x10de30",
+        "name": "_ttyflush"
+      },
+      {
+        "addr": "0x10daf0",
+        "name": "_ttysetspec"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ef4c",
+    "addr": "0x0010ef4c",
+    "code": "int __cdecl ttylclose(FILE *a1)\n{\n  int result; // eax\n\n  ttywait((int)a1); /*0x10ef54*/\n  result = ttyflush(a1, 1); /*0x10ef5c*/\n  HIBYTE(a1->_lb._base) = 0; /*0x10ef61*/\n  return result; /*0x10ef65*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ddd0",
+        "name": "_ttywait"
+      },
+      {
+        "addr": "0x10de30",
+        "name": "_ttyflush"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010ef6c",
+    "addr": "0x0010ef6c",
+    "code": "int __cdecl ttyclose(FILE *a1)\n{\n  int v1; // edi\n  int v2; // ebx\n  int v4; // [esp+Ch] [ebp-4h]\n\n  v4 = ttynty(a1); /*0x10ef7e*/\n  if ( (FILE *)cons_tp == a1 ) /*0x10ef8a*/\n  {\n    cons_tp = (int)&cons; /*0x10ef8c*/\n    (*(&funcs_10EA24 + 11 * BYTE1(a1->_extra)))(SLOWORD(a1->_extra), 536898312, 0, 0); /*0x10efb5*/\n  }\n  v1 = spltty(); /*0x10efbf*/\n  while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10efcf*/\n    ; /*0x10efc4*/\n  wakeup((int)a1); /*0x10efd2*/\n  wakeup((int)&a1->_lbfsize); /*0x10efde*/\n  *(_DWORD *)a1->_ubuf &= ~0x100u; /*0x10efe3*/\n  ((void (__cdecl *)(FILE *, int))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, 3); /*0x10effe*/\n  while ( getc((FILE *)&a1->_lbfsize) >= 0 ) /*0x10f00f*/\n    ; /*0x10f004*/\n  while ( getc(a1) >= 0 ) /*0x10f01f*/\n    ; /*0x10f014*/\n  HIBYTE(a1->_lb._size) = 0; /*0x10f021*/\n  LOBYTE(a1->_blksize) = 0; /*0x10f025*/\n  *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10f029*/\n  splx(v1); /*0x10f031*/\n  if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x10f044*/\n  {\n    *(_DWORD *)(v4 + 8) = 0; /*0x10f049*/\n    *(_DWORD *)(v4 + 12) = 0; /*0x10f050*/\n  }\n  if ( *(FILE **)(active_u + 360) == a1 ) /*0x10f062*/\n    *(_DWORD *)(*(_DWORD *)active_u + 40) &= ~0x40000000u; /*0x10f066*/\n  LOWORD(a1->_lb._base) = 0; /*0x10f06d*/\n  *(_DWORD *)a1->_ubuf = 0; /*0x10f073*/\n  HIBYTE(a1->_lb._base) = 0; /*0x10f07a*/\n  a1[1]._write = nullptr; /*0x10f07e*/\n  v2 = spltty(); /*0x10f08d*/\n  selthreadclear(&a1->_write); /*0x10f093*/\n  selthreadclear(&a1->_seek); /*0x10f09c*/\n  return splx(v2); /*0x10f0aa*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x1e98bc",
+        "name": "_cons_tp"
+      },
+      {
+        "addr": "0x1e97d0",
+        "name": "_cons"
+      },
+      {
+        "addr": "0x1e2f48",
+        "name": "funcs_10EA24"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1e2f4c",
+        "name": "funcs_10DE95"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x10d7b0",
+        "name": "_selthreadclear"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f0b4",
+    "addr": "0x0010f0b4",
+    "code": "int __cdecl ttymodem(FILE *a1, int a2)\n{\n  int v2; // edx\n  int v3; // eax\n  int v4; // ebx\n  int (__cdecl *read)(void *, char *, int); // eax\n  int v6; // eax\n  int v7; // ecx\n  int v8; // edi\n\n  v2 = ttynty(a1); /*0x10f0c6*/\n  v3 = *(_DWORD *)a1->_ubuf; /*0x10f0c8*/\n  if ( (v3 & 2) == 0 && (a1->_ur & 0x100000) != 0 ) /*0x10f0d6*/\n  {\n    if ( a2 ) /*0x10f0da*/\n    {\n      BYTE1(v3) &= ~1u; /*0x10f0dc*/\n      *(_DWORD *)a1->_ubuf = v3; /*0x10f0df*/\n      v4 = spltty(); /*0x10f0e7*/\n      if ( (*(_DWORD *)a1->_ubuf & 0x4000121) == 0 ) /*0x10f0f0*/\n      {\n        read = a1->_read; /*0x10f0f2*/\n        if ( read ) /*0x10f0f7*/\n          ((void (__cdecl *)(FILE *))read)(a1); /*0x10f0fa*/\n      }\n      splx(v4); /*0x10f100*/\n    }\n    else if ( (v3 & 0x100) == 0 ) /*0x10f10f*/\n    {\n      BYTE1(v3) |= 1u; /*0x10f115*/\n      *(_DWORD *)a1->_ubuf = v3; /*0x10f118*/\n      ((void (__cdecl *)(FILE *, _DWORD))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, 0); /*0x10f12f*/\n    }\n    return 1; /*0x10f105*/\n  }\n  if ( a2 ) /*0x10f13a*/\n  {\n    a1->_ubuf[0] |= 0x10u; /*0x10f210*/\n    wakeup((int)a1); /*0x10f215*/\n    return 1; /*0x10f21a*/\n  }\n  v6 = *(_DWORD *)a1->_ubuf; /*0x10f140*/\n  v7 = v6; /*0x10f143*/\n  LOBYTE(v7) = v6 & 0xEF; /*0x10f145*/\n  *(_DWORD *)a1->_ubuf = v7; /*0x10f148*/\n  if ( (v6 & 4) == 0 ) /*0x10f14d*/\n    return 1; /*0x10f14d*/\n  if ( *(__int16 *)(v2 + 16) < 0 ) /*0x10f158*/\n    return 1; /*0x10f158*/\n  ttwakeup(a1); /*0x10f15f*/\n  if ( (a1->_ur & 0x1000000) != 0 ) /*0x10f16b*/\n    return 1; /*0x10f16b*/\n  gsignal((_DWORD *)SLOWORD(a1->_lb._base), (char *)1); /*0x10f178*/\n  gsignal((_DWORD *)SLOWORD(a1->_lb._base), (char *)0x13); /*0x10f184*/\n  v8 = spltty(); /*0x10f191*/\n  while ( getc((FILE *)&a1->_flags) >= 0 ) /*0x10f1a3*/\n    ; /*0x10f198*/\n  wakeup((int)a1); /*0x10f1a6*/\n  wakeup((int)&a1->_lbfsize); /*0x10f1b2*/\n  *(_DWORD *)a1->_ubuf &= ~0x100u; /*0x10f1b7*/\n  ((void (__cdecl *)(FILE *, int))funcs_10DE95[11 * BYTE1(a1->_extra)])(a1, 3); /*0x10f1d2*/\n  while ( getc((FILE *)&a1->_lbfsize) >= 0 ) /*0x10f1e3*/\n    ; /*0x10f1d8*/\n  while ( getc(a1) >= 0 ) /*0x10f1f3*/\n    ; /*0x10f1e8*/\n  HIBYTE(a1->_lb._size) = 0; /*0x10f1f5*/\n  LOBYTE(a1->_blksize) = 0; /*0x10f1f9*/\n  *(_DWORD *)a1->_ubuf &= 0xFF40FFFF; /*0x10f1fd*/\n  splx(v8); /*0x10f205*/\n  return 0; /*0x10f222*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e2f4c",
+        "name": "funcs_10DE95"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1111b0",
+        "name": "_ttwakeup"
+      },
+      {
+        "addr": "0x1097f8",
+        "name": "_gsignal"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f22c",
+    "addr": "0x0010f22c",
+    "code": "int __cdecl nullmodem(int a1, int a2)\n{\n  int v2; // eax\n\n  v2 = ttynty(a1); /*0x10f238*/\n  if ( a2 ) /*0x10f23f*/\n  {\n    *(_BYTE *)(a1 + 64) |= 0x10u; /*0x10f250*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 64) &= ~0x10u; /*0x10f241*/\n    if ( *(__int16 *)(v2 + 16) >= 0 ) /*0x10f24a*/\n      return 0; /*0x10f24e*/\n  }\n  return a2; /*0x10f259*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f260",
+    "addr": "0x0010f260",
+    "code": "int __cdecl ttypend(FILE *a1)\n{\n  int result; // eax\n  _DWORD v2[3]; // [esp+8h] [ebp-Ch] BYREF\n\n  a1->_ur &= ~0x20000000u; /*0x10f26b*/\n  *(_DWORD *)a1->_ubuf |= 0x100000u; /*0x10f272*/\n  v2[0] = a1->_p; /*0x10f27b*/\n  v2[1] = a1->_r; /*0x10f281*/\n  v2[2] = a1->_w; /*0x10f287*/\n  a1->_p = nullptr; /*0x10f28a*/\n  a1->_w = 0; /*0x10f290*/\n  a1->_r = 0; /*0x10f297*/\n  while ( 1 ) /*0x10f2a5*/\n  {\n    result = getc((FILE *)v2); /*0x10f2a5*/\n    if ( result < 0 ) /*0x10f2af*/\n      break; /*0x10f2af*/\n    ttyinput(result, a1); /*0x10f2b3*/\n  }\n  *(_DWORD *)a1->_ubuf &= ~0x100000u; /*0x10f2c0*/\n  return result; /*0x10f2ca*/\n}",
+    "refs": [
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10f2d0",
+        "name": "_ttyinput"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f2d0",
+    "addr": "0x0010f2d0",
+    "code": "int __cdecl ttyinput(int a1, FILE *a2)\n{\n  int result; // eax\n  int v3; // edi\n  int ur; // eax\n  int v5; // eax\n  int v6; // eax\n  char v7; // al\n  int v8; // edx\n  int v9; // eax\n  char v10; // dl\n  int v11; // esi\n  int (__cdecl *read)(void *, char *, int); // eax\n  int v13; // esi\n  int (__cdecl *v14)(void *, char *, int); // eax\n  long double v15; // [esp-Ch] [ebp-24h]\n  _DWORD v16[3]; // [esp+Ch] [ebp-Ch] BYREF\n\n  result = ttynty(a2); /*0x10f2dd*/\n  v3 = result; /*0x10f2e2*/\n  if ( (*(_BYTE *)(result + 17) & 8) != 0 ) /*0x10f2eb*/\n  {\n    ur = a2->_ur; /*0x10f2f1*/\n    if ( (ur & 0x20000000) != 0 ) /*0x10f2f9*/\n    {\n      a2->_ur = ur & 0xDFFFFFFF; /*0x10f300*/\n      *(_DWORD *)a2->_ubuf |= 0x100000u; /*0x10f303*/\n      v16[0] = a2->_p; /*0x10f30c*/\n      v16[1] = a2->_r; /*0x10f312*/\n      v16[2] = a2->_w; /*0x10f318*/\n      a2->_p = nullptr; /*0x10f31b*/\n      a2->_w = 0; /*0x10f321*/\n      a2->_r = 0; /*0x10f328*/\n      while ( 1 ) /*0x10f335*/\n      {\n        v5 = getc((FILE *)v16); /*0x10f335*/\n        if ( v5 < 0 ) /*0x10f33f*/\n          break; /*0x10f33f*/\n        ttyinput(v5, a2); /*0x10f343*/\n      }\n      *(_DWORD *)a2->_ubuf &= ~0x100000u; /*0x10f350*/\n    }\n    ++tk_nin; /*0x10f357*/\n    if ( HIBYTE(a1) || (a2->_ur & 0x20) == 0 ) /*0x10f36b*/\n    {\n      ttcooked(a1, v3); /*0x10f401*/\n    }\n    else\n    {\n      if ( (int)a2->_p <= 1024 ) /*0x10f377*/\n      {\n        if ( putc(a1, a2) >= 0 ) /*0x10f3a7*/\n        {\n          if ( ttcheckwakeup(v3) ) /*0x10f3aa*/\n            ttwakeup(a2); /*0x10f3b7*/\n          ttyecho(a1, v3); /*0x10f3c4*/\n        }\n      }\n      else\n      {\n        DWORD2(v15) = SLOWORD(a2->_extra); /*0x10f37d*/\n        DWORD1(v15) = aTtyDRawInputOv; /*0x10f37e*/\n        LODWORD(v15) = 4; /*0x10f383*/\n        log(v15); /*0x10f385*/\n        ttwakeup(a2); /*0x10f38b*/\n      }\n      v6 = a2->_ur; /*0x10f3cc*/\n      a2->_ur = v6 & 0xFF7FFFFF; /*0x10f3d7*/\n      if ( (*(_BYTE *)(v3 + 16) & 0x10) != 0 ) /*0x10f3de*/\n      {\n        if ( (v6 & 0x40000000) == 0 || (v7 = BYTE2(a2->_offset), v7 != -1) && BYTE1(a2->_offset) == v7 ) /*0x10f3f1*/\n          *(_DWORD *)a2->_ubuf &= ~0x100u; /*0x10f3f3*/\n      }\n    }\n    v8 = *(_DWORD *)&a2->_flags; /*0x10f409*/\n    if ( (int)&a2->_p[v8] > 511 ) /*0x10f415*/\n    {\n      v9 = a2->_ur; /*0x10f417*/\n      if ( (v9 & 0x22) != 0 || v8 > 0 ) /*0x10f420*/\n      {\n        if ( (v9 & 1) != 0 ) /*0x10f424*/\n        {\n          v10 = BYTE2(a2->_offset); /*0x10f426*/\n          if ( v10 != -1 && !putc(v10, (FILE *)&a2->_lbfsize) ) /*0x10f436*/\n          {\n            *(_DWORD *)a2->_ubuf |= 0x400u; /*0x10f442*/\n            v11 = spltty(); /*0x10f44e*/\n            if ( (*(_DWORD *)a2->_ubuf & 0x4000121) == 0 ) /*0x10f457*/\n            {\n              read = a2->_read; /*0x10f459*/\n              if ( read ) /*0x10f45e*/\n                ((void (__cdecl *)(FILE *))read)(a2); /*0x10f461*/\n            }\n            splx(v11); /*0x10f467*/\n          }\n        }\n        *(_DWORD *)a2->_ubuf |= 0x800000u; /*0x10f46f*/\n      }\n    }\n    v13 = spltty(); /*0x10f47b*/\n    if ( (*(_DWORD *)a2->_ubuf & 0x4000121) == 0 ) /*0x10f484*/\n    {\n      v14 = a2->_read; /*0x10f486*/\n      if ( v14 ) /*0x10f48b*/\n        ((void (__cdecl *)(FILE *))v14)(a2); /*0x10f48e*/\n    }\n    return splx(v13); /*0x10f494*/\n  }\n  return result; /*0x10f49c*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10f2d0",
+        "name": "_ttyinput"
+      },
+      {
+        "addr": "0x1e8b18",
+        "name": "_tk_nin"
+      },
+      {
+        "addr": "0x10f69c",
+        "name": "_ttcooked"
+      },
+      {
+        "addr": "0x1111b0",
+        "name": "_ttwakeup"
+      },
+      {
+        "addr": "0x111180",
+        "name": "_ttcheckwakeup"
+      },
+      {
+        "addr": "0x111094",
+        "name": "_ttyecho"
+      },
+      {
+        "addr": "0x11315c",
+        "name": "_putc"
+      },
+      {
+        "addr": "0x1daf42",
+        "name": "aTtyDRawInputOv",
+        "string": "tty%d: raw input overrun\n"
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f4a4",
+    "addr": "0x0010f4a4",
+    "code": "int __cdecl ttyblkin(unsigned __int8 *a1, size_t a2, FILE *a3)\n{\n  unsigned __int8 *v3; // edi\n  size_t v4; // ebx\n  int result; // eax\n  int ur; // eax\n  int v7; // eax\n  unsigned __int8 *p; // edx\n  int v9; // eax\n  char v10; // al\n  int i; // ebx\n  int v12; // edx\n  int v13; // eax\n  char v14; // dl\n  int v15; // ebx\n  int (__cdecl *read)(void *, char *, int); // eax\n  int v17; // ebx\n  int (__cdecl *v18)(void *, char *, int); // eax\n  long double v19; // [esp-Ch] [ebp-2Ch]\n  int v20; // [esp-8h] [ebp-28h]\n  int v21; // [esp+10h] [ebp-10h]\n  _DWORD v22[3]; // [esp+14h] [ebp-Ch] BYREF\n\n  v3 = a1; /*0x10f4ad*/\n  v4 = a2; /*0x10f4b0*/\n  result = ttynty(a3); /*0x10f4b7*/\n  v21 = result; /*0x10f4bc*/\n  if ( (*(_BYTE *)(result + 17) & 8) != 0 ) /*0x10f4c6*/\n  {\n    ur = a3->_ur; /*0x10f4cc*/\n    if ( (ur & 0x20000000) != 0 ) /*0x10f4d4*/\n    {\n      a3->_ur = ur & 0xDFFFFFFF; /*0x10f4db*/\n      *(_DWORD *)a3->_ubuf |= 0x100000u; /*0x10f4de*/\n      v22[0] = a3->_p; /*0x10f4e7*/\n      v22[1] = a3->_r; /*0x10f4ed*/\n      v22[2] = a3->_w; /*0x10f4f3*/\n      a3->_p = nullptr; /*0x10f4f6*/\n      a3->_w = 0; /*0x10f4fc*/\n      a3->_r = 0; /*0x10f503*/\n      while ( 1 ) /*0x10f514*/\n      {\n        v7 = getc((FILE *)v22); /*0x10f514*/\n        if ( v7 < 0 ) /*0x10f51e*/\n          break; /*0x10f51e*/\n        ttyinput(v7, a3); /*0x10f522*/\n      }\n      *(_DWORD *)a3->_ubuf &= ~0x100000u; /*0x10f52c*/\n    }\n    tk_nin += a2; /*0x10f533*/\n    if ( (a3->_ur & 0x20) != 0 ) /*0x10f53d*/\n    {\n      p = a3->_p; /*0x10f543*/\n      if ( (int)&a3->_p[a2] > 1024 ) /*0x10f54d*/\n      {\n        v4 = 1024 - (_DWORD)p; /*0x10f554*/\n        if ( 1024 - (int)p < 0 ) /*0x10f556*/\n          v4 = 0; /*0x10f558*/\n        DWORD2(v19) = SLOWORD(a3->_extra); /*0x10f55e*/\n        DWORD1(v19) = aTtyDRawInputOv_0; /*0x10f55f*/\n        LODWORD(v19) = 4; /*0x10f564*/\n        log(v19); /*0x10f566*/\n      }\n      if ( (int)(v4 - b_to_q(a1, v4, (int)a3)) > 0 && ttcheckwakeup(v21) ) /*0x10f587*/\n        ttwakeup(a3); /*0x10f594*/\n      v9 = a3->_ur; /*0x10f59c*/\n      a3->_ur = v9 & 0xFF7FFFFF; /*0x10f5a7*/\n      if ( (v9 & 8) != 0 ) /*0x10f5ac*/\n        tk_nout += b_to_q(a1, v4, (int)&a3->_lbfsize); /*0x10f5b9*/\n      if ( (*(_BYTE *)(v21 + 16) & 0x10) != 0 ) /*0x10f5c9*/\n      {\n        if ( (a3->_ur & 0x40000000) == 0 || (v10 = BYTE2(a3->_offset), v10 != -1) && BYTE1(a3->_offset) == v10 ) /*0x10f5db*/\n          *(_DWORD *)a3->_ubuf &= ~0x100u; /*0x10f5dd*/\n      }\n    }\n    else\n    {\n      for ( i = a2 - 1; i >= 0; --i ) /*0x10f5e9*/\n      {\n        v20 = *v3++; /*0x10f5f3*/\n        ttcooked(v20, v21); /*0x10f5f5*/\n      }\n    }\n    v12 = *(_DWORD *)&a3->_flags; /*0x10f600*/\n    if ( (int)&a3->_p[v12] > 511 ) /*0x10f60c*/\n    {\n      v13 = a3->_ur; /*0x10f60e*/\n      if ( (v13 & 0x22) != 0 || v12 > 0 ) /*0x10f617*/\n      {\n        if ( (v13 & 1) != 0 ) /*0x10f61b*/\n        {\n          v14 = BYTE2(a3->_offset); /*0x10f61d*/\n          if ( v14 != -1 && !putc(v14, (FILE *)&a3->_lbfsize) ) /*0x10f62d*/\n          {\n            *(_DWORD *)a3->_ubuf |= 0x400u; /*0x10f639*/\n            v15 = spltty(); /*0x10f645*/\n            if ( (*(_DWORD *)a3->_ubuf & 0x4000121) == 0 ) /*0x10f64e*/\n            {\n              read = a3->_read; /*0x10f650*/\n              if ( read ) /*0x10f655*/\n                ((void (__cdecl *)(FILE *))read)(a3); /*0x10f658*/\n            }\n            splx(v15); /*0x10f65e*/\n          }\n        }\n        *(_DWORD *)a3->_ubuf |= 0x800000u; /*0x10f666*/\n      }\n    }\n    v17 = spltty(); /*0x10f672*/\n    if ( (*(_DWORD *)a3->_ubuf & 0x4000121) == 0 ) /*0x10f67b*/\n    {\n      v18 = a3->_read; /*0x10f67d*/\n      if ( v18 ) /*0x10f682*/\n        ((void (__cdecl *)(FILE *))v18)(a3); /*0x10f685*/\n    }\n    return splx(v17); /*0x10f68b*/\n  }\n  return result; /*0x10f693*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10f2d0",
+        "name": "_ttyinput"
+      },
+      {
+        "addr": "0x1e8b18",
+        "name": "_tk_nin"
+      },
+      {
+        "addr": "0x1daf5c",
+        "name": "aTtyDRawInputOv_0",
+        "string": "tty%d: raw input overrun\n"
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      },
+      {
+        "addr": "0x1111b0",
+        "name": "_ttwakeup"
+      },
+      {
+        "addr": "0x11325c",
+        "name": "_b_to_q"
+      },
+      {
+        "addr": "0x111180",
+        "name": "_ttcheckwakeup"
+      },
+      {
+        "addr": "0x1e8b1c",
+        "name": "_tk_nout"
+      },
+      {
+        "addr": "0x10f69c",
+        "name": "_ttcooked"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x11315c",
+        "name": "_putc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010f69c",
+    "addr": "0x0010f69c",
+    "code": "void __cdecl ttcooked(int a1, int a2)\n{\n  int v2; // edi\n  int v3; // esi\n  int v4; // edx\n  int v5; // edi\n  int v6; // eax\n  int v7; // eax\n  int v8; // eax\n  int v9; // ebx\n  int v10; // eax\n  char v11; // al\n  int v12; // eax\n  int v13; // edi\n  int v14; // eax\n  int v15; // eax\n  int v16; // eax\n  int v17; // eax\n  int v18; // edi\n  int v19; // ebx\n  char v20; // al\n  int v21; // eax\n  int v22; // eax\n  int v23; // ebx\n  int v24; // ebx\n  int v25; // eax\n  int i; // ebx\n  char v27; // al\n  long double v28; // [esp-Ch] [ebp-30h]\n  char *v29; // [esp-4h] [ebp-28h]\n  int v30; // [esp+10h] [ebp-14h]\n  int v31; // [esp+14h] [ebp-10h]\n  int v32; // [esp+18h] [ebp-Ch]\n  int v33; // [esp+1Ch] [ebp-8h]\n  int v34; // [esp+20h] [ebp-4h]\n\n  v2 = a1; /*0x10f6a5*/\n  v3 = *(_DWORD *)a2; /*0x10f6ab*/\n  v34 = *(_DWORD *)(*(_DWORD *)a2 + 60); /*0x10f6b0*/\n  v4 = *(_DWORD *)(a2 + 16); /*0x10f6b3*/\n  v33 = v4; /*0x10f6b6*/\n  if ( (a1 & 0xFF000000) == 0 ) /*0x10f6c0*/\n    goto LABEL_21; /*0x10f6c0*/\n  v2 = a1 & 0xFFFFFF; /*0x10f6c6*/\n  if ( (a1 & 0x1000000) == 0 || v2 ) /*0x10f6d9*/\n  {\n    if ( ((a1 & 0x2000000) == 0 || (v4 & 0x200000) == 0) && (a1 & 0x1000000) == 0 ) /*0x10f7a7*/\n      goto LABEL_21; /*0x10f7a7*/\n    if ( (v4 & 0x80000) != 0 ) /*0x10f7b2*/\n      goto LABEL_175; /*0x10f7b2*/\n    if ( (*(_DWORD *)(a2 + 16) & 0x100000) == 0 ) /*0x10f7be*/\n    {\n      v2 = 256; /*0x10f7e4*/\n      goto LABEL_21; /*0x10f7e4*/\n    }\nLABEL_19:\n    putc(511, (FILE *)v3); /*0x10f7c0*/\n    putc(256, (FILE *)v3); /*0x10f7d1*/\n    v2 = a1 & 0xFFFEFF | 0x100; /*0x10f7d6*/\n    goto LABEL_21; /*0x10f7df*/\n  }\n  if ( (v4 & 0x20000) != 0 ) /*0x10f6e5*/\n    goto LABEL_175; /*0x10f6e5*/\n  if ( (v4 & 0x40000) != 0 ) /*0x10f6f1*/\n  {\n    v5 = spltty(); /*0x10f6fc*/\n    while ( getc((FILE *)(v3 + 12)) >= 0 ) /*0x10f70f*/\n      ; /*0x10f704*/\n    wakeup(v3); /*0x10f712*/\n    wakeup(v3 + 24); /*0x10f71e*/\n    *(_DWORD *)(v3 + 64) &= ~0x100u; /*0x10f723*/\n    ((void (__cdecl *)(int, int))funcs_10DE95[11 * *(unsigned __int8 *)(v3 + 57)])(v3, 3); /*0x10f73e*/\n    while ( getc((FILE *)(v3 + 24)) >= 0 ) /*0x10f74f*/\n      ; /*0x10f744*/\n    while ( getc((FILE *)v3) >= 0 ) /*0x10f75f*/\n      ; /*0x10f754*/\n    *(_BYTE *)(v3 + 75) = 0; /*0x10f761*/\n    *(_BYTE *)(v3 + 76) = 0; /*0x10f765*/\n    *(_DWORD *)(v3 + 64) &= 0xFF40FFFF; /*0x10f769*/\n    splx(v5); /*0x10f771*/\n    gsignal((_DWORD *)*(__int16 *)(v3 + 68), (char *)2); /*0x10f77b*/\n    goto LABEL_175; /*0x10f77b*/\n  }\n  if ( (v4 & 0x100000) != 0 ) /*0x10f789*/\n    goto LABEL_19; /*0x10f789*/\nLABEL_21:\n  if ( (*(_BYTE *)(v3 + 66) & 0x10) == 0 && (v34 & 0x8000020) == 0 && (v33 & 0x400000) != 0 ) /*0x10f801*/\n    v2 &= ~0x80u; /*0x10f803*/\n  v6 = *(_DWORD *)(v3 + 64); /*0x10f809*/\n  if ( (v6 & 0x80000) != 0 ) /*0x10f811*/\n  {\n    v2 |= 0x100u; /*0x10f813*/\n    *(_DWORD *)(v3 + 64) = v6 & 0xFFF7FFFF; /*0x10f81e*/\n  }\n  if ( (v2 & 0x100) == 0 /*0x10f849*/\n    && (*(_BYTE *)(v3 + 66) & 0x40) == 0\n    && ((*(int *)(v3 + 4 * (v2 >> 5) + 100) >> (v2 & 0x1F)) & 1) != 0 )\n  {\n    if ( (_UNKNOWN *)(v33 & 0x181000) == &unk_101000 && v2 == 255 ) /*0x10f864*/\n    {\n      putc(511, (FILE *)v3); /*0x10f86c*/\n      v2 = 511; /*0x10f871*/\n    }\n    if ( (v33 & 0x10) != 0 && (_BYTE)v2 != 0xFF ) /*0x10f88a*/\n    {\n      if ( *(_BYTE *)(v3 + 90) == (_BYTE)v2 ) /*0x10f893*/\n      {\n        if ( (v34 & 8) != 0 ) /*0x10f89b*/\n        {\n          if ( (v34 & 0x40000) != 0 ) /*0x10f8a3*/\n            ttyoutstr(asc_1DAF76, v3); /*0x10f8ab*/\n          else\n            ttyecho(v2, a2); /*0x10f8b9*/\n        }\n        *(_DWORD *)(v3 + 64) |= 0x80000u; /*0x10f8be*/\n        goto LABEL_175; /*0x10f8c5*/\n      }\n      if ( *(_BYTE *)(v3 + 88) == (_BYTE)v2 ) /*0x10f8da*/\n      {\n        if ( (v34 & 0x800000) != 0 ) /*0x10f8e9*/\n        {\nLABEL_181:\n          *(_DWORD *)(v3 + 60) &= ~0x800000u; /*0x110000*/\n          return; /*0x110000*/\n        }\n        v32 = spltty(); /*0x10f8f4*/\n        wakeup(v3 + 24); /*0x10f8fb*/\n        *(_DWORD *)(v3 + 64) &= ~0x100u; /*0x10f900*/\n        ((void (__cdecl *)(int, int))funcs_10DE95[11 * *(unsigned __int8 *)(v3 + 57)])(v3, 2); /*0x10f91b*/\n        while ( getc((FILE *)(v3 + 24)) >= 0 ) /*0x10f92b*/\n          ; /*0x10f920*/\n        splx(v32); /*0x10f931*/\n        ttyecho(v2, a2); /*0x10f93e*/\n        if ( *(_DWORD *)(v3 + 12) + *(_DWORD *)v3 ) /*0x10f945*/\n          ttyretype(a2); /*0x10f953*/\n        *(_DWORD *)(v3 + 60) |= 0x800000u; /*0x10f958*/\n        return; /*0x10f95f*/\n      }\n    }\n    if ( (v33 & 8) != 0 && (_BYTE)v2 != 0xFF ) /*0x10f975*/\n    {\n      if ( *(_BYTE *)(v3 + 79) == (_BYTE)v2 || *(_BYTE *)(v3 + 80) == (_BYTE)v2 ) /*0x10f983*/\n      {\n        if ( v34 >= 0 ) /*0x10f98d*/\n        {\n          v31 = spltty(); /*0x10f998*/\n          while ( getc((FILE *)(v3 + 12)) >= 0 ) /*0x10f9ab*/\n            ; /*0x10f9a0*/\n          wakeup(v3); /*0x10f9ae*/\n          wakeup(v3 + 24); /*0x10f9ba*/\n          *(_DWORD *)(v3 + 64) &= ~0x100u; /*0x10f9bf*/\n          ((void (__cdecl *)(int, int))funcs_10DE95[11 * *(unsigned __int8 *)(v3 + 57)])(v3, 3); /*0x10f9da*/\n          while ( getc((FILE *)(v3 + 24)) >= 0 ) /*0x10f9eb*/\n            ; /*0x10f9e0*/\n          while ( getc((FILE *)v3) >= 0 ) /*0x10f9fb*/\n            ; /*0x10f9f0*/\n          *(_BYTE *)(v3 + 75) = 0; /*0x10f9fd*/\n          *(_BYTE *)(v3 + 76) = 0; /*0x10fa01*/\n          *(_DWORD *)(v3 + 64) &= 0xFF40FFFF; /*0x10fa05*/\n          splx(v31); /*0x10fa10*/\n        }\n        ttyecho(v2, a2); /*0x10fa1d*/\n        v7 = 3; /*0x10fa25*/\n        if ( *(_BYTE *)(v3 + 79) == (_BYTE)v2 ) /*0x10fa34*/\n          v7 = 2; /*0x10fa36*/\n        gsignal((_DWORD *)*(__int16 *)(v3 + 68), (char *)v7); /*0x10fa3c*/\n        goto LABEL_175; /*0x10fa3c*/\n      }\n      if ( *(_BYTE *)(v3 + 85) == (_BYTE)v2 ) /*0x10fa4a*/\n      {\n        if ( v34 >= 0 ) /*0x10fa50*/\n        {\n          v30 = spltty(); /*0x10fa57*/\n          while ( getc((FILE *)(v3 + 12)) >= 0 ) /*0x10fa6b*/\n            ; /*0x10fa60*/\n          wakeup(v3); /*0x10fa6e*/\n          while ( getc((FILE *)v3) >= 0 ) /*0x10fa83*/\n            ; /*0x10fa78*/\n          *(_BYTE *)(v3 + 75) = 0; /*0x10fa85*/\n          *(_BYTE *)(v3 + 76) = 0; /*0x10fa89*/\n          *(_DWORD *)(v3 + 64) &= 0xFF40FFFF; /*0x10fa8d*/\n          splx(v30); /*0x10fa98*/\n        }\n        ttyecho(v2, a2); /*0x10faa5*/\n        gsignal((_DWORD *)*(__int16 *)(v3 + 68), v29); /*0x10fab1*/\n        goto LABEL_175; /*0x10fab6*/\n      }\n    }\n    if ( (v33 & 0x4000000) != 0 && (_BYTE)v2 != 0xFF ) /*0x10facc*/\n    {\n      if ( *(_BYTE *)(v3 + 82) == (_BYTE)v2 ) /*0x10fad1*/\n      {\n        v8 = *(_DWORD *)(v3 + 64); /*0x10fad3*/\n        if ( (v8 & 0x100) == 0 ) /*0x10fad9*/\n        {\n          BYTE1(v8) |= 1u; /*0x10fadb*/\n          *(_DWORD *)(v3 + 64) = v8; /*0x10fade*/\n          ((void (__cdecl *)(int, _DWORD))funcs_10DE95[11 * *(unsigned __int8 *)(v3 + 57)])(v3, 0); /*0x10faf5*/\n          return; /*0x10faf7*/\n        }\n        if ( *(_BYTE *)(v3 + 81) != (_BYTE)v2 ) /*0x10fb0a*/\n          return; /*0x10fb0a*/\n        goto LABEL_175; /*0x10fb0a*/\n      }\n      if ( *(_BYTE *)(v3 + 81) == (_BYTE)v2 ) /*0x10fb22*/\n      {\nLABEL_180:\n        *(_DWORD *)(v3 + 64) &= ~0x100u; /*0x10fff9*/\n        goto LABEL_181; /*0x10fff9*/\n      }\n    }\n    if ( v2 == 13 ) /*0x10fb2b*/\n    {\n      if ( (v33 & 0x1000000) != 0 ) /*0x10fb36*/\n        goto LABEL_175; /*0x10fb36*/\n      if ( (v34 & 0x10) != 0 || (v33 & 0x2000000) != 0 ) /*0x10fb4a*/\n        v2 = 10; /*0x10fb4c*/\n    }\n    else if ( v2 == 10 && (v33 & 0x800000) != 0 ) /*0x10fb62*/\n    {\n      v2 = 13; /*0x10fb64*/\n    }\n    if ( (v34 & 4) != 0 && v2 <= 127 ) /*0x10fb74*/\n    {\n      v9 = *(_DWORD *)(v3 + 64); /*0x10fb76*/\n      if ( (v9 & 0x10000) != 0 ) /*0x10fb7f*/\n      {\n        v10 = unputc(v3); /*0x10fb86*/\n        ttyrub(v10, a2); /*0x10fb8f*/\n        v11 = maptab[v2]; /*0x10fb97*/\n        if ( v11 ) /*0x10fb9f*/\n          v2 = v11; /*0x10fba1*/\n        v2 |= 0x100u; /*0x10fba4*/\n        *(_DWORD *)(v3 + 64) &= 0xFFFCFFFF; /*0x10fbaa*/\n        goto LABEL_92; /*0x10fbaa*/\n      }\n      if ( (unsigned int)(v2 - 65) > 0x19 ) /*0x10fbc2*/\n      {\n        if ( v2 == 92 ) /*0x10fbcf*/\n          *(_DWORD *)(v3 + 64) = v9 | 0x10000; /*0x10fbd7*/\n      }\n      else\n      {\n        v2 += 32; /*0x10fbc4*/\n      }\n    }\n    if ( (v34 & 0x22) != 0 ) /*0x10fbde*/\n      goto LABEL_99; /*0x10fbde*/\n    if ( (*(_BYTE *)(v3 + 66) & 2) != 0 ) /*0x10fc60*/\n    {\n      if ( (_BYTE)v2 == 0xFF ) /*0x10fc67*/\n      {\nLABEL_148:\n        if ( *(_DWORD *)(v3 + 12) + *(_DWORD *)v3 > 1023 ) /*0x10fe9a*/\n        {\n          if ( (v33 & 0x8000000) != 0 && *(_DWORD *)(v3 + 24) < tthiwat[*(_BYTE *)(v3 + 74) & 0x1F] ) /*0x10feb8*/\n            ttyoutput(7, v3); /*0x10febd*/\n          DWORD2(v28) = *(__int16 *)(v3 + 56); /*0x10fec9*/\n          DWORD1(v28) = aTtyDCanonInput; /*0x10feca*/\nLABEL_153:\n          LODWORD(v28) = 4; /*0x10fecf*/\n          log(v28); /*0x10fed1*/\n          goto LABEL_175; /*0x10fed6*/\n        }\n        if ( putc(v2, (FILE *)v3) >= 0 ) /*0x10fee8*/\n        {\n          if ( v2 == 10 || (v2 == *(unsigned __int8 *)(v3 + 83) || v2 == *(unsigned __int8 *)(v3 + 84)) && v2 != 255 ) /*0x10ff09*/\n          {\n            *(_BYTE *)(v3 + 75) = 0; /*0x10ff0b*/\n            catq(v3, v3 + 12); /*0x10ff14*/\n            ttwakeup(v3); /*0x10ff1a*/\n          }\n          else\n          {\n            v20 = *(_BYTE *)(v3 + 75); /*0x10ff24*/\n            *(_BYTE *)(v3 + 75) = v20 + 1; /*0x10ff27*/\n            if ( !v20 ) /*0x10ff2c*/\n              *(_BYTE *)(v3 + 76) = *(_BYTE *)(v3 + 72); /*0x10ff31*/\n          }\n          v21 = *(_DWORD *)(v3 + 64); /*0x10ff34*/\n          *(_DWORD *)(v3 + 64) = v21 & 0xFFFDFFFF; /*0x10ff3f*/\n          if ( (v21 & 0x400000) == 0 ) /*0x10ff47*/\n          {\n            if ( (_BYTE)v2 != 0xFF && *(_BYTE *)(a2 + 20) == (_BYTE)v2 ) /*0x10ff5a*/\n              *(_DWORD *)(v3 + 64) = v21 & 0xFFFDFFFF | 0x20000; /*0x10ff62*/\n            v22 = *(_DWORD *)(v3 + 64); /*0x10ff65*/\n            if ( (v22 & 0x40000) != 0 ) /*0x10ff6d*/\n            {\n              *(_DWORD *)(v3 + 64) = v22 & 0xFFFBFFFF; /*0x10ff74*/\n              ttyoutput(47, v3); /*0x10ff7a*/\n            }\n            v23 = *(char *)(v3 + 72); /*0x10ff82*/\n            ttyecho(v2, a2); /*0x10ff8b*/\n            if ( (_BYTE)v2 != 0xFF && *(_BYTE *)(v3 + 83) == (_BYTE)v2 && (v34 & 8) != 0 ) /*0x10ffa5*/\n            {\n              v24 = *(char *)(v3 + 72) - v23; /*0x10ffad*/\n              v25 = 2; /*0x10ffaf*/\n              if ( v24 <= 2 ) /*0x10ffb7*/\n                v25 = v24; /*0x10ffb9*/\n              for ( i = v25; i > 0; --i ) /*0x10ffbf*/\n                ttyoutput(8, v3); /*0x10ffc7*/\n            }\n          }\n        }\n        goto LABEL_175; /*0x10ffd2*/\n      }\n      if ( *(_BYTE *)(v3 + 77) == (_BYTE)v2 || *(_BYTE *)(v3 + 78) == (_BYTE)v2 ) /*0x10fc75*/\n      {\n        v12 = unputc(v3); /*0x10fc7c*/\n        ttyrub(v12, a2); /*0x10fc85*/\n        v2 |= 0x100u; /*0x10fc8a*/\n        goto LABEL_148; /*0x10fc93*/\n      }\n    }\n    if ( (_BYTE)v2 != 0xFF ) /*0x10fc9d*/\n    {\n      if ( *(_BYTE *)(v3 + 77) == (_BYTE)v2 ) /*0x10fca6*/\n      {\n        if ( *(_DWORD *)v3 ) /*0x10fca8*/\n        {\n          v13 = unputc(v3); /*0x10fcbe*/\n          ttyrub(v13, a2); /*0x10fcc1*/\n          if ( (v34 & 0x80000) != 0 && (v13 & 0x80u) != 0 ) /*0x10fcdc*/\n          {\n            if ( *(_DWORD *)v3 ) /*0x10fce2*/\n            {\n              v14 = unputc(v3); /*0x10fcec*/\n              if ( (_BYTE)v14 != 0x8E ) /*0x10fcf8*/\n                ttyrub(v14, a2); /*0x10fd03*/\n            }\n          }\n        }\n        goto LABEL_175; /*0x10fd08*/\n      }\n      if ( *(_BYTE *)(v3 + 78) == (_BYTE)v2 ) /*0x10fd1e*/\n      {\n        if ( (v33 & 4) != 0 && (v34 & 0x4000000) != 0 && *(_DWORD *)v3 == *(char *)(v3 + 75) ) /*0x10fd3f*/\n        {\n          while ( *(_DWORD *)v3 ) /*0x10fd3b*/\n          {\n            v15 = unputc(v3); /*0x10fd4d*/\n            ttyrub(v15, a2); /*0x10fd56*/\n          }\n        }\n        else\n        {\n          ttyecho(v2, a2); /*0x10fd6d*/\n          if ( (v33 & 4) != 0 ) /*0x10fd7b*/\n            ttyecho(10, a2); /*0x10fd83*/\n          while ( getc((FILE *)v3) > 0 ) /*0x10fd97*/\n            ; /*0x10fd8c*/\n          *(_BYTE *)(v3 + 75) = 0; /*0x10fd99*/\n        }\n        *(_DWORD *)(v3 + 64) &= 0xFFC0FFFF; /*0x10fd9d*/\n        goto LABEL_175; /*0x10fda4*/\n      }\n      if ( *(_BYTE *)(v3 + 89) == (_BYTE)v2 ) /*0x10fdba*/\n      {\n        while ( 1 ) /*0x10fdcd*/\n        {\n          v16 = unputc(v3); /*0x10fdcd*/\n          if ( v16 != 32 && v16 != 9 ) /*0x10fddf*/\n            break; /*0x10fddf*/\n          ttyrub(v16, a2); /*0x10fde6*/\n        }\n        if ( v16 != -1 ) /*0x10fdf3*/\n        {\n          ttyrub(v16, a2); /*0x10fdfe*/\n          v17 = unputc(v3); /*0x10fe04*/\n          v18 = v17; /*0x10fe09*/\n          if ( v17 != -1 ) /*0x10fe11*/\n          {\n            v19 = partab[(unsigned __int8)v17] & 0x40; /*0x10fe22*/\n            while ( v18 != 32 && v18 != 9 && ((v33 & 0x20) == 0 || (partab[(unsigned __int8)v18] & 0x40) == v19) ) /*0x10fe3e*/\n            {\n              ttyrub(v18, a2); /*0x10fe45*/\n              v18 = unputc(v3); /*0x10fe50*/\n              if ( v18 == -1 ) /*0x10fe58*/\n                goto LABEL_175; /*0x10fe58*/\n            }\n            putc(v18, (FILE *)v3); /*0x10fe6a*/\n          }\n        }\n        goto LABEL_175; /*0x10fe6f*/\n      }\n      if ( *(_BYTE *)(v3 + 87) == (_BYTE)v2 ) /*0x10fe7e*/\n      {\n        ttyretype(a2); /*0x10fe84*/\n        goto LABEL_175; /*0x10fe89*/\n      }\n    }\n    goto LABEL_148; /*0x10fe7e*/\n  }\nLABEL_92:\n  if ( (v34 & 0x22) == 0 ) /*0x10fbb5*/\n    goto LABEL_148; /*0x10fbb5*/\nLABEL_99:\n  if ( *(int *)v3 > 1024 ) /*0x10fbe6*/\n  {\n    if ( *(_DWORD *)(v3 + 24) < tthiwat[*(_BYTE *)(v3 + 74) & 0x1F] && (v33 & 0x8000000) != 0 ) /*0x10fc04*/\n      ttyoutput(7, v3); /*0x10fc09*/\n    DWORD2(v28) = *(__int16 *)(v3 + 56); /*0x10fc15*/\n    DWORD1(v28) = aTtyDCbreakInpu; /*0x10fc16*/\n    goto LABEL_153; /*0x10fc1b*/\n  }\n  if ( putc(v2, (FILE *)v3) >= 0 ) /*0x10fc2c*/\n  {\n    if ( ttcheckwakeup(a2) ) /*0x10fc36*/\n      ttwakeup(v3); /*0x10fc43*/\n    ttyecho(v2, a2); /*0x10fc50*/\n  }\nLABEL_175:\n  if ( (v33 & 0x10) != 0 ) /*0x10ffda*/\n  {\n    if ( (v34 & 0x40000000) == 0 ) /*0x10ffe5*/\n      goto LABEL_180; /*0x10ffe5*/\n    if ( (*(_BYTE *)(v3 + 65) & 1) == 0 ) /*0x10ffeb*/\n      goto LABEL_180; /*0x10ffeb*/\n    v27 = *(_BYTE *)(v3 + 82); /*0x10ffed*/\n    if ( v27 != -1 && *(_BYTE *)(v3 + 81) == v27 ) /*0x10fff7*/\n      goto LABEL_180; /*0x10fff7*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x11315c",
+        "name": "_putc"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1e2f4c",
+        "name": "funcs_10DE95"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1097f8",
+        "name": "_gsignal"
+      },
+      {
+        "addr": "0x101000",
+        "name": "unk_101000"
+      },
+      {
+        "addr": "0x111150",
+        "name": "_ttyoutstr"
+      },
+      {
+        "addr": "0x1daf76",
+        "name": "asc_1DAF76",
+        "string": "^\b"
+      },
+      {
+        "addr": "0x111094",
+        "name": "_ttyecho"
+      },
+      {
+        "addr": "0x110fdc",
+        "name": "_ttyretype"
+      },
+      {
+        "addr": "0x1133fc",
+        "name": "_unputc"
+      },
+      {
+        "addr": "0x110dfc",
+        "name": "_ttyrub"
+      },
+      {
+        "addr": "0x1dadec",
+        "name": "_maptab"
+      },
+      {
+        "addr": "0x110014",
+        "name": "_ttyoutput"
+      },
+      {
+        "addr": "0x1dae6c",
+        "name": "_tthiwat"
+      },
+      {
+        "addr": "0x1daf96",
+        "name": "aTtyDCanonInput",
+        "string": "tty%d: canon input overrun\n"
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      },
+      {
+        "addr": "0x113500",
+        "name": "_catq"
+      },
+      {
+        "addr": "0x1111b0",
+        "name": "_ttwakeup"
+      },
+      {
+        "addr": "0x1dacec",
+        "name": "_partab"
+      },
+      {
+        "addr": "0x1daf79",
+        "name": "aTtyDCbreakInpu",
+        "string": "tty%d: cbreak input overrun\n"
+      },
+      {
+        "addr": "0x111180",
+        "name": "_ttcheckwakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00110014",
+    "addr": "0x00110014",
+    "code": null,
+    "error": "Decompilation failed at 0x110014: switch information is incomplete or incorrect (address: 0x110206)"
+  },
+  {
+    "requested_address": "0x0011039c",
+    "addr": "0x0011039c",
+    "code": "int __cdecl ttread(FILE *a1, _DWORD *a2)\n{\n  int v2; // edi\n  int v3; // eax\n  int v5; // eax\n  int v6; // ebx\n  _DWORD *posix_proc; // edx\n  int v8; // edx\n  _DWORD *v9; // edi\n  __int16 v10; // ax\n  int v11; // edi\n  int v12; // edx\n  int v13; // ebx\n  unsigned __int8 *p; // eax\n  int v15; // eax\n  int i; // edi\n  int v17; // eax\n  int v18; // ebx\n  int v19; // edi\n  char v20; // dl\n  int v21; // edi\n  int v22; // ebx\n  int (__cdecl *read)(void *, char *, int); // eax\n  unsigned __int8 *v24; // [esp+Ch] [ebp-3Ch]\n  int v25; // [esp+10h] [ebp-38h]\n  int v26; // [esp+14h] [ebp-34h]\n  int ur; // [esp+18h] [ebp-30h]\n  FILE *p_flags; // [esp+1Ch] [ebp-2Ch]\n  int v29; // [esp+20h] [ebp-28h]\n  _DWORD v30[2]; // [esp+24h] [ebp-24h] BYREF\n  _DWORD v31[2]; // [esp+2Ch] [ebp-1Ch] BYREF\n  int v32; // [esp+34h] [ebp-14h] BYREF\n  int v33; // [esp+38h] [ebp-10h]\n  _DWORD v34[3]; // [esp+3Ch] [ebp-Ch] BYREF\n\n  v29 = ttynty(a1); /*0x1103ae*/\n  v26 = 0; /*0x1103b1*/\nLABEL_2:\n  v25 = 0; /*0x1103bb*/\n  while ( 1 ) /*0x110493*/\n  {\n    while ( 1 ) /*0x1103c5*/\n    {\n      ur = a1->_ur; /*0x1103c5*/\n      v2 = spltty(); /*0x1103cd*/\n      if ( (ur & 0x20000000) != 0 ) /*0x1103d8*/\n      {\n        a1->_ur &= ~0x20000000u; /*0x1103da*/\n        *(_DWORD *)a1->_ubuf |= 0x100000u; /*0x1103e1*/\n        v34[0] = a1->_p; /*0x1103ea*/\n        v34[1] = a1->_r; /*0x1103f0*/\n        v34[2] = a1->_w; /*0x1103f6*/\n        a1->_p = nullptr; /*0x1103f9*/\n        a1->_w = 0; /*0x1103ff*/\n        a1->_r = 0; /*0x110406*/\n        while ( 1 ) /*0x110411*/\n        {\n          v3 = getc((FILE *)v34); /*0x110411*/\n          if ( v3 < 0 ) /*0x11041b*/\n            break; /*0x11041b*/\n          ttyinput(v3, a1); /*0x11041f*/\n        }\n        *(_DWORD *)a1->_ubuf &= ~0x100000u; /*0x11042c*/\n      }\n      splx(v2); /*0x110434*/\n      while ( 1 ) /*0x110477*/\n      {\n        v5 = *(_DWORD *)a1->_ubuf; /*0x110477*/\n        if ( (v5 & 0x10) != 0 || *(__int16 *)(v29 + 16) < 0 ) /*0x110486*/\n          break; /*0x110486*/\n        if ( (v5 & 0x8000u) == 0 ) /*0x110443*/\n          return 5; /*0x110443*/\n        if ( (v5 & 0x2000) != 0 ) /*0x11044c*/\n          goto LABEL_11; /*0x11044c*/\n        sleep((unsigned int)a1); /*0x11046f*/\n      }\n      v6 = *(_DWORD *)active_u; /*0x11048d*/\n      if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x110493*/\n        break; /*0x110493*/\n      if ( *(FILE **)(active_u + 360) != a1 ) /*0x1104e2*/\n        goto LABEL_32; /*0x1104e2*/\n      v10 = *(_WORD *)(v6 + 46); /*0x1104e4*/\n      if ( LOWORD(a1->_lb._base) == v10 ) /*0x1104ec*/\n        goto LABEL_32; /*0x1104ec*/\n      if ( (*(_BYTE *)(v6 + 34) & 0x10) != 0 || (*(_BYTE *)(v6 + 30) & 0x10) != 0 || (*(_BYTE *)(v6 + 41) & 0x10) != 0 ) /*0x1104fe*/\n        return 5; /*0x110505*/\n      gsignal((_DWORD *)v10, (char *)0x15); /*0x110510*/\nLABEL_31:\n      sleep((unsigned int)&lbolt); /*0x110515*/\n    }\n    posix_proc = get_posix_proc(*(__int16 *)(v6 + 48)); /*0x11049f*/\n    if ( *(FILE **)(active_u + 360) == a1 ) /*0x1104af*/\n    {\n      v8 = posix_proc[4]; /*0x1104b1*/\n      v9 = *(_DWORD **)(v8 + 12); /*0x1104b8*/\n      if ( v9 != (_DWORD *)SLOWORD(a1->_lb._base) ) /*0x1104bd*/\n      {\n        if ( (*(_BYTE *)(v6 + 34) & 0x10) != 0 /*0x1104d5*/\n          || (*(_BYTE *)(v6 + 30) & 0x10) != 0\n          || !*(_DWORD *)(v8 + 16)\n          || (*(_BYTE *)(v6 + 41) & 0x10) != 0 )\n        {\n          return 5; /*0x1104d5*/\n        }\n        gsignal(v9, (char *)0x15); /*0x1104da*/\n        goto LABEL_31; /*0x1104da*/\n      }\n    }\nLABEL_32:\n    v11 = spltty(); /*0x110531*/\n    if ( (ur & 0x22) != 0 ) /*0x110537*/\n    {\n      v12 = *(unsigned __int8 *)(v29 + 21); /*0x110540*/\n      p_flags = a1; /*0x110548*/\n      if ( *(_BYTE *)(v29 + 22) ) /*0x110544*/\n      {\n        v13 = 100000 * *(unsigned __int8 *)(v29 + 22); /*0x11056d*/\n        if ( *(_BYTE *)(v29 + 21) ) /*0x110540*/\n        {\n          p = a1->_p; /*0x110574*/\n          if ( (int)a1->_p <= 0 ) /*0x110578*/\n            goto LABEL_52; /*0x110578*/\n          if ( (int)p >= v12 ) /*0x110580*/\n            goto LABEL_62; /*0x110580*/\n          if ( v25 ) /*0x11058a*/\n          {\n            if ( (int)v24 >= (int)p ) /*0x1105a3*/\n            {\n              getthetime(v31); /*0x1105b4*/\n              v13 -= v31[1] - v33 + 1000000 * (v31[0] - v32); /*0x1105db*/\n            }\n            else\n            {\n              getthetime(&v32); /*0x1105a9*/\n            }\n          }\n          else\n          {\n            v25 = 1; /*0x11058c*/\n            getthetime(&v32); /*0x110597*/\n          }\n          v24 = a1->_p; /*0x1105e5*/\n        }\n        else\n        {\n          if ( (int)a1->_p > 0 ) /*0x1105ef*/\n            goto LABEL_62; /*0x1105ef*/\n          if ( v25 ) /*0x1105f9*/\n          {\n            getthetime(v30); /*0x110614*/\n            v13 -= v30[1] - v33 + 1000000 * (v30[0] - v32); /*0x11063b*/\n          }\n          else\n          {\n            v25 = 1; /*0x1105fb*/\n            getthetime(&v32); /*0x110606*/\n          }\n        }\n        if ( v13 <= 0 ) /*0x110642*/\n          goto LABEL_62; /*0x110642*/\n        untimeout((int)wakeup, (int)a1); /*0x110669*/\n        timeout((int)wakeup); /*0x110678*/\n      }\n      else if ( (int)a1->_p >= v12 ) /*0x110551*/\n      {\n        goto LABEL_62; /*0x110551*/\n      }\n    }\n    else\n    {\n      p_flags = (FILE *)&a1->_flags; /*0x110687*/\n      if ( *(int *)&a1->_flags > 0 ) /*0x11068e*/\n      {\nLABEL_62:\n        splx(v11); /*0x1106f8*/\n        for ( i = 1; ; i = 0 ) /*0x1106fe*/\n        {\n          v17 = getc(p_flags); /*0x11070c*/\n          v18 = v17; /*0x110711*/\n          if ( v17 < 0 ) /*0x110718*/\n            break; /*0x110718*/\n          if ( (_BYTE)v17 != 0xFF ) /*0x110721*/\n          {\n            if ( BYTE6(a1->_offset) == (_BYTE)v17 && (ur & 0x20) == 0 && (*(_BYTE *)(v29 + 16) & 8) != 0 ) /*0x110735*/\n            {\n              gsignal((_DWORD *)SLOWORD(a1->_lb._base), (char *)0x12); /*0x11073e*/\n              if ( i ) /*0x110748*/\n              {\n                sleep((unsigned int)a1); /*0x11074d*/\n                goto LABEL_2; /*0x110755*/\n              }\n              break; /*0x110748*/\n            }\n            if ( (_BYTE)v17 != 0xFF && BYTE3(a1->_offset) == (_BYTE)v17 && (ur & 0x22) == 0 ) /*0x11076a*/\n              break; /*0x11076a*/\n          }\n          v26 = ureadc(v17, a2); /*0x110776*/\n          if ( v26 /*0x1107aa*/\n            || !a2[5]\n            || (ur & 0x22) == 0 && (v18 == 10 || (v18 == BYTE3(a1->_offset) || v18 == BYTE4(a1->_offset)) && v18 != 255) )\n          {\n            break; /*0x1107aa*/\n          }\n        }\n        if ( (int)a1->_p <= 203 ) /*0x1107ba*/\n        {\n          v19 = spltty(); /*0x1107c1*/\n          *(_DWORD *)a1->_ubuf &= ~0x800000u; /*0x1107c3*/\n          splx(v19); /*0x1107cb*/\n          if ( (*(_DWORD *)a1->_ubuf & 0x1000400) == 0x400 ) /*0x1107e0*/\n          {\n            v20 = BYTE1(a1->_offset); /*0x1107e2*/\n            if ( v20 != -1 && !putc(v20, (FILE *)&a1->_lbfsize) ) /*0x1107f2*/\n            {\n              v21 = spltty(); /*0x110803*/\n              *(_DWORD *)a1->_ubuf &= ~0x400u; /*0x110805*/\n              splx(v21); /*0x11080d*/\n              v22 = spltty(); /*0x11081a*/\n              if ( (*(_DWORD *)a1->_ubuf & 0x4000121) == 0 ) /*0x110823*/\n              {\n                read = a1->_read; /*0x110825*/\n                if ( read ) /*0x11082a*/\n                  ((void (__cdecl *)(FILE *))read)(a1); /*0x11082d*/\n              }\n              splx(v22); /*0x110833*/\n            }\n          }\n        }\n        return v26; /*0x110838*/\n      }\n    }\nLABEL_52:\n    v15 = 0; /*0x110690*/\n    if ( (a1->_ubuf[0] & 0x10) != 0 || *(__int16 *)(v29 + 16) < 0 ) /*0x1106a0*/\n      v15 = 1; /*0x1106a2*/\n    if ( !v15 && (a1->_ubuf[0] & 4) != 0 ) /*0x1106af*/\n    {\n      splx(v11); /*0x1106b2*/\n      return 0; /*0x1106b9*/\n    }\n    if ( (a1->_ubuf[1] & 0x20) != 0 ) /*0x1106c4*/\n      break; /*0x1106c4*/\n    sleep((unsigned int)a1); /*0x1106e3*/\n    splx(v11); /*0x1106e9*/\n  }\n  splx(v11); /*0x1106c7*/\nLABEL_11:\n  if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x110459*/\n    return 11; /*0x1106d4*/\n  else\n    return 35; /*0x11045f*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x112db0",
+        "name": "_getc"
+      },
+      {
+        "addr": "0x10f2d0",
+        "name": "_ttyinput"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x1097f8",
+        "name": "_gsignal"
+      },
+      {
+        "addr": "0x1e8df0",
+        "name": "_lbolt"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x10ac84",
+        "name": "_getthetime"
+      },
+      {
+        "addr": "0x103684",
+        "name": "_untimeout"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x103658",
+        "name": "_timeout"
+      },
+      {
+        "addr": "0x10a448",
+        "name": "_ureadc"
+      },
+      {
+        "addr": "0x11315c",
+        "name": "_putc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00110848",
+    "addr": "0x00110848",
+    "code": "int __cdecl ttycheckoutq(int a1, int a2)\n{\n  int v2; // edi\n  int v3; // edx\n  int v4; // esi\n  void (__cdecl *v5)(int); // eax\n  int v7; // [esp+Ch] [ebp-4h]\n\n  v2 = tthiwat[*(_BYTE *)(a1 + 74) & 0x1F]; /*0x11085a*/\n  v7 = spltty(); /*0x110867*/\n  v3 = *(_DWORD *)(a1 + 24); /*0x110870*/\n  if ( v3 <= v2 + 200 || v3 <= v2 ) /*0x110879*/\n  {\nLABEL_9:\n    splx(v7); /*0x1108cf*/\n    return 1; /*0x1108d8*/\n  }\n  else\n  {\n    while ( 1 ) /*0x110881*/\n    {\n      v4 = spltty(); /*0x110881*/\n      if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x11088a*/\n      {\n        v5 = *(void (__cdecl **)(int))(a1 + 36); /*0x11088c*/\n        if ( v5 ) /*0x110891*/\n          v5(a1); /*0x110894*/\n      }\n      splx(v4); /*0x11089a*/\n      if ( !a2 ) /*0x1108a6*/\n        break; /*0x1108a6*/\n      *(_BYTE *)(a1 + 64) |= 0x40u; /*0x1108b8*/\n      sleep(a1 + 24); /*0x1108c2*/\n      if ( *(_DWORD *)(a1 + 24) <= v2 ) /*0x1108cd*/\n        goto LABEL_9; /*0x1108cd*/\n    }\n    splx(v7); /*0x1108ac*/\n    return 0; /*0x1108b1*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1dae6c",
+        "name": "_tthiwat"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001108e8",
+    "addr": "0x001108e8",
+    "code": "int __cdecl ttwrite(unsigned int a1, _DWORD *a2)\n{\n  int v2; // eax\n  int v4; // ebx\n  int v5; // edi\n  _DWORD *v6; // esi\n  __int16 v7; // ax\n  int v8; // esi\n  char *v9; // edi\n  int v10; // eax\n  int v11; // eax\n  int v12; // ebx\n  void (__cdecl *v13)(unsigned int); // eax\n  _BYTE *v14; // eax\n  int i; // ebx\n  size_t v16; // ebx\n  int v17; // eax\n  int v18; // ebx\n  void (__cdecl *v19)(unsigned int); // eax\n  int v20; // eax\n  size_t v21; // ebx\n  int v22; // ebx\n  void (__cdecl *v23)(unsigned int); // eax\n  int v24; // ebx\n  void (__cdecl *v25)(unsigned int); // eax\n  int v26; // ebx\n  int v27; // esi\n  void (__cdecl *v28)(unsigned int); // eax\n  int v29; // eax\n  int v30; // [esp+Ch] [ebp-74h]\n  int v31; // [esp+10h] [ebp-70h]\n  int v32; // [esp+14h] [ebp-6Ch]\n  int v33; // [esp+18h] [ebp-68h]\n  _BYTE v34[100]; // [esp+1Ch] [ebp-64h] BYREF\n\n  v33 = ttynty(a1); /*0x1108fa*/\n  v32 = tthiwat[*(_BYTE *)(a1 + 74) & 0x1F]; /*0x11090e*/\n  v31 = a2[5]; /*0x110917*/\n  v30 = 0; /*0x11091a*/\n  while ( 1 ) /*0x110927*/\n  {\nLABEL_2:\n    v2 = *(_DWORD *)(a1 + 64); /*0x110924*/\n    if ( (v2 & 0x10) == 0 && *(__int16 *)(v33 + 16) >= 0 ) /*0x110936*/\n    {\n      while ( (v2 & 0x8000u) != 0 ) /*0x11093b*/\n      {\n        if ( (v2 & 0x2000) != 0 ) /*0x110944*/\n          goto LABEL_6; /*0x110944*/\n        sleep(a1); /*0x11096a*/\n        v2 = *(_DWORD *)(a1 + 64); /*0x110975*/\n        if ( (v2 & 0x10) != 0 || *(__int16 *)(v33 + 16) < 0 ) /*0x110984*/\n          goto LABEL_10; /*0x110984*/\n      }\n      return 5; /*0x1109e0*/\n    }\nLABEL_10:\n    v4 = *(_DWORD *)active_u; /*0x11098c*/\n    if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) == 0 ) /*0x110992*/\n      break; /*0x110992*/\n    v5 = get_posix_proc(*(__int16 *)(v4 + 48))[4]; /*0x11099e*/\n    v6 = *(_DWORD **)(v5 + 12); /*0x1109a8*/\n    if ( v6 == (_DWORD *)*(__int16 *)(a1 + 68) /*0x1109d3*/\n      || *(_DWORD *)(active_u + 360) != a1\n      || (*(_BYTE *)(a1 + 62) & 0x40) == 0\n      || (*(_BYTE *)(v4 + 34) & 0x20) != 0\n      || (*(_BYTE *)(v4 + 30) & 0x20) != 0 )\n    {\n      goto LABEL_27; /*0x1109d3*/\n    }\n    if ( !*(_DWORD *)(v5 + 16) ) /*0x1109d5*/\n      return 5; /*0x1109d9*/\n    gsignal(v6, (char *)0x16); /*0x1109eb*/\nLABEL_26:\n    sleep((unsigned int)&lbolt); /*0x110a26*/\n  }\n  v7 = *(_WORD *)(v4 + 46); /*0x1109f0*/\n  if ( *(_WORD *)(a1 + 68) != v7 /*0x110a1b*/\n    && *(_DWORD *)(active_u + 360) == a1\n    && (*(_BYTE *)(a1 + 62) & 0x40) != 0\n    && (*(_BYTE *)(v4 + 41) & 0x10) == 0\n    && (*(_BYTE *)(v4 + 34) & 0x20) == 0\n    && (*(_BYTE *)(v4 + 30) & 0x20) == 0 )\n  {\n    gsignal((_DWORD *)v7, (char *)0x16); /*0x110a21*/\n    goto LABEL_26; /*0x110a21*/\n  }\nLABEL_27:\n  if ( (int)a2[5] <= 0 ) /*0x110a43*/\n  {\nLABEL_74:\n    v24 = spltty(); /*0x110d1a*/\n    if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x110d2b*/\n    {\n      v25 = *(void (__cdecl **)(unsigned int))(a1 + 36); /*0x110d2d*/\n      if ( v25 ) /*0x110d32*/\n        v25(a1); /*0x110d35*/\n    }\n    splx(v24); /*0x110d3b*/\n    return v30; /*0x110d43*/\n  }\n  while ( 1 ) /*0x110a51*/\n  {\n    v8 = *(_DWORD *)(*a2 + 4); /*0x110a51*/\n    if ( !v8 ) /*0x110a56*/\n    {\n      --a2[1]; /*0x110a58*/\n      *a2 += 8; /*0x110a5b*/\n      if ( (int)a2[1] <= 0 ) /*0x110a62*/\n        panic(aTtwrite); /*0x110a6d*/\n      goto LABEL_73; /*0x110a62*/\n    }\n    if ( v8 > 100 ) /*0x110a7f*/\n      v8 = 100; /*0x110a81*/\n    v9 = v34; /*0x110a86*/\n    v30 = uiomove((int)v34, v8, 1, a2); /*0x110a96*/\n    if ( v30 ) /*0x110a9e*/\n      goto LABEL_74; /*0x110a9e*/\n    if ( *(_DWORD *)(a1 + 24) > v32 ) /*0x110aad*/\n      break; /*0x110aad*/\n    v10 = *(_DWORD *)(a1 + 60); /*0x110ab3*/\n    if ( (v10 & 0x800000) == 0 ) /*0x110abb*/\n    {\n      if ( (v10 & 0x200024) != 4 || (*(_BYTE *)(v33 + 19) & 0x10) == 0 ) /*0x110ad6*/\n      {\n        if ( (*(_DWORD *)(a1 + 60) & 0x2200020) == 0 /*0x110ba7*/\n          && (*(_DWORD *)(v33 + 16) & 0x10000000) != 0\n          && (*(_DWORD *)(v33 + 16) & 0x300) != 0x300 )\n        {\n          v14 = v34; /*0x110bad*/\n          for ( i = v8 - 1; i >= 0; --i ) /*0x110bb4*/\n            *v14++ &= ~0x80u; /*0x110bbc*/\n        }\n        while ( 1 ) /*0x110d05*/\n        {\n          if ( v8 <= 0 ) /*0x110d07*/\n            goto LABEL_73; /*0x110d07*/\n          if ( (*(_DWORD *)(a1 + 60) & 0x200020) != 0 || (*(_BYTE *)(v33 + 19) & 0x10) == 0 ) /*0x110bdb*/\n            break; /*0x110bdb*/\n          v17 = scanc(v8, v9, partab, 63); /*0x110bed*/\n          v16 = v8 - v17; /*0x110bf4*/\n          if ( v8 != v17 ) /*0x110bfb*/\n            goto LABEL_65; /*0x110bfb*/\n          *(_BYTE *)(a1 + 75) = 0; /*0x110c00*/\n          if ( (int)ttyoutput(*v9, a1) >= 0 ) /*0x110c13*/\n          {\n            v18 = spltty(); /*0x110c1a*/\n            if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x110c26*/\n            {\n              v19 = *(void (__cdecl **)(unsigned int))(a1 + 36); /*0x110c28*/\n              if ( v19 ) /*0x110c2d*/\n                v19(a1); /*0x110c30*/\n            }\n            splx(v18); /*0x110c36*/\n            sleep((unsigned int)&lbolt); /*0x110c45*/\n            *(_DWORD *)*a2 -= v8; /*0x110c5a*/\n            *(_DWORD *)(*a2 + 4) += v8; /*0x110c5e*/\n            a2[5] += v8; /*0x110c61*/\n            a2[2] -= v8; /*0x110c64*/\n            goto LABEL_2; /*0x110c67*/\n          }\n          ++v9; /*0x110c6c*/\n          --v8; /*0x110c6d*/\nLABEL_70:\n          if ( *(char *)(a1 + 62) < 0 || *(_DWORD *)(a1 + 24) > v32 ) /*0x110d03*/\n            goto LABEL_78; /*0x110d03*/\n        }\n        v16 = v8; /*0x110bdd*/\nLABEL_65:\n        *(_BYTE *)(a1 + 75) = 0; /*0x110c74*/\n        v20 = b_to_q(v9, v16, a1 + 24); /*0x110c84*/\n        v21 = v16 - v20; /*0x110c89*/\n        *(_BYTE *)(a1 + 72) += v21; /*0x110c8e*/\n        v9 += v21; /*0x110c91*/\n        v8 -= v21; /*0x110c93*/\n        tk_nout += v21; /*0x110c95*/\n        if ( v20 > 0 ) /*0x110ca0*/\n        {\n          v22 = spltty(); /*0x110ca7*/\n          if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x110cb3*/\n          {\n            v23 = *(void (__cdecl **)(unsigned int))(a1 + 36); /*0x110cb5*/\n            if ( v23 ) /*0x110cba*/\n              v23(a1); /*0x110cbd*/\n          }\n          splx(v22); /*0x110cc3*/\n          sleep((unsigned int)&lbolt); /*0x110cd2*/\n          *(_DWORD *)*a2 -= v8; /*0x110cdc*/\n          *(_DWORD *)(*a2 + 4) += v8; /*0x110ce0*/\n          a2[5] += v8; /*0x110ce3*/\n          a2[2] -= v8; /*0x110ce6*/\n          goto LABEL_2; /*0x110cec*/\n        }\n        goto LABEL_70; /*0x110ca0*/\n      }\n      if ( v8 <= 0 ) /*0x110ade*/\n        goto LABEL_73; /*0x110ade*/\n      while ( 1 ) /*0x110ae4*/\n      {\n        v11 = *v9++; /*0x110ae4*/\n        *(_BYTE *)(a1 + 75) = 0; /*0x110aeb*/\n        if ( (int)ttyoutput(v11, a1) >= 0 ) /*0x110afb*/\n          break; /*0x110afb*/\n        --v8; /*0x110b5c*/\n        if ( *(_DWORD *)(a1 + 24) > v32 ) /*0x110b66*/\n          goto LABEL_78; /*0x110b66*/\n        if ( v8 <= 0 ) /*0x110b6e*/\n          goto LABEL_73; /*0x110b6e*/\n      }\n      v12 = spltty(); /*0x110b02*/\n      if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x110b0e*/\n      {\n        v13 = *(void (__cdecl **)(unsigned int))(a1 + 36); /*0x110b10*/\n        if ( v13 ) /*0x110b15*/\n          v13(a1); /*0x110b18*/\n      }\n      splx(v12); /*0x110b1e*/\n      sleep((unsigned int)&lbolt); /*0x110b2d*/\n      *(_BYTE *)(a1 + 75) = 0; /*0x110b35*/\n      *(_DWORD *)*a2 -= v8; /*0x110b49*/\n      *(_DWORD *)(*a2 + 4) += v8; /*0x110b4d*/\n      a2[5] += v8; /*0x110b50*/\n      a2[2] -= v8; /*0x110b53*/\n      goto LABEL_2; /*0x110b56*/\n    }\nLABEL_73:\n    if ( (int)a2[5] <= 0 ) /*0x110d14*/\n      goto LABEL_74; /*0x110d14*/\n  }\nLABEL_78:\n  v26 = spltty(); /*0x110d48*/\n  if ( v8 ) /*0x110d51*/\n  {\n    *(_DWORD *)*a2 -= v8; /*0x110d58*/\n    *(_DWORD *)(*a2 + 4) += v8; /*0x110d5c*/\n    a2[5] += v8; /*0x110d5f*/\n    a2[2] -= v8; /*0x110d62*/\n  }\n  v27 = spltty(); /*0x110d6a*/\n  if ( (*(_DWORD *)(a1 + 64) & 0x4000121) == 0 ) /*0x110d76*/\n  {\n    v28 = *(void (__cdecl **)(unsigned int))(a1 + 36); /*0x110d78*/\n    if ( v28 ) /*0x110d7d*/\n      v28(a1); /*0x110d80*/\n  }\n  splx(v27); /*0x110d86*/\n  if ( *(_DWORD *)(a1 + 24) <= v32 ) /*0x110d97*/\n  {\n    splx(v26); /*0x110d9a*/\n    goto LABEL_2; /*0x110d9f*/\n  }\n  v29 = *(_DWORD *)(a1 + 64); /*0x110da7*/\n  if ( (v29 & 0x2000) == 0 ) /*0x110dad*/\n  {\n    LOBYTE(v29) = v29 | 0x40; /*0x110dc8*/\n    *(_DWORD *)(a1 + 64) = v29; /*0x110dcd*/\n    sleep(a1 + 24); /*0x110dd9*/\n    splx(v26); /*0x110ddf*/\n    goto LABEL_2; /*0x110de7*/\n  }\n  splx(v26); /*0x110db0*/\n  if ( a2[5] != v31 ) /*0x110dbe*/\n    return 0; /*0x110dc6*/\nLABEL_6:\n  if ( (*(_BYTE *)(*(_DWORD *)active_u + 22) & 2) != 0 ) /*0x110951*/\n    return 11; /*0x110dec*/\n  else\n    return 35; /*0x110957*/\n}",
+    "refs": [
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x1dae6c",
+        "name": "_tthiwat"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x1097f8",
+        "name": "_gsignal"
+      },
+      {
+        "addr": "0x1e8df0",
+        "name": "_lbolt"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dafc6",
+        "name": "aTtwrite",
+        "string": "ttwrite"
+      },
+      {
+        "addr": "0x10a384",
+        "name": "_uiomove"
+      },
+      {
+        "addr": "0x142fa0",
+        "name": "_scanc"
+      },
+      {
+        "addr": "0x1dacec",
+        "name": "_partab"
+      },
+      {
+        "addr": "0x110014",
+        "name": "_ttyoutput"
+      },
+      {
+        "addr": "0x11325c",
+        "name": "_b_to_q"
+      },
+      {
+        "addr": "0x1e8b1c",
+        "name": "_tk_nout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00110dfc",
+    "addr": "0x00110dfc",
+    "code": "int __cdecl ttyrub(int a1, int *a2)\n{\n  int v2; // ebx\n  int result; // eax\n  int v4; // edi\n  int v5; // esi\n  char v6; // dl\n  int v7; // edi\n  int i; // edi\n  int v9; // [esp+10h] [ebp-8h]\n  int v10; // [esp+14h] [ebp-4h] BYREF\n\n  v2 = *a2; /*0x110e0b*/\n  result = *(_DWORD *)(*a2 + 60); /*0x110e0d*/\n  if ( (result & 8) != 0 && (*(_BYTE *)(v2 + 66) & 0x40) == 0 ) /*0x110e1c*/\n  {\n    *(_DWORD *)(v2 + 60) = result & 0xFF7FFFFF; /*0x110e2a*/\n    if ( (result & 0x10000) != 0 ) /*0x110e32*/\n    {\n      if ( !*(_BYTE *)(v2 + 75) ) /*0x110e3c*/\n        return ttyretype(a2); /*0x110eb1*/\n      if ( (unsigned int)(a1 - 265) <= 1 ) /*0x110e47*/\n      {\nLABEL_9:\n        result = ttyrubo(v2, 2); /*0x110e92*/\n      }\n      else\n      {\n        result = partab[(unsigned __int8)a1] & 0x3F; /*0x110e55*/\n        switch ( partab[(unsigned __int8)a1] & 0x3F ) /*0x110e61*/\n        {\n          case 0: /*0x110e61*/\n            result = ttyrubo(v2, 1); /*0x110e86*/\n            break; /*0x110e86*/\n          case 1: /*0x110e61*/\n          case 2: /*0x110e61*/\n          case 3: /*0x110e61*/\n          case 5: /*0x110e61*/\n          case 6: /*0x110e61*/\n            if ( (*(_BYTE *)(v2 + 63) & 0x10) != 0 ) /*0x110e8c*/\n              goto LABEL_9; /*0x110e8c*/\n            break; /*0x110e8c*/\n          case 4: /*0x110e61*/\n            if ( *(_DWORD *)v2 > *(char *)(v2 + 75) ) /*0x110ea6*/\n              return ttyretype(a2); /*0x110ea6*/\n            v9 = spltty(); /*0x110ebd*/\n            v4 = *(char *)(v2 + 72); /*0x110ec0*/\n            *(_DWORD *)(v2 + 64) |= 0x200000u; /*0x110ec4*/\n            *(_DWORD *)(v2 + 60) |= 0x800000u; /*0x110ecb*/\n            *(_BYTE *)(v2 + 72) = *(_BYTE *)(v2 + 76); /*0x110ed5*/\n            v5 = *(_DWORD *)(v2 + 4) - 1; /*0x110edb*/\n            while ( 1 ) /*0x110eef*/\n            {\n              v5 = nextc3(v2, v5, &v10); /*0x110eef*/\n              if ( !v5 ) /*0x110ef6*/\n                break; /*0x110ef6*/\n              ttyecho(v10, a2); /*0x110f00*/\n            }\n            *(_DWORD *)(v2 + 60) &= ~0x800000u; /*0x110f0c*/\n            *(_DWORD *)(v2 + 64) &= ~0x200000u; /*0x110f13*/\n            splx(v9); /*0x110f1e*/\n            v6 = *(_BYTE *)(v2 + 72); /*0x110f23*/\n            result = v6; /*0x110f26*/\n            v7 = v4 - v6; /*0x110f29*/\n            *(_BYTE *)(v2 + 72) = v6 + v7; /*0x110f2f*/\n            if ( v7 > 8 ) /*0x110f38*/\n              v7 = 8; /*0x110f3a*/\n            for ( i = v7 - 1; i >= 0; --i ) /*0x110f40*/\n              result = ttyoutput(8, v2); /*0x110f47*/\n            break; /*0x110f50*/\n          default:\n            panic(aTtyrub); /*0x110f59*/\n            return result; /*0x110f59*/\n        }\n      }\n    }\n    else if ( (result & 0x20000) != 0 ) /*0x110f65*/\n    {\n      if ( (*(_BYTE *)(v2 + 66) & 4) == 0 ) /*0x110f6b*/\n      {\n        ttyoutput(92, v2); /*0x110f70*/\n        *(_DWORD *)(v2 + 64) |= 0x40000u; /*0x110f75*/\n      }\n      result = ttyecho(a1, a2); /*0x110f84*/\n    }\n    else\n    {\n      result = ttyecho(*(unsigned __int8 *)(v2 + 77), a2); /*0x110f91*/\n    }\n    --*(_BYTE *)(v2 + 75); /*0x110f96*/\n  }\n  return result; /*0x110f9c*/\n}",
+    "refs": [
+      {
+        "addr": "0x110fdc",
+        "name": "_ttyretype"
+      },
+      {
+        "addr": "0x110fa4",
+        "name": "_ttyrubo"
+      },
+      {
+        "addr": "0x1dacec",
+        "name": "_partab"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x113390",
+        "name": "_nextc3"
+      },
+      {
+        "addr": "0x111094",
+        "name": "_ttyecho"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x110014",
+        "name": "_ttyoutput"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dafce",
+        "name": "aTtyrub",
+        "string": "ttyrub"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00110fa4",
+    "addr": "0x00110fa4",
+    "code": "int __cdecl ttyrubo(int a1, int a2)\n{\n  char *v2; // esi\n  int i; // ebx\n  int result; // eax\n\n  v2 = asc_1DAFD9; /*0x110fb0*/\n  if ( (*(_BYTE *)(a1 + 62) & 4) != 0 ) /*0x110fb9*/\n    v2 = asc_1DAFD5; /*0x110fbb*/\n  for ( i = a2 - 1; i >= 0; --i ) /*0x110fc1*/\n    result = ttyoutstr(v2, a1); /*0x110fc6*/\n  return result; /*0x110fd4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1dafd9",
+        "name": "asc_1DAFD9",
+        "string": "\b"
+      },
+      {
+        "addr": "0x1dafd5",
+        "name": "asc_1DAFD5",
+        "string": "\b \b"
+      },
+      {
+        "addr": "0x111150",
+        "name": "_ttyoutstr"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00110fdc",
+    "addr": "0x00110fdc",
+    "code": "int __cdecl ttyretype(int *a1)\n{\n  int v1; // esi\n  int v2; // ebx\n  int v3; // ebx\n  int result; // eax\n  int v5; // [esp+Ch] [ebp-8h]\n  int v6; // [esp+10h] [ebp-4h] BYREF\n\n  v1 = *a1; /*0x110fe8*/\n  if ( *(_BYTE *)(*a1 + 87) != 0xFF ) /*0x110fef*/\n    ttyecho(*(unsigned __int8 *)(*a1 + 87), a1); /*0x110ff8*/\n  ttyoutput(10, v1); /*0x111003*/\n  v5 = spltty(); /*0x11100d*/\n  v2 = *(_DWORD *)(v1 + 16) - 1; /*0x111013*/\n  while ( 1 ) /*0x111027*/\n  {\n    v2 = nextc3(v1 + 12, v2, &v6); /*0x111027*/\n    if ( !v2 ) /*0x11102e*/\n      break; /*0x11102e*/\n    ttyecho(v6, a1); /*0x111038*/\n  }\n  v3 = *(_DWORD *)(v1 + 4) - 1; /*0x111047*/\n  while ( 1 ) /*0x111054*/\n  {\n    v3 = nextc3(v1, v3, &v6); /*0x111054*/\n    if ( !v3 ) /*0x11105b*/\n      break; /*0x11105b*/\n    ttyecho(v6, a1); /*0x111065*/\n  }\n  *(_DWORD *)(v1 + 64) &= ~0x40000u; /*0x111070*/\n  result = splx(v5); /*0x11107b*/\n  *(_BYTE *)(v1 + 75) = *(_BYTE *)v1; /*0x111082*/\n  *(_BYTE *)(v1 + 76) = 0; /*0x111085*/\n  return result; /*0x11108c*/\n}",
+    "refs": [
+      {
+        "addr": "0x111094",
+        "name": "_ttyecho"
+      },
+      {
+        "addr": "0x110014",
+        "name": "_ttyoutput"
+      },
+      {
+        "addr": "0x18b7ac",
+        "name": "_spltty"
+      },
+      {
+        "addr": "0x113390",
+        "name": "_nextc3"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00111094",
+    "addr": "0x00111094",
+    "code": "unsigned int __cdecl ttyecho(int a1, _BYTE *a2)\n{\n  unsigned __int8 v2; // bl\n  int v3; // esi\n  unsigned int result; // eax\n\n  v2 = a1; /*0x11109a*/\n  v3 = *(_DWORD *)a2; /*0x1110a0*/\n  if ( (*(_BYTE *)(*(_DWORD *)a2 + 66) & 0x20) == 0 ) /*0x1110a6*/\n    *(_DWORD *)(v3 + 60) &= ~0x800000u; /*0x1110a8*/\n  result = *(_DWORD *)(v3 + 60); /*0x1110af*/\n  if ( ((result & 8) != 0 || (a2[16] & 2) != 0 && a1 == 10) && (*(_BYTE *)(v3 + 66) & 0x40) == 0 ) /*0x1110c9*/\n  {\n    if ( (result & 0x10000000) != 0 /*0x1110e5*/\n      && ((unsigned __int8)a1 <= 0x1Fu && (unsigned int)(a1 - 9) > 1 || (unsigned __int8)a1 == 127) )\n    {\n      ttyoutput(94, v3); /*0x1110ea*/\n      if ( (unsigned __int8)a1 == 127 ) /*0x1110fb*/\n      {\n        v2 = 63; /*0x1110fd*/\n      }\n      else if ( (*(_BYTE *)(v3 + 60) & 4) != 0 ) /*0x111108*/\n      {\n        v2 = a1 + 96; /*0x11110a*/\n      }\n      else\n      {\n        v2 = a1 + 64; /*0x111110*/\n      }\n    }\n    if ( v2 > 0x1Fu && ((*(_BYTE *)(v3 + 63) & 8) != 0 || (a2[18] & 0x40) != 0 || v2 <= 0x7Eu) ) /*0x11112d*/\n      return ttyoutput(v2, v3); /*0x11112d*/\n    result = v2 - 7; /*0x11112f*/\n    if ( result <= 3 || v2 == 13 ) /*0x11113a*/\n      return ttyoutput(v2, v3); /*0x11113e*/\n  }\n  return result; /*0x111146*/\n}",
+    "refs": [
+      {
+        "addr": "0x110014",
+        "name": "_ttyoutput"
+      }
+    ]
+  }
+]

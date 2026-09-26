@@ -1,0 +1,231 @@
+
+undefined8
+_flush_windows(undefined4 param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4,
+              undefined4 param_5,undefined4 param_6)
+
+{
+  undefined *puVar1;
+  undefined *puVar2;
+  undefined *puVar3;
+  undefined4 in_o7;
+  undefined4 unaff_l0;
+  undefined4 uVar4;
+  undefined4 unaff_l1;
+  undefined4 uVar5;
+  undefined4 unaff_l3;
+  undefined4 uVar6;
+  undefined4 unaff_l4;
+  undefined4 uVar7;
+  undefined4 unaff_l5;
+  undefined4 uVar8;
+  undefined4 unaff_l6;
+  undefined4 uVar9;
+  undefined4 unaff_l7;
+  undefined4 uVar10;
+  undefined4 unaff_i0;
+  undefined4 unaff_i1;
+  undefined4 uVar11;
+  undefined4 unaff_i2;
+  undefined4 uVar12;
+  undefined4 unaff_i3;
+  undefined4 uVar13;
+  undefined4 unaff_i4;
+  undefined4 uVar14;
+  undefined4 unaff_i5;
+  undefined4 uVar15;
+  undefined4 unaff_fp;
+  undefined4 unaff_i7;
+  undefined4 uVar16;
+  undefined in_DECOMPILE_MODE;
+  int in_CWP;
+  int iVar17;
+  undefined auStackX_0 [92];
+  undefined auStack_100 [64];
+  undefined auStack_c0 [64];
+  undefined auStack_80 [64];
+  undefined auStack_40 [64];
+  
+  puVar2 = auStack_40;
+  puVar1 = (undefined *)register0x00000038;
+  if (!(bool)in_DECOMPILE_MODE) {
+    *(undefined4 *)(in_CWP * 0x40 + 0x8000) = unaff_i0;
+    *(undefined4 *)((in_CWP * 0x10 + 1) * 4 + 0x8000) = unaff_i1;
+    *(undefined4 *)((in_CWP * 0x10 + 2) * 4 + 0x8000) = unaff_i2;
+    *(undefined4 *)((in_CWP * 0x10 + 3) * 4 + 0x8000) = unaff_i3;
+    *(undefined4 *)((in_CWP * 0x10 + 4) * 4 + 0x8000) = unaff_i4;
+    *(undefined4 *)((in_CWP * 0x10 + 5) * 4 + 0x8000) = unaff_i5;
+    *(undefined4 *)((in_CWP * 0x10 + 6) * 4 + 0x8000) = unaff_fp;
+    *(undefined4 *)((in_CWP * 0x10 + 7) * 4 + 0x8000) = unaff_i7;
+    *(undefined4 *)((in_CWP * 0x10 + 8) * 4 + 0x8000) = unaff_l0;
+    *(undefined4 *)((in_CWP * 0x10 + 9) * 4 + 0x8000) = unaff_l1;
+    *(undefined4 *)((in_CWP * 0x10 + 10) * 4 + 0x8000) = unaff_l3;
+    *(undefined4 *)((in_CWP * 0x10 + 0xb) * 4 + 0x8000) = unaff_l3;
+    *(undefined4 *)((in_CWP * 0x10 + 0xc) * 4 + 0x8000) = unaff_l4;
+    *(undefined4 *)((in_CWP * 0x10 + 0xd) * 4 + 0x8000) = unaff_l5;
+    *(undefined4 *)((in_CWP * 0x10 + 0xe) * 4 + 0x8000) = unaff_l6;
+    *(undefined4 *)((in_CWP * 0x10 + 0xf) * 4 + 0x8000) = unaff_l7;
+  }
+  uVar4 = 0;
+  uVar5 = 0;
+  uVar6 = 0;
+  uVar7 = 0;
+  uVar8 = 0;
+  uVar9 = 0;
+  uVar10 = 0;
+  iVar17 = in_CWP + 1;
+  puVar3 = auStack_80;
+  if (!(bool)in_DECOMPILE_MODE) {
+    uVar11 = param_2;
+    uVar12 = param_3;
+    uVar13 = param_4;
+    uVar14 = param_5;
+    uVar15 = param_6;
+    uVar16 = in_o7;
+    *(undefined4 *)(iVar17 * 0x40 + 0x8000) = param_1;
+    *(undefined4 *)((iVar17 * 0x10 + 1) * 4 + 0x8000) = uVar11;
+    *(undefined4 *)((iVar17 * 0x10 + 2) * 4 + 0x8000) = uVar12;
+    *(undefined4 *)((iVar17 * 0x10 + 3) * 4 + 0x8000) = uVar13;
+    *(undefined4 *)((iVar17 * 0x10 + 4) * 4 + 0x8000) = uVar14;
+    *(undefined4 *)((iVar17 * 0x10 + 5) * 4 + 0x8000) = uVar15;
+    *(undefined **)((iVar17 * 0x10 + 6) * 4 + 0x8000) = puVar1;
+    *(undefined4 *)((iVar17 * 0x10 + 7) * 4 + 0x8000) = uVar16;
+    *(undefined4 *)((iVar17 * 0x10 + 8) * 4 + 0x8000) = uVar4;
+    *(undefined4 *)((iVar17 * 0x10 + 9) * 4 + 0x8000) = uVar5;
+    *(undefined4 *)((iVar17 * 0x10 + 10) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xb) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xc) * 4 + 0x8000) = uVar7;
+    *(undefined4 *)((iVar17 * 0x10 + 0xd) * 4 + 0x8000) = uVar8;
+    *(undefined4 *)((iVar17 * 0x10 + 0xe) * 4 + 0x8000) = uVar9;
+    *(undefined4 *)((iVar17 * 0x10 + 0xf) * 4 + 0x8000) = uVar10;
+  }
+  uVar4 = 0;
+  uVar5 = 0;
+  uVar6 = 0;
+  uVar7 = 0;
+  uVar8 = 0;
+  uVar9 = 0;
+  uVar10 = 0;
+  iVar17 = iVar17 + 1;
+  puVar1 = auStack_c0;
+  if (!(bool)in_DECOMPILE_MODE) {
+    uVar11 = param_2;
+    uVar12 = param_3;
+    uVar13 = param_4;
+    uVar14 = param_5;
+    uVar15 = param_6;
+    uVar16 = in_o7;
+    *(undefined4 *)(iVar17 * 0x40 + 0x8000) = param_1;
+    *(undefined4 *)((iVar17 * 0x10 + 1) * 4 + 0x8000) = uVar11;
+    *(undefined4 *)((iVar17 * 0x10 + 2) * 4 + 0x8000) = uVar12;
+    *(undefined4 *)((iVar17 * 0x10 + 3) * 4 + 0x8000) = uVar13;
+    *(undefined4 *)((iVar17 * 0x10 + 4) * 4 + 0x8000) = uVar14;
+    *(undefined4 *)((iVar17 * 0x10 + 5) * 4 + 0x8000) = uVar15;
+    *(undefined **)((iVar17 * 0x10 + 6) * 4 + 0x8000) = puVar2;
+    *(undefined4 *)((iVar17 * 0x10 + 7) * 4 + 0x8000) = uVar16;
+    *(undefined4 *)((iVar17 * 0x10 + 8) * 4 + 0x8000) = uVar4;
+    *(undefined4 *)((iVar17 * 0x10 + 9) * 4 + 0x8000) = uVar5;
+    *(undefined4 *)((iVar17 * 0x10 + 10) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xb) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xc) * 4 + 0x8000) = uVar7;
+    *(undefined4 *)((iVar17 * 0x10 + 0xd) * 4 + 0x8000) = uVar8;
+    *(undefined4 *)((iVar17 * 0x10 + 0xe) * 4 + 0x8000) = uVar9;
+    *(undefined4 *)((iVar17 * 0x10 + 0xf) * 4 + 0x8000) = uVar10;
+  }
+  uVar4 = 0;
+  uVar5 = 0;
+  uVar6 = 0;
+  uVar7 = 0;
+  uVar8 = 0;
+  uVar9 = 0;
+  uVar10 = 0;
+  iVar17 = iVar17 + 1;
+  puVar2 = auStack_100;
+  if (!(bool)in_DECOMPILE_MODE) {
+    uVar11 = param_2;
+    uVar12 = param_3;
+    uVar13 = param_4;
+    uVar14 = param_5;
+    uVar15 = param_6;
+    uVar16 = in_o7;
+    *(undefined4 *)(iVar17 * 0x40 + 0x8000) = param_1;
+    *(undefined4 *)((iVar17 * 0x10 + 1) * 4 + 0x8000) = uVar11;
+    *(undefined4 *)((iVar17 * 0x10 + 2) * 4 + 0x8000) = uVar12;
+    *(undefined4 *)((iVar17 * 0x10 + 3) * 4 + 0x8000) = uVar13;
+    *(undefined4 *)((iVar17 * 0x10 + 4) * 4 + 0x8000) = uVar14;
+    *(undefined4 *)((iVar17 * 0x10 + 5) * 4 + 0x8000) = uVar15;
+    *(undefined **)((iVar17 * 0x10 + 6) * 4 + 0x8000) = puVar3;
+    *(undefined4 *)((iVar17 * 0x10 + 7) * 4 + 0x8000) = uVar16;
+    *(undefined4 *)((iVar17 * 0x10 + 8) * 4 + 0x8000) = uVar4;
+    *(undefined4 *)((iVar17 * 0x10 + 9) * 4 + 0x8000) = uVar5;
+    *(undefined4 *)((iVar17 * 0x10 + 10) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xb) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xc) * 4 + 0x8000) = uVar7;
+    *(undefined4 *)((iVar17 * 0x10 + 0xd) * 4 + 0x8000) = uVar8;
+    *(undefined4 *)((iVar17 * 0x10 + 0xe) * 4 + 0x8000) = uVar9;
+    *(undefined4 *)((iVar17 * 0x10 + 0xf) * 4 + 0x8000) = uVar10;
+  }
+  uVar4 = 0;
+  uVar5 = 0;
+  uVar6 = 0;
+  uVar7 = 0;
+  uVar8 = 0;
+  uVar9 = 0;
+  uVar10 = 0;
+  iVar17 = iVar17 + 1;
+  if (!(bool)in_DECOMPILE_MODE) {
+    uVar11 = param_2;
+    uVar12 = param_3;
+    uVar13 = param_4;
+    uVar14 = param_5;
+    uVar15 = param_6;
+    uVar16 = in_o7;
+    *(undefined4 *)(iVar17 * 0x40 + 0x8000) = param_1;
+    *(undefined4 *)((iVar17 * 0x10 + 1) * 4 + 0x8000) = uVar11;
+    *(undefined4 *)((iVar17 * 0x10 + 2) * 4 + 0x8000) = uVar12;
+    *(undefined4 *)((iVar17 * 0x10 + 3) * 4 + 0x8000) = uVar13;
+    *(undefined4 *)((iVar17 * 0x10 + 4) * 4 + 0x8000) = uVar14;
+    *(undefined4 *)((iVar17 * 0x10 + 5) * 4 + 0x8000) = uVar15;
+    *(undefined **)((iVar17 * 0x10 + 6) * 4 + 0x8000) = puVar1;
+    *(undefined4 *)((iVar17 * 0x10 + 7) * 4 + 0x8000) = uVar16;
+    *(undefined4 *)((iVar17 * 0x10 + 8) * 4 + 0x8000) = uVar4;
+    *(undefined4 *)((iVar17 * 0x10 + 9) * 4 + 0x8000) = uVar5;
+    *(undefined4 *)((iVar17 * 0x10 + 10) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xb) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xc) * 4 + 0x8000) = uVar7;
+    *(undefined4 *)((iVar17 * 0x10 + 0xd) * 4 + 0x8000) = uVar8;
+    *(undefined4 *)((iVar17 * 0x10 + 0xe) * 4 + 0x8000) = uVar9;
+    *(undefined4 *)((iVar17 * 0x10 + 0xf) * 4 + 0x8000) = uVar10;
+  }
+  uVar4 = 0;
+  uVar5 = 0;
+  uVar6 = 0;
+  uVar7 = 0;
+  uVar8 = 0;
+  uVar9 = 0;
+  uVar10 = 0;
+  iVar17 = iVar17 + 1;
+  if (!(bool)in_DECOMPILE_MODE) {
+    uVar11 = param_2;
+    *(undefined4 *)(iVar17 * 0x40 + 0x8000) = param_1;
+    *(undefined4 *)((iVar17 * 0x10 + 1) * 4 + 0x8000) = uVar11;
+    *(undefined4 *)((iVar17 * 0x10 + 2) * 4 + 0x8000) = param_3;
+    *(undefined4 *)((iVar17 * 0x10 + 3) * 4 + 0x8000) = param_4;
+    *(undefined4 *)((iVar17 * 0x10 + 4) * 4 + 0x8000) = param_5;
+    *(undefined4 *)((iVar17 * 0x10 + 5) * 4 + 0x8000) = param_6;
+    *(undefined **)((iVar17 * 0x10 + 6) * 4 + 0x8000) = puVar2;
+    *(undefined4 *)((iVar17 * 0x10 + 7) * 4 + 0x8000) = in_o7;
+    *(undefined4 *)((iVar17 * 0x10 + 8) * 4 + 0x8000) = uVar4;
+    *(undefined4 *)((iVar17 * 0x10 + 9) * 4 + 0x8000) = uVar5;
+    *(undefined4 *)((iVar17 * 0x10 + 10) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xb) * 4 + 0x8000) = uVar6;
+    *(undefined4 *)((iVar17 * 0x10 + 0xc) * 4 + 0x8000) = uVar7;
+    *(undefined4 *)((iVar17 * 0x10 + 0xd) * 4 + 0x8000) = uVar8;
+    *(undefined4 *)((iVar17 * 0x10 + 0xe) * 4 + 0x8000) = uVar9;
+    *(undefined4 *)((iVar17 * 0x10 + 0xf) * 4 + 0x8000) = uVar10;
+  }
+  if (!(bool)in_DECOMPILE_MODE) {
+    param_1 = *(undefined4 *)((iVar17 + -4) * 0x40 + 0x8000);
+    param_2 = *(undefined4 *)(((iVar17 + -4) * 0x10 + 1) * 4 + 0x8000);
+  }
+  return CONCAT44(param_2,param_1);
+}

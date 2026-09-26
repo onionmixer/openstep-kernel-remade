@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "binary": {"path":"03_original/x86/binaries/mach_kernel","sha256":"33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890","mach_base":"0x00100000"},
+  "method": "Python 3 calculated slot/count values and converted listed VAs to original file offsets; each listed instruction sequence was byte-compared to the original binary.",
+  "functions": [
+    {"label":"_intr_register_irq","entry_va":"0x0018c39c"},
+    {"label":"_intr_unregister_irq","entry_va":"0x0018c4b4"},
+    {"label":"_intr_enable_irq","entry_va":"0x0018c5a0"},
+    {"label":"_intr_disable_irq","entry_va":"0x0018c638"},
+    {"entry_va":"0x0018c7b0","role":"post-unregister mask helper"}
+  ],
+  "register_validation_and_slot": {
+    "input_checks": [
+      {"va":"0x0018c3ab","instruction":"CMP EBX,0xf; JA reject","file_offset":574379,"bytes":"83fb0f771f"},
+      {"va":"0x0018c3b0","instruction":"CMP EBX,2; JZ reject","file_offset":574384,"bytes":"83fb02741a"},
+      {"va":"0x0018c3b5","instruction":"CMP ESI,7; JA reject","file_offset":574389,"bytes":"83fe077715"}
+    ],
+    "slot_formula": {"instructions":[{"va":"0x0018c3ba","instruction":"LEA EAX,[EBX+EBX*2]","file_offset":574394,"bytes":"8d045b"},{"va":"0x0018c3bd","instruction":"SHL EAX,2","file_offset":574397,"bytes":"c1e002"}],"formula":"12 * irq","slot_stride_bytes":12,"maximum_checked_irq":15,"maximum_checked_slot_offset_bytes":180,"allowed_irq_count":15,"allowed_priority_values":8,"calculations":"Python: 3 * 4; 15 * 12; len([irq for irq in range(16) if irq != 2]); len(range(8))"},
+    "slot_writes": [
+      {"va":"0x0018c3ea","instruction":"MOV [ECX+0x001e7624],EDI","role":"slot +0", "file_offset":574442,"bytes":"89b924761e00"},
+      {"va":"0x0018c3f8","instruction":"MOV [EDX+ECX+4],EDI","role":"slot +4", "file_offset":574456,"bytes":"897c0a04"},
+      {"va":"0x0018c3fc","instruction":"MOV [EDX+ECX+8],ESI","role":"slot +8", "file_offset":574460,"bytes":"89740a08"}
+    ]
+  },
+  "interrupt_flag_preservation": {
+    "register": {"disable_and_record":{"va":"0x0018c3d8","instruction":"PUSHFD; POP EAX; CLI; SHR EAX,9; AND EAX,1; store local","file_offset":574424,"bytes":"9c58fac1e80983e0018945f4"},"restore":{"va":"0x0018c497","instruction":"PUSHFD; POP EAX; CMP saved,0; JZ CLI; otherwise STI","file_offset":574615,"bytes":"9c58837df4007405fbeb039090fa"}},
+    "unregister": {"disable_and_record":{"va":"0x0018c4e4","instruction":"PUSHFD; POP EAX; CLI; SHR EAX,9; saved bit","file_offset":574692,"bytes":"9c58fac1e80989c683e601"},"restore_before_helper_call":{"va":"0x0018c585","instruction":"STI if saved bit, otherwise CLI; then pushes arguments and calls 0x0018c7b0","file_offset":574853,"bytes":"fbeb01fa6a0053e81f020000"}},
+    "enable": {"restore":{"va":"0x0018c61c","instruction":"PUSHFD; POP EAX; TEST saved bit; STI or CLI","file_offset":575004,"bytes":"9c5885db7406fbeb04909090fa"}},
+    "disable": {"restore":{"va":"0x0018c6b3","instruction":"PUSHFD; POP EAX; TEST saved bit; STI or CLI","file_offset":575155,"bytes":"9c5885db7403fbeb01fa"}}
+  },
+  "unregister_and_mask_outputs": {
+    "unregister_slot_clear":{"va":"0x0018c4ef","instruction":"three dword zero stores at slot +0, +4, +8","file_offset":574703,"bytes":"c78724761e0000000000c78728761e0000000000c7872c761e0000000000"},
+    "enable_mask_update":{"va":"0x0018c5c8","instruction":"load 0x001e771e; rotate mask; AND; store 0x001e771e","file_offset":574920,"bytes":"d3c0668b151e771e006621c26689151e771e00"},
+    "disable_mask_update":{"va":"0x0018c664","instruction":"OR computed bit into 0x001e771e; store","file_offset":575076,"bytes":"660b151e771e006689151e771e00"},
+    "pic_write_and_locked_increment":{"va":"0x0018c5f3","instruction":"when effective mask differs: write port 0x21, LOCK INC [0x001e7618], write port 0xa1, LOCK INC [0x001e7618]","file_offset":574963,"bytes":"66890d1c771e0088c8ba21000000eef0ff0518761e0089c866c1e808baa1000000eef0ff0518761e00"},
+    "post_unregister_helper_output":{"va":"0x0018c80e","instruction":"if 0x001e7720 changes: OUT 0x4d0, LOCK INC; OUT 0x4d1, LOCK INC","file_offset":575502,"bytes":"66393520771e00742b66893520771e0089f288d0bad0040000eef0ff0518761e0089f066c1e808bad1040000eef0ff"}
+  },
+  "bounded_findings": [
+    "The selected register and unregister paths use a 12-byte indexed slot and respectively populate or clear three dwords.",
+    "The selected register/unregister/enable/disable paths save the incoming IF bit after CLI and choose STI versus CLI before their shown exit or helper call.",
+    "The selected mask paths issue two port writes and two lock-prefixed increments only when their compared effective mask differs.",
+    "No claim is made about handler execution, hardware delivery, the meanings of mask fields, atomic progress, deadlock freedom, reentrancy, or runtime interrupt state."
+  ],
+  "validation":{"raw_instruction_records_checked":19,"python_calculations_checked":4,"status":"pass"}
+}

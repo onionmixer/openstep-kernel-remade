@@ -1,0 +1,633 @@
+[
+  {
+    "requested_address": "0x00161e40",
+    "addr": "0x00161e40",
+    "code": "kern_return_t __cdecl processor_set_threads(\n        processor_set_t processor_set,\n        thread_act_array_t *thread_list,\n        mach_msg_type_number_t *thread_listCnt)\n{\n  return processor_set_things(processor_set, (int **)thread_list, thread_listCnt, 1); /*0x161e58*/\n}",
+    "refs": [
+      {
+        "addr": "0x161b90",
+        "name": "_processor_set_things"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00161e5c",
+    "addr": "0x00161e5c",
+    "code": "_DWORD *__cdecl enqueue_head(_DWORD *a1, _DWORD *a2)\n{\n  *a2 = *a1; /*0x161e68*/\n  a2[1] = a1; /*0x161e6a*/\n  *(_DWORD *)(*a2 + 4) = a2; /*0x161e6f*/\n  *a1 = a2; /*0x161e72*/\n  return a1; /*0x161e74*/\n}"
+  },
+  {
+    "requested_address": "0x00161e7c",
+    "addr": "0x00161e7c",
+    "code": "int __cdecl enqueue_tail(int a1, _DWORD *a2)\n{\n  *a2 = a1; /*0x161e86*/\n  a2[1] = *(_DWORD *)(a1 + 4); /*0x161e8b*/\n  *(_DWORD *)a2[1] = a2; /*0x161e91*/\n  *(_DWORD *)(a1 + 4) = a2; /*0x161e93*/\n  return a1; /*0x161e96*/\n}"
+  },
+  {
+    "requested_address": "0x00161ea0",
+    "addr": "0x00161ea0",
+    "code": "_DWORD *__cdecl dequeue_head(_DWORD *a1)\n{\n  _DWORD *v1; // edx\n\n  v1 = (_DWORD *)*a1; /*0x161ea7*/\n  if ( (_DWORD *)*a1 == a1 ) /*0x161eab*/\n    return nullptr; /*0x161ebc*/\n  *(_DWORD *)(*v1 + 4) = a1; /*0x161eaf*/\n  *a1 = *v1; /*0x161eb4*/\n  return v1; /*0x161ebe*/\n}"
+  },
+  {
+    "requested_address": "0x00161ec8",
+    "addr": "0x00161ec8",
+    "code": "int __cdecl dequeue_tail(int a1)\n{\n  int v1; // edx\n\n  v1 = *(_DWORD *)(a1 + 4); /*0x161ecf*/\n  if ( v1 == a1 ) /*0x161ed4*/\n    return 0; /*0x161ee8*/\n  **(_DWORD **)(v1 + 4) = a1; /*0x161ed9*/\n  *(_DWORD *)(a1 + 4) = *(_DWORD *)(v1 + 4); /*0x161ede*/\n  return v1; /*0x161eea*/\n}"
+  },
+  {
+    "requested_address": "0x00161ef4",
+    "addr": "0x00161ef4",
+    "code": "int __cdecl remqueue(int a1, _DWORD *a2)\n{\n  int result; // eax\n\n  *(_DWORD *)(*a2 + 4) = a2[1]; /*0x161eff*/\n  result = *a2; /*0x161f05*/\n  *(_DWORD *)a2[1] = *a2; /*0x161f07*/\n  return result; /*0x161f0b*/\n}"
+  },
+  {
+    "requested_address": "0x00161f10",
+    "addr": "0x00161f10",
+    "code": "void __cdecl insque(void *a1, void *a2)\n{\n  *(_DWORD *)a1 = *(_DWORD *)a2; /*0x161f1c*/\n  *((_DWORD *)a1 + 1) = a2; /*0x161f1e*/\n  *(_DWORD *)(*(_DWORD *)a2 + 4) = a1; /*0x161f23*/\n  *(_DWORD *)a2 = a1; /*0x161f26*/\n}"
+  },
+  {
+    "requested_address": "0x00161f30",
+    "addr": "0x00161f30",
+    "code": "void __cdecl remque(void *a1)\n{\n  *(_DWORD *)(*(_DWORD *)a1 + 4) = *((_DWORD *)a1 + 1); /*0x161f3b*/\n  **((_DWORD **)a1 + 1) = *(_DWORD *)a1; /*0x161f43*/\n}"
+  },
+  {
+    "requested_address": "0x00161f4c",
+    "addr": "0x00161f4c",
+    "code": "int __cdecl kdp_packet(void *a1, size_t *a2)\n{\n  size_t v2; // ebx\n  unsigned int v4; // edx\n  int v5; // ebx\n  char v6; // [esp+10h] [ebp-604h] BYREF\n  unsigned __int8 v7; // [esp+11h] [ebp-603h]\n  unsigned __int16 v8; // [esp+12h] [ebp-602h]\n  int v9; // [esp+14h] [ebp-600h]\n\n  v2 = *a2; /*0x161f61*/\n  bcopy(a1, &v6, 0x604u); /*0x161f6d*/\n  if ( v2 > 7 && v8 == v2 ) /*0x161f89*/\n  {\n    if ( v6 >= 0 ) /*0x161fac*/\n    {\n      v4 = v6 & 0x7F; /*0x161fcc*/\n      if ( v4 <= 0xE ) /*0x161fd2*/\n      {\n        v5 = ((int (__cdecl *)(char *))funcs_162009[v4])(&v6); /*0x16200b*/\n        bcopy(&v6, a1, *a2); /*0x162015*/\n        return v5; /*0x16201a*/\n      }\n      else\n      {\n        safe_prf(\"kdp_packet bad request %x len %d seq %x key %x\\n\", v4, v8, v7, v9); /*0x161ff0*/\n        return 0; /*0x161ff5*/\n      }\n    }\n    else\n    {\n      safe_prf(\"kdp_packet reply recvd req %x seq %x\\n\", v6 & 0x7F, v7); /*0x161fc1*/\n      return 0; /*0x161fc6*/\n    }\n  }\n  else\n  {\n    safe_prf(\"kdp_packet bad len pkt %d hdr %d\\n\", v2, v8); /*0x161f99*/\n    return 0; /*0x161f9e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1df274",
+        "name": "funcs_162009"
+      },
+      {
+        "addr": "0x1603b4",
+        "name": "_safe_prf"
+      },
+      {
+        "addr": "0x1df2f8",
+        "name": "aKdpPacketBadRe",
+        "string": "kdp_packet bad request %x len %d seq %x key %x\n"
+      },
+      {
+        "addr": "0x1df2d2",
+        "name": "aKdpPacketReply",
+        "string": "kdp_packet reply recvd req %x seq %x\n"
+      },
+      {
+        "addr": "0x1df2b0",
+        "name": "aKdpPacketBadLe",
+        "string": "kdp_packet bad len pkt %d hdr %d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016202c",
+    "addr": "0x0016202c",
+    "code": "int __cdecl sub_16202C(int a1)\n{\n  safe_prf( /*0x16204b*/\n    \"kdp_unknown request %x len %d seq %x key %x\\n\",\n    *(_BYTE *)a1 & 0x7F,\n    *(unsigned __int16 *)(a1 + 2),\n    *(unsigned __int8 *)(a1 + 1),\n    *(_DWORD *)(a1 + 4));\n  return 0; /*0x162054*/\n}",
+    "refs": [
+      {
+        "addr": "0x1603b4",
+        "name": "_safe_prf"
+      },
+      {
+        "addr": "0x1df328",
+        "name": "aKdpUnknownRequ",
+        "string": "kdp_unknown request %x len %d seq %x key %x\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162058",
+    "addr": "0x00162058",
+    "code": "int __cdecl sub_162058(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 0xBu ) /*0x162069*/\n    return 0; /*0x16206d*/\n  if ( !dword_1F66A8 ) /*0x162077*/\n  {\n    kdp = *(_WORD *)(a1 + 8); /*0x162094*/\n    word_1F66B4 = *(_WORD *)(a1 + 10); /*0x16209f*/\n    dword_1F66A8 = 1; /*0x1620a6*/\n    dword_1F66A4 = *(unsigned __int8 *)(a1 + 1); /*0x1620b4*/\n    goto LABEL_7; /*0x1620b4*/\n  }\n  if ( dword_1F66A4 == *(unsigned __int8 *)(a1 + 1) ) /*0x162083*/\n  {\nLABEL_7:\n    *(_DWORD *)(a1 + 8) = 0; /*0x1620ba*/\n    goto LABEL_8; /*0x1620ba*/\n  }\n  *(_DWORD *)(a1 + 8) = 1; /*0x162085*/\nLABEL_8:\n  *(_BYTE *)a1 |= 0x80u; /*0x1620c1*/\n  *(_WORD *)(a1 + 2) = 12; /*0x1620c4*/\n  *a3 = kdp; /*0x1620d1*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x1620d8*/\n  return 1; /*0x1620e2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      },
+      {
+        "addr": "0x1f66b4",
+        "name": "word_1F66B4"
+      },
+      {
+        "addr": "0x1f66a8",
+        "name": "dword_1F66A8"
+      },
+      {
+        "addr": "0x1f66a4",
+        "name": "dword_1F66A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001620e8",
+    "addr": "0x001620e8",
+    "code": "int __cdecl sub_1620E8(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 7u || !dword_1F66A8 ) /*0x162101*/\n    return 0; /*0x16215c*/\n  *a3 = kdp; /*0x16210a*/\n  word_1F66B4 = 0; /*0x16210d*/\n  kdp = 0; /*0x162116*/\n  dword_1F66A8 = 0; /*0x16211f*/\n  dword_1F66B0 = 0; /*0x162129*/\n  dword_1F66A4 = 0; /*0x162133*/\n  byte_1F66B6 = 0; /*0x16213d*/\n  *(_BYTE *)a1 |= 0x80u; /*0x162144*/\n  *(_WORD *)(a1 + 2) = 8; /*0x162147*/\n  *a2 = 8; /*0x16214d*/\n  return 1; /*0x16215e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66a8",
+        "name": "dword_1F66A8"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      },
+      {
+        "addr": "0x1f66b4",
+        "name": "word_1F66B4"
+      },
+      {
+        "addr": "0x1f66b0",
+        "name": "dword_1F66B0"
+      },
+      {
+        "addr": "0x1f66a4",
+        "name": "dword_1F66A4"
+      },
+      {
+        "addr": "0x1f66b6",
+        "name": "byte_1F66B6"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162168",
+    "addr": "0x00162168",
+    "code": "int __cdecl sub_162168(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 7u ) /*0x16217a*/\n    return 0; /*0x1621a8*/\n  *(_BYTE *)a1 |= 0x80u; /*0x16217c*/\n  *(_WORD *)(a1 + 2) = 20; /*0x16217f*/\n  kdp_machine_hostinfo(a1 + 8); /*0x162189*/\n  *a3 = kdp; /*0x162195*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x16219c*/\n  return 1; /*0x1621ad*/\n}",
+    "refs": [
+      {
+        "addr": "0x185d60",
+        "name": "_kdp_machine_hostinfo"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001621b4",
+    "addr": "0x001621b4",
+    "code": "int __cdecl sub_1621B4(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 7u ) /*0x1621c4*/\n    return 0; /*0x1621f0*/\n  *(_BYTE *)a1 |= 0x80u; /*0x1621c6*/\n  *(_WORD *)(a1 + 2) = 8; /*0x1621c9*/\n  dword_1F66B0 = 1; /*0x1621cf*/\n  *a3 = kdp; /*0x1621e0*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x1621e7*/\n  return 1; /*0x1621f2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66b0",
+        "name": "dword_1F66B0"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001621fc",
+    "addr": "0x001621fc",
+    "code": "int __cdecl sub_1621FC(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 0xBu ) /*0x16220c*/\n    return 0; /*0x162238*/\n  *(_BYTE *)a1 |= 0x80u; /*0x16220e*/\n  *(_WORD *)(a1 + 2) = 8; /*0x162211*/\n  dword_1F66B0 = 0; /*0x162217*/\n  *a3 = kdp; /*0x162228*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x16222f*/\n  return 1; /*0x16223a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66b0",
+        "name": "dword_1F66B0"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162244",
+    "addr": "0x00162244",
+    "code": "int __cdecl sub_162244(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 0xFu ) /*0x162256*/\n    return 0; /*0x162258*/\n  if ( *(_DWORD *)(a1 + 12) <= 0x400u ) /*0x162264*/\n  {\n    copywithin(a1 + 16, *(_DWORD *)(a1 + 8), *(_DWORD *)(a1 + 12)); /*0x162279*/\n    *(_DWORD *)(a1 + 8) = 0; /*0x16227e*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 8) = 2; /*0x162266*/\n  }\n  *(_BYTE *)a1 |= 0x80u; /*0x162285*/\n  *(_WORD *)(a1 + 2) = 12; /*0x162288*/\n  *a3 = kdp; /*0x162295*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x16229c*/\n  return 1; /*0x1622a6*/\n}",
+    "refs": [
+      {
+        "addr": "0x189c1c",
+        "name": "_copywithin"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001622b0",
+    "addr": "0x001622b0",
+    "code": "int __cdecl sub_1622B0(int a1, _DWORD *a2, _WORD *a3)\n{\n  unsigned int v4; // esi\n\n  if ( *a2 <= 0xFu ) /*0x1622bf*/\n    return 0; /*0x1622c1*/\n  *(_BYTE *)a1 |= 0x80u; /*0x1622c8*/\n  *(_WORD *)(a1 + 2) = 12; /*0x1622cb*/\n  v4 = *(_DWORD *)(a1 + 12); /*0x1622d1*/\n  if ( v4 <= 0x400 ) /*0x1622da*/\n  {\n    copywithin(*(_DWORD *)(a1 + 8), a1 + 12, *(_DWORD *)(a1 + 12)); /*0x1622f1*/\n    *(_DWORD *)(a1 + 8) = 0; /*0x1622f6*/\n    *(_WORD *)(a1 + 2) += v4; /*0x1622fd*/\n  }\n  else\n  {\n    *(_DWORD *)(a1 + 8) = 2; /*0x1622dc*/\n  }\n  *a3 = kdp; /*0x16230b*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x162312*/\n  return 1; /*0x16231c*/\n}",
+    "refs": [
+      {
+        "addr": "0x189c1c",
+        "name": "_copywithin"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162324",
+    "addr": "0x00162324",
+    "code": "int __cdecl sub_162324(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 7u ) /*0x162334*/\n    return 0; /*0x162360*/\n  *(_BYTE *)a1 |= 0x80u; /*0x162336*/\n  *(_WORD *)(a1 + 2) = 12; /*0x162339*/\n  *(_DWORD *)(a1 + 8) = 1024; /*0x16233f*/\n  *a3 = kdp; /*0x16234d*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x162354*/\n  return 1; /*0x162362*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016236c",
+    "addr": "0x0016236c",
+    "code": "int __cdecl sub_16236C(int a1, _DWORD *a2, _WORD *a3)\n{\n  int v3; // eax\n\n  if ( *a2 <= 7u ) /*0x16237d*/\n    return 0; /*0x1623d0*/\n  *(_BYTE *)a1 |= 0x80u; /*0x16237f*/\n  *(_WORD *)(a1 + 2) = 12; /*0x162382*/\n  *(_DWORD *)(a1 + 8) = 0; /*0x162388*/\n  *(_DWORD *)(a1 + 12) = 0; /*0x16238f*/\n  *(_DWORD *)(a1 + 16) = 0x40000000; /*0x162396*/\n  *(_DWORD *)(a1 + 20) = 7; /*0x16239d*/\n  v3 = *(_DWORD *)(a1 + 8); /*0x1623a4*/\n  *(_DWORD *)(a1 + 8) = v3 + 1; /*0x1623aa*/\n  *(_WORD *)(a1 + 2) += 4 * (3 * v3 + 3); /*0x1623b4*/\n  *a3 = kdp; /*0x1623bf*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x1623c6*/\n  return 1; /*0x1623d5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001623dc",
+    "addr": "0x001623dc",
+    "code": "int __cdecl sub_1623DC(int a1, _DWORD *a2, _WORD *a3)\n{\n  if ( *a2 <= 0xFu ) /*0x1623f1*/\n    return 0; /*0x162438*/\n  *(_DWORD *)(a1 + 8) = kdp_machine_write_regs(*(_DWORD *)(a1 + 8), *(_DWORD *)(a1 + 12), a1 + 16); /*0x162412*/\n  *(_BYTE *)a1 |= 0x80u; /*0x162415*/\n  *(_WORD *)(a1 + 2) = 12; /*0x162418*/\n  *a3 = kdp; /*0x162425*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x16242c*/\n  return 1; /*0x16243d*/\n}",
+    "refs": [
+      {
+        "addr": "0x185cf0",
+        "name": "_kdp_machine_write_regs"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162444",
+    "addr": "0x00162444",
+    "code": "int __cdecl sub_162444(int a1, _DWORD *a2, _WORD *a3)\n{\n  __int16 v4; // [esp+Ch] [ebp-4h] BYREF\n\n  if ( *a2 <= 0xFu ) /*0x162459*/\n    return 0; /*0x16249c*/\n  *(_BYTE *)a1 |= 0x80u; /*0x16245b*/\n  *(_WORD *)(a1 + 2) = 12; /*0x16245e*/\n  *(_DWORD *)(a1 + 8) = kdp_machine_read_regs(*(_DWORD *)(a1 + 8), *(_DWORD *)(a1 + 12), a1 + 12, &v4); /*0x162479*/\n  *(_WORD *)(a1 + 2) += v4; /*0x162480*/\n  *a3 = kdp; /*0x16248b*/\n  *a2 = *(unsigned __int16 *)(a1 + 2); /*0x162492*/\n  return 1; /*0x1624a1*/\n}",
+    "refs": [
+      {
+        "addr": "0x185c1c",
+        "name": "_kdp_machine_read_regs"
+      },
+      {
+        "addr": "0x1f66a0",
+        "name": "_kdp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001624a8",
+    "addr": "0x001624a8",
+    "code": "int __cdecl sub_1624A8(__int16 a1)\n{\n  int v1; // eax\n  __int16 v2; // dx\n  unsigned __int8 *v3; // esi\n  int v4; // edi\n  int v5; // ebx\n  unsigned int v7; // eax\n  _WORD *v8; // ebx\n  void *v9; // esi\n  int result; // eax\n  unsigned __int8 *v11; // [esp+Ch] [ebp-44h]\n  int v12; // [esp+10h] [ebp-40h]\n  _BYTE v13[8]; // [esp+18h] [ebp-38h] BYREF\n  _BYTE v14[2]; // [esp+20h] [ebp-30h] BYREF\n  _WORD v15[3]; // [esp+22h] [ebp-2Eh] BYREF\n  char v16; // [esp+28h] [ebp-28h]\n  __int16 v17; // [esp+2Ah] [ebp-26h]\n  _DWORD v18[2]; // [esp+34h] [ebp-1Ch] BYREF\n  char v19; // [esp+3Ch] [ebp-14h]\n  char v20; // [esp+3Dh] [ebp-13h]\n  __int16 v21; // [esp+3Eh] [ebp-12h]\n  int v22; // [esp+40h] [ebp-10h]\n  int v23; // [esp+44h] [ebp-Ch]\n  __int16 v24; // [esp+48h] [ebp-8h]\n  __int16 v25; // [esp+4Ah] [ebp-6h]\n  __int16 v26; // [esp+4Ch] [ebp-4h]\n  __int16 v27; // [esp+4Eh] [ebp-2h]\n\n  if ( !dword_1E6448 ) /*0x1624c5*/\n    kdp_panic(aKdpReply); /*0x1624cc*/\n  dword_1E6440 -= 28; /*0x1624dc*/\n  bcopy((const void *)(dword_1E6440 + 1990228), v18, 0x1Cu); /*0x1624ea*/\n  v18[1] = 0; /*0x1624ef*/\n  v18[0] = 0; /*0x1624f6*/\n  v19 = 0; /*0x1624fd*/\n  v20 = 17; /*0x162501*/\n  v21 = __ROR2__(dword_1E6444 + 8, 8); /*0x162518*/\n  v1 = v22; /*0x16251c*/\n  v22 = v23; /*0x162522*/\n  v23 = v1; /*0x162525*/\n  v24 = __ROR2__(1139, 8); /*0x162531*/\n  v25 = a1; /*0x162535*/\n  v26 = v21; /*0x162539*/\n  v27 = 0; /*0x16253d*/\n  bcopy(v18, (void *)(dword_1E6440 + 1990228), 0x1Cu); /*0x162551*/\n  bcopy((const void *)(dword_1E6440 + 1990228), v14, 0x14u); /*0x162567*/\n  v15[0] = __ROR2__(dword_1E6444 + 28, 8); /*0x16257d*/\n  v2 = ip_id++; /*0x16258b*/\n  v15[1] = __ROR2__(v2, 8); /*0x16259d*/\n  v14[0] = 69; /*0x1625a5*/\n  v16 = udp_ttl; /*0x1625ae*/\n  v17 = 0; /*0x1625b1*/\n  v3 = v14; /*0x1625ba*/\n  v12 = 0; /*0x1625bd*/\n  v4 = 0; /*0x1625c4*/\n  v5 = 4; /*0x1625c6*/\n  v11 = (unsigned __int8 *)v15; /*0x1625d0*/\n  do /*0x1625fc*/\n  {\n    v12 += v11[1] + *(v11 - 1); /*0x1625e1*/\n    v4 += *v11 + *v3; /*0x1625ec*/\n    v11 += 4; /*0x1625f1*/\n    v3 += 4; /*0x1625f4*/\n  }\n  while ( v5-- ); /*0x1625fc*/\n  v7 = ((unsigned int)(v12 + (v4 << 8)) >> 16) + (unsigned __int16)(v12 + ((_WORD)v4 << 8)); /*0x162610*/\n  if ( v7 > 0xFFFF ) /*0x162617*/\n    LOWORD(v7) = v7 + 1; /*0x162619*/\n  v17 = __ROR2__(~(_WORD)v7, 8); /*0x16262a*/\n  bcopy(v14, (void *)(dword_1E6440 + 1990228), 0x14u); /*0x16263c*/\n  dword_1E6444 += 28; /*0x162641*/\n  dword_1E6440 -= 14; /*0x162651*/\n  v8 = (_WORD *)(dword_1E6440 + 1990228); /*0x162657*/\n  v9 = (void *)(dword_1E6440 + 1990234); /*0x16265d*/\n  bcopy((const void *)(dword_1E6440 + 1990234), v13, 6u); /*0x16266a*/\n  bcopy(v8, v9, 6u); /*0x162676*/\n  bcopy(v13, v8, 6u); /*0x162682*/\n  v8[6] = __ROR2__(2048, 8); /*0x162693*/\n  dword_1E6444 += 14; /*0x162697*/\n  bcopy(&unk_1E5E54, &unk_1E644C, 0x5F8u); /*0x1626ad*/\n  result = kdp_en_send_pkt(dword_1E6440 + 1990228, dword_1E6444); /*0x1626c4*/\n  ++byte_1E5E50; /*0x1626c9*/\n  return result; /*0x1626d2*/\n}",
+    "refs": [
+      {
+        "addr": "0x185d80",
+        "name": "_kdp_panic"
+      },
+      {
+        "addr": "0x1df3c6",
+        "name": "aKdpReply",
+        "string": "kdp_reply"
+      },
+      {
+        "addr": "0x1e6448",
+        "name": "dword_1E6448"
+      },
+      {
+        "addr": "0x1e6440",
+        "name": "dword_1E6440"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1e6444",
+        "name": "dword_1E6444"
+      },
+      {
+        "addr": "0x1eaa88",
+        "name": "_ip_id"
+      },
+      {
+        "addr": "0x1dbef0",
+        "name": "_udp_ttl"
+      },
+      {
+        "addr": "0x1e5e54",
+        "name": "unk_1E5E54"
+      },
+      {
+        "addr": "0x1e644c",
+        "name": "unk_1E644C"
+      },
+      {
+        "addr": "0x185dc0",
+        "name": "_kdp_en_send_pkt"
+      },
+      {
+        "addr": "0x1e5e50",
+        "name": "byte_1E5E50"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001626dc",
+    "addr": "0x001626dc",
+    "code": "int __cdecl sub_1626DC(__int16 a1)\n{\n  __int16 v1; // dx\n  unsigned __int8 *v2; // esi\n  int v3; // edi\n  int v4; // ebx\n  unsigned int v6; // eax\n  _WORD *v7; // ebx\n  unsigned __int8 *v9; // [esp+Ch] [ebp-3Ch]\n  int v10; // [esp+10h] [ebp-38h]\n  _BYTE v11[2]; // [esp+18h] [ebp-30h] BYREF\n  _WORD v12[3]; // [esp+1Ah] [ebp-2Eh] BYREF\n  char v13; // [esp+20h] [ebp-28h]\n  __int16 v14; // [esp+22h] [ebp-26h]\n  _DWORD v15[2]; // [esp+2Ch] [ebp-1Ch] BYREF\n  char v16; // [esp+34h] [ebp-14h]\n  char v17; // [esp+35h] [ebp-13h]\n  __int16 v18; // [esp+36h] [ebp-12h]\n  int v19; // [esp+38h] [ebp-10h]\n  int v20; // [esp+3Ch] [ebp-Ch]\n  __int16 v21; // [esp+40h] [ebp-8h]\n  __int16 v22; // [esp+42h] [ebp-6h]\n  __int16 v23; // [esp+44h] [ebp-4h]\n  __int16 v24; // [esp+46h] [ebp-2h]\n\n  if ( dword_1E6448 ) /*0x1626f9*/\n    kdp_panic(aKdpSend); /*0x162700*/\n  dword_1E6440 -= 28; /*0x162710*/\n  bcopy((const void *)(dword_1E6440 + 1990228), v15, 0x1Cu); /*0x16271e*/\n  v15[1] = 0; /*0x162723*/\n  v15[0] = 0; /*0x16272a*/\n  v16 = 0; /*0x162731*/\n  v17 = 17; /*0x162735*/\n  v18 = __ROR2__(dword_1E6444 + 8, 8); /*0x16274c*/\n  v19 = adr; /*0x162756*/\n  v20 = dword_1F66CC; /*0x16275f*/\n  v21 = __ROR2__(1139, 8); /*0x16276b*/\n  v22 = a1; /*0x16276f*/\n  v23 = v18; /*0x162773*/\n  v24 = 0; /*0x162777*/\n  bcopy(v15, (void *)(dword_1E6440 + 1990228), 0x1Cu); /*0x16278b*/\n  bcopy((const void *)(dword_1E6440 + 1990228), v11, 0x14u); /*0x1627a1*/\n  v12[0] = __ROR2__(dword_1E6444 + 28, 8); /*0x1627b7*/\n  v1 = ip_id++; /*0x1627c5*/\n  v12[1] = __ROR2__(v1, 8); /*0x1627d7*/\n  v11[0] = 69; /*0x1627df*/\n  v13 = udp_ttl; /*0x1627e8*/\n  v14 = 0; /*0x1627eb*/\n  v2 = v11; /*0x1627f4*/\n  v10 = 0; /*0x1627f7*/\n  v3 = 0; /*0x1627fe*/\n  v4 = 4; /*0x162800*/\n  v9 = (unsigned __int8 *)v12; /*0x16280a*/\n  do /*0x162838*/\n  {\n    v10 += v9[1] + *(v9 - 1); /*0x16281d*/\n    v3 += *v9 + *v2; /*0x162828*/\n    v9 += 4; /*0x16282d*/\n    v2 += 4; /*0x162830*/\n  }\n  while ( v4-- ); /*0x162838*/\n  v6 = ((unsigned int)(v10 + (v3 << 8)) >> 16) + (unsigned __int16)(v10 + ((_WORD)v3 << 8)); /*0x16284c*/\n  if ( v6 > 0xFFFF ) /*0x162853*/\n    LOWORD(v6) = v6 + 1; /*0x162855*/\n  v14 = __ROR2__(~(_WORD)v6, 8); /*0x162866*/\n  bcopy(v11, (void *)(dword_1E6440 + 1990228), 0x14u); /*0x162878*/\n  dword_1E6444 += 28; /*0x16287d*/\n  dword_1E6440 -= 14; /*0x16288d*/\n  v7 = (_WORD *)(dword_1E6440 + 1990228); /*0x162893*/\n  bcopy(&unk_1F66C4, (void *)(dword_1E6440 + 1990234), 6u); /*0x1628a7*/\n  bcopy(&unk_1F66D0, v7, 6u); /*0x1628b7*/\n  v7[6] = __ROR2__(2048, 8); /*0x1628c8*/\n  dword_1E6444 += 14; /*0x1628d4*/\n  return kdp_en_send_pkt(dword_1E6440 + 1990228, dword_1E6444); /*0x1628ed*/\n}",
+    "refs": [
+      {
+        "addr": "0x185d80",
+        "name": "_kdp_panic"
+      },
+      {
+        "addr": "0x1df3d0",
+        "name": "aKdpSend",
+        "string": "kdp_send"
+      },
+      {
+        "addr": "0x1e6448",
+        "name": "dword_1E6448"
+      },
+      {
+        "addr": "0x1e6440",
+        "name": "dword_1E6440"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1e6444",
+        "name": "dword_1E6444"
+      },
+      {
+        "addr": "0x1f66c0",
+        "name": "_adr"
+      },
+      {
+        "addr": "0x1f66cc",
+        "name": "dword_1F66CC"
+      },
+      {
+        "addr": "0x1eaa88",
+        "name": "_ip_id"
+      },
+      {
+        "addr": "0x1dbef0",
+        "name": "_udp_ttl"
+      },
+      {
+        "addr": "0x1f66c4",
+        "name": "unk_1F66C4"
+      },
+      {
+        "addr": "0x1f66d0",
+        "name": "unk_1F66D0"
+      },
+      {
+        "addr": "0x185dc0",
+        "name": "_kdp_en_send_pkt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001628f4",
+    "addr": "0x001628f4",
+    "code": "void sub_1628F4()\n{\n  _WORD *v0; // ebx\n  int v1; // edx\n  _BYTE v2[20]; // [esp+Ch] [ebp-30h] BYREF\n  _BYTE v3[12]; // [esp+20h] [ebp-1Ch] BYREF\n  int v4; // [esp+2Ch] [ebp-10h]\n  int v5; // [esp+30h] [ebp-Ch]\n  __int16 v6; // [esp+36h] [ebp-6h]\n  __int16 v7; // [esp+38h] [ebp-4h]\n\n  if ( dword_1E6448 ) /*0x16290a*/\n    kdp_panic(aKdpPoll); /*0x162911*/\n  dword_1E6440 = 0; /*0x162919*/\n  kdp_en_recv_pkt(&unk_1E5E54, &dword_1E6444, 3); /*0x16292f*/\n  if ( (unsigned int)dword_1E6444 >= 0x2A ) /*0x16293e*/\n  {\n    v0 = (_WORD *)((char *)&unk_1E5E54 + dword_1E6440); /*0x162952*/\n    v1 = dword_1E6440 + 14; /*0x162958*/\n    dword_1E6440 += 14; /*0x16295b*/\n    if ( __ROR2__(v0[6], 8) == 2048 ) /*0x16296d*/\n    {\n      bcopy((char *)&unk_1E5E54 + v1, v3, 0x1Cu); /*0x16297d*/\n      bcopy((const void *)(dword_1E6440 + 1990228), v2, 0x14u); /*0x162990*/\n      dword_1E6440 += 28; /*0x162995*/\n      if ( v3[9] == 17 && (v2[0] & 0xFu) <= 5 && __ROR2__(v6, 8) == 1139 ) /*0x1629bc*/\n      {\n        if ( !dword_1F66A8 ) /*0x1629c5*/\n        {\n          bcopy(v0, &unk_1F66C4, 6u); /*0x1629cf*/\n          adr = v5; /*0x1629da*/\n          bcopy(v0 + 3, &unk_1F66D0, 6u); /*0x1629eb*/\n          dword_1F66CC = v4; /*0x1629f3*/\n        }\n        dword_1E6444 = (unsigned __int16)__ROR2__(v7, 8) - 8; /*0x162a09*/\n        dword_1E6448 = 1; /*0x162a0e*/\n      }\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x185d80",
+        "name": "_kdp_panic"
+      },
+      {
+        "addr": "0x1df3d9",
+        "name": "aKdpPoll",
+        "string": "kdp_poll"
+      },
+      {
+        "addr": "0x1e6448",
+        "name": "dword_1E6448"
+      },
+      {
+        "addr": "0x1e6440",
+        "name": "dword_1E6440"
+      },
+      {
+        "addr": "0x185dd4",
+        "name": "_kdp_en_recv_pkt"
+      },
+      {
+        "addr": "0x1e5e54",
+        "name": "unk_1E5E54"
+      },
+      {
+        "addr": "0x1e6444",
+        "name": "dword_1E6444"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1f66c4",
+        "name": "unk_1F66C4"
+      },
+      {
+        "addr": "0x1f66c0",
+        "name": "_adr"
+      },
+      {
+        "addr": "0x1f66d0",
+        "name": "unk_1F66D0"
+      },
+      {
+        "addr": "0x1f66cc",
+        "name": "dword_1F66CC"
+      },
+      {
+        "addr": "0x1f66a8",
+        "name": "dword_1F66A8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00162a24",
+    "addr": "0x00162a24",
+    "code": "int __cdecl kdp_raise_exception(unsigned int a1, int a2, int a3, int a4)\n{\n  unsigned int v4; // eax\n  int v5; // eax\n  int v6; // ebx\n  int v8; // [esp+10h] [ebp-10h]\n  __int16 v9; // [esp+16h] [ebp-Ah] BYREF\n  char v10; // [esp+18h] [ebp-8h] BYREF\n  unsigned __int8 v11; // [esp+19h] [ebp-7h]\n\n  v8 = kdp_intr_disbl(); /*0x162a38*/\n  if ( !a4 ) /*0x162a3f*/\n    safe_prf(aKdpRaiseExcept); /*0x162a46*/\n  v4 = a1; /*0x162a4e*/\n  if ( a1 != 6 ) /*0x162a53*/\n  {\n    if ( a1 > 6 || !a1 ) /*0x162a59*/\n      v4 = 0; /*0x162a5b*/\n    safe_prf(\"%s exception (%x,%x,%x)\\n\", (&off_1DF358)[v4], a1, a2, a3); /*0x162a70*/\n  }\n  kdp_flush_cache(); /*0x162a78*/\n  dword_1F66AC = a4; /*0x162a80*/\n  if ( dword_1E6448 ) /*0x162a8d*/\n    kdp_panic(aKdpRaiseExcept_0); /*0x162a94*/\n  if ( dword_1F66A8 ) /*0x162aa3*/\n  {\n    v6 = 300; /*0x162b88*/\n    while ( 1 ) /*0x162b90*/\n    {\n      dword_1E6440 = 42; /*0x162b90*/\n      kdp_exception(&unk_1E5E7E, &dword_1E6444, &v9, a1, a2, a3); /*0x162bae*/\n      sub_1626DC(v9); /*0x162bb8*/\n      sub_1628F4(); /*0x162bbd*/\n      if ( dword_1E6448 ) /*0x162bcc*/\n        kdp_exception_ack(dword_1E6440 + 1990228, dword_1E6444); /*0x162be0*/\n      dword_1E6448 = 0; /*0x162be8*/\n      if ( !dword_1F66B8 ) /*0x162bf9*/\n        break; /*0x162bf9*/\n      kdp_us_spin(100000); /*0x162c00*/\n      if ( !dword_1F66B8 ) /*0x162c0f*/\n        break; /*0x162c0f*/\n      if ( --v6 == -1 ) /*0x162c15*/\n      {\n        safe_prf(aKdpExceptionAc); /*0x162c20*/\n        kdp_reset(); /*0x162c25*/\n        break; /*0x162c25*/\n      }\n    }\n  }\n  else\n  {\n    safe_prf(aWaitingForRemo); /*0x162aae*/\n    safe_prf(aTypeCToContinu); /*0x162ab8*/\n    byte_1E5E50 = 0; /*0x162abd*/\n    do /*0x162b74*/\n    {\n      while ( !dword_1E6448 ) /*0x162b0e*/\n      {\n        v5 = kmtrygetc(); /*0x162acc*/\n        if ( v5 == 99 ) /*0x162ad4*/\n        {\n          safe_prf(aContinuing_1); /*0x162ae5*/\n          goto LABEL_32; /*0x162aea*/\n        }\n        if ( v5 == 114 ) /*0x162ad9*/\n        {\n          safe_prf(aRebooting_0); /*0x162af5*/\n          kdp_reboot(); /*0x162afa*/\n        }\n        sub_1628F4(); /*0x162b02*/\n      }\n      bcopy((const void *)(dword_1E6440 + 1990228), &v10, 8u); /*0x162b1e*/\n      if ( !v10 && v11 == byte_1E5E50 && kdp_packet((void *)(dword_1E6440 + 1990228), (size_t *)&dword_1E6444) ) /*0x162b4a*/\n        sub_1624A8(v9); /*0x162b5b*/\n      dword_1E6448 = 0; /*0x162b63*/\n    }\n    while ( !dword_1F66A8 ); /*0x162b74*/\n    safe_prf(aConnectedToRem); /*0x162b7b*/\n  }\nLABEL_32:\n  if ( dword_1F66A8 )\n  {\n    dword_1F66B0 = 1; /*0x162c3a*/\n    dword_1F66AC = a4; /*0x162c4a*/\n    do\n    {\n      while ( !dword_1E6448 ) /*0x162c60*/\n        sub_1628F4(); /*0x162c54*/\n      bcopy((const void *)(dword_1E6440 + 1990228), &v10, 8u); /*0x162c70*/\n      if ( v10 >= 0 )\n      {\n        if ( v11 == (unsigned __int8)byte_1E5E50 - 1 )\n        {\n          kdp_en_send_pkt(dword_1E6A38 + 1991756, dword_1E6A3C); /*0x162ca8*/\n        }\n        else if ( byte_1E5E50 == v11 )\n        {\n          if ( kdp_packet((void *)(dword_1E6440 + 1990228), (size_t *)&dword_1E6444) ) /*0x162ce0*/\n            sub_1624A8(v9); /*0x162cf1*/\n        }\n        else\n        {\n          safe_prf(\"kdp: bad sequence %d (want %d)\\n\", v11, (unsigned __int8)byte_1E5E50);\n        }\n      }\n      dword_1E6448 = 0; /*0x162cf9*/\n    }\n    while ( dword_1F66B0 );\n    if ( !dword_1F66A8 ) /*0x162d17*/\n      safe_prf(aRemoteDebugger); /*0x162d1e*/\n  }\n  kdp_flush_cache(); /*0x162d26*/\n  return kdp_intr_enbl(v8); /*0x162d37*/\n}",
+    "refs": [
+      {
+        "addr": "0x185da4",
+        "name": "_kdp_intr_disbl"
+      },
+      {
+        "addr": "0x1603b4",
+        "name": "_safe_prf"
+      },
+      {
+        "addr": "0x1df4ac",
+        "name": "aKdpRaiseExcept",
+        "string": "kdp_raise_exception with NULL state\n"
+      },
+      {
+        "addr": "0x1df4d1",
+        "name": "aSExceptionXXX",
+        "string": "%s exception (%x,%x,%x)\n"
+      },
+      {
+        "addr": "0x1df358",
+        "name": "off_1DF358"
+      },
+      {
+        "addr": "0x185dfc",
+        "name": "_kdp_flush_cache"
+      },
+      {
+        "addr": "0x1f66ac",
+        "name": "dword_1F66AC"
+      },
+      {
+        "addr": "0x185d80",
+        "name": "_kdp_panic"
+      },
+      {
+        "addr": "0x1df4ea",
+        "name": "aKdpRaiseExcept_0",
+        "string": "kdp_raise_exception"
+      },
+      {
+        "addr": "0x1e6448",
+        "name": "dword_1E6448"
+      },
+      {
+        "addr": "0x1e6440",
+        "name": "dword_1E6440"
+      },
+      {
+        "addr": "0x185b70",
+        "name": "_kdp_exception"
+      },
+      {
+        "addr": "0x1e5e7e",
+        "name": "unk_1E5E7E"
+      },
+      {
+        "addr": "0x1e6444",
+        "name": "dword_1E6444"
+      },
+      {
+        "addr": "0x1626dc",
+        "name": "sub_1626DC"
+      },
+      {
+        "addr": "0x1628f4",
+        "name": "sub_1628F4"
+      },
+      {
+        "addr": "0x185be8",
+        "name": "_kdp_exception_ack"
+      },
+      {
+        "addr": "0x1f66b8",
+        "name": "dword_1F66B8"
+      },
+      {
+        "addr": "0x185dec",
+        "name": "_kdp_us_spin"
+      },
+      {
+        "addr": "0x1df490",
+        "name": "aKdpExceptionAc",
+        "string": "kdp: exception ack timeout\n"
+      },
+      {
+        "addr": "0x162d40",
+        "name": "_kdp_reset"
+      },
+      {
+        "addr": "0x1df402",
+        "name": "aWaitingForRemo",
+        "string": "Waiting for remote debugger connection.\n"
+      },
+      {
+        "addr": "0x1df42b",
+        "name": "aTypeCToContinu",
+        "string": "(Type 'c' to continue or 'r' to reboot)\n"
+      },
+      {
+        "addr": "0x1e5e50",
+        "name": "byte_1E5E50"
+      },
+      {
+        "addr": "0x196084",
+        "name": "_kmtrygetc"
+      },
+      {
+        "addr": "0x1df454",
+        "name": "aContinuing_1",
+        "string": "Continuing...\n"
+      },
+      {
+        "addr": "0x1df463",
+        "name": "aRebooting_0",
+        "string": "Rebooting...\n"
+      },
+      {
+        "addr": "0x185d98",
+        "name": "_kdp_reboot"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1624a8",
+        "name": "sub_1624A8"
+      },
+      {
+        "addr": "0x161f4c",
+        "name": "_kdp_packet"
+      },
+      {
+        "addr": "0x1f66a8",
+        "name": "dword_1F66A8"
+      },
+      {
+        "addr": "0x1df471",
+        "name": "aConnectedToRem",
+        "string": "Connected to remote debugger.\n"
+      },
+      {
+        "addr": "0x1f66b0",
+        "name": "dword_1F66B0"
+      },
+      {
+        "addr": "0x185dc0",
+        "name": "_kdp_en_send_pkt"
+      },
+      {
+        "addr": "0x1e6a38",
+        "name": "dword_1E6A38"
+      },
+      {
+        "addr": "0x1e6a3c",
+        "name": "dword_1E6A3C"
+      },
+      {
+        "addr": "0x1df3e2",
+        "name": "aKdpBadSequence",
+        "string": "kdp: bad sequence %d (want %d)\n"
+      },
+      {
+        "addr": "0x1df4fe",
+        "name": "aRemoteDebugger",
+        "string": "Remote debugger disconnected.\n"
+      },
+      {
+        "addr": "0x185db0",
+        "name": "_kdp_intr_enbl"
+      }
+    ]
+  }
+]

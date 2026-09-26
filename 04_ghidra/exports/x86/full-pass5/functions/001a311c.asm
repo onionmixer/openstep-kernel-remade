@@ -1,0 +1,2 @@
+0x001a311c	3	MOV ESI,dword ptr [EBP + 0x8]
+0x001a311f	7	MOV dword ptr [ESI + 0x74],0x0

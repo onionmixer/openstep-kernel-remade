@@ -1,0 +1,34 @@
+/* Ghidra decompiler output, not reconstructed GCC 2.7 source.
+ * Binary SHA-256: 33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890; entry: 0x00141c6b */
+
+/* Synthetic analysis entry; not a reconstructed ABI function. Role=noreturn_fallthrough_fragment.
+   Context recorded in gap-actions.json. */
+
+int __analysis_fragment_00141c6b(void)
+
+{
+  byte *pbVar1;
+  int iVar2;
+  int iVar3;
+  int unaff_EBX;
+  int unaff_EBP;
+  
+  do {
+    unaff_EBX = unaff_EBX + 1;
+    if (0xb < unaff_EBX) {
+      iVar3 = *(int *)(*(int *)(unaff_EBP + 8) + 0xcc) - *(int *)(unaff_EBP + -0x114);
+      iVar2 = *(int *)(unaff_EBP + 8);
+      *(int *)(iVar2 + 0xcc) = iVar3;
+      if (iVar3 < 0) {
+        *(undefined4 *)(iVar2 + 0xcc) = 0;
+      }
+      pbVar1 = (byte *)(*(int *)(unaff_EBP + 8) + 0x44);
+      *pbVar1 = *pbVar1 | 0x40;
+      return (int)*(char *)(DAT_001e875c + 0x68);
+    }
+  } while (*(int *)(*(int *)(unaff_EBP + -0x104) + 0x8c + unaff_EBX * 4) ==
+           *(int *)(*(int *)(unaff_EBP + 8) + 0x8c + unaff_EBX * 4));
+                    /* WARNING: Subroutine does not return */
+  _panic(s_itrunc2_001de04c);
+}
+

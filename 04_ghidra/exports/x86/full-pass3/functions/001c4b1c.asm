@@ -1,0 +1,110 @@
+0x001c4b1c	1	PUSH EBP
+0x001c4b1d	2	MOV EBP,ESP
+0x001c4b1f	3	SUB ESP,0x1c
+0x001c4b22	1	PUSH EDI
+0x001c4b23	1	PUSH ESI
+0x001c4b24	1	PUSH EBX
+0x001c4b25	3	MOV ECX,dword ptr [EBP + 0x8]
+0x001c4b28	6	MOV ECX,dword ptr [ECX + 0x214]
+0x001c4b2e	3	MOV dword ptr [EBP + -0x4],ECX
+0x001c4b31	6	MOV ESI,dword ptr [0x001f9610]
+0x001c4b37	1	PUSH ESI
+0x001c4b38	3	MOV ECX,dword ptr [EBP + 0x8]
+0x001c4b3b	1	PUSH ECX
+0x001c4b3c	5	CALL 0x001ce960
+0x001c4b41	3	MOV dword ptr [EBP + -0x18],EAX
+0x001c4b44	6	MOV ESI,dword ptr [0x001f95f8]
+0x001c4b4a	1	PUSH ESI
+0x001c4b4b	3	MOV ECX,dword ptr [EBP + 0x8]
+0x001c4b4e	1	PUSH ECX
+0x001c4b4f	5	CALL 0x001ce960
+0x001c4b54	2	MOV EDX,EAX
+0x001c4b56	3	ADD ESP,0x10
+0x001c4b59	2	TEST EDX,EDX
+0x001c4b5b	2	JNZ 0x001c4b64
+0x001c4b5d	2	XOR EAX,EAX
+0x001c4b5f	5	JMP 0x001c4c5f
+0x001c4b64	2	PUSH 0x40
+0x001c4b66	3	MOV ESI,dword ptr [EBP + -0x18]
+0x001c4b69	3	ADD ESI,0x20
+0x001c4b6c	3	MOV dword ptr [EBP + -0x8],ESI
+0x001c4b6f	1	PUSH ESI
+0x001c4b70	3	MOV dword ptr [EBP + -0x10],EDX
+0x001c4b73	5	CALL 0x00101600
+0x001c4b78	3	MOV EBX,dword ptr [EBP + -0x4]
+0x001c4b7b	3	SHL EBX,0x4
+0x001c4b7e	3	ADD EBX,dword ptr [EBP + -0x4]
+0x001c4b81	3	SHL EBX,0x3
+0x001c4b84	3	MOV EDX,dword ptr [EBP + -0x10]
+0x001c4b87	3	LEA ECX,[EBX + EDX*0x1]
+0x001c4b8a	3	MOV dword ptr [EBP + -0xc],ECX
+0x001c4b8d	3	ADD ECX,0x20
+0x001c4b90	3	MOV dword ptr [EBP + -0x1c],ECX
+0x001c4b93	2	XOR AL,AL
+0x001c4b95	3	MOV EDI,dword ptr [EBP + -0x1c]
+0x001c4b98	1	CLD
+0x001c4b99	5	MOV ECX,0xffffffff
+0x001c4b9e	2	SCASB.REPNE ES:EDI
+0x001c4ba0	2	MOV EAX,ECX
+0x001c4ba2	2	NOT EAX
+0x001c4ba4	1	DEC EAX
+0x001c4ba5	1	PUSH EAX
+0x001c4ba6	3	MOV ESI,dword ptr [EBP + -0x1c]
+0x001c4ba9	1	PUSH ESI
+0x001c4baa	3	MOV ECX,dword ptr [EBP + -0x8]
+0x001c4bad	1	PUSH ECX
+0x001c4bae	5	CALL 0x00101bc0
+0x001c4bb3	3	MOV ESI,dword ptr [EBP + -0xc]
+0x001c4bb6	2	MOV ECX,dword ptr [ESI]
+0x001c4bb8	3	MOV ESI,dword ptr [EBP + -0x18]
+0x001c4bbb	2	MOV dword ptr [ESI],ECX
+0x001c4bbd	3	MOV EDX,dword ptr [EBP + -0x10]
+0x001c4bc0	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x4]
+0x001c4bc4	3	MOV dword ptr [ESI + 0x4],ECX
+0x001c4bc7	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x8]
+0x001c4bcb	3	MOV dword ptr [ESI + 0x8],ECX
+0x001c4bce	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0xc]
+0x001c4bd2	3	MOV dword ptr [ESI + 0xc],ECX
+0x001c4bd5	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x10]
+0x001c4bd9	3	MOV dword ptr [ESI + 0x10],ECX
+0x001c4bdc	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x18]
+0x001c4be0	3	MOV dword ptr [ESI + 0x18],ECX
+0x001c4be3	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x1c]
+0x001c4be7	3	MOV dword ptr [ESI + 0x1c],ECX
+0x001c4bea	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x64]
+0x001c4bee	3	MOV dword ptr [ESI + 0x64],ECX
+0x001c4bf1	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x78]
+0x001c4bf5	3	MOV dword ptr [ESI + 0x78],ECX
+0x001c4bf8	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x7c]
+0x001c4bfc	3	MOV dword ptr [ESI + 0x7c],ECX
+0x001c4bff	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x6c]
+0x001c4c03	3	MOV dword ptr [ESI + 0x6c],ECX
+0x001c4c06	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x68]
+0x001c4c0a	3	MOV dword ptr [ESI + 0x68],ECX
+0x001c4c0d	4	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x74]
+0x001c4c11	3	MOV dword ptr [ESI + 0x74],ECX
+0x001c4c14	7	MOV ECX,dword ptr [EDX + EBX*0x1 + 0x80]
+0x001c4c1b	6	MOV dword ptr [ESI + 0x80],ECX
+0x001c4c21	4	MOV EAX,dword ptr [EDX + EBX*0x1 + 0x60]
+0x001c4c25	2	TEST EAX,EAX
+0x001c4c27	2	JZ 0x001c4c30
+0x001c4c29	3	MOV dword ptr [ESI + 0x60],EAX
+0x001c4c2c	2	JMP 0x001c4c4e
+0x001c4c30	3	MOV ESI,dword ptr [EBP + -0x18]
+0x001c4c33	4	CMP dword ptr [ESI + 0x18],0x1
+0x001c4c37	2	JNZ 0x001c4c44
+0x001c4c39	7	MOV dword ptr [ESI + 0x60],0x10
+0x001c4c40	2	JMP 0x001c4c4e
+0x001c4c44	3	MOV ECX,dword ptr [EBP + -0x18]
+0x001c4c47	7	MOV dword ptr [ECX + 0x60],0x2
+0x001c4c4e	3	MOV ECX,dword ptr [EBP + -0x4]
+0x001c4c51	3	MOV ESI,dword ptr [EBP + 0x8]
+0x001c4c54	6	MOV dword ptr [ESI + 0x210],ECX
+0x001c4c5a	5	MOV EAX,0x1
+0x001c4c5f	3	LEA ESP,[EBP + -0x28]
+0x001c4c62	1	POP EBX
+0x001c4c63	1	POP ESI
+0x001c4c64	1	POP EDI
+0x001c4c65	2	MOV ESP,EBP
+0x001c4c67	1	POP EBP
+0x001c4c68	1	RET

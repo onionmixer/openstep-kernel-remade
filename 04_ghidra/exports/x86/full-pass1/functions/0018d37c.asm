@@ -1,0 +1,122 @@
+0x0018d37c	1	PUSH EBP
+0x0018d37d	2	MOV EBP,ESP
+0x0018d37f	3	SUB ESP,0x8
+0x0018d382	1	PUSH EDI
+0x0018d383	1	PUSH ESI
+0x0018d384	1	PUSH EBX
+0x0018d385	3	MOV EDX,dword ptr [EBP + 0x10]
+0x0018d388	3	MOV ESI,dword ptr [EDX + 0x28]
+0x0018d38b	3	MOV dword ptr [EBP + -0x8],ESI
+0x0018d38e	3	MOV EDI,dword ptr [EBP + 0x8]
+0x0018d391	3	MOV EDI,dword ptr [EDI + 0x28]
+0x0018d394	3	MOV dword ptr [EBP + -0x4],EDI
+0x0018d397	3	MOV ESI,dword ptr [EBP + 0x8]
+0x0018d39a	3	MOV EAX,dword ptr [ESI + 0xc]
+0x0018d39d	3	CMP dword ptr [EDX + 0xc],EAX
+0x0018d3a0	2	JZ 0x0018d3bf
+0x0018d3a2	3	MOV EAX,dword ptr [EAX + 0xc]
+0x0018d3a5	3	MOV EAX,dword ptr [EAX + 0x24]
+0x0018d3a8	7	MOV dword ptr [EAX + 0x18],0x0
+0x0018d3af	3	MOV EAX,dword ptr [EDX + 0xc]
+0x0018d3b2	3	MOV EAX,dword ptr [EAX + 0xc]
+0x0018d3b5	3	MOV EAX,dword ptr [EAX + 0x24]
+0x0018d3b8	7	MOV dword ptr [EAX + 0x18],0x1
+0x0018d3bf	6	MOV dword ptr [0x001e8b54],EDX
+0x0018d3c5	3	MOV EDI,dword ptr [EDX + 0x2c]
+0x0018d3c8	6	MOV dword ptr [0x001f6354],EDI
+0x0018d3ce	3	MOV EDX,dword ptr [EDX + 0x2c]
+0x0018d3d1	6	ADD EDX,0xff4
+0x0018d3d7	6	MOV dword ptr [0x001f74d8],EDX
+0x0018d3dd	3	MOV ESI,dword ptr [EBP + -0x8]
+0x0018d3e0	2	MOV EAX,dword ptr [ESI]
+0x0018d3e2	3	MOV EDI,dword ptr [EBP + -0x4]
+0x0018d3e5	2	MOV EDX,dword ptr [EDI]
+0x0018d3e7	3	MOV EAX,dword ptr [EAX + 0x1c]
+0x0018d3ea	3	CMP dword ptr [EDX + 0x1c],EAX
+0x0018d3ed	2	JZ 0x0018d3f2
+0x0018d3ef	3	MOV CR3,EAX
+0x0018d3f2	3	MOV ESI,dword ptr [EBP + -0x8]
+0x0018d3f5	3	MOV EBX,dword ptr [ESI + 0x74]
+0x0018d3f8	3	MOV EDI,dword ptr [EBP + -0x4]
+0x0018d3fb	3	CMP dword ptr [EDI + 0x74],EBX
+0x0018d3fe	2	JNZ 0x0018d408
+0x0018d400	3	MOV EAX,dword ptr [EDI + 0x78]
+0x0018d403	3	CMP dword ptr [ESI + 0x78],EAX
+0x0018d406	2	JZ 0x0018d452
+0x0018d408	6	MOV EDX,dword ptr [0x001e19b0]
+0x0018d40e	3	MOV ESI,dword ptr [EBP + -0x8]
+0x0018d411	3	MOV ECX,dword ptr [ESI + 0x78]
+0x0018d414	1	DEC ECX
+0x0018d415	4	MOV word ptr [EDX + 0x22],BX
+0x0018d419	2	MOV EAX,EBX
+0x0018d41b	3	SHR EAX,0x10
+0x0018d41e	3	MOV byte ptr [EDX + 0x24],AL
+0x0018d421	2	MOV EAX,EBX
+0x0018d423	3	SHR EAX,0x18
+0x0018d426	3	MOV byte ptr [EDX + 0x27],AL
+0x0018d429	3	MOV AL,byte ptr [EDX + 0x25]
+0x0018d42c	2	AND AL,0xe0
+0x0018d42e	2	OR AL,0x82
+0x0018d430	3	MOV byte ptr [EDX + 0x25],AL
+0x0018d433	4	AND byte ptr [EDX + 0x26],0x7f
+0x0018d437	4	MOV word ptr [EDX + 0x20],CX
+0x0018d43b	3	SHR ECX,0x10
+0x0018d43e	3	AND CL,0xf
+0x0018d441	3	MOV AL,byte ptr [EDX + 0x26]
+0x0018d444	2	AND AL,0xf0
+0x0018d446	2	OR AL,CL
+0x0018d448	3	MOV byte ptr [EDX + 0x26],AL
+0x0018d44b	7	LLDT word ptr [0x001d14ea]
+0x0018d452	6	MOV EDX,dword ptr [0x001e19b0]
+0x0018d458	3	MOV EDI,dword ptr [EBP + -0x8]
+0x0018d45b	2	MOV EAX,dword ptr [EDI]
+0x0018d45d	5	ADD EAX,0xc0000000
+0x0018d462	3	MOV EBX,dword ptr [EDI + 0x4]
+0x0018d465	1	DEC EBX
+0x0018d466	4	MOV word ptr [EDX + 0x1a],AX
+0x0018d46a	2	MOV ECX,EAX
+0x0018d46c	3	SHR ECX,0x10
+0x0018d46f	3	MOV byte ptr [EDX + 0x1c],CL
+0x0018d472	3	SHR EAX,0x18
+0x0018d475	3	MOV byte ptr [EDX + 0x1f],AL
+0x0018d478	4	MOV byte ptr [EDX + 0x1d],0x89
+0x0018d47c	4	AND byte ptr [EDX + 0x1e],0x7f
+0x0018d480	4	MOV word ptr [EDX + 0x18],BX
+0x0018d484	3	SHR EBX,0x10
+0x0018d487	2	MOV CL,BL
+0x0018d489	3	AND CL,0xf
+0x0018d48c	3	MOV AL,byte ptr [EDX + 0x1e]
+0x0018d48f	2	AND AL,0xf0
+0x0018d491	2	OR AL,CL
+0x0018d493	3	MOV byte ptr [EDX + 0x1e],AL
+0x0018d496	7	LTR word ptr [0x001d14e8]
+0x0018d49d	3	MOV EAX,CR0
+0x0018d4a0	2	OR AL,0x8
+0x0018d4a2	3	MOV CR0,EAX
+0x0018d4a5	3	MOV EDI,dword ptr [EBP + 0xc]
+0x0018d4a8	3	MOV ESI,dword ptr [EBP + 0x8]
+0x0018d4ab	3	MOV dword ptr [ESI + 0x34],EDI
+0x0018d4ae	2	TEST EDI,EDI
+0x0018d4b0	2	JZ 0x0018d4c0
+0x0018d4b2	1	PUSH ESI
+0x0018d4b3	3	MOV ESI,dword ptr [EBP + -0x8]
+0x0018d4b6	2	MOV ESI,dword ptr [ESI]
+0x0018d4b8	1	PUSH ESI
+0x0018d4b9	2	PUSH 0x0
+0x0018d4bb	2	JMP 0x0018d4d0
+0x0018d4c0	3	MOV EDI,dword ptr [EBP + 0x8]
+0x0018d4c3	1	PUSH EDI
+0x0018d4c4	3	MOV ESI,dword ptr [EBP + -0x8]
+0x0018d4c7	2	MOV ESI,dword ptr [ESI]
+0x0018d4c9	1	PUSH ESI
+0x0018d4ca	3	MOV EDI,dword ptr [EBP + -0x4]
+0x0018d4cd	2	MOV EDI,dword ptr [EDI]
+0x0018d4cf	1	PUSH EDI
+0x0018d4d0	5	CALL 0x00186f20
+0x0018d4d5	3	LEA ESP,[EBP + -0x14]
+0x0018d4d8	1	POP EBX
+0x0018d4d9	1	POP ESI
+0x0018d4da	1	POP EDI
+0x0018d4db	2	MOV ESP,EBP
+0x0018d4dd	1	POP EBP
+0x0018d4de	1	RET

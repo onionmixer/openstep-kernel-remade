@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "method": "Python 3 scanned each byte position in original __text for CALL rel32 targets, calculated copy range, and decoded selected full-pass5 bodies with Capstone 4.0.2 x86-32 to count explicit dword [register+0x30] write operands.",
+  "inputs": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890",
+    "functions": "04_ghidra/exports/x86/full-pass5/functions.json"
+  },
+  "template_copy_helper": {
+    "entry": "0x00178ba8",
+    "export_label_hypothesis": "__vm_object_allocate",
+    "source": "0x001f7360",
+    "destination": "second stack argument",
+    "raw_copy": [
+      "0x00178bb6 MOV ESI,0x001f7360",
+      "0x00178bbb MOV EDI,EDX",
+      "0x00178bbe MOV ECX,0x16",
+      "0x00178bc3 REP MOVSD"
+    ],
+    "copy_dwords": 22,
+    "copy_bytes": 88,
+    "field_offset": 48,
+    "field_in_copy_range": true
+  },
+  "template_field_clear": "0x00178aea MOV dword ptr [0x001f7390],0; 0x001f7390 - 0x001f7360 = 0x30",
+  "direct_rel32_callers": [
+    {
+      "site": "0x00178b5a",
+      "caller": "0x001789d0 _vm_object_init",
+      "destination_argument": "0x001f6ed0"
+    },
+    {
+      "site": "0x00178b73",
+      "caller": "0x001789d0 _vm_object_init",
+      "destination_argument": "0x001f73c0"
+    },
+    {
+      "site": "0x00178b98",
+      "caller": "0x00178b80 _vm_object_allocate",
+      "destination_argument": "ESI from 0x00178b8f CALL 0x0016b790"
+    },
+    {
+      "site": "0x001794ce",
+      "caller": "0x001793b0 _vm_object_copy",
+      "destination_argument": "EAX from 0x001794c4 CALL 0x0016b790, saved at [EBP-4]"
+    },
+    {
+      "site": "0x001795be",
+      "caller": "0x001795a0 _vm_object_shadow",
+      "destination_argument": "ESI from 0x001795b5 CALL 0x0016b790"
+    }
+  ],
+  "direct_rel32_call_count": 5,
+  "explicit_field30_dword_write_audit": {
+    "scanned_function_entries": [
+      "0x001789d0",
+      "0x00178b80",
+      "0x00178ba8",
+      "0x001793b0",
+      "0x001795a0"
+    ],
+    "write_operand_count": 0
+  },
+  "separate_post_construction_clear": "0x00179a79 MOV dword ptr [ESI+0x30],0 in 0x00179914 _vm_object_collapse",
+  "limit": "The direct rel32 inventory does not cover indirect/computed callers. The explicit operand scan does not cover string/bulk copy source changes, arithmetic aliases, non-export code, actual execution/order, allocation success, runtime writers, or live-object lifetime. Labels are hypotheses."
+}

@@ -1,0 +1,421 @@
+[
+  {
+    "requested_address": "0x001b22d4",
+    "addr": "0x001b22d4",
+    "code": "id __cdecl -[EventDriver scheduleNextPeriodicEvent](EventDriver *self, SEL a2)\n{\n  unsigned __int64 waitFrameTime; // rcx\n  unsigned __int64 v4; // [esp+Ch] [ebp-8h] BYREF\n\n  IOGetTimestamp((int *)&v4); /*0x1b22e4*/\n  waitFrameTime = v4 + 167772160; /*0x1b22f5*/\n  if ( self->waitFrameTime > v4 && self->waitFrameTime < waitFrameTime ) /*0x1b2321*/\n    waitFrameTime = self->waitFrameTime; /*0x1b2323*/\n  if ( !self->periodicRunPending /*0x1b2364*/\n    || self->nextPeriodicRun > waitFrameTime\n    || self->nextPeriodicRun <= self->thisPeriodicRun )\n  {\n    self->nextPeriodicRun = waitFrameTime; /*0x1b2366*/\n    -[EventDriver runPeriodicEvent:](self, sel_runPeriodicEvent_, waitFrameTime); /*0x1b237c*/\n  }\n  return self; /*0x1b2386*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1b2290",
+        "name": "-[EventDriver runPeriodicEvent:]"
+      },
+      {
+        "addr": "0x205388",
+        "name": "sel_runPeriodicEvent:",
+        "string": "runPeriodicEvent:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2390",
+    "addr": "0x001b2390",
+    "code": null,
+    "error": "Decompilation failed at 0x1b2390 (address: 0x1b2479)"
+  },
+  {
+    "requested_address": "0x001b248c",
+    "addr": "0x001b248c",
+    "code": "void __cdecl -[EventDriver showWaitCursor](EventDriver *self, SEL a2)\n{\n  int waitFrameRate; // edx\n  bool v3; // cf\n  int waitSustain; // edx\n\n  *((_DWORD *)self->evg + 17) = 1; /*0x1b2499*/\n  -[EventDriver changeCursor:](self, sel_changeCursor_, 1); /*0x1b24aa*/\n  waitFrameRate = self->waitFrameRate; /*0x1b24af*/\n  v3 = __CFADD__(self->thisPeriodicRun, waitFrameRate); /*0x1b24b5*/\n  LODWORD(self->waitFrameTime) = LODWORD(self->thisPeriodicRun) + waitFrameRate; /*0x1b24bb*/\n  HIDWORD(self->waitFrameTime) = HIDWORD(self->thisPeriodicRun) + v3 + HIDWORD(self->waitFrameRate); /*0x1b24cd*/\n  waitSustain = self->waitSustain; /*0x1b24d3*/\n  v3 = __CFADD__(self->thisPeriodicRun, waitSustain); /*0x1b24d9*/\n  LODWORD(self->waitSusTime) = LODWORD(self->thisPeriodicRun) + waitSustain; /*0x1b24df*/\n  HIDWORD(self->waitSusTime) = HIDWORD(self->thisPeriodicRun) + v3 + HIDWORD(self->waitSustain); /*0x1b24f1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b25a0",
+        "name": "-[EventDriver changeCursor:]"
+      },
+      {
+        "addr": "0x205334",
+        "name": "sel_changeCursor:",
+        "string": "changeCursor:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2500",
+    "addr": "0x001b2500",
+    "code": "void __cdecl -[EventDriver hideWaitCursor](EventDriver *self, SEL a2)\n{\n  *((_DWORD *)self->evg + 17) = 0; /*0x1b250d*/\n  -[EventDriver changeCursor:](self, sel_changeCursor_, 0); /*0x1b251e*/\n  self->waitFrameTime = 0; /*0x1b2523*/\n  self->waitSusTime = 0; /*0x1b2537*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b25a0",
+        "name": "-[EventDriver changeCursor:]"
+      },
+      {
+        "addr": "0x205334",
+        "name": "sel_changeCursor:",
+        "string": "changeCursor:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2554",
+    "addr": "0x001b2554",
+    "code": "void __cdecl -[EventDriver animateWaitCursor](EventDriver *self, SEL a2)\n{\n  int waitFrameRate; // edx\n  bool v3; // cf\n\n  -[EventDriver changeCursor:](self, sel_changeCursor_, *((_DWORD *)self->evg + 7) + 1); /*0x1b256e*/\n  waitFrameRate = self->waitFrameRate; /*0x1b2573*/\n  v3 = __CFADD__(self->thisPeriodicRun, waitFrameRate); /*0x1b2579*/\n  LODWORD(self->waitFrameTime) = LODWORD(self->thisPeriodicRun) + waitFrameRate; /*0x1b257f*/\n  HIDWORD(self->waitFrameTime) = HIDWORD(self->thisPeriodicRun) + v3 + HIDWORD(self->waitFrameRate); /*0x1b2591*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b25a0",
+        "name": "-[EventDriver changeCursor:]"
+      },
+      {
+        "addr": "0x205334",
+        "name": "sel_changeCursor:",
+        "string": "changeCursor:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b25a0",
+    "addr": "0x001b25a0",
+    "code": "void __cdecl -[EventDriver changeCursor:](EventDriver *self, SEL a2, int a3)\n{\n  int v3; // eax\n\n  v3 = 1; /*0x1b25b1*/\n  if ( a3 <= 3 ) /*0x1b25b9*/\n    v3 = a3; /*0x1b25bb*/\n  *((_DWORD *)self->evg + 7) = v3; /*0x1b25bd*/\n  -[EventDriver moveCursor](self, sel_moveCursor); /*0x1b25c8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b28e4",
+        "name": "-[EventDriver moveCursor]"
+      },
+      {
+        "addr": "0x2052e0",
+        "name": "sel_moveCursor",
+        "string": "moveCursor"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b25d8",
+    "addr": "0x001b25d8",
+    "code": "int __cdecl -[EventDriver pointToScreen:](EventDriver *self, SEL a2, $9B414A52084CF78D000E95AF47DF0AD5 *a3)\n{\n  char *evScreen; // esi\n  int v4; // ebx\n  int i; // ecx\n  signed __int16 var1; // dx\n\n  evScreen = (char *)self->evScreen; /*0x1b25e4*/\n  v4 = self->screens - 1; /*0x1b25f0*/\n  if ( !self->screens ) /*0x1b25f1*/\n    return -1; /*0x1b2645*/\n  for ( i = 20 * v4; ; i -= 20 ) /*0x1b25f9*/\n  {\n    if ( *(_DWORD *)&evScreen[i] ) /*0x1b2600*/\n    {\n      if ( a3->var0 >= *(_WORD *)&evScreen[i + 12] && a3->var0 < *(_WORD *)&evScreen[i + 14] ) /*0x1b261c*/\n      {\n        var1 = a3->var1; /*0x1b261e*/\n        if ( var1 >= *(__int16 *)&evScreen[i + 16] && var1 < *(__int16 *)&evScreen[i + 18] ) /*0x1b2634*/\n          break; /*0x1b2634*/\n      }\n    }\n    if ( --v4 == -1 ) /*0x1b2643*/\n      return -1; /*0x1b2643*/\n  }\n  return v4; /*0x1b264d*/\n}"
+  },
+  {
+    "requested_address": "0x001b2654",
+    "addr": "0x001b2654",
+    "code": "id __cdecl -[EventDriver setBrightness:](EventDriver *self, SEL a2, int a3)\n{\n  id result; // eax\n  int v4; // edx\n\n  result = self; /*0x1b2657*/\n  v4 = a3; /*0x1b265a*/\n  if ( a3 >= 0 ) /*0x1b265f*/\n  {\n    if ( a3 > 64 ) /*0x1b266b*/\n      v4 = 64; /*0x1b266d*/\n  }\n  else\n  {\n    v4 = 0; /*0x1b2661*/\n  }\n  if ( self->curBright != v4 ) /*0x1b2678*/\n  {\n    self->curBright = v4; /*0x1b267a*/\n    if ( !self->autoDimmed ) /*0x1b2680*/\n      return -[EventDriver setBrightness](self, sel_setBrightness); /*0x1b2691*/\n  }\n  return result; /*0x1b2698*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b2868",
+        "name": "-[EventDriver setBrightness]"
+      },
+      {
+        "addr": "0x2052ec",
+        "name": "sel_setBrightness",
+        "string": "setBrightness"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b26a0",
+    "addr": "0x001b26a0",
+    "code": "int __cdecl -[EventDriver brightness](EventDriver *self, SEL a2)\n{\n  return self->curBright; /*0x1b26ae*/\n}"
+  },
+  {
+    "requested_address": "0x001b26b0",
+    "addr": "0x001b26b0",
+    "code": "id __cdecl -[EventDriver setAutoDimBrightness:](EventDriver *self, SEL a2, int a3)\n{\n  id result; // eax\n  int v4; // edx\n\n  result = self; /*0x1b26b3*/\n  v4 = a3; /*0x1b26b6*/\n  if ( a3 >= 0 ) /*0x1b26bb*/\n  {\n    if ( a3 > 64 ) /*0x1b26c7*/\n      v4 = 64; /*0x1b26c9*/\n  }\n  else\n  {\n    v4 = 0; /*0x1b26bd*/\n  }\n  if ( self->dimmedBrightness != v4 ) /*0x1b26d4*/\n  {\n    self->dimmedBrightness = v4; /*0x1b26d6*/\n    if ( self->autoDimmed == 1 ) /*0x1b26e3*/\n      return -[EventDriver setBrightness](self, sel_setBrightness); /*0x1b26ed*/\n  }\n  return result; /*0x1b26f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b2868",
+        "name": "-[EventDriver setBrightness]"
+      },
+      {
+        "addr": "0x2052ec",
+        "name": "sel_setBrightness",
+        "string": "setBrightness"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b26fc",
+    "addr": "0x001b26fc",
+    "code": "int __cdecl -[EventDriver autoDimBrightness](EventDriver *self, SEL a2)\n{\n  return self->dimmedBrightness; /*0x1b270a*/\n}"
+  },
+  {
+    "requested_address": "0x001b270c",
+    "addr": "0x001b270c",
+    "code": "int __cdecl -[EventDriver currentBrightness](EventDriver *self, SEL a2)\n{\n  int result; // eax\n\n  if ( self->autoDimmed != 1 ) /*0x1b2719*/\n    return self->curBright; /*0x1b2719*/\n  result = self->dimmedBrightness; /*0x1b271b*/\n  if ( self->curBright <= result ) /*0x1b2727*/\n    return self->curBright; /*0x1b2729*/\n  return result; /*0x1b2731*/\n}"
+  },
+  {
+    "requested_address": "0x001b2734",
+    "addr": "0x001b2734",
+    "code": "id __cdecl -[EventDriver doAutoDim](EventDriver *self, SEL a2)\n{\n  self->autoDimmed = 1; /*0x1b273b*/\n  -[EventDriver setBrightness](self, sel_setBrightness); /*0x1b274a*/\n  return self; /*0x1b2751*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b2868",
+        "name": "-[EventDriver setBrightness]"
+      },
+      {
+        "addr": "0x2052ec",
+        "name": "sel_setBrightness",
+        "string": "setBrightness"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2758",
+    "addr": "0x001b2758",
+    "code": "id __cdecl -[EventDriver undoAutoDim](EventDriver *self, SEL a2)\n{\n  self->autoDimmed = 0; /*0x1b275f*/\n  -[EventDriver setBrightness](self, sel_setBrightness); /*0x1b276e*/\n  return self; /*0x1b2775*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b2868",
+        "name": "-[EventDriver setBrightness]"
+      },
+      {
+        "addr": "0x2052ec",
+        "name": "sel_setBrightness",
+        "string": "setBrightness"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b277c",
+    "addr": "0x001b277c",
+    "code": "id __cdecl -[EventDriver forceAutoDimState:](EventDriver *self, SEL a2, char a3)\n{\n  if ( a3 == 1 ) /*0x1b2787*/\n  {\n    if ( !self->autoDimmed ) /*0x1b2789*/\n    {\n      if ( self->eventsOpen == 1 ) /*0x1b2799*/\n        self->autoDimTime = *((_DWORD *)self->evg + 4); /*0x1b27a4*/\n      -[EventDriver doAutoDim](self, sel_doAutoDim); /*0x1b27b0*/\n    }\n  }\n  else if ( self->autoDimmed == 1 ) /*0x1b27bb*/\n  {\n    if ( self->eventsOpen == 1 ) /*0x1b27c4*/\n      self->autoDimTime = self->autoDimPeriod + *((_DWORD *)self->evg + 4); /*0x1b27d5*/\n    -[EventDriver undoAutoDim](self, sel_undoAutoDim); /*0x1b27e3*/\n  }\n  return self; /*0x1b27ea*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b2734",
+        "name": "-[EventDriver doAutoDim]"
+      },
+      {
+        "addr": "0x205318",
+        "name": "sel_doAutoDim",
+        "string": "doAutoDim"
+      },
+      {
+        "addr": "0x1b2758",
+        "name": "-[EventDriver undoAutoDim]"
+      },
+      {
+        "addr": "0x205194",
+        "name": "sel_undoAutoDim",
+        "string": "undoAutoDim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b27f4",
+    "addr": "0x001b27f4",
+    "code": "id __cdecl -[EventDriver setAudioVolume:](EventDriver *self, SEL a2, int a3)\n{\n  id result; // eax\n  int v4; // edx\n\n  result = self; /*0x1b27f7*/\n  v4 = a3; /*0x1b27fa*/\n  if ( a3 >= 0 ) /*0x1b27ff*/\n  {\n    if ( a3 > 64 ) /*0x1b280b*/\n      v4 = 64; /*0x1b280d*/\n  }\n  else\n  {\n    v4 = 0; /*0x1b2801*/\n  }\n  self->curVolume = v4; /*0x1b2812*/\n  return result; /*0x1b281a*/\n}"
+  },
+  {
+    "requested_address": "0x001b281c",
+    "addr": "0x001b281c",
+    "code": "id __cdecl -[EventDriver setUserAudioVolume:](EventDriver *self, SEL a2, int a3)\n{\n  -[EventDriver setAudioVolume:](self, sel_setAudioVolume_, a3); /*0x1b282f*/\n  return -[EventDriver evSpecialKeyMsg:direction:flags:level:]( /*0x1b284e*/\n           self,\n           sel_evSpecialKeyMsg_direction_flags_level_,\n           0,\n           10,\n           0,\n           self->curVolume);\n}",
+    "refs": [
+      {
+        "addr": "0x1b27f4",
+        "name": "-[EventDriver setAudioVolume:]"
+      },
+      {
+        "addr": "0x205308",
+        "name": "sel_setAudioVolume:",
+        "string": "setAudioVolume:"
+      },
+      {
+        "addr": "0x1b18a0",
+        "name": "-[EventDriver evSpecialKeyMsg:direction:flags:level:]"
+      },
+      {
+        "addr": "0x204f18",
+        "name": "sel_evSpecialKeyMsg:direction:flags:level:",
+        "string": "evSpecialKeyMsg:direction:flags:level:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2858",
+    "addr": "0x001b2858",
+    "code": "int __cdecl -[EventDriver audioVolume](EventDriver *self, SEL a2)\n{\n  return self->curVolume; /*0x1b2866*/\n}"
+  },
+  {
+    "requested_address": "0x001b2868",
+    "addr": "0x001b2868",
+    "code": "id __cdecl -[EventDriver setBrightness](EventDriver *self, SEL a2)\n{\n  int i; // ebx\n\n  for ( i = 0; self->screens > i; ++i ) /*0x1b2878*/\n    -[EventDriver evDispatch:command:](self, sel_evDispatch_command_, i, 4); /*0x1b2887*/\n  return self; /*0x1b289d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b19a4",
+        "name": "-[EventDriver evDispatch:command:]"
+      },
+      {
+        "addr": "0x204eec",
+        "name": "sel_evDispatch:command:",
+        "string": "evDispatch:command:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b28a4",
+    "addr": "0x001b28a4",
+    "code": "id __cdecl -[EventDriver showCursor](EventDriver *self, SEL a2)\n{\n  return -[EventDriver evDispatch:command:](self, sel_evDispatch_command_, self->currentScreen, 2); /*0x1b28c2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b19a4",
+        "name": "-[EventDriver evDispatch:command:]"
+      },
+      {
+        "addr": "0x204eec",
+        "name": "sel_evDispatch:command:",
+        "string": "evDispatch:command:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b28c4",
+    "addr": "0x001b28c4",
+    "code": "id __cdecl -[EventDriver hideCursor](EventDriver *self, SEL a2)\n{\n  return -[EventDriver evDispatch:command:](self, sel_evDispatch_command_, self->currentScreen, 1); /*0x1b28e2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b19a4",
+        "name": "-[EventDriver evDispatch:command:]"
+      },
+      {
+        "addr": "0x204eec",
+        "name": "sel_evDispatch:command:",
+        "string": "evDispatch:command:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b28e4",
+    "addr": "0x001b28e4",
+    "code": "id __cdecl -[EventDriver moveCursor](EventDriver *self, SEL a2)\n{\n  return -[EventDriver evDispatch:command:](self, sel_evDispatch_command_, self->currentScreen, 3); /*0x1b2902*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b19a4",
+        "name": "-[EventDriver evDispatch:command:]"
+      },
+      {
+        "addr": "0x204eec",
+        "name": "sel_evDispatch:command:",
+        "string": "evDispatch:command:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2904",
+    "addr": "0x001b2904",
+    "code": "id __cdecl -[EventDriver attachDefaultEventSources](EventDriver *self, SEL a2)\n{\n  _DWORD *i; // ebx\n\n  for ( i = defaultEventSources(); *i; ++i ) /*0x1b2913*/\n    -[EventDriver attachEventSource:](self, sel_attachEventSource_, *i); /*0x1b2923*/\n  return self; /*0x1b2938*/\n}",
+    "refs": [
+      {
+        "addr": "0x19554c",
+        "name": "_defaultEventSources"
+      },
+      {
+        "addr": "0x1b2940",
+        "name": "-[EventDriver attachEventSource:]"
+      },
+      {
+        "addr": "0x2052b0",
+        "name": "sel_attachEventSource:",
+        "string": "attachEventSource:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2940",
+    "addr": "0x001b2940",
+    "code": "id __cdecl -[EventDriver attachEventSource:](EventDriver *self, SEL a2, const char *a3)\n{\n  Class Class; // eax\n  Class v4; // ebx\n  const char *v5; // eax\n  const char *v7; // eax\n  id v8; // eax\n  void *v9; // ebx\n  const char *v10; // eax\n  const char *v11; // eax\n\n  Class = objc_getClass(a3); /*0x1b294d*/\n  v4 = Class; /*0x1b2952*/\n  if ( Class )\n  {\n    if ( (unsigned __int8)-[objc_class respondsTo:](Class, sel_respondsTo_, sel_probe) )\n    {\n      v8 = -[objc_class probe](v4, sel_probe); /*0x1b29c4*/\n      v9 = v8; /*0x1b29c9*/\n      if ( v8 )\n      {\n        if ( -[EventDriver registerEventSource:](self, sel_registerEventSource_, v8) )\n        {\n          return v9; /*0x1b2a2c*/\n        }\n        else\n        {\n          v11 = -[IODevice name](self, sel_name); /*0x1b2a12*/\n          IOLog((int)\"%s: becomeOwner of %s failed\\n\", v11, a3);\n          return nullptr; /*0x1b2a25*/\n        }\n      }\n      else\n      {\n        v10 = -[IODevice name](self, sel_name); /*0x1b29db*/\n        IOLog((int)\"%s: probe of %s failed\\n\", v10, a3);\n        return nullptr; /*0x1b29ee*/\n      }\n    }\n    else\n    {\n      v7 = -[IODevice name](self, sel_name); /*0x1b29a4*/\n      IOLog((int)\"%s: %s does not respond to probe.\\n\", v7, a3);\n      return nullptr; /*0x1b29b7*/\n    }\n  }\n  else\n  {\n    v5 = -[IODevice name](self, sel_name); /*0x1b2964*/\n    IOLog((int)\"%s: %s: no such class.\\n\", v5, a3);\n    return nullptr; /*0x1b2977*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ced1c",
+        "name": "_objc_getClass"
+      },
+      {
+        "addr": "0x209ad8",
+        "name": "-[objc_class probe]"
+      },
+      {
+        "addr": "0x202db4",
+        "name": "sel_probe",
+        "string": "probe"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8270",
+        "name": "aSBecomeownerOf",
+        "string": "%s: becomeOwner of %s failed\n"
+      },
+      {
+        "addr": "0x1b2b0c",
+        "name": "-[EventDriver registerEventSource:]"
+      },
+      {
+        "addr": "0x205298",
+        "name": "sel_registerEventSource:",
+        "string": "registerEventSource:"
+      },
+      {
+        "addr": "0x1d8258",
+        "name": "aSProbeOfSFaile",
+        "string": "%s: probe of %s failed\n"
+      },
+      {
+        "addr": "0x1d8234",
+        "name": "aSSDoesNotRespo",
+        "string": "%s: %s does not respond to probe.\n"
+      },
+      {
+        "addr": "0x209ab8",
+        "name": "-[objc_class respondsTo:]"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      },
+      {
+        "addr": "0x1d821c",
+        "name": "aSSNoSuchClass",
+        "string": "%s: %s: no such class.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2a38",
+    "addr": "0x001b2a38",
+    "code": "id __cdecl -[EventDriver detachEventSources](EventDriver *self, SEL a2)\n{\n  queue_entry *p_eventSrcList; // edi\n  queue_entry *next; // ebx\n  int v4; // edx\n  int v5; // eax\n\n  objc_msgSend(self->eventSrcListLock, sel_lock); /*0x1b2a4f*/\n  if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->eventSrcList.next != &self->eventSrcList ) /*0x1b2a63*/\n  {\n    p_eventSrcList = (queue_entry *)&self->eventSrcList; /*0x1b2a69*/\n    do /*0x1b2ae8*/\n    {\n      next = self->eventSrcList.next; /*0x1b2a6c*/\n      v4 = *((_DWORD *)next + 1); /*0x1b2a72*/\n      v5 = *((_DWORD *)next + 2); /*0x1b2a75*/\n      if ( p_eventSrcList == (queue_entry *)v4 ) /*0x1b2a7a*/\n        self->eventSrcList.prev = (queue_entry *)v5; /*0x1b2a7c*/\n      else\n        *(_DWORD *)(v4 + 8) = v5; /*0x1b2a84*/\n      if ( p_eventSrcList == (queue_entry *)v5 ) /*0x1b2a89*/\n        self->eventSrcList.next = (queue_entry *)v4; /*0x1b2a8b*/\n      else\n        *(_DWORD *)(v5 + 4) = v4; /*0x1b2a94*/\n      objc_msgSend(self->eventSrcListLock, sel_unlock); /*0x1b2aa5*/\n      if ( *(_DWORD *)next ) /*0x1b2aad*/\n        objc_msgSend(*(id *)next, sel_relinquishOwnership_, self); /*0x1b2abc*/\n      IOFree((int)next, 12); /*0x1b2ac7*/\n      objc_msgSend(self->eventSrcListLock, sel_lock); /*0x1b2ada*/\n    }\n    while ( self->eventSrcList.next != p_eventSrcList ); /*0x1b2ae8*/\n  }\n  objc_msgSend(self->eventSrcListLock, sel_unlock); /*0x1b2af8*/\n  return self; /*0x1b2b02*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x202dbc",
+        "name": "sel_relinquishOwnership:",
+        "string": "relinquishOwnership:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  }
+]

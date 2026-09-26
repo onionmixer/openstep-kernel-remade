@@ -1,0 +1,30 @@
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_0017e2e0(void)
+
+{
+  int iVar1;
+  
+  DAT_001f7494 = &_dmaBufQueue;
+  _dmaBufQueue = &_dmaBufQueue;
+  iVar1 = _task_create(_kernel_task,0,(void **)&_IOTask_kern);
+  if (iVar1 != 0) {
+    _IOLog(s_IOLibIOInit_task_create_returned_001e0f49,iVar1);
+    return;
+  }
+  _task_deallocate(_IOTask_kern);
+  _vm_map_deallocate(*(undefined4 *)(_IOTask_kern + 0xc));
+  iVar1 = _IOTask_kern;
+  *(undefined4 *)(_IOTask_kern + 0xc) = _kernel_map;
+  *(undefined4 *)(iVar1 + 0x3c) = _kernel_proc;
+  *(undefined4 *)(iVar1 + 0x50) = 1;
+  _lock_init(*(int *)(iVar1 + 0x38) + 0x20,1);
+  iVar1 = _IOTask_kern;
+  *(undefined4 *)(*(int *)(_IOTask_kern + 0x38) + 0x1c) = _rootcred;
+  **(undefined4 **)(iVar1 + 0x38) = _kernel_proc;
+  _processor_set_policy_enable(0x1e9610,2);
+  __IOTask = _IOTaskGetPort(*(undefined4 *)(_IOTask_kern + 0x6c));
+  return;
+}
+

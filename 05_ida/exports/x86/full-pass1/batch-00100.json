@@ -1,0 +1,519 @@
+[
+  {
+    "requested_address": "0x00106e58",
+    "addr": "0x00106e58",
+    "code": "int smmap()\n{\n  char v0; // dl\n  int result; // eax\n  _DWORD *v2; // esi\n  int v3; // eax\n  int v4; // eax\n  int (*v5)(); // esi\n  signed int v6; // ebx\n  int v7; // esi\n  int v8; // ebx\n  int v9; // edx\n  int v10; // eax\n  char v11; // bl\n  int v12; // eax\n  int v13; // esi\n  int v14; // eax\n  int v15; // eax\n  vm_size_t size; // [esp+Ch] [ebp-2Ch]\n  vm_size_t sizea; // [esp+Ch] [ebp-2Ch]\n  __int16 v18; // [esp+18h] [ebp-20h]\n  vm_address_t v19; // [esp+1Ch] [ebp-1Ch]\n  vm_address_t v20; // [esp+20h] [ebp-18h]\n  vm_map_t target_task; // [esp+24h] [ebp-14h]\n  vm_address_t *v22; // [esp+28h] [ebp-10h]\n  int v23; // [esp+2Ch] [ebp-Ch] BYREF\n  vm_address_t address; // [esp+30h] [ebp-8h] BYREF\n  int v25; // [esp+34h] [ebp-4h] BYREF\n\n  v22 = *(vm_address_t **)(dword_1E875C + 36); /*0x106e69*/\n  address = *v22; /*0x106e6e*/\n  size = v22[1]; /*0x106e77*/\n  v20 = v22[5]; /*0x106e80*/\n  v19 = v22[2]; /*0x106e89*/\n  v0 = getvnodefp(v22[4], &v25); /*0x106e9c*/\n  result = dword_1E875C; /*0x106e9e*/\n  *(_BYTE *)(dword_1E875C + 104) = v0; /*0x106ea3*/\n  if ( *(_BYTE *)(dword_1E875C + 104) ) /*0x106eaf*/\n    return result; /*0x106eb3*/\n  if ( *(_WORD *)(v25 + 12) != 1 /*0x106eef*/\n    || (v2 = *(_DWORD **)(v25 + 24),\n        address &= ~page_mask,\n        result = ~page_mask & (size + page_mask),\n        sizea = result,\n        (v19 & 2) != 0)\n    && (*(_BYTE *)(v25 + 8) & 2) == 0 )\n  {\n    *(_BYTE *)(dword_1E875C + 104) = 22; /*0x106ef1*/\n    return result; /*0x106ef5*/\n  }\n  if ( (v19 & 1) != 0 && (*(_BYTE *)(v25 + 8) & 1) == 0 ) /*0x106f0b*/\n    goto LABEL_37; /*0x106f0b*/\n  target_task = *(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12); /*0x106f1c*/\n  if ( !vm_map_check_protection(target_task, address, address + result, 3) ) /*0x106f2f*/\n    goto LABEL_37; /*0x106f39*/\n  v3 = v2[10]; /*0x106f3f*/\n  if ( v3 == 4 || v3 == 9 ) /*0x106f4a*/\n  {\n    v4 = v2[12]; /*0x106f50*/\n    v18 = *(_WORD *)(v4 + 66); /*0x106f57*/\n    v5 = funcs_106FAE[11 * *(unsigned __int8 *)(v4 + 67)]; /*0x106f65*/\n    if ( v5 == nulldev || (char *)v5 == (char *)nodev || !v5 ) /*0x106f86*/\n      goto LABEL_37; /*0x106f86*/\n    v6 = 0; /*0x106f8c*/\n    if ( (int)v22[1] > 0 ) /*0x106f94*/\n    {\n      while ( ((int (__cdecl *)(_DWORD))v5)(v18) != -1 ) /*0x106fb6*/\n      {\n        v6 += page_size; /*0x106fbc*/\n        if ( (int)v22[1] <= v6 ) /*0x106fc8*/\n          goto LABEL_17; /*0x106fc8*/\n      }\n      goto LABEL_37; /*0x106fb6*/\n    }\nLABEL_17:\n    if ( v22[3] != 1 || vm_deallocate(target_task, address, sizea) ) /*0x106fe3*/\n    {\nLABEL_37:\n      result = dword_1E875C; /*0x10719e*/\n      *(_BYTE *)(dword_1E875C + 104) = 22; /*0x1071a3*/\n      return result; /*0x1071a7*/\n    }\n    v7 = vm_object_special(v18, v5, v19, v20, sizea); /*0x10700c*/\n    if ( vm_map_find(target_task, v7, 0, &address, sizea, 0) ) /*0x10701f*/\n    {\n      vm_object_deallocate(v7); /*0x107032*/\n      goto LABEL_37; /*0x107037*/\n    }\n    goto LABEL_32; /*0x10702b*/\n  }\n  if ( v3 != 1 ) /*0x10703f*/\n    goto LABEL_37; /*0x10703f*/\n  v8 = vnode_pager_setup((int)v2, 0, 0); /*0x10704f*/\n  v9 = *v2; /*0x107051*/\n  if ( !*(_DWORD *)(*v2 + 48) ) /*0x107056*/\n  {\n    ++**(_WORD **)(active_u + 28); /*0x107064*/\n    *(_DWORD *)(v9 + 48) = *(_DWORD *)(active_u + 28); /*0x10706f*/\n  }\n  if ( v22[3] == 1 ) /*0x107079*/\n  {\n    vm_deallocate(target_task, address, sizea); /*0x107087*/\n    v10 = vm_allocate_with_pager(target_task, &address, sizea, 0, v8, v20); /*0x10709f*/\n    v11 = v10; /*0x1070a4*/\n    if ( v10 ) /*0x1070ab*/\n      goto LABEL_30; /*0x1070ab*/\n  }\n  else\n  {\n    v12 = pmap_create(sizea); /*0x1070bd*/\n    v13 = vm_map_create(v12, 0, sizea, 1); /*0x1070cb*/\n    v23 = 0; /*0x1070cd*/\n    v14 = vm_allocate_with_pager(v13, &v23, sizea, 0, v8, v20); /*0x1070e4*/\n    v11 = v14; /*0x1070e9*/\n    if ( v14 || (v15 = vm_map_copy(target_task, v13, address, sizea, 0, 0, 0), v11 = v15, v15) ) /*0x107111*/\n    {\n      vm_map_deallocate(v13); /*0x107114*/\nLABEL_30:\n      result = dword_1E875C; /*0x107119*/\n      *(_BYTE *)(dword_1E875C + 104) = v11; /*0x10711e*/\n      return result; /*0x107121*/\n    }\n    vm_map_deallocate(v13); /*0x107129*/\n  }\nLABEL_32:\n  if ( (v19 & 2) == 0 && vm_protect(target_task, address, sizea, 0, 1) /*0x10717f*/\n    || v22[3] == 1 && vm_inherit(target_task, address, sizea, 0) )\n  {\n    vm_deallocate(target_task, address, sizea); /*0x107199*/\n    goto LABEL_37; /*0x107199*/\n  }\n  result = v22[4]; /*0x1071ba*/\n  *(_BYTE *)(result + *(_DWORD *)(active_u + 340)) |= 2u; /*0x1071bd*/\n  return result; /*0x1071c4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11de44",
+        "name": "_getvnodefp"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1765fc",
+        "name": "_vm_map_check_protection"
+      },
+      {
+        "addr": "0x1e2f58",
+        "name": "funcs_106FAE"
+      },
+      {
+        "addr": "0x10ccb0",
+        "name": "_nulldev"
+      },
+      {
+        "addr": "0x10cca4",
+        "name": "_nodev"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x17c620",
+        "name": "_vm_deallocate"
+      },
+      {
+        "addr": "0x17c17c",
+        "name": "_vm_object_special"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x17d1e4",
+        "name": "_vnode_pager_setup"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x17c4f4",
+        "name": "_vm_allocate_with_pager"
+      },
+      {
+        "addr": "0x18f644",
+        "name": "_pmap_create"
+      },
+      {
+        "addr": "0x1746a0",
+        "name": "_vm_map_create"
+      },
+      {
+        "addr": "0x1747d8",
+        "name": "_vm_map_deallocate"
+      },
+      {
+        "addr": "0x176888",
+        "name": "_vm_map_copy"
+      },
+      {
+        "addr": "0x17c6a4",
+        "name": "_vm_protect"
+      },
+      {
+        "addr": "0x17c664",
+        "name": "_vm_inherit"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001071cc",
+    "addr": "0x001071cc",
+    "code": "void mremap()\n{\n  ; /*0x1071cc*/\n}"
+  },
+  {
+    "requested_address": "0x001071d4",
+    "addr": "0x001071d4",
+    "code": "int __cdecl munmap(void *a1, size_t a2)\n{\n  vm_address_t *v2; // eax\n  vm_address_t v3; // ecx\n  vm_size_t v4; // edx\n  int result; // eax\n\n  v2 = *(vm_address_t **)(dword_1E875C + 36); /*0x1071de*/\n  v3 = *v2; /*0x1071e1*/\n  v4 = v2[1]; /*0x1071e3*/\n  result = page_mask; /*0x1071e6*/\n  if ( (v3 & page_mask) != 0 || (v4 & page_mask) != 0 ) /*0x1071f1*/\n  {\n    *(_BYTE *)(dword_1E875C + 104) = 22; /*0x1071f3*/\n  }\n  else\n  {\n    result = vm_deallocate(*(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12), v3, v4); /*0x10720a*/\n    if ( result ) /*0x107211*/\n    {\n      result = dword_1E875C; /*0x107213*/\n      *(_BYTE *)(dword_1E875C + 104) = 22; /*0x107218*/\n    }\n  }\n  return result; /*0x10721c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x17c620",
+        "name": "_vm_deallocate"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107224",
+    "addr": "0x00107224",
+    "code": "int __cdecl munmapfd(int a1)\n{\n  int result; // eax\n\n  result = *(_DWORD *)(active_u + 340); /*0x10722f*/\n  *(_BYTE *)(a1 + result) &= ~2u; /*0x107235*/\n  return result; /*0x10723b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107240",
+    "addr": "0x00107240",
+    "code": "int __cdecl mprotect(void *a1, size_t a2, int a3)\n{\n  int result; // eax\n\n  return result; /*0x107245*/\n}"
+  },
+  {
+    "requested_address": "0x00107248",
+    "addr": "0x00107248",
+    "code": "int __cdecl madvise(void *a1, size_t a2, int a3)\n{\n  int result; // eax\n\n  return result; /*0x10724d*/\n}"
+  },
+  {
+    "requested_address": "0x00107250",
+    "addr": "0x00107250",
+    "code": "int __cdecl mincore(const void *a1, size_t a2, char *a3)\n{\n  int result; // eax\n\n  return result; /*0x107255*/\n}"
+  },
+  {
+    "requested_address": "0x00107258",
+    "addr": "0x00107258",
+    "code": "kern_return_t obreak()\n{\n  int v0; // esi\n  kern_return_t result; // eax\n  vm_map_t v2; // ebx\n  vm_address_t address; // [esp+8h] [ebp-8h] BYREF\n  int v4; // [esp+Ch] [ebp-4h] BYREF\n\n  v0 = ~page_mask & (page_mask + **(_DWORD **)(dword_1E875C + 36)); /*0x107276*/\n  result = active_u; /*0x107278*/\n  if ( *(_DWORD *)(active_u + 628) >= v0 ) /*0x107283*/\n  {\n    v2 = *(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12); /*0x107294*/\n    lock_write(v2); /*0x107298*/\n    ++*(_DWORD *)(v2 + 76); /*0x10729d*/\n    if ( vm_map_lookup_entry(v2, v0, &v4) ) /*0x1072a9*/\n    {\n      return lock_done(v2); /*0x1072ed*/\n    }\n    else\n    {\n      address = *(_DWORD *)(v4 + 12); /*0x1072bb*/\n      lock_done(v2); /*0x1072bf*/\n      result = vm_allocate(v2, &address, v0 - address, 0); /*0x1072d1*/\n      if ( result ) /*0x1072db*/\n        return uprintf(\"could not sbrk, return = %d\\n\", result); /*0x1072e3*/\n    }\n  }\n  else\n  {\n    *(_BYTE *)(dword_1E875C + 104) = 12; /*0x107285*/\n  }\n  return result; /*0x1072f5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x17c5b8",
+        "name": "_vm_allocate"
+      },
+      {
+        "addr": "0x10c100",
+        "name": "_uprintf"
+      },
+      {
+        "addr": "0x1da889",
+        "name": "aCouldNotSbrkRe",
+        "string": "could not sbrk, return = %d\n"
+      },
+      {
+        "addr": "0x1749c4",
+        "name": "_vm_map_lookup_entry"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001072fc",
+    "addr": "0x001072fc",
+    "code": "void ovadvise()\n{\n  ; /*0x1072fc*/\n}"
+  },
+  {
+    "requested_address": "0x00107304",
+    "addr": "0x00107304",
+    "code": "int __cdecl spgrp(_DWORD *a1)\n{\n  int result; // eax\n  _DWORD *i; // ecx\n  _DWORD *v3; // edx\n\n  result = 0; /*0x10730b*/\n  for ( i = a1; ; i = v3 ) /*0x10730d*/\n  {\n    i[6] &= 0xFFCDFFFF; /*0x107310*/\n    ++result; /*0x107317*/\n    v3 = (_DWORD *)i[18]; /*0x107318*/\n    if ( !v3 ) /*0x10731d*/\n      break; /*0x10731d*/\nLABEL_7:\n    ; /*0x107332*/\n  }\n  while ( i != a1 ) /*0x107329*/\n  {\n    v3 = (_DWORD *)i[19]; /*0x10732b*/\n    if ( v3 ) /*0x107330*/\n      goto LABEL_7; /*0x107330*/\n    i = (_DWORD *)i[17]; /*0x107324*/\n  }\n  return result; /*0x107338*/\n}"
+  },
+  {
+    "requested_address": "0x00107340",
+    "addr": "0x00107340",
+    "code": "int __cdecl inferior(int a1)\n{\n  int v1; // edx\n\n  v1 = a1; /*0x107343*/\n  if ( a1 == *(_DWORD *)active_u ) /*0x10734f*/\n    return 1; /*0x10736b*/\n  while ( *(_WORD *)(v1 + 50) ) /*0x107359*/\n  {\n    v1 = *(_DWORD *)(v1 + 68); /*0x107364*/\n    if ( v1 == *(_DWORD *)active_u ) /*0x107369*/\n      return 1; /*0x107369*/\n  }\n  return 0; /*0x10735f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107374",
+    "addr": "0x00107374",
+    "code": "int __cdecl pfind(int a1)\n{\n  int v1; // edx\n\n  v1 = pidhash[a1 & 0x3F]; /*0x10737f*/\n  if ( !v1 ) /*0x107388*/\n    return 0; /*0x1073a3*/\n  while ( *(__int16 *)(v1 + 48) != a1 ) /*0x107392*/\n  {\n    v1 = *(_DWORD *)(v1 + 64); /*0x10739c*/\n    if ( !v1 ) /*0x1073a1*/\n      return 0; /*0x1073a1*/\n  }\n  return v1; /*0x107398*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e93e0",
+        "name": "_pidhash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001073ac",
+    "addr": "0x001073ac",
+    "code": "int __cdecl pidhash_enter(int a1)\n{\n  int v2; // edx\n\n  v2 = *(_WORD *)(a1 + 48) & 0x3F; /*0x1073b6*/\n  *(_DWORD *)(a1 + 64) = pidhash[v2]; /*0x1073c0*/\n  pidhash[v2] = a1; /*0x1073c3*/\n  return a1; /*0x1073cc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e93e0",
+        "name": "_pidhash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001073d0",
+    "addr": "0x001073d0",
+    "code": "int getproc()\n{\n  if ( max_proc <= dword_1E56C0 ) /*0x1073de*/\n    return 0; /*0x1073f8*/\n  ++dword_1E56C0; /*0x1073e1*/\n  return zalloc(proc_zone); /*0x1073f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1de684",
+        "name": "_max_proc"
+      },
+      {
+        "addr": "0x1e56c0",
+        "name": "dword_1E56C0"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1e94f8",
+        "name": "_proc_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107400",
+    "addr": "0x00107400",
+    "code": "int proc_cache_clear()\n{\n  int v0; // eax\n  int result; // eax\n\n  for ( ; freeproc; result = zfree(proc_zone, v0) ) /*0x10740a*/\n  {\n    --dword_1E56C0; /*0x10740c*/\n    v0 = freeproc; /*0x107412*/\n    freeproc = *(_DWORD *)(freeproc + 8); /*0x10741a*/\n  }\n  return result; /*0x10743b*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1e94f8",
+        "name": "_proc_zone"
+      },
+      {
+        "addr": "0x1e56c0",
+        "name": "dword_1E56C0"
+      },
+      {
+        "addr": "0x1e9150",
+        "name": "_freeproc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107440",
+    "addr": "0x00107440",
+    "code": "void pqinit()\n{\n  int v0; // eax\n  _DWORD *v1; // ebx\n\n  v0 = zinit(136, 13600 * max_proc, 0, 0, aProcStructures); /*0x10745d*/\n  proc_zone = v0; /*0x107462*/\n  dword_1E56C0 = 0; /*0x107467*/\n  freeproc = 0; /*0x107471*/\n  if ( max_proc > 0 ) /*0x107485*/\n  {\n    dword_1E56C0 = 1; /*0x10748c*/\n    v1 = (_DWORD *)zalloc(v0); /*0x10749c*/\n  }\n  else\n  {\n    v1 = nullptr; /*0x107487*/\n  }\n  bzero(v1, 0x88u); /*0x1074a7*/\n  allproc = (unsigned int)v1; /*0x1074ac*/\n  v1[2] = 0; /*0x1074b2*/\n  v1[3] = &allproc; /*0x1074b9*/\n  kernel_proc = (int)v1; /*0x1074c0*/\n  zombproc = 0; /*0x1074c6*/\n}",
+    "refs": [
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1de684",
+        "name": "_max_proc"
+      },
+      {
+        "addr": "0x1da8a6",
+        "name": "aProcStructures",
+        "string": "proc structures"
+      },
+      {
+        "addr": "0x1e94f8",
+        "name": "_proc_zone"
+      },
+      {
+        "addr": "0x1e56c0",
+        "name": "dword_1E56C0"
+      },
+      {
+        "addr": "0x1e9150",
+        "name": "_freeproc"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1e94e4",
+        "name": "_allproc"
+      },
+      {
+        "addr": "0x1e8dec",
+        "name": "_kernel_proc"
+      },
+      {
+        "addr": "0x1e94e0",
+        "name": "_zombproc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001074d8",
+    "addr": "0x001074d8",
+    "code": "_DWORD *__cdecl pgfind(int a1)\n{\n  _DWORD *result; // eax\n\n  result = (_DWORD *)pgrphash[a1 & 0x3F]; /*0x1074e3*/\n  if ( !result ) /*0x1074ec*/\n    return nullptr; /*0x1074fb*/\n  while ( result[3] != a1 ) /*0x1074f3*/\n  {\n    result = (_DWORD *)*result; /*0x1074f5*/\n    if ( !result ) /*0x1074f9*/\n      return nullptr; /*0x1074f9*/\n  }\n  return result; /*0x1074ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8e50",
+        "name": "_pgrphash"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107504",
+    "addr": "0x00107504",
+    "code": "__int16 __cdecl enterpgrp(int a1, int a2, int a3)\n{\n  _DWORD *v3; // eax\n  _DWORD *v4; // ebx\n  int posix_proc; // eax\n  int v6; // esi\n  int v7; // eax\n  int v8; // eax\n  int v9; // eax\n  int v10; // eax\n  int v11; // eax\n\n  v3 = (_DWORD *)pgrphash[a2 & 0x3F]; /*0x107513*/\n  if ( v3 ) /*0x10751c*/\n  {\n    while ( v3[3] != a2 ) /*0x107526*/\n    {\n      v3 = (_DWORD *)*v3; /*0x107528*/\n      if ( !v3 ) /*0x10752c*/\n        goto LABEL_4; /*0x10752c*/\n    }\n    v4 = v3; /*0x107588*/\n  }\n  else\n  {\nLABEL_4:\n    v4 = nullptr; /*0x10752e*/\n  }\n  posix_proc = get_posix_proc(*(__int16 *)(a1 + 48)); /*0x107535*/\n  v6 = posix_proc; /*0x10753a*/\n  if ( v4 ) /*0x107541*/\n  {\n    v10 = *(_DWORD *)(*(_DWORD *)(posix_proc + 16) + 12); /*0x1075d3*/\n    if ( v4[3] == v10 ) /*0x1075d9*/\n      return v10; /*0x1075d9*/\n  }\n  else\n  {\n    v7 = kalloc(0x14u); /*0x107549*/\n    v4 = (_DWORD *)v7; /*0x10754e*/\n    if ( a3 ) /*0x107557*/\n    {\n      v8 = kalloc(0x10u); /*0x10755b*/\n      *(_DWORD *)(v8 + 4) = a1; /*0x107560*/\n      *(_DWORD *)v8 = 1; /*0x107563*/\n      *(_DWORD *)(v8 + 8) = 0; /*0x107569*/\n      *(_WORD *)(v8 + 12) = 0; /*0x107570*/\n      *(_DWORD *)(a1 + 40) &= ~0x40000000u; /*0x107576*/\n      v4[2] = v8; /*0x10757d*/\n    }\n    else\n    {\n      *(_DWORD *)(v7 + 8) = *(_DWORD *)(*(_DWORD *)(v6 + 16) + 8); /*0x107592*/\n      ++**(_DWORD **)(v7 + 8); /*0x107598*/\n    }\n    v4[3] = a2; /*0x10759d*/\n    v9 = a2 & 0x3F; /*0x1075a3*/\n    *v4 = pgrphash[v9]; /*0x1075ad*/\n    pgrphash[v9] = (int)v4; /*0x1075af*/\n    v4[4] = 0; /*0x1075b6*/\n    v4[1] = 0; /*0x1075bd*/\n  }\n  if ( (*(_BYTE *)(a1 + 22) & 2) != 0 ) /*0x1075df*/\n  {\n    fixjobc(a1, v4, 1); /*0x1075e5*/\n    fixjobc(a1, *(_DWORD *)(v6 + 16), 0); /*0x1075f1*/\n  }\n  v11 = *(_DWORD *)(v6 + 16) + 4; /*0x1075fc*/\n  if ( *(_DWORD *)(v6 + 16) == -4 ) /*0x1075ff*/\nLABEL_18:\n    panic(aEnterpgrpCanTF); /*0x10761e*/\n  while ( *(_DWORD *)v11 != a1 ) /*0x107608*/\n  {\n    v11 = get_posix_proc(*(__int16 *)(*(_DWORD *)v11 + 48)) + 12; /*0x107614*/\n    if ( !v11 ) /*0x10761c*/\n      goto LABEL_18; /*0x10761c*/\n  }\n  *(_DWORD *)v11 = *(_DWORD *)(v6 + 12); /*0x1075cb*/\n  if ( !*(_DWORD *)(*(_DWORD *)(v6 + 16) + 4) ) /*0x10762e*/\n    pgdelete(*(_DWORD *)(v6 + 16)); /*0x107635*/\n  *(_DWORD *)(v6 + 16) = v4; /*0x10763a*/\n  *(_DWORD *)(v6 + 12) = v4[1]; /*0x107640*/\n  v4[1] = a1; /*0x107643*/\n  LOWORD(v10) = *(_WORD *)(*(_DWORD *)(v6 + 16) + 12); /*0x107649*/\n  *(_WORD *)(a1 + 46) = v10; /*0x10764d*/\n  return v10; /*0x107654*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8e50",
+        "name": "_pgrphash"
+      },
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x107780",
+        "name": "_fixjobc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1da8b6",
+        "name": "aEnterpgrpCanTF",
+        "string": "enterpgrp: can't find p on old pgrp"
+      },
+      {
+        "addr": "0x1076d8",
+        "name": "_pgdelete"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010765c",
+    "addr": "0x0010765c",
+    "code": "int __cdecl leavepgrp(int a1)\n{\n  int posix_proc; // ebx\n  int v2; // edx\n  int result; // eax\n\n  posix_proc = get_posix_proc(*(__int16 *)(a1 + 48)); /*0x10766e*/\n  v2 = *(_DWORD *)(posix_proc + 16) + 4; /*0x107673*/\n  if ( !*(_DWORD *)v2 ) /*0x10767d*/\nLABEL_5:\n    panic(aLeavepgrpCanTF); /*0x1076a6*/\n  while ( *(_DWORD *)v2 != a1 ) /*0x107684*/\n  {\n    v2 = get_posix_proc(*(__int16 *)(*(_DWORD *)v2 + 48)) + 12; /*0x10769a*/\n    if ( !*(_DWORD *)v2 ) /*0x1076a0*/\n      goto LABEL_5; /*0x1076a4*/\n  }\n  *(_DWORD *)v2 = *(_DWORD *)(posix_proc + 12); /*0x107689*/\n  result = *(_DWORD *)(posix_proc + 16); /*0x1076b3*/\n  if ( !*(_DWORD *)(result + 4) ) /*0x1076b6*/\n    result = pgdelete(*(_DWORD *)(posix_proc + 16)); /*0x1076bd*/\n  *(_DWORD *)(posix_proc + 16) = 0; /*0x1076c2*/\n  *(_WORD *)(a1 + 46) = 0; /*0x1076c9*/\n  return result; /*0x1076d2*/\n}",
+    "refs": [
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1da8da",
+        "name": "aLeavepgrpCanTF",
+        "string": "leavepgrp(): can't find p in pgrp"
+      },
+      {
+        "addr": "0x1076d8",
+        "name": "_pgdelete"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001076d8",
+    "addr": "0x001076d8",
+    "code": "int __cdecl pgdelete(int *a1)\n{\n  int *v1; // ebx\n  _DWORD *v2; // eax\n  _DWORD *v3; // eax\n  int v4; // edx\n\n  v1 = &pgrphash[a1[3] & 0x3F]; /*0x1076e6*/\n  if ( *(_DWORD *)(a1[2] + 8) ) /*0x1076f0*/\n  {\n    v2 = (_DWORD *)ttynty(*(_DWORD *)(a1[2] + 8)); /*0x1076f8*/\n    if ( (int *)v2[3] == a1 ) /*0x107703*/\n    {\n      v2[3] = 0; /*0x107705*/\n      *(_WORD *)(*v2 + 68) = 0; /*0x10770e*/\n    }\n  }\n  while ( 1 ) /*0x107726*/\n  {\n    if ( !*v1 ) /*0x107726*/\n      panic(aPgdeleteCanTFi); /*0x107730*/\n    if ( (int *)*v1 == a1 ) /*0x10771c*/\n      break; /*0x10771c*/\n    v1 = (int *)*v1; /*0x107724*/\n  }\n  *v1 = *a1; /*0x107720*/\n  v3 = (_DWORD *)a1[2]; /*0x107738*/\n  v4 = (*v3)--; /*0x10773b*/\n  if ( v4 == 1 ) /*0x107745*/\n  {\n    if ( *(_DWORD *)(a1[2] + 8) ) /*0x10774a*/\n      *(_DWORD *)(ttynty(*(_DWORD *)(a1[2] + 8)) + 8) = 0; /*0x107757*/\n    kfree(a1[2], 0x10u); /*0x107767*/\n  }\n  return kfree((int)a1, 0x14u); /*0x10777a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8e50",
+        "name": "_pgrphash"
+      },
+      {
+        "addr": "0x111b58",
+        "name": "_ttynty"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1da8fc",
+        "name": "aPgdeleteCanTFi",
+        "string": "pgdelete: can't find pgrp on hash chain"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107780",
+    "addr": "0x00107780",
+    "code": "int __cdecl fixjobc(int a1, int a2, int a3)\n{\n  int v3; // edi\n  int result; // eax\n  int v5; // edx\n  int i; // ebx\n  int v7; // edx\n\n  v3 = *(_DWORD *)(a2 + 8); /*0x10778c*/\n  result = get_posix_proc(*(__int16 *)(*(_DWORD *)(a1 + 68) + 48)); /*0x107797*/\n  v5 = *(_DWORD *)(result + 16); /*0x10779c*/\n  if ( v5 != a2 && *(_DWORD *)(v5 + 8) == v3 ) /*0x1077a9*/\n  {\n    if ( a3 ) /*0x1077af*/\n    {\n      ++*(_DWORD *)(a2 + 16); /*0x1077b1*/\n    }\n    else\n    {\n      result = *(_DWORD *)(a2 + 16); /*0x1077b8*/\n      *(_DWORD *)(a2 + 16) = result - 1; /*0x1077be*/\n      if ( result == 1 ) /*0x1077c4*/\n        result = sub_10782C(a2); /*0x1077c7*/\n    }\n  }\n  for ( i = *(_DWORD *)(a1 + 72); i; i = *(_DWORD *)(i + 76) ) /*0x1077d4*/\n  {\n    result = get_posix_proc(*(__int16 *)(i + 48)); /*0x1077dd*/\n    v7 = *(_DWORD *)(result + 16); /*0x1077e2*/\n    if ( v7 != a2 && *(_DWORD *)(v7 + 8) == v3 && *(_BYTE *)(i + 19) != 5 ) /*0x1077f5*/\n    {\n      if ( a3 ) /*0x1077fb*/\n      {\n        ++*(_DWORD *)(v7 + 16); /*0x1077fd*/\n      }\n      else\n      {\n        result = *(_DWORD *)(v7 + 16); /*0x107804*/\n        *(_DWORD *)(v7 + 16) = result - 1; /*0x10780a*/\n        if ( result == 1 ) /*0x107810*/\n          result = sub_10782C(v7); /*0x107813*/\n      }\n    }\n  }\n  return result; /*0x107825*/\n}",
+    "refs": [
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x10782c",
+        "name": "sub_10782C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0010782c",
+    "addr": "0x0010782c",
+    "code": "void __cdecl sub_10782C(int a1)\n{\n  int v1; // ebx\n  unsigned int i; // ebx\n\n  v1 = *(_DWORD *)(a1 + 4); /*0x107834*/\n  if ( v1 ) /*0x107839*/\n  {\n    while ( *(_BYTE *)(v1 + 19) != 6 ) /*0x107840*/\n    {\n      v1 = *(_DWORD *)(get_posix_proc(*(__int16 *)(v1 + 48)) + 12); /*0x107882*/\n      if ( !v1 ) /*0x10788a*/\n        return; /*0x10788a*/\n    }\n    for ( i = *(_DWORD *)(a1 + 4); i; i = *(_DWORD *)(get_posix_proc(*(__int16 *)(i + 48)) + 12) ) /*0x107847*/\n    {\n      psignal(i, (const char *)1); /*0x10784f*/\n      psignal(i, (const char *)0x13); /*0x107857*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x107898",
+        "name": "_get_posix_proc"
+      },
+      {
+        "addr": "0x109870",
+        "name": "_psignal"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107898",
+    "addr": "0x00107898",
+    "code": "_DWORD *__cdecl get_posix_proc(int a1)\n{\n  _DWORD *result; // eax\n  char v2[80]; // [esp+4h] [ebp-50h] BYREF\n\n  result = (_DWORD *)posix_proc_hash[a1 & 0x3F]; /*0x1078a7*/\n  if ( !result )\n  {\nLABEL_4:\n    sprintf(v2, \"get_posix_proc(): no posix proc struct for pid %d\", a1);\n    panic(v2); /*0x1078cf*/\n  }\n  while ( *result != a1 ) /*0x1078b6*/\n  {\n    result = (_DWORD *)result[7]; /*0x1078b8*/\n    if ( !result ) /*0x1078bd*/\n      goto LABEL_4; /*0x1078bd*/\n  }\n  return result; /*0x1078d4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8f50",
+        "name": "_posix_proc_hash"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1da924",
+        "name": "aGetPosixProcNo",
+        "string": "get_posix_proc(): no posix proc struct for pid %d"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001078dc",
+    "addr": "0x001078dc",
+    "code": "void *alloc_posix_proc()\n{\n  void *result; // eax\n\n  result = (void *)kalloc(0x20u); /*0x1078e3*/\n  qmemcpy(result, &unk_1D10BC, 0x20u); /*0x1078f5*/\n  return result; /*0x1078fa*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d10bc",
+        "name": "unk_1D10BC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00107900",
+    "addr": "0x00107900",
+    "code": "int __cdecl free_posix_proc(int a1)\n{\n  return kfree(a1, 0x20u); /*0x107910*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  }
+]

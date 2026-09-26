@@ -1,0 +1,22 @@
+0x001ac7cc	1	PUSH EBP
+0x001ac7cd	2	MOV EBP,ESP
+0x001ac7cf	3	MOV EDX,dword ptr [EBP + 0x1c]
+0x001ac7d2	1	PUSH EDX
+0x001ac7d3	2	PUSH 0x0
+0x001ac7d5	3	MOV EDX,dword ptr [EBP + 0x20]
+0x001ac7d8	1	PUSH EDX
+0x001ac7d9	3	MOV EDX,dword ptr [EBP + 0x18]
+0x001ac7dc	1	PUSH EDX
+0x001ac7dd	3	MOV EDX,dword ptr [EBP + 0x14]
+0x001ac7e0	1	PUSH EDX
+0x001ac7e1	3	MOV EDX,dword ptr [EBP + 0x10]
+0x001ac7e4	1	PUSH EDX
+0x001ac7e5	2	PUSH 0x0
+0x001ac7e7	6	MOV EDX,dword ptr [0x001f9ac4]
+0x001ac7ed	1	PUSH EDX
+0x001ac7ee	3	MOV EDX,dword ptr [EBP + 0x8]
+0x001ac7f1	1	PUSH EDX
+0x001ac7f2	5	CALL 0x001ce960
+0x001ac7f7	2	MOV ESP,EBP
+0x001ac7f9	1	POP EBP
+0x001ac7fa	1	RET

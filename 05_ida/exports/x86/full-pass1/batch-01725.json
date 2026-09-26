@@ -1,0 +1,470 @@
+[
+  {
+    "requested_address": "0x001604b0",
+    "addr": "0x001604b0",
+    "code": "int __cdecl ns_timeout(int a1, int a2, __int64 a3)\n{\n  __int64 v3; // rax\n\n  v3 = clock_value(1); /*0x1604c1*/\n  return calloutDispatchDelayed(a1, a2, v3 + a3, (unsigned __int64)(v3 + a3) >> 32); /*0x1604d9*/\n}",
+    "refs": [
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      },
+      {
+        "addr": "0x1693ec",
+        "name": "_calloutDispatchDelayed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001604e0",
+    "addr": "0x001604e0",
+    "code": "int __cdecl ns_abstimeout(int a1, int a2, int a3, int a4)\n{\n  return calloutDispatchDelayed(a1, a2, a3, a4); /*0x1604fa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1693ec",
+        "name": "_calloutDispatchDelayed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001604fc",
+    "addr": "0x001604fc",
+    "code": "int __cdecl ns_untimeout(int a1, int a2)\n{\n  calloutRemove(a1, a2); /*0x160507*/\n  return 1; /*0x160513*/\n}",
+    "refs": [
+      {
+        "addr": "0x16957c",
+        "name": "_calloutRemove"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160518",
+    "addr": "0x00160518",
+    "code": "int __cdecl ns_sleep(__int64 a1)\n{\n  int v1; // edi\n  __int64 v2; // rax\n  __int64 v4; // [esp+Ch] [ebp-10h]\n\n  v1 = splnet(); /*0x160532*/\n  v4 = a1; /*0x160537*/\n  v2 = clock_value(1); /*0x160542*/\n  calloutDispatchDelayed(wakeup, &a1, v2 + v4, (unsigned __int64)(v2 + v4) >> 32); /*0x160566*/\n  sleep((unsigned int)&a1); /*0x160574*/\n  return splx(v1); /*0x160582*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      },
+      {
+        "addr": "0x1693ec",
+        "name": "_calloutDispatchDelayed"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016058c",
+    "addr": "0x0016058c",
+    "code": "int __cdecl ns_time_to_timeval(unsigned int a1, unsigned int a2, _DWORD *a3)\n{\n  int result; // eax\n\n  a3[1] = __PAIR64__(a2 % 0x3B9ACA00, a1) % 0x3B9ACA00; /*0x1605bf*/\n  *a3 = __PAIR64__(a2 % 0x3B9ACA00, a1) / 0x3B9ACA00; /*0x1605c5*/\n  result = a3[1] / 1000; /*0x1605d2*/\n  a3[1] = result; /*0x1605d6*/\n  return result; /*0x1605dc*/\n}"
+  },
+  {
+    "requested_address": "0x001605e4",
+    "addr": "0x001605e4",
+    "code": "__int64 __cdecl timeval_to_ns_time(int *a1)\n{\n  return 1000 * (a1[1] + 1000000LL * *a1); /*0x16066c*/\n}"
+  },
+  {
+    "requested_address": "0x00160674",
+    "addr": "0x00160674",
+    "code": "unsigned int __cdecl ns_time_to_tsval(unsigned int a1, unsigned int a2, _DWORD *a3)\n{\n  *a3 = __PAIR64__(a2 % 0x3E8, a1) / 0x3E8; /*0x1606ab*/\n  a3[1] = a2 / 0x3E8; /*0x1606c3*/\n  return a2 / 0x3E8; /*0x1606c6*/\n}"
+  },
+  {
+    "requested_address": "0x001606d0",
+    "addr": "0x001606d0",
+    "code": "__int64 __cdecl ticks_to_ns_time(unsigned int a1)\n{\n  return ns_per_tick * a1; /*0x16070e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6530",
+        "name": "_ns_per_tick"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160714",
+    "addr": "0x00160714",
+    "code": "int sched_usec_elapsed()\n{\n  unsigned __int64 v1; // rtt\n  __int64 v2; // [esp+Ch] [ebp-14h]\n\n  v2 = clock_value(1); /*0x160724*/\n  if ( !qword_1E5E44 ) /*0x160731*/\n    qword_1E5E44 = v2; /*0x16073f*/\n  LODWORD(v1) = v2 - qword_1E5E44; /*0x160775*/\n  HIDWORD(v1) = ((unsigned __int64)(v2 - qword_1E5E44) >> 32) % 0x3E8; /*0x160775*/\n  qword_1E5E44 = v2; /*0x160782*/\n  return v1 / 0x3E8; /*0x16078e*/\n}",
+    "refs": [
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      },
+      {
+        "addr": "0x1e5e44",
+        "name": "qword_1E5E44"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160798",
+    "addr": "0x00160798",
+    "code": "int __cdecl get_calendar_time_value(_DWORD *a1)\n{\n  __int64 v1; // rax\n  unsigned __int64 v2; // rtt\n  int result; // eax\n\n  v1 = clock_value(0); /*0x1607a6*/\n  LODWORD(v2) = v1; /*0x1607c9*/\n  HIDWORD(v2) = HIDWORD(v1) % 0x3B9ACA00; /*0x1607c9*/\n  a1[1] = v2 % 0x3B9ACA00; /*0x1607cb*/\n  *a1 = v2 / 0x3B9ACA00; /*0x1607d1*/\n  result = a1[1] / 1000; /*0x1607de*/\n  a1[1] = result; /*0x1607e2*/\n  return result; /*0x1607e8*/\n}",
+    "refs": [
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001607f0",
+    "addr": "0x001607f0",
+    "code": "int __cdecl set_calendar_time_value(int *a1)\n{\n  return set_clock(0, 1000 * a1[1] + 1000000000 * *a1, (unsigned __int64)(1000LL * a1[1] + 1000000000LL * *a1) >> 32); /*0x16083b*/\n}",
+    "refs": [
+      {
+        "addr": "0x187bd4",
+        "name": "_set_clock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160844",
+    "addr": "0x00160844",
+    "code": "int __cdecl microtime(_DWORD *a1)\n{\n  unsigned __int64 v1; // kr00_8\n  unsigned __int64 v2; // rtt\n  int result; // eax\n  int v4; // [esp+20h] [ebp-10h]\n\n  v4 = splusclock(); /*0x160855*/\n  v1 = clock_value(0); /*0x160861*/\n  if ( qword_1DF21C > v1 && qword_1DF21C - v1 <= 0x3B9AC9FF ) /*0x1608ad*/\n    v1 = qword_1DF21C; /*0x1608b2*/\n  qword_1DF21C = v1; /*0x1608b5*/\n  splx(v4); /*0x1608c5*/\n  LODWORD(v2) = v1; /*0x1608e4*/\n  HIDWORD(v2) = HIDWORD(v1) % 0x3B9ACA00; /*0x1608e4*/\n  a1[1] = v2 % 0x3B9ACA00; /*0x1608e6*/\n  *a1 = v2 / 0x3B9ACA00; /*0x1608ec*/\n  result = a1[1] / 1000; /*0x1608f9*/\n  a1[1] = result; /*0x1608fd*/\n  return result; /*0x160903*/\n}",
+    "refs": [
+      {
+        "addr": "0x18bd98",
+        "name": "_splusclock"
+      },
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      },
+      {
+        "addr": "0x1df21c",
+        "name": "qword_1DF21C"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016090c",
+    "addr": "0x0016090c",
+    "code": "int __cdecl microboot(_DWORD *a1)\n{\n  __int64 v1; // rax\n  unsigned __int64 v2; // rtt\n  int result; // eax\n\n  v1 = clock_value(1); /*0x16091a*/\n  LODWORD(v2) = v1; /*0x16093d*/\n  HIDWORD(v2) = HIDWORD(v1) % 0x3B9ACA00; /*0x16093d*/\n  a1[1] = v2 % 0x3B9ACA00; /*0x16093f*/\n  *a1 = v2 / 0x3B9ACA00; /*0x160945*/\n  result = a1[1] / 1000; /*0x160952*/\n  a1[1] = result; /*0x160956*/\n  return result; /*0x16095c*/\n}",
+    "refs": [
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160964",
+    "addr": "0x00160964",
+    "code": "int __cdecl us_timeout(int a1, int a2, int *a3)\n{\n  __int64 v3; // kr00_8\n  __int64 v5; // [esp+18h] [ebp-8h]\n\n  v3 = 25 * (a3[1] + 1000000LL * *a3); /*0x1609c0*/\n  v5 = clock_value(1); /*0x1609f0*/\n  return calloutDispatchDelayed(a1, a2, v5 + 40 * v3, (unsigned __int64)(v5 + 40 * v3) >> 32); /*0x160a19*/\n}",
+    "refs": [
+      {
+        "addr": "0x187b98",
+        "name": "_clock_value"
+      },
+      {
+        "addr": "0x1693ec",
+        "name": "_calloutDispatchDelayed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160a20",
+    "addr": "0x00160a20",
+    "code": "int __cdecl us_abstimeout(int a1, int a2, int *a3)\n{\n  __int64 v3; // kr00_8\n\n  v3 = 25 * (a3[1] + 1000000LL * *a3); /*0x160a78*/\n  return calloutDispatchDelayed(a1, a2, 40 * v3, (unsigned __int64)(40 * v3) >> 32); /*0x160ab9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1693ec",
+        "name": "_calloutDispatchDelayed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160ac0",
+    "addr": "0x00160ac0",
+    "code": "int __cdecl us_untimeout(int a1, int a2)\n{\n  calloutRemove(a1, a2); /*0x160acb*/\n  return 1; /*0x160ad7*/\n}",
+    "refs": [
+      {
+        "addr": "0x16957c",
+        "name": "_calloutRemove"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160adc",
+    "addr": "0x00160adc",
+    "code": "int __cdecl power_callout(int a1, int a2)\n{\n  int v2; // ebx\n  __int64 v3; // rax\n  int v5; // [esp+4h] [ebp-4h] BYREF\n\n  v2 = a2; /*0x160ae3*/\n  if ( !PMGetPowerEvent(&v5) ) /*0x160aea*/\n  {\n    switch ( v5 ) /*0x160b07*/\n    {\n      case 1: /*0x160b07*/\n      case 9: /*0x160b07*/\n        dword_1E5E4C = 1; /*0x160b3c*/\n        PMSetPowerState(1, 1); /*0x160b4a*/\n        break; /*0x160b52*/\n      case 2: /*0x160b07*/\n      case 8: /*0x160b07*/\n      case 10: /*0x160b07*/\n        dword_1E5E4C = 2; /*0x160b54*/\n        PMSetPowerState(1, 2); /*0x160b62*/\n        dword_1E5E4C = 0; /*0x160b67*/\n        PMSetPowerState(1, 0); /*0x160b75*/\n        break; /*0x160b7d*/\n      case 3: /*0x160b07*/\n      case 4: /*0x160b07*/\n      case 11: /*0x160b07*/\n        if ( dword_1E5E4C ) /*0x160b87*/\n        {\n          dword_1E5E4C = 0; /*0x160b89*/\n          PMSetPowerState(1, 0); /*0x160b97*/\n        }\n        goto LABEL_7; /*0x160b97*/\n      case 7: /*0x160b07*/\nLABEL_7:\n        PMUpdateClock(); /*0x160b9f*/\n        break; /*0x160b9f*/\n      default:\n        break;\n    }\n  }\n  if ( !a2 ) /*0x160ba6*/\n    v2 = calloutEntryAllocate(power_callout, 0); /*0x160bb4*/\n  v3 = calloutDeadlineFromInterval(1010000000, 0); /*0x160bc0*/\n  return calloutEntryDispatchDelayed(v2, v3, HIDWORD(v3)); /*0x160bcd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e5e4c",
+        "name": "dword_1E5E4C"
+      },
+      {
+        "addr": "0x1874ec",
+        "name": "_PMSetPowerState"
+      },
+      {
+        "addr": "0x1877e4",
+        "name": "_PMUpdateClock"
+      },
+      {
+        "addr": "0x1875b0",
+        "name": "_PMGetPowerEvent"
+      },
+      {
+        "addr": "0x169784",
+        "name": "_calloutEntryAllocate"
+      },
+      {
+        "addr": "0x160adc",
+        "name": "_power_callout"
+      },
+      {
+        "addr": "0x1691e8",
+        "name": "_calloutDeadlineFromInterval"
+      },
+      {
+        "addr": "0x169944",
+        "name": "_calloutEntryDispatchDelayed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160bd4",
+    "addr": "0x00160bd4",
+    "code": "void power_init()\n{\n  int v0; // ebx\n  __int64 v1; // rax\n  int v2; // [esp+4h] [ebp-4h] BYREF\n\n  if ( !dword_1DF224 ) /*0x160be2*/\n  {\n    if ( !PMConnect() ) /*0x160be8*/\n    {\n      if ( !PMGetPowerEvent(&v2) ) /*0x160bfb*/\n      {\n        switch ( v2 ) /*0x160c18*/\n        {\n          case 1: /*0x160c18*/\n          case 9: /*0x160c18*/\n            dword_1E5E4C = 1; /*0x160c4c*/\n            PMSetPowerState(1, 1); /*0x160c5a*/\n            break; /*0x160c62*/\n          case 2: /*0x160c18*/\n          case 8: /*0x160c18*/\n          case 10: /*0x160c18*/\n            dword_1E5E4C = 2; /*0x160c64*/\n            PMSetPowerState(1, 2); /*0x160c72*/\n            dword_1E5E4C = 0; /*0x160c77*/\n            PMSetPowerState(1, 0); /*0x160c85*/\n            break; /*0x160c8d*/\n          case 3: /*0x160c18*/\n          case 4: /*0x160c18*/\n          case 11: /*0x160c18*/\n            if ( dword_1E5E4C ) /*0x160c97*/\n            {\n              dword_1E5E4C = 0; /*0x160c99*/\n              PMSetPowerState(1, 0); /*0x160ca7*/\n            }\n            goto LABEL_9; /*0x160ca7*/\n          case 7: /*0x160c18*/\nLABEL_9:\n            PMUpdateClock(); /*0x160caf*/\n            break; /*0x160caf*/\n          default:\n            break;\n        }\n      }\n      v0 = calloutEntryAllocate(power_callout, 0); /*0x160cb8*/\n      v1 = calloutDeadlineFromInterval(1010000000, 0); /*0x160cd0*/\n      calloutEntryDispatchDelayed(v0, v1, HIDWORD(v1)); /*0x160cd8*/\n    }\n    dword_1E5E4C = 0; /*0x160cdd*/\n    dword_1DF224 = 1; /*0x160ce7*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e5e4c",
+        "name": "dword_1E5E4C"
+      },
+      {
+        "addr": "0x1874ec",
+        "name": "_PMSetPowerState"
+      },
+      {
+        "addr": "0x1877e4",
+        "name": "_PMUpdateClock"
+      },
+      {
+        "addr": "0x1875b0",
+        "name": "_PMGetPowerEvent"
+      },
+      {
+        "addr": "0x169784",
+        "name": "_calloutEntryAllocate"
+      },
+      {
+        "addr": "0x160adc",
+        "name": "_power_callout"
+      },
+      {
+        "addr": "0x1691e8",
+        "name": "_calloutDeadlineFromInterval"
+      },
+      {
+        "addr": "0x169944",
+        "name": "_calloutEntryDispatchDelayed"
+      },
+      {
+        "addr": "0x187400",
+        "name": "_PMConnect"
+      },
+      {
+        "addr": "0x1df224",
+        "name": "dword_1DF224"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160cf8",
+    "addr": "0x00160cf8",
+    "code": "int __cdecl kern_PMSetPowerState(int *a1, int a2, int a3)\n{\n  if ( a1 == &realhost ) /*0x160d02*/\n    return PMSetPowerState(a2, a3); /*0x160d0c*/\n  else\n    return 22; /*0x160d18*/\n}",
+    "refs": [
+      {
+        "addr": "0x1874ec",
+        "name": "_PMSetPowerState"
+      },
+      {
+        "addr": "0x1e97b0",
+        "name": "_realhost"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160d24",
+    "addr": "0x00160d24",
+    "code": null,
+    "error": "Decompilation failed at 0x160d24 (address: 0x160dc9)"
+  },
+  {
+    "requested_address": "0x00160e0c",
+    "addr": "0x00160e0c",
+    "code": "int __cdecl kern_PMGetPowerStatus(int *a1, int a2)\n{\n  if ( a1 == &realhost ) /*0x160e16*/\n    return PMGetPowerStatus(a2); /*0x160e1c*/\n  else\n    return 22; /*0x160e28*/\n}",
+    "refs": [
+      {
+        "addr": "0x18762c",
+        "name": "_PMGetPowerStatus"
+      },
+      {
+        "addr": "0x1e97b0",
+        "name": "_realhost"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160e34",
+    "addr": "0x00160e34",
+    "code": "int __cdecl kern_PMSetPowerManagement(int *a1, int a2, int a3)\n{\n  if ( a1 == &realhost ) /*0x160e3e*/\n    return PMSetPowerManagement(a2, a3); /*0x160e48*/\n  else\n    return 22; /*0x160e54*/\n}",
+    "refs": [
+      {
+        "addr": "0x1876d8",
+        "name": "_PMSetPowerManagement"
+      },
+      {
+        "addr": "0x1e97b0",
+        "name": "_realhost"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160e60",
+    "addr": "0x00160e60",
+    "code": "int __cdecl kern_PMRestoreDefaults(int *a1)\n{\n  if ( a1 == &realhost ) /*0x160e6a*/\n    return PMRestoreDefaults(); /*0x160e6c*/\n  else\n    return 22; /*0x160e78*/\n}",
+    "refs": [
+      {
+        "addr": "0x187770",
+        "name": "_PMRestoreDefaults"
+      },
+      {
+        "addr": "0x1e97b0",
+        "name": "_realhost"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00160e84",
+    "addr": "0x00160e84",
+    "code": "int __cdecl thread_quantum_update(int a1, int a2, int a3, int a4)\n{\n  int result; // eax\n  int v5; // edi\n  int v6; // eax\n  volatile __int32 *v7; // edx\n  int v8; // edx\n  int v9; // ebx\n  int v10; // edx\n  int v11; // ebx\n  int v12; // eax\n  volatile __int32 *v13; // edx\n  int v14; // edx\n  int v15; // ebx\n  int v16; // edx\n  int v17; // ebx\n  unsigned int v18; // eax\n  int v19; // [esp+Ch] [ebp-8h]\n  int v20; // [esp+Ch] [ebp-8h]\n  int v21; // [esp+10h] [ebp-4h]\n\n  result = a1; /*0x160e8d*/\n  v5 = processor_ptr[a1]; /*0x160e93*/\n  v21 = min_quantum; /*0x160ea0*/\n  dword_1E977C = min_quantum; /*0x160ea3*/\n  if ( a4 != 2 ) /*0x160ead*/\n  {\n    v6 = *(_DWORD *)(v5 + 288) - a3; /*0x160eb9*/\n    *(_DWORD *)(v5 + 288) = v6; /*0x160ebc*/\n    if ( v6 > 0 ) /*0x160ec4*/\n    {\n      v20 = splsched(); /*0x161011*/\n      v13 = (volatile __int32 *)(a2 + 32); /*0x161014*/\n      do /*0x16102a*/\n      {\n        while ( *v13 ) /*0x161018*/\n          ; /*0x16101a*/\n      }\n      while ( _InterlockedExchange(v13, 1) == 1 ); /*0x16102a*/\n      if ( *(_DWORD *)(a2 + 112) == sched_tick ) /*0x161034*/\n      {\n        if ( *(_DWORD *)(a2 + 96) != 2 && *(int *)(a2 + 100) < 0 ) /*0x161052*/\n        {\n          v14 = *(_DWORD *)(a2 + 240); /*0x161058*/\n          if ( *(_DWORD *)(a2 + 268) == *(_DWORD *)(a2 + 248) ) /*0x16106a*/\n          {\n            v15 = v14 - *(_DWORD *)(a2 + 264); /*0x16108a*/\n            *(_DWORD *)(a2 + 264) = v14; /*0x161090*/\n          }\n          else\n          {\n            v15 = timer_delta(a2 + 240, a2 + 264); /*0x16107f*/\n          }\n          v16 = *(_DWORD *)(a2 + 224); /*0x161096*/\n          if ( *(_DWORD *)(a2 + 260) == *(_DWORD *)(a2 + 232) ) /*0x1610a8*/\n          {\n            v17 = v16 - *(_DWORD *)(a2 + 256) + v15; /*0x1610cc*/\n            *(_DWORD *)(a2 + 256) = v16; /*0x1610ce*/\n          }\n          else\n          {\n            v17 = timer_delta(a2 + 224, a2 + 256) + v15; /*0x1610bd*/\n          }\n          *(_DWORD *)(a2 + 272) += v17; /*0x1610d4*/\n          v18 = *(_DWORD *)(a2 + 276) + *(_DWORD *)(*(_DWORD *)(a2 + 384) + 376) * v17; /*0x1610e9*/\n          *(_DWORD *)(a2 + 276) = v18; /*0x1610ef*/\n          if ( v18 > 0x7FFFFFF ) /*0x1610fa*/\n          {\n            *(_DWORD *)(a2 + 108) += v18; /*0x1610fc*/\n            *(_DWORD *)(a2 + 276) = 0; /*0x1610ff*/\n            compute_my_priority(a2); /*0x16110a*/\n          }\n        }\n      }\n      else\n      {\n        update_priority(a2); /*0x161037*/\n      }\n      _InterlockedExchange((volatile __int32 *)(a2 + 32), 0); /*0x161114*/\n      splx(v20); /*0x16111b*/\n    }\n    else\n    {\n      v19 = splsched(); /*0x160ecf*/\n      v7 = (volatile __int32 *)(a2 + 32); /*0x160ed2*/\n      do /*0x160eea*/\n      {\n        while ( *v7 ) /*0x160ed8*/\n          ; /*0x160eda*/\n      }\n      while ( _InterlockedExchange(v7, 1) == 1 ); /*0x160eea*/\n      if ( *(_DWORD *)(a2 + 112) == sched_tick ) /*0x160ef4*/\n      {\n        if ( *(_DWORD *)(a2 + 96) != 2 && *(int *)(a2 + 100) < 0 ) /*0x160f12*/\n        {\n          v8 = *(_DWORD *)(a2 + 240); /*0x160f18*/\n          if ( *(_DWORD *)(a2 + 268) == *(_DWORD *)(a2 + 248) ) /*0x160f2a*/\n          {\n            v9 = v8 - *(_DWORD *)(a2 + 264); /*0x160f4a*/\n            *(_DWORD *)(a2 + 264) = v8; /*0x160f50*/\n          }\n          else\n          {\n            v9 = timer_delta(a2 + 240, a2 + 264); /*0x160f3f*/\n          }\n          v10 = *(_DWORD *)(a2 + 224); /*0x160f56*/\n          if ( *(_DWORD *)(a2 + 260) == *(_DWORD *)(a2 + 232) ) /*0x160f68*/\n          {\n            v11 = v10 - *(_DWORD *)(a2 + 256) + v9; /*0x160f8c*/\n            *(_DWORD *)(a2 + 256) = v10; /*0x160f8e*/\n          }\n          else\n          {\n            v11 = timer_delta(a2 + 224, a2 + 256) + v9; /*0x160f7d*/\n          }\n          *(_DWORD *)(a2 + 272) += v11; /*0x160f94*/\n          v12 = *(_DWORD *)(a2 + 276) + *(_DWORD *)(*(_DWORD *)(a2 + 384) + 376) * v11; /*0x160fa9*/\n          *(_DWORD *)(a2 + 276) = v12; /*0x160faf*/\n          *(_DWORD *)(a2 + 108) += v12; /*0x160fb5*/\n          *(_DWORD *)(a2 + 276) = 0; /*0x160fb8*/\n          compute_my_priority(a2); /*0x160fc3*/\n        }\n      }\n      else\n      {\n        update_priority(a2); /*0x160ef7*/\n      }\n      _InterlockedExchange((volatile __int32 *)(a2 + 32), 0); /*0x160fcd*/\n      splx(v19); /*0x160fd4*/\n      *(_DWORD *)(v5 + 292) = 0; /*0x160fd9*/\n      if ( *(_DWORD *)(a2 + 96) == 2 ) /*0x160fea*/\n        *(_DWORD *)(v5 + 288) += *(_DWORD *)(a2 + 92); /*0x160fff*/\n      else\n        *(_DWORD *)(v5 + 288) += v21; /*0x160fef*/\n    }\n    return ast_check(); /*0x161123*/\n  }\n  return result; /*0x16112b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e9050",
+        "name": "_processor_ptr"
+      },
+      {
+        "addr": "0x1f6538",
+        "name": "_min_quantum"
+      },
+      {
+        "addr": "0x1e977c",
+        "name": "dword_1E977C"
+      },
+      {
+        "addr": "0x18be68",
+        "name": "_splsched"
+      },
+      {
+        "addr": "0x16a30c",
+        "name": "_timer_delta"
+      },
+      {
+        "addr": "0x163d74",
+        "name": "_compute_my_priority"
+      },
+      {
+        "addr": "0x163dc8",
+        "name": "_update_priority"
+      },
+      {
+        "addr": "0x1f653c",
+        "name": "_sched_tick"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1566b0",
+        "name": "_ast_check"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00161134",
+    "addr": "0x00161134",
+    "code": "int pset_sys_bootstrap()\n{\n  int v0; // esi\n  char *v1; // ebx\n  int v2; // edi\n  int result; // eax\n\n  pset_init(&default_pset); /*0x16113f*/\n  dword_1E9738 = 0; /*0x161144*/\n  v0 = 0; /*0x16114e*/\n  v1 = (char *)&processor_array; /*0x161153*/\n  v2 = 0; /*0x161158*/\n  do /*0x161178*/\n  {\n    processor_ptr[v2] = (int)v1; /*0x16115c*/\n    processor_init(v1, v0); /*0x161164*/\n    v1 += 328; /*0x16116c*/\n    ++v2; /*0x161172*/\n    ++v0; /*0x161175*/\n  }\n  while ( v0 <= 0 ); /*0x161178*/\n  result = processor_ptr[master_cpu]; /*0x16117f*/\n  master_processor = result; /*0x161186*/\n  all_psets_lock = 0; /*0x16119f*/\n  all_psets = (int)&default_pset; /*0x1611a9*/\n  dword_1E9760 = (int)&all_psets; /*0x1611b3*/\n  set = (processor_set_t)&all_psets; /*0x1611bd*/\n  dword_1E9604 = (int)&default_pset; /*0x1611c7*/\n  all_psets_count = 1; /*0x1611d1*/\n  dword_1E9764 = 1; /*0x1611db*/\n  dword_1E9738 = 0; /*0x1611e5*/\n  return result; /*0x1611f2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1611fc",
+        "name": "_pset_init"
+      },
+      {
+        "addr": "0x1e9610",
+        "name": "_default_pset"
+      },
+      {
+        "addr": "0x1e9738",
+        "name": "dword_1E9738"
+      },
+      {
+        "addr": "0x1f6550",
+        "name": "_processor_array"
+      },
+      {
+        "addr": "0x1e9050",
+        "name": "_processor_ptr"
+      },
+      {
+        "addr": "0x161350",
+        "name": "_processor_init"
+      },
+      {
+        "addr": "0x1e8750",
+        "name": "_master_cpu"
+      },
+      {
+        "addr": "0x1ea9dc",
+        "name": "_master_processor"
+      },
+      {
+        "addr": "0x1e9608",
+        "name": "_all_psets_lock"
+      },
+      {
+        "addr": "0x1e9600",
+        "name": "_all_psets"
+      },
+      {
+        "addr": "0x1e9760",
+        "name": "dword_1E9760"
+      },
+      {
+        "addr": "0x1e975c",
+        "name": "set"
+      },
+      {
+        "addr": "0x1e9604",
+        "name": "dword_1E9604"
+      },
+      {
+        "addr": "0x1f6540",
+        "name": "_all_psets_count"
+      },
+      {
+        "addr": "0x1e9764",
+        "name": "dword_1E9764"
+      }
+    ]
+  }
+]

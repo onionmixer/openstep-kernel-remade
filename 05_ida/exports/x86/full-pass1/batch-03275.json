@@ -1,0 +1,669 @@
+[
+  {
+    "requested_address": "0x001a00e4",
+    "addr": "0x001a00e4",
+    "code": "id __cdecl -[EventSrcPCPointer scalePointerInX:andY:over:atRes:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        int *a3,\n        int *a4,\n        unsigned int a5,\n        unsigned int a6)\n{\n  unsigned int v6; // ebx\n  unsigned int v7; // ebx\n  int v8; // ecx\n  int numScaleLevels; // edx\n  int v10; // edx\n  int v11; // eax\n  int v12; // edx\n  int v13; // edx\n  int v14; // eax\n  int v15; // edx\n  int resScaling; // [esp+Ch] [ebp-18h]\n  int v18; // [esp+14h] [ebp-10h]\n  int v19; // [esp+18h] [ebp-Ch]\n  int v20; // [esp+1Ch] [ebp-8h]\n  int v21; // [esp+20h] [ebp-4h]\n\n  v6 = a5; /*0x1a00f0*/\n  v21 = *a3; /*0x1a00f8*/\n  v20 = *a4; /*0x1a0100*/\n  v19 = *a3; /*0x1a0103*/\n  if ( *a3 < 0 ) /*0x1a0108*/\n    v19 = -v19; /*0x1a010a*/\n  v18 = *a4; /*0x1a0110*/\n  if ( v20 < 0 ) /*0x1a0115*/\n    v18 = -v20; /*0x1a0117*/\n  if ( !a5 ) /*0x1a0122*/\n    v6 = 1; /*0x1a0124*/\n  v7 = 15259 * (v18 + v19) / (a6 * v6); /*0x1a0154*/\n  resScaling = self->resScaling; /*0x1a015c*/\n  if ( v7 > self->pointerScaling.scaleThresholds[0] ) /*0x1a0168*/\n  {\n    v8 = 1; /*0x1a016a*/\n    numScaleLevels = self->pointerScaling.numScaleLevels; /*0x1a016f*/\n    if ( numScaleLevels > 1 ) /*0x1a0177*/\n    {\n      do /*0x1a018b*/\n      {\n        if ( v7 <= self->pointerScaling.scaleThresholds[v8] ) /*0x1a0186*/\n          break; /*0x1a0186*/\n        ++v8; /*0x1a0188*/\n      }\n      while ( v8 < numScaleLevels ); /*0x1a018b*/\n    }\n    resScaling *= self->pointerScaling.scaleThresholds[v8 + 19]; /*0x1a0199*/\n  }\n  if ( v21 < 0 ) /*0x1a01a0*/\n  {\n    v12 = resScaling * v19 - (self->dxRemainder - 128); /*0x1a01e0*/\n    *a3 = -(v12 >> 8); /*0x1a01ec*/\n    v11 = 128 - (unsigned __int8)v12; /*0x1a01fc*/\n  }\n  else\n  {\n    v10 = resScaling * v21 + self->dxRemainder + 128; /*0x1a01b5*/\n    *a3 = v10 >> 8; /*0x1a01bf*/\n    v11 = (unsigned __int8)v10 - 128; /*0x1a01c9*/\n  }\n  self->dxRemainder = v11; /*0x1a01fe*/\n  if ( v20 < 0 ) /*0x1a0208*/\n  {\n    v15 = resScaling * v18 - (self->dyRemainder - 128); /*0x1a0248*/\n    *a4 = -(v15 >> 8); /*0x1a0254*/\n    v14 = 128 - (unsigned __int8)v15; /*0x1a0264*/\n  }\n  else\n  {\n    v13 = resScaling * v20 + self->dyRemainder + 128; /*0x1a021d*/\n    *a4 = v13 >> 8; /*0x1a0227*/\n    v14 = (unsigned __int8)v13 - 128; /*0x1a0231*/\n  }\n  self->dyRemainder = v14; /*0x1a0266*/\n  return self; /*0x1a0271*/\n}"
+  },
+  {
+    "requested_address": "0x001a0278",
+    "addr": "0x001a0278",
+    "code": "id __cdecl -[EventSrcPCPointer setPointerScaling:data:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        unsigned int a3,\n        const unsigned int *a4)\n{\n  unsigned int v4; // esi\n  unsigned int i; // eax\n  const unsigned int *v7; // ebx\n\n  v4 = a3; /*0x1a0281*/\n  if ( a3 > 0x14 ) /*0x1a028a*/\n    v4 = 20; /*0x1a028c*/\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a029f*/\n  self->pointerScaling.numScaleLevels = v4; /*0x1a02a4*/\n  for ( i = 0; i < v4; ++i ) /*0x1a02b1*/\n  {\n    self->pointerScaling.scaleThresholds[i] = *(_WORD *)a4; /*0x1a02b7*/\n    v7 = a4 + 1; /*0x1a02bf*/\n    self->pointerScaling.scaleFactors[i] = *(_WORD *)v7; /*0x1a02c5*/\n    a4 = v7 + 1; /*0x1a02cd*/\n  }\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x1a02e3*/\n  return self; /*0x1a02ed*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a02f4",
+    "addr": "0x001a02f4",
+    "code": "id __cdecl -[EventSrcPCPointer pointerScaling:data:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        unsigned int *a3,\n        unsigned int *a4)\n{\n  unsigned int numScaleLevels; // eax\n  unsigned int i; // eax\n  unsigned int *v7; // ebx\n\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a0311*/\n  numScaleLevels = self->pointerScaling.numScaleLevels; /*0x1a0316*/\n  if ( *a3 > numScaleLevels ) /*0x1a0321*/\n    *a3 = numScaleLevels; /*0x1a0323*/\n  for ( i = 0; *a3 > i; ++i ) /*0x1a0327*/\n  {\n    *a4 = self->pointerScaling.scaleThresholds[i]; /*0x1a0334*/\n    v7 = a4 + 1; /*0x1a0336*/\n    *v7 = self->pointerScaling.scaleFactors[i]; /*0x1a0341*/\n    a4 = v7 + 1; /*0x1a0343*/\n  }\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x1a0359*/\n  return self; /*0x1a0363*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a036c",
+    "addr": "0x001a036c",
+    "code": "id __cdecl -[EventSrcPCPointer initPointer](EventSrcPCPointer *self, SEL a2)\n{\n  id v2; // eax\n\n  v2 = +[PCPointer activePointerDevice](aPcpointer, sel_activePointerDevice); /*0x1a0381*/\n  self->pointerDevice = v2; /*0x1a0386*/\n  if ( v2 ) /*0x1a0391*/\n  {\n    if ( (unsigned __int8)objc_msgSend(v2, sel_respondsTo_, sel_setEventTarget_) ) /*0x1a03b3*/\n    {\n      objc_msgSend(self->pointerDevice, sel_setEventTarget_, self); /*0x1a03df*/\n      objc_msgSend(self->pointerDevice, sel_setEventTarget_, self); /*0x1a03f6*/\n      return self; /*0x1a03fb*/\n    }\n    else\n    {\n      IOLog(aInitpointerPcp); /*0x1a03c4*/\n      return nullptr; /*0x1a03c9*/\n    }\n  }\n  else\n  {\n    IOLog(aInitpointerCan); /*0x1a0398*/\n    return nullptr; /*0x1a039d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a0b84",
+        "name": "+[PCPointer activePointerDevice]"
+      },
+      {
+        "addr": "0x1fe623",
+        "name": "aPcpointer",
+        "string": "PCPointer"
+      },
+      {
+        "addr": "0x2031dc",
+        "name": "sel_activePointerDevice",
+        "string": "activePointerDevice"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2031f0",
+        "name": "sel_setEventTarget:",
+        "string": "setEventTarget:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e49ef",
+        "name": "aInitpointerPcp",
+        "string": "initPointer: PCPointer0 does not respond to setEventTarget:\n"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      },
+      {
+        "addr": "0x1e49c0",
+        "name": "aInitpointerCan",
+        "string": "initPointer: Can't find active pointer device\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0404",
+    "addr": "0x001a0404",
+    "code": "id __cdecl -[EventSrcPCPointer resetPointer](EventSrcPCPointer *self, SEL a2)\n{\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a0419*/\n  self->buttonMode = 0; /*0x1a041e*/\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x1a0436*/\n  -[EventSrcPCPointer setPointerScaling:data:](self, sel_setPointerScaling_data_, 5, &unk_1D58BC); /*0x1a044a*/\n  return self; /*0x1a0451*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1a0278",
+        "name": "-[EventSrcPCPointer setPointerScaling:data:]"
+      },
+      {
+        "addr": "0x2031a0",
+        "name": "sel_setPointerScaling:data:",
+        "string": "setPointerScaling:data:"
+      },
+      {
+        "addr": "0x1d58bc",
+        "name": "unk_1D58BC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0458",
+    "addr": "0x001a0458",
+    "code": "void __cdecl -[EventSrcPCPointer dispatchPointerEvent:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        $BD0D23F12DDF06FC72601C9E27B504E8 *a3)\n{\n  unsigned __int64 v3; // kr00_8\n  int v4; // eax\n  id v5; // eax\n  int v6; // [esp+14h] [ebp-8h] BYREF\n  int v7; // [esp+18h] [ebp-4h] BYREF\n\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a0475*/\n  if ( self->inverted ) /*0x1a0494*/\n  {\n    v7 = -*((char *)a3 + 9); /*0x1a04a3*/\n    v6 = *((char *)a3 + 10); /*0x1a04aa*/\n  }\n  else\n  {\n    v7 = *((char *)a3 + 9); /*0x1a04b4*/\n    v6 = -*((char *)a3 + 10); /*0x1a04bd*/\n  }\n  v3 = *(_QWORD *)a3 - self->lastTimestamp; /*0x1a04cb*/\n  if ( v3 >> 16 <= 0xFFFF ) /*0x1a04ed*/\n    v4 = v3 >> 16; /*0x1a04f8*/\n  else\n    v4 = 0xFFFF; /*0x1a04ef*/\n  self->lastTimestamp = *(_QWORD *)a3; /*0x1a04fd*/\n  -[EventSrcPCPointer scalePointerInX:andY:over:atRes:]( /*0x1a0524*/\n    self,\n    sel_scalePointerInX_andY_over_atRes_,\n    &v7,\n    &v6,\n    v4,\n    self->resolution);\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x1a0569*/\n  v5 = -[IOEventSource owner](self, sel_owner); /*0x1a058d*/\n  objc_msgSend(v5, sel_relativePointerEvent_deltaX_deltaY_atTime_); /*0x1a0596*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a00e4",
+        "name": "-[EventSrcPCPointer scalePointerInX:andY:over:atRes:]"
+      },
+      {
+        "addr": "0x2031b8",
+        "name": "sel_scalePointerInX:andY:over:atRes:",
+        "string": "scalePointerInX:andY:over:atRes:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b38b0",
+        "name": "-[IOEventSource owner]"
+      },
+      {
+        "addr": "0x202fc0",
+        "name": "sel_owner",
+        "string": "owner"
+      },
+      {
+        "addr": "0x203200",
+        "name": "sel_relativePointerEvent:deltaX:deltaY:atTime:",
+        "string": "relativePointerEvent:deltaX:deltaY:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a05a8",
+    "addr": "0x001a05a8",
+    "code": "EventSrcPCPointer *__cdecl -[EventSrcPCPointer init](EventSrcPCPointer *self, SEL a2)\n{\n  EventSrcPCPointer *v2; // esi\n  id v3; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  self->lastTimestamp = 0; /*0x1a05b3*/\n  self->dyRemainder = 0; /*0x1a05c7*/\n  self->dxRemainder = 0; /*0x1a05d1*/\n  if ( !self->deviceLock ) /*0x1a05db*/\n    self->deviceLock = +[Object new](aNxlock, sel_new); /*0x1a05f7*/\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a060e*/\n  v5.receiver = self; /*0x1a061a*/\n  v5.super_class = (Class)stru_1FA064.super_class; /*0x1a0623*/\n  -[IOEventSource init](&v5, sel_init); /*0x1a062a*/\n  self->pointerDevice = nullptr; /*0x1a062f*/\n  self->buttonMode = 0; /*0x1a0639*/\n  v2 = -[EventSrcPCPointer initPointer](self, sel_initPointer); /*0x1a0650*/\n  v3 = objc_msgSend(self->pointerDevice, sel_getResolution); /*0x1a0660*/\n  self->resolution = (unsigned int)v3; /*0x1a0665*/\n  if ( !v3 ) /*0x1a0670*/\n    self->resolution = 72; /*0x1a0672*/\n  self->resScaling = 0x4800 / self->resolution; /*0x1a0689*/\n  self->inverted = (unsigned __int8)objc_msgSend(self->pointerDevice, sel_getInverted); /*0x1a06a2*/\n  objc_msgSend(self->deviceLock, sel_unlock); /*0x1a06b6*/\n  -[EventSrcPCPointer setPointerScaling:data:](self, sel_setPointerScaling_data_, 5, &unk_1D58BC); /*0x1a06ca*/\n  return v2; /*0x1a06d4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1fa064",
+        "name": "stru_1FA064"
+      },
+      {
+        "addr": "0x1b37ec",
+        "name": "-[IOEventSource init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1a036c",
+        "name": "-[EventSrcPCPointer initPointer]"
+      },
+      {
+        "addr": "0x20317c",
+        "name": "sel_initPointer",
+        "string": "initPointer"
+      },
+      {
+        "addr": "0x20322c",
+        "name": "sel_getResolution",
+        "string": "getResolution"
+      },
+      {
+        "addr": "0x20323c",
+        "name": "sel_getInverted",
+        "string": "getInverted"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1a0278",
+        "name": "-[EventSrcPCPointer setPointerScaling:data:]"
+      },
+      {
+        "addr": "0x2031a0",
+        "name": "sel_setPointerScaling:data:",
+        "string": "setPointerScaling:data:"
+      },
+      {
+        "addr": "0x1d58bc",
+        "name": "unk_1D58BC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a06dc",
+    "addr": "0x001a06dc",
+    "code": "id __cdecl +[EventSrcPCPointer probe](id a1, SEL a2)\n{\n  id result; // eax\n\n  result = dword_1E49BC; /*0x1a06df*/\n  if ( !dword_1E49BC ) /*0x1a06e6*/\n  {\n    dword_1E49BC = objc_msgSend(a1, sel_alloc); /*0x1a06f8*/\n    objc_msgSend(dword_1E49BC, sel_setName_, aEventsrcpcpoin_0); /*0x1a070a*/\n    objc_msgSend(dword_1E49BC, sel_setDeviceKind_, aEventsrcpcpoin_1); /*0x1a0722*/\n    if ( !objc_msgSend(dword_1E49BC, sel_init) ) /*0x1a0738*/\n      objc_msgSend(dword_1E49BC, sel_free); /*0x1a0752*/\n    return dword_1E49BC; /*0x1a0757*/\n  }\n  return result; /*0x1a075e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e49bc",
+        "name": "dword_1E49BC"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1e4a2c",
+        "name": "aEventsrcpcpoin_0",
+        "string": "EventSrcPCPointer0"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1e4a3f",
+        "name": "aEventsrcpcpoin_1",
+        "string": "EventSrcPCPointer"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0760",
+    "addr": "0x001a0760",
+    "code": "id __cdecl -[EventSrcPCPointer free](EventSrcPCPointer *self, SEL a2)\n{\n  id deviceLock; // esi\n  id pointerDevice; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  objc_msgSend(self->deviceLock, sel_lock); /*0x1a0779*/\n  dword_1E49BC = nullptr; /*0x1a077e*/\n  deviceLock = self->deviceLock; /*0x1a0788*/\n  self->deviceLock = nullptr; /*0x1a078e*/\n  pointerDevice = self->pointerDevice; /*0x1a079b*/\n  if ( pointerDevice ) /*0x1a07a3*/\n    objc_msgSend(pointerDevice, sel_setEventTarget_, 0); /*0x1a07af*/\n  objc_msgSend(deviceLock, sel_unlock); /*0x1a07bf*/\n  objc_msgSend(deviceLock, sel_free); /*0x1a07cc*/\n  v5.receiver = self; /*0x1a07d8*/\n  v5.super_class = (Class)stru_1FA064.super_class; /*0x1a07e1*/\n  return -[IOEventSource free](&v5, sel_free); /*0x1a07f0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1e49bc",
+        "name": "dword_1E49BC"
+      },
+      {
+        "addr": "0x2031f0",
+        "name": "sel_setEventTarget:",
+        "string": "setEventTarget:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1fa064",
+        "name": "stru_1FA064"
+      },
+      {
+        "addr": "0x1b3868",
+        "name": "-[IOEventSource free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a07f8",
+    "addr": "0x001a07f8",
+    "code": "int __cdecl -[EventSrcPCPointer getIntValues:forParameter:count:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  int result; // eax\n  unsigned int v6; // eax\n  objc_super v7; // [esp+14h] [ebp-8h] BYREF\n\n  result = -706; /*0x1a0804*/\n  if ( !strcmp(a4, aEvsCurrentmous) ) /*0x1a0826*/\n  {\n    *a3 = (*a5 - 1) >> 1; /*0x1a082f*/\n    -[EventSrcPCPointer pointerScaling:data:](self, sel_pointerScaling_data_, a3, a3 + 1); /*0x1a0841*/\n    v6 = 2 * *a3; /*0x1a084a*/\n    LOBYTE(v6) = (2 * *a3) | 1; /*0x1a084c*/\n    *a5 = v6; /*0x1a0851*/\n    return 0; /*0x1a0853*/\n  }\n  else if ( !strcmp(a4, aEvsCurrentmous_0) ) /*0x1a086c*/\n  {\n    if ( *a5 ) /*0x1a080e*/\n    {\n      *a5 = 1; /*0x1a087d*/\n      objc_msgSend(self->deviceLock, sel_lock); /*0x1a0894*/\n      *a3 = self->buttonMode; /*0x1a08a2*/\n      objc_msgSend(self->deviceLock, sel_unlock); /*0x1a08b5*/\n      return 0; /*0x1a08ba*/\n    }\n  }\n  else if ( !strcmp(a4, aEvsEventdevice_1) ) /*0x1a08d0*/\n  {\n    *a5 = 0; /*0x1a08d7*/\n    *a3 = 4; /*0x1a08dd*/\n    a3[2] = 2; /*0x1a08e3*/\n    a3[1] = 0; /*0x1a08ea*/\n    a3[3] = 0; /*0x1a08f1*/\n    *a5 = 4; /*0x1a08f8*/\n    return 0; /*0x1a08fe*/\n  }\n  else\n  {\n    v7.receiver = self; /*0x1a0917*/\n    v7.super_class = (Class)stru_1FA064.super_class; /*0x1a0920*/\n    result = -[IODevice getIntValues:forParameter:count:](&v7, sel_getIntValues_forParameter_count_, a3, a4, a5); /*0x1a0927*/\n    if ( result == -711 ) /*0x1a0931*/\n      return -706; /*0x1a0933*/\n  }\n  return result; /*0x1a093b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a02f4",
+        "name": "-[EventSrcPCPointer pointerScaling:data:]"
+      },
+      {
+        "addr": "0x203188",
+        "name": "sel_pointerScaling:data:",
+        "string": "pointerScaling:data:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1fa064",
+        "name": "stru_1FA064"
+      },
+      {
+        "addr": "0x1a482c",
+        "name": "-[IODevice getIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202e1c",
+        "name": "sel_getIntValues:forParameter:count:",
+        "string": "getIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1e4a84",
+        "name": "aEvsEventdevice_1",
+        "string": "Evs_EventDeviceInfo"
+      },
+      {
+        "addr": "0x1e4a69",
+        "name": "aEvsCurrentmous_0",
+        "string": "Evs_CurrentMouseHandedness"
+      },
+      {
+        "addr": "0x1e4a51",
+        "name": "aEvsCurrentmous",
+        "string": "Evs_CurrentMouseScaling"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0944",
+    "addr": "0x001a0944",
+    "code": "int __cdecl -[EventSrcPCPointer getCharValues:forParameter:count:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        char *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  return -706; /*0x1a094e*/\n}"
+  },
+  {
+    "requested_address": "0x001a0950",
+    "addr": "0x001a0950",
+    "code": "int __cdecl -[EventSrcPCPointer setIntValues:forParameter:count:](\n        EventSrcPCPointer *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5)\n{\n  int v6; // [esp+Ch] [ebp-Ch]\n  objc_super v7; // [esp+10h] [ebp-8h] BYREF\n\n  v6 = -706; /*0x1a095c*/\n  if ( !strcmp(a4, aEvsSetmousesca) ) /*0x1a0972*/\n  {\n    if ( a5 <= 0x29 && a5 >= 2 * *a3 + 1 ) /*0x1a098c*/\n    {\n      -[EventSrcPCPointer setPointerScaling:data:](self, sel_setPointerScaling_data_, *a3, a3 + 1); /*0x1a09a4*/\n      return 0; /*0x1a09a9*/\n    }\n  }\n  else if ( !strcmp(a4, aEvsSetmousehan) ) /*0x1a09c7*/\n  {\n    if ( a5 == 1 ) /*0x1a09cf*/\n    {\n      objc_msgSend(self->deviceLock, sel_lock); /*0x1a09e6*/\n      self->buttonMode = *a3; /*0x1a09f3*/\n      objc_msgSend(self->deviceLock, sel_unlock); /*0x1a0a0a*/\n      return 0; /*0x1a0a0f*/\n    }\n  }\n  else if ( !strcmp(a4, aEvsResetmouse_0) ) /*0x1a0a27*/\n  {\n    return 0; /*0x1a0a2b*/\n  }\n  else\n  {\n    v7.receiver = self; /*0x1a0a47*/\n    v7.super_class = (Class)stru_1FA064.super_class; /*0x1a0a50*/\n    v6 = -[IODevice setIntValues:forParameter:count:](&v7, sel_setIntValues_forParameter_count_, a3, a4, a5); /*0x1a0a5c*/\n    if ( v6 == -711 ) /*0x1a0a64*/\n      return -706; /*0x1a0a66*/\n  }\n  return v6; /*0x1a0a73*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a0278",
+        "name": "-[EventSrcPCPointer setPointerScaling:data:]"
+      },
+      {
+        "addr": "0x2031a0",
+        "name": "sel_setPointerScaling:data:",
+        "string": "setPointerScaling:data:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1fa064",
+        "name": "stru_1FA064"
+      },
+      {
+        "addr": "0x1a49d0",
+        "name": "-[IODevice setIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1e4ac3",
+        "name": "aEvsResetmouse_0",
+        "string": "Evs_ResetMouse"
+      },
+      {
+        "addr": "0x1e4aac",
+        "name": "aEvsSetmousehan",
+        "string": "Evs_SetMouseHandedness"
+      },
+      {
+        "addr": "0x1e4a98",
+        "name": "aEvsSetmousesca",
+        "string": "Evs_SetMouseScaling"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0a7c",
+    "addr": "0x001a0a7c",
+    "code": "void __cdecl -[EventSrcPCPointer setResolution:](EventSrcPCPointer *self, SEL a2, unsigned int a3)\n{\n  self->resolution = a3; /*0x1a0a86*/\n  if ( !a3 ) /*0x1a0a8e*/\n    self->resolution = 72; /*0x1a0a90*/\n  self->resScaling = 0x4800 / self->resolution; /*0x1a0aa7*/\n}"
+  },
+  {
+    "requested_address": "0x001a0ab4",
+    "addr": "0x001a0ab4",
+    "code": "void __cdecl -[EventSrcPCPointer setInverted:](EventSrcPCPointer *self, SEL a2, char a3)\n{\n  self->inverted = a3; /*0x1a0abd*/\n}"
+  },
+  {
+    "requested_address": "0x001a0ac8",
+    "addr": "0x001a0ac8",
+    "code": "int __cdecl PCPatoi(char *a1)\n{\n  int v2; // ebx\n  int v3; // esi\n  char v4; // al\n  int result; // eax\n\n  v2 = 0; /*0x1a0ad0*/\n  v3 = 0; /*0x1a0ad2*/\n  while ( 1 ) /*0x1a0ad4*/\n  {\n    v4 = *a1; /*0x1a0ad4*/\n    if ( *a1 == 43 ) /*0x1a0ad8*/\n      goto LABEL_11; /*0x1a0ad8*/\n    if ( *a1 > 43 ) /*0x1a0ada*/\n      break; /*0x1a0ada*/\n    if ( v4 != 9 && v4 != 32 ) /*0x1a0ae2*/\n      goto LABEL_12; /*0x1a0ae2*/\n    ++a1; /*0x1a0af0*/\n  }\n  if ( v4 == 45 ) /*0x1a0aea*/\n  {\n    v3 = 1; /*0x1a0aec*/\n    goto LABEL_11; /*0x1a0aed*/\n  }\nLABEL_12:\n  while ( (unsigned __int8)(*a1 - 48) <= 9u ) /*0x1a0b09*/\n  {\n    v2 = *a1 + 10 * v2 - 48; /*0x1a0afc*/\nLABEL_11:\n    ++a1; /*0x1a0b00*/\n  }\n  result = v2; /*0x1a0b0b*/\n  if ( v3 ) /*0x1a0b0f*/\n    return -v2; /*0x1a0b11*/\n  return result; /*0x1a0b16*/\n}"
+  },
+  {
+    "requested_address": "0x001a0b1c",
+    "addr": "0x001a0b1c",
+    "code": "int __cdecl -[PCPointer getResolution](PCPointer *self, SEL a2)\n{\n  return 50; /*0x1a0b26*/\n}"
+  },
+  {
+    "requested_address": "0x001a0b28",
+    "addr": "0x001a0b28",
+    "code": "char __cdecl -[PCPointer setEventTarget:](PCPointer *self, SEL a2, id a3)\n{\n  if ( (unsigned __int8)objc_msgSend(a3, sel_conformsTo_, &stru_1FDDA4) ) /*0x1a0b40*/\n  {\n    self->target = a3; /*0x1a0b64*/\n    return 1; /*0x1a0b6a*/\n  }\n  else\n  {\n    object_getClassName(a3); /*0x1a0b4d*/\n    IOLog(aPcpointerSetev); /*0x1a0b58*/\n    return 0; /*0x1a0b5d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ccb5c",
+        "name": "_object_getClassName"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e4ad2",
+        "name": "aPcpointerSetev",
+        "string": "PCPointer setEventTarget: new target [%s] does not implement PCPointerTarget protocol.\n"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201988",
+        "name": "sel_conformsTo:",
+        "string": "conformsTo:"
+      },
+      {
+        "addr": "0x1fdda4",
+        "name": "stru_1FDDA4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0b78",
+    "addr": "0x001a0b78",
+    "code": "char __cdecl -[PCPointer mouseInit:](PCPointer *self, SEL a2, id a3)\n{\n  return 0; /*0x1a0b7f*/\n}"
+  },
+  {
+    "requested_address": "0x001a0b84",
+    "addr": "0x001a0b84",
+    "code": "id __cdecl +[PCPointer activePointerDevice](id a1, SEL a2)\n{\n  return (id)dword_1E8664; /*0x1a0b8e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8664",
+        "name": "dword_1E8664"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0b90",
+    "addr": "0x001a0b90",
+    "code": "char __cdecl +[PCPointer probe:](id a1, SEL a2, id a3)\n{\n  id v3; // eax\n  _DWORD *v4; // esi\n  int v6; // [esp-4h] [ebp-Ch]\n\n  v3 = objc_msgSend(a1, sel_alloc); /*0x1a0bab*/\n  v4 = objc_msgSend(v3, sel_initFromDeviceDescription_); /*0x1a0bb9*/\n  v4[74] = 0; /*0x1a0bbb*/\n  if ( (unsigned __int8)objc_msgSend(v4, sel_mouseInit_, a3) ) /*0x1a0bce*/\n  {\n    v6 = dword_1E8660++; /*0x1a0bfe*/\n    objc_msgSend(v4, sel_setUnit_, v6); /*0x1a0c0d*/\n    objc_msgSend(v4, sel_registerDevice); /*0x1a0c1a*/\n    dword_1E8664 = (int)v4; /*0x1a0c1f*/\n    return 1; /*0x1a0c25*/\n  }\n  else\n  {\n    IOLog(aPcpointerProbe); /*0x1a0bdf*/\n    objc_msgSend(v4, sel_free); /*0x1a0bec*/\n    return 0; /*0x1a0bf1*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x203260",
+        "name": "sel_initFromDeviceDescription:",
+        "string": "initFromDeviceDescription:"
+      },
+      {
+        "addr": "0x1e8660",
+        "name": "dword_1E8660"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      },
+      {
+        "addr": "0x1e8664",
+        "name": "dword_1E8664"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1e4b2a",
+        "name": "aPcpointerProbe",
+        "string": "PCPointer probe: mouseInit failure\n"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x203254",
+        "name": "sel_mouseInit:",
+        "string": "mouseInit:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0c34",
+    "addr": "0x001a0c34",
+    "code": "int __cdecl -[PCPointer getIntValues:forParameter:count:](\n        PCPointer *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  unsigned int resolution; // edx\n\n  if ( !strcmp(a4, aResolution_1) ) /*0x1a0c52*/\n  {\n    resolution = self->resolution; /*0x1a0c56*/\n  }\n  else\n  {\n    if ( strcmp(a4, aInverted_0) ) /*0x1a0c6f*/\n      return -711; /*0x1a0c78*/\n    resolution = self->inverted; /*0x1a0c7c*/\n  }\n  *a3 = resolution; /*0x1a0c83*/\n  return 0; /*0x1a0c8a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e4b59",
+        "name": "aInverted_0",
+        "string": "Inverted"
+      },
+      {
+        "addr": "0x1e4b4e",
+        "name": "aResolution_1",
+        "string": "Resolution"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0c94",
+    "addr": "0x001a0c94",
+    "code": "int __cdecl -[PCPointer setIntValues:forParameter:count:](\n        PCPointer *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5)\n{\n  id v5; // eax\n  char v7; // cl\n\n  if ( !strcmp(a4, aResolution_2) ) /*0x1a0cb7*/\n  {\n    self->resolution = *a3; /*0x1a0cc0*/\n    v5 = -[PCPointer getResolution](self, sel_getResolution); /*0x1a0cce*/\n    objc_msgSend(self->target, sel_setResolution_, v5); /*0x1a0ce2*/\n    return 0; /*0x1a0ce7*/\n  }\n  else if ( !strcmp(a4, aInverted_1) ) /*0x1a0cfb*/\n  {\n    v7 = *(_BYTE *)a3; /*0x1a0d02*/\n    self->inverted = *(_BYTE *)a3; /*0x1a0d04*/\n    objc_msgSend(self->target, sel_setInverted_, v7); /*0x1a0d1c*/\n    return 0; /*0x1a0d21*/\n  }\n  else\n  {\n    return -711; /*0x1a0d28*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a0b1c",
+        "name": "-[PCPointer getResolution]"
+      },
+      {
+        "addr": "0x20322c",
+        "name": "sel_getResolution",
+        "string": "getResolution"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x203144",
+        "name": "sel_setResolution:",
+        "string": "setResolution:"
+      },
+      {
+        "addr": "0x203134",
+        "name": "sel_setInverted:",
+        "string": "setInverted:"
+      },
+      {
+        "addr": "0x1e4b6d",
+        "name": "aInverted_1",
+        "string": "Inverted"
+      },
+      {
+        "addr": "0x1e4b62",
+        "name": "aResolution_2",
+        "string": "Resolution"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001a0d38",
+    "addr": "0x001a0d38",
+    "code": "char __cdecl -[PCPointer getInverted](PCPointer *self, SEL a2)\n{\n  return self->inverted; /*0x1a0d47*/\n}"
+  },
+  {
+    "requested_address": "0x001a0d4c",
+    "addr": "0x001a0d4c",
+    "code": "void __cdecl __spoils<ecx> ev_lock(volatile __int32 *a1)\n{\n  __int32 v1; // ecx\n\n  v1 = 1; /*0x1a0d4e*/\n  do /*0x1a0d5d*/\n    v1 = _InterlockedExchange(a1, v1); /*0x1a0d57*/\n  while ( v1 ); /*0x1a0d5d*/\n}"
+  },
+  {
+    "requested_address": "0x001a0d68",
+    "addr": "0x001a0d68",
+    "code": "void __cdecl __spoils<> ev_unlock(_DWORD *a1)\n{\n  *a1 = 0; /*0x1a0d6d*/\n}"
+  }
+]

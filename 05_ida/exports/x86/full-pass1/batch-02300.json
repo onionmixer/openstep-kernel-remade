@@ -1,0 +1,708 @@
+[
+  {
+    "requested_address": "0x0017d530",
+    "addr": "0x0017d530",
+    "code": "_BOOL4 __cdecl vnode_has_page(int a1, unsigned int a2)\n{\n  unsigned __int8 v3[4]; // [esp+4h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x17d53c*/\n    panic(aVnodeHasPageFa); /*0x17d543*/\n  if ( (*(_BYTE *)(a1 + 12) & 1) == 0 ) /*0x17d54f*/\n    panic(aVnodeHasPageCa); /*0x17d579*/\n  return sub_17CD58((int *)a1, a2, 1, v3) != 5; /*0x17d57e*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ea2",
+        "name": "aVnodeHasPageFa",
+        "string": "vnode_has_page: failed lookup"
+      },
+      {
+        "addr": "0x1e0ec0",
+        "name": "aVnodeHasPageCa",
+        "string": "vnode_has_page called on non-default pager"
+      },
+      {
+        "addr": "0x17cd58",
+        "name": "sub_17CD58"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017d588",
+    "addr": "0x0017d588",
+    "code": "int __cdecl vnode_pager_file_init(_DWORD *a1, int a2, unsigned int a3, unsigned int a4)\n{\n  int result; // eax\n  unsigned int v5; // esi\n  _DWORD *v6; // esi\n  int v7; // eax\n  unsigned int v8; // eax\n  int v9; // edx\n  int v10; // eax\n  int i; // ebx\n  int v12; // eax\n  _WORD *v13; // [esp+Ch] [ebp-8Ch]\n  int v14; // [esp+10h] [ebp-88h]\n  _BYTE v15[4]; // [esp+18h] [ebp-80h] BYREF\n  int v16; // [esp+1Ch] [ebp-7Ch]\n  int v17; // [esp+20h] [ebp-78h]\n  _BYTE v18[24]; // [esp+58h] [ebp-40h] BYREF\n  unsigned int v19; // [esp+70h] [ebp-28h]\n\n  *a1 = 0; /*0x17d597*/\n  mfs_uncache((int *)a2); /*0x17d5a1*/\n  if ( (*(_BYTE *)(*(_DWORD *)a2 + 56) & 0x10) != 0 ) /*0x17d5af*/\n    return 16; /*0x17d5b6*/\n  v13 = *(_WORD **)(active_u + 28); /*0x17d5c4*/\n  (*(void (__cdecl **)(int, _BYTE *, _WORD *))(*(_DWORD *)(a2 + 28) + 20))(a2, v18, v13); /*0x17d5df*/\n  v5 = v19; /*0x17d5e1*/\n  if ( a3 >= v19 /*0x17d60b*/\n    || (vattr_null(v18),\n        v5 = a3,\n        v19 = a3,\n        (result = (*(int (__cdecl **)(int, _BYTE *, _WORD *))(*(_DWORD *)(a2 + 28) + 24))(a2, v18, v13)) == 0) )\n  {\n    *(_DWORD *)(*(_DWORD *)a2 + 20) = v5; /*0x17d616*/\n    v6 = (_DWORD *)kalloc(0x40u); /*0x17d620*/\n    ++*(_WORD *)(a2 + 6); /*0x17d622*/\n    v6[2] = a2; /*0x17d626*/\n    ++*v13; /*0x17d62f*/\n    *(_DWORD *)(*(_DWORD *)a2 + 48) = v13; /*0x17d634*/\n    v6[3] = 0; /*0x17d637*/\n    v6[9] = 0; /*0x17d63e*/\n    v6[7] = (~page_mask & (page_mask + a3)) >> page_shift; /*0x17d65c*/\n    if ( !a4 ) /*0x17d666*/\n    {\n      v7 = (*(int (__cdecl **)(_DWORD, _BYTE *))(*(_DWORD *)(*(_DWORD *)(a2 + 36) + 4) + 12))(*(_DWORD *)(a2 + 36), v15); /*0x17d676*/\n      if ( v7 ) /*0x17d67d*/\n      {\n        v14 = v7; /*0x17d682*/\n        kfree((int)v6, 0x40u); /*0x17d688*/\n        return v14; /*0x17d693*/\n      }\n      a4 = v16 * v17; /*0x17d69f*/\n    }\n    v8 = a4 >> page_shift; /*0x17d6ab*/\n    v6[5] = a4 >> page_shift; /*0x17d6ad*/\n    v6[6] = v8; /*0x17d6b0*/\n    v9 = v6[5]; /*0x17d6b3*/\n    v10 = v9 + 7; /*0x17d6b6*/\n    if ( v9 + 7 < 0 ) /*0x17d6bb*/\n      v10 = v9 + 14; /*0x17d6bd*/\n    v6[4] = kalloc(v10 >> 3); /*0x17d6c9*/\n    for ( i = 0; v6[5] > i; ++i ) /*0x17d6d4*/\n      *(_BYTE *)(i / 8 + v6[4]) &= __ROL4__(-2, i % 8); /*0x17d701*/\n    v6[8] = -1; /*0x17d70a*/\n    v6[11] = 0; /*0x17d711*/\n    lock_init(v6 + 13, 1); /*0x17d71e*/\n    v12 = dword_1E728C; /*0x17d723*/\n    if ( (int *)dword_1E728C == &dword_1E7288 ) /*0x17d72d*/\n      dword_1E7288 = (int)v6; /*0x17d72f*/\n    else\n      *(_DWORD *)dword_1E728C = v6; /*0x17d738*/\n    v6[1] = v12; /*0x17d73a*/\n    *v6 = &dword_1E7288; /*0x17d73d*/\n    dword_1E728C = (int)v6; /*0x17d743*/\n    v6[12] = ++dword_1E7290; /*0x17d755*/\n    dword_1E7294[dword_1E7290] = (int)v6; /*0x17d75d*/\n    *a1 = v6; /*0x17d767*/\n    return 0; /*0x17d769*/\n  }\n  return result; /*0x17d771*/\n}",
+    "refs": [
+      {
+        "addr": "0x15eae8",
+        "name": "_mfs_uncache"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      },
+      {
+        "addr": "0x1e728c",
+        "name": "dword_1E728C"
+      },
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      },
+      {
+        "addr": "0x1e7290",
+        "name": "dword_1E7290"
+      },
+      {
+        "addr": "0x1e7294",
+        "name": "dword_1E7294"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017d778",
+    "addr": "0x0017d778",
+    "code": "void vnode_pager_shutdown()\n{\n  int **v0; // ebx\n  int *v1; // edx\n  int *v2; // eax\n\n  for ( ; (int *)dword_1E7288 != &dword_1E7288; --dword_1E7290 ) /*0x17d786*/\n  {\n    v0 = (int **)dword_1E7288; /*0x17d788*/\n    vn_rele(*(_DWORD *)(dword_1E7288 + 8)); /*0x17d792*/\n    v1 = *v0; /*0x17d79a*/\n    v2 = v0[1]; /*0x17d79c*/\n    if ( *v0 == &dword_1E7288 ) /*0x17d7a5*/\n      dword_1E728C = (int)v0[1]; /*0x17d7a7*/\n    else\n      v1[1] = (int)v2; /*0x17d7b0*/\n    if ( v2 == &dword_1E7288 ) /*0x17d7b8*/\n      dword_1E7288 = (int)v1; /*0x17d7ba*/\n    else\n      *v2 = (int)v1; /*0x17d7c4*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e7290",
+        "name": "dword_1E7290"
+      },
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x1e728c",
+        "name": "dword_1E728C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017d7e0",
+    "addr": "0x0017d7e0",
+    "code": "int __cdecl mach_swapon(int a1, char a2, unsigned int a3, unsigned int a4)\n{\n  size_t v5; // ebx\n  char *v6; // edi\n  int v7; // ebx\n  int *v8; // eax\n  unsigned int v9; // [esp+Ch] [ebp-18h]\n  int *v10; // [esp+10h] [ebp-14h] BYREF\n  int v11; // [esp+14h] [ebp-10h] BYREF\n  int v12[2]; // [esp+18h] [ebp-Ch] BYREF\n  size_t __n; // [esp+20h] [ebp-4h]\n\n  if ( !suser() ) /*0x17d7e9*/\n    return 13; /*0x17d7f2*/\n  *(_BYTE *)(dword_1E875C + 104) = 0; /*0x17d801*/\n  v11 = 0; /*0x17d805*/\n  if ( pn_get(a1, 0, v12) ) /*0x17d816*/\n    return 22; /*0x17d824*/\n  v5 = __n; /*0x17d830*/\n  v9 = __n + 1; /*0x17d836*/\n  v6 = (char *)kalloc(__n + 1); /*0x17d83f*/\n  strncpy(v6, (const char *)v12[1], v5); /*0x17d847*/\n  v6[v9 - 1] = 0; /*0x17d84f*/\n  v7 = lookuppn((int)v12, 1, nullptr, &v11); /*0x17d862*/\n  pn_free(v12); /*0x17d868*/\n  if ( !v7 ) /*0x17d872*/\n  {\n    if ( *(_DWORD *)(v11 + 40) == 1 ) /*0x17d87b*/\n    {\n      v10 = (int *)dword_1E7288; /*0x17d889*/\n      if ( (int *)dword_1E7288 == &dword_1E7288 ) /*0x17d891*/\n        goto LABEL_13; /*0x17d891*/\n      do /*0x17d8a6*/\n      {\n        if ( v10[2] == v11 ) /*0x17d89a*/\n          break; /*0x17d89a*/\n        v10 = (int *)*v10; /*0x17d89e*/\n      }\n      while ( v10 != &dword_1E7288 ); /*0x17d8a6*/\n      if ( v10 == &dword_1E7288 ) /*0x17d8af*/\n      {\nLABEL_13:\n        v7 = vnode_pager_file_init(&v10, v11, a3, a4); /*0x17d8cd*/\n        if ( !v7 ) /*0x17d8d4*/\n        {\n          v8 = v10; /*0x17d8d6*/\n          v10[11] = a2 & 1; /*0x17d8df*/\n          v8[10] = (int)v6; /*0x17d8e2*/\n          v6 = nullptr; /*0x17d8e5*/\n        }\n      }\n      else\n      {\n        v7 = 16; /*0x17d8b1*/\n      }\n    }\n    else\n    {\n      v7 = 22; /*0x17d87d*/\n    }\n  }\n  if ( v11 ) /*0x17d8ec*/\n    vn_rele(v11); /*0x17d8ef*/\n  if ( v6 ) /*0x17d8f9*/\n    kfree((int)v6, v9); /*0x17d900*/\n  return v7; /*0x17d90a*/\n}",
+    "refs": [
+      {
+        "addr": "0x108310",
+        "name": "_suser"
+      },
+      {
+        "addr": "0x1e875c",
+        "name": "dword_1E875C"
+      },
+      {
+        "addr": "0x11c9a0",
+        "name": "_pn_get"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      },
+      {
+        "addr": "0x11c13c",
+        "name": "_lookuppn"
+      },
+      {
+        "addr": "0x11cb84",
+        "name": "_pn_free"
+      },
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      },
+      {
+        "addr": "0x17d588",
+        "name": "_vnode_pager_file_init"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017d914",
+    "addr": "0x0017d914",
+    "code": "int vswap_allocate()\n{\n  int *v0; // ebx\n  int v1; // edi\n  int i; // ecx\n  int *j; // eax\n\n  v0 = nullptr; /*0x17d91d*/\n  v1 = 0; /*0x17d91f*/\n  if ( dword_1E7290 <= 1 ) /*0x17d92a*/\n  {\n    if ( dword_1E7290 == 1 ) /*0x17d983*/\n      return dword_1E7288; /*0x17d985*/\n  }\n  else\n  {\n    for ( i = 0; i <= 3; ++i ) /*0x17d92c*/\n    {\n      for ( j = (int *)dword_1E7288; j != &dword_1E7288; j = (int *)*j ) /*0x17d93a*/\n      {\n        if ( (i > 1 || j[11]) && ((i & 1) != 0 || *(_UNKNOWN **)(j[2] + 28) == &ufs_vnodeops) && j[6] > v1 ) /*0x17d964*/\n        {\n          v1 = j[6]; /*0x17d966*/\n          v0 = j; /*0x17d968*/\n        }\n      }\n      if ( v0 ) /*0x17d975*/\n        break; /*0x17d975*/\n    }\n  }\n  return (int)v0; /*0x17d990*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      },
+      {
+        "addr": "0x1e7290",
+        "name": "dword_1E7290"
+      },
+      {
+        "addr": "0x1de480",
+        "name": "_ufs_vnodeops"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017d998",
+    "addr": "0x0017d998",
+    "code": "int *__cdecl vnode_alloc(int a1)\n{\n  int v1; // ebx\n  int i; // eax\n  int *j; // ecx\n  int v4; // esi\n  int *v5; // ebx\n  unsigned int v6; // eax\n  int v7; // eax\n  void *v8; // edx\n  int v9; // ecx\n  int v10; // edx\n  int v12; // [esp+Ch] [ebp-48h]\n  int v13; // [esp+10h] [ebp-44h]\n\n  v13 = 0; /*0x17d9a1*/\n  v1 = 0; /*0x17d9a8*/\n  v12 = 0; /*0x17d9aa*/\n  if ( dword_1E7290 <= 1 ) /*0x17d9ba*/\n  {\n    if ( dword_1E7290 == 1 ) /*0x17da17*/\n      v1 = dword_1E7288; /*0x17da19*/\n  }\n  else\n  {\n    for ( i = 0; i <= 3; ++i ) /*0x17d9bc*/\n    {\n      for ( j = (int *)dword_1E7288; j != &dword_1E7288; j = (int *)*j ) /*0x17d9cc*/\n      {\n        if ( (i > 1 || j[11]) && ((i & 1) != 0 || *(_UNKNOWN **)(j[2] + 28) == &ufs_vnodeops) && v12 < j[6] ) /*0x17d9f5*/\n        {\n          v12 = j[6]; /*0x17d9f7*/\n          v1 = (int)j; /*0x17d9fa*/\n        }\n      }\n      if ( v1 ) /*0x17da08*/\n        break; /*0x17da08*/\n    }\n  }\n  v4 = v1; /*0x17da1f*/\n  if ( v1 ) /*0x17da23*/\n  {\n    v5 = zalloc_noblock(vstruct_zone); /*0x17da35*/\n    if ( v5 ) /*0x17da3c*/\n    {\n      v6 = (~page_mask & (unsigned int)(page_mask + a1)) >> page_shift; /*0x17da62*/\n      v5[4] = v6; /*0x17da64*/\n      if ( v6 ) /*0x17da69*/\n      {\n        if ( 4 * v6 <= 0x40 ) /*0x17da82*/\n          v7 = kalloc_noblock(4 * v6); /*0x17da95*/\n        else\n          v7 = kalloc_noblock(4 * ((v6 - 1) >> 4) + 4); /*0x17da90*/\n        v5[2] = v7; /*0x17da9a*/\n        v8 = (void *)v5[2]; /*0x17daa0*/\n        if ( !v8 ) /*0x17daa5*/\n        {\n          zfree(vstruct_zone, v5); /*0x17daaf*/\n          return nullptr; /*0x17dabb*/\n        }\n        v9 = v5[4]; /*0x17dac0*/\n        if ( (unsigned int)(4 * v9) <= 0x40 ) /*0x17dacd*/\n        {\n          v10 = 0; /*0x17dae8*/\n          if ( v9 > 0 ) /*0x17daec*/\n          {\n            do /*0x17dafb*/\n              *(_BYTE *)(v5[2] + 4 * v10++) = 0; /*0x17daf3*/\n            while ( v5[4] > v10 ); /*0x17dafb*/\n          }\n        }\n        else\n        {\n          bzero(v8, 4 * ((unsigned int)(v9 - 1) >> 4) + 4); /*0x17dade*/\n        }\n      }\n      else\n      {\n        v5[2] = 0; /*0x17da6b*/\n      }\n      *v5 = 0; /*0x17dafd*/\n      *((_WORD *)v5 + 7) = 1; /*0x17db03*/\n      v5[5] = *(_DWORD *)(v4 + 8); /*0x17db0c*/\n      *((_BYTE *)v5 + 12) |= 1u; /*0x17db0f*/\n      v5[1] = v4; /*0x17db13*/\n      ++*(_DWORD *)(v4 + 12); /*0x17db16*/\n      do /*0x17db35*/\n      {\n        while ( vstruct_lock ) /*0x17db23*/\n          ; /*0x17db21*/\n      }\n      while ( _InterlockedExchange(&vstruct_lock, 1) == 1 ); /*0x17db35*/\n      --*((_WORD *)v5 + 7); /*0x17db37*/\n      _InterlockedExchange(&vstruct_lock, 0); /*0x17db3d*/\n      return v5; /*0x17db43*/\n    }\n    else\n    {\n      return nullptr; /*0x17da3e*/\n    }\n  }\n  return (int *)v13; /*0x17db4c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      },
+      {
+        "addr": "0x1e7290",
+        "name": "dword_1E7290"
+      },
+      {
+        "addr": "0x1de480",
+        "name": "_ufs_vnodeops"
+      },
+      {
+        "addr": "0x16b7a4",
+        "name": "_zalloc_noblock"
+      },
+      {
+        "addr": "0x1f7480",
+        "name": "_vstruct_zone"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x15a6ec",
+        "name": "_kalloc_noblock"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1f747c",
+        "name": "_vstruct_lock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017db54",
+    "addr": "0x0017db54",
+    "code": "__int32 __cdecl vnode_pager_truncate(unsigned int a1)\n{\n  __int32 result; // eax\n  int v2; // edi\n  int v3; // ebx\n  int v4; // ecx\n  int v5; // esi\n  int v6; // eax\n  int v7; // eax\n  int v8; // [esp+Ch] [ebp-48h]\n  _DWORD *v9; // [esp+10h] [ebp-44h]\n  _BYTE v10[24]; // [esp+14h] [ebp-40h] BYREF\n  int v11; // [esp+2Ch] [ebp-28h]\n\n  result = (unsigned __int8)a1; /*0x17db60*/\n  v2 = dword_1E7294[(unsigned __int8)a1]; /*0x17db63*/\n  v9 = *(_DWORD **)(v2 + 8); /*0x17db6d*/\n  if ( *(_DWORD *)(v2 + 32) <= (signed int)(a1 >> 8) && !swapfs_enabled )\n  {\n    lock_write(v2 + 52); /*0x17db8f*/\n    v3 = (a1 >> 8) - 1; /*0x17db94*/\n    if ( v3 >= 0 ) /*0x17db9a*/\n    {\n      while ( 1 ) /*0x17dbad*/\n      {\n        v4 = *(char *)(v3 / 8 + *(_DWORD *)(v2 + 16)); /*0x17dbad*/\n        if ( _bittest(&v4, v3 % 8) ) /*0x17dbbb*/\n          break; /*0x17dbbb*/\n        if ( --v3 < 0 ) /*0x17dbbe*/\n          goto LABEL_6; /*0x17dbbe*/\n      }\n      *(_DWORD *)(v2 + 32) = v3; /*0x17dbf4*/\n    }\nLABEL_6:\n    v5 = *(_DWORD *)(v2 + 32) + 1; /*0x17dbc0*/\n    v6 = *(_DWORD *)(v2 + 28); /*0x17dbc7*/\n    if ( v6 && v5 > v6 && *(_DWORD *)(*v9 + 20) >= (unsigned int)(v5 << page_shift) )\n    {\n      vattr_null(v10); /*0x17dc00*/\n      v11 = v5 << page_shift; /*0x17dc11*/\n      v8 = *(_DWORD *)(active_u + 28); /*0x17dc1d*/\n      *(_DWORD *)(active_u + 28) = *(_DWORD *)(*v9 + 48); /*0x17dc28*/\n      v7 = (*(int (__cdecl **)(_DWORD *, _BYTE *, _DWORD))(v9[7] + 24))(v9, v10, *(_DWORD *)(*v9 + 48)); /*0x17dc39*/\n      if ( v7 )\n        printf(\"vnode_deallocpage: error truncating %s, error = %d\\n\", *(const char **)(v2 + 40), v7);\n      *(_DWORD *)(active_u + 28) = v8; /*0x17dc5c*/\n    }\n    return lock_done(v2 + 52); /*0x17dc63*/\n  }\n  return result; /*0x17dc6b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e7294",
+        "name": "dword_1E7294"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e0eeb",
+        "name": "aVnodeDeallocpa",
+        "string": "vnode_deallocpage: error truncating %s, error = %d\n"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x1dd7b8",
+        "name": "_swapfs_enabled"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017dc74",
+    "addr": "0x0017dc74",
+    "code": "int __cdecl vnode_dealloc(int a1)\n{\n  int v1; // edx\n  int v2; // edx\n  unsigned int v3; // edx\n  _DWORD *v4; // esi\n  signed int v5; // ebx\n  unsigned int v6; // ebx\n  int v7; // edx\n  signed int v8; // edx\n  int v9; // ecx\n  unsigned int v10; // eax\n  unsigned int v11; // edx\n  _DWORD *v12; // esi\n  signed int v13; // ebx\n  unsigned int v14; // ebx\n  int v15; // eax\n  signed int v16; // edx\n  int v17; // eax\n  unsigned int v18; // edx\n  int v19; // esi\n  unsigned int v20; // ebx\n  int v21; // ebx\n  int v22; // edi\n  int v23; // ebx\n  int v24; // eax\n  int v25; // ebx\n  int v26; // eax\n  int *v28; // [esp+Ch] [ebp-60h]\n  int *v29; // [esp+Ch] [ebp-60h]\n  _DWORD *v30; // [esp+Ch] [ebp-60h]\n  unsigned int i; // [esp+18h] [ebp-54h]\n  unsigned int v32; // [esp+1Ch] [ebp-50h]\n  int v33; // [esp+1Ch] [ebp-50h]\n  int v34; // [esp+20h] [ebp-4Ch]\n  int j; // [esp+24h] [ebp-48h]\n  _BYTE v36[24]; // [esp+2Ch] [ebp-40h] BYREF\n  int v37; // [esp+44h] [ebp-28h]\n\n  do /*0x17dc9d*/\n  {\n    while ( vstruct_lock ) /*0x17dc8b*/\n      ; /*0x17dc89*/\n  }\n  while ( _InterlockedExchange(&vstruct_lock, 1) == 1 ); /*0x17dc9d*/\n  ++*(_WORD *)(a1 + 14); /*0x17dca2*/\n  _InterlockedExchange(&vstruct_lock, 0); /*0x17dca8*/\n  v1 = *(_DWORD *)(a1 + 20); /*0x17dcae*/\n  dword_1E0E58 = 0; /*0x17dcb1*/\n  if ( (*(_BYTE *)(a1 + 12) & 1) != 0 ) /*0x17dcbf*/\n  {\n    v34 = *(_DWORD *)(a1 + 4); /*0x17dcc8*/\n    v2 = *(_DWORD *)(a1 + 16); /*0x17dccb*/\n    if ( (unsigned int)(4 * v2) <= 0x40 ) /*0x17dcd8*/\n    {\n      v33 = 0; /*0x17de58*/\n      if ( v2 > 0 ) /*0x17de62*/\n      {\n        do /*0x17df63*/\n        {\n          v11 = *(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v33); /*0x17de71*/\n          if ( (_BYTE)v11 ) /*0x17de76*/\n          {\n            v12 = (_DWORD *)dword_1E7294[(unsigned __int8)v11]; /*0x17de7b*/\n            v13 = v11 >> 8; /*0x17de84*/\n            lock_write((int)(v12 + 13)); /*0x17de8e*/\n            if ( v12[5] <= v13 ) /*0x17de99*/\n              panic(aVnodePagerDeal); /*0x17dea0*/\n            if ( v12[9] > v13 ) /*0x17deab*/\n              v12[9] = v13; /*0x17dead*/\n            *(_BYTE *)(v13 / 8 + v12[4]) &= __ROL4__(-2, v13 % 8); /*0x17ded7*/\n            ++v12[6]; /*0x17deda*/\n            lock_done(v12 + 13); /*0x17dee1*/\n          }\n          v14 = *(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v33); /*0x17def2*/\n          if ( (_BYTE)v14 ) /*0x17def7*/\n          {\n            v15 = 0; /*0x17def9*/\n            if ( dword_1E0E58 <= 0 ) /*0x17df03*/\n            {\nLABEL_42:\n              dword_1E72D4[dword_1E0E58++] = v14; /*0x17df45*/\n            }\n            else\n            {\n              v29 = dword_1E72D4; /*0x17df0a*/\n              while ( *(_BYTE *)v29 != (_BYTE)v14 ) /*0x17df19*/\n              {\n                ++v29; /*0x17df3c*/\n                if ( ++v15 >= dword_1E0E58 ) /*0x17df43*/\n                  goto LABEL_42; /*0x17df43*/\n              }\n              v16 = (unsigned int)*v29 >> 8; /*0x17df1f*/\n              if ( v16 < (int)(v14 >> 8) ) /*0x17df24*/\n                v16 = v14 >> 8; /*0x17df26*/\n              *v29 = (v16 << 8) | (unsigned __int8)*v29; /*0x17df35*/\n            }\n          }\n          ++v33; /*0x17df57*/\n        }\n        while ( *(_DWORD *)(a1 + 16) > v33 ); /*0x17df63*/\n      }\n      v9 = a1; /*0x17df69*/\n      v17 = *(_DWORD *)(a1 + 16); /*0x17df6c*/\n      if ( v17 <= 0 ) /*0x17df71*/\n        goto LABEL_47; /*0x17df71*/\n      v10 = 4 * v17; /*0x17df73*/\n    }\n    else\n    {\n      v32 = 0; /*0x17dce4*/\n      if ( (unsigned int)(v2 - 1) >> 4 != -1 ) /*0x17dcee*/\n      {\n        do /*0x17de3c*/\n        {\n          if ( *(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v32) ) /*0x17dcfd*/\n          {\n            for ( i = 0; i <= 0xF; ++i ) /*0x17dd07*/\n            {\n              v3 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v32) + 4 * i); /*0x17dd1f*/\n              if ( (_BYTE)v3 ) /*0x17dd24*/\n              {\n                v4 = (_DWORD *)dword_1E7294[(unsigned __int8)v3]; /*0x17dd29*/\n                v5 = v3 >> 8; /*0x17dd32*/\n                lock_write((int)(v4 + 13)); /*0x17dd3c*/\n                if ( v4[5] <= v5 ) /*0x17dd47*/\n                  panic(aVnodePagerDeal); /*0x17dd4e*/\n                if ( v4[9] > v5 ) /*0x17dd59*/\n                  v4[9] = v5; /*0x17dd5b*/\n                *(_BYTE *)(v5 / 8 + v4[4]) &= __ROL4__(-2, v5 % 8); /*0x17dd85*/\n                ++v4[6]; /*0x17dd88*/\n                lock_done(v4 + 13); /*0x17dd8f*/\n              }\n              v6 = *(_DWORD *)(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v32) + 4 * i); /*0x17dda6*/\n              if ( (_BYTE)v6 ) /*0x17ddab*/\n              {\n                v7 = 0; /*0x17ddad*/\n                if ( dword_1E0E58 <= 0 ) /*0x17ddb6*/\n                {\nLABEL_22:\n                  dword_1E72D4[dword_1E0E58++] = v6; /*0x17ddf5*/\n                }\n                else\n                {\n                  v28 = dword_1E72D4; /*0x17ddbd*/\n                  while ( *(_BYTE *)v28 != (_BYTE)v6 ) /*0x17ddc9*/\n                  {\n                    ++v28; /*0x17ddec*/\n                    if ( ++v7 >= dword_1E0E58 ) /*0x17ddf3*/\n                      goto LABEL_22; /*0x17ddf3*/\n                  }\n                  v8 = (unsigned int)*v28 >> 8; /*0x17ddcf*/\n                  if ( v8 < (int)(v6 >> 8) ) /*0x17ddd4*/\n                    v8 = v6 >> 8; /*0x17ddd6*/\n                  *v28 = (v8 << 8) | (unsigned __int8)*v28; /*0x17dde5*/\n                }\n              }\n            }\n            kfree(*(_DWORD *)(*(_DWORD *)(a1 + 8) + 4 * v32), 0x40u); /*0x17de23*/\n          }\n          ++v32; /*0x17de2b*/\n        }\n        while ( v32 < ((unsigned int)(*(_DWORD *)(a1 + 16) - 1) >> 4) + 1 ); /*0x17de3c*/\n      }\n      v9 = a1; /*0x17de42*/\n      v10 = 4 * ((unsigned int)(*(_DWORD *)(a1 + 16) - 1) >> 4) + 4; /*0x17de4c*/\n    }\n    kfree(*(_DWORD *)(v9 + 8), v10); /*0x17df7b*/\nLABEL_47:\n    --*(_DWORD *)(v34 + 12); /*0x17df83*/\n    goto LABEL_49; /*0x17df89*/\n  }\n  *(_BYTE *)(v1 + 4) &= ~2u; /*0x17df8c*/\n  **(_DWORD **)v1 = 0; /*0x17df92*/\n  vn_rele(v1); /*0x17df99*/\nLABEL_49:\n  for ( j = 0; dword_1E0E58 > j; ++j )\n  {\n    v18 = dword_1E72D4[j]; /*0x17dfc3*/\n    v19 = dword_1E7294[(unsigned __int8)v18]; /*0x17dfcd*/\n    v30 = *(_DWORD **)(v19 + 8); /*0x17dfd7*/\n    v20 = v18 >> 8; /*0x17dfdc*/\n    if ( *(_DWORD *)(v19 + 32) <= (signed int)(v18 >> 8) && !swapfs_enabled )\n    {\n      lock_write(v19 + 52); /*0x17dff9*/\n      v21 = v20 - 1; /*0x17dffe*/\n      if ( v21 >= 0 ) /*0x17e004*/\n      {\n        while ( 1 ) /*0x17e027*/\n        {\n          v22 = *(char *)(v21 / 8 + *(_DWORD *)(v19 + 16)); /*0x17e027*/\n          if ( _bittest(&v22, v21 % 8) ) /*0x17e02d*/\n            break; /*0x17e02d*/\n          if ( --v21 < 0 ) /*0x17e030*/\n            goto LABEL_55; /*0x17e030*/\n        }\n        *(_DWORD *)(v19 + 32) = v21; /*0x17e064*/\n      }\nLABEL_55:\n      v23 = *(_DWORD *)(v19 + 32) + 1; /*0x17e032*/\n      v24 = *(_DWORD *)(v19 + 28); /*0x17e036*/\n      if ( v24 && v23 > v24 && *(_DWORD *)(*v30 + 20) >= (unsigned int)(v23 << page_shift) )\n      {\n        vattr_null(v36); /*0x17e070*/\n        v37 = v23 << page_shift; /*0x17e07e*/\n        v25 = *(_DWORD *)(active_u + 28); /*0x17e087*/\n        *(_DWORD *)(active_u + 28) = *(_DWORD *)(*v30 + 48); /*0x17e092*/\n        v26 = (*(int (__cdecl **)(_DWORD *, _BYTE *, _DWORD))(v30[7] + 24))(v30, v36, *(_DWORD *)(*v30 + 48)); /*0x17e0a6*/\n        if ( v26 )\n          printf(\"vnode_deallocpage: error truncating %s, error = %d\\n\", *(const char **)(v19 + 40), v26);\n        *(_DWORD *)(active_u + 28) = v25; /*0x17e0c6*/\n      }\n      lock_done(v19 + 52); /*0x17e0cd*/\n    }\n  }\n  return zfree(vstruct_zone, a1); /*0x17e0fa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f747c",
+        "name": "_vstruct_lock"
+      },
+      {
+        "addr": "0x1e0e58",
+        "name": "dword_1E0E58"
+      },
+      {
+        "addr": "0x1e7294",
+        "name": "dword_1E7294"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0e72",
+        "name": "aVnodePagerDeal",
+        "string": "vnode_pager_deallocpage"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x1e72d4",
+        "name": "dword_1E72D4"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x11df54",
+        "name": "_vn_rele"
+      },
+      {
+        "addr": "0x11ea88",
+        "name": "_vattr_null"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e0eeb",
+        "name": "aVnodeDeallocpa",
+        "string": "vnode_deallocpage: error truncating %s, error = %d\n"
+      },
+      {
+        "addr": "0x1dd7b8",
+        "name": "_swapfs_enabled"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f7480",
+        "name": "_vstruct_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e104",
+    "addr": "0x0017e104",
+    "code": "_DWORD *__cdecl vnode_uncache(int a1)\n{\n  _DWORD *result; // eax\n  int v2; // esi\n  void *v3; // eax\n  int v4; // edx\n  __int16 v5; // ax\n  int v6; // edx\n  __int16 v7; // ax\n  int v8; // eax\n\n  result = *(_DWORD **)a1; /*0x17e10c*/\n  if ( *(_DWORD *)a1 && *result ) /*0x17e116*/\n  {\n    v2 = 0; /*0x17e11b*/\n    v3 = *(void **)(a1 + 28); /*0x17e11d*/\n    if ( v3 == &ufs_vnodeops ) /*0x17e125*/\n    {\n      v4 = *(_DWORD *)(a1 + 48); /*0x17e127*/\n      v5 = *(_WORD *)(v4 + 68); /*0x17e12a*/\n      if ( (v5 & 1) != 0 ) /*0x17e130*/\n      {\n        v2 = 1; /*0x17e132*/\n        LOBYTE(v5) = v5 & 0xFE; /*0x17e133*/\n        *(_WORD *)(v4 + 68) = v5; /*0x17e135*/\n      }\n    }\n    else if ( v3 == &nfs_vnodeops ) /*0x17e141*/\n    {\n      v6 = *(_DWORD *)(a1 + 48); /*0x17e143*/\n      v7 = *(_WORD *)(v6 + 96); /*0x17e146*/\n      if ( (v7 & 1) != 0 ) /*0x17e14c*/\n      {\n        v2 = 1; /*0x17e14e*/\n        LOBYTE(v7) = v7 & 0xFE; /*0x17e153*/\n        *(_WORD *)(v6 + 96) = v7; /*0x17e155*/\n      }\n    }\n    mfs_uncache(a1); /*0x17e15a*/\n    v8 = vm_object_lookup(**(_DWORD **)a1); /*0x17e166*/\n    result = (_DWORD *)vm_object_cache_object(v8, 0); /*0x17e16f*/\n    if ( v2 ) /*0x17e176*/\n    {\n      result = *(_DWORD **)(a1 + 28); /*0x17e178*/\n      if ( result == (_DWORD *)&ufs_vnodeops ) /*0x17e180*/\n      {\n        result = *(_DWORD **)(a1 + 48); /*0x17e182*/\n        *((_BYTE *)result + 68) |= 1u; /*0x17e185*/\n      }\n      else if ( result == (_DWORD *)&nfs_vnodeops ) /*0x17e191*/\n      {\n        result = *(_DWORD **)(a1 + 48); /*0x17e193*/\n        *((_BYTE *)result + 96) |= 1u; /*0x17e196*/\n      }\n    }\n  }\n  return result; /*0x17e19d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1dca20",
+        "name": "_nfs_vnodeops"
+      },
+      {
+        "addr": "0x1de480",
+        "name": "_ufs_vnodeops"
+      },
+      {
+        "addr": "0x15eae8",
+        "name": "_mfs_uncache"
+      },
+      {
+        "addr": "0x179630",
+        "name": "_vm_object_lookup"
+      },
+      {
+        "addr": "0x179170",
+        "name": "_vm_object_cache_object"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e1a4",
+    "addr": "0x0017e1a4",
+    "code": "int vnode_pager_init()\n{\n  int result; // eax\n\n  result = zinit(24, 240000, page_size, 0, aVnodePagerStru); /*0x17e1bc*/\n  vstruct_zone = result; /*0x17e1c1*/\n  vstruct_lock = 0; /*0x17e1c6*/\n  dword_1E728C = (int)&dword_1E7288; /*0x17e1d0*/\n  dword_1E7288 = (int)&dword_1E7288; /*0x17e1da*/\n  return result; /*0x17e1e6*/\n}",
+    "refs": [
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e0f1f",
+        "name": "aVnodePagerStru",
+        "string": "vnode pager structures"
+      },
+      {
+        "addr": "0x1f7480",
+        "name": "_vstruct_zone"
+      },
+      {
+        "addr": "0x1f747c",
+        "name": "_vstruct_lock"
+      },
+      {
+        "addr": "0x1e728c",
+        "name": "dword_1E728C"
+      },
+      {
+        "addr": "0x1e7288",
+        "name": "dword_1E7288"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e1e8",
+    "addr": "0x0017e1e8",
+    "code": "int NXFlush()\n{\n  return 0; /*0x17e1ef*/\n}"
+  },
+  {
+    "requested_address": "0x0017e1f4",
+    "addr": "0x0017e1f4",
+    "code": "int NXPrintf(int a1, int a2, ...)\n{\n  int v2; // esi\n  va_list va; // [esp+18h] [ebp+10h] BYREF\n\n  va_start(va, a2);\n  v2 = splhigh(); /*0x17e201*/\n  vlog(3, a2, (int)va); /*0x17e20a*/\n  return splx(v2); /*0x17e218*/\n}",
+    "refs": [
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x10c220",
+        "name": "_vlog"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e220",
+    "addr": "0x0017e220",
+    "code": "void __noreturn abort(void)\n{\n  panic(aObjcFatalError); /*0x17e228*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0f36",
+        "name": "aObjcFatalError",
+        "string": "objc: fatal error\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e234",
+    "addr": "0x0017e234",
+    "code": "id autoconf()\n{\n  _DWORD *v0; // esi\n  int (**v1)(); // ebx\n\n  sub_17E2E0(); /*0x17e239*/\n  IOInitGeneralFuncs(); /*0x17e23e*/\n  volCheckInit(); /*0x17e243*/\n  v0 = &pseudo_inits; /*0x17e248*/\n  if ( off_1E4F84 ) /*0x17e254*/\n  {\n    v1 = &off_1E4F84; /*0x17e256*/\n    do /*0x17e26c*/\n    {\n      ((void (__cdecl *)(_DWORD))*v1)(*v0); /*0x17e261*/\n      v1 += 2; /*0x17e266*/\n      v0 += 2; /*0x17e269*/\n    }\n    while ( *v1 ); /*0x17e26c*/\n  }\n  dword_1E7314 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x17e284*/\n  objc_msgSend(dword_1E7314, sel_initWith_, 0); /*0x17e293*/\n  kernel_thread(IOTask_kern, (int)sub_17E4E8, 0); /*0x17e2a6*/\n  objc_msgSend(dword_1E7314, sel_lockWhen_, 1); /*0x17e2be*/\n  return objc_msgSend(dword_1E7314, sel_free); /*0x17e2d9*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e2e0",
+        "name": "sub_17E2E0"
+      },
+      {
+        "addr": "0x1a90b8",
+        "name": "_IOInitGeneralFuncs"
+      },
+      {
+        "addr": "0x1a758c",
+        "name": "_volCheckInit"
+      },
+      {
+        "addr": "0x1e4f80",
+        "name": "_pseudo_inits"
+      },
+      {
+        "addr": "0x1e4f84",
+        "name": "off_1E4F84"
+      },
+      {
+        "addr": "0x1e7314",
+        "name": "dword_1E7314"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfbd",
+        "name": "aNxconditionloc",
+        "string": "NXConditionLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201908",
+        "name": "sel_initWith:",
+        "string": "initWith:"
+      },
+      {
+        "addr": "0x16848c",
+        "name": "_kernel_thread"
+      },
+      {
+        "addr": "0x1f748c",
+        "name": "_IOTask_kern"
+      },
+      {
+        "addr": "0x17e4e8",
+        "name": "sub_17E4E8"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e2e0",
+    "addr": "0x0017e2e0",
+    "code": null,
+    "error": "Decompilation failed at 0x17e2e0 (address: 0x17e305)"
+  },
+  {
+    "requested_address": "0x0017e3a8",
+    "addr": "0x0017e3a8",
+    "code": "int _io_vm_task_self()\n{\n  return *(_DWORD *)(IOTask_kern + 12); /*0x17e3b5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f748c",
+        "name": "_IOTask_kern"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e3b8",
+    "addr": "0x0017e3b8",
+    "code": "int _io_vm_task_current()\n{\n  return *(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12); /*0x17e3c8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e3cc",
+    "addr": "0x0017e3cc",
+    "code": "int __cdecl _io_vm_task(int a1)\n{\n  return *(_DWORD *)(a1 + 12); /*0x17e3d7*/\n}"
+  },
+  {
+    "requested_address": "0x0017e3dc",
+    "addr": "0x0017e3dc",
+    "code": "int __cdecl _io_vm_task_pmap(int a1)\n{\n  return *(_DWORD *)(a1 + 36); /*0x17e3e7*/\n}"
+  },
+  {
+    "requested_address": "0x0017e3ec",
+    "addr": "0x0017e3ec",
+    "code": "int __cdecl _io_task_get_port(int a1)\n{\n  int v2; // [esp+4h] [ebp-4h] BYREF\n\n  port_reference(a1); /*0x17e3f7*/\n  object_copyout(IOTask_kern, a1, 6, &v2); /*0x17e40a*/\n  return v2; /*0x17e412*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a600",
+        "name": "_port_reference"
+      },
+      {
+        "addr": "0x15a5a4",
+        "name": "_object_copyout"
+      },
+      {
+        "addr": "0x1f748c",
+        "name": "_IOTask_kern"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e41c",
+    "addr": "0x0017e41c",
+    "code": "int __cdecl _io_get_kern_port(int a1)\n{\n  int v2; // [esp+0h] [ebp-4h] BYREF\n\n  if ( object_copyin(IOTask_kern, a1, 6, 0, (int)&v2) ) /*0x17e435*/\n    return v2; /*0x17e43e*/\n  else\n    return 0; /*0x17e448*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a56c",
+        "name": "_object_copyin"
+      },
+      {
+        "addr": "0x1f748c",
+        "name": "_IOTask_kern"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e450",
+    "addr": "0x0017e450",
+    "code": "int __cdecl _io_convert_port_in(int a1)\n{\n  int v2; // [esp+0h] [ebp-4h] BYREF\n\n  if ( object_copyin(*(_DWORD *)(active_threads + 12), a1, 6, 0, (int)&v2) ) /*0x17e46b*/\n    return v2; /*0x17e474*/\n  else\n    return 0; /*0x17e47c*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a56c",
+        "name": "_object_copyin"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e484",
+    "addr": "0x0017e484",
+    "code": "int __cdecl _io_convert_port_out(int a1)\n{\n  int v2; // [esp+4h] [ebp-4h] BYREF\n\n  port_reference(a1); /*0x17e48f*/\n  object_copyout(*(_DWORD *)(active_threads + 12), a1, 6, &v2); /*0x17e4a4*/\n  return v2; /*0x17e4ac*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a600",
+        "name": "_port_reference"
+      },
+      {
+        "addr": "0x15a5a4",
+        "name": "_object_copyout"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e4b4",
+    "addr": "0x0017e4b4",
+    "code": "int _io_host_priv_self()\n{\n  int v0; // ebx\n  int v2; // [esp+4h] [ebp-4h] BYREF\n\n  v0 = dword_1E97B4; /*0x17e4bb*/\n  port_reference(dword_1E97B4); /*0x17e4c2*/\n  object_copyout(*(_DWORD *)(active_threads + 12), v0, 6, &v2); /*0x17e4d7*/\n  return v2; /*0x17e4df*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e97b4",
+        "name": "dword_1E97B4"
+      },
+      {
+        "addr": "0x15a600",
+        "name": "_port_reference"
+      },
+      {
+        "addr": "0x15a5a4",
+        "name": "_object_copyout"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017e4e8",
+    "addr": "0x0017e4e8",
+    "code": "int sub_17E4E8()\n{\n  sub_17E538(); /*0x17e4eb*/\n  probeNativeDevices(); /*0x17e4f0*/\n  probeHardware(); /*0x17e4f5*/\n  probeDirectDevices(); /*0x17e4fa*/\n  sub_17E58C(); /*0x17e4ff*/\n  objc_msgSend(dword_1E7314, sel_lock); /*0x17e512*/\n  objc_msgSend(dword_1E7314, sel_unlockWith_, 1); /*0x17e527*/\n  return IOExitThread(); /*0x17e533*/\n}",
+    "refs": [
+      {
+        "addr": "0x17e538",
+        "name": "sub_17E538"
+      },
+      {
+        "addr": "0x193f34",
+        "name": "_probeNativeDevices"
+      },
+      {
+        "addr": "0x194804",
+        "name": "_probeHardware"
+      },
+      {
+        "addr": "0x19480c",
+        "name": "_probeDirectDevices"
+      },
+      {
+        "addr": "0x17e58c",
+        "name": "sub_17E58C"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x1e7314",
+        "name": "dword_1E7314"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x1a9220",
+        "name": "_IOExitThread"
+      }
+    ]
+  }
+]

@@ -1,0 +1,420 @@
+[
+  {
+    "requested_address": "0x001cd3b0",
+    "addr": "0x001cd3b0",
+    "code": "int __cdecl sub_1CD3B0(int a1)\n{\n  int v1; // ebx\n  int zone; // eax\n  int result; // eax\n\n  v1 = ((int (*)(void))_objc_create_zone)(); /*0x1cd3bd*/\n  zone = _objc_create_zone(a1); /*0x1cd3c0*/\n  result = (*(int (__cdecl **)(int))(v1 + 4))(zone); /*0x1cd3c9*/\n  if ( !result ) /*0x1cd3d2*/\n  {\n    if ( a1 ) /*0x1cd3d6*/\n      _objc_fatal(\"unable to allocate space\"); /*0x1cd3dd*/\n  }\n  return result; /*0x1cd3e7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdcd8",
+        "name": "__objc_create_zone"
+      },
+      {
+        "addr": "0x1cdddc",
+        "name": "__objc_fatal"
+      },
+      {
+        "addr": "0x1d9d1c",
+        "name": "aUnableToAlloca",
+        "string": "unable to allocate space"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd3f0",
+    "addr": "0x001cd3f0",
+    "code": "BOOL __cdecl class_respondsToMethod(Class cls, SEL sel)\n{\n  Class v2; // ebx\n  Method *buckets; // eax\n  unsigned int i; // edx\n  Method v6; // ecx\n  objc_method_list **methodLists; // ecx\n  SEL *v8; // edx\n  int v9; // eax\n  int v10; // ebx\n  int v11; // eax\n  SEL *v12; // eax\n  int v13; // [esp-4h] [ebp-14h]\n  int v14; // [esp+0h] [ebp-10h]\n  int v15; // [esp+0h] [ebp-10h]\n  int v16; // [esp+0h] [ebp-10h]\n  int v17; // [esp+4h] [ebp-Ch]\n  int v18; // [esp+4h] [ebp-Ch]\n  unsigned int mask; // [esp+Ch] [ebp-4h]\n\n  v2 = cls; /*0x1cd3fc*/\n  if ( !sel ) /*0x1cd401*/\n    return 0; /*0x1cd4b1*/\n  mask = cls->cache->mask; /*0x1cd421*/\n  buckets = cls->cache->buckets; /*0x1cd427*/\n  for ( i = (unsigned int)sel & mask; ; i = mask & (i + 1) ) /*0x1cd42d*/\n  {\n    if ( !buckets[i] ) /*0x1cd434*/\n    {\n      while ( 1 ) /*0x1cd458*/\n      {\n        methodLists = v2->methodLists; /*0x1cd458*/\n        if ( methodLists ) /*0x1cd45d*/\n          break; /*0x1cd45d*/\nLABEL_15:\n        v2 = v2->super_class; /*0x1cd47c*/\n        if ( !v2 ) /*0x1cd481*/\n        {\n          v10 = NXDefaultMallocZone(v14, v17); /*0x1cd488*/\n          v11 = NXDefaultMallocZone(12, v15); /*0x1cd48c*/\n          v12 = (SEL *)(*(int (__stdcall **)(int, int, int, int))(v10 + 4))(v11, v13, v16, v18); /*0x1cd495*/\n          *v12 = sel; /*0x1cd497*/\n          v12[1] = \"\"; /*0x1cd499*/\n          v12[2] = (SEL)_objc_msgForward; /*0x1cd4a0*/\n          sub_1CD76C(cls, v12); /*0x1cd4ac*/\n          return 0; /*0x1cd4ac*/\n        }\n      }\n      while ( 1 ) /*0x1cd460*/\n      {\n        v8 = (SEL *)(methodLists + 2); /*0x1cd460*/\n        v9 = (int)&methodLists[1][-1].method_list[0].method_imp + 3; /*0x1cd466*/\n        if ( v9 >= 0 ) /*0x1cd467*/\n          break; /*0x1cd467*/\nLABEL_14:\n        methodLists = (objc_method_list **)*methodLists; /*0x1cd476*/\n        if ( !methodLists ) /*0x1cd47a*/\n          goto LABEL_15; /*0x1cd47a*/\n      }\n      while ( *v8 != sel ) /*0x1cd46e*/\n      {\n        v8 += 3; /*0x1cd470*/\n        if ( --v9 < 0 ) /*0x1cd474*/\n          goto LABEL_14; /*0x1cd474*/\n      }\n      sub_1CD76C(cls, v8); /*0x1cd40d*/\n      return 1; /*0x1cd417*/\n    }\n    v6 = buckets[i]; /*0x1cd436*/\n    if ( v6->method_name == sel ) /*0x1cd43b*/\n      break; /*0x1cd43b*/\n  }\n  return v6->method_imp != _objc_msgForward; /*0x1cd444*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1d7350",
+        "name": "asc_1D7350"
+      },
+      {
+        "addr": "0x1cebb0",
+        "name": "__objc_msgForward"
+      },
+      {
+        "addr": "0x1cd76c",
+        "name": "sub_1CD76C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd4c0",
+    "addr": "0x001cd4c0",
+    "code": "IMP __cdecl class_lookupMethod(Class cls, SEL sel)\n{\n  Method *buckets; // ecx\n  unsigned int i; // edx\n  Method v4; // eax\n  unsigned int mask; // [esp+Ch] [ebp-4h]\n\n  if ( !sel ) /*0x1cd4d1*/\n    -[objc_class error:](cls, sel_error_, \"invalid selector %s\", 0); /*0x1cd4e2*/\n  mask = cls->cache->mask; /*0x1cd4ef*/\n  buckets = cls->cache->buckets; /*0x1cd4f5*/\n  for ( i = (unsigned int)sel & mask; buckets[i]; i = mask & (i + 1) ) /*0x1cd4fa*/\n  {\n    v4 = buckets[i]; /*0x1cd502*/\n    if ( v4->method_name == sel ) /*0x1cd507*/\n      return v4->method_imp; /*0x1cd50c*/\n  }\n  return (IMP)_class_lookupMethodAndLoadCache(cls, sel); /*0x1cd522*/\n}",
+    "refs": [
+      {
+        "addr": "0x209b04",
+        "name": "-[objc_class error:]"
+      },
+      {
+        "addr": "0x207590",
+        "name": "sel_error:",
+        "string": "error:"
+      },
+      {
+        "addr": "0x1d66a4",
+        "name": "aInvalidSelecto",
+        "string": "invalid selector %s"
+      },
+      {
+        "addr": "0x1cd868",
+        "name": "__class_lookupMethodAndLoadCache"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd52c",
+    "addr": "0x001cd52c",
+    "code": "int __cdecl class_lookupMethodInMethodList(int a1, int a2)\n{\n  _DWORD *v2; // edx\n  int v3; // eax\n\n  v2 = (_DWORD *)(a1 + 8); /*0x1cd535*/\n  v3 = *(_DWORD *)(a1 + 4) - 1; /*0x1cd53b*/\n  if ( v3 < 0 ) /*0x1cd53c*/\n    return 0; /*0x1cd552*/\n  while ( *v2 != a2 ) /*0x1cd542*/\n  {\n    v2 += 3; /*0x1cd54c*/\n    if ( --v3 < 0 ) /*0x1cd550*/\n      return 0; /*0x1cd550*/\n  }\n  return v2[2]; /*0x1cd549*/\n}"
+  },
+  {
+    "requested_address": "0x001cd558",
+    "addr": "0x001cd558",
+    "code": "_DWORD *__cdecl _cache_create(int a1)\n{\n  int v1; // ebx\n  int v2; // eax\n  _DWORD *result; // eax\n  int i; // edx\n  int v5; // [esp-4h] [ebp-10h]\n  int v6; // [esp+0h] [ebp-Ch]\n  int v7; // [esp+0h] [ebp-Ch]\n  int v8; // [esp+4h] [ebp-8h]\n\n  v1 = NXDefaultMallocZone(v6, v8); /*0x1cd56b*/\n  v2 = NXDefaultMallocZone(24, v7); /*0x1cd56f*/\n  result = (_DWORD *)(*(int (__stdcall **)(int, int))(v1 + 4))(v2, v5); /*0x1cd578*/\n  for ( i = 0; i < 4; ++i ) /*0x1cd57a*/\n    result[i + 2] = 0; /*0x1cd57c*/\n  result[1] = 0; /*0x1cd589*/\n  *result = 3; /*0x1cd591*/\n  *(_DWORD *)(a1 + 32) = result; /*0x1cd593*/\n  *(_DWORD *)(a1 + 16) &= ~0x20u; /*0x1cd596*/\n  if ( dword_1E55A8 ) /*0x1cd5a1*/\n    *(_DWORD *)(a1 + 16) &= ~0x40u; /*0x1cd5a3*/\n  return result; /*0x1cd5aa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1e55a8",
+        "name": "dword_1E55A8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd5b4",
+    "addr": "0x001cd5b4",
+    "code": "_DWORD *__cdecl sub_1CD5B4(int a1)\n{\n  int v1; // esi\n  unsigned int v3; // ebx\n  int v4; // edi\n  int v5; // eax\n  unsigned int v6; // edi\n  int v7; // eax\n  unsigned int i; // ebx\n  unsigned int v9; // ebx\n  _DWORD *v10; // edi\n  int v11; // eax\n  unsigned int v12; // ebx\n  int v13; // edi\n  int v14; // eax\n  int v15; // ebx\n  int v16; // eax\n  int v17; // [esp-4h] [ebp-1Ch]\n  int v18; // [esp+0h] [ebp-18h]\n  int v19; // [esp+0h] [ebp-18h]\n  int v20; // [esp+0h] [ebp-18h]\n  int v21; // [esp+0h] [ebp-18h]\n  int v22; // [esp+0h] [ebp-18h]\n  int v23; // [esp+0h] [ebp-18h]\n  int v24; // [esp+0h] [ebp-18h]\n  int v25; // [esp+4h] [ebp-14h]\n  int v26; // [esp+4h] [ebp-14h]\n  int v27; // [esp+4h] [ebp-14h]\n  int v28; // [esp+8h] [ebp-10h]\n  int v29; // [esp+Ch] [ebp-Ch]\n  int v30; // [esp+10h] [ebp-8h]\n  int *v31; // [esp+14h] [ebp-4h]\n  int v32; // [esp+14h] [ebp-4h]\n  int savedregs; // [esp+18h] [ebp+0h]\n\n  v1 = *(_DWORD *)(a1 + 32); /*0x1cd5c0*/\n  if ( (_UNKNOWN *)v1 == &emptyCache ) /*0x1cd5c9*/\n    return _cache_create(a1); /*0x1cd5d1*/\n  if ( dword_1E55A8 ) /*0x1cd5df*/\n  {\n    if ( (*(_BYTE *)(a1 + 16) & 0x40) == 0 ) /*0x1cd5e8*/\n    {\n      *(_DWORD *)(v1 + 4) = 0; /*0x1cd5ea*/\n      v3 = 0; /*0x1cd5f1*/\n      if ( *(_DWORD *)v1 != -1 ) /*0x1cd5f6*/\n      {\n        do /*0x1cd634*/\n        {\n          if ( *(_DWORD *)(v1 + 4 * v3 + 8) ) /*0x1cd5f8*/\n          {\n            if ( *(id (**)(id, SEL, ...))(*(_DWORD *)(v1 + 4 * v3 + 8) + 8) == _objc_msgForward ) /*0x1cd60a*/\n            {\n              v4 = NXDefaultMallocZone(v18, v25); /*0x1cd611*/\n              v5 = NXDefaultMallocZone(*(_DWORD *)(v1 + 4 * v3 + 8), v19); /*0x1cd618*/\n              (*(void (__cdecl **)(int))(v4 + 8))(v5); /*0x1cd621*/\n            }\n            *(_DWORD *)(v1 + 4 * v3 + 8) = 0; /*0x1cd626*/\n          }\n          ++v3; /*0x1cd62e*/\n        }\n        while ( v3 < *(_DWORD *)v1 + 1 ); /*0x1cd634*/\n      }\n      *(_BYTE *)(a1 + 16) |= 0x40u; /*0x1cd639*/\n      return (_DWORD *)v1; /*0x1cd63f*/\n    }\n    *(_DWORD *)(a1 + 16) &= ~0x40u; /*0x1cd647*/\n  }\n  v6 = 2 * (*(_DWORD *)v1 + 1); /*0x1cd64e*/\n  v30 = NXDefaultMallocZone(v18, v25); /*0x1cd655*/\n  v7 = NXDefaultMallocZone(4 * (v6 - 1) + 12, v20); /*0x1cd663*/\n  v31 = (int *)(*(int (__cdecl **)(int))(v30 + 4))(v7); /*0x1cd671*/\n  *v31 = v6 - 1; /*0x1cd674*/\n  v31[1] = 0; /*0x1cd679*/\n  for ( i = 0; i < v6; ++i ) /*0x1cd687*/\n    v31[i + 2] = 0; /*0x1cd68f*/\n  if ( dword_1E55A4 ) /*0x1cd6a3*/\n  {\n    v12 = 0; /*0x1cd704*/\n    if ( *(_DWORD *)v1 != -1 ) /*0x1cd709*/\n    {\n      do /*0x1cd740*/\n      {\n        if ( *(_DWORD *)(v1 + 4 * v12 + 8) /*0x1cd71e*/\n          && *(id (**)(id, SEL, ...))(*(_DWORD *)(v1 + 4 * v12 + 8) + 8) == _objc_msgForward )\n        {\n          v13 = NXDefaultMallocZone(v21, v26); /*0x1cd725*/\n          v14 = NXDefaultMallocZone(*(_DWORD *)(v1 + 4 * v12 + 8), v22); /*0x1cd72c*/\n          (*(void (__cdecl **)(int))(v13 + 8))(v14); /*0x1cd735*/\n        }\n        ++v12; /*0x1cd73a*/\n      }\n      while ( v12 < *(_DWORD *)v1 + 1 ); /*0x1cd740*/\n    }\n  }\n  else\n  {\n    v9 = 0; /*0x1cd6a5*/\n    if ( *(_DWORD *)v1 != -1 ) /*0x1cd6aa*/\n    {\n      do /*0x1cd6f6*/\n      {\n        if ( *(_DWORD *)(v1 + 4 * v9 + 8) ) /*0x1cd6ac*/\n        {\n          v29 = *v31; /*0x1cd6b8*/\n          v10 = *(_DWORD **)(v1 + 4 * v9 + 8); /*0x1cd6bb*/\n          v11 = *v10 & *v31; /*0x1cd6c1*/\n          if ( v31[v11 + 2] ) /*0x1cd6c6*/\n          {\n            do /*0x1cd6db*/\n              v11 = v29 & (v11 + 1); /*0x1cd6d5*/\n            while ( v31[v11 + 2] ); /*0x1cd6db*/\n            v31[v11 + 2] = *(_DWORD *)(v1 + 4 * v9 + 8); /*0x1cd6e6*/\n          }\n          else\n          {\n            v31[v11 + 2] = (int)v10; /*0x1cd6cd*/\n          }\n          ++v31[1]; /*0x1cd6ed*/\n        }\n        ++v9; /*0x1cd6f0*/\n      }\n      while ( v9 < *(_DWORD *)v1 + 1 ); /*0x1cd6f6*/\n    }\n    *(_BYTE *)(a1 + 16) |= 0x20u; /*0x1cd6fb*/\n  }\n  *(_DWORD *)(a1 + 32) = v31; /*0x1cd748*/\n  v15 = NXDefaultMallocZone(v21, v26); /*0x1cd750*/\n  v16 = NXDefaultMallocZone(v1, v23); /*0x1cd753*/\n  (*(void (__stdcall **)(int, int, int, int, int, int, int, int *, int))(v15 + 8))( /*0x1cd75c*/\n    v16,\n    v17,\n    v24,\n    v27,\n    v28,\n    v29,\n    v30,\n    v31,\n    savedregs);\n  return (_DWORD *)v32; /*0x1cd764*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd558",
+        "name": "__cache_create"
+      },
+      {
+        "addr": "0x1d671c",
+        "name": "_emptyCache"
+      },
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1cebb0",
+        "name": "__objc_msgForward"
+      },
+      {
+        "addr": "0x1e55a8",
+        "name": "dword_1E55A8"
+      },
+      {
+        "addr": "0x1e55a4",
+        "name": "dword_1E55A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd76c",
+    "addr": "0x001cd76c",
+    "code": "_DWORD *__cdecl sub_1CD76C(int a1, _DWORD *a2)\n{\n  _DWORD *v2; // edi\n  int *v3; // ebx\n  int v4; // ecx\n  _DWORD *result; // eax\n  int i; // edx\n  int v7; // edx\n  _DWORD *v8; // ecx\n  int v9; // [esp+Ch] [ebp-8h]\n  int v10; // [esp+10h] [ebp-4h]\n\n  v2 = a2; /*0x1cd775*/\n  v10 = *a2; /*0x1cd77a*/\n  v3 = *(int **)(a1 + 32); /*0x1cd780*/\n  v9 = *v3; /*0x1cd785*/\n  v4 = v3[1] + 1; /*0x1cd78b*/\n  if ( 4 * v4 <= (unsigned int)(3 * *v3 + 3) ) /*0x1cd799*/\n  {\n    v3[1] = v4; /*0x1cd7c4*/\n  }\n  else\n  {\n    if ( (*(_BYTE *)(a1 + 16) & 0x20) != 0 ) /*0x1cd7a2*/\n    {\n      sub_1CD7EC(a1); /*0x1cd7a5*/\n    }\n    else\n    {\n      v3 = sub_1CD5B4(a1); /*0x1cd7b5*/\n      v9 = *v3; /*0x1cd7b9*/\n    }\n    ++v3[1]; /*0x1cd7bc*/\n  }\n  result = v3 + 2; /*0x1cd7c7*/\n  for ( i = v10; ; i = v7 + 1 ) /*0x1cd7ca*/\n  {\n    v7 = v9 & i; /*0x1cd7cd*/\n    v8 = (_DWORD *)result[v7]; /*0x1cd7d0*/\n    result[v7] = v2; /*0x1cd7d3*/\n    if ( !v8 ) /*0x1cd7d8*/\n      break; /*0x1cd7d8*/\n    v2 = v8; /*0x1cd7da*/\n  }\n  return result; /*0x1cd7e3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd7ec",
+        "name": "sub_1CD7EC"
+      },
+      {
+        "addr": "0x1cd5b4",
+        "name": "sub_1CD5B4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd7ec",
+    "addr": "0x001cd7ec",
+    "code": "int __cdecl sub_1CD7EC(int a1)\n{\n  int v1; // esi\n  unsigned int v2; // ebx\n  int result; // eax\n  int v4; // edi\n  int v5; // eax\n  int v6; // [esp+0h] [ebp-Ch]\n  int v7; // [esp+0h] [ebp-Ch]\n  int v8; // [esp+4h] [ebp-8h]\n\n  v1 = *(_DWORD *)(a1 + 32); /*0x1cd7f5*/\n  if ( (_UNKNOWN *)v1 != &emptyCache ) /*0x1cd7fe*/\n  {\n    v2 = 0; /*0x1cd800*/\n    do /*0x1cd841*/\n    {\n      if ( *(_DWORD *)(v1 + 4 * v2 + 8) ) /*0x1cd808*/\n      {\n        result = *(_DWORD *)(v1 + 4 * v2 + 8); /*0x1cd80f*/\n        if ( *(id (**)(id, SEL, ...))(result + 8) == _objc_msgForward ) /*0x1cd81a*/\n        {\n          v4 = NXDefaultMallocZone(v6, v8); /*0x1cd821*/\n          v5 = NXDefaultMallocZone(*(_DWORD *)(v1 + 4 * v2 + 8), v7); /*0x1cd828*/\n          result = (*(int (__cdecl **)(int))(v4 + 8))(v5); /*0x1cd831*/\n        }\n      }\n      *(_DWORD *)(v1 + 4 * v2++ + 8) = 0; /*0x1cd836*/\n    }\n    while ( *(_DWORD *)v1 >= v2 ); /*0x1cd841*/\n    *(_DWORD *)(v1 + 4) = 0; /*0x1cd843*/\n    *(_DWORD *)(a1 + 16) &= ~0x20u; /*0x1cd84d*/\n  }\n  return result; /*0x1cd854*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1cebb0",
+        "name": "__objc_msgForward"
+      },
+      {
+        "addr": "0x1d671c",
+        "name": "_emptyCache"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd85c",
+    "addr": "0x001cd85c",
+    "code": "void *_objc_getFreedObjectClass()\n{\n  return &unk_1D6728; /*0x1cd866*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d6728",
+        "name": "unk_1D6728"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd868",
+    "addr": "0x001cd868",
+    "code": "void (__cdecl __noreturn *__cdecl _class_lookupMethodAndLoadCache(int a1, int a2))(void *a1, SEL sel)\n{\n  int v2; // esi\n  Class Class; // eax\n  _DWORD *v5; // ecx\n  _DWORD *v6; // edx\n  int v7; // eax\n  _DWORD *v8; // ebx\n  int v9; // ebx\n  int v10; // eax\n  _DWORD *v11; // eax\n  int v12; // [esp-4h] [ebp-10h]\n  int v13; // [esp+0h] [ebp-Ch]\n  int v14; // [esp+0h] [ebp-Ch]\n  int v15; // [esp+0h] [ebp-Ch]\n  int v16; // [esp+4h] [ebp-8h]\n  int v17; // [esp+4h] [ebp-8h]\n\n  v2 = a1; /*0x1cd86e*/\n  if ( (_UNKNOWN *)a1 == &unk_1D6728 ) /*0x1cd877*/\n    return sub_1CD25C; /*0x1cd879*/\n  if ( (*(_BYTE *)(a1 + 16) & 2) != 0 && (*(_BYTE *)(a1 + 16) & 4) == 0 ) /*0x1cd88e*/\n  {\n    Class = objc_getClass(*(const char **)(a1 + 8)); /*0x1cd894*/\n    sub_1CD284(Class); /*0x1cd89a*/\n  }\n  while ( 1 ) /*0x1cd8a4*/\n  {\n    v5 = *(_DWORD **)(v2 + 28); /*0x1cd8a4*/\n    if ( v5 ) /*0x1cd8a9*/\n    {\n      while ( 1 ) /*0x1cd8ac*/\n      {\n        v6 = v5 + 2; /*0x1cd8ac*/\n        v7 = v5[1] - 1; /*0x1cd8b2*/\n        if ( v7 >= 0 ) /*0x1cd8b3*/\n          break; /*0x1cd8b3*/\nLABEL_10:\n        v5 = (_DWORD *)*v5; /*0x1cd8c5*/\n        if ( !v5 ) /*0x1cd8c9*/\n          goto LABEL_11; /*0x1cd8c9*/\n      }\n      while ( *v6 != a2 ) /*0x1cd8bd*/\n      {\n        v6 += 3; /*0x1cd8bf*/\n        if ( --v7 < 0 ) /*0x1cd8c3*/\n          goto LABEL_10; /*0x1cd8c3*/\n      }\n      v8 = v6; /*0x1cd910*/\n    }\n    else\n    {\nLABEL_11:\n      v8 = nullptr; /*0x1cd8cb*/\n    }\n    if ( v8 ) /*0x1cd8cf*/\n      break; /*0x1cd8cf*/\n    v2 = *(_DWORD *)(v2 + 4); /*0x1cd8d1*/\n    if ( !v2 ) /*0x1cd8d6*/\n    {\n      v9 = NXDefaultMallocZone(v13, v16); /*0x1cd8dd*/\n      v10 = NXDefaultMallocZone(12, v14); /*0x1cd8e1*/\n      v11 = (_DWORD *)(*(int (__stdcall **)(int, int, int, int))(v9 + 4))(v10, v12, v15, v17); /*0x1cd8ea*/\n      *v11 = a2; /*0x1cd8ef*/\n      v11[1] = \"\"; /*0x1cd8f1*/\n      v11[2] = _objc_msgForward; /*0x1cd8f8*/\n      sub_1CD76C(a1, v11); /*0x1cd904*/\n      return (void (__cdecl __noreturn *)(void *, SEL))_objc_msgForward; /*0x1cd90e*/\n    }\n  }\n  sub_1CD76C(a1, v8); /*0x1cd919*/\n  return (void (__cdecl __noreturn *)(void *, SEL))v8[2]; /*0x1cd924*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd25c",
+        "name": "sub_1CD25C"
+      },
+      {
+        "addr": "0x1d6728",
+        "name": "unk_1D6728"
+      },
+      {
+        "addr": "0x1ced1c",
+        "name": "_objc_getClass"
+      },
+      {
+        "addr": "0x1cd284",
+        "name": "sub_1CD284"
+      },
+      {
+        "addr": "0x1cdef0",
+        "name": "_NXDefaultMallocZone"
+      },
+      {
+        "addr": "0x1d7350",
+        "name": "asc_1D7350"
+      },
+      {
+        "addr": "0x1cebb0",
+        "name": "__objc_msgForward"
+      },
+      {
+        "addr": "0x1cd76c",
+        "name": "sub_1CD76C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd92c",
+    "addr": "0x001cd92c",
+    "code": "int __cdecl sub_1CD92C(char *a1, char a2)\n{\n  char *v2; // eax\n  int v3; // ecx\n  char v5; // dl\n\n  v2 = a1; /*0x1cd934*/\n  v3 = 0; /*0x1cd93d*/\n  if ( *a1 ) /*0x1cd941*/\n  {\n    while ( 1 ) /*0x1cd948*/\n    {\n      if ( !v3 && *v2 == a2 ) /*0x1cd951*/\n        return v2 - a1; /*0x1cd955*/\n      v5 = *v2; /*0x1cd958*/\n      if ( *v2 == 91 ) /*0x1cd95d*/\n      {\nLABEL_16:\n        ++v3; /*0x1cd988*/\n        goto LABEL_17; /*0x1cd988*/\n      }\n      if ( *v2 <= 91 ) /*0x1cd95f*/\n        break; /*0x1cd95f*/\n      if ( v5 == 123 ) /*0x1cd973*/\n        goto LABEL_16; /*0x1cd973*/\n      if ( v5 <= 123 ) /*0x1cd975*/\n      {\n        if ( v5 != 93 ) /*0x1cd97a*/\n          goto LABEL_17; /*0x1cd97a*/\nLABEL_15:\n        --v3; /*0x1cd985*/\n        goto LABEL_17; /*0x1cd986*/\n      }\n      if ( v5 == 125 ) /*0x1cd983*/\n        goto LABEL_15; /*0x1cd983*/\nLABEL_17:\n      if ( !*++v2 ) /*0x1cd98a*/\n        goto LABEL_18; /*0x1cd98d*/\n    }\n    if ( v5 == 40 ) /*0x1cd964*/\n      goto LABEL_16; /*0x1cd964*/\n    if ( v5 != 41 ) /*0x1cd969*/\n      goto LABEL_17; /*0x1cd969*/\n    goto LABEL_15; /*0x1cd969*/\n  }\nLABEL_18:\n  _NXLogError(\"Object: SubTypeUntil: end of type encountered prematurely\\n\");\n  return 0; /*0x1cd99e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cdd3c",
+        "name": "__NXLogError"
+      },
+      {
+        "addr": "0x1d9d38",
+        "name": "aObjectSubtypeu",
+        "string": "Object: SubTypeUntil: end of type encountered prematurely\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cd9a4",
+    "addr": "0x001cd9a4",
+    "code": "int __cdecl sub_1CD9A4(char *a1)\n{\n  int v2; // eax\n  int v3; // eax\n  int result; // eax\n\n  while ( 2 ) /*0x1cd9b0*/\n  {\n    v2 = (char)(*a1++ - 40); /*0x1cd9b0*/\n    switch ( v2 ) /*0x1cd9bd*/\n    {\n      case 0: /*0x1cd9bd*/\n        v3 = sub_1CD92C(a1, 41); /*0x1cdb2b*/\n        goto LABEL_7; /*0x1cdb2b*/\n      case 38: /*0x1cd9bd*/\n      case 39: /*0x1cd9bd*/\n      case 46: /*0x1cd9bd*/\n      case 54: /*0x1cd9bd*/\n      case 70: /*0x1cd9bd*/\n      case 71: /*0x1cd9bd*/\n      case 74: /*0x1cd9bd*/\n        continue;\n      case 51: /*0x1cd9bd*/\n        while ( (unsigned __int8)(*a1 - 48) <= 9u ) /*0x1cdb1b*/\n          ++a1; /*0x1cdb14*/\n        v3 = sub_1CD92C(a1, 93); /*0x1cdb1f*/\n        goto LABEL_7; /*0x1cdb1f*/\n      case 83: /*0x1cd9bd*/\n        v3 = sub_1CD92C(a1, 125); /*0x1cdb26*/\nLABEL_7:\n        result = (int)&a1[v3 + 1]; /*0x1cdb30*/\n        break; /*0x1cdb34*/\n      default:\n        result = (int)a1; /*0x1cdb38*/\n        break; /*0x1cdb38*/\n    }\n    return result; /*0x1cdb3a*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1cd92c",
+        "name": "sub_1CD92C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdb44",
+    "addr": "0x001cdb44",
+    "code": "unsigned int __cdecl method_getNumberOfArguments(Method m)\n{\n  unsigned int v1; // ebx\n  char *i; // edx\n\n  v1 = 0; /*0x1cdb4b*/\n  for ( i = (char *)sub_1CD9A4(m->method_types); (unsigned __int8)(*i - 48) <= 9u; ++i ) /*0x1cdb56*/\n    ; /*0x1cdb60*/\n  for ( ; *i; ++v1 ) /*0x1cdb69*/\n  {\n    i = (char *)sub_1CD9A4(i); /*0x1cdb76*/\n    if ( *i != 45 ) /*0x1cdb7e*/\n      goto LABEL_7; /*0x1cdb7e*/\n    do /*0x1cdb87*/\n    {\n      ++i; /*0x1cdb80*/\nLABEL_7:\n      ; /*0x1cdb81*/\n    }\n    while ( (unsigned __int8)(*i - 48) <= 9u ); /*0x1cdb87*/\n  }\n  return v1; /*0x1cdb91*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd9a4",
+        "name": "sub_1CD9A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdb98",
+    "addr": "0x001cdb98",
+    "code": "unsigned int __cdecl method_getSizeOfArguments(Method m)\n{\n  unsigned int v1; // ebx\n  _BYTE *i; // ecx\n\n  v1 = 0; /*0x1cdb9f*/\n  for ( i = (_BYTE *)sub_1CD9A4(m->method_types); (unsigned __int8)(*i - 48) <= 9u; ++i ) /*0x1cdbaa*/\n    v1 = (char)*i + 10 * v1 - 48; /*0x1cdbba*/\n  return v1; /*0x1cdbc8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd9a4",
+        "name": "sub_1CD9A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdbd0",
+    "addr": "0x001cdbd0",
+    "code": "unsigned int __cdecl method_getArgumentInfo(objc_method *m, int arg, const char **type, int *offset)\n{\n  unsigned int v4; // edi\n  int v5; // esi\n  char *i; // ecx\n  char *v7; // eax\n  int v8; // ebx\n  _BYTE *v9; // eax\n  _BYTE *v10; // ecx\n  char v12; // [esp+Ch] [ebp-4h]\n  char v13; // [esp+Ch] [ebp-4h]\n\n  v4 = 0; /*0x1cdbdc*/\n  v5 = 0; /*0x1cdbde*/\n  for ( i = (char *)sub_1CD9A4(m->method_types); (unsigned __int8)(*i - 48) <= 9u; ++i ) /*0x1cdbe9*/\n    ; /*0x1cdbf0*/\n  if ( !*i ) /*0x1cdbfc*/\n    goto LABEL_30; /*0x1cdbfc*/\n  do /*0x1cdc5e*/\n  {\n    if ( arg == v4 ) /*0x1cdc07*/\n      break; /*0x1cdc07*/\n    v7 = (char *)sub_1CD9A4(i); /*0x1cdc0a*/\n    i = v7; /*0x1cdc0f*/\n    if ( v4 ) /*0x1cdc16*/\n    {\n      if ( *v7 != 45 ) /*0x1cdc4f*/\n        goto LABEL_17; /*0x1cdc4f*/\n      while ( 1 ) /*0x1cdc54*/\n      {\n        ++i; /*0x1cdc54*/\nLABEL_17:\n        if ( (unsigned __int8)(*i - 48) > 9u ) /*0x1cdc5b*/\n          goto LABEL_18; /*0x1cdc5b*/\n      }\n    }\n    if ( *v7 == 45 ) /*0x1cdc1b*/\n    {\n      v12 = 1; /*0x1cdc1d*/\n      goto LABEL_11; /*0x1cdc21*/\n    }\n    v12 = 0; /*0x1cdc24*/\n    while ( (unsigned __int8)(*i - 48) <= 9u ) /*0x1cdc40*/\n    {\n      v5 = *i + 10 * v5 - 48; /*0x1cdc36*/\nLABEL_11:\n      ++i; /*0x1cdc39*/\n    }\n    if ( v12 ) /*0x1cdc46*/\n      v5 = -v5; /*0x1cdc48*/\nLABEL_18:\n    ++v4; /*0x1cdc5d*/\n  }\n  while ( *i ); /*0x1cdc5e*/\n  if ( !*i ) /*0x1cdc66*/\n  {\nLABEL_30:\n    *type = nullptr; /*0x1cdcb8*/\n    goto LABEL_31; /*0x1cdcbb*/\n  }\n  v8 = 0; /*0x1cdc68*/\n  *type = i; /*0x1cdc6d*/\n  v9 = (_BYTE *)sub_1CD9A4(i); /*0x1cdc70*/\n  v10 = v9; /*0x1cdc75*/\n  if ( !arg ) /*0x1cdc7b*/\n  {\nLABEL_31:\n    *offset = 0; /*0x1cdcc1*/\n    return v4; /*0x1cdcc4*/\n  }\n  if ( *v9 != 45 ) /*0x1cdc80*/\n  {\n    v13 = 0; /*0x1cdc88*/\n    goto LABEL_26; /*0x1cdc8c*/\n  }\n  v13 = 1; /*0x1cdc82*/\n  while ( 1 ) /*0x1cdc9d*/\n  {\n    ++v10; /*0x1cdc9d*/\nLABEL_26:\n    if ( (unsigned __int8)(*v10 - 48) > 9u ) /*0x1cdca4*/\n      break; /*0x1cdca4*/\n    v8 = (char)*v10 + 10 * v8 - 48; /*0x1cdc9a*/\n  }\n  if ( v13 ) /*0x1cdcaa*/\n    v8 = -v8; /*0x1cdcac*/\n  *offset = v8 - v5; /*0x1cdcb3*/\n  return v4; /*0x1cdccf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1cd9a4",
+        "name": "sub_1CD9A4"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdcd8",
+    "addr": "0x001cdcd8",
+    "code": "int _objc_create_zone()\n{\n  int v1; // [esp-Ch] [ebp-Ch]\n  int v2; // [esp-8h] [ebp-8h]\n  int v3; // [esp-4h] [ebp-4h]\n\n  if ( !dword_1E55B4 ) /*0x1cdce2*/\n  {\n    dword_1E55B4 = NXCreateZone(0x2000, 0x2000, 1); /*0x1cdcf5*/\n    NXNameZone(dword_1E55B4, \"ObjC\", v1, v2, v3); /*0x1cdd00*/\n  }\n  return dword_1E55B4; /*0x1cdd0c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e55b4",
+        "name": "dword_1E55B4"
+      },
+      {
+        "addr": "0x1cdf08",
+        "name": "_NXCreateZone"
+      },
+      {
+        "addr": "0x1cdf14",
+        "name": "_NXNameZone"
+      },
+      {
+        "addr": "0x1d9d74",
+        "name": "aObjc_0",
+        "string": "ObjC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdd10",
+    "addr": "0x001cdd10",
+    "code": "void __noreturn __objc_error(id a1, const char *a2, ...)\n{\n  va_list va; // [esp+1Ch] [ebp+10h] BYREF\n\n  va_start(va, a2);\n  _error(a1, a2, va); /*0x1cdd27*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e55d4",
+        "name": "__error"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdd3c",
+    "addr": "0x001cdd3c",
+    "code": "void _NXLogError(const char *a1, ...)\n{\n  long double v1; // [esp-8h] [ebp-10h]\n  va_list va; // [esp+14h] [ebp+Ch] BYREF\n\n  va_start(va, a1);\n  vlog(3, (int)a1, (int)va); /*0x1cdd4b*/\n  if ( a1[strlen(a1) - 1] != 10 ) /*0x1cdd68*/\n  {\n    DWORD1(v1) = \"\\n\"; /*0x1cdd6a*/\n    LODWORD(v1) = 3; /*0x1cdd6f*/\n    log(v1); /*0x1cdd71*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10c220",
+        "name": "_vlog"
+      },
+      {
+        "addr": "0x1d7058",
+        "name": "asc_1D7058",
+        "string": "\n"
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdd80",
+    "addr": "0x001cdd80",
+    "code": "void __cdecl __noreturn _objc_error(id a1, const char *a2, int a3)\n{\n  long double v3; // [esp-10h] [ebp-1Ch]\n  long double v4; // [esp-8h] [ebp-14h]\n\n  DWORD2(v3) = object_getClassName(a1); /*0x1cdd95*/\n  DWORD1(v3) = \"objc error: %s \";\n  LODWORD(v3) = 3; /*0x1cdd9b*/\n  log(v3); /*0x1cdd9d*/\n  vlog(3, (int)a2, a3); /*0x1cdda6*/\n  if ( a2[strlen(a2) - 1] != 10 ) /*0x1cddc3*/\n  {\n    DWORD1(v4) = \"\\n\"; /*0x1cddc5*/\n    LODWORD(v4) = 3; /*0x1cddca*/\n    log(v4); /*0x1cddcc*/\n  }\n  abort(); /*0x1cddd4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ccb5c",
+        "name": "_object_getClassName"
+      },
+      {
+        "addr": "0x1d9d7c",
+        "name": "aObjcErrorS",
+        "string": "objc error: %s "
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      },
+      {
+        "addr": "0x10c220",
+        "name": "_vlog"
+      },
+      {
+        "addr": "0x1d7058",
+        "name": "asc_1D7058",
+        "string": "\n"
+      },
+      {
+        "addr": "0x17e220",
+        "name": "_abort"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cdddc",
+    "addr": "0x001cdddc",
+    "code": "void __cdecl __noreturn _objc_fatal(const char *a1)\n{\n  printf(\"objc fatal: %s\\n\", a1);\n  panic(\"Objective-C fatal\"); /*0x1cddf2*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1d9d8c",
+        "name": "aObjcFatalS",
+        "string": "objc fatal: %s\n"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1d9d9c",
+        "name": "aObjectiveCFata",
+        "string": "Objective-C fatal"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cddfc",
+    "addr": "0x001cddfc",
+    "code": "void _objc_inform(const char *a1, ...)\n{\n  long double v1; // [esp-8h] [ebp-10h]\n  va_list va; // [esp+14h] [ebp+Ch] BYREF\n\n  va_start(va, a1);\n  vlog(3, (int)a1, (int)va); /*0x1cde0b*/\n  if ( a1[strlen(a1) - 1] != 10 ) /*0x1cde28*/\n  {\n    DWORD1(v1) = \"\\n\"; /*0x1cde2a*/\n    LODWORD(v1) = 3; /*0x1cde2f*/\n    log(v1); /*0x1cde31*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10c220",
+        "name": "_vlog"
+      },
+      {
+        "addr": "0x1d7058",
+        "name": "asc_1D7058",
+        "string": "\n"
+      },
+      {
+        "addr": "0x10c1c0",
+        "name": "_log"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001cde80",
+    "addr": "0x001cde80",
+    "code": "int __stdcall NXPtrValueMapPrototype(int a1, int a2, int a3, int a4, int a5, int a6, int a7)\n{\n  _BYTE retaddr[8]; // [esp+0h] [ebp+0h]\n\n  return MK_FP(*(_WORD *)retaddr, *(_DWORD *)retaddr)(a1, a2, a3, a4, a5, a6, a7);\n}"
+  },
+  {
+    "requested_address": "0x001cdea0",
+    "addr": "0x001cdea0",
+    "code": "int __usercall NXObjectMapPrototype@<eax>(int a1@<ecx>, int a2@<ebx>)\n{\n  _BYTE retaddr[8]; // [esp+0h] [ebp+0h]\n\n  *(_BYTE *)(a2 + 8 * a1) += a2; /*0x1cdea3*/\n  return MK_FP(*(_WORD *)retaddr, *(_DWORD *)retaddr)();\n}"
+  },
+  {
+    "requested_address": "0x001cdeb0",
+    "addr": "0x001cdeb0",
+    "code": null,
+    "error": "Decompilation failed at 0x1cdeb0"
+  },
+  {
+    "requested_address": "0x001cdec4",
+    "addr": "0x001cdec4",
+    "code": null,
+    "error": "Decompilation failed at 0x1cdec4"
+  }
+]

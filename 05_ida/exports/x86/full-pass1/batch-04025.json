@@ -1,0 +1,604 @@
+[
+  {
+    "requested_address": "0x001b7b38",
+    "addr": "0x001b7b38",
+    "code": "char __cdecl -[AudioChannel createChannelBuffer](AudioChannel *self, SEL a2)\n{\n  unsigned int v3; // eax\n  unsigned int v4; // eax\n\n  if ( self->channelBufferPtr ) /*0x1b7b3f*/\n    return 1; /*0x1b7b4a*/\n  if ( byte_1E539C && dword_1E53A0 ) /*0x1b7b60*/\n  {\n    self->channelBufferPtr = dword_1E53A0; /*0x1b7b62*/\n    self->channelBuffer = objc_msgSend( /*0x1b7b86*/\n                            self->audioDevice,\n                            sel_createDMABufferFor_length_read_needsLowMemory_limitSize_,\n                            &self->channelBufferPtr,\n                            self->dmaSize,\n                            self->_isRead,\n                            1,\n                            0);\n    -[AudioChannel initializeFreeQueue](self, sel_initializeFreeQueue); /*0x1b7b91*/\n    return 1; /*0x1b7b9b*/\n  }\n  if ( (unsigned __int8)objc_msgSend(self->audioDevice, sel_isEISAPresent) )\n  {\n    if ( (unsigned __int8)objc_msgSend(self->audioDevice, sel_isEISAPresent) ) /*0x1b7beb*/\n    {\n      v4 = alloc_cnvmem(self->dmaSize, page_size); /*0x1b7c02*/\n      self->channelBufferPtr = v4; /*0x1b7c07*/\n      if ( !v4 ) /*0x1b7c0f*/\n        goto LABEL_8; /*0x1b7c0f*/\n    }\n  }\n  else\n  {\n    v3 = alloc_cnvmem(self->dmaSize, 0x10000); /*0x1b7bc0*/\n    self->channelBufferPtr = v3; /*0x1b7bc5*/\n    if ( !v3 )\n    {\nLABEL_8:\n      IOLog((int)\"Audio: no memory for allocating buffers.\\n\");\n      return 0; /*0x1b7bdb*/\n    }\n  }\n  dword_1E53A0 = self->channelBufferPtr; /*0x1b7c23*/\n  self->channelBuffer = objc_msgSend( /*0x1b7c4a*/\n                          self->audioDevice,\n                          sel_createDMABufferFor_length_read_needsLowMemory_limitSize_,\n                          &self->channelBufferPtr,\n                          self->dmaSize,\n                          self->_isRead,\n                          1,\n                          0);\n  -[AudioChannel initializeFreeQueue](self, sel_initializeFreeQueue); /*0x1b7c55*/\n  return 1; /*0x1b7c5f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e53a0",
+        "name": "dword_1E53A0"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x206280",
+        "name": "sel_createDMABufferFor:length:read:needsLowMemory:limitSize:",
+        "string": "createDMABufferFor:length:read:needsLowMemory:limitSize:"
+      },
+      {
+        "addr": "0x1b7c68",
+        "name": "-[AudioChannel initializeFreeQueue]"
+      },
+      {
+        "addr": "0x206210",
+        "name": "sel_initializeFreeQueue",
+        "string": "initializeFreeQueue"
+      },
+      {
+        "addr": "0x1e539c",
+        "name": "byte_1E539C"
+      },
+      {
+        "addr": "0x18ad9c",
+        "name": "_alloc_cnvmem"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x206270",
+        "name": "sel_isEISAPresent",
+        "string": "isEISAPresent"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d868c",
+        "name": "aAudioNoMemoryF",
+        "string": "Audio: no memory for allocating buffers.\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b7c68",
+    "addr": "0x001b7c68",
+    "code": "void __cdecl -[AudioChannel initializeFreeQueue](AudioChannel *self, SEL a2)\n{\n  queue_entry *p_freeQueue; // esi\n  queue_entry *next; // ecx\n  int v4; // ebx\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v5; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v6; // eax\n  unsigned int v7; // esi\n  queue_entry *v8; // ebx\n  int v9; // eax\n  int v10; // ecx\n  queue_entry *prev; // eax\n  int v12; // [esp+Ch] [ebp-8h]\n  unsigned int channelBufferPtr; // [esp+Ch] [ebp-8h]\n\n  if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->freeQueue.next != &self->freeQueue ) /*0x1b7c7a*/\n  {\n    p_freeQueue = (queue_entry *)&self->freeQueue; /*0x1b7c7c*/\n    do /*0x1b7cbe*/\n    {\n      next = self->freeQueue.next; /*0x1b7c80*/\n      v4 = *((_DWORD *)next + 2); /*0x1b7c83*/\n      v12 = *((_DWORD *)next + 3); /*0x1b7c89*/\n      if ( p_freeQueue == (queue_entry *)v4 ) /*0x1b7c8e*/\n        v5 = &self->freeQueue; /*0x1b7c90*/\n      else\n        v5 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v4 + 8); /*0x1b7c94*/\n      v5->prev = (queue_entry *)v12; /*0x1b7c9a*/\n      if ( p_freeQueue == (queue_entry *)v12 ) /*0x1b7c9f*/\n        v6 = &self->freeQueue; /*0x1b7ca1*/\n      else\n        v6 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v12 + 8); /*0x1b7cab*/\n      v6->next = (queue_entry *)v4; /*0x1b7cae*/\n      IOFree((int)next, 16); /*0x1b7cb3*/\n    }\n    while ( self->freeQueue.next != p_freeQueue ); /*0x1b7cbe*/\n  }\n  bzero((void *)self->channelBufferPtr, self->dmaSize); /*0x1b7cc8*/\n  channelBufferPtr = self->channelBufferPtr; /*0x1b7cd0*/\n  v7 = 0; /*0x1b7cd3*/\n  if ( self->dmaCount ) /*0x1b7cd8*/\n  {\n    v8 = (queue_entry *)&self->freeQueue; /*0x1b7cdd*/\n    do /*0x1b7d27*/\n    {\n      v9 = IOMalloc(0x10u); /*0x1b7ce2*/\n      v10 = v9; /*0x1b7ce7*/\n      *(_DWORD *)v9 = 0; /*0x1b7ce9*/\n      *(_DWORD *)(v9 + 4) = channelBufferPtr; /*0x1b7cf2*/\n      channelBufferPtr += self->descriptorSize; /*0x1b7cf8*/\n      if ( self->freeQueue.next == v8 ) /*0x1b7d01*/\n      {\n        self->freeQueue.next = (queue_entry *)v9; /*0x1b7d03*/\n        self->freeQueue.prev = (queue_entry *)v9; /*0x1b7d06*/\n        *(_DWORD *)(v9 + 8) = v8; /*0x1b7d09*/\n        *(_DWORD *)(v9 + 12) = v8; /*0x1b7d0c*/\n      }\n      else\n      {\n        prev = self->freeQueue.prev; /*0x1b7d14*/\n        *(_DWORD *)(v10 + 12) = prev; /*0x1b7d17*/\n        *(_DWORD *)(v10 + 8) = v8; /*0x1b7d1a*/\n        self->freeQueue.prev = (queue_entry *)v10; /*0x1b7d1d*/\n        *((_DWORD *)prev + 2) = v10; /*0x1b7d20*/\n      }\n      ++v7; /*0x1b7d23*/\n    }\n    while ( self->dmaCount > v7 ); /*0x1b7d27*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b7d34",
+    "addr": "0x001b7d34",
+    "code": "void __cdecl -[AudioChannel destroyChannelBuffer](AudioChannel *self, SEL a2)\n{\n  ; /*0x1b7d34*/\n}"
+  },
+  {
+    "requested_address": "0x001b7d3c",
+    "addr": "0x001b7d3c",
+    "code": "char __cdecl -[AudioChannel enqueueDescriptor:dataFormat:channelCount:](\n        AudioChannel *self,\n        SEL a2,\n        unsigned int *a3,\n        int *a4,\n        unsigned int *a5)\n{\n  queue_entry *v5; // eax\n  queue_entry *next; // ebx\n  AudioChannel *v8; // edx\n  id *p_streamClass; // eax\n  _DWORD *p_isa; // eax\n  unsigned int i; // esi\n  id v12; // eax\n  id v13; // eax\n  queue_entry *v14; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_dmaQueue; // edx\n  queue_entry *prev; // eax\n  AudioChannel *v17; // [esp+Ch] [ebp-Ch]\n  id v18; // [esp+10h] [ebp-8h]\n  id v19; // [esp+14h] [ebp-4h]\n\n  v19 = nullptr; /*0x1b7d48*/\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b7d5a*/\n  v18 = objc_msgSend(self->streamList, sel_count); /*0x1b7d6f*/\n  if ( v18 && (v5 = self->freeQueue.next, &self->freeQueue != ($BAB6C68F9D34F0972F921D3DB17D7446 *)v5) ) /*0x1b7d81*/\n  {\n    next = self->freeQueue.next; /*0x1b7db0*/\n    v17 = *((AudioChannel **)v5 + 2); /*0x1b7db5*/\n    v8 = *((AudioChannel **)v5 + 3); /*0x1b7db8*/\n    if ( &self->freeQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)v17 ) /*0x1b7dbd*/\n      p_streamClass = *((id **)v5 + 2); /*0x1b7dbf*/\n    else\n      p_streamClass = &v17->streamClass; /*0x1b7dc7*/\n    p_streamClass[1] = v8; /*0x1b7dca*/\n    if ( &self->freeQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)v8 ) /*0x1b7dd2*/\n      p_isa = &v8->super.isa; /*0x1b7dd4*/\n    else\n      p_isa = &v8->streamClass; /*0x1b7dd8*/\n    *p_isa = v17; /*0x1b7dde*/\n    for ( i = 0; i < (unsigned int)v18; ++i ) /*0x1b7de0*/\n    {\n      v12 = objc_msgSend(self->streamList, sel_objectAt_, i); /*0x1b7df4*/\n      v13 = objc_msgSend( /*0x1b7e29*/\n              v12,\n              sel_mixBuffer_maxCount_rate_format_channelCount_descriptor_virgin_streamCount_,\n              *((_DWORD *)next + 1),\n              self->descriptorSize,\n              a3,\n              a4,\n              a5,\n              next,\n              v19 == nullptr,\n              v18);\n      if ( v19 < v13 ) /*0x1b7e34*/\n        v19 = v13; /*0x1b7e36*/\n    }\n    objc_msgSend(self->streamListLock, sel_unlock); /*0x1b7e4a*/\n    if ( v19 ) /*0x1b7e53*/\n    {\n      *(_DWORD *)next = v19; /*0x1b7e87*/\n      p_dmaQueue = &self->dmaQueue; /*0x1b7e89*/\n      if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->dmaQueue.next == &self->dmaQueue ) /*0x1b7e8f*/\n      {\n        self->dmaQueue.next = next; /*0x1b7e74*/\n        self->dmaQueue.prev = next; /*0x1b7e77*/\n        *((_DWORD *)next + 2) = p_dmaQueue; /*0x1b7e7a*/\n        *((_DWORD *)next + 3) = p_dmaQueue; /*0x1b7e7d*/\n      }\n      else\n      {\n        prev = self->dmaQueue.prev; /*0x1b7e91*/\n        *((_DWORD *)next + 3) = prev; /*0x1b7e94*/\n        *((_DWORD *)next + 2) = p_dmaQueue; /*0x1b7e97*/\n        self->dmaQueue.prev = next; /*0x1b7e9a*/\n        *((_DWORD *)prev + 2) = next; /*0x1b7e9d*/\n      }\n      ++self->enqueueCount; /*0x1b7ea0*/\n      return 1; /*0x1b7ea3*/\n    }\n    else\n    {\n      v14 = self->freeQueue.next; /*0x1b7e58*/\n      if ( &self->freeQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)v14 ) /*0x1b7e5d*/\n      {\n        self->freeQueue.next = next; /*0x1b7d9c*/\n        self->freeQueue.prev = next; /*0x1b7d9f*/\n        *((_DWORD *)next + 2) = v14; /*0x1b7da2*/\n        *((_DWORD *)next + 3) = v14; /*0x1b7da5*/\n      }\n      else\n      {\n        *((_DWORD *)next + 3) = &self->freeQueue; /*0x1b7e63*/\n        *((_DWORD *)next + 2) = v14; /*0x1b7e66*/\n        self->freeQueue.next = next; /*0x1b7e69*/\n        *((_DWORD *)v14 + 3) = next; /*0x1b7e6c*/\n      }\n      return 0; /*0x1b7e6f*/\n    }\n  }\n  else\n  {\n    objc_msgSend(self->streamListLock, sel_unlock); /*0x1b7d8e*/\n    return 0; /*0x1b7d93*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x2062bc",
+        "name": "sel_mixBuffer:maxCount:rate:format:channelCount:descriptor:virgin:streamCount:",
+        "string": "mixBuffer:maxCount:rate:format:channelCount:descriptor:virgin:streamCount:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b7eb4",
+    "addr": "0x001b7eb4",
+    "code": "void *__cdecl -[AudioChannel channelBuffer](AudioChannel *self, SEL a2)\n{\n  return self->channelBuffer; /*0x1b7ebf*/\n}"
+  },
+  {
+    "requested_address": "0x001b7ec4",
+    "addr": "0x001b7ec4",
+    "code": "unsigned int __cdecl -[AudioChannel channelBufferAddress](AudioChannel *self, SEL a2)\n{\n  return self->channelBufferPtr; /*0x1b7ecf*/\n}"
+  },
+  {
+    "requested_address": "0x001b7ed4",
+    "addr": "0x001b7ed4",
+    "code": "void __cdecl -[AudioChannel freeDescriptors](AudioChannel *self, SEL a2)\n{\n  while ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->dmaQueue.next != &self->dmaQueue ) /*0x1b7ee2*/\n    -[AudioChannel dequeueDescriptor](self, sel_dequeueDescriptor); /*0x1b7ef0*/\n  -[AudioChannel initializeFreeQueue](self, sel_initializeFreeQueue); /*0x1b7f05*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b75d0",
+        "name": "-[AudioChannel dequeueDescriptor]"
+      },
+      {
+        "addr": "0x205e84",
+        "name": "sel_dequeueDescriptor",
+        "string": "dequeueDescriptor"
+      },
+      {
+        "addr": "0x1b7c68",
+        "name": "-[AudioChannel initializeFreeQueue]"
+      },
+      {
+        "addr": "0x206210",
+        "name": "sel_initializeFreeQueue",
+        "string": "initializeFreeQueue"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b7f14",
+    "addr": "0x001b7f14",
+    "code": "void __cdecl -[AudioChannel setLocalChannel:](AudioChannel *self, SEL a2, unsigned int a3)\n{\n  self->localChannel = a3; /*0x1b7f1d*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f24",
+    "addr": "0x001b7f24",
+    "code": "unsigned int __cdecl -[AudioChannel localChannel](AudioChannel *self, SEL a2)\n{\n  return self->localChannel; /*0x1b7f2f*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f34",
+    "addr": "0x001b7f34",
+    "code": "id __cdecl -[AudioChannel setUserChannelPort:](AudioChannel *self, SEL a2, int a3)\n{\n  self->userChannelPort = a3; /*0x1b7f3d*/\n  return self; /*0x1b7f42*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f44",
+    "addr": "0x001b7f44",
+    "code": "int __cdecl -[AudioChannel userChannelPort](AudioChannel *self, SEL a2)\n{\n  return self->userChannelPort; /*0x1b7f4f*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f54",
+    "addr": "0x001b7f54",
+    "code": "id __cdecl -[AudioChannel setUserSndPort:](AudioChannel *self, SEL a2, int a3)\n{\n  self->userSndPort = a3; /*0x1b7f5d*/\n  return self; /*0x1b7f62*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f64",
+    "addr": "0x001b7f64",
+    "code": "int __cdecl -[AudioChannel userSndPort](AudioChannel *self, SEL a2)\n{\n  return self->userSndPort; /*0x1b7f6f*/\n}"
+  },
+  {
+    "requested_address": "0x001b7f74",
+    "addr": "0x001b7f74",
+    "code": "int __cdecl -[AudioChannel streamUserForOwnerPort:](AudioChannel *self, SEL a2, int a3)\n{\n  unsigned int i; // esi\n  id v4; // ebx\n\n  for ( i = 0; i < (unsigned int)objc_msgSend(self->streamList, sel_count); ++i ) /*0x1b7f7d*/\n  {\n    v4 = objc_msgSend(self->streamList, sel_objectAt_, i); /*0x1b7fa8*/\n    if ( (id)a3 == objc_msgSend(v4, sel_ownerPort) ) /*0x1b7fbd*/\n      return (int)objc_msgSend(v4, sel_userPort); /*0x1b7fcc*/\n  }\n  return 0; /*0x1b7fd9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x206258",
+        "name": "sel_userPort",
+        "string": "userPort"
+      },
+      {
+        "addr": "0x206264",
+        "name": "sel_ownerPort",
+        "string": "ownerPort"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b7fe0",
+    "addr": "0x001b7fe0",
+    "code": "id __cdecl -[AudioChannel removeSndStreams](AudioChannel *self, SEL a2)\n{\n  List *v2; // eax\n  List *v3; // edi\n  unsigned int i; // ebx\n  id v5; // esi\n  unsigned int j; // ebx\n  id v7; // eax\n\n  v2 = +[Object alloc](aList, sel_alloc); /*0x1b7ffb*/\n  v3 = -[List init](v2, sel_init); /*0x1b8009*/\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b8019*/\n  for ( i = 0; i < (unsigned int)objc_msgSend(self->streamList, sel_count); ++i ) /*0x1b801e*/\n  {\n    v5 = objc_msgSend(self->streamList, sel_objectAt_, i); /*0x1b8052*/\n    if ( objc_msgSend(v5, sel_type) ) /*0x1b805c*/\n      -[List addObject:](v3, sel_addObject_, v5); /*0x1b8071*/\n  }\n  objc_msgSend(self->streamListLock, sel_unlock); /*0x1b808a*/\n  for ( j = 0; j < -[List count](v3, sel_count); ++j ) /*0x1b808f*/\n  {\n    v7 = -[List objectAt:](v3, sel_objectAt_, j); /*0x1b80b1*/\n    -[AudioChannel removeStream:](self, sel_removeStream_, v7); /*0x1b80c2*/\n  }\n  -[List free](v3, sel_free); /*0x1b80d8*/\n  return self; /*0x1b80e3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9604",
+        "name": "-[List init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x1c9914",
+        "name": "-[List addObject:]"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x20632c",
+        "name": "sel_type",
+        "string": "type"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1c977c",
+        "name": "-[List objectAt:]"
+      },
+      {
+        "addr": "0x1b8310",
+        "name": "-[AudioChannel removeStream:]"
+      },
+      {
+        "addr": "0x206108",
+        "name": "sel_removeStream:",
+        "string": "removeStream:"
+      },
+      {
+        "addr": "0x1c976c",
+        "name": "-[List count]"
+      },
+      {
+        "addr": "0x1c9620",
+        "name": "-[List free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b80ec",
+    "addr": "0x001b80ec",
+    "code": "void __cdecl -[AudioChannel setExclusiveUser:](AudioChannel *self, SEL a2, int a3)\n{\n  id v3; // eax\n  int v4; // esi\n  int v5; // ebx\n  id v6; // eax\n\n  self->exclusiveUser = a3; /*0x1b80f8*/\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b8106*/\n  v3 = objc_msgSend(self->streamList, sel_count); /*0x1b8116*/\n  v4 = (int)v3; /*0x1b811b*/\n  if ( v3 ) /*0x1b8122*/\n  {\n    v5 = 0; /*0x1b8124*/\n    if ( (int)v3 > 0 ) /*0x1b8128*/\n    {\n      do /*0x1b8155*/\n      {\n        v6 = objc_msgSend(self->streamList, sel_objectAt_, v5); /*0x1b8141*/\n        objc_msgSend(v6, sel_control_); /*0x1b814a*/\n        ++v5; /*0x1b8152*/\n      }\n      while ( v5 < v4 ); /*0x1b8155*/\n    }\n  }\n  objc_msgSend(self->streamListLock, sel_unlock); /*0x1b8162*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x206334",
+        "name": "sel_control:",
+        "string": "control:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b8174",
+    "addr": "0x001b8174",
+    "code": "int __cdecl -[AudioChannel exclusiveUser](AudioChannel *self, SEL a2)\n{\n  return self->exclusiveUser; /*0x1b817f*/\n}"
+  },
+  {
+    "requested_address": "0x001b8184",
+    "addr": "0x001b8184",
+    "code": "char __cdecl -[AudioChannel checkOwner:](AudioChannel *self, SEL a2, int a3)\n{\n  int exclusiveUser; // eax\n\n  exclusiveUser = self->exclusiveUser; /*0x1b818a*/\n  return !exclusiveUser || a3 == exclusiveUser; /*0x1b819a*/\n}"
+  },
+  {
+    "requested_address": "0x001b81a8",
+    "addr": "0x001b81a8",
+    "code": "id __cdecl -[AudioChannel streamClass](AudioChannel *self, SEL a2)\n{\n  return self->streamClass; /*0x1b81b3*/\n}"
+  },
+  {
+    "requested_address": "0x001b81b8",
+    "addr": "0x001b81b8",
+    "code": "unsigned int __cdecl -[AudioChannel streamCount](AudioChannel *self, SEL a2)\n{\n  id v2; // esi\n\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b81cb*/\n  v2 = objc_msgSend(self->streamList, sel_count); /*0x1b81e0*/\n  objc_msgSend(self->streamListLock, sel_unlock); /*0x1b81ed*/\n  return (unsigned int)v2; /*0x1b81f7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b8200",
+    "addr": "0x001b8200",
+    "code": "char __cdecl -[AudioChannel addStreamTag:user:owner:type:](\n        AudioChannel *self,\n        SEL a2,\n        int a3,\n        int *a4,\n        int a5,\n        unsigned int a6)\n{\n  id v6; // eax\n  id v7; // eax\n  id v8; // ebx\n\n  if ( !(unsigned __int8)objc_msgSend(self->audioDevice, sel__channelWillAddStream) ) /*0x1b8217*/\n    return 0; /*0x1b8217*/\n  v6 = -[AudioChannel streamClass](self, sel_streamClass); /*0x1b8247*/\n  v7 = objc_msgSend(v6, sel_alloc); /*0x1b8250*/\n  v8 = objc_msgSend(v7, sel_initChannel_tag_user_owner_type_); /*0x1b825e*/\n  if ( !v8 ) /*0x1b8265*/\n    return 0; /*0x1b8267*/\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b827b*/\n  if ( objc_msgSend(self->streamList, sel_count) || -[AudioChannel createChannelBuffer](self, sel_createChannelBuffer) ) /*0x1b829f*/\n  {\n    objc_msgSend(self->streamList, sel_addObject_, v8); /*0x1b82cc*/\n    objc_msgSend(self->streamListLock, sel_unlock); /*0x1b82dc*/\n    +[AudioChannel addStream:](aAudiochannel, sel_addStream_, v8); /*0x1b82f0*/\n    return audio_enroll_stream_port(*a4, 1); /*0x1b82fd*/\n  }\n  else\n  {\n    objc_msgSend(self->streamListLock, sel_unlock); /*0x1b82b6*/\n    return 0; /*0x1b82bb*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205dac",
+        "name": "sel__channelWillAddStream",
+        "string": "_channelWillAddStream"
+      },
+      {
+        "addr": "0x1b81a8",
+        "name": "-[AudioChannel streamClass]"
+      },
+      {
+        "addr": "0x206034",
+        "name": "sel_streamClass",
+        "string": "streamClass"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x206340",
+        "name": "sel_initChannel:tag:user:owner:type:",
+        "string": "initChannel:tag:user:owner:type:"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b77d0",
+        "name": "+[AudioChannel addStream:]"
+      },
+      {
+        "addr": "0x1feb80",
+        "name": "aAudiochannel",
+        "string": "AudioChannel"
+      },
+      {
+        "addr": "0x206118",
+        "name": "sel_addStream:",
+        "string": "addStream:"
+      },
+      {
+        "addr": "0x1bad40",
+        "name": "_audio_enroll_stream_port"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x1b7b38",
+        "name": "-[AudioChannel createChannelBuffer]"
+      },
+      {
+        "addr": "0x206224",
+        "name": "sel_createChannelBuffer",
+        "string": "createChannelBuffer"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b8310",
+    "addr": "0x001b8310",
+    "code": "void __cdecl -[AudioChannel removeStream:](AudioChannel *self, SEL a2, id a3)\n{\n  id v3; // eax\n  id v4; // eax\n  unsigned int *peaksLeft; // eax\n  unsigned int *peaksRight; // eax\n\n  v3 = objc_msgSend(a3, sel_userPort); /*0x1b8325*/\n  audio_enroll_stream_port(v3, 0); /*0x1b832e*/\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b833e*/\n  if ( objc_msgSend(self->streamList, sel_count) == (id)1 ) /*0x1b8359*/\n  {\n    objc_msgSend(self->streamListLock, sel_unlock); /*0x1b836a*/\n    -[AudioChannel isRead](self, sel_isRead); /*0x1b8377*/\n    v4 = objc_msgSend(self->audioDevice, sel__audioCommand); /*0x1b839c*/\n    objc_msgSend(v4, sel_send_); /*0x1b83a5*/\n    objc_msgSend(self->streamListLock, sel_lock); /*0x1b83b8*/\n    peaksLeft = self->peaksLeft; /*0x1b83c0*/\n    if ( peaksLeft ) /*0x1b83c5*/\n      audio_clear_peaks(peaksLeft, 16); /*0x1b83ca*/\n    peaksRight = self->peaksRight; /*0x1b83d2*/\n    if ( peaksRight ) /*0x1b83d7*/\n      audio_clear_peaks(peaksRight, 16); /*0x1b83dc*/\n    self->clipCount = 0; /*0x1b83e4*/\n  }\n  objc_msgSend(self->streamList, sel_removeObject_, a3); /*0x1b83f7*/\n  +[AudioChannel removeStream:](aAudiochannel, sel_removeStream_, a3); /*0x1b840b*/\n  objc_msgSend(a3, sel_free); /*0x1b8418*/\n  objc_msgSend(self->streamListLock, sel_unlock); /*0x1b842b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x206258",
+        "name": "sel_userPort",
+        "string": "userPort"
+      },
+      {
+        "addr": "0x1bad40",
+        "name": "_audio_enroll_stream_port"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b7b18",
+        "name": "-[AudioChannel isRead]"
+      },
+      {
+        "addr": "0x205dfc",
+        "name": "sel_isRead",
+        "string": "isRead"
+      },
+      {
+        "addr": "0x205494",
+        "name": "sel__audioCommand",
+        "string": "_audioCommand"
+      },
+      {
+        "addr": "0x204430",
+        "name": "sel_send:",
+        "string": "send:"
+      },
+      {
+        "addr": "0x1be940",
+        "name": "_audio_clear_peaks"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x20209c",
+        "name": "sel_removeObject:",
+        "string": "removeObject:"
+      },
+      {
+        "addr": "0x1b7828",
+        "name": "+[AudioChannel removeStream:]"
+      },
+      {
+        "addr": "0x1feb80",
+        "name": "aAudiochannel",
+        "string": "AudioChannel"
+      },
+      {
+        "addr": "0x206108",
+        "name": "sel_removeStream:",
+        "string": "removeStream:"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b843c",
+    "addr": "0x001b843c",
+    "code": "void __cdecl -[AudioChannel controlStreams:](AudioChannel *self, SEL a2, int a3)\n{\n  id v3; // eax\n  int v4; // esi\n  int v5; // ebx\n  id v6; // eax\n\n  objc_msgSend(self->streamListLock, sel_lock); /*0x1b8450*/\n  v3 = objc_msgSend(self->streamList, sel_count); /*0x1b8460*/\n  v4 = (int)v3; /*0x1b8465*/\n  if ( v3 ) /*0x1b846c*/\n  {\n    v5 = 0; /*0x1b846e*/\n    if ( (int)v3 > 0 ) /*0x1b8472*/\n    {\n      do /*0x1b849f*/\n      {\n        v6 = objc_msgSend(self->streamList, sel_objectAt_, v5); /*0x1b848b*/\n        objc_msgSend(v6, sel_control_); /*0x1b8494*/\n        ++v5; /*0x1b849c*/\n      }\n      while ( v5 < v4 ); /*0x1b849f*/\n    }\n  }\n  objc_msgSend(self->streamListLock, sel_unlock); /*0x1b84ac*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x206334",
+        "name": "sel_control:",
+        "string": "control:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b84bc",
+    "addr": "0x001b84bc",
+    "code": "char __cdecl -[AudioChannel isDetectingPeaks](AudioChannel *self, SEL a2)\n{\n  return self->peakEnabled; /*0x1b84c8*/\n}"
+  },
+  {
+    "requested_address": "0x001b84cc",
+    "addr": "0x001b84cc",
+    "code": "void __cdecl -[AudioChannel setDetectPeaks:](AudioChannel *self, SEL a2, char a3)\n{\n  self->peakEnabled = a3; /*0x1b84d7*/\n  if ( a3 ) /*0x1b84dc*/\n  {\n    if ( !self->peaksLeft ) /*0x1b84de*/\n    {\n      self->peaksLeft = (unsigned int *)IOMalloc(0x40u); /*0x1b84eb*/\n      self->peaksRight = (unsigned int *)IOMalloc(0x40u); /*0x1b84f5*/\n      audio_clear_peaks(self->peaksLeft, 16); /*0x1b84fe*/\n      audio_clear_peaks(self->peaksRight, 16); /*0x1b8509*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1be940",
+        "name": "_audio_clear_peaks"
+      }
+    ]
+  }
+]

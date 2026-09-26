@@ -1,0 +1,770 @@
+[
+  {
+    "requested_address": "0x001b2b0c",
+    "addr": "0x001b2b0c",
+    "code": "id __cdecl -[EventDriver registerEventSource:](EventDriver *self, SEL a2, id a3)\n{\n  id *v4; // ebx\n  queue_entry *prev; // edx\n\n  if ( objc_msgSend(a3, sel_becomeOwner_, self) ) /*0x1b2b21*/\n    return nullptr; /*0x1b2b2d*/\n  v4 = (id *)IOMalloc(0xCu); /*0x1b2b3b*/\n  bzero(v4, 0xCu); /*0x1b2b40*/\n  *v4 = a3; /*0x1b2b45*/\n  objc_msgSend(self->eventSrcListLock, sel_lock); /*0x1b2b55*/\n  prev = self->eventSrcList.prev; /*0x1b2b5d*/\n  if ( &self->eventSrcList == ($BAB6C68F9D34F0972F921D3DB17D7446 *)prev ) /*0x1b2b6b*/\n    self->eventSrcList.next = (queue_entry *)v4; /*0x1b2b6d*/\n  else\n    *((_DWORD *)prev + 1) = v4; /*0x1b2b78*/\n  v4[2] = prev; /*0x1b2b7b*/\n  v4[1] = &self->eventSrcList; /*0x1b2b84*/\n  self->eventSrcList.prev = (queue_entry *)v4; /*0x1b2b87*/\n  objc_msgSend(self->eventSrcListLock, sel_unlock); /*0x1b2b9b*/\n  return self; /*0x1b2ba5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2bac",
+    "addr": "0x001b2bac",
+    "code": "int __cdecl -[EventDriver relinquishOwnershipRequest:](EventDriver *self, SEL a2, id a3)\n{\n  int v3; // edx\n\n  v3 = 0; /*0x1b2bb2*/\n  if ( self->eventsOpen ) /*0x1b2bb4*/\n    return -725; /*0x1b2bbd*/\n  return v3; /*0x1b2bc6*/\n}"
+  },
+  {
+    "requested_address": "0x001b2bc8",
+    "addr": "0x001b2bc8",
+    "code": "void __cdecl -[EventDriver canBecomeOwner:](EventDriver *self, SEL a2, id a3)\n{\n  id v3; // eax\n  const char *v4; // eax\n  const char *v5; // [esp-14h] [ebp-1Ch]\n  const char *v6; // [esp-10h] [ebp-18h]\n\n  v3 = objc_msgSend(a3, sel_becomeOwner_, self); /*0x1b2bdc*/\n  if ( v3 )\n  {\n    v6 = -[IODevice stringFromReturn:](self, sel_stringFromReturn_, v3); /*0x1b2bf6*/\n    v5 = (const char *)objc_msgSend(a3, sel_name); /*0x1b2c07*/\n    v4 = -[IODevice name](self, sel_name); /*0x1b2c10*/\n    IOLog((int)\"%s: becomeOwner of %s failed (%s)\\n\", v4, v5, v6);\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202c4c",
+        "name": "sel_becomeOwner:",
+        "string": "becomeOwner:"
+      },
+      {
+        "addr": "0x1a49e8",
+        "name": "-[IODevice stringFromReturn:]"
+      },
+      {
+        "addr": "0x202c38",
+        "name": "sel_stringFromReturn:",
+        "string": "stringFromReturn:"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8290",
+        "name": "aSBecomeownerOf_0",
+        "string": "%s: becomeOwner of %s failed (%s)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2c2c",
+    "addr": "0x001b2c2c",
+    "code": "id __cdecl -[EventDriver relativePointerEvent:deltaX:deltaY:](EventDriver *self, SEL a2, int a3, int a4, int a5)\n{\n  int v6[2]; // [esp+Ch] [ebp-8h] BYREF\n\n  IOGetTimestamp(v6); /*0x1b2c42*/\n  return -[EventDriver relativePointerEvent:deltaX:deltaY:atTime:]( /*0x1b2c65*/\n           self,\n           sel_relativePointerEvent_deltaX_deltaY_atTime_,\n           a3,\n           a4,\n           a5,\n           v6[0],\n           v6[1]);\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1b2c6c",
+        "name": "-[EventDriver relativePointerEvent:deltaX:deltaY:atTime:]"
+      },
+      {
+        "addr": "0x203200",
+        "name": "sel_relativePointerEvent:deltaX:deltaY:atTime:",
+        "string": "relativePointerEvent:deltaX:deltaY:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2c6c",
+    "addr": "0x001b2c6c",
+    "code": "id __cdecl -[EventDriver relativePointerEvent:deltaX:deltaY:atTime:](\n        EventDriver *self,\n        SEL a2,\n        int a3,\n        int a4,\n        int a5,\n        unsigned __int64 a6)\n{\n  int v7; // [esp+Ch] [ebp-4h]\n\n  v7 = a6 >> 24; /*0x1b2c88*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b2c99*/\n  if ( self->eventsOpen ) /*0x1b2ca1*/\n  {\n    if ( (a3 & 4) != (*((_DWORD *)self->evg + 2) & 4) ) /*0x1b2cc1*/\n    {\n      if ( (a3 & 4) != 0 ) /*0x1b2cc5*/\n        self->lastPressure = -1; /*0x1b2cc7*/\n      else\n        self->lastPressure = 0; /*0x1b2cd0*/\n    }\n    -[EventDriver _setButtonState:atTime:](self, sel__setButtonState_atTime_, a3, v7); /*0x1b2ce4*/\n    if ( a4 || a5 ) /*0x1b2cf6*/\n    {\n      self->pointerLoc.x += a4; /*0x1b2cfc*/\n      self->pointerLoc.y += a5; /*0x1b2d07*/\n      if ( !self->needSetCursorPosition ) /*0x1b2d0e*/\n        -[EventDriver _setCursorPosition:atTime:](self, sel__setCursorPosition_atTime_, &self->pointerLoc, v7); /*0x1b2d2a*/\n    }\n  }\n  objc_msgSend(self->driverLock, sel_unlock); /*0x1b2d40*/\n  return self; /*0x1b2d4a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b334c",
+        "name": "-[EventDriver _setButtonState:atTime:]"
+      },
+      {
+        "addr": "0x2051bc",
+        "name": "sel__setButtonState:atTime:",
+        "string": "_setButtonState:atTime:"
+      },
+      {
+        "addr": "0x1b1fe0",
+        "name": "-[EventDriver _setCursorPosition:atTime:]"
+      },
+      {
+        "addr": "0x2051a0",
+        "name": "sel__setCursorPosition:atTime:",
+        "string": "_setCursorPosition:atTime:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2d54",
+    "addr": "0x001b2d54",
+    "code": "id __cdecl -[EventDriver absolutePointerEvent:at:inProximity:](\n        EventDriver *self,\n        SEL a2,\n        int a3,\n        $9B414A52084CF78D000E95AF47DF0AD5 *a4,\n        char a5)\n{\n  int lastPressure; // ebx\n  int v7[2]; // [esp+10h] [ebp-8h] BYREF\n\n  IOGetTimestamp(v7); /*0x1b2d6d*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b2d80*/\n  lastPressure = self->lastPressure; /*0x1b2d85*/\n  if ( self->eventsOpen ) /*0x1b2d8f*/\n  {\n    if ( (a3 & 4) != (*((_DWORD *)self->evg + 2) & 4) ) /*0x1b2dc3*/\n    {\n      lastPressure = 0; /*0x1b2dc5*/\n      if ( (a3 & 4) != 0 ) /*0x1b2dc9*/\n        lastPressure = 255; /*0x1b2dcb*/\n    }\n    objc_msgSend(self->driverLock, sel_unlock); /*0x1b2dde*/\n    -[EventDriver absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:]( /*0x1b2e00*/\n      self,\n      sel_absolutePointerEvent_at_inProximity_withPressure_withAngle_atTime_,\n      a3,\n      a4,\n      a5,\n      lastPressure,\n      90,\n      v7[0],\n      v7[1]);\n  }\n  else\n  {\n    objc_msgSend(self->driverLock, sel_unlock); /*0x1b2da6*/\n  }\n  return self; /*0x1b2e0a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b2e60",
+        "name": "-[EventDriver absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:]"
+      },
+      {
+        "addr": "0x2051d4",
+        "name": "sel_absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:",
+        "string": "absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2e14",
+    "addr": "0x001b2e14",
+    "code": "id __cdecl -[EventDriver absolutePointerEvent:at:inProximity:withPressure:](\n        EventDriver *self,\n        SEL a2,\n        int a3,\n        $9B414A52084CF78D000E95AF47DF0AD5 *a4,\n        char a5,\n        int a6)\n{\n  int v7[2]; // [esp+Ch] [ebp-8h] BYREF\n\n  IOGetTimestamp(v7); /*0x1b2e2a*/\n  -[EventDriver absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:]( /*0x1b2e4e*/\n    self,\n    sel_absolutePointerEvent_at_inProximity_withPressure_withAngle_atTime_,\n    a3,\n    a4,\n    a5,\n    a6,\n    90,\n    v7[0],\n    v7[1]);\n  return self; /*0x1b2e58*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1b2e60",
+        "name": "-[EventDriver absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:]"
+      },
+      {
+        "addr": "0x2051d4",
+        "name": "sel_absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:",
+        "string": "absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2e60",
+    "addr": "0x001b2e60",
+    "code": "id __cdecl -[EventDriver absolutePointerEvent:at:inProximity:withPressure:withAngle:atTime:](\n        EventDriver *self,\n        SEL a2,\n        int a3,\n        $9B414A52084CF78D000E95AF47DF0AD5 *a4,\n        char a5,\n        int a6,\n        int a7,\n        unsigned __int64 a8)\n{\n  int v8; // edi\n  _DWORD *evg; // ecx\n  int v10; // edx\n  _DWORD *v11; // ecx\n  int v12; // edx\n  _BYTE v14[12]; // [esp+1Ch] [ebp-Ch] BYREF\n\n  v8 = a8 >> 24; /*0x1b2e85*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b2e96*/\n  if ( !self->eventsOpen ) /*0x1b2e9e*/\n  {\n    objc_msgSend(self->driverLock, sel_unlock); /*0x1b2eb5*/\n    return self; /*0x1b2eb5*/\n  }\n  self->lastPressure = a6; /*0x1b2ebf*/\n  if ( a4->var0 != self->pointerLoc.x || a4->var1 != self->pointerLoc.y ) /*0x1b2edf*/\n  {\n    self->pointerLoc = ($2F2A3E9C94EF4159E4A60D0C79A55791)*a4; /*0x1b2ee6*/\n    if ( !self->needSetCursorPosition ) /*0x1b2eec*/\n      -[EventDriver _setCursorPosition:atTime:](self, sel__setCursorPosition_atTime_, &self->pointerLoc, v8); /*0x1b2f05*/\n  }\n  if ( self->lastProximity == a5 ) /*0x1b2f16*/\n    goto LABEL_10; /*0x1b2f16*/\n  if ( a5 == 1 ) /*0x1b2f1b*/\n  {\n    evg = self->evg; /*0x1b2f1d*/\n    v10 = evg[3]; /*0x1b2f23*/\n    LOBYTE(v10) = v10 | 0x80; /*0x1b2f26*/\n    evg[3] = v10; /*0x1b2f29*/\n    bzero(v14, 0xCu); /*0x1b2f32*/\n    -[EventDriver postEvent:at:atTime:withData:]( /*0x1b2f4a*/\n      self,\n      sel_postEvent_at_atTime_withData_,\n      12,\n      &self->pointerLoc,\n      v8,\n      v14);\nLABEL_10:\n    if ( a5 == 1 ) /*0x1b2f56*/\n      -[EventDriver _setButtonState:atTime:](self, sel__setButtonState_atTime_, a3, v8); /*0x1b2f65*/\n  }\n  if ( self->lastProximity != a5 && !a5 ) /*0x1b2f7a*/\n  {\n    v11 = self->evg; /*0x1b2f7c*/\n    v12 = v11[3]; /*0x1b2f82*/\n    LOBYTE(v12) = v12 & 0x7F; /*0x1b2f85*/\n    v11[3] = v12; /*0x1b2f88*/\n    bzero(v14, 0xCu); /*0x1b2f91*/\n    -[EventDriver postEvent:at:atTime:withData:]( /*0x1b2fa9*/\n      self,\n      sel_postEvent_at_atTime_withData_,\n      12,\n      &self->pointerLoc,\n      v8,\n      v14);\n  }\n  self->lastProximity = a5; /*0x1b2fb4*/\n  objc_msgSend(self->driverLock, sel_unlock); /*0x1b2fc8*/\n  return self; /*0x1b2fd2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b1fe0",
+        "name": "-[EventDriver _setCursorPosition:atTime:]"
+      },
+      {
+        "addr": "0x2051a0",
+        "name": "sel__setCursorPosition:atTime:",
+        "string": "_setCursorPosition:atTime:"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1b04b8",
+        "name": "-[EventDriver postEvent:at:atTime:withData:]"
+      },
+      {
+        "addr": "0x204ecc",
+        "name": "sel_postEvent:at:atTime:withData:",
+        "string": "postEvent:at:atTime:withData:"
+      },
+      {
+        "addr": "0x1b334c",
+        "name": "-[EventDriver _setButtonState:atTime:]"
+      },
+      {
+        "addr": "0x2051bc",
+        "name": "sel__setButtonState:atTime:",
+        "string": "_setButtonState:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b2fdc",
+    "addr": "0x001b2fdc",
+    "code": "id __cdecl -[EventDriver keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:repeat:atTime:](\n        EventDriver *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        unsigned int a5,\n        unsigned int a6,\n        unsigned int a7,\n        unsigned int a8,\n        unsigned int a9,\n        char a10,\n        unsigned __int64 a11)\n{\n  _WORD v12[6]; // [esp+Ch] [ebp-Ch] BYREF\n\n  v12[1] = a10; /*0x1b2ffc*/\n  v12[4] = a5; /*0x1b3004*/\n  v12[2] = a7; /*0x1b300c*/\n  v12[3] = a6; /*0x1b3014*/\n  v12[0] = a9; /*0x1b301c*/\n  v12[5] = a8; /*0x1b3024*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b3036*/\n  if ( self->eventsOpen ) /*0x1b303e*/\n  {\n    *((_DWORD *)self->evg + 3) = a4 & 0x7F007F | *((_DWORD *)self->evg + 3) & 0xFF80FF80; /*0x1b3061*/\n    -[EventDriver postEvent:at:atTime:withData:]( /*0x1b307c*/\n      self,\n      sel_postEvent_at_atTime_withData_,\n      a3,\n      &self->pointerLoc,\n      (unsigned int)(a11 >> 24),\n      v12);\n  }\n  objc_msgSend(self->driverLock, sel_unlock); /*0x1b308f*/\n  return self; /*0x1b3099*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b04b8",
+        "name": "-[EventDriver postEvent:at:atTime:withData:]"
+      },
+      {
+        "addr": "0x204ecc",
+        "name": "sel_postEvent:at:atTime:withData:",
+        "string": "postEvent:at:atTime:withData:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b30a0",
+    "addr": "0x001b30a0",
+    "code": "id __cdecl -[EventDriver keyboardSpecialEvent:flags:keyCode:specialty:atTime:](\n        EventDriver *self,\n        SEL a2,\n        unsigned int a3,\n        unsigned int a4,\n        unsigned int a5,\n        unsigned int a6,\n        unsigned __int64 a7)\n{\n  char *v7; // eax\n  id v8; // eax\n  char *v9; // eax\n  char *v10; // edx\n  int v12; // [esp+Ch] [ebp-10h]\n  _BYTE v13[2]; // [esp+10h] [ebp-Ch] BYREF\n  __int16 v14; // [esp+12h] [ebp-Ah]\n\n  v12 = -1; /*0x1b30ac*/\n  bzero(v13, 0xCu); /*0x1b30b9*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b30db*/\n  if ( self->eventsOpen ) /*0x1b30e3*/\n  {\n    *((_DWORD *)self->evg + 3) = a4 & 0x7F007F | *((_DWORD *)self->evg + 3) & 0xFF80FF80; /*0x1b311d*/\n    if ( self->autoDimmed == 1 ) /*0x1b3127*/\n      -[EventDriver forceAutoDimState:](self, sel_forceAutoDimState_, 0); /*0x1b3133*/\n    if ( a3 == 10 ) /*0x1b313f*/\n    {\n      switch ( a6 ) /*0x1b3152*/\n      {\n        case 0u: /*0x1b3152*/\n          if ( (a4 & 0x1C0000) == 0 ) /*0x1b317c*/\n          {\n            v7 = -[EventDriver audioVolume](self, sel_audioVolume); /*0x1b3186*/\n            -[EventDriver setAudioVolume:](self, sel_setAudioVolume_, v7 + 1); /*0x1b3197*/\n          }\n          goto LABEL_9; /*0x1b3197*/\n        case 1u: /*0x1b3152*/\n          if ( (a4 & 0x1C0000) == 0 ) /*0x1b31ac*/\n          {\n            v9 = -[EventDriver audioVolume](self, sel_audioVolume); /*0x1b31b6*/\n            -[EventDriver setAudioVolume:](self, sel_setAudioVolume_, v9 - 1); /*0x1b31c7*/\n          }\nLABEL_9:\n          v8 = -[EventDriver audioVolume](self, sel_audioVolume); /*0x1b319f*/\n          goto LABEL_19; /*0x1b31a5*/\n        case 2u: /*0x1b3152*/\n          if ( (a4 & 0x1C0000) != 0 ) /*0x1b31dc*/\n            goto LABEL_18; /*0x1b31dc*/\n          v10 = (char *)-[EventDriver brightness](self, sel_brightness) + 1; /*0x1b31eb*/\n          break; /*0x1b31ee*/\n        case 3u: /*0x1b3152*/\n          if ( (a4 & 0x1C0000) != 0 ) /*0x1b31f4*/\n            goto LABEL_18; /*0x1b31f4*/\n          v10 = (char *)-[EventDriver brightness](self, sel_brightness) - 1; /*0x1b3203*/\n          break; /*0x1b3203*/\n        case 6u: /*0x1b3152*/\n          v14 = 1; /*0x1b322c*/\n          -[EventDriver postEvent:at:atTime:withData:]( /*0x1b3248*/\n            self,\n            sel_postEvent_at_atTime_withData_,\n            14,\n            &self->pointerLoc,\n            (unsigned int)(a7 >> 24),\n            v13);\n          goto LABEL_21; /*0x1b3248*/\n        default:\n          goto LABEL_21;\n      }\n      -[EventDriver setBrightness:](self, sel_setBrightness_, v10); /*0x1b320f*/\nLABEL_18:\n      v8 = -[EventDriver brightness](self, sel_brightness); /*0x1b3217*/\nLABEL_19:\n      v12 = (int)v8; /*0x1b3224*/\n    }\nLABEL_21:\n    objc_msgSend(self->driverLock, sel_unlock); /*0x1b3250*/\n    if ( v12 != -1 ) /*0x1b326a*/\n      -[EventDriver evSpecialKeyMsg:direction:flags:level:]( /*0x1b3284*/\n        self,\n        sel_evSpecialKeyMsg_direction_flags_level_,\n        a6,\n        a3,\n        a4,\n        v12);\n  }\n  else\n  {\n    objc_msgSend(self->driverLock, sel_unlock); /*0x1b30fa*/\n  }\n  return self; /*0x1b328e*/\n}",
+    "refs": [
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b277c",
+        "name": "-[EventDriver forceAutoDimState:]"
+      },
+      {
+        "addr": "0x2050a8",
+        "name": "sel_forceAutoDimState:",
+        "string": "forceAutoDimState:"
+      },
+      {
+        "addr": "0x1b2858",
+        "name": "-[EventDriver audioVolume]"
+      },
+      {
+        "addr": "0x2052fc",
+        "name": "sel_audioVolume",
+        "string": "audioVolume"
+      },
+      {
+        "addr": "0x1b27f4",
+        "name": "-[EventDriver setAudioVolume:]"
+      },
+      {
+        "addr": "0x205308",
+        "name": "sel_setAudioVolume:",
+        "string": "setAudioVolume:"
+      },
+      {
+        "addr": "0x1b26a0",
+        "name": "-[EventDriver brightness]"
+      },
+      {
+        "addr": "0x2050dc",
+        "name": "sel_brightness",
+        "string": "brightness"
+      },
+      {
+        "addr": "0x1b04b8",
+        "name": "-[EventDriver postEvent:at:atTime:withData:]"
+      },
+      {
+        "addr": "0x204ecc",
+        "name": "sel_postEvent:at:atTime:withData:",
+        "string": "postEvent:at:atTime:withData:"
+      },
+      {
+        "addr": "0x1b2654",
+        "name": "-[EventDriver setBrightness:]"
+      },
+      {
+        "addr": "0x20511c",
+        "name": "sel_setBrightness:",
+        "string": "setBrightness:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b18a0",
+        "name": "-[EventDriver evSpecialKeyMsg:direction:flags:level:]"
+      },
+      {
+        "addr": "0x204f18",
+        "name": "sel_evSpecialKeyMsg:direction:flags:level:",
+        "string": "evSpecialKeyMsg:direction:flags:level:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3298",
+    "addr": "0x001b3298",
+    "code": "id __cdecl -[EventDriver updateEventFlags:](EventDriver *self, SEL a2, unsigned int a3)\n{\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b32ae*/\n  if ( self->eventsOpen ) /*0x1b32b6*/\n    *((_DWORD *)self->evg + 3) = a3 & 0x7F007F | *((_DWORD *)self->evg + 3) & 0xFF80FF80; /*0x1b32d9*/\n  objc_msgSend(self->driverLock, sel_unlock); /*0x1b32ea*/\n  return self; /*0x1b32f4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b32fc",
+    "addr": "0x001b32fc",
+    "code": "int __cdecl -[EventDriver eventFlags](EventDriver *self, SEL a2)\n{\n  int v2; // esi\n\n  v2 = 0; /*0x1b3304*/\n  objc_msgSend(self->driverLock, sel_lock); /*0x1b3314*/\n  if ( self->eventsOpen ) /*0x1b331c*/\n    v2 = *((_DWORD *)self->evg + 3); /*0x1b332b*/\n  objc_msgSend(self->driverLock, sel_unlock); /*0x1b333c*/\n  return v2; /*0x1b3346*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b334c",
+    "addr": "0x001b334c",
+    "code": "id __cdecl -[EventDriver _setButtonState:atTime:](EventDriver *self, SEL a2, int a3, unsigned int a4)\n{\n  _DWORD *evg; // ebx\n  int v5; // eax\n  int v6; // eax\n  int v7; // eax\n\n  evg = self->evg; /*0x1b3358*/\n  if ( (evg[2] & 4) != (a3 & 4) ) /*0x1b336c*/\n  {\n    if ( (a3 & 4) != 0 ) /*0x1b3370*/\n    {\n      -[EventDriver postEvent:at:atTime:withData:](self, sel_postEvent_at_atTime_withData_, 1, evg + 6, a4, 0); /*0x1b3383*/\n      v5 = evg[2]; /*0x1b3388*/\n      LOBYTE(v5) = v5 | 4; /*0x1b338b*/\n    }\n    else\n    {\n      -[EventDriver postEvent:at:atTime:withData:](self, sel_postEvent_at_atTime_withData_, 2, evg + 6, a4, 0); /*0x1b33a1*/\n      v5 = evg[2]; /*0x1b33a6*/\n      LOBYTE(v5) = v5 & 0xFB; /*0x1b33a9*/\n    }\n    evg[2] = v5; /*0x1b33ab*/\n    *((_BYTE *)evg + 51) = (2 * *((_BYTE *)evg + 51)) & 0x40 | *((_BYTE *)evg + 51) & 0xBF; /*0x1b33c0*/\n    v6 = evg[3]; /*0x1b33ca*/\n    if ( (*((_BYTE *)evg + 51) & 0x40) != 0 ) /*0x1b33c8*/\n      BYTE1(v6) |= 1u; /*0x1b33cd*/\n    else\n      BYTE1(v6) &= ~1u; /*0x1b33d7*/\n    evg[3] = v6; /*0x1b33da*/\n  }\n  if ( (evg[2] & 1) != (a3 & 1) ) /*0x1b33eb*/\n  {\n    if ( (a3 & 1) != 0 ) /*0x1b33ef*/\n    {\n      -[EventDriver postEvent:at:atTime:withData:](self, sel_postEvent_at_atTime_withData_, 3, evg + 6, a4, 0); /*0x1b3402*/\n      v7 = evg[2]; /*0x1b3407*/\n      LOBYTE(v7) = v7 | 1; /*0x1b340a*/\n    }\n    else\n    {\n      -[EventDriver postEvent:at:atTime:withData:](self, sel_postEvent_at_atTime_withData_, 4, evg + 6, a4, 0); /*0x1b3421*/\n      v7 = evg[2]; /*0x1b3426*/\n      LOBYTE(v7) = v7 & 0xFE; /*0x1b3429*/\n    }\n    evg[2] = v7; /*0x1b342b*/\n  }\n  return self; /*0x1b3433*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b04b8",
+        "name": "-[EventDriver postEvent:at:atTime:withData:]"
+      },
+      {
+        "addr": "0x204ecc",
+        "name": "sel_postEvent:at:atTime:withData:",
+        "string": "postEvent:at:atTime:withData:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b343c",
+    "addr": "0x001b343c",
+    "code": "id __cdecl -[EventDriver setCursorPosition:](EventDriver *self, SEL a2, $9B414A52084CF78D000E95AF47DF0AD5 *a3)\n{\n  int v3; // edx\n  id result; // eax\n  unsigned __int64 v5; // [esp+Ch] [ebp-8h] BYREF\n\n  if ( self->eventsOpen == 1 ) /*0x1b3452*/\n  {\n    self->pointerLoc = ($2F2A3E9C94EF4159E4A60D0C79A55791)*a3; /*0x1b3456*/\n    if ( !self->needSetCursorPosition ) /*0x1b345c*/\n    {\n      IOGetTimestamp((int *)&v5); /*0x1b3469*/\n      v3 = v5 >> 24; /*0x1b3474*/\n      if ( !v3 ) /*0x1b3480*/\n        v3 = 1; /*0x1b3482*/\n      return -[EventDriver _setCursorPosition:atTime:](self, sel__setCursorPosition_atTime_, a3, v3); /*0x1b3491*/\n    }\n  }\n  return result; /*0x1b3499*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1b1fe0",
+        "name": "-[EventDriver _setCursorPosition:atTime:]"
+      },
+      {
+        "addr": "0x2051a0",
+        "name": "sel__setCursorPosition:atTime:",
+        "string": "_setCursorPosition:atTime:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b34a0",
+    "addr": "0x001b34a0",
+    "code": "id __cdecl sub_1B34A0(_BYTE *a1)\n{\n  a1[520] = 0; /*0x1b34a6*/\n  return objc_msgSend(a1, sel_periodicEvents); /*0x1b34bc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205378",
+        "name": "sel_periodicEvents",
+        "string": "periodicEvents"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b34c0",
+    "addr": "0x001b34c0",
+    "code": "int __cdecl EvGetParameterInt(int a1, int a2, int a3, int a4, int a5, _DWORD *a6)\n{\n  id v6; // edx\n  int result; // eax\n  int v8; // [esp+4h] [ebp-4h] BYREF\n\n  v8 = a4; /*0x1b34cd*/\n  *a6 = a4; /*0x1b34d0*/\n  v6 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b34e5*/\n  if ( !v6 ) /*0x1b34ec*/\n    return -729; /*0x1b34ee*/\n  result = (int)objc_msgSend(v6, sel_getIntValues_forParameter_count_, a5, a3, &v8); /*0x1b350c*/\n  if ( !result ) /*0x1b3513*/\n    *a6 = v8; /*0x1b3518*/\n  return result; /*0x1b351a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202e1c",
+        "name": "sel_getIntValues:forParameter:count:",
+        "string": "getIntValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3524",
+    "addr": "0x001b3524",
+    "code": "int __cdecl EvGetParameterChar(int a1, int a2, int a3, int a4, int a5, _DWORD *a6)\n{\n  id v6; // edx\n  int result; // eax\n  int v8; // [esp+4h] [ebp-4h] BYREF\n\n  v8 = a4; /*0x1b3531*/\n  *a6 = a4; /*0x1b3534*/\n  v6 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b3549*/\n  if ( !v6 ) /*0x1b3550*/\n    return -729; /*0x1b3552*/\n  result = (int)objc_msgSend(v6, sel_getCharValues_forParameter_count_, a5, a3, &v8); /*0x1b3570*/\n  if ( !result ) /*0x1b3577*/\n    *a6 = v8; /*0x1b357c*/\n  return result; /*0x1b357e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202df8",
+        "name": "sel_getCharValues:forParameter:count:",
+        "string": "getCharValues:forParameter:count:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3588",
+    "addr": "0x001b3588",
+    "code": "int __cdecl EvSetParameterInt(id a1, int a2, char *__s1, int a4, int a5)\n{\n  id v5; // ebx\n\n  v5 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b35a3*/\n  if ( !v5 ) /*0x1b35aa*/\n    return -729; /*0x1b35ac*/\n  if ( strncmp(__s1, \"Ev_\", 3u) || a1 == objc_msgSend(v5, sel_ev_port) ) /*0x1b35db*/\n    return (int)objc_msgSend(v5, sel_setIntValues_forParameter_count_, a4, __s1, a5); /*0x1b35f5*/\n  return -705; /*0x1b35fd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x101efc",
+        "name": "_strncmp"
+      },
+      {
+        "addr": "0x1d82b4",
+        "name": "aEv",
+        "string": "Ev_"
+      },
+      {
+        "addr": "0x204b30",
+        "name": "sel_ev_port",
+        "string": "ev_port"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3604",
+    "addr": "0x001b3604",
+    "code": "int __cdecl EvSetParameterChar(id a1, int a2, char *__s1, int a4, int a5)\n{\n  id v5; // ebx\n\n  v5 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b361f*/\n  if ( !v5 ) /*0x1b3626*/\n    return -729; /*0x1b3628*/\n  if ( strncmp(__s1, \"Ev_\", 3u) || a1 == objc_msgSend(v5, sel_ev_port) ) /*0x1b3657*/\n    return (int)objc_msgSend(v5, sel_setCharValues_forParameter_count_, a4, __s1, a5); /*0x1b3671*/\n  return -705; /*0x1b3679*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202dd4",
+        "name": "sel_setCharValues:forParameter:count:",
+        "string": "setCharValues:forParameter:count:"
+      },
+      {
+        "addr": "0x101efc",
+        "name": "_strncmp"
+      },
+      {
+        "addr": "0x1d82b4",
+        "name": "aEv",
+        "string": "Ev_"
+      },
+      {
+        "addr": "0x204b30",
+        "name": "sel_ev_port",
+        "string": "ev_port"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3680",
+    "addr": "0x001b3680",
+    "code": "id EvOpen()\n{\n  id v0; // eax\n\n  v0 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b36a0*/\n  return objc_msgSend(v0, sel_evOpen_token_); /*0x1b36b0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205098",
+        "name": "sel_evOpen:token:",
+        "string": "evOpen:token:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b36b4",
+    "addr": "0x001b36b4",
+    "code": "id EvClose()\n{\n  id v0; // eax\n\n  v0 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b36d4*/\n  return objc_msgSend(v0, sel_evClose_token_); /*0x1b36e4*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205088",
+        "name": "sel_evClose:token:",
+        "string": "evClose:token:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b36e8",
+    "addr": "0x001b36e8",
+    "code": "id EvSetSpecialKeyPort()\n{\n  id v0; // eax\n\n  v0 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b370c*/\n  return objc_msgSend(v0, sel_setSpecialKeyPort_keyFlavor_keyPort_); /*0x1b371c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204f50",
+        "name": "sel_setSpecialKeyPort:keyFlavor:keyPort:",
+        "string": "setSpecialKeyPort:keyFlavor:keyPort:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3720",
+    "addr": "0x001b3720",
+    "code": "id EvMapEventShmem()\n{\n  id v0; // eax\n\n  v0 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b3748*/\n  return objc_msgSend(v0, sel_mapEventShmem_task_size_at_); /*0x1b3758*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x204fa8",
+        "name": "sel_mapEventShmem:task:size:at:",
+        "string": "mapEventShmem:task:size:at:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b375c",
+    "addr": "0x001b375c",
+    "code": "id EvFrameBufferDevicePort()\n{\n  id v0; // eax\n\n  v0 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b3784*/\n  return objc_msgSend(v0, sel_evFrameBufferDevicePort_unitName_unitClass_unitPort_); /*0x1b3794*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205050",
+        "name": "sel_evFrameBufferDevicePort:unitName:unitClass:unitPort:",
+        "string": "evFrameBufferDevicePort:unitName:unitClass:unitPort:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3798",
+    "addr": "0x001b3798",
+    "code": "int __cdecl EventCoalesceDisplayCmd(int a1, char a2)\n{\n  int v2; // edx\n\n  v2 = a1; /*0x1b379b*/\n  if ( a1 <= 3 ) /*0x1b37a1*/\n    return byte_1D5DC8[4 * (a2 & 3) + (a1 & 3)]; /*0x1b37b3*/\n  return v2; /*0x1b37ba*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5dc8",
+        "name": "byte_1D5DC8"
+      }
+    ]
+  }
+]

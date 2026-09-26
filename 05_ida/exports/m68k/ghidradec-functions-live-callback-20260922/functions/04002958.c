@@ -1,0 +1,145 @@
+
+void _main(void)
+
+{
+  int *piVar1;
+  undefined4 uVar2;
+  int iVar3;
+  uint uVar4;
+  int iVar5;
+  undefined4 *puVar6;
+  undefined4 *puVar7;
+  undefined4 *puVar8;
+  int iStack_10;
+  undefined auStack_c [4];
+  undefined auStack_8 [4];
+  
+  _pqinit();
+  iVar5 = _kernel_proc;
+  *(int *)(_kernel_task + 0x34) = _kernel_proc;
+  *(undefined2 *)(iVar5 + 0x30) = 0;
+  _pidhash_enter(iVar5);
+  *(int *)(iVar5 + 0x66) = _kernel_task;
+  _calloutInitialize();
+  _switch_unix_context(_active_threads);
+  *(undefined *)(iVar5 + 0x13) = 3;
+  *(uint *)(iVar5 + 0x28) = *(uint *)(iVar5 + 0x28) | 3;
+  *(undefined *)(iVar5 + 0x15) = 0;
+  *(undefined4 *)(iVar5 + 0x72) = 0;
+  *(undefined4 *)(iVar5 + 0x76) = 0;
+  *_active_u = iVar5;
+  uVar2 = _crget();
+  *(undefined4 *)((int)_active_u + 0x1a) = uVar2;
+  *(undefined2 *)(_active_u + 0x59) = word_40ADB3A;
+  *(undefined4 *)((int)_active_u + 0x14e) = 0xffffffff;
+  uVar4 = 0;
+  do {
+    piVar1 = _active_u;
+    *(undefined4 *)((int)_active_u + uVar4 * 8 + 0x25a) = 0x7fffffff;
+    *(undefined4 *)((int)piVar1 + uVar4 * 8 + 0x256) = 0x7fffffff;
+    piVar1 = _active_u;
+    uVar2 = dword_40ADB40;
+    uVar4 = uVar4 + 1;
+  } while (uVar4 < 6);
+  *(undefined4 *)((int)_active_u + 0x26e) = _vm_initial_limit_stack;
+  *(undefined4 *)((int)piVar1 + 0x272) = uVar2;
+  piVar1 = _active_u;
+  uVar2 = dword_40ADB48;
+  *(undefined4 *)((int)_active_u + 0x266) = _vm_initial_limit_data;
+  *(undefined4 *)((int)piVar1 + 0x26a) = uVar2;
+  piVar1 = _active_u;
+  uVar2 = dword_40ADB50;
+  *(undefined4 *)((int)_active_u + 0x276) = _vm_initial_limit_core;
+  *(undefined4 *)((int)piVar1 + 0x27a) = uVar2;
+  puVar6 = (undefined4 *)_posix_proc_hash;
+  puVar8 = &_pgrphash;
+  do {
+    *puVar8 = 0;
+    puVar7 = puVar6 + 1;
+    *puVar6 = 0;
+    puVar6 = puVar7;
+    puVar8 = puVar8 + 1;
+  } while ((int)puVar7 < 0x40b6001);
+  iVar3 = _new_posix_proc(0);
+  _px = iVar3;
+  *(undefined4 **)(iVar3 + 0xe) = &_pgrp0;
+  *(undefined4 *)(iVar3 + 10) = 0;
+  *(undefined2 *)(iVar3 + 4) = *(undefined2 *)(*(int *)((int)_active_u + 0x1a) + 6);
+  *(undefined2 *)(iVar3 + 6) = *(undefined2 *)(*(int *)((int)_active_u + 0x1a) + 2);
+  *(undefined2 *)(iVar3 + 8) = *(undefined2 *)(*(int *)((int)_active_u + 0x1a) + 4);
+  *(undefined4 *)(iVar3 + 0x12) = 0;
+  *(byte *)(iVar3 + 0x16) = *(byte *)(iVar3 + 0x16) & 0x7f;
+  *(byte *)(_px + 0x16) = *(byte *)(_px + 0x16) & 0xbf;
+  _pgrphash = &_pgrp0;
+  unk_40B5DF4 = iVar5;
+  dword_40B5DF8 = &_session0;
+  _pgrp0 = 0;
+  dword_40B5E00 = 0;
+  _session0 = 1;
+  dword_40B6018 = iVar5;
+  dword_40B601C = 0;
+  word_40B6020 = 0;
+  _gc_init();
+  _kernel_pageable_map = _kmem_suballoc(_kernel_map,auStack_8,auStack_c,0x80000,1);
+  _ns_timer_init();
+  _ns_hardclock_init();
+  _mfs_init();
+  _lock_init((int)_active_u + 0x1e,1);
+  **(sword **)((int)_active_u + 0x1a) = **(sword **)((int)_active_u + 0x1a) + 1;
+  _rootcred = *(undefined4 *)((int)_active_u + 0x1a);
+  iVar5 = 1;
+  do {
+    *(undefined2 *)(*(int *)((int)_active_u + 0x1a) + 10 + iVar5 * 2) = 0xffff;
+    iVar5 = iVar5 + 1;
+  } while (iVar5 < 0x10);
+  _mbinit();
+  _cinit();
+  _ifinit();
+  _domaininit();
+  _bhinit();
+  _dnlc_init();
+  *(undefined4 *)((int)_active_u + 0x15a) = 0;
+  *(undefined4 *)((int)_active_u + 0x156) = 0;
+  iVar5 = 0;
+  do {
+    if ((&_machine_slot)[iVar5 * 8] != 0) {
+      _thread_create(_kernel_task,&iStack_10);
+      _thread_bind(iStack_10,(&_processor_ptr)[iVar5]);
+      _thread_start(iStack_10,_idle_thread);
+      _thread_doswapin(iStack_10);
+      _thread_resume(iStack_10);
+    }
+    iVar5 = iVar5 + 1;
+  } while (iVar5 < 1);
+  _binit();
+  _recompute_priorities();
+  _lightning_bolt(0,0);
+  _kernel_thread(_kernel_task,_reaper_thread,0);
+  _kernel_thread(_kernel_task,_swapin_thread,0);
+  _kernel_thread(_kernel_task,_sched_thread,0);
+  _kernel_thread(_kernel_task,_netisr_thread,0);
+  _loattach();
+  *(undefined *)(dword_40B57D4 + 100) = 0;
+  _vfs_mountroot();
+  *(undefined *)(_active_u + 0x95) = 0xf;
+  _softint_thread = _kernel_thread(_kernel_task,_softint_th,0);
+  _file_init();
+  iStack_10 = _newproc(0);
+  *(undefined4 *)(*(int *)(iStack_10 + 0xc) + 0x44) = 0;
+  _init_proc = _pfind(1);
+  _ux_handler_init();
+  _port_reference(_ux_exception_port);
+  _task_set_special_port(*(undefined4 *)(iStack_10 + 0xc),3,_ux_exception_port);
+  _thread_start(iStack_10,_init_task);
+  _thread_resume(iStack_10);
+  _power_init();
+  _pageoutThread = _kernel_thread(_kernel_task,_vm_pageout,0);
+  _vol_start_thread();
+  _pnotify_start();
+  *(uint *)(*_active_u + 0x28) = *(uint *)(*_active_u + 0x28) | 3;
+  _task_name(aKernelIdle);
+  _thread_terminate(_active_threads);
+  _thread_halt_self();
+  return;
+}
+

@@ -1,0 +1,1714 @@
+--- baseline/00146ed8.c
++++ prototype_only/00146ed8.c
+@@ -2,18 +2,17 @@
+ void _ipc_init(void)
+ 
+ {
+-  kern_return_t kVar1;
+-  boolean_t in_stack_fffffff4;
+-  task_t *in_stack_fffffff8;
++  int iVar1;
++  undefined1 local_c [4];
++  undefined1 local_8 [4];
+   
+-  kVar1 = _task_create(0,(ledger_array_t)0x0,0x1f6248,in_stack_fffffff4,in_stack_fffffff8);
+-  if (kVar1 != 0) {
++  iVar1 = _task_create((void *)0x0,0,(void **)&_ipc_soft_task);
++  if (iVar1 != 0) {
+                     /* WARNING: Subroutine does not return */
+     _panic(s_ipc_init_001de704);
+   }
+   _ipc_soft_map = *(undefined4 *)(_ipc_soft_task + 0xc);
+-  _ipc_kernel_map =
+-       _kmem_suballoc(_kernel_map,&stack0xfffffff8,&stack0xfffffff4,_ipc_kernel_map_size,1);
++  _ipc_kernel_map = _kmem_suballoc(_kernel_map,local_8,local_c,_ipc_kernel_map_size,1);
+   _ipc_host_init();
+   return;
+ }
+--- baseline/00158fb4.c
++++ prototype_only/00158fb4.c
+@@ -1,5 +1,5 @@
+ 
+-void _mig_dealloc_reply_port(mach_port_t reply_port)
++void _mig_dealloc_reply_port(void)
+ 
+ {
+                     /* WARNING: Subroutine does not return */
+--- baseline/00161aec.c
++++ prototype_only/00161aec.c
+@@ -5,10 +5,8 @@
+ {
+   int *piVar1;
+   int iVar2;
+-  thread_act_t thr_act;
++  void *thread;
+   kern_return_t kVar3;
+-  mach_msg_type_number_t unaff_EBX;
+-  boolean_t unaff_ESI;
+   
+   if (((processor_set == 0) || (policy == 1)) || (3 < policy - 1U)) {
+     kVar3 = 4;
+@@ -26,10 +24,10 @@
+     if (((policy & *(uint *)(processor_set + 0x168)) != 0) &&
+        (*(uint *)(processor_set + 0x168) = *(uint *)(processor_set + 0x168) & ~policy,
+        change_threads != 0)) {
+-      for (thr_act = *(thread_act_t *)(processor_set + 0x138); processor_set + 0x138 != thr_act;
+-          thr_act = *(thread_act_t *)(thr_act + 0x18)) {
+-        if (*(int *)(thr_act + 0x60) == policy) {
+-          _thread_policy(thr_act,1,(policy_base_t)0x0,unaff_EBX,unaff_ESI);
++      for (thread = *(void **)(processor_set + 0x138); (void *)(processor_set + 0x138) != thread;
++          thread = *(void **)((int)thread + 0x18)) {
++        if (*(int *)((int)thread + 0x60) == policy) {
++          _thread_policy(thread,1,0);
+         }
+       }
+     }
+--- baseline/00165964.c
++++ prototype_only/00165964.c
+@@ -3,13 +3,9 @@
+ 
+ {
+   int iVar1;
+-  boolean_t inherit_memory;
+-  task_t *child_task;
+   
+-  child_task = (task_t *)0x11800;
+-  inherit_memory = 0x8c;
+   _task_zone = _zinit(0x8c,0x11800,0x2300,0,s_tasks_001dfb94);
+-  _task_create(0,(ledger_array_t)0x0,0x1dfb90,inherit_memory,child_task);
++  _task_create((void *)0x0,0,(void **)&_kernel_task);
+   iVar1 = _kernel_task;
+   *(undefined4 *)(_kernel_task + 0x4c) = 1;
+   *(undefined4 *)(iVar1 + 0x50) = 1;
+--- baseline/001659ac.c
++++ prototype_only/001659ac.c
+@@ -1,25 +1,23 @@
+ 
+-void _kernel_task_create(task_t param_1,int param_2)
++void _kernel_task_create(void *param_1,int param_2)
+ 
+ {
+   undefined4 uVar1;
+-  boolean_t unaff_EBX;
+-  task_t *in_stack_fffffff0;
++  undefined1 local_10 [4];
+   undefined1 local_c [4];
+-  int local_8;
++  void *local_8;
+   
+-  _task_create(param_1,(ledger_array_t)0x0,(mach_msg_type_number_t)&local_8,unaff_EBX,
+-               in_stack_fffffff0);
++  _task_create(param_1,0,&local_8);
+   _task_deallocate(local_8);
+-  _vm_map_deallocate(*(undefined4 *)(local_8 + 0xc));
++  _vm_map_deallocate(*(undefined4 *)((int)local_8 + 0xc));
+   if (param_2 == 0) {
+-    *(undefined4 *)(local_8 + 0xc) = _kernel_map;
++    *(undefined4 *)((int)local_8 + 0xc) = _kernel_map;
+   }
+   else {
+-    uVar1 = _kmem_suballoc(_kernel_map,local_c,&stack0xfffffff0,param_2,0);
+-    *(undefined4 *)(local_8 + 0xc) = uVar1;
++    uVar1 = _kmem_suballoc(_kernel_map,local_c,local_10,param_2,0);
++    *(undefined4 *)((int)local_8 + 0xc) = uVar1;
+   }
+-  *(undefined4 *)(local_8 + 0x50) = 1;
++  *(undefined4 *)((int)local_8 + 0x50) = 1;
+   return;
+ }
+ 
+--- baseline/00165a20.c
++++ prototype_only/00165a20.c
+@@ -1,7 +1,5 @@
+ 
+-kern_return_t
+-_task_create(task_t target_task,ledger_array_t ledgers,mach_msg_type_number_t ledgersCnt,
+-            boolean_t inherit_memory,task_t *child_task)
++int _task_create(void *parent_task,int inherit_memory,void **child_task)
+ 
+ {
+   int *piVar1;
+@@ -19,16 +17,16 @@
+   puVar3[0xe] = uVar4;
+   _utask_zero(puVar3);
+   puVar3[1] = 2;
+-  if ((undefined4 *)ledgersCnt == &_kernel_task) {
++  if (child_task == (void **)&_kernel_task) {
+     puVar3[3] = _kernel_map;
+   }
+-  else if (ledgers == (ledger_array_t)0x0) {
++  else if (inherit_memory == 0) {
+     uVar4 = _pmap_create(0,0,~_page_mask & 0xc0000000,1);
+     uVar4 = _vm_map_create(uVar4);
+     puVar3[3] = uVar4;
+   }
+   else {
+-    uVar4 = _vm_map_fork(*(undefined4 *)(target_task + 0xc));
++    uVar4 = _vm_map_fork(*(undefined4 *)((int)parent_task + 0xc));
+     puVar3[3] = uVar4;
+   }
+   *puVar3 = 0;
+@@ -42,35 +40,35 @@
+   puVar3[0x10] = 0;
+   _pcb_common_init(puVar3);
+   puVar3[0x14] = 0;
+-  _ipc_task_init(puVar3,target_task);
++  _ipc_task_init(puVar3,parent_task);
+   puVar3[0x15] = 0;
+   puVar3[0x16] = 0;
+   puVar3[0x17] = 0;
+   puVar3[0x18] = 0;
+-  if (target_task == 0) {
++  if (parent_task == (void *)0x0) {
+     puVar3[0x13] = 0;
+     puVar5 = &_default_pset;
+     _pset_reference(&_default_pset);
+     puVar3[0x12] = 10;
+   }
+   else {
+-    puVar3[0x13] = *(undefined4 *)(target_task + 0x4c);
++    puVar3[0x13] = *(undefined4 *)((int)parent_task + 0x4c);
+     do {
+       do {
+-      } while (*(int *)target_task != 0);
++      } while (*(int *)parent_task != 0);
+       LOCK();
+-      iVar2 = *(int *)target_task;
+-      *(undefined4 *)target_task = 1;
++      iVar2 = *(int *)parent_task;
++      *(undefined4 *)parent_task = 1;
+       UNLOCK();
+     } while (iVar2 == 1);
+-    puVar5 = *(undefined **)(target_task + 0x2c);
++    puVar5 = *(undefined **)((int)parent_task + 0x2c);
+     if (*(int *)(puVar5 + 0x154) == 0) {
+       puVar5 = &_default_pset;
+     }
+     _pset_reference(puVar5);
+-    puVar3[0x12] = *(undefined4 *)(target_task + 0x48);
++    puVar3[0x12] = *(undefined4 *)((int)parent_task + 0x48);
+     LOCK();
+-    *(undefined4 *)target_task = 0;
++    *(undefined4 *)parent_task = 0;
+     UNLOCK();
+   }
+   piVar1 = (int *)(puVar5 + 0x158);
+@@ -89,7 +87,7 @@
+   puVar3[0xc] = 1;
+   puVar3[0xd] = 0;
+   _ipc_task_enable(puVar3);
+-  *(undefined4 **)ledgersCnt = puVar3;
++  *child_task = puVar3;
+   return 0;
+ }
+ 
+--- baseline/001688f4.c
++++ prototype_only/001688f4.c
+@@ -1,7 +1,5 @@
+ 
+-kern_return_t
+-_thread_policy(thread_act_t thr_act,policy_t policy,policy_base_t base,
+-              mach_msg_type_number_t baseCnt,boolean_t set_limit)
++int _thread_policy(void *thread,int policy,int data)
+ 
+ {
+   int *piVar1;
+@@ -10,12 +8,12 @@
+   undefined4 local_8;
+   
+   local_8 = 0;
+-  if ((thr_act == 0) || (3 < policy - 1U)) {
++  if ((thread == (void *)0x0) || (3 < policy - 1U)) {
+     local_8 = 4;
+   }
+   else {
+     uVar2 = _splsched();
+-    piVar1 = (int *)(thr_act + 0x20);
++    piVar1 = (int *)((int)thread + 0x20);
+     do {
+       do {
+       } while (*piVar1 != 0);
+@@ -24,31 +22,31 @@
+       *piVar1 = 1;
+       UNLOCK();
+     } while (iVar3 == 1);
+-    if (*(int *)(thr_act + 0x60) == policy) {
++    if (*(int *)((int)thread + 0x60) == policy) {
+       if (policy == 2) {
+-        iVar3 = (int)base * 1000;
++        iVar3 = data * 1000;
+         if (iVar3 % _tick != 0) {
+           iVar3 = iVar3 + _tick;
+         }
+-        *(int *)(thr_act + 0x5c) = iVar3 / _tick;
++        *(int *)((int)thread + 0x5c) = iVar3 / _tick;
+       }
+     }
+-    else if ((*(uint *)(*(int *)(thr_act + 0x180) + 0x168) & policy) == 0) {
++    else if ((*(uint *)(*(int *)((int)thread + 0x180) + 0x168) & policy) == 0) {
+       local_8 = 5;
+     }
+     else {
+-      *(policy_t *)(thr_act + 0x60) = policy;
++      *(int *)((int)thread + 0x60) = policy;
+       if (policy == 2) {
+-        iVar3 = (int)base * 1000;
++        iVar3 = data * 1000;
+         if (iVar3 % _tick != 0) {
+           iVar3 = iVar3 + _tick;
+         }
+-        *(int *)(thr_act + 0x5c) = iVar3 / _tick;
++        *(int *)((int)thread + 0x5c) = iVar3 / _tick;
+       }
+-      _compute_priority(thr_act,1);
++      _compute_priority(thread,1);
+     }
+     LOCK();
+-    *(undefined4 *)(thr_act + 0x20) = 0;
++    *(undefined4 *)((int)thread + 0x20) = 0;
+     UNLOCK();
+     _splx(uVar2);
+   }
+--- baseline/0016d5b4.c
++++ prototype_only/0016d5b4.c
+@@ -2,16 +2,15 @@
+ void _pnotify_start(void)
+ 
+ {
+-  thread_act_t in_stack_fffffff4;
+-  task_t *in_stack_fffffff8;
++  thread_act_t local_c;
++  void *local_8;
+   
+-  _task_create(_kernel_task,(ledger_array_t)0x0,(mach_msg_type_number_t)&stack0xfffffff8,
+-               in_stack_fffffff4,in_stack_fffffff8);
+-  _task_deallocate(in_stack_fffffff8);
+-  _thread_create((task_t)in_stack_fffffff8,(thread_act_t *)&stack0xfffffff4);
+-  _thread_deallocate(in_stack_fffffff4);
+-  _thread_start(in_stack_fffffff4,_notify_server_loop);
+-  _thread_resume(in_stack_fffffff4);
++  _task_create(_kernel_task,0,&local_8);
++  _task_deallocate(local_8);
++  _thread_create((task_t)local_8,&local_c);
++  _thread_deallocate(local_c);
++  _thread_start(local_c,_notify_server_loop);
++  _thread_resume(local_c);
+   return;
+ }
+ 
+--- baseline/0016dca8.c
++++ prototype_only/0016dca8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_128 [3];
+   char local_125;
+   int local_124;
+@@ -46,7 +45,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/0016ddb0.c
++++ prototype_only/0016ddb0.c
+@@ -5,7 +5,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_44 [3];
+   char local_41;
+   int local_40;
+@@ -55,7 +54,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/0016eb34.c
++++ prototype_only/0016eb34.c
+@@ -2,18 +2,15 @@
+ void FUN_0016eb34(int *param_1,int param_2)
+ 
+ {
+-  thread_act_t thr_act;
+-  kern_return_t kVar1;
+-  boolean_t unaff_EBX;
+-  mach_msg_type_number_t baseCnt;
++  void *thread;
++  int iVar1;
+   
+   if ((((param_1[1] == 0x28) && (-1 < *param_1)) && (param_1[6] == DAT_001e0184)) &&
+      (param_1[8] == DAT_001e0188)) {
+-    baseCnt = param_1[2];
+-    thr_act = _convert_port_to_thread();
+-    kVar1 = _thread_policy(thr_act,param_1[7],(policy_base_t)param_1[9],baseCnt,unaff_EBX);
+-    *(kern_return_t *)(param_2 + 0x1c) = kVar1;
+-    _thread_deallocate(thr_act);
++    thread = (void *)_convert_port_to_thread(param_1[2]);
++    iVar1 = _thread_policy(thread,param_1[7],param_1[9]);
++    *(int *)(param_2 + 0x1c) = iVar1;
++    _thread_deallocate(thread);
+   }
+   else {
+     *(undefined4 *)(param_2 + 0x1c) = 0xfffffed0;
+--- baseline/0016f9f0.c
++++ prototype_only/0016f9f0.c
+@@ -2,19 +2,15 @@
+ void FUN_0016f9f0(int *param_1,uint *param_2)
+ 
+ {
+-  task_t target_task;
++  void *parent_task;
+   uint uVar1;
+-  task_t *unaff_EBX;
+-  boolean_t inherit_memory;
+-  undefined4 local_8;
++  void *local_8;
+   
+   if (((param_1[1] == 0x20) && (-1 < *param_1)) && (param_1[6] == DAT_001e0384)) {
+-    inherit_memory = param_1[2];
+-    target_task = _convert_port_to_task();
+-    uVar1 = _task_create(target_task,(ledger_array_t)param_1[7],(mach_msg_type_number_t)&local_8,
+-                         inherit_memory,unaff_EBX);
++    parent_task = (void *)_convert_port_to_task(param_1[2]);
++    uVar1 = _task_create(parent_task,param_1[7],&local_8);
+     param_2[7] = uVar1;
+-    _task_deallocate(target_task);
++    _task_deallocate(parent_task);
+     if (param_2[7] == 0) {
+       *param_2 = *param_2 | 0x80000000;
+       param_2[1] = 0x28;
+--- baseline/0017be44.c
++++ prototype_only/0017be44.c
+@@ -2,37 +2,36 @@
+ thread_act_t _procdup(int param_1,int param_2)
+ 
+ {
+-  kern_return_t kVar1;
+-  boolean_t unaff_EBX;
+-  task_t *unaff_ESI;
++  int iVar1;
++  kern_return_t kVar2;
+   thread_act_t local_c;
+-  task_t local_8;
++  void *local_8;
+   
+-  kVar1 = _task_create(*(task_t *)(param_2 + 0x68),
+-                       (ledger_array_t)(uint)(_kernel_task != *(task_t *)(param_2 + 0x68)),
+-                       (mach_msg_type_number_t)&local_8,unaff_EBX,unaff_ESI);
+-  if (kVar1 != 0) {
+-    _printf(s_fork_procdup__task_create_failed_001e0db4,kVar1);
++  iVar1 = _task_create(*(void **)(param_2 + 0x68),(uint)(_kernel_task != *(void **)(param_2 + 0x68))
++                       ,&local_8);
++  if (iVar1 != 0) {
++    _printf(s_fork_procdup__task_create_failed_001e0db4,iVar1);
+   }
+-  *(task_t *)(param_1 + 0x68) = local_8;
++  *(void **)(param_1 + 0x68) = local_8;
+   _task_deallocate(local_8);
+-  *(int *)(local_8 + 0x3c) = param_1;
+-  kVar1 = _thread_create(local_8,&local_c);
+-  if (kVar1 != 0) {
+-    _printf(s_fork_procdup__thread_create_fail_001e0de2,kVar1);
++  *(int *)((int)local_8 + 0x3c) = param_1;
++  kVar2 = _thread_create((task_t)local_8,&local_c);
++  if (kVar2 != 0) {
++    _printf(s_fork_procdup__thread_create_fail_001e0de2,kVar2);
+   }
+   _thread_deallocate(local_c);
+   _compute_priority(local_c,0);
+-  _bcopy(*(void **)(*(int *)(param_2 + 0x68) + 0x38),*(void **)(local_8 + 0x38),0x298);
+-  _bzero((void *)(*(int *)(local_8 + 0x38) + 0x248),0x18);
+-  *(undefined4 *)(*(int *)(local_8 + 0x38) + 0x15c) = 0;
+-  _expand_fdlist(*(int *)(local_8 + 0x38),*(undefined4 *)(*(int *)(local_8 + 0x38) + 0x158));
++  _bcopy(*(void **)(*(int *)(param_2 + 0x68) + 0x38),*(void **)((int)local_8 + 0x38),0x298);
++  _bzero((void *)(*(int *)((int)local_8 + 0x38) + 0x248),0x18);
++  *(undefined4 *)(*(int *)((int)local_8 + 0x38) + 0x15c) = 0;
++  _expand_fdlist(*(int *)((int)local_8 + 0x38),
++                 *(undefined4 *)(*(int *)((int)local_8 + 0x38) + 0x158));
+   _bcopy(*(void **)(*(int *)(*(int *)(param_2 + 0x68) + 0x38) + 0x150),
+-         *(void **)(*(int *)(local_8 + 0x38) + 0x150),
+-         (*(int *)(*(int *)(local_8 + 0x38) + 0x158) + 1) * 4);
++         *(void **)(*(int *)((int)local_8 + 0x38) + 0x150),
++         (*(int *)(*(int *)((int)local_8 + 0x38) + 0x158) + 1) * 4);
+   _bcopy(*(void **)(*(int *)(*(int *)(param_2 + 0x68) + 0x38) + 0x154),
+-         *(void **)(*(int *)(local_8 + 0x38) + 0x154),*(int *)(*(int *)(local_8 + 0x38) + 0x158) + 1
+-        );
++         *(void **)(*(int *)((int)local_8 + 0x38) + 0x154),
++         *(int *)(*(int *)((int)local_8 + 0x38) + 0x158) + 1);
+   **(int **)(*(int *)(local_c + 0xc) + 0x38) = param_1;
+   _bzero((void *)(*(int *)(*(int *)(local_c + 0xc) + 0x38) + 0x170),0x48);
+   _bzero((void *)(*(int *)(*(int *)(local_c + 0xc) + 0x38) + 0x1b8),0x48);
+--- baseline/0017e2e0.c
++++ prototype_only/0017e2e0.c
+@@ -5,15 +5,12 @@
+ 
+ {
+   int iVar1;
+-  kern_return_t kVar2;
+-  boolean_t unaff_EBP;
+-  task_t *unaff_retaddr;
+   
+   DAT_001f7494 = &_dmaBufQueue;
+   _dmaBufQueue = &_dmaBufQueue;
+-  kVar2 = _task_create(_kernel_task,(ledger_array_t)0x0,0x1f748c,unaff_EBP,unaff_retaddr);
+-  if (kVar2 != 0) {
+-    _IOLog(s_IOLibIOInit_task_create_returned_001e0f49,kVar2);
++  iVar1 = _task_create(_kernel_task,0,(void **)&_IOTask_kern);
++  if (iVar1 != 0) {
++    _IOLog(s_IOLibIOInit_task_create_returned_001e0f49,iVar1);
+     return;
+   }
+   _task_deallocate(_IOTask_kern);
+--- baseline/001a91bc.c
++++ prototype_only/001a91bc.c
+@@ -1,21 +1,18 @@
+ 
+-undefined4 _IOSetThreadPolicy(thread_act_t param_1,int param_2)
++undefined4 _IOSetThreadPolicy(void *param_1,int param_2)
+ 
+ {
+-  policy_base_t base;
+-  kern_return_t kVar1;
+-  mach_msg_type_number_t unaff_EBP;
+-  boolean_t unaff_retaddr;
++  int iVar1;
+   
+-  base = (policy_base_t)0x0;
++  iVar1 = 0;
+   if (param_2 == 2) {
+-    base = _min_quantum;
++    iVar1 = _min_quantum;
+   }
+-  kVar1 = _thread_policy(param_1,param_2,base,unaff_EBP,unaff_retaddr);
+-  if (kVar1 == 4) {
++  iVar1 = _thread_policy(param_1,param_2,iVar1);
++  if (iVar1 == 4) {
+     return 0xfffffd3e;
+   }
+-  if (kVar1 != 5) {
++  if (iVar1 != 5) {
+     return 0;
+   }
+   return 0xfffffd3f;
+--- baseline/001d0440.c
++++ prototype_only/001d0440.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -43,7 +42,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0508.c
++++ prototype_only/001d0508.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_24 [3];
+   char local_21;
+   int local_20;
+@@ -40,7 +39,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d05b4.c
++++ prototype_only/001d05b4.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0674.c
++++ prototype_only/001d0674.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -43,7 +42,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d073c.c
++++ prototype_only/001d073c.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_24 [3];
+   char local_21;
+   int local_20;
+@@ -40,7 +39,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d07e8.c
++++ prototype_only/001d07e8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d08a8.c
++++ prototype_only/001d08a8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -45,7 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0980.c
++++ prototype_only/001d0980.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0a40.c
++++ prototype_only/001d0a40.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0b00.c
++++ prototype_only/001d0b00.c
+@@ -4,7 +4,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -51,7 +50,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0bf8.c
++++ prototype_only/001d0bf8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0cb8.c
++++ prototype_only/001d0cb8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -51,7 +50,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0dac.c
++++ prototype_only/001d0dac.c
+@@ -5,7 +5,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_3c [3];
+   char local_39;
+   int local_38;
+@@ -54,7 +53,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0e8c.c
++++ prototype_only/001d0e8c.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -48,7 +47,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/0016dca8.c
++++ noreturn_only/0016dca8.c
+@@ -46,6 +46,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/0016ddb0.c
++++ noreturn_only/0016ddb0.c
+@@ -55,6 +55,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0440.c
++++ noreturn_only/001d0440.c
+@@ -43,6 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0508.c
++++ noreturn_only/001d0508.c
+@@ -40,6 +40,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d05b4.c
++++ noreturn_only/001d05b4.c
+@@ -44,6 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0674.c
++++ noreturn_only/001d0674.c
+@@ -43,6 +43,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d073c.c
++++ noreturn_only/001d073c.c
+@@ -40,6 +40,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d07e8.c
++++ noreturn_only/001d07e8.c
+@@ -44,6 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d08a8.c
++++ noreturn_only/001d08a8.c
+@@ -45,6 +45,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0980.c
++++ noreturn_only/001d0980.c
+@@ -44,6 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0a40.c
++++ noreturn_only/001d0a40.c
+@@ -44,6 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0b00.c
++++ noreturn_only/001d0b00.c
+@@ -51,6 +51,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0bf8.c
++++ noreturn_only/001d0bf8.c
+@@ -44,6 +44,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0cb8.c
++++ noreturn_only/001d0cb8.c
+@@ -51,6 +51,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0dac.c
++++ noreturn_only/001d0dac.c
+@@ -54,6 +54,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/001d0e8c.c
++++ noreturn_only/001d0e8c.c
+@@ -48,6 +48,7 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
++                    /* WARNING: Subroutine does not return */
+     _mig_dealloc_reply_port(unaff_EBX);
+   }
+   return iVar1;
+--- baseline/00146ed8.c
++++ combined/00146ed8.c
+@@ -2,18 +2,17 @@
+ void _ipc_init(void)
+ 
+ {
+-  kern_return_t kVar1;
+-  boolean_t in_stack_fffffff4;
+-  task_t *in_stack_fffffff8;
++  int iVar1;
++  undefined1 local_c [4];
++  undefined1 local_8 [4];
+   
+-  kVar1 = _task_create(0,(ledger_array_t)0x0,0x1f6248,in_stack_fffffff4,in_stack_fffffff8);
+-  if (kVar1 != 0) {
++  iVar1 = _task_create((void *)0x0,0,(void **)&_ipc_soft_task);
++  if (iVar1 != 0) {
+                     /* WARNING: Subroutine does not return */
+     _panic(s_ipc_init_001de704);
+   }
+   _ipc_soft_map = *(undefined4 *)(_ipc_soft_task + 0xc);
+-  _ipc_kernel_map =
+-       _kmem_suballoc(_kernel_map,&stack0xfffffff8,&stack0xfffffff4,_ipc_kernel_map_size,1);
++  _ipc_kernel_map = _kmem_suballoc(_kernel_map,local_8,local_c,_ipc_kernel_map_size,1);
+   _ipc_host_init();
+   return;
+ }
+--- baseline/00158fb4.c
++++ combined/00158fb4.c
+@@ -1,5 +1,5 @@
+ 
+-void _mig_dealloc_reply_port(mach_port_t reply_port)
++void _mig_dealloc_reply_port(void)
+ 
+ {
+                     /* WARNING: Subroutine does not return */
+--- baseline/00161aec.c
++++ combined/00161aec.c
+@@ -5,10 +5,8 @@
+ {
+   int *piVar1;
+   int iVar2;
+-  thread_act_t thr_act;
++  void *thread;
+   kern_return_t kVar3;
+-  mach_msg_type_number_t unaff_EBX;
+-  boolean_t unaff_ESI;
+   
+   if (((processor_set == 0) || (policy == 1)) || (3 < policy - 1U)) {
+     kVar3 = 4;
+@@ -26,10 +24,10 @@
+     if (((policy & *(uint *)(processor_set + 0x168)) != 0) &&
+        (*(uint *)(processor_set + 0x168) = *(uint *)(processor_set + 0x168) & ~policy,
+        change_threads != 0)) {
+-      for (thr_act = *(thread_act_t *)(processor_set + 0x138); processor_set + 0x138 != thr_act;
+-          thr_act = *(thread_act_t *)(thr_act + 0x18)) {
+-        if (*(int *)(thr_act + 0x60) == policy) {
+-          _thread_policy(thr_act,1,(policy_base_t)0x0,unaff_EBX,unaff_ESI);
++      for (thread = *(void **)(processor_set + 0x138); (void *)(processor_set + 0x138) != thread;
++          thread = *(void **)((int)thread + 0x18)) {
++        if (*(int *)((int)thread + 0x60) == policy) {
++          _thread_policy(thread,1,0);
+         }
+       }
+     }
+--- baseline/00165964.c
++++ combined/00165964.c
+@@ -3,13 +3,9 @@
+ 
+ {
+   int iVar1;
+-  boolean_t inherit_memory;
+-  task_t *child_task;
+   
+-  child_task = (task_t *)0x11800;
+-  inherit_memory = 0x8c;
+   _task_zone = _zinit(0x8c,0x11800,0x2300,0,s_tasks_001dfb94);
+-  _task_create(0,(ledger_array_t)0x0,0x1dfb90,inherit_memory,child_task);
++  _task_create((void *)0x0,0,(void **)&_kernel_task);
+   iVar1 = _kernel_task;
+   *(undefined4 *)(_kernel_task + 0x4c) = 1;
+   *(undefined4 *)(iVar1 + 0x50) = 1;
+--- baseline/001659ac.c
++++ combined/001659ac.c
+@@ -1,25 +1,23 @@
+ 
+-void _kernel_task_create(task_t param_1,int param_2)
++void _kernel_task_create(void *param_1,int param_2)
+ 
+ {
+   undefined4 uVar1;
+-  boolean_t unaff_EBX;
+-  task_t *in_stack_fffffff0;
++  undefined1 local_10 [4];
+   undefined1 local_c [4];
+-  int local_8;
++  void *local_8;
+   
+-  _task_create(param_1,(ledger_array_t)0x0,(mach_msg_type_number_t)&local_8,unaff_EBX,
+-               in_stack_fffffff0);
++  _task_create(param_1,0,&local_8);
+   _task_deallocate(local_8);
+-  _vm_map_deallocate(*(undefined4 *)(local_8 + 0xc));
++  _vm_map_deallocate(*(undefined4 *)((int)local_8 + 0xc));
+   if (param_2 == 0) {
+-    *(undefined4 *)(local_8 + 0xc) = _kernel_map;
++    *(undefined4 *)((int)local_8 + 0xc) = _kernel_map;
+   }
+   else {
+-    uVar1 = _kmem_suballoc(_kernel_map,local_c,&stack0xfffffff0,param_2,0);
+-    *(undefined4 *)(local_8 + 0xc) = uVar1;
++    uVar1 = _kmem_suballoc(_kernel_map,local_c,local_10,param_2,0);
++    *(undefined4 *)((int)local_8 + 0xc) = uVar1;
+   }
+-  *(undefined4 *)(local_8 + 0x50) = 1;
++  *(undefined4 *)((int)local_8 + 0x50) = 1;
+   return;
+ }
+ 
+--- baseline/00165a20.c
++++ combined/00165a20.c
+@@ -1,7 +1,5 @@
+ 
+-kern_return_t
+-_task_create(task_t target_task,ledger_array_t ledgers,mach_msg_type_number_t ledgersCnt,
+-            boolean_t inherit_memory,task_t *child_task)
++int _task_create(void *parent_task,int inherit_memory,void **child_task)
+ 
+ {
+   int *piVar1;
+@@ -19,16 +17,16 @@
+   puVar3[0xe] = uVar4;
+   _utask_zero(puVar3);
+   puVar3[1] = 2;
+-  if ((undefined4 *)ledgersCnt == &_kernel_task) {
++  if (child_task == (void **)&_kernel_task) {
+     puVar3[3] = _kernel_map;
+   }
+-  else if (ledgers == (ledger_array_t)0x0) {
++  else if (inherit_memory == 0) {
+     uVar4 = _pmap_create(0,0,~_page_mask & 0xc0000000,1);
+     uVar4 = _vm_map_create(uVar4);
+     puVar3[3] = uVar4;
+   }
+   else {
+-    uVar4 = _vm_map_fork(*(undefined4 *)(target_task + 0xc));
++    uVar4 = _vm_map_fork(*(undefined4 *)((int)parent_task + 0xc));
+     puVar3[3] = uVar4;
+   }
+   *puVar3 = 0;
+@@ -42,35 +40,35 @@
+   puVar3[0x10] = 0;
+   _pcb_common_init(puVar3);
+   puVar3[0x14] = 0;
+-  _ipc_task_init(puVar3,target_task);
++  _ipc_task_init(puVar3,parent_task);
+   puVar3[0x15] = 0;
+   puVar3[0x16] = 0;
+   puVar3[0x17] = 0;
+   puVar3[0x18] = 0;
+-  if (target_task == 0) {
++  if (parent_task == (void *)0x0) {
+     puVar3[0x13] = 0;
+     puVar5 = &_default_pset;
+     _pset_reference(&_default_pset);
+     puVar3[0x12] = 10;
+   }
+   else {
+-    puVar3[0x13] = *(undefined4 *)(target_task + 0x4c);
++    puVar3[0x13] = *(undefined4 *)((int)parent_task + 0x4c);
+     do {
+       do {
+-      } while (*(int *)target_task != 0);
++      } while (*(int *)parent_task != 0);
+       LOCK();
+-      iVar2 = *(int *)target_task;
+-      *(undefined4 *)target_task = 1;
++      iVar2 = *(int *)parent_task;
++      *(undefined4 *)parent_task = 1;
+       UNLOCK();
+     } while (iVar2 == 1);
+-    puVar5 = *(undefined **)(target_task + 0x2c);
++    puVar5 = *(undefined **)((int)parent_task + 0x2c);
+     if (*(int *)(puVar5 + 0x154) == 0) {
+       puVar5 = &_default_pset;
+     }
+     _pset_reference(puVar5);
+-    puVar3[0x12] = *(undefined4 *)(target_task + 0x48);
++    puVar3[0x12] = *(undefined4 *)((int)parent_task + 0x48);
+     LOCK();
+-    *(undefined4 *)target_task = 0;
++    *(undefined4 *)parent_task = 0;
+     UNLOCK();
+   }
+   piVar1 = (int *)(puVar5 + 0x158);
+@@ -89,7 +87,7 @@
+   puVar3[0xc] = 1;
+   puVar3[0xd] = 0;
+   _ipc_task_enable(puVar3);
+-  *(undefined4 **)ledgersCnt = puVar3;
++  *child_task = puVar3;
+   return 0;
+ }
+ 
+--- baseline/001688f4.c
++++ combined/001688f4.c
+@@ -1,7 +1,5 @@
+ 
+-kern_return_t
+-_thread_policy(thread_act_t thr_act,policy_t policy,policy_base_t base,
+-              mach_msg_type_number_t baseCnt,boolean_t set_limit)
++int _thread_policy(void *thread,int policy,int data)
+ 
+ {
+   int *piVar1;
+@@ -10,12 +8,12 @@
+   undefined4 local_8;
+   
+   local_8 = 0;
+-  if ((thr_act == 0) || (3 < policy - 1U)) {
++  if ((thread == (void *)0x0) || (3 < policy - 1U)) {
+     local_8 = 4;
+   }
+   else {
+     uVar2 = _splsched();
+-    piVar1 = (int *)(thr_act + 0x20);
++    piVar1 = (int *)((int)thread + 0x20);
+     do {
+       do {
+       } while (*piVar1 != 0);
+@@ -24,31 +22,31 @@
+       *piVar1 = 1;
+       UNLOCK();
+     } while (iVar3 == 1);
+-    if (*(int *)(thr_act + 0x60) == policy) {
++    if (*(int *)((int)thread + 0x60) == policy) {
+       if (policy == 2) {
+-        iVar3 = (int)base * 1000;
++        iVar3 = data * 1000;
+         if (iVar3 % _tick != 0) {
+           iVar3 = iVar3 + _tick;
+         }
+-        *(int *)(thr_act + 0x5c) = iVar3 / _tick;
++        *(int *)((int)thread + 0x5c) = iVar3 / _tick;
+       }
+     }
+-    else if ((*(uint *)(*(int *)(thr_act + 0x180) + 0x168) & policy) == 0) {
++    else if ((*(uint *)(*(int *)((int)thread + 0x180) + 0x168) & policy) == 0) {
+       local_8 = 5;
+     }
+     else {
+-      *(policy_t *)(thr_act + 0x60) = policy;
++      *(int *)((int)thread + 0x60) = policy;
+       if (policy == 2) {
+-        iVar3 = (int)base * 1000;
++        iVar3 = data * 1000;
+         if (iVar3 % _tick != 0) {
+           iVar3 = iVar3 + _tick;
+         }
+-        *(int *)(thr_act + 0x5c) = iVar3 / _tick;
++        *(int *)((int)thread + 0x5c) = iVar3 / _tick;
+       }
+-      _compute_priority(thr_act,1);
++      _compute_priority(thread,1);
+     }
+     LOCK();
+-    *(undefined4 *)(thr_act + 0x20) = 0;
++    *(undefined4 *)((int)thread + 0x20) = 0;
+     UNLOCK();
+     _splx(uVar2);
+   }
+--- baseline/0016d5b4.c
++++ combined/0016d5b4.c
+@@ -2,16 +2,15 @@
+ void _pnotify_start(void)
+ 
+ {
+-  thread_act_t in_stack_fffffff4;
+-  task_t *in_stack_fffffff8;
++  thread_act_t local_c;
++  void *local_8;
+   
+-  _task_create(_kernel_task,(ledger_array_t)0x0,(mach_msg_type_number_t)&stack0xfffffff8,
+-               in_stack_fffffff4,in_stack_fffffff8);
+-  _task_deallocate(in_stack_fffffff8);
+-  _thread_create((task_t)in_stack_fffffff8,(thread_act_t *)&stack0xfffffff4);
+-  _thread_deallocate(in_stack_fffffff4);
+-  _thread_start(in_stack_fffffff4,_notify_server_loop);
+-  _thread_resume(in_stack_fffffff4);
++  _task_create(_kernel_task,0,&local_8);
++  _task_deallocate(local_8);
++  _thread_create((task_t)local_8,&local_c);
++  _thread_deallocate(local_c);
++  _thread_start(local_c,_notify_server_loop);
++  _thread_resume(local_c);
+   return;
+ }
+ 
+--- baseline/0016dca8.c
++++ combined/0016dca8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_128 [3];
+   char local_125;
+   int local_124;
+@@ -46,7 +45,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/0016ddb0.c
++++ combined/0016ddb0.c
+@@ -5,7 +5,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_44 [3];
+   char local_41;
+   int local_40;
+@@ -55,7 +54,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/0016eb34.c
++++ combined/0016eb34.c
+@@ -2,18 +2,15 @@
+ void FUN_0016eb34(int *param_1,int param_2)
+ 
+ {
+-  thread_act_t thr_act;
+-  kern_return_t kVar1;
+-  boolean_t unaff_EBX;
+-  mach_msg_type_number_t baseCnt;
++  void *thread;
++  int iVar1;
+   
+   if ((((param_1[1] == 0x28) && (-1 < *param_1)) && (param_1[6] == DAT_001e0184)) &&
+      (param_1[8] == DAT_001e0188)) {
+-    baseCnt = param_1[2];
+-    thr_act = _convert_port_to_thread();
+-    kVar1 = _thread_policy(thr_act,param_1[7],(policy_base_t)param_1[9],baseCnt,unaff_EBX);
+-    *(kern_return_t *)(param_2 + 0x1c) = kVar1;
+-    _thread_deallocate(thr_act);
++    thread = (void *)_convert_port_to_thread(param_1[2]);
++    iVar1 = _thread_policy(thread,param_1[7],param_1[9]);
++    *(int *)(param_2 + 0x1c) = iVar1;
++    _thread_deallocate(thread);
+   }
+   else {
+     *(undefined4 *)(param_2 + 0x1c) = 0xfffffed0;
+--- baseline/0016f9f0.c
++++ combined/0016f9f0.c
+@@ -2,19 +2,15 @@
+ void FUN_0016f9f0(int *param_1,uint *param_2)
+ 
+ {
+-  task_t target_task;
++  void *parent_task;
+   uint uVar1;
+-  task_t *unaff_EBX;
+-  boolean_t inherit_memory;
+-  undefined4 local_8;
++  void *local_8;
+   
+   if (((param_1[1] == 0x20) && (-1 < *param_1)) && (param_1[6] == DAT_001e0384)) {
+-    inherit_memory = param_1[2];
+-    target_task = _convert_port_to_task();
+-    uVar1 = _task_create(target_task,(ledger_array_t)param_1[7],(mach_msg_type_number_t)&local_8,
+-                         inherit_memory,unaff_EBX);
++    parent_task = (void *)_convert_port_to_task(param_1[2]);
++    uVar1 = _task_create(parent_task,param_1[7],&local_8);
+     param_2[7] = uVar1;
+-    _task_deallocate(target_task);
++    _task_deallocate(parent_task);
+     if (param_2[7] == 0) {
+       *param_2 = *param_2 | 0x80000000;
+       param_2[1] = 0x28;
+--- baseline/0017be44.c
++++ combined/0017be44.c
+@@ -2,37 +2,36 @@
+ thread_act_t _procdup(int param_1,int param_2)
+ 
+ {
+-  kern_return_t kVar1;
+-  boolean_t unaff_EBX;
+-  task_t *unaff_ESI;
++  int iVar1;
++  kern_return_t kVar2;
+   thread_act_t local_c;
+-  task_t local_8;
++  void *local_8;
+   
+-  kVar1 = _task_create(*(task_t *)(param_2 + 0x68),
+-                       (ledger_array_t)(uint)(_kernel_task != *(task_t *)(param_2 + 0x68)),
+-                       (mach_msg_type_number_t)&local_8,unaff_EBX,unaff_ESI);
+-  if (kVar1 != 0) {
+-    _printf(s_fork_procdup__task_create_failed_001e0db4,kVar1);
++  iVar1 = _task_create(*(void **)(param_2 + 0x68),(uint)(_kernel_task != *(void **)(param_2 + 0x68))
++                       ,&local_8);
++  if (iVar1 != 0) {
++    _printf(s_fork_procdup__task_create_failed_001e0db4,iVar1);
+   }
+-  *(task_t *)(param_1 + 0x68) = local_8;
++  *(void **)(param_1 + 0x68) = local_8;
+   _task_deallocate(local_8);
+-  *(int *)(local_8 + 0x3c) = param_1;
+-  kVar1 = _thread_create(local_8,&local_c);
+-  if (kVar1 != 0) {
+-    _printf(s_fork_procdup__thread_create_fail_001e0de2,kVar1);
++  *(int *)((int)local_8 + 0x3c) = param_1;
++  kVar2 = _thread_create((task_t)local_8,&local_c);
++  if (kVar2 != 0) {
++    _printf(s_fork_procdup__thread_create_fail_001e0de2,kVar2);
+   }
+   _thread_deallocate(local_c);
+   _compute_priority(local_c,0);
+-  _bcopy(*(void **)(*(int *)(param_2 + 0x68) + 0x38),*(void **)(local_8 + 0x38),0x298);
+-  _bzero((void *)(*(int *)(local_8 + 0x38) + 0x248),0x18);
+-  *(undefined4 *)(*(int *)(local_8 + 0x38) + 0x15c) = 0;
+-  _expand_fdlist(*(int *)(local_8 + 0x38),*(undefined4 *)(*(int *)(local_8 + 0x38) + 0x158));
++  _bcopy(*(void **)(*(int *)(param_2 + 0x68) + 0x38),*(void **)((int)local_8 + 0x38),0x298);
++  _bzero((void *)(*(int *)((int)local_8 + 0x38) + 0x248),0x18);
++  *(undefined4 *)(*(int *)((int)local_8 + 0x38) + 0x15c) = 0;
++  _expand_fdlist(*(int *)((int)local_8 + 0x38),
++                 *(undefined4 *)(*(int *)((int)local_8 + 0x38) + 0x158));
+   _bcopy(*(void **)(*(int *)(*(int *)(param_2 + 0x68) + 0x38) + 0x150),
+-         *(void **)(*(int *)(local_8 + 0x38) + 0x150),
+-         (*(int *)(*(int *)(local_8 + 0x38) + 0x158) + 1) * 4);
++         *(void **)(*(int *)((int)local_8 + 0x38) + 0x150),
++         (*(int *)(*(int *)((int)local_8 + 0x38) + 0x158) + 1) * 4);
+   _bcopy(*(void **)(*(int *)(*(int *)(param_2 + 0x68) + 0x38) + 0x154),
+-         *(void **)(*(int *)(local_8 + 0x38) + 0x154),*(int *)(*(int *)(local_8 + 0x38) + 0x158) + 1
+-        );
++         *(void **)(*(int *)((int)local_8 + 0x38) + 0x154),
++         *(int *)(*(int *)((int)local_8 + 0x38) + 0x158) + 1);
+   **(int **)(*(int *)(local_c + 0xc) + 0x38) = param_1;
+   _bzero((void *)(*(int *)(*(int *)(local_c + 0xc) + 0x38) + 0x170),0x48);
+   _bzero((void *)(*(int *)(*(int *)(local_c + 0xc) + 0x38) + 0x1b8),0x48);
+--- baseline/0017e2e0.c
++++ combined/0017e2e0.c
+@@ -5,15 +5,12 @@
+ 
+ {
+   int iVar1;
+-  kern_return_t kVar2;
+-  boolean_t unaff_EBP;
+-  task_t *unaff_retaddr;
+   
+   DAT_001f7494 = &_dmaBufQueue;
+   _dmaBufQueue = &_dmaBufQueue;
+-  kVar2 = _task_create(_kernel_task,(ledger_array_t)0x0,0x1f748c,unaff_EBP,unaff_retaddr);
+-  if (kVar2 != 0) {
+-    _IOLog(s_IOLibIOInit_task_create_returned_001e0f49,kVar2);
++  iVar1 = _task_create(_kernel_task,0,(void **)&_IOTask_kern);
++  if (iVar1 != 0) {
++    _IOLog(s_IOLibIOInit_task_create_returned_001e0f49,iVar1);
+     return;
+   }
+   _task_deallocate(_IOTask_kern);
+--- baseline/001a91bc.c
++++ combined/001a91bc.c
+@@ -1,21 +1,18 @@
+ 
+-undefined4 _IOSetThreadPolicy(thread_act_t param_1,int param_2)
++undefined4 _IOSetThreadPolicy(void *param_1,int param_2)
+ 
+ {
+-  policy_base_t base;
+-  kern_return_t kVar1;
+-  mach_msg_type_number_t unaff_EBP;
+-  boolean_t unaff_retaddr;
++  int iVar1;
+   
+-  base = (policy_base_t)0x0;
++  iVar1 = 0;
+   if (param_2 == 2) {
+-    base = _min_quantum;
++    iVar1 = _min_quantum;
+   }
+-  kVar1 = _thread_policy(param_1,param_2,base,unaff_EBP,unaff_retaddr);
+-  if (kVar1 == 4) {
++  iVar1 = _thread_policy(param_1,param_2,iVar1);
++  if (iVar1 == 4) {
+     return 0xfffffd3e;
+   }
+-  if (kVar1 != 5) {
++  if (iVar1 != 5) {
+     return 0;
+   }
+   return 0xfffffd3f;
+--- baseline/001d0440.c
++++ combined/001d0440.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -43,7 +42,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0508.c
++++ combined/001d0508.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_24 [3];
+   char local_21;
+   int local_20;
+@@ -40,7 +39,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d05b4.c
++++ combined/001d05b4.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0674.c
++++ combined/001d0674.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -43,7 +42,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d073c.c
++++ combined/001d073c.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_24 [3];
+   char local_21;
+   int local_20;
+@@ -40,7 +39,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d07e8.c
++++ combined/001d07e8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d08a8.c
++++ combined/001d08a8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -45,7 +44,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0980.c
++++ combined/001d0980.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0a40.c
++++ combined/001d0a40.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0b00.c
++++ combined/001d0b00.c
+@@ -4,7 +4,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -51,7 +50,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0bf8.c
++++ combined/001d0bf8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_2c [3];
+   char local_29;
+   int local_28;
+@@ -44,7 +43,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0cb8.c
++++ combined/001d0cb8.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -51,7 +50,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0dac.c
++++ combined/001d0dac.c
+@@ -5,7 +5,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_3c [3];
+   char local_39;
+   int local_38;
+@@ -54,7 +53,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }
+--- baseline/001d0e8c.c
++++ combined/001d0e8c.c
+@@ -3,7 +3,6 @@
+ 
+ {
+   int iVar1;
+-  mach_port_t unaff_EBX;
+   undefined1 local_34 [3];
+   char local_31;
+   int local_30;
+@@ -48,7 +47,8 @@
+     }
+   }
+   else if (iVar1 == -0xca) {
+-    _mig_dealloc_reply_port(unaff_EBX);
++                    /* WARNING: Subroutine does not return */
++    _mig_dealloc_reply_port();
+   }
+   return iVar1;
+ }

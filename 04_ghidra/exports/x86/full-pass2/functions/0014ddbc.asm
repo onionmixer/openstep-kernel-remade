@@ -1,0 +1,23 @@
+0x0014ddbc	1	PUSH EBP
+0x0014ddbd	2	MOV EBP,ESP
+0x0014ddbf	1	PUSH EBX
+0x0014ddc0	3	MOV EBX,dword ptr [EBP + 0x14]
+0x0014ddc3	3	MOV EDX,dword ptr [EBX + 0x8]
+0x0014ddc6	1	PUSH EDX
+0x0014ddc7	3	MOV EDX,dword ptr [EBP + 0x10]
+0x0014ddca	1	PUSH EDX
+0x0014ddcb	3	MOV EDX,dword ptr [EBP + 0xc]
+0x0014ddce	1	PUSH EDX
+0x0014ddcf	5	CALL 0x0014c650
+0x0014ddd4	7	MOV dword ptr [EBX + 0x8],0x0
+0x0014dddb	3	ADD ESP,0xc
+0x0014ddde	4	TEST byte ptr [EBX + 0x2],0x40
+0x0014dde2	2	JZ 0x0014ddef
+0x0014dde4	3	MOV EDX,dword ptr [EBP + 0x8]
+0x0014dde7	1	PUSH EDX
+0x0014dde8	5	CALL 0x001506d8
+0x0014dded	2	XOR EAX,EAX
+0x0014ddef	3	MOV EBX,dword ptr [EBP + -0x4]
+0x0014ddf2	2	MOV ESP,EBP
+0x0014ddf4	1	POP EBP
+0x0014ddf5	1	RET

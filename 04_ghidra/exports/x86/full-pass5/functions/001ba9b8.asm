@@ -1,0 +1,33 @@
+0x001ba9b8	1	PUSH EBP
+0x001ba9b9	2	MOV EBP,ESP
+0x001ba9bb	1	PUSH EDI
+0x001ba9bc	1	PUSH ESI
+0x001ba9bd	1	PUSH EBX
+0x001ba9be	3	MOV EBX,dword ptr [EBP + 0x8]
+0x001ba9c1	3	MOV ESI,dword ptr [EBP + 0x10]
+0x001ba9c4	3	MOV EDI,dword ptr [EBP + 0x14]
+0x001ba9c7	7	CMP byte ptr [EBX + 0x94],0x0
+0x001ba9ce	2	JZ 0x001ba9fc
+0x001ba9d0	6	MOV EDX,dword ptr [EBX + 0x98]
+0x001ba9d6	1	PUSH EDX
+0x001ba9d7	6	MOV EDX,dword ptr [EBX + 0x9c]
+0x001ba9dd	1	PUSH EDX
+0x001ba9de	5	CALL 0x001be960
+0x001ba9e3	2	MOV dword ptr [ESI],EAX
+0x001ba9e5	6	MOV EDX,dword ptr [EBX + 0x98]
+0x001ba9eb	1	PUSH EDX
+0x001ba9ec	6	MOV EDX,dword ptr [EBX + 0xa0]
+0x001ba9f2	1	PUSH EDX
+0x001ba9f3	5	CALL 0x001be960
+0x001ba9f8	2	MOV dword ptr [EDI],EAX
+0x001ba9fa	2	JMP 0x001baa08
+0x001ba9fc	6	MOV dword ptr [EDI],0x0
+0x001baa02	6	MOV dword ptr [ESI],0x0
+0x001baa08	2	MOV EAX,EBX
+0x001baa0a	3	LEA ESP,[EBP + -0xc]
+0x001baa0d	1	POP EBX
+0x001baa0e	1	POP ESI
+0x001baa0f	1	POP EDI
+0x001baa10	2	MOV ESP,EBP
+0x001baa12	1	POP EBP
+0x001baa13	1	RET

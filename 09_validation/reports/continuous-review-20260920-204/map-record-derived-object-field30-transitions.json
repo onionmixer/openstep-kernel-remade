@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "method": "Python 3 calculated virtual-address/file-offset mappings from Mach base 0x00100000, then read cited original bytes. All numeric counts and offsets were calculated in Python.",
+  "inputs": {
+    "binary": "03_original/x86/binaries/mach_kernel",
+    "binary_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890"
+  },
+  "split_increment_paths": [
+    {
+      "copy": ["0x00176294 MOV EAX,[EBP-0x20]", "0x00176297 MOV ESI,EBX", "0x00176299 MOV EDI,EAX", "0x0017629c MOV ECX,0xb", "0x001762a1 REP MOVSD", "0x001762bd MOV ECX,[EBP-0x20]"],
+      "conditional_pointer_transition": ["0x001762d4 TEST byte ptr [EBX+0x18],0x5", "0x001762da MOV EDX,[ECX+0x10]", "0x001762e1 LEA ESI,[EDX+0x34]", "0x001762f8 INC dword ptr [EDX+0x30]", "0x001762fd XCHG dword ptr [EDX+0x34],EAX"]
+    },
+    {
+      "copy": ["0x001763b9 MOV [EBP-0x20],EDI", "0x001763bc MOV EAX,[EBP-0x20]", "0x001763bf MOV ESI,EBX", "0x001763c1 MOV EDI,EAX", "0x001763c4 MOV ECX,0xb", "0x001763c9 REP MOVSD", "0x001763d1 MOV EDI,[EBP-0x20]"],
+      "conditional_pointer_transition": ["0x001763f5 TEST byte ptr [EBX+0x18],0x5", "0x001763fb MOV EDX,[EDI+0x10]", "0x00176402 LEA ESI,[EDX+0x34]", "0x0017641c INC dword ptr [EDX+0x30]", "0x00176421 XCHG dword ptr [EDX+0x34],EAX"]
+    }
+  ],
+  "delete_decrement_paths": [
+    {
+      "function": "0x00176084",
+      "transition": ["0x001760c2 TEST byte ptr [ESI+0x18],0x5", "0x001760c8 MOV EBX,[ESI+0x10]", "0x001760cf LEA EDX,[EBX+0x34]", "0x001760e8 MOV EAX,[EBX+0x30]", "0x001760eb LEA ECX,[EAX-0x1]", "0x001760ee MOV [EBX+0x30],ECX", "0x001760f4 XCHG [EBX+0x34],EDX", "0x001760f7 TEST EAX,EAX", "0x001760f9 JG 0x0017613c"]
+    },
+    {
+      "function": "0x00176164",
+      "transition": ["0x001764f5 TEST byte ptr [EBX+0x18],0x5", "0x001764fb MOV ESI,[EBX+0x10]", "0x00176502 LEA EDX,[ESI+0x34]", "0x0017651c MOV EAX,[ESI+0x30]", "0x0017651f LEA EDI,[EAX-0x1]", "0x00176522 MOV [ESI+0x30],EDI", "0x00176528 XCHG [ESI+0x34],EDX", "0x0017652b TEST EAX,EAX", "0x0017652d JG 0x00176570", "0x0017652f PUSH ESI", "0x00176544 CALL 0x00176164"]
+    }
+  ],
+  "raw_byte_validation": [
+    ["0x001760c2",483522,"f6461805"],["0x001760c8",483528,"8b5e10"],["0x001760e8",483560,"8b4330"],["0x001760ee",483566,"894b30"],["0x001760f4",483572,"875334"],["0x001760f9",483577,"7f41"],
+    ["0x001762a1",484001,"f3a5"],["0x001762d4",484052,"f6431805"],["0x001762da",484058,"8b5110"],["0x001762f8",484088,"ff4230"],["0x001762fd",484093,"874234"],
+    ["0x001763c9",484297,"f3a5"],["0x001763f5",484341,"f6431805"],["0x001763fb",484347,"8b5710"],["0x0017641c",484380,"ff4230"],["0x00176421",484385,"874234"],
+    ["0x001764f5",484597,"f6431805"],["0x001764fb",484603,"8b7310"],["0x0017651c",484636,"8b4630"],["0x00176522",484642,"897e30"],["0x00176528",484648,"875634"],["0x0017652d",484653,"7f41"],["0x00176544",484676,"e81bfcffff"]
+  ],
+  "limits": [
+    "REP MOVSD proves a 44-byte copy only after the shown instructions execute; it does not establish allocation success or record identity beyond the register flow.",
+    "The conditional mask and old-value branches are static control flow, not runtime branch observations.",
+    "No whole-binary alias closure, data type, arithmetic safety, lock correctness, or runtime lifetime result is claimed."
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "function": {
+    "export_label": "_pmap_remove_all",
+    "address": "0x0018fb0c",
+    "inspected_end": "0x0018fd1b"
+  },
+  "priority_boundary": {
+    "enter_call": "0x0018fb30 -> 0x0018b964 (export label _splvm)",
+    "saved_return_local": "[ebp-0x14]",
+    "exit_call": "0x0018fd1b -> 0x0018b544 (export label _splx)",
+    "exit_argument": "[ebp-0x14]",
+    "out_of_range_branch": "0x0018fb1e/0x0018fb2a -> 0x0018fd20, bypasses both calls"
+  },
+  "entry_lock": {
+    "acquire": [
+      "0x0018fb80 MOV EAX,[EDX]",
+      "0x0018fb8b XCHG [EDX],EAX",
+      "0x0018fb92 JE 0x0018fb80"
+    ],
+    "field": "[ebp-0x10]+0x0c",
+    "release": "0x0018fd03 XCHG [EDI+0x0c],EAX after EAX is zeroed at 0x0018fcfe"
+  },
+  "node_reclamation": {
+    "source_load": "0x0018fc74 MOV EAX,[ECX], with ECX loaded from [ebp-4]",
+    "zero_case": "0x0018fc78 JE 0x0018fc9c",
+    "replacement_copy": [
+      "0x0018fc7a..0x0018fc7c: [EAX+0] -> [ECX+0]",
+      "0x0018fc7e..0x0018fc81: [EAX+4] -> [ECX+4]",
+      "0x0018fc84..0x0018fc87: [EAX+8] -> [ECX+8]"
+    ],
+    "reclaim_call": "0x0018fc92 -> 0x0016b84c (export label _zfree), pushed arguments EAX then [0x001f7ae4]",
+    "target_prologue": "0x0016b852..0x0016b855 reads [ebp+8] then [ebp+0xc]"
+  },
+  "next_entry": "0x0018fd06..0x0018fd11 loads [[ebp-4]+4] into [ebp-0x10] and loops when nonzero",
+  "limits": "No C type, allocation provenance, or semantic ownership is inferred."
+}

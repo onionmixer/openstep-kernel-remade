@@ -1,0 +1,67 @@
+0x001abc40	1	PUSH EBP
+0x001abc41	2	MOV EBP,ESP
+0x001abc43	3	SUB ESP,0x8
+0x001abc46	1	PUSH EDI
+0x001abc47	1	PUSH ESI
+0x001abc48	1	PUSH EBX
+0x001abc49	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001abc4c	6	MOV EDX,dword ptr [EDI + 0x128]
+0x001abc52	2	TEST EDX,EDX
+0x001abc54	2	JZ 0x001abca7
+0x001abc56	2	MOV EAX,EDI
+0x001abc58	5	ADD EAX,0x128
+0x001abc5d	2	CMP EAX,EDX
+0x001abc5f	2	JZ 0x001abca7
+0x001abc61	2	MOV EBX,EAX
+0x001abc63	1	NOP
+0x001abc64	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001abc67	6	MOV ESI,dword ptr [EDI + 0x128]
+0x001abc6d	3	MOV ECX,dword ptr [ESI + 0x14]
+0x001abc70	3	MOV EDX,dword ptr [ESI + 0x18]
+0x001abc73	2	CMP EBX,ECX
+0x001abc75	2	JNZ 0x001abc7c
+0x001abc77	2	MOV EAX,EBX
+0x001abc79	2	JMP 0x001abc7f
+0x001abc7c	3	LEA EAX,[ECX + 0x14]
+0x001abc7f	3	MOV dword ptr [EAX + 0x4],EDX
+0x001abc82	2	CMP EBX,EDX
+0x001abc84	2	JNZ 0x001abc8c
+0x001abc86	2	MOV EAX,EBX
+0x001abc88	2	JMP 0x001abc8f
+0x001abc8c	3	LEA EAX,[EDX + 0x14]
+0x001abc8f	2	MOV dword ptr [EAX],ECX
+0x001abc91	2	PUSH 0x1c
+0x001abc93	1	PUSH ESI
+0x001abc94	5	CALL 0x001a5458
+0x001abc99	3	ADD ESP,0x8
+0x001abc9c	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001abc9f	6	CMP dword ptr [EDI + 0x128],EBX
+0x001abca5	2	JNZ 0x001abc64
+0x001abca7	6	MOV EDI,dword ptr [0x001f9c28]
+0x001abcad	1	PUSH EDI
+0x001abcae	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001abcb1	1	PUSH EDI
+0x001abcb2	5	CALL 0x001ce960
+0x001abcb7	2	MOV EDX,EAX
+0x001abcb9	5	MOV EAX,[0x001e516c]
+0x001abcbe	1	DEC EAX
+0x001abcbf	3	ADD ESP,0x8
+0x001abcc2	2	CMP EDX,EAX
+0x001abcc4	2	JNZ 0x001abccc
+0x001abcc6	6	MOV dword ptr [0x001e516c],EDX
+0x001abccc	6	MOV EDI,dword ptr [0x001f921c]
+0x001abcd2	1	PUSH EDI
+0x001abcd3	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001abcd6	3	MOV dword ptr [EBP + -0x8],EDI
+0x001abcd9	6	MOV EDI,dword ptr [0x001fa360]
+0x001abcdf	3	MOV dword ptr [EBP + -0x4],EDI
+0x001abce2	3	LEA EAX,[EBP + -0x8]
+0x001abce5	1	PUSH EAX
+0x001abce6	5	CALL 0x001cea70
+0x001abceb	3	LEA ESP,[EBP + -0x14]
+0x001abcee	1	POP EBX
+0x001abcef	1	POP ESI
+0x001abcf0	1	POP EDI
+0x001abcf1	2	MOV ESP,EBP
+0x001abcf3	1	POP EBP
+0x001abcf4	1	RET

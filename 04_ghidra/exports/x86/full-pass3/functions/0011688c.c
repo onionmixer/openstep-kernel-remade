@@ -1,0 +1,57 @@
+/* Ghidra decompiler output, not reconstructed GCC 2.7 source.
+ * Binary SHA-256: 33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890; entry: 0x0011688c */
+
+undefined4 _sbappendrights(ushort *param_1,undefined4 *param_2,int param_3)
+
+{
+  ushort uVar1;
+  int iVar2;
+  undefined4 *puVar3;
+  int iVar4;
+  undefined4 uVar5;
+  int iVar6;
+  
+  iVar6 = 0;
+  puVar3 = param_2;
+  if (param_3 == 0) {
+                    /* WARNING: Subroutine does not return */
+    _panic(s_sbappendrights_001db363);
+  }
+  for (; puVar3 != (undefined4 *)0x0; puVar3 = (undefined4 *)*puVar3) {
+    iVar6 = iVar6 + *(short *)(puVar3 + 2);
+  }
+  iVar4 = (uint)param_1[1] - (uint)*param_1;
+  if ((int)((uint)param_1[3] - (uint)param_1[2]) < (int)((uint)param_1[1] - (uint)*param_1)) {
+    iVar4 = (uint)param_1[3] - (uint)param_1[2];
+  }
+  if ((iVar4 < iVar6 + *(short *)(param_3 + 8)) ||
+     (iVar6 = _m_copy(param_3,0,(int)*(short *)(param_3 + 8)), iVar6 == 0)) {
+    uVar5 = 0;
+  }
+  else {
+    *param_1 = *param_1 + *(short *)(iVar6 + 8);
+    uVar1 = param_1[2];
+    param_1[2] = uVar1 + 0x80;
+    if (0x7c < *(uint *)(iVar6 + 4)) {
+      param_1[2] = uVar1 + 0x480;
+    }
+    iVar4 = *(int *)(param_1 + 6);
+    if (iVar4 == 0) {
+      *(int *)(param_1 + 6) = iVar6;
+    }
+    else {
+      iVar2 = *(int *)(iVar4 + 0x7c);
+      while (iVar2 != 0) {
+        iVar4 = *(int *)(iVar4 + 0x7c);
+        iVar2 = *(int *)(iVar4 + 0x7c);
+      }
+      *(int *)(iVar4 + 0x7c) = iVar6;
+    }
+    if (param_2 != (undefined4 *)0x0) {
+      _sbcompress(param_1,param_2,iVar6);
+    }
+    uVar5 = 1;
+  }
+  return uVar5;
+}
+

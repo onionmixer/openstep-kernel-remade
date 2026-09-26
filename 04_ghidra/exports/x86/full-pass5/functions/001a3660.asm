@@ -1,0 +1,3 @@
+0x001a3660	3	MOV EDI,dword ptr [EBP + 0x8]
+0x001a3663	7	MOV dword ptr [EDI + 0x74],0x0
+0x001a366a	2	XOR EAX,EAX

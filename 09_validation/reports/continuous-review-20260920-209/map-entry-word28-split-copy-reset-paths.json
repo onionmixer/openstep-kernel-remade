@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "method": "Python 3 calculated 11 * 4 = 44 copied bytes, raw file offsets as VA - 0x00100000, and compared cited encodings to original mach_kernel bytes.",
+  "record_copy": {"count_dwords": 11, "count_bytes": 44, "instruction":"REP MOVSD"},
+  "paths": [
+    {
+      "function_label": "_vm_map_pageable",
+      "copy_va": "0x00175c9f",
+      "copy_registers": {"source":"ESI = EBX", "destination":"EDI = EAX = [EBP-0x20]"},
+      "following_word_operation": {"va":"0x00175d40", "instruction":"CMP WORD [EBX+0x28],0"},
+      "bounded_finding": "The copy covers offset +0x28; a later branch in this local path tests the current EBX entry's word for zero."
+    },
+    {
+      "function_label": "_vm_map_pageable",
+      "copy_va": "0x00175dd4",
+      "copy_registers": {"source":"ESI = EBX", "destination":"EDI = EAX = [EBP-0x20]"},
+      "following_word_operations": [
+        {"va":"0x00175e3f", "instruction":"MOV AX,WORD [EBX+0x28]"},
+        {"va":"0x00175e45", "instruction":"DEC SI"},
+        {"va":"0x00175e47", "instruction":"MOV WORD [EBX+0x28],SI"}
+      ],
+      "bounded_finding": "The post-copy decrement explicitly names EBX, while the new copy destination remains a separate local/EDI value."
+    },
+    {
+      "function_label": "_vm_map_pageable",
+      "copy_va": "0x00175ee0",
+      "copy_registers": {"source":"ESI = EBX", "destination":"EDI = EAX = [EBP-0x20]"},
+      "following_word_operations": [
+        {"va":"0x00175f4b", "instruction":"MOV AX,WORD [EBX+0x28]"},
+        {"va":"0x00175f51", "instruction":"INC SI"},
+        {"va":"0x00175f53", "instruction":"MOV WORD [EBX+0x28],SI"},
+        {"va":"0x00176018", "instruction":"CMP WORD [EBX+0x28],1"}
+      ],
+      "bounded_finding": "The post-copy increment and later comparison explicitly name EBX, not the immediate EDI/EAX copy destination."
+    },
+    {
+      "function_label": "_vm_map_fork",
+      "copy_va": "0x00177db6",
+      "copy_registers": {"source":"ESI = [EBP-0x0c]", "destination":"EDI = EAX = [EBP-0x18]"},
+      "following_word_operation": {"va":"0x00177db8", "instruction":"MOV WORD [EAX+0x28],0"},
+      "bounded_finding": "The freshly copied destination is explicitly reset to zero at +0x28 immediately after the copy."
+    }
+  ],
+  "raw_validation": [
+    {"va":"0x00175c9a","file_offset":482458,"bytes":"b90b000000f3a5"},
+    {"va":"0x00175d40","file_offset":482624,"bytes":"66837b2800"},
+    {"va":"0x00175dcf","file_offset":482767,"bytes":"b90b000000f3a5"},
+    {"va":"0x00175e3f","file_offset":482879,"bytes":"668b432889c6664e"},
+    {"va":"0x00175ee0","file_offset":483040,"bytes":"f3a58b75108973"},
+    {"va":"0x00175f4b","file_offset":483147,"bytes":"668b432889c66646"},
+    {"va":"0x00176018","file_offset":483352,"bytes":"66837b2801"},
+    {"va":"0x00177db1","file_offset":490929,"bytes":"b90b000000f3a566c7402800008b4d"},
+    {"va":"0x00177e51","file_offset":491089,"bytes":"66837f28007413578b4df851e892b7ffff66c747280000"}
+  ],
+  "limits": ["No field-semantic claim", "No complete copy/writer closure", "No runtime value or lifetime claim", "No interprocedural execution claim"]
+}

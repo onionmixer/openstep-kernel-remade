@@ -1,0 +1,974 @@
+[
+  {
+    "requested_address": "0x001735f4",
+    "addr": "0x001735f4",
+    "code": "int __cdecl vm_fault_unwire(int a1, int a2)\n{\n  int v2; // edi\n  unsigned int i; // ebx\n  unsigned int v4; // esi\n  int v5; // eax\n  unsigned int v7; // [esp+Ch] [ebp-4h]\n\n  v7 = *(_DWORD *)(a2 + 12); /*0x173606*/\n  v2 = *(_DWORD *)(a1 + 36); /*0x173609*/\n  do /*0x173625*/\n  {\n    while ( vm_page_queue_lock ) /*0x173613*/\n      ; /*0x173611*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x173625*/\n  for ( i = *(_DWORD *)(a2 + 8); v7 > i; i += page_size ) /*0x173630*/\n  {\n    v4 = pmap_extract(v2, i); /*0x17363b*/\n    if ( !v4 ) /*0x173642*/\n      panic(aUnwirePageNotI); /*0x173649*/\n    pmap_change_wiring(v2, i, 0); /*0x173655*/\n    v5 = vm_phys_to_vm_page(v4); /*0x17365b*/\n    vm_page_unwire(v5); /*0x173661*/\n  }\n  _InterlockedExchange(&vm_page_queue_lock, 0); /*0x173676*/\n  return pmap_pageable(v2, *(_DWORD *)(a2 + 8), v7, 1); /*0x173692*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x190c24",
+        "name": "_pmap_extract"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e09c1",
+        "name": "aUnwirePageNotI",
+        "string": "unwire: page not in pmap"
+      },
+      {
+        "addr": "0x190b5c",
+        "name": "_pmap_change_wiring"
+      },
+      {
+        "addr": "0x178894",
+        "name": "_vm_phys_to_vm_page"
+      },
+      {
+        "addr": "0x17b7bc",
+        "name": "_vm_page_unwire"
+      },
+      {
+        "addr": "0x1914c8",
+        "name": "_pmap_pageable"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017369c",
+    "addr": "0x0017369c",
+    "code": "int __cdecl vm_fault_copy_entry(int a1, int a2, _DWORD *a3, int a4)\n{\n  int result; // eax\n  int v5; // edi\n  int v6; // esi\n  volatile __int32 *v7; // edx\n  volatile __int32 *v8; // edx\n  int v9; // eax\n  volatile __int32 *v10; // edx\n  char v11; // al\n  volatile __int32 *v12; // [esp+10h] [ebp-18h]\n  unsigned int v13; // [esp+14h] [ebp-14h]\n  int v14; // [esp+18h] [ebp-10h]\n  int v15; // [esp+1Ch] [ebp-Ch]\n  int v16; // [esp+20h] [ebp-8h]\n  int v17; // [esp+24h] [ebp-4h]\n\n  v17 = *(_DWORD *)(a4 + 16); /*0x1736ab*/\n  v15 = *(_DWORD *)(a4 + 20); /*0x1736b1*/\n  result = vm_object_allocate(a3[3] - a3[2]); /*0x1736be*/\n  v5 = result; /*0x1736c3*/\n  a3[4] = result; /*0x1736c8*/\n  a3[5] = 0; /*0x1736cb*/\n  v14 = a3[8]; /*0x1736d5*/\n  v13 = a3[2]; /*0x1736db*/\n  v16 = 0; /*0x1736de*/\n  if ( a3[3] > v13 ) /*0x1736ee*/\n  {\n    v12 = (volatile __int32 *)(result + 16); /*0x1736f7*/\n    do /*0x173886*/\n    {\n      do /*0x173714*/\n      {\n        while ( *v12 ) /*0x1736ff*/\n          ; /*0x173701*/\n      }\n      while ( _InterlockedExchange(v12, 1) == 1 ); /*0x173714*/\n      while ( 1 ) /*0x173724*/\n      {\n        v6 = vm_page_alloc_sequential(v5, v16, 1); /*0x173724*/\n        if ( v6 ) /*0x17372b*/\n          break; /*0x17372b*/\n        _InterlockedExchange((volatile __int32 *)(v5 + 16), 0); /*0x17372f*/\n        do /*0x17374d*/\n        {\n          while ( vm_pages_needed_lock ) /*0x17373b*/\n            ; /*0x173739*/\n        }\n        while ( _InterlockedExchange(&vm_pages_needed_lock, 1) == 1 ); /*0x17374d*/\n        thread_wakeup_prim((int)&vm_pages_needed, 0, 0); /*0x173758*/\n        thread_sleep((int)&vm_page_free_count, &vm_pages_needed_lock, 0); /*0x173769*/\n        v7 = (volatile __int32 *)(v5 + 16); /*0x17376e*/\n        do /*0x173786*/\n        {\n          while ( *v7 ) /*0x173774*/\n            ; /*0x173776*/\n        }\n        while ( _InterlockedExchange(v7, 1) == 1 ); /*0x173786*/\n      }\n      v8 = (volatile __int32 *)(v17 + 16); /*0x17378f*/\n      do /*0x1737a6*/\n      {\n        while ( *v8 ) /*0x173794*/\n          ; /*0x173796*/\n      }\n      while ( _InterlockedExchange(v8, 1) == 1 ); /*0x1737a6*/\n      v9 = vm_page_lookup(v17, v15 + v16); /*0x1737b3*/\n      if ( !v9 ) /*0x1737bf*/\n        panic(aVmFaultCopyWir); /*0x1737c9*/\n      vm_page_copy(v9, v6); /*0x1737d6*/\n      _InterlockedExchange((volatile __int32 *)(v17 + 16), 0); /*0x1737e3*/\n      _InterlockedExchange((volatile __int32 *)(v5 + 16), 0); /*0x1737e8*/\n      pmap_enter(*(_DWORD *)(a1 + 36), v13, *(_DWORD *)(v6 + 36), v14, 0); /*0x173800*/\n      v10 = (volatile __int32 *)(v5 + 16); /*0x173805*/\n      do /*0x17381e*/\n      {\n        while ( *v10 ) /*0x17380c*/\n          ; /*0x17380e*/\n      }\n      while ( _InterlockedExchange(v10, 1) == 1 ); /*0x17381e*/\n      do /*0x173839*/\n      {\n        while ( vm_page_queue_lock ) /*0x173827*/\n          ; /*0x173825*/\n      }\n      while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x173839*/\n      vm_page_activate(v6); /*0x17383c*/\n      _InterlockedExchange(&vm_page_queue_lock, 0); /*0x173846*/\n      v11 = *(_BYTE *)(v6 + 32); /*0x17384c*/\n      *(_BYTE *)(v6 + 32) = v11 & 0xFE; /*0x173854*/\n      if ( (v11 & 2) != 0 ) /*0x173859*/\n      {\n        *(_BYTE *)(v6 + 32) = v11 & 0xFC; /*0x17385d*/\n        thread_wakeup_prim(v6, 0, 0); /*0x173865*/\n      }\n      _InterlockedExchange((volatile __int32 *)(v5 + 16), 0); /*0x17386f*/\n      result = page_size; /*0x173872*/\n      v13 += page_size; /*0x173877*/\n      v16 += page_size; /*0x17387a*/\n    }\n    while ( a3[3] > v13 ); /*0x173886*/\n  }\n  return result; /*0x17388f*/\n}",
+    "refs": [
+      {
+        "addr": "0x178b80",
+        "name": "_vm_object_allocate"
+      },
+      {
+        "addr": "0x17b200",
+        "name": "_vm_page_alloc_sequential"
+      },
+      {
+        "addr": "0x1f6e54",
+        "name": "_vm_pages_needed_lock"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1f6e50",
+        "name": "_vm_pages_needed"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x17af58",
+        "name": "_vm_page_lookup"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e09da",
+        "name": "aVmFaultCopyWir",
+        "string": "vm_fault_copy_wired: page missing"
+      },
+      {
+        "addr": "0x17b9b4",
+        "name": "_vm_page_copy"
+      },
+      {
+        "addr": "0x19065c",
+        "name": "_pmap_enter"
+      },
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x17b8cc",
+        "name": "_vm_page_activate"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173898",
+    "addr": "0x00173898",
+    "code": "int __cdecl vm_fault_wire_fast(int a1, int a2, int a3)\n{\n  int v4; // edi\n  int v5; // esi\n  volatile __int32 *v6; // edx\n  int v7; // eax\n  int v8; // esi\n  char v9; // al\n  volatile __int32 *v10; // edx\n  char v11; // al\n  int v12; // [esp+10h] [ebp-4h]\n\n  ++dword_1F6514; /*0x1738a4*/\n  if ( (*(_BYTE *)(a3 + 24) & 5) != 0 ) /*0x1738ae*/\n    return 5; /*0x1738b5*/\n  v4 = *(_DWORD *)(a3 + 16); /*0x1738bc*/\n  v5 = *(_DWORD *)(a3 + 20) + a2 - *(_DWORD *)(a3 + 8); /*0x1738c7*/\n  v12 = *(_DWORD *)(a3 + 28); /*0x1738cd*/\n  v6 = (volatile __int32 *)(v4 + 16); /*0x1738d0*/\n  do /*0x1738e6*/\n  {\n    while ( *v6 ) /*0x1738d4*/\n      ; /*0x1738d6*/\n  }\n  while ( _InterlockedExchange(v6, 1) == 1 ); /*0x1738e6*/\n  ++*(_WORD *)(v4 + 24); /*0x1738e8*/\n  ++*(_WORD *)(v4 + 68); /*0x1738ec*/\n  v7 = vm_page_lookup(v4, v5); /*0x1738f2*/\n  v8 = v7; /*0x1738f7*/\n  if ( !v7 || (*(_BYTE *)(v7 + 32) & 0x21) != 0 || (v12 & *(_DWORD *)(v7 + 40)) != 0 ) /*0x17390c*/\n  {\n    --*(_WORD *)(v4 + 68); /*0x17390e*/\n    _InterlockedExchange((volatile __int32 *)(v4 + 16), 0); /*0x173914*/\n    vm_object_deallocate(v4); /*0x173918*/\n    return 5; /*0x173922*/\n  }\n  do /*0x173941*/\n  {\n    while ( vm_page_queue_lock ) /*0x17392f*/\n      ; /*0x17392d*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x173941*/\n  vm_page_wire(v7); /*0x173944*/\n  _InterlockedExchange(&vm_page_queue_lock, 0); /*0x17394e*/\n  v9 = *(_BYTE *)(v8 + 32) | 1; /*0x173957*/\n  *(_BYTE *)(v8 + 32) = *(_BYTE *)(v8 + 32) & 0xDE | 1; /*0x17395e*/\n  if ( !*(_DWORD *)(v4 + 28) ) /*0x173965*/\n    goto LABEL_20; /*0x173965*/\n  if ( (v12 & 2) == 0 ) /*0x17396d*/\n  {\n    *(_BYTE *)(v8 + 33) |= 4u; /*0x17396f*/\nLABEL_20:\n    if ( (v12 & 2) != 0 ) /*0x1739e6*/\n      *(_BYTE *)(v8 + 33) &= ~4u; /*0x1739e8*/\n    _InterlockedExchange((volatile __int32 *)(v4 + 16), 0); /*0x1739f4*/\n    pmap_enter(*(_DWORD *)(a1 + 36), a2, *(_DWORD *)(v8 + 36), v12, 1); /*0x173a0c*/\n    v10 = (volatile __int32 *)(v4 + 16); /*0x173a11*/\n    do /*0x173a2a*/\n    {\n      while ( *v10 ) /*0x173a18*/\n        ; /*0x173a1a*/\n    }\n    while ( _InterlockedExchange(v10, 1) == 1 ); /*0x173a2a*/\n    v11 = *(_BYTE *)(v8 + 32); /*0x173a2c*/\n    *(_BYTE *)(v8 + 32) = v11 & 0xFE; /*0x173a34*/\n    if ( (v11 & 2) != 0 ) /*0x173a39*/\n    {\n      *(_BYTE *)(v8 + 32) = v11 & 0xFC; /*0x173a3d*/\n      thread_wakeup_prim(v8, 0, 0); /*0x173a45*/\n    }\n    --*(_WORD *)(v4 + 68); /*0x173a4d*/\n    _InterlockedExchange((volatile __int32 *)(v4 + 16), 0); /*0x173a53*/\n    vm_object_deallocate(v4); /*0x173a57*/\n    return 0; /*0x173a5c*/\n  }\n  *(_BYTE *)(v8 + 32) = v9 & 0xDE; /*0x17397d*/\n  if ( (v9 & 2) != 0 ) /*0x173982*/\n  {\n    *(_BYTE *)(v8 + 32) = v9 & 0xDC; /*0x173986*/\n    thread_wakeup_prim(v8, 0, 0); /*0x17398e*/\n  }\n  do /*0x1739b1*/\n  {\n    while ( vm_page_queue_lock ) /*0x17399f*/\n      ; /*0x17399d*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x1739b1*/\n  vm_page_unwire(v8); /*0x1739b4*/\n  _InterlockedExchange(&vm_page_queue_lock, 0); /*0x1739be*/\n  --*(_WORD *)(v4 + 68); /*0x1739c4*/\n  _InterlockedExchange((volatile __int32 *)(v4 + 16), 0); /*0x1739ca*/\n  vm_object_deallocate(v4); /*0x1739ce*/\n  return 5; /*0x173a61*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6514",
+        "name": "dword_1F6514"
+      },
+      {
+        "addr": "0x17af58",
+        "name": "_vm_page_lookup"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x17b6e8",
+        "name": "_vm_page_wire"
+      },
+      {
+        "addr": "0x19065c",
+        "name": "_pmap_enter"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x17b7bc",
+        "name": "_vm_page_unwire"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173a68",
+    "addr": "0x00173a68",
+    "code": "int vm_mem_init()\n{\n  virtual_avail = vm_page_startup(&mem_region, num_regions, virtual_avail); /*0x173a83*/\n  zone_bootstrap(); /*0x173a88*/\n  vm_object_init(); /*0x173a8d*/\n  vm_map_init(); /*0x173a92*/\n  kmem_init(virtual_avail, virtual_end); /*0x173aa5*/\n  pmap_init(&mem_region); /*0x173ab6*/\n  zone_init(); /*0x173abb*/\n  kalloc_init(); /*0x173ac0*/\n  vm_pager_init(); /*0x173ac5*/\n  return vm_user_init(); /*0x173ad1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f63f8",
+        "name": "_virtual_avail"
+      },
+      {
+        "addr": "0x17aa08",
+        "name": "_vm_page_startup"
+      },
+      {
+        "addr": "0x1f6e60",
+        "name": "_mem_region"
+      },
+      {
+        "addr": "0x1f6e98",
+        "name": "_num_regions"
+      },
+      {
+        "addr": "0x16afc8",
+        "name": "_zone_bootstrap"
+      },
+      {
+        "addr": "0x1789d0",
+        "name": "_vm_object_init"
+      },
+      {
+        "addr": "0x174600",
+        "name": "_vm_map_init"
+      },
+      {
+        "addr": "0x17408c",
+        "name": "_kmem_init"
+      },
+      {
+        "addr": "0x1f6e9c",
+        "name": "_virtual_end"
+      },
+      {
+        "addr": "0x18f330",
+        "name": "_pmap_init"
+      },
+      {
+        "addr": "0x16b338",
+        "name": "_zone_init"
+      },
+      {
+        "addr": "0x15a67c",
+        "name": "_kalloc_init"
+      },
+      {
+        "addr": "0x17a240",
+        "name": "_vm_pager_init"
+      },
+      {
+        "addr": "0x17c4e0",
+        "name": "_vm_user_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173ad4",
+    "addr": "0x00173ad4",
+    "code": "int __cdecl kmem_alloc(int a1, _DWORD *a2, int a3)\n{\n  int v3; // ebx\n  int v4; // eax\n  int v5; // eax\n  int v7; // [esp+Ch] [ebp-10h]\n  _BOOL4 v8; // [esp+10h] [ebp-Ch]\n  int v9; // [esp+14h] [ebp-8h]\n  int v10; // [esp+18h] [ebp-4h] BYREF\n\n  v7 = vm_object_allocate(a3); /*0x173ae9*/\n  v9 = 0; /*0x173aef*/\n  v10 = *(_DWORD *)(a1 + 20); /*0x173af9*/\n  v3 = ~page_mask & (page_mask + a3); /*0x173b05*/\n  v4 = 0; /*0x173b10*/\n  if ( kernel_object != v7 ) /*0x173b1b*/\n    v4 = v7; /*0x173b1d*/\n  v5 = vm_map_find(a1, v4, 0, &v10, ~page_mask & (page_mask + a3), 1); /*0x173b22*/\n  v8 = v5 != 0; /*0x173b34*/\n  if ( v5 ) /*0x173b39*/\n  {\n    if ( kernel_object != v7 ) /*0x173b44*/\n      vm_object_deallocate(v7); /*0x173b47*/\n    return v8; /*0x173b4c*/\n  }\n  else\n  {\n    if ( kernel_object == v7 ) /*0x173b5d*/\n    {\n      v9 = v10; /*0x173b62*/\n      vm_object_reference(v7); /*0x173b66*/\n      lock_write(a1); /*0x173b6f*/\n      ++*(_DWORD *)(a1 + 76); /*0x173b74*/\n      vm_map_delete(a1, v10, v3 + v10); /*0x173b83*/\n      vm_map_insert(a1, v7, v9, v10, v3 + v10); /*0x173b99*/\n      lock_done(a1); /*0x173ba2*/\n    }\n    if ( sub_173EBC(v7, v9, v3, 1) ) /*0x173bb5*/\n    {\n      vm_map_pageable(a1, v10, v3 + v10, 0); /*0x173bf3*/\n      *a2 = v10; /*0x173bfe*/\n      return 0; /*0x173c00*/\n    }\n    else\n    {\n      lock_write(a1); /*0x173bc2*/\n      ++*(_DWORD *)(a1 + 76); /*0x173bc7*/\n      vm_map_delete(a1, v10, v3 + v10); /*0x173bd6*/\n      lock_done(a1); /*0x173bdc*/\n      return 6; /*0x173be1*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x178b80",
+        "name": "_vm_object_allocate"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1f6ea0",
+        "name": "_kernel_object"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x174848",
+        "name": "_vm_map_insert"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x173ebc",
+        "name": "sub_173EBC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173c0c",
+    "addr": "0x00173c0c",
+    "code": "_BOOL4 __cdecl kmem_realloc(int a1, int a2, int a3, _DWORD *a4, int a5)\n{\n  int v5; // ebx\n  int v6; // esi\n  _BOOL4 result; // eax\n  int v8; // ebx\n  volatile __int32 *v9; // edx\n  int v10; // eax\n  int v11; // [esp+Ch] [ebp-14h]\n  int v12; // [esp+14h] [ebp-Ch] BYREF\n  int v13; // [esp+18h] [ebp-8h] BYREF\n  unsigned int v14; // [esp+1Ch] [ebp-4h] BYREF\n\n  v5 = a2 & ~page_mask; /*0x173c24*/\n  v11 = (~page_mask & (page_mask + a3 + a2)) - v5; /*0x173c2f*/\n  v6 = (a5 + page_mask) & ~page_mask; /*0x173c37*/\n  result = vm_map_find(a1, 0, 0, &v14, v6, 1) != 0; /*0x173c55*/\n  if ( !result ) /*0x173c5c*/\n  {\n    vm_map_lookup_entry(a1, v14, &v13); /*0x173c6e*/\n    if ( !vm_map_lookup_entry(a1, v5, &v12) ) /*0x173c79*/\n      panic(aKmemRealloc); /*0x173c8a*/\n    v8 = *(_DWORD *)(v12 + 16); /*0x173c95*/\n    vm_object_reference(v8); /*0x173c99*/\n    v9 = (volatile __int32 *)(v8 + 16); /*0x173c9e*/\n    do /*0x173cb6*/\n    {\n      while ( *v9 ) /*0x173ca4*/\n        ; /*0x173ca6*/\n    }\n    while ( _InterlockedExchange(v9, 1) == 1 ); /*0x173cb6*/\n    if ( *(_DWORD *)(v8 + 20) != v11 ) /*0x173cbe*/\n      panic(aKmemRealloc_0); /*0x173cc5*/\n    *(_DWORD *)(v8 + 20) = v6; /*0x173ccd*/\n    _InterlockedExchange((volatile __int32 *)(v8 + 16), 0); /*0x173cd2*/\n    v10 = v13; /*0x173cd5*/\n    *(_DWORD *)(v13 + 16) = v8; /*0x173cd8*/\n    *(_DWORD *)(v10 + 20) = 0; /*0x173cdb*/\n    lock_done(a1); /*0x173ce6*/\n    sub_173EBC(v8, v11, v6, 1); /*0x173cf3*/\n    vm_map_pageable(a1, v14, v6 + v14, 0); /*0x173d03*/\n    *a4 = v14; /*0x173d0e*/\n    return 0; /*0x173d10*/\n  }\n  return result; /*0x173d15*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x1749c4",
+        "name": "_vm_map_lookup_entry"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e09fc",
+        "name": "aKmemRealloc",
+        "string": "kmem_realloc"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x1e0a09",
+        "name": "aKmemRealloc_0",
+        "string": "kmem_realloc"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x173ebc",
+        "name": "sub_173EBC"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173d1c",
+    "addr": "0x00173d1c",
+    "code": "int __cdecl kmem_alloc_wired(int a1, _DWORD *a2, int a3)\n{\n  int v3; // esi\n  int v4; // eax\n  _BOOL4 v6; // [esp+Ch] [ebp-10h]\n  int v7; // [esp+10h] [ebp-Ch]\n  int v8; // [esp+14h] [ebp-8h]\n  int v9; // [esp+18h] [ebp-4h] BYREF\n\n  v8 = kernel_object; /*0x173d31*/\n  v7 = 0; /*0x173d34*/\n  v9 = *(_DWORD *)(a1 + 20); /*0x173d3e*/\n  v3 = ~page_mask & (page_mask + a3); /*0x173d4d*/\n  v4 = vm_map_find(a1, 0, 0, &v9, v3, 1); /*0x173d5b*/\n  v6 = v4 != 0; /*0x173d6d*/\n  if ( v4 ) /*0x173d72*/\n  {\n    if ( kernel_object != v8 ) /*0x173d7d*/\n      vm_object_deallocate(v8); /*0x173d80*/\n    return v6; /*0x173d85*/\n  }\n  else\n  {\n    if ( kernel_object == v8 ) /*0x173d99*/\n    {\n      v7 = v9; /*0x173d9e*/\n      vm_object_reference(v8); /*0x173da2*/\n      lock_write(a1); /*0x173dab*/\n      ++*(_DWORD *)(a1 + 76); /*0x173db0*/\n      vm_map_delete(a1, v9, v3 + v9); /*0x173dbf*/\n      vm_map_insert(a1, v8, v7, v9, v3 + v9); /*0x173dd5*/\n      lock_done(a1); /*0x173dde*/\n    }\n    if ( sub_173EBC(v8, v7, v3, 1) ) /*0x173df1*/\n    {\n      vm_map_pageable(a1, v9, v3 + v9, 0); /*0x173e2f*/\n      *a2 = v9; /*0x173e3a*/\n      return 0; /*0x173e3c*/\n    }\n    else\n    {\n      lock_write(a1); /*0x173dfe*/\n      ++*(_DWORD *)(a1 + 76); /*0x173e03*/\n      vm_map_delete(a1, v9, v3 + v9); /*0x173e12*/\n      lock_done(a1); /*0x173e18*/\n      return 6; /*0x173e1d*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ea0",
+        "name": "_kernel_object"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x174848",
+        "name": "_vm_map_insert"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x173ebc",
+        "name": "sub_173EBC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173e48",
+    "addr": "0x00173e48",
+    "code": "int __cdecl kmem_alloc_pageable(int a1, _DWORD *a2, int a3)\n{\n  int result; // eax\n  unsigned int v4; // [esp+8h] [ebp-4h] BYREF\n\n  v4 = *(_DWORD *)(a1 + 20); /*0x173e5c*/\n  result = vm_map_find(a1, 0, 0, &v4, ~page_mask & (page_mask + a3), 1); /*0x173e76*/\n  if ( !result ) /*0x173e7d*/\n  {\n    *a2 = v4; /*0x173e82*/\n    return 0; /*0x173e84*/\n  }\n  return result; /*0x173e89*/\n}",
+    "refs": [
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173e90",
+    "addr": "0x00173e90",
+    "code": "int __cdecl kmem_free(int a1, int a2, int a3)\n{\n  return vm_map_remove(a1, ~page_mask & a2, ~page_mask & (page_mask + a3 + a2)); /*0x173eb5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1765ac",
+        "name": "_vm_map_remove"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173ebc",
+    "addr": "0x00173ebc",
+    "code": "int __cdecl sub_173EBC(int a1, int a2, int a3, int a4)\n{\n  int v5; // esi\n  int v6; // ebx\n  volatile __int32 *v8; // edx\n  volatile __int32 *v9; // [esp+Ch] [ebp-4h]\n\n  v5 = a3; /*0x173ec8*/\n  if ( a3 ) /*0x173ecd*/\n  {\n    v9 = (volatile __int32 *)(a1 + 16); /*0x173ed9*/\n    do /*0x173fa4*/\n    {\n      do /*0x173ef4*/\n      {\n        while ( *v9 ) /*0x173edf*/\n          ; /*0x173ee1*/\n      }\n      while ( _InterlockedExchange(v9, 1) == 1 ); /*0x173ef4*/\n      while ( 1 ) /*0x173f04*/\n      {\n        v6 = vm_page_alloc_sequential(a1, a2, 1); /*0x173f04*/\n        if ( v6 ) /*0x173f0b*/\n          break; /*0x173f0b*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x173f12*/\n        if ( !a4 ) /*0x173f19*/\n          return 0; /*0x173f1d*/\n        do /*0x173f3d*/\n        {\n          while ( vm_pages_needed_lock ) /*0x173f2b*/\n            ; /*0x173f29*/\n        }\n        while ( _InterlockedExchange(&vm_pages_needed_lock, 1) == 1 ); /*0x173f3d*/\n        thread_wakeup_prim(&vm_pages_needed, 0, 0); /*0x173f48*/\n        thread_sleep(&vm_page_free_count, &vm_pages_needed_lock, 0); /*0x173f59*/\n        v8 = (volatile __int32 *)(a1 + 16); /*0x173f61*/\n        do /*0x173f7a*/\n        {\n          while ( *v8 ) /*0x173f68*/\n            ; /*0x173f6a*/\n        }\n        while ( _InterlockedExchange(v8, 1) == 1 ); /*0x173f7a*/\n      }\n      _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x173f89*/\n      vm_page_zero_fill(v6); /*0x173f8d*/\n      *(_BYTE *)(v6 + 32) &= ~1u; /*0x173f92*/\n      v5 -= page_size; /*0x173f9b*/\n      a2 += page_size; /*0x173f9d*/\n    }\n    while ( v5 ); /*0x173fa4*/\n  }\n  return 1; /*0x173fb2*/\n}",
+    "refs": [
+      {
+        "addr": "0x17b200",
+        "name": "_vm_page_alloc_sequential"
+      },
+      {
+        "addr": "0x1f6e54",
+        "name": "_vm_pages_needed_lock"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1f6e50",
+        "name": "_vm_pages_needed"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x17b99c",
+        "name": "_vm_page_zero_fill"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00173fbc",
+    "addr": "0x00173fbc",
+    "code": "int __cdecl kmem_suballoc(int a1, _DWORD *a2, _DWORD *a3, int a4, int a5)\n{\n  int v5; // esi\n  int v7; // [esp+Ch] [ebp-8h]\n  unsigned int v8; // [esp+10h] [ebp-4h] BYREF\n\n  v5 = ~page_mask & (page_mask + a4); /*0x173fd6*/\n  vm_object_reference(vm_submap_object); /*0x173fdf*/\n  v8 = *(_DWORD *)(a1 + 20); /*0x173fe7*/\n  if ( vm_map_find(a1, vm_submap_object, 0, &v8, v5, 1) ) /*0x173ffb*/\n    panic(aKmemSuballoc1); /*0x17400c*/\n  pmap_reference(*(_DWORD *)(a1 + 36)); /*0x174018*/\n  v7 = vm_map_create(*(_DWORD *)(a1 + 36), v8, v5 + v8, a5); /*0x174032*/\n  if ( !v7 ) /*0x17403a*/\n    panic(aKmemSuballoc2); /*0x174041*/\n  if ( vm_map_submap(a1, v8, v5 + v8, v7) ) /*0x174056*/\n    panic(aKmemSuballoc3); /*0x174067*/\n  *a2 = v8; /*0x174072*/\n  *a3 = v8 + v5; /*0x17407a*/\n  return v7; /*0x174082*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x1f6ea8",
+        "name": "_vm_submap_object"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0a16",
+        "name": "aKmemSuballoc1",
+        "string": "kmem_suballoc 1"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x18f7b4",
+        "name": "_pmap_reference"
+      },
+      {
+        "addr": "0x1746a0",
+        "name": "_vm_map_create"
+      },
+      {
+        "addr": "0x1e0a26",
+        "name": "aKmemSuballoc2",
+        "string": "kmem_suballoc 2"
+      },
+      {
+        "addr": "0x1e0a36",
+        "name": "aKmemSuballoc3",
+        "string": "kmem_suballoc 3"
+      },
+      {
+        "addr": "0x174f9c",
+        "name": "_vm_map_submap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017408c",
+    "addr": "0x0017408c",
+    "code": "int __cdecl kmem_init(int a1, int a2)\n{\n  int v2; // eax\n  unsigned int v4; // [esp+4h] [ebp-4h] BYREF\n\n  v2 = pmap_kernel(); /*0x17409e*/\n  kernel_map = vm_map_create(v2, 0, a2, 0); /*0x1740ab*/\n  v4 = 0; /*0x1740b1*/\n  return vm_map_find(kernel_map, 0, 0, &v4, a1, 0); /*0x1740c9*/\n}",
+    "refs": [
+      {
+        "addr": "0x19141c",
+        "name": "_pmap_kernel"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x1746a0",
+        "name": "_vm_map_create"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001740d0",
+    "addr": "0x001740d0",
+    "code": "int __cdecl copyinmap(int a1, void *a2, void *a3, size_t a4)\n{\n  if ( *(_DWORD *)(a1 + 36) == kernel_pmap ) /*0x1740e9*/\n  {\n    bcopy(a2, a3, a4); /*0x1740ee*/\n    return 0; /*0x1740f3*/\n  }\n  else if ( *(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12) == a1 ) /*0x174103*/\n  {\n    return copyin(a2, a3, a4); /*0x174108*/\n  }\n  else\n  {\n    return 1; /*0x174110*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x189a5c",
+        "name": "_copyin"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1f63f0",
+        "name": "_kernel_pmap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174120",
+    "addr": "0x00174120",
+    "code": "int __cdecl copyoutmap(int a1, void *a2, void *a3, size_t a4)\n{\n  if ( *(_DWORD *)(a1 + 36) == kernel_pmap ) /*0x174139*/\n  {\n    bcopy(a2, a3, a4); /*0x17413e*/\n    return 0; /*0x174143*/\n  }\n  else if ( *(_DWORD *)(*(_DWORD *)(active_threads + 12) + 12) == a1 ) /*0x174153*/\n  {\n    return copyout(a2, a3, a4); /*0x174158*/\n  }\n  else\n  {\n    return 1; /*0x174160*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x189cec",
+        "name": "_copyout"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1f63f0",
+        "name": "_kernel_pmap"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174170",
+    "addr": "0x00174170",
+    "code": "int __cdecl kmem_alloc_zone(int a1, int *a2, int a3, int a4)\n{\n  int v4; // esi\n  int v5; // eax\n  _BOOL4 v7; // [esp+Ch] [ebp-10h]\n  int v8; // [esp+10h] [ebp-Ch]\n  int v9; // [esp+14h] [ebp-8h]\n  int v10; // [esp+18h] [ebp-4h] BYREF\n\n  v9 = kernel_object; /*0x174185*/\n  v8 = 0; /*0x174188*/\n  v10 = *(_DWORD *)(a1 + 20); /*0x174192*/\n  v4 = ~page_mask & (page_mask + a3); /*0x1741a1*/\n  v5 = vm_map_find(a1, 0, 0, (unsigned int *)&v10, v4, 1); /*0x1741af*/\n  v7 = v5 != 0; /*0x1741c1*/\n  if ( v5 ) /*0x1741c6*/\n  {\n    if ( kernel_object != v9 ) /*0x1741d1*/\n      vm_object_deallocate(v9); /*0x1741d4*/\n    return v7; /*0x1741d9*/\n  }\n  else\n  {\n    if ( kernel_object == v9 ) /*0x1741ed*/\n    {\n      v8 = v10; /*0x1741f2*/\n      vm_object_reference(v9); /*0x1741f6*/\n      lock_write(a1); /*0x1741ff*/\n      ++*(_DWORD *)(a1 + 76); /*0x174204*/\n      vm_map_delete(a1, v10, v4 + v10); /*0x174213*/\n      vm_map_insert(a1, v9, v8, v10, v4 + v10); /*0x174229*/\n      lock_done(a1); /*0x174232*/\n    }\n    if ( sub_173EBC(v9, v8, v4, a4) ) /*0x174247*/\n    {\n      vm_map_pageable(a1, v10, v4 + v10, 0); /*0x174287*/\n      *a2 = v10; /*0x174292*/\n      return 0; /*0x174294*/\n    }\n    else\n    {\n      lock_write(a1); /*0x174254*/\n      ++*(_DWORD *)(a1 + 76); /*0x174259*/\n      vm_map_delete(a1, v10, v4 + v10); /*0x174268*/\n      lock_done(a1); /*0x17426e*/\n      return 6; /*0x174273*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ea0",
+        "name": "_kernel_object"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x178c64",
+        "name": "_vm_object_deallocate"
+      },
+      {
+        "addr": "0x178c30",
+        "name": "_vm_object_reference"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x174848",
+        "name": "_vm_map_insert"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x173ebc",
+        "name": "sub_173EBC"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001742a0",
+    "addr": "0x001742a0",
+    "code": "unsigned int __cdecl kmem_mb_alloc(_DWORD *a1, int a2)\n{\n  unsigned int v3; // ebx\n  volatile __int32 *v4; // ebx\n  unsigned int v5; // esi\n  unsigned int v6; // edi\n  int v7; // eax\n  int v8; // ebx\n  int v9; // eax\n  unsigned int v10; // edi\n  unsigned int v11; // esi\n  int v12; // ebx\n  volatile __int32 *v13; // [esp+10h] [ebp-14h]\n  unsigned int v14; // [esp+14h] [ebp-10h]\n  int v15; // [esp+18h] [ebp-Ch]\n  int v16; // [esp+1Ch] [ebp-8h]\n  unsigned int v17; // [esp+20h] [ebp-4h] BYREF\n  unsigned int v18; // [esp+30h] [ebp+Ch]\n\n  if ( (_DWORD *)mb_map != a1 && (_DWORD *)swapfs_bit_map != a1 && (_DWORD *)swapfs_rem_map != a1 ) /*0x1742c2*/\n    panic(aYouFool); /*0x1742c9*/\n  v18 = (page_mask + a2) & ~page_mask; /*0x1742df*/\n  lock_write((int)a1); /*0x1742e6*/\n  ++a1[19]; /*0x1742ee*/\n  v15 = a1[4]; /*0x1742f7*/\n  if ( (_DWORD *)v15 == a1 + 3 ) /*0x174302*/\n  {\n    lock_done((int)a1); /*0x174305*/\n    v17 = a1[5]; /*0x174310*/\n    if ( vm_map_find((int)a1, 0, 0, &v17, v18, 1) ) /*0x174325*/\n    {\n      return 0; /*0x174331*/\n    }\n    else\n    {\n      vm_map_pageable(a1, v17, v17 + v18, 0); /*0x174348*/\n      return v17; /*0x17434d*/\n    }\n  }\n  else\n  {\n    if ( a1[3] != v15 /*0x174383*/\n      || (*(_BYTE *)(v15 + 24) & 1) != 0\n      || *(_DWORD *)(v15 + 8) != a1[5]\n      || *(_DWORD *)(v15 + 32) != 7\n      || *(_DWORD *)(v15 + 28) != 3\n      || *(_DWORD *)(v15 + 36) != 1\n      || !*(_WORD *)(v15 + 40) )\n    {\n      panic(aMbMapAbusedEve); /*0x17438f*/\n    }\n    v3 = *(_DWORD *)(v15 + 12); /*0x1743a3*/\n    if ( a1[6] - v18 >= v3 ) /*0x1743a8*/\n    {\n      v16 = *(_DWORD *)(v15 + 16); /*0x1743be*/\n      v14 = *(_DWORD *)(v15 + 20) + v3 - *(_DWORD *)(v15 + 8); /*0x1743cc*/\n      v17 = *(_DWORD *)(v15 + 12); /*0x1743cf*/\n      *(_DWORD *)(v15 + 12) += v18; /*0x1743d5*/\n      v4 = (volatile __int32 *)(v16 + 16); /*0x1743db*/\n      do /*0x1743f2*/\n      {\n        while ( *v4 ) /*0x1743e0*/\n          ; /*0x1743e2*/\n      }\n      while ( _InterlockedExchange(v4, 1) == 1 ); /*0x1743f2*/\n      v5 = v14; /*0x1743f4*/\n      v6 = v18 >> page_shift; /*0x174400*/\n      if ( v18 >> page_shift ) /*0x174400*/\n      {\n        while ( 1 ) /*0x17440f*/\n        {\n          v7 = vm_page_alloc_sequential(v16, v5, 0); /*0x17440f*/\n          v8 = v7; /*0x174414*/\n          if ( !v7 ) /*0x17441b*/\n            break; /*0x17441b*/\n          vm_page_zero_fill(v7); /*0x174469*/\n          *(_BYTE *)(v8 + 32) &= ~1u; /*0x17446e*/\n          --v6; /*0x174472*/\n          v5 += page_size; /*0x174473*/\n          if ( !v6 ) /*0x17447e*/\n            goto LABEL_28; /*0x17447e*/\n        }\n        while ( v14 < v5 ) /*0x174420*/\n        {\n          v5 -= page_size; /*0x174424*/\n          v9 = vm_page_lookup(v16, v5); /*0x17442f*/\n          vm_page_free(v9); /*0x174437*/\n        }\n        _InterlockedExchange((volatile __int32 *)(v16 + 16), 0); /*0x174449*/\n        *(_DWORD *)(v15 + 12) -= v18; /*0x174452*/\n        lock_done((int)a1); /*0x174459*/\n        return 0; /*0x17445e*/\n      }\n      else\n      {\nLABEL_28:\n        _InterlockedExchange((volatile __int32 *)(v16 + 16), 0); /*0x174480*/\n        v10 = v17; /*0x174488*/\n        v11 = v14; /*0x17448b*/\n        if ( *(_DWORD *)(v15 + 12) > v17 ) /*0x174494*/\n        {\n          v13 = (volatile __int32 *)(v16 + 16); /*0x174499*/\n          while ( 1 ) /*0x1744ff*/\n          {\n            while ( *v13 ) /*0x17449f*/\n              ; /*0x1744a1*/\n            if ( _InterlockedExchange(v13, 1) != 1 ) /*0x1744af*/\n            {\n              v12 = vm_page_lookup(v16, v11); /*0x1744c0*/\n              vm_page_wire(v12); /*0x1744c3*/\n              _InterlockedExchange((volatile __int32 *)(v16 + 16), 0); /*0x1744d0*/\n              pmap_enter(a1[9], v10, *(_DWORD *)(v12 + 36), *(_DWORD *)(v15 + 28), 1); /*0x1744e8*/\n              v10 += page_size; /*0x1744f2*/\n              v11 += page_size; /*0x1744f4*/\n              if ( *(_DWORD *)(v15 + 12) <= v10 ) /*0x1744ff*/\n                break; /*0x1744ff*/\n            }\n          }\n        }\n        lock_done((int)a1); /*0x174505*/\n        return v17; /*0x17450a*/\n      }\n    }\n    else\n    {\n      lock_done((int)a1); /*0x1743ab*/\n      return 0; /*0x1743b0*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0a46",
+        "name": "aYouFool",
+        "string": "You fool!"
+      },
+      {
+        "addr": "0x1e8e20",
+        "name": "_mb_map"
+      },
+      {
+        "addr": "0x1f50c4",
+        "name": "_swapfs_bit_map"
+      },
+      {
+        "addr": "0x1f50c8",
+        "name": "_swapfs_rem_map"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x1e0a50",
+        "name": "aMbMapAbusedEve",
+        "string": "mb_map abused even more than usual"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x17b200",
+        "name": "_vm_page_alloc_sequential"
+      },
+      {
+        "addr": "0x17b99c",
+        "name": "_vm_page_zero_fill"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x17af58",
+        "name": "_vm_page_lookup"
+      },
+      {
+        "addr": "0x17b540",
+        "name": "_vm_page_free"
+      },
+      {
+        "addr": "0x17b6e8",
+        "name": "_vm_page_wire"
+      },
+      {
+        "addr": "0x19065c",
+        "name": "_pmap_enter"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174518",
+    "addr": "0x00174518",
+    "code": "unsigned int __cdecl kmem_alloc_wait(_DWORD *a1, int a2)\n{\n  unsigned int v2; // edi\n  int v3; // esi\n  unsigned int v5; // [esp+Ch] [ebp-4h] BYREF\n\n  v2 = ~page_mask & (page_mask + a2); /*0x174532*/\n  do /*0x1745a3*/\n  {\n    lock_write((int)a1); /*0x174535*/\n    ++a1[19]; /*0x17453a*/\n    lock_set_recursive((int)a1); /*0x174541*/\n    v5 = a1[5]; /*0x174549*/\n    v3 = vm_map_find((int)a1, 0, 0, &v5, v2, 1); /*0x17455d*/\n    lock_clear_recursive((int)a1); /*0x174560*/\n    if ( v3 ) /*0x17456a*/\n    {\n      if ( a1[6] - a1[5] < v2 ) /*0x174574*/\n      {\n        lock_done((int)a1); /*0x174577*/\n        return 0; /*0x17457e*/\n      }\n      assert_wait((int)a1, 1); /*0x174583*/\n      lock_done((int)a1); /*0x174589*/\n      thread_block(); /*0x17458e*/\n    }\n    else\n    {\n      lock_done((int)a1); /*0x174599*/\n    }\n  }\n  while ( v3 ); /*0x1745a3*/\n  return v5; /*0x1745ab*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x15bb9c",
+        "name": "_lock_set_recursive"
+      },
+      {
+        "addr": "0x174a90",
+        "name": "_vm_map_find"
+      },
+      {
+        "addr": "0x15bbe0",
+        "name": "_lock_clear_recursive"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001745b4",
+    "addr": "0x001745b4",
+    "code": "__int32 __cdecl kmem_free_wakeup(int a1, int a2, int a3)\n{\n  lock_write(a1); /*0x1745c4*/\n  ++*(_DWORD *)(a1 + 76); /*0x1745c9*/\n  vm_map_delete(a1, ~page_mask & a2, ~page_mask & (page_mask + a2 + a3)); /*0x1745e1*/\n  thread_wakeup_prim(a1, 0, 0); /*0x1745eb*/\n  return lock_done(a1); /*0x1745f9*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174600",
+    "addr": "0x00174600",
+    "code": "__int32 vm_map_init()\n{\n  vm_map_zone = zinit(80, 102400, 0, 0, (int)aMaps); /*0x174618*/\n  vm_map_entry_zone = zinit(44, (int)&dword_100000, 0, 0, (int)aNonKernelMapEn); /*0x174632*/\n  vm_map_kentry_zone = zinit(44, kentry_data_size, 0, 0, (int)aKernelMapEntri); /*0x174651*/\n  zchange(vm_map_kentry_zone, 0, 0, 0, 0); /*0x17465f*/\n  zcram(vm_map_zone, (_DWORD *)map_data, map_data_size); /*0x17467c*/\n  return zcram(vm_map_kentry_zone, (_DWORD *)kentry_data, kentry_data_size); /*0x17469d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      },
+      {
+        "addr": "0x16a490",
+        "name": "_zinit"
+      },
+      {
+        "addr": "0x1e0a73",
+        "name": "aMaps",
+        "string": "maps"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      },
+      {
+        "addr": "0x1e0a78",
+        "name": "aNonKernelMapEn",
+        "string": "non-kernel map entries"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x1f6eb0",
+        "name": "_kentry_data_size"
+      },
+      {
+        "addr": "0x1e0a8f",
+        "name": "aKernelMapEntri",
+        "string": "kernel map entries"
+      },
+      {
+        "addr": "0x16b90c",
+        "name": "_zchange"
+      },
+      {
+        "addr": "0x16a5dc",
+        "name": "_zcram"
+      },
+      {
+        "addr": "0x1f6eb4",
+        "name": "_map_data"
+      },
+      {
+        "addr": "0x1f6eb8",
+        "name": "_map_data_size"
+      },
+      {
+        "addr": "0x1f6eac",
+        "name": "_kentry_data"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001746a0",
+    "addr": "0x001746a0",
+    "code": "_DWORD *__cdecl vm_map_create(int a1, int a2, int a3, int a4)\n{\n  _DWORD *v4; // ebx\n\n  v4 = (_DWORD *)zalloc(vm_map_zone); /*0x1746b0*/\n  if ( !v4 ) /*0x1746b7*/\n    panic(aVmMapCreate); /*0x1746be*/\n  v4[4] = v4 + 3; /*0x1746c9*/\n  v4[3] = v4 + 3; /*0x1746cc*/\n  v4[7] = 0; /*0x1746cf*/\n  v4[8] = a4; /*0x1746d9*/\n  v4[10] = 0; /*0x1746dc*/\n  v4[12] = 1; /*0x1746e3*/\n  v4[9] = a1; /*0x1746ed*/\n  v4[11] = 1; /*0x1746f0*/\n  v4[5] = a2; /*0x1746fa*/\n  v4[6] = a3; /*0x174700*/\n  v4[18] = 0; /*0x174703*/\n  v4[17] = 0; /*0x17470a*/\n  v4[16] = v4 + 3; /*0x174711*/\n  v4[14] = v4 + 3; /*0x174714*/\n  v4[19] = 0; /*0x174717*/\n  lock_init(v4, 1); /*0x174721*/\n  v4[19] = 0; /*0x174726*/\n  v4[13] = 0; /*0x17472d*/\n  v4[15] = 0; /*0x174734*/\n  return v4; /*0x17473d*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0aa2",
+        "name": "aVmMapCreate",
+        "string": "vm_map_create"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174744",
+    "addr": "0x00174744",
+    "code": "int __cdecl _vm_map_entry_create(int a1)\n{\n  int v1; // eax\n  int result; // eax\n\n  if ( *(_DWORD *)(a1 + 20) ) /*0x17474b*/\n    v1 = vm_map_entry_zone; /*0x174751*/\n  else\n    v1 = vm_map_kentry_zone; /*0x174758*/\n  result = zalloc(v1); /*0x17475e*/\n  if ( !result ) /*0x17476a*/\n    panic(aVmMapEntryCrea); /*0x174771*/\n  return result; /*0x174778*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174780",
+    "addr": "0x00174780",
+    "code": "__int32 __cdecl _vm_map_entry_dispose(int a1, _DWORD *a2)\n{\n  int v2; // eax\n\n  if ( *(_DWORD *)(a1 + 20) ) /*0x174786*/\n    v2 = vm_map_entry_zone; /*0x17478c*/\n  else\n    v2 = vm_map_kentry_zone; /*0x174794*/\n  return zfree(v2, a2); /*0x1747a5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001747a8",
+    "addr": "0x001747a8",
+    "code": "void __cdecl vm_map_reference(int a1)\n{\n  volatile __int32 *v1; // edx\n\n  if ( a1 ) /*0x1747b0*/\n  {\n    v1 = (volatile __int32 *)(a1 + 52); /*0x1747b2*/\n    do /*0x1747ca*/\n    {\n      while ( *v1 ) /*0x1747b8*/\n        ; /*0x1747ba*/\n    }\n    while ( _InterlockedExchange(v1, 1) == 1 ); /*0x1747ca*/\n    ++*(_DWORD *)(a1 + 48); /*0x1747cc*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 52), 0); /*0x1747d1*/\n  }\n}"
+  },
+  {
+    "requested_address": "0x001747d8",
+    "addr": "0x001747d8",
+    "code": "void __cdecl vm_map_deallocate(int a1)\n{\n  volatile __int32 *v1; // edx\n  int v2; // ecx\n\n  if ( a1 ) /*0x1747e1*/\n  {\n    v1 = (volatile __int32 *)(a1 + 52); /*0x1747e3*/\n    do /*0x1747fa*/\n    {\n      while ( *v1 ) /*0x1747e8*/\n        ; /*0x1747ea*/\n    }\n    while ( _InterlockedExchange(v1, 1) == 1 ); /*0x1747fa*/\n    v2 = *(_DWORD *)(a1 + 48) - 1; /*0x1747ff*/\n    *(_DWORD *)(a1 + 48) = v2; /*0x174802*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 52), 0); /*0x174808*/\n    if ( v2 <= 0 ) /*0x17480d*/\n    {\n      lock_write(a1); /*0x174810*/\n      ++*(_DWORD *)(a1 + 76); /*0x174815*/\n      vm_map_delete(a1, *(_DWORD *)(a1 + 20), *(_DWORD *)(a1 + 24)); /*0x174824*/\n      pmap_destroy(*(_DWORD *)(a1 + 36)); /*0x17482d*/\n      zfree(vm_map_zone, (_DWORD *)a1); /*0x17483a*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x176164",
+        "name": "_vm_map_delete"
+      },
+      {
+        "addr": "0x18f69c",
+        "name": "_pmap_destroy"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6ec4",
+        "name": "_vm_map_zone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00174848",
+    "addr": "0x00174848",
+    "code": "int __cdecl vm_map_insert(_DWORD *a1, int a2, int a3, unsigned int a4, unsigned int a5)\n{\n  int v6; // esi\n  _DWORD *v7; // edx\n  int v8; // eax\n  int v9; // eax\n  int v10; // ebx\n  int v11; // eax\n  int v12; // [esp+Ch] [ebp-4h] BYREF\n\n  if ( a1[5] > a4 || a1[6] < a5 || a4 >= a5 ) /*0x174867*/\n    return 1; /*0x174869*/\n  if ( vm_map_lookup_entry(a1, a4, &v12) ) /*0x17487d*/\n    return 3; /*0x17487d*/\n  v6 = v12; /*0x174889*/\n  v7 = *(_DWORD **)(v12 + 4); /*0x17488f*/\n  if ( v7 != a1 + 3 && v7[2] < a5 ) /*0x17489c*/\n    return 3; /*0x17489e*/\n  if ( !a2 /*0x1748f5*/\n    && (_DWORD *)v12 != a1 + 3\n    && *(_DWORD *)(v12 + 12) == a4\n    && (*(_BYTE *)(v12 + 24) & 5) == 0\n    && *(_DWORD *)(v12 + 36) == 1\n    && *(_DWORD *)(v12 + 28) == 3\n    && *(_DWORD *)(v12 + 32) == 7\n    && !*(_WORD *)(v12 + 40)\n    && vm_object_coalesce(*(_DWORD *)(v12 + 16), 0, *(_DWORD *)(v12 + 20), 0, a4 - *(_DWORD *)(v12 + 8), a5 - a4) )\n  {\n    a1[10] += a5 - *(_DWORD *)(v6 + 12); /*0x174907*/\n    *(_DWORD *)(v6 + 12) = a5; /*0x17490d*/\n  }\n  else\n  {\n    if ( a1[8] ) /*0x174918*/\n      v8 = vm_map_entry_zone; /*0x17491e*/\n    else\n      v8 = vm_map_kentry_zone; /*0x174928*/\n    v9 = zalloc(v8); /*0x17492e*/\n    v10 = v9; /*0x174933*/\n    if ( !v9 ) /*0x17493a*/\n      panic(aVmMapEntryCrea); /*0x174941*/\n    *(_DWORD *)(v9 + 8) = a4; /*0x17494b*/\n    *(_DWORD *)(v9 + 12) = a5; /*0x174951*/\n    *(_BYTE *)(v9 + 24) &= 0xFAu; /*0x174954*/\n    *(_DWORD *)(v9 + 16) = a2; /*0x17495b*/\n    *(_DWORD *)(v9 + 20) = a3; /*0x174961*/\n    *(_BYTE *)(v9 + 24) &= 0xB7u; /*0x174964*/\n    if ( a1[11] ) /*0x174968*/\n    {\n      *(_DWORD *)(v9 + 36) = 1; /*0x17496e*/\n      *(_DWORD *)(v9 + 28) = 3; /*0x174975*/\n      *(_DWORD *)(v9 + 32) = 7; /*0x17497c*/\n      *(_WORD *)(v9 + 40) = 0; /*0x174983*/\n    }\n    ++a1[7]; /*0x174989*/\n    *(_DWORD *)v9 = v6; /*0x17498c*/\n    *(_DWORD *)(v9 + 4) = *(_DWORD *)(v6 + 4); /*0x174991*/\n    v11 = *(_DWORD *)v9; /*0x174994*/\n    **(_DWORD **)(v10 + 4) = v10; /*0x174999*/\n    *(_DWORD *)(v11 + 4) = v10; /*0x17499b*/\n    a1[10] += *(_DWORD *)(v10 + 12) - *(_DWORD *)(v10 + 8); /*0x1749a4*/\n    if ( a1[16] == v6 && *(_DWORD *)(v6 + 12) >= *(_DWORD *)(v10 + 8) ) /*0x1749b2*/\n      a1[16] = v10; /*0x1749b4*/\n  }\n  return 0; /*0x1749bc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1749c4",
+        "name": "_vm_map_lookup_entry"
+      },
+      {
+        "addr": "0x1f6ebc",
+        "name": "_vm_map_entry_zone"
+      },
+      {
+        "addr": "0x1f6ec0",
+        "name": "_vm_map_kentry_zone"
+      },
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0ab0",
+        "name": "aVmMapEntryCrea",
+        "string": "vm_map_entry_create"
+      },
+      {
+        "addr": "0x179c28",
+        "name": "_vm_object_coalesce"
+      }
+    ]
+  }
+]

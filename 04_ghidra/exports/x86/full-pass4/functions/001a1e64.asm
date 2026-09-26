@@ -1,0 +1,1 @@
+0x001a1e64	2	XOR EAX,EAX

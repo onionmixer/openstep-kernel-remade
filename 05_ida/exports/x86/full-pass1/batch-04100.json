@@ -1,0 +1,659 @@
+[
+  {
+    "requested_address": "0x001ba804",
+    "addr": "0x001ba804",
+    "code": "id __cdecl -[OutputStream clearForMix:size:format:](OutputStream *self, SEL a2, char *a3, unsigned int a4, int a5)\n{\n  char *v5; // edx\n  unsigned int v6; // eax\n  unsigned int v7; // eax\n\n  v5 = a3; /*0x1ba807*/\n  if ( a5 == 3 ) /*0x1ba813*/\n  {\n    v6 = a4 - 1; /*0x1ba815*/\n    if ( a4 ) /*0x1ba819*/\n    {\n      do /*0x1ba824*/\n      {\n        *v5++ = 0x80; /*0x1ba81c*/\n        --v6; /*0x1ba820*/\n      }\n      while ( v6 != -1 ); /*0x1ba824*/\n    }\n  }\n  else if ( a5 == 1 ) /*0x1ba82b*/\n  {\n    v7 = a4 - 1; /*0x1ba82d*/\n    if ( a4 ) /*0x1ba831*/\n    {\n      do /*0x1ba83c*/\n      {\n        *v5++ = 127; /*0x1ba834*/\n        --v7; /*0x1ba838*/\n      }\n      while ( v7 != -1 ); /*0x1ba83c*/\n    }\n  }\n  else\n  {\n    bzero(a3, a4); /*0x1ba842*/\n  }\n  return self; /*0x1ba84c*/\n}",
+    "refs": [
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba850",
+    "addr": "0x001ba850",
+    "code": "id __cdecl -[OutputStream completeRegion:descriptor:size:used:](\n        OutputStream *self,\n        SEL a2,\n        $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3,\n        $2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *a4,\n        unsigned int a5,\n        unsigned int *a6)\n{\n  queue_entry *next; // edx\n  int v7; // eax\n  int v9; // [esp+Ch] [ebp-Ch]\n  int v10; // [esp+10h] [ebp-8h]\n  int v11; // [esp+14h] [ebp-4h]\n\n  if ( &self->xferQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->xferQueue.next ) /*0x1ba86d*/\n  {\nLABEL_6:\n    v7 = 0; /*0x1ba89f*/\n  }\n  else\n  {\n    next = self->xferQueue.next; /*0x1ba86f*/\n    while ( *($2D87D4CA0FCCD4E0D80DDC4A8D8F85EA **)next != a4 ) /*0x1ba876*/\n    {\n      next = *((queue_entry **)next + 5); /*0x1ba898*/\n      if ( &self->xferQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)next ) /*0x1ba89d*/\n        goto LABEL_6; /*0x1ba89d*/\n    }\n    v7 = *((_DWORD *)next + 1); /*0x1ba878*/\n    *((_DWORD *)next + 1) = 0; /*0x1ba87b*/\n    v11 = *((_DWORD *)next + 2); /*0x1ba885*/\n    v10 = *((_DWORD *)next + 3); /*0x1ba88b*/\n    v9 = *((_DWORD *)next + 4); /*0x1ba891*/\n  }\n  self->super.bytesProcessed += v7; /*0x1ba8a1*/\n  objc_msgSend(self->super.channel, sel_incrementClipCount_, v9); /*0x1ba8b3*/\n  if ( self->peakEnabled ) /*0x1ba8bb*/\n  {\n    audio_add_peak(self->peaksLeft, v11, &self->currentPeak, self->peakHistory); /*0x1ba8dd*/\n    audio_add_peak(self->peaksRight, v10, &self->currentPeak, self->peakHistory); /*0x1ba8f5*/\n  }\n  return self; /*0x1ba8ff*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x206124",
+        "name": "sel_incrementClipCount:",
+        "string": "incrementClipCount:"
+      },
+      {
+        "addr": "0x1be98c",
+        "name": "_audio_add_peak"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba908",
+    "addr": "0x001ba908",
+    "code": "unsigned int __cdecl -[OutputStream gainLeft](OutputStream *self, SEL a2)\n{\n  return self->leftGain; /*0x1ba913*/\n}"
+  },
+  {
+    "requested_address": "0x001ba918",
+    "addr": "0x001ba918",
+    "code": "unsigned int __cdecl -[OutputStream gainRight](OutputStream *self, SEL a2)\n{\n  return self->rightGain; /*0x1ba923*/\n}"
+  },
+  {
+    "requested_address": "0x001ba928",
+    "addr": "0x001ba928",
+    "code": "void __cdecl -[OutputStream setGainLeft:](OutputStream *self, SEL a2, unsigned int a3)\n{\n  self->leftGain = a3; /*0x1ba931*/\n}"
+  },
+  {
+    "requested_address": "0x001ba938",
+    "addr": "0x001ba938",
+    "code": "void __cdecl -[OutputStream setGainRight:](OutputStream *self, SEL a2, unsigned int a3)\n{\n  self->rightGain = a3; /*0x1ba941*/\n}"
+  },
+  {
+    "requested_address": "0x001ba948",
+    "addr": "0x001ba948",
+    "code": "char __cdecl -[OutputStream isDetectingPeaks](OutputStream *self, SEL a2)\n{\n  return self->peakEnabled; /*0x1ba957*/\n}"
+  },
+  {
+    "requested_address": "0x001ba95c",
+    "addr": "0x001ba95c",
+    "code": "void __cdecl -[OutputStream setDetectPeaks:](OutputStream *self, SEL a2, char a3)\n{\n  self->peakEnabled = a3; /*0x1ba966*/\n  if ( a3 ) /*0x1ba96e*/\n  {\n    if ( !self->peaksLeft ) /*0x1ba970*/\n    {\n      self->peaksLeft = (unsigned int *)IOMalloc(0x40u); /*0x1ba980*/\n      self->peaksRight = (unsigned int *)IOMalloc(0x40u); /*0x1ba98d*/\n      audio_clear_peaks(self->peaksLeft, 16); /*0x1ba99c*/\n      audio_clear_peaks(self->peaksRight, 16); /*0x1ba9aa*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1be940",
+        "name": "_audio_clear_peaks"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba9b8",
+    "addr": "0x001ba9b8",
+    "code": "id __cdecl -[OutputStream getPeakLeft:right:](OutputStream *self, SEL a2, unsigned int *a3, unsigned int *a4)\n{\n  if ( self->peakEnabled ) /*0x1ba9c7*/\n  {\n    *a3 = audio_max_peak(self->peaksLeft, self->peakHistory); /*0x1ba9e3*/\n    *a4 = audio_max_peak(self->peaksRight, self->peakHistory); /*0x1ba9f8*/\n  }\n  else\n  {\n    *a4 = 0; /*0x1ba9fc*/\n    *a3 = 0; /*0x1baa02*/\n  }\n  return self; /*0x1baa0d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1be960",
+        "name": "_audio_max_peak"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001baa14",
+    "addr": "0x001baa14",
+    "code": "id __cdecl -[OutputStream freeRegion:](OutputStream *self, SEL a2, $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3)\n{\n  int v3; // eax\n  int v4; // eax\n  objc_super v6; // [esp+4h] [ebp-8h] BYREF\n\n  v3 = kern_serv_kernel_task_port(); /*0x1baa1e*/\n  v4 = vm_deallocate_EXTERNAL(v3, a3->var0, a3->var4); /*0x1baa2b*/\n  if ( v4 )\n    IOLog((int)\"Audio: stream vm_deallocate error %d\\n\", v4);\n  v6.receiver = self; /*0x1baa50*/\n  v6.super_class = (Class)stru_1FA514.super_class; /*0x1baa59*/\n  return -[AudioStream freeRegion:](&v6, sel_freeRegion_, a3); /*0x1baa65*/\n}",
+    "refs": [
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x1d0a40",
+        "name": "_vm_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8994",
+        "name": "aAudioStreamVmD_0",
+        "string": "Audio: stream vm_deallocate error %d\n"
+      },
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1b8d5c",
+        "name": "-[AudioStream freeRegion:]"
+      },
+      {
+        "addr": "0x20657c",
+        "name": "sel_freeRegion:",
+        "string": "freeRegion:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001baa6c",
+    "addr": "0x001baa6c",
+    "code": "id __cdecl -[OutputStream free](OutputStream *self, SEL a2)\n{\n  unsigned int *peaksRight; // eax\n  unsigned int *peaksLeft; // eax\n  queue_entry *p_xferQueue; // ebx\n  int v5; // ecx\n  int v6; // edx\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v7; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v8; // eax\n  char *mixBuffer1; // edx\n  char *mixBuffer2; // edx\n  queue_entry *next; // [esp+Ch] [ebp-Ch]\n  objc_super v13; // [esp+10h] [ebp-8h] BYREF\n\n  peaksRight = self->peaksRight; /*0x1baa78*/\n  if ( peaksRight ) /*0x1baa80*/\n    IOFree((int)peaksRight, 64); /*0x1baa85*/\n  peaksLeft = self->peaksLeft; /*0x1baa8d*/\n  if ( peaksLeft ) /*0x1baa95*/\n    IOFree((int)peaksLeft, 64); /*0x1baa9a*/\n  if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->xferQueue.next != &self->xferQueue ) /*0x1baaae*/\n  {\n    p_xferQueue = (queue_entry *)&self->xferQueue; /*0x1baab0*/\n    do /*0x1baaf5*/\n    {\n      next = self->xferQueue.next; /*0x1baaba*/\n      v5 = *((_DWORD *)next + 5); /*0x1baabd*/\n      v6 = *((_DWORD *)next + 6); /*0x1baac0*/\n      if ( p_xferQueue == (queue_entry *)v5 ) /*0x1baac5*/\n        v7 = &self->xferQueue; /*0x1baac7*/\n      else\n        v7 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v5 + 20); /*0x1baacc*/\n      v7->prev = (queue_entry *)v6; /*0x1baacf*/\n      if ( p_xferQueue == (queue_entry *)v6 ) /*0x1baad4*/\n        v8 = &self->xferQueue; /*0x1baad6*/\n      else\n        v8 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v6 + 20); /*0x1baadc*/\n      v8->next = (queue_entry *)v5; /*0x1baadf*/\n      IOFree((int)next, 28); /*0x1baae7*/\n    }\n    while ( self->xferQueue.next != p_xferQueue ); /*0x1baaf5*/\n  }\n  mixBuffer1 = self->super.mixBuffer1; /*0x1baaf7*/\n  if ( mixBuffer1 ) /*0x1baafc*/\n    IOFree((int)mixBuffer1, 8 * page_size); /*0x1bab0d*/\n  mixBuffer2 = self->super.mixBuffer2; /*0x1bab15*/\n  if ( mixBuffer2 ) /*0x1bab1a*/\n    IOFree((int)mixBuffer2, 4 * page_size); /*0x1bab2b*/\n  v13.receiver = self; /*0x1bab3a*/\n  v13.super_class = (Class)stru_1FA514.super_class; /*0x1bab43*/\n  return -[AudioStream free](&v13, sel_free); /*0x1bab52*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1b9368",
+        "name": "-[AudioStream free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bab5c",
+    "addr": "0x001bab5c",
+    "code": "id __cdecl -[AudioCommand initPort:](AudioCommand *self, SEL a2, int a3)\n{\n  NXConditionLock *v3; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  v5.receiver = self; /*0x1bab71*/\n  v5.super_class = (Class)stru_1FA514.ext; /*0x1bab7a*/\n  -[Object init](&v5, sel_init); /*0x1bab81*/\n  v3 = +[Object alloc](aNxconditionloc, sel_alloc); /*0x1bab9d*/\n  self->interLock = -[NXConditionLock initWith:](v3, sel_initWith_); /*0x1babab*/\n  self->driverPort_kern = a3; /*0x1babae*/\n  return self; /*0x1babb6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfbd",
+        "name": "aNxconditionloc",
+        "string": "NXConditionLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1a8df8",
+        "name": "-[NXConditionLock initWith:]"
+      },
+      {
+        "addr": "0x201908",
+        "name": "sel_initWith:",
+        "string": "initWith:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001babbc",
+    "addr": "0x001babbc",
+    "code": "id __cdecl -[AudioCommand free](AudioCommand *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->interLock, sel_free); /*0x1babd1*/\n  v3.receiver = self; /*0x1babdd*/\n  v3.super_class = (Class)stru_1FA514.ext; /*0x1babe6*/\n  return -[Object free](&v3, sel_free); /*0x1babf2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001babfc",
+    "addr": "0x001babfc",
+    "code": "int __cdecl -[AudioCommand command](AudioCommand *self, SEL a2)\n{\n  return self->command; /*0x1bac07*/\n}"
+  },
+  {
+    "requested_address": "0x001bac0c",
+    "addr": "0x001bac0c",
+    "code": "void __cdecl -[AudioCommand done:](AudioCommand *self, SEL a2, int a3)\n{\n  if ( objc_msgSend(self->interLock, sel_condition) == (id)2 ) /*0x1bac29*/\n  {\n    objc_msgSend(self->interLock, sel_lock); /*0x1bac36*/\n    self->ret = a3; /*0x1bac3e*/\n    objc_msgSend(self->interLock, sel_unlockWith_, 1); /*0x1bac4e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x203ec4",
+        "name": "sel_condition",
+        "string": "condition"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bac5c",
+    "addr": "0x001bac5c",
+    "code": "int __cdecl -[AudioCommand send:](AudioCommand *self, SEL a2, int a3)\n{\n  int ret; // ebx\n  _DWORD v5[6]; // [esp+Ch] [ebp-18h] BYREF\n\n  qmemcpy(v5, &unk_1D5E94, sizeof(v5)); /*0x1bac76*/\n  objc_msgSend(self->interLock, sel_lockWhen_, 3); /*0x1bac88*/\n  self->command = a3; /*0x1bac90*/\n  v5[1] = 24; /*0x1bac93*/\n  v5[4] = self->driverPort_kern; /*0x1bac9d*/\n  v5[5] = 902; /*0x1baca0*/\n  objc_msgSend(self->interLock, sel_unlockWith_, 2); /*0x1bacb7*/\n  ret = msg_send_from_kernel(v5, 1, 1000); /*0x1baccc*/\n  if ( ret ) /*0x1bacd3*/\n  {\n    objc_msgSend(self->interLock, sel_lock); /*0x1bad06*/\n  }\n  else\n  {\n    objc_msgSend(self->interLock, sel_lockWhen_, 1); /*0x1bace5*/\n    ret = self->ret; /*0x1baced*/\n  }\n  objc_msgSend(self->interLock, sel_unlockWith_, 3); /*0x1bad1e*/\n  return ret; /*0x1bad28*/\n}",
+    "refs": [
+      {
+        "addr": "0x1d5e94",
+        "name": "unk_1D5E94"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201914",
+        "name": "sel_lockWhen:",
+        "string": "lockWhen:"
+      },
+      {
+        "addr": "0x201930",
+        "name": "sel_unlockWith:",
+        "string": "unlockWith:"
+      },
+      {
+        "addr": "0x1586d4",
+        "name": "_msg_send_from_kernel"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bad30",
+    "addr": "0x001bad30",
+    "code": "int __cdecl audioKernServInit(int a1)\n{\n  dword_1E8718 = a1; /*0x1bad36*/\n  return a1; /*0x1bad3d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8718",
+        "name": "dword_1E8718"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bad40",
+    "addr": "0x001bad40",
+    "code": "_BOOL4 __cdecl audio_enroll_stream_port(int a1, int a2)\n{\n  int v2; // eax\n  int v4; // [esp+0h] [ebp-4h]\n\n  if ( a2 )\n  {\n    v2 = kern_serv_port_serv((int *)dword_1E8718, a1, (int)audioMessages, a1); /*0x1bad5d*/\n    if ( v2 )\n    {\n      v4 = v2; /*0x1bad6f*/\n      IOLog((int)\"Audio: kern_serv_port_serv returns %d\\n\", v2);\n      v2 = v4; /*0x1bad77*/\n    }\n  }\n  else\n  {\n    kern_serv_port_gone((int *)dword_1E8718, a1); /*0x1bad84*/\n    v2 = 0; /*0x1bad89*/\n  }\n  return v2 == 0; /*0x1bad95*/\n}",
+    "refs": [
+      {
+        "addr": "0x16cb9c",
+        "name": "_kern_serv_port_serv"
+      },
+      {
+        "addr": "0x1e8718",
+        "name": "dword_1E8718"
+      },
+      {
+        "addr": "0x1bb308",
+        "name": "_audioMessages"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d89e0",
+        "name": "aAudioKernServP",
+        "string": "Audio: kern_serv_port_serv returns %d\n"
+      },
+      {
+        "addr": "0x16c8d4",
+        "name": "_kern_serv_port_gone"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bad9c",
+    "addr": "0x001bad9c",
+    "code": "int __cdecl audio_reset_snd_dev_port(id a1, int a2)\n{\n  int v2; // ebx\n  id v4; // eax\n  int v5; // eax\n  int v6; // eax\n  id v7; // eax\n  id v8; // eax\n  id v9; // [esp-4h] [ebp-10h]\n  int v10; // [esp+8h] [ebp-4h]\n\n  v2 = IOHostPrivSelf(); /*0x1badac*/\n  if ( !v2 )\n  {\n    IOLog((int)\"Audio: cannot get kernel port (must run as root)\\n\");\n    IOLog((int)\"reset_snd_dev_port\"); /*0x1badc1*/\n  }\n  if ( a2 != v2 ) /*0x1badcc*/\n    return 0; /*0x1badce*/\n  v4 = objc_msgSend(a1, sel__outputChannel); /*0x1bade7*/\n  v9 = objc_msgSend(v4, sel_userSndPort); /*0x1badf8*/\n  v5 = task_self(); /*0x1badf9*/\n  if ( port_deallocate_EXTERNAL(v5, v9) )\n    IOLog((int)\"Audio: port_deallocate\\n\");\n  v6 = task_self(); /*0x1bae1c*/\n  if ( port_allocate_EXTERNAL(v6) )\n    IOLog((int)\"Audio: port_allocate\");\n  v7 = objc_msgSend(a1, sel__inputChannel); /*0x1bae4e*/\n  objc_msgSend(v7, sel_setUserSndPort_); /*0x1bae57*/\n  v8 = objc_msgSend(a1, sel__outputChannel); /*0x1bae6c*/\n  objc_msgSend(v8, sel_setUserSndPort_); /*0x1bae75*/\n  return v10; /*0x1bae7f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a9328",
+        "name": "_IOHostPrivSelf"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8a08",
+        "name": "aAudioCannotGet",
+        "string": "Audio: cannot get kernel port (must run as root)\n"
+      },
+      {
+        "addr": "0x1d8a3c",
+        "name": "aResetSndDevPor",
+        "string": "reset_snd_dev_port"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205484",
+        "name": "sel__outputChannel",
+        "string": "_outputChannel"
+      },
+      {
+        "addr": "0x205df0",
+        "name": "sel_userSndPort",
+        "string": "userSndPort"
+      },
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x1d8390",
+        "name": "aAudioPortDeall",
+        "string": "Audio: port_deallocate\n"
+      },
+      {
+        "addr": "0x1d0508",
+        "name": "_port_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1d8378",
+        "name": "aAudioPortAlloc",
+        "string": "Audio: port_allocate"
+      },
+      {
+        "addr": "0x1d0440",
+        "name": "_port_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x205474",
+        "name": "sel__inputChannel",
+        "string": "_inputChannel"
+      },
+      {
+        "addr": "0x2061d4",
+        "name": "sel_setUserSndPort:",
+        "string": "setUserSndPort:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bae88",
+    "addr": "0x001bae88",
+    "code": "int __cdecl sub_1BAE88(_DWORD *a1, int a2)\n{\n  int v3; // eax\n  int v4; // eax\n  int v5; // eax\n  int v6; // eax\n  int v7; // eax\n  int v8; // eax\n  __int16 v9; // ax\n  int v10; // eax\n  int v11; // eax\n  int v12; // eax\n  int v13; // eax\n  int v14; // eax\n  int v15; // eax\n  int v16; // eax\n  int v17; // eax\n  int v18; // eax\n  int v19; // eax\n  id v20; // eax\n  id v21; // eax\n  id v22; // eax\n  id v23; // eax\n  int v24; // [esp-4h] [ebp-18h]\n  int v25; // [esp-4h] [ebp-18h]\n  int v26; // [esp-4h] [ebp-18h]\n  id v27; // [esp+Ch] [ebp-8h]\n  int v28; // [esp+10h] [ebp-4h]\n\n  v27 = +[IOAudio _instance](aIoaudio, sel__instance); /*0x1baeaa*/\n  *(_BYTE *)(a2 + 3) = 1; /*0x1baead*/\n  *(_DWORD *)(a2 + 4) = 24; /*0x1baeb1*/\n  *(_DWORD *)(a2 + 8) = 0; /*0x1baeb8*/\n  *(_DWORD *)(a2 + 12) = 0; /*0x1baebf*/\n  *(_DWORD *)(a2 + 16) = a1[4]; /*0x1baec9*/\n  *(_DWORD *)(a2 + 20) = 0; /*0x1baecc*/\n  if ( a1[5] ) /*0x1baed6*/\n    return 0; /*0x1baedc*/\n  if ( !v27 ) /*0x1baee8*/\n    return 1; /*0x1baeea*/\n  if ( !dword_1E53B8 )\n  {\n    kern_serv_port_death_proc(dword_1E8718, (int)audio_port_gone); /*0x1baf0d*/\n    v3 = task_self(); /*0x1baf19*/\n    if ( port_allocate_EXTERNAL(v3) )\n      IOLog((int)\"Audio: port_allocate\");\n    outPort = v28; /*0x1baf3b*/\n    v4 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1baf4e*/\n    if ( v4 )\n      IOLog((int)\"Audio: createAudioPorts error %d\\n\", v4);\n    v5 = task_self(); /*0x1baf69*/\n    if ( port_allocate_EXTERNAL(v5) )\n      IOLog((int)\"Audio: port_allocate\");\n    inPort = v28; /*0x1baf8b*/\n    v6 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1baf9e*/\n    if ( v6 )\n      IOLog((int)\"Audio: createAudioPorts error %d\\n\", v6);\n    v7 = task_self(); /*0x1bafb9*/\n    if ( port_allocate_EXTERNAL(v7) )\n      IOLog((int)\"Audio: port_allocate\");\n    sndPort = v28; /*0x1bafdb*/\n    v8 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1bafee*/\n    if ( v8 )\n      IOLog((int)\"Audio: createAudioPorts error %d\\n\", v8);\n    dword_1E53B8 = 1; /*0x1bb008*/\n  }\n  *(_BYTE *)(a2 + 3) = 0; /*0x1bb015*/\n  *(_DWORD *)(a2 + 4) = 40; /*0x1bb019*/\n  *(_DWORD *)(a2 + 20) = 1; /*0x1bb020*/\n  *(_BYTE *)(a2 + 24) = 6; /*0x1bb027*/\n  *(_BYTE *)(a2 + 25) = 32; /*0x1bb02b*/\n  v9 = *(_WORD *)(a2 + 26) & 0xF000; /*0x1bb033*/\n  LOBYTE(v9) = 3; /*0x1bb037*/\n  *(_WORD *)(a2 + 26) = v9; /*0x1bb039*/\n  *(_BYTE *)(a2 + 27) = *(_BYTE *)(a2 + 27) & 0xF | 0x10; /*0x1bb044*/\n  v10 = IOHostPrivSelf(); /*0x1bb047*/\n  if ( v10 )\n  {\n    if ( a1[7] == v10 )\n    {\n      if ( a1[9] )\n      {\n        if ( inPort )\n        {\n          kern_serv_port_gone((int *)dword_1E8718, inPort); /*0x1bb09f*/\n          v24 = inPort; /*0x1bb0ad*/\n          v11 = task_self(); /*0x1bb0ae*/\n          if ( port_deallocate_EXTERNAL(v11, v24) )\n            IOLog((int)\"Audio: port_deallocate\\n\");\n        }\n        if ( outPort )\n        {\n          kern_serv_port_gone((int *)dword_1E8718, outPort); /*0x1bb0de*/\n          v25 = outPort; /*0x1bb0ec*/\n          v12 = task_self(); /*0x1bb0ed*/\n          if ( port_deallocate_EXTERNAL(v12, v25) )\n            IOLog((int)\"Audio: port_deallocate\\n\");\n        }\n        if ( sndPort )\n        {\n          kern_serv_port_gone((int *)dword_1E8718, sndPort); /*0x1bb11d*/\n          v26 = sndPort; /*0x1bb12b*/\n          v13 = task_self(); /*0x1bb12c*/\n          if ( port_deallocate_EXTERNAL(v13, v26) )\n            IOLog((int)\"Audio: port_deallocate\\n\");\n        }\n        v14 = task_self(); /*0x1bb14f*/\n        if ( port_allocate_EXTERNAL(v14) )\n          IOLog((int)\"Audio: port_allocate\");\n        outPort = v28; /*0x1bb171*/\n        v15 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1bb184*/\n        if ( v15 )\n          IOLog((int)\"Audio: createAudioPorts error %d\\n\", v15);\n        v16 = task_self(); /*0x1bb19f*/\n        if ( port_allocate_EXTERNAL(v16) )\n          IOLog((int)\"Audio: port_allocate\");\n        inPort = v28; /*0x1bb1c1*/\n        v17 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1bb1d4*/\n        if ( v17 )\n          IOLog((int)\"Audio: createAudioPorts error %d\\n\", v17);\n        v18 = task_self(); /*0x1bb1ef*/\n        if ( port_allocate_EXTERNAL(v18) )\n          IOLog((int)\"Audio: port_allocate\");\n        sndPort = v28; /*0x1bb211*/\n        v19 = kern_serv_port_serv((int *)dword_1E8718, v28, (int)audioMessages, v28); /*0x1bb224*/\n        if ( v19 )\n          IOLog((int)\"Audio: createAudioPorts error %d\\n\", v19);\n      }\n      *(_DWORD *)(a2 + 28) = inPort; /*0x1bb244*/\n      *(_DWORD *)(a2 + 32) = outPort; /*0x1bb24d*/\n      *(_DWORD *)(a2 + 36) = sndPort; /*0x1bb256*/\n    }\n    else\n    {\n      *(_DWORD *)(a2 + 28) = 0; /*0x1bb069*/\n      *(_DWORD *)(a2 + 32) = 0; /*0x1bb070*/\n      *(_DWORD *)(a2 + 36) = 0; /*0x1bb077*/\n    }\n    v20 = objc_msgSend(v27, sel__outputChannel); /*0x1bb272*/\n    objc_msgSend(v20, sel_setUserChannelPort_); /*0x1bb27b*/\n    v21 = objc_msgSend(v27, sel__outputChannel); /*0x1bb299*/\n    objc_msgSend(v21, sel_setUserSndPort_); /*0x1bb2a2*/\n    v22 = objc_msgSend(v27, sel__inputChannel); /*0x1bb2c0*/\n    objc_msgSend(v22, sel_setUserChannelPort_); /*0x1bb2c9*/\n    v23 = objc_msgSend(v27, sel__inputChannel); /*0x1bb2ea*/\n    objc_msgSend(v23, sel_setUserSndPort_); /*0x1bb2f3*/\n    return 1; /*0x1bb2f8*/\n  }\n  else\n  {\n    IOLog((int)\"Audio: cannot get kernel port (must run as root)\\n\");\n    return 1; /*0x1bb05a*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1b6228",
+        "name": "+[IOAudio _instance]"
+      },
+      {
+        "addr": "0x1feb4e",
+        "name": "aIoaudio",
+        "string": "IOAudio"
+      },
+      {
+        "addr": "0x205904",
+        "name": "sel__instance",
+        "string": "_instance"
+      },
+      {
+        "addr": "0x16cc4c",
+        "name": "_kern_serv_port_death_proc"
+      },
+      {
+        "addr": "0x1e8718",
+        "name": "dword_1E8718"
+      },
+      {
+        "addr": "0x1bbf60",
+        "name": "_audio_port_gone"
+      },
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8378",
+        "name": "aAudioPortAlloc",
+        "string": "Audio: port_allocate"
+      },
+      {
+        "addr": "0x1d0440",
+        "name": "_port_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1e53ac",
+        "name": "_outPort"
+      },
+      {
+        "addr": "0x16cb9c",
+        "name": "_kern_serv_port_serv"
+      },
+      {
+        "addr": "0x1bb308",
+        "name": "_audioMessages"
+      },
+      {
+        "addr": "0x1d89bc",
+        "name": "aAudioCreateaud",
+        "string": "Audio: createAudioPorts error %d\n"
+      },
+      {
+        "addr": "0x1e53b0",
+        "name": "_inPort"
+      },
+      {
+        "addr": "0x1e53b4",
+        "name": "_sndPort"
+      },
+      {
+        "addr": "0x1e53b8",
+        "name": "dword_1E53B8"
+      },
+      {
+        "addr": "0x1a9328",
+        "name": "_IOHostPrivSelf"
+      },
+      {
+        "addr": "0x16c8d4",
+        "name": "_kern_serv_port_gone"
+      },
+      {
+        "addr": "0x1d8390",
+        "name": "aAudioPortDeall",
+        "string": "Audio: port_deallocate\n"
+      },
+      {
+        "addr": "0x1d0508",
+        "name": "_port_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205484",
+        "name": "sel__outputChannel",
+        "string": "_outputChannel"
+      },
+      {
+        "addr": "0x2061e4",
+        "name": "sel_setUserChannelPort:",
+        "string": "setUserChannelPort:"
+      },
+      {
+        "addr": "0x2061d4",
+        "name": "sel_setUserSndPort:",
+        "string": "setUserSndPort:"
+      },
+      {
+        "addr": "0x205474",
+        "name": "sel__inputChannel",
+        "string": "_inputChannel"
+      },
+      {
+        "addr": "0x1d8a08",
+        "name": "aAudioCannotGet",
+        "string": "Audio: cannot get kernel port (must run as root)\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bb308",
+    "addr": "0x001bb308",
+    "code": "int __cdecl audioMessages(_DWORD *a1, _DWORD *a2)\n{\n  int result; // eax\n\n  if ( a1[3] )\n  {\n    if ( (int)a1[5] > 699 )\n    {\n      if ( !audio_server(a1, a2) )\n        IOLog((int)\"Audio: unrecognized audio user message %d\\n\", a1[5]);\n    }\n    else if ( !snd_server(a1, a2) )\n    {\n      IOLog((int)\"Audio: unrecognized snd user message %d\\n\", a1[5]);\n    }\n  }\n  else if ( !sub_1BAE88(a1, (int)a2) )\n  {\n    IOLog((int)\"Audio: unrecognized control message %d\\n\", a1[5]);\n  }\n  result = msg_send(a2, 1, 1000); /*0x1bb37f*/\n  if ( result ) /*0x1bb389*/\n    result = IOLog((int)\"msg_send failed %d\\n\", result); /*0x1bb391*/\n  a2[7] = -305; /*0x1bb396*/\n  return result; /*0x1bb3a0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8aa4",
+        "name": "aAudioUnrecogni_3",
+        "string": "Audio: unrecognized audio user message %d\n"
+      },
+      {
+        "addr": "0x1bf3fc",
+        "name": "_audio_server"
+      },
+      {
+        "addr": "0x1d8a78",
+        "name": "aAudioUnrecogni_2",
+        "string": "Audio: unrecognized snd user message %d\n"
+      },
+      {
+        "addr": "0x1bd310",
+        "name": "_snd_server"
+      },
+      {
+        "addr": "0x1d8a50",
+        "name": "aAudioUnrecogni_1",
+        "string": "Audio: unrecognized control message %d\n"
+      },
+      {
+        "addr": "0x1bae88",
+        "name": "sub_1BAE88"
+      },
+      {
+        "addr": "0x158774",
+        "name": "_msg_send"
+      },
+      {
+        "addr": "0x1d8ad0",
+        "name": "aMsgSendFailedD",
+        "string": "msg_send failed %d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bb3a8",
+    "addr": "0x001bb3a8",
+    "code": "id __cdecl audio_port_to_device(int a1)\n{\n  id result; // eax\n\n  result = +[IOAudio _channelForUserPort:](aIoaudio, sel__channelForUserPort_, a1); /*0x1bb3bd*/\n  if ( !result )\n  {\n    IOLog((int)\"Audio: server can't translate port to channel\\n\");\n    return nullptr; /*0x1bb3d3*/\n  }\n  return result; /*0x1bb3d7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b6040",
+        "name": "+[IOAudio _channelForUserPort:]"
+      },
+      {
+        "addr": "0x1feb4e",
+        "name": "aIoaudio",
+        "string": "IOAudio"
+      },
+      {
+        "addr": "0x205974",
+        "name": "sel__channelForUserPort:",
+        "string": "_channelForUserPort:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8ae4",
+        "name": "aAudioServerCan",
+        "string": "Audio: server can't translate port to channel\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bb3e0",
+    "addr": "0x001bb3e0",
+    "code": "id __cdecl audio_port_to_stream(int a1)\n{\n  id result; // eax\n\n  result = +[AudioChannel streamForUserPort:](aAudiochannel, sel_streamForUserPort_, a1); /*0x1bb3f5*/\n  if ( !result )\n  {\n    IOLog((int)\"Audio: server can't translate port to stream\\n\");\n    return nullptr; /*0x1bb40b*/\n  }\n  return result; /*0x1bb40f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b784c",
+        "name": "+[AudioChannel streamForUserPort:]"
+      },
+      {
+        "addr": "0x1feb80",
+        "name": "aAudiochannel",
+        "string": "AudioChannel"
+      },
+      {
+        "addr": "0x2060f4",
+        "name": "sel_streamForUserPort:",
+        "string": "streamForUserPort:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8b14",
+        "name": "aAudioServerCan_0",
+        "string": "Audio: server can't translate port to stream\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bb418",
+    "addr": "0x001bb418",
+    "code": "int __cdecl _NXAudioGetExclusiveUser(id a1, id *a2)\n{\n  if ( !a1 ) /*0x1bb424*/\n    return 202; /*0x1bb43c*/\n  *a2 = objc_msgSend(a1, sel_exclusiveUser); /*0x1bb433*/\n  return 0; /*0x1bb441*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205dd4",
+        "name": "sel_exclusiveUser",
+        "string": "exclusiveUser"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001bb448",
+    "addr": "0x001bb448",
+    "code": "int __cdecl _NXAudioSetExclusiveUser(id a1, int a2)\n{\n  if ( !a1 ) /*0x1bb450*/\n    return 202; /*0x1bb46c*/\n  objc_msgSend(a1, sel_setExclusiveUser_, a2); /*0x1bb45e*/\n  return 0; /*0x1bb467*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x206194",
+        "name": "sel_setExclusiveUser:",
+        "string": "setExclusiveUser:"
+      }
+    ]
+  }
+]

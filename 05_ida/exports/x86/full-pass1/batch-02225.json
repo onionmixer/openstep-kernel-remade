@@ -1,0 +1,936 @@
+[
+  {
+    "requested_address": "0x00179d24",
+    "addr": "0x00179d24",
+    "code": "int vm_object_request_object()\n{\n  printf(\"vm_object_request_object: called\\n\");\n  return 0; /*0x179d35*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e0c90",
+        "name": "aVmObjectReques",
+        "string": "vm_object_request_object: called\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00179d38",
+    "addr": "0x00179d38",
+    "code": "int vm_object_name()\n{\n  return 0; /*0x179d3f*/\n}"
+  },
+  {
+    "requested_address": "0x00179d44",
+    "addr": "0x00179d44",
+    "code": "int vm_pageout_scan()\n{\n  int v0; // edx\n  int v1; // ebx\n  int v2; // edx\n  int v3; // esi\n  char v4; // al\n  int v5; // esi\n  int v6; // edi\n  char v7; // al\n  int v8; // esi\n  _DWORD *v9; // eax\n  volatile __int32 *v10; // edx\n  char v11; // al\n  int i; // ebx\n  _BOOL4 v14; // [esp+Ch] [ebp-14h]\n  _DWORD *v15; // [esp+14h] [ebp-Ch]\n  int v16; // [esp+18h] [ebp-8h]\n  int v17; // [esp+1Ch] [ebp-4h]\n\n  v16 = 0; /*0x179d4d*/\n  v0 = splimp(); /*0x179d59*/\n  do /*0x179d75*/\n  {\n    while ( vm_page_queue_free_lock ) /*0x179d63*/\n      ; /*0x179d61*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_free_lock, 1) == 1 ); /*0x179d75*/\n  v17 = 0; /*0x179d77*/\n  if ( vm_page_free_count > vm_page_free_min ) /*0x179d89*/\n  {\n    _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x179dbe*/\n    splx(v0); /*0x179dc5*/\n  }\n  else\n  {\n    v17 = 1; /*0x179d8b*/\n    _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x179d90*/\n    splx(v0); /*0x179d97*/\n    pmap_update(); /*0x179d9c*/\n  }\n  do /*0x179de9*/\n  {\n    while ( vm_page_queue_lock ) /*0x179dd7*/\n      ; /*0x179dd5*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x179de9*/\n  v1 = vm_page_queue_inactive; /*0x179deb*/\n  while ( v17 && (int *)v1 != &vm_page_queue_inactive ) /*0x179e01*/\n  {\n    v2 = splimp(); /*0x179e0c*/\n    do /*0x179e29*/\n    {\n      while ( vm_page_queue_free_lock ) /*0x179e17*/\n        ; /*0x179e15*/\n    }\n    while ( _InterlockedExchange(&vm_page_queue_free_lock, 1) == 1 ); /*0x179e29*/\n    if ( vm_page_free_count >= vm_page_free_target ) /*0x179e36*/\n    {\n      _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x179da6*/\n      splx(v2); /*0x179dad*/\n      break; /*0x179db5*/\n    }\n    _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x179e3e*/\n    splx(v2); /*0x179e45*/\n    if ( pmap_is_referenced(*(_DWORD *)(v1 + 36)) ) /*0x179e4e*/\n    {\n      v3 = *(_DWORD *)v1; /*0x179e5a*/\n      vm_page_activate(v1); /*0x179e5d*/\n      ++dword_1F6508; /*0x179e62*/\n      v1 = v3; /*0x179e68*/\n    }\n    else\n    {\n      v4 = *(_BYTE *)(v1 + 30); /*0x179e70*/\n      if ( (v4 & 0x20) != 0 ) /*0x179e75*/\n      {\n        v5 = *(_DWORD *)v1; /*0x179e7b*/\n        v6 = *(_DWORD *)(v1 + 20); /*0x179e7d*/\n        if ( _InterlockedExchange((volatile __int32 *)(v6 + 16), 1) != 1 ) /*0x179e88*/\n        {\n          v16 = 1; /*0x179e98*/\n          *(_BYTE *)(v1 + 32) |= 1u; /*0x179e9f*/\n          _InterlockedExchange(&vm_page_queue_lock, 0); /*0x179ea5*/\n          pmap_remove_all(*(_DWORD *)(v1 + 36)); /*0x179eaf*/\n          do /*0x179ed1*/\n          {\n            while ( vm_page_queue_lock ) /*0x179ebf*/\n              ; /*0x179ebd*/\n          }\n          while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x179ed1*/\n          v7 = *(_BYTE *)(v1 + 32); /*0x179ed3*/\n          *(_BYTE *)(v1 + 32) = v7 & 0xFE; /*0x179edb*/\n          if ( (v7 & 2) != 0 ) /*0x179ee0*/\n          {\n            *(_BYTE *)(v1 + 32) = v7 & 0xFC; /*0x179ee4*/\n            thread_wakeup_prim(v1, 0, 0); /*0x179eec*/\n          }\n          v8 = *(_DWORD *)v1; /*0x179ef4*/\n          vm_page_addfree(v1); /*0x179ef7*/\n          goto LABEL_46; /*0x179eff*/\n        }\n        v1 = v5; /*0x179e8f*/\n      }\n      else if ( (v4 & 4) != 0 && (v6 = *(_DWORD *)(v1 + 20), _InterlockedExchange((volatile __int32 *)(v6 + 16), 1) ^ 1) ) /*0x179f17*/\n      {\n        *(_BYTE *)(v1 + 32) |= 1u; /*0x179f22*/\n        ++dword_1F6510; /*0x179f26*/\n        _InterlockedExchange(&vm_page_queue_lock, 0); /*0x179f2e*/\n        v16 = 1; /*0x179f34*/\n        pmap_remove_all(*(_DWORD *)(v1 + 36)); /*0x179f3f*/\n        vm_object_collapse(v6); /*0x179f45*/\n        ++*(_WORD *)(v6 + 68); /*0x179f4a*/\n        _InterlockedExchange((volatile __int32 *)(v6 + 16), 0); /*0x179f53*/\n        thread_wakeup_prim((int)&vm_page_free_count, 0, 0); /*0x179f5f*/\n        v9 = *(_DWORD **)(v6 + 40); /*0x179f64*/\n        if ( !v9 ) /*0x179f6c*/\n        {\n          v9 = (_DWORD *)vm_pager_allocate(*(_DWORD *)(v6 + 20)); /*0x179f72*/\n          if ( v9 ) /*0x179f7c*/\n          {\n            v15 = v9; /*0x179f84*/\n            vm_object_setpager(v6, (int)v9, 0); /*0x179f87*/\n            v9 = v15; /*0x179f8f*/\n          }\n        }\n        v14 = 0; /*0x179f92*/\n        if ( v9 ) /*0x179f9b*/\n          v14 = vm_pager_put(v9, v1) == 0; /*0x179fab*/\n        v10 = (volatile __int32 *)(v6 + 16); /*0x179fb2*/\n        do /*0x179fca*/\n        {\n          while ( *v10 ) /*0x179fb8*/\n            ; /*0x179fba*/\n        }\n        while ( _InterlockedExchange(v10, 1) == 1 ); /*0x179fca*/\n        do /*0x179fe5*/\n        {\n          while ( vm_page_queue_lock ) /*0x179fd3*/\n            ; /*0x179fd1*/\n        }\n        while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x179fe5*/\n        v8 = *(_DWORD *)v1; /*0x179fe7*/\n        if ( v14 ) /*0x179fed*/\n          *(_BYTE *)(v1 + 30) &= ~4u; /*0x179fef*/\n        else\n          vm_page_activate(v1); /*0x179ff9*/\n        pmap_clear_reference(*(_DWORD *)(v1 + 36)); /*0x17a005*/\n        v11 = *(_BYTE *)(v1 + 32); /*0x17a00a*/\n        *(_BYTE *)(v1 + 32) = v11 & 0xFE; /*0x17a012*/\n        if ( (v11 & 2) != 0 ) /*0x17a01a*/\n        {\n          *(_BYTE *)(v1 + 32) = v11 & 0xFC; /*0x17a01e*/\n          thread_wakeup_prim(v1, 0, 0); /*0x17a026*/\n        }\n        --*(_WORD *)(v6 + 68); /*0x17a02e*/\n        thread_wakeup_prim(v6, 0, 0); /*0x17a037*/\nLABEL_46:\n        _InterlockedExchange((volatile __int32 *)(v6 + 16), 0); /*0x17a03f*/\n        v1 = v8; /*0x17a044*/\n      }\n      else\n      {\n        v1 = *(_DWORD *)v1; /*0x17a04c*/\n      }\n    }\n  }\n  for ( i = vm_page_inactive_target - vm_page_inactive_count - vm_page_free_count; i > 0; --i ) /*0x17a068*/\n  {\n    if ( (int *)vm_page_queue_active == &vm_page_queue_active ) /*0x17a076*/\n      break; /*0x17a076*/\n    v16 = 1; /*0x17a078*/\n    vm_page_deactivate(vm_page_queue_active); /*0x17a080*/\n  }\n  _InterlockedExchange(&vm_page_queue_lock, 0); /*0x17a08f*/\n  return v16; /*0x17a09b*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1f7418",
+        "name": "_vm_page_queue_free_lock"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x191144",
+        "name": "_pmap_update"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x1e0d14",
+        "name": "_vm_page_free_min"
+      },
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x1f64e0",
+        "name": "_vm_page_queue_inactive"
+      },
+      {
+        "addr": "0x1e0d10",
+        "name": "_vm_page_free_target"
+      },
+      {
+        "addr": "0x17b8cc",
+        "name": "_vm_page_activate"
+      },
+      {
+        "addr": "0x1f6508",
+        "name": "dword_1F6508"
+      },
+      {
+        "addr": "0x18fb0c",
+        "name": "_pmap_remove_all"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x17b5f8",
+        "name": "_vm_page_addfree"
+      },
+      {
+        "addr": "0x1f6510",
+        "name": "dword_1F6510"
+      },
+      {
+        "addr": "0x179914",
+        "name": "_vm_object_collapse"
+      },
+      {
+        "addr": "0x17a2f8",
+        "name": "_vm_pager_allocate"
+      },
+      {
+        "addr": "0x1795f8",
+        "name": "_vm_object_setpager"
+      },
+      {
+        "addr": "0x17a284",
+        "name": "_vm_pager_put"
+      },
+      {
+        "addr": "0x19152c",
+        "name": "_pmap_clear_reference"
+      },
+      {
+        "addr": "0x191550",
+        "name": "_pmap_is_referenced"
+      },
+      {
+        "addr": "0x1e0d18",
+        "name": "_vm_page_inactive_target"
+      },
+      {
+        "addr": "0x1f64d8",
+        "name": "_vm_page_inactive_count"
+      },
+      {
+        "addr": "0x1f6e40",
+        "name": "_vm_page_queue_active"
+      },
+      {
+        "addr": "0x17b810",
+        "name": "_vm_page_deactivate"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a0a4",
+    "addr": "0x0017a0a4",
+    "code": "void __noreturn vm_pageout()\n{\n  int v0; // ebx\n\n  v0 = 1; /*0x17a0a9*/\n  *(_DWORD *)(active_threads + 120) = 1; /*0x17a0b3*/\n  spl0(); /*0x17a0ba*/\n  if ( !vm_page_free_min ) /*0x17a0c6*/\n  {\n    vm_page_free_min = vm_page_free_count / 50; /*0x17a0d5*/\n    if ( vm_page_free_count / 50 <= 2 ) /*0x17a0dd*/\n      vm_page_free_min = 3; /*0x17a0df*/\n    if ( page_size * vm_page_free_min > vm_page_free_min_sanity ) /*0x17a0ff*/\n      vm_page_free_min = vm_page_free_min_sanity / page_size; /*0x17a107*/\n  }\n  if ( !vm_page_free_reserved ) /*0x17a113*/\n    vm_page_free_reserved = 3; /*0x17a115*/\n  if ( !vm_pageout_free_min ) /*0x17a126*/\n  {\n    vm_pageout_free_min = vm_page_free_reserved / 2; /*0x17a138*/\n    if ( vm_page_free_reserved / 2 > 10 ) /*0x17a140*/\n      vm_pageout_free_min = 10; /*0x17a142*/\n  }\n  if ( !vm_page_free_target ) /*0x17a153*/\n    vm_page_free_target = 4 * vm_page_free_min; /*0x17a15e*/\n  if ( !vm_page_inactive_target ) /*0x17a16b*/\n    vm_page_inactive_target = vm_page_free_count / 3; /*0x17a17a*/\n  if ( vm_page_free_target <= vm_page_free_min ) /*0x17a18a*/\n    vm_page_free_target = vm_page_free_min + 1; /*0x17a18d*/\n  if ( vm_page_inactive_target <= vm_page_free_target ) /*0x17a19d*/\n    vm_page_inactive_target = vm_page_free_target + 1; /*0x17a1a0*/\n  do /*0x17a1c1*/\n  {\n    while ( vm_pages_needed_lock ) /*0x17a1af*/\n      ; /*0x17a1ad*/\n  }\n  while ( _InterlockedExchange(&vm_pages_needed_lock, 1) == 1 ); /*0x17a1c1*/\n  while ( 1 ) /*0x17a1c4*/\n  {\n    if ( v0 /*0x17a1e8*/\n      && (vm_page_free_min >= vm_page_free_count\n       || vm_page_free_target > vm_page_free_count && vm_page_inactive_count <= vm_page_inactive_target) )\n    {\n      _InterlockedExchange(&vm_pages_needed_lock, 0); /*0x17a202*/\n    }\n    else\n    {\n      thread_sleep((int)&vm_pages_needed, &vm_pages_needed_lock, 0); /*0x17a1f6*/\n    }\n    v0 = vm_pageout_scan(); /*0x17a20d*/\n    do /*0x17a229*/\n    {\n      while ( vm_pages_needed_lock ) /*0x17a217*/\n        ; /*0x17a215*/\n    }\n    while ( _InterlockedExchange(&vm_pages_needed_lock, 1) == 1 ); /*0x17a229*/\n    thread_wakeup_prim((int)&vm_page_free_count, 0, 0); /*0x17a234*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x18b60c",
+        "name": "_spl0"
+      },
+      {
+        "addr": "0x1e0d14",
+        "name": "_vm_page_free_min"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x1e0cb8",
+        "name": "_vm_page_free_min_sanity"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e0d1c",
+        "name": "_vm_page_free_reserved"
+      },
+      {
+        "addr": "0x1e0cb4",
+        "name": "_vm_pageout_free_min"
+      },
+      {
+        "addr": "0x1e0d10",
+        "name": "_vm_page_free_target"
+      },
+      {
+        "addr": "0x1e0d18",
+        "name": "_vm_page_inactive_target"
+      },
+      {
+        "addr": "0x1f6e54",
+        "name": "_vm_pages_needed_lock"
+      },
+      {
+        "addr": "0x163320",
+        "name": "_thread_sleep"
+      },
+      {
+        "addr": "0x1f6e50",
+        "name": "_vm_pages_needed"
+      },
+      {
+        "addr": "0x1f64d8",
+        "name": "_vm_page_inactive_count"
+      },
+      {
+        "addr": "0x179d44",
+        "name": "_vm_pageout_scan"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a240",
+    "addr": "0x0017a240",
+    "code": "void vm_pager_init()\n{\n  ; /*0x17a240*/\n}"
+  },
+  {
+    "requested_address": "0x0017a248",
+    "addr": "0x0017a248",
+    "code": "int __cdecl vm_pager_get(_DWORD *a1, int a2, _DWORD *a3)\n{\n  if ( a1 ) /*0x17a253*/\n  {\n    if ( *a1 ) /*0x17a264*/\n      device_pagein(a2); /*0x17a26a*/\n    return vnode_pagein(a2, a3); /*0x17a279*/\n  }\n  else\n  {\n    vm_page_zero_fill(a2); /*0x17a256*/\n    return 0; /*0x17a25b*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x17c264",
+        "name": "_device_pagein"
+      },
+      {
+        "addr": "0x17d2d0",
+        "name": "_vnode_pagein"
+      },
+      {
+        "addr": "0x17b99c",
+        "name": "_vm_page_zero_fill"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a284",
+    "addr": "0x0017a284",
+    "code": "int __cdecl vm_pager_put(_DWORD *a1, int a2)\n{\n  if ( !a1 ) /*0x17a291*/\n    panic(aVmPagerPutNull); /*0x17a298*/\n  if ( *a1 ) /*0x17a2a0*/\n    device_pageout(a2); /*0x17a2a6*/\n  return vnode_pageout(a2); /*0x17a2b9*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0cbc",
+        "name": "aVmPagerPutNull",
+        "string": "vm_pager_put: null pager"
+      },
+      {
+        "addr": "0x17c278",
+        "name": "_device_pageout"
+      },
+      {
+        "addr": "0x17d3bc",
+        "name": "_vnode_pageout"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a2c0",
+    "addr": "0x0017a2c0",
+    "code": "int __cdecl vm_pager_deallocate(_DWORD *a1)\n{\n  if ( !a1 ) /*0x17a2c9*/\n    panic(aVmPagerDealloc); /*0x17a2d0*/\n  if ( *a1 ) /*0x17a2d8*/\n    return device_dealloc(a1); /*0x17a2de*/\n  else\n    return vnode_dealloc(a1); /*0x17a2e9*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0cd5",
+        "name": "aVmPagerDealloc",
+        "string": "vm_pager_deallocate: null pager"
+      },
+      {
+        "addr": "0x17c28c",
+        "name": "_device_dealloc"
+      },
+      {
+        "addr": "0x17dc74",
+        "name": "_vnode_dealloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a2f8",
+    "addr": "0x0017a2f8",
+    "code": "int __cdecl vm_pager_allocate(int a1)\n{\n  return vnode_alloc(a1); /*0x17a306*/\n}",
+    "refs": [
+      {
+        "addr": "0x17d998",
+        "name": "_vnode_alloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a308",
+    "addr": "0x0017a308",
+    "code": "int __cdecl vm_pager_has_page(_DWORD *a1, int a2)\n{\n  if ( !a1 || *a1 ) /*0x17a313*/\n    panic(aVmPagerHasPage); /*0x17a31d*/\n  return vnode_has_page(a1, a2); /*0x17a32f*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0cf5",
+        "name": "aVmPagerHasPage",
+        "string": "vm_pager_has_page"
+      },
+      {
+        "addr": "0x17d530",
+        "name": "_vnode_has_page"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a338",
+    "addr": "0x0017a338",
+    "code": "__int32 __cdecl vm_policy_apply(int a1, int a2, int a3)\n{\n  __int32 result; // eax\n  int v4; // edx\n  char v5; // al\n  int *v6; // edx\n  int *v7; // eax\n  int v8; // edx\n  int *v9; // eax\n  int v10; // edx\n  int v11; // eax\n\n  result = 0; /*0x17a346*/\n  if ( *(__int16 *)(a1 + 24) > 2 ) /*0x17a34d*/\n  {\n    v4 = *(_DWORD *)(a1 + 40); /*0x17a34f*/\n    if ( v4 ) /*0x17a354*/\n    {\n      if ( !*(_DWORD *)v4 ) /*0x17a356*/\n        result = (*(_BYTE *)(v4 + 12) & 1) == 0; /*0x17a360*/\n    }\n  }\n  if ( (a3 & 2) != 0 || !result ) /*0x17a36a*/\n  {\n    do /*0x17a389*/\n    {\n      while ( vm_page_queue_lock ) /*0x17a377*/\n        ; /*0x17a375*/\n    }\n    while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x17a389*/\n    if ( a3 ) /*0x17a38d*/\n    {\n      if ( a3 == 1 && (*(_BYTE *)(a2 + 30) & 2) != 0 ) /*0x17a4d4*/\n        vm_page_deactivate(a2); /*0x17a4d7*/\n    }\n    else\n    {\n      if ( (*(_BYTE *)(a2 + 30) & 0x20) == 0 || pmap_is_modified(*(_DWORD *)(a2 + 36)) ) /*0x17a3c2*/\n      {\n        if ( (*(_BYTE *)(a2 + 30) & 2) != 0 ) /*0x17a4b8*/\n          vm_page_deactivate(a2); /*0x17a4bb*/\n      }\n      else\n      {\n        vm_page_remove(a2); /*0x17a3d3*/\n        v5 = *(_BYTE *)(a2 + 30); /*0x17a3d8*/\n        if ( (v5 & 8) == 0 ) /*0x17a3e0*/\n        {\n          if ( (v5 & 2) != 0 ) /*0x17a3e8*/\n          {\n            v6 = *(int **)a2; /*0x17a3ea*/\n            v7 = *(int **)(a2 + 4); /*0x17a3ec*/\n            if ( *(int **)a2 == &vm_page_queue_active ) /*0x17a3f5*/\n              dword_1F6E44 = *(_DWORD *)(a2 + 4); /*0x17a3f7*/\n            else\n              v6[1] = (int)v7; /*0x17a400*/\n            if ( v7 == &vm_page_queue_active ) /*0x17a408*/\n              vm_page_queue_active = (int)v6; /*0x17a3a0*/\n            else\n              *v7 = (int)v6; /*0x17a40a*/\n            *(_BYTE *)(a2 + 30) &= ~2u; /*0x17a40c*/\n            --vm_page_active_count; /*0x17a410*/\n          }\n          if ( (*(_BYTE *)(a2 + 30) & 1) != 0 ) /*0x17a41a*/\n          {\n            v8 = *(_DWORD *)a2; /*0x17a41c*/\n            v9 = *(int **)(a2 + 4); /*0x17a41e*/\n            if ( *(int **)a2 == &vm_page_queue_inactive ) /*0x17a427*/\n              dword_1F64E4 = *(_DWORD *)(a2 + 4); /*0x17a429*/\n            else\n              *(_DWORD *)(v8 + 4) = v9; /*0x17a430*/\n            if ( v9 == &vm_page_queue_inactive ) /*0x17a438*/\n              vm_page_queue_inactive = v8; /*0x17a3a8*/\n            else\n              *v9 = v8; /*0x17a43e*/\n            *(_BYTE *)(a2 + 30) &= ~1u; /*0x17a440*/\n            --vm_page_inactive_count; /*0x17a444*/\n          }\n          if ( (*(_BYTE *)(a2 + 32) & 8) == 0 ) /*0x17a44e*/\n          {\n            v10 = splimp(); /*0x17a455*/\n            do /*0x17a471*/\n            {\n              while ( vm_page_queue_free_lock ) /*0x17a45f*/\n                ; /*0x17a45d*/\n            }\n            while ( _InterlockedExchange(&vm_page_queue_free_lock, 1) == 1 ); /*0x17a471*/\n            v11 = vm_page_queue_free; /*0x17a473*/\n            if ( (int *)vm_page_queue_free == &vm_page_queue_free ) /*0x17a47d*/\n              dword_1F6E4C = a2; /*0x17a47f*/\n            else\n              *(_DWORD *)(vm_page_queue_free + 4) = a2; /*0x17a488*/\n            *(_DWORD *)a2 = v11; /*0x17a48b*/\n            *(_DWORD *)(a2 + 4) = &vm_page_queue_free; /*0x17a48d*/\n            vm_page_queue_free = a2; /*0x17a494*/\n            *(_BYTE *)(a2 + 30) |= 8u; /*0x17a49a*/\n            ++vm_page_free_count; /*0x17a49e*/\n            _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x17a4a6*/\n            splx(v10); /*0x17a4ad*/\n          }\n        }\n      }\n      pmap_remove_all(*(_DWORD *)(a2 + 36)); /*0x17a4c7*/\n    }\n    return _InterlockedExchange(&vm_page_queue_lock, 0); /*0x17a4de*/\n  }\n  return result; /*0x17a4e7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x17b810",
+        "name": "_vm_page_deactivate"
+      },
+      {
+        "addr": "0x17aeac",
+        "name": "_vm_page_remove"
+      },
+      {
+        "addr": "0x1f6e44",
+        "name": "dword_1F6E44"
+      },
+      {
+        "addr": "0x1f6e40",
+        "name": "_vm_page_queue_active"
+      },
+      {
+        "addr": "0x1f6e34",
+        "name": "_vm_page_active_count"
+      },
+      {
+        "addr": "0x1f64e4",
+        "name": "dword_1F64E4"
+      },
+      {
+        "addr": "0x1f64e0",
+        "name": "_vm_page_queue_inactive"
+      },
+      {
+        "addr": "0x1f64d8",
+        "name": "_vm_page_inactive_count"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1f7418",
+        "name": "_vm_page_queue_free_lock"
+      },
+      {
+        "addr": "0x1f6e48",
+        "name": "_vm_page_queue_free"
+      },
+      {
+        "addr": "0x1f6e4c",
+        "name": "dword_1F6E4C"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x191500",
+        "name": "_pmap_is_modified"
+      },
+      {
+        "addr": "0x18fb0c",
+        "name": "_pmap_remove_all"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a4f0",
+    "addr": "0x0017a4f0",
+    "code": "void __cdecl sub_17A4F0(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  volatile __int32 *v4; // edx\n  int i; // ebx\n  unsigned int v6; // eax\n  unsigned int v7; // edx\n  unsigned int v8; // eax\n\n  if ( a1 ) /*0x17a501*/\n  {\n    v4 = (volatile __int32 *)(a1 + 16); /*0x17a507*/\n    do /*0x17a51e*/\n    {\n      while ( *v4 ) /*0x17a50c*/\n        ; /*0x17a50e*/\n    }\n    while ( _InterlockedExchange(v4, 1) == 1 ); /*0x17a51e*/\n    for ( i = *(_DWORD *)a1; a1 != i; i = *(_DWORD *)(i + 8) ) /*0x17a524*/\n    {\n      v6 = *(_DWORD *)(i + 24); /*0x17a528*/\n      if ( v6 >= a2 && a3 > v6 ) /*0x17a532*/\n        vm_policy_apply(a1, i, a4); /*0x17a53a*/\n    }\n    v7 = a3 - a2; /*0x17a54c*/\n    v8 = *(_DWORD *)(a1 + 20); /*0x17a54e*/\n    if ( v8 ) /*0x17a553*/\n    {\n      if ( v7 > v8 ) /*0x17a557*/\n        v7 = *(_DWORD *)(a1 + 20); /*0x17a559*/\n    }\n    sub_17A4F0(*(_DWORD *)(a1 + 32), *(_DWORD *)(a1 + 36) + a2, *(_DWORD *)(a1 + 36) + a2 + v7, a4); /*0x17a570*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x17a57a*/\n    thread_wakeup_prim(a1, 0, 0); /*0x17a582*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x17a338",
+        "name": "_vm_policy_apply"
+      },
+      {
+        "addr": "0x17a4f0",
+        "name": "sub_17A4F0"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a594",
+    "addr": "0x0017a594",
+    "code": "__int32 __cdecl sub_17A594(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  unsigned int v4; // ecx\n  unsigned int v5; // eax\n  unsigned int v6; // edx\n  int v7; // esi\n  unsigned int v8; // ecx\n  volatile __int32 *v9; // edx\n  int j; // edx\n  unsigned int v11; // eax\n  unsigned int v12; // edx\n  unsigned int v13; // eax\n  int v15; // [esp+Ch] [ebp-10h]\n  unsigned int v16; // [esp+10h] [ebp-Ch]\n  unsigned int v17; // [esp+14h] [ebp-8h]\n  int i; // [esp+18h] [ebp-4h]\n\n  lock_read(a1); /*0x17a5a1*/\n  for ( i = *(_DWORD *)(a1 + 16); i != a1 + 12; i = *(_DWORD *)(i + 4) ) /*0x17a5b7*/\n  {\n    if ( (*(_BYTE *)(i + 24) & 5) != 0 ) /*0x17a5c7*/\n    {\n      sub_17A594(*(_DWORD *)(i + 16), a2, a3, a4); /*0x17a5dc*/\n    }\n    else\n    {\n      v4 = *(_DWORD *)(i + 8); /*0x17a5ef*/\n      if ( a3 >= v4 ) /*0x17a5f5*/\n      {\n        v5 = *(_DWORD *)(i + 12); /*0x17a5fb*/\n        if ( a2 < v5 ) /*0x17a601*/\n        {\n          if ( a2 < v4 ) /*0x17a60a*/\n            a2 = *(_DWORD *)(i + 8); /*0x17a60c*/\n          v6 = a3; /*0x17a60f*/\n          if ( v5 < a3 ) /*0x17a614*/\n            v6 = *(_DWORD *)(i + 12); /*0x17a616*/\n          v7 = *(_DWORD *)(i + 16); /*0x17a61b*/\n          v16 = *(_DWORD *)(i + 20) + a2 - v4; /*0x17a628*/\n          v8 = *(_DWORD *)(i + 20) - v4 + v6; /*0x17a62d*/\n          if ( v7 ) /*0x17a632*/\n          {\n            v9 = (volatile __int32 *)(v7 + 16); /*0x17a638*/\n            do /*0x17a64e*/\n            {\n              while ( *v9 ) /*0x17a63c*/\n                ; /*0x17a63e*/\n            }\n            while ( _InterlockedExchange(v9, 1) == 1 ); /*0x17a64e*/\n            for ( j = *(_DWORD *)v7; v7 != j; j = *(_DWORD *)(j + 8) ) /*0x17a654*/\n            {\n              v11 = *(_DWORD *)(j + 24); /*0x17a658*/\n              if ( v16 <= v11 && v11 < v8 ) /*0x17a662*/\n              {\n                v15 = j; /*0x17a66a*/\n                v17 = v8; /*0x17a66d*/\n                vm_policy_apply(v7, j, a4); /*0x17a670*/\n                v8 = v17; /*0x17a678*/\n                j = v15; /*0x17a67b*/\n              }\n            }\n            v12 = v8 - v16; /*0x17a687*/\n            v13 = *(_DWORD *)(v7 + 20); /*0x17a68a*/\n            if ( v13 && v12 > v13 ) /*0x17a693*/\n              v12 = *(_DWORD *)(v7 + 20); /*0x17a695*/\n            sub_17A4F0(*(_DWORD *)(v7 + 32), *(_DWORD *)(v7 + 36) + v16, v12 + *(_DWORD *)(v7 + 36) + v16, a4); /*0x17a6af*/\n            _InterlockedExchange((volatile __int32 *)(v7 + 16), 0); /*0x17a6b9*/\n            thread_wakeup_prim(v7, 0, 0); /*0x17a6c1*/\n          }\n        }\n      }\n    }\n  }\n  return lock_done(a1); /*0x17a6ec*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x17a594",
+        "name": "sub_17A594"
+      },
+      {
+        "addr": "0x17a338",
+        "name": "_vm_policy_apply"
+      },
+      {
+        "addr": "0x17a4f0",
+        "name": "sub_17A4F0"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a6f4",
+    "addr": "0x0017a6f4",
+    "code": "__int32 __cdecl sub_17A6F4(int a1, unsigned int a2, unsigned int a3, int a4)\n{\n  int i; // ebx\n  int j; // eax\n\n  lock_read(a1); /*0x17a701*/\n  for ( i = *(_DWORD *)(a1 + 16); i != a1 + 12; i = *(_DWORD *)(i + 4) ) /*0x17a706*/\n  {\n    if ( (*(_BYTE *)(i + 24) & 5) != 0 ) /*0x17a714*/\n    {\n      sub_17A6F4(*(_DWORD *)(i + 16), a2, a3, a4); /*0x17a723*/\n    }\n    else if ( *(_DWORD *)(i + 8) <= a3 && *(_DWORD *)(i + 12) > a2 ) /*0x17a73e*/\n    {\n      for ( j = *(_DWORD *)(i + 16); j; j = *(_DWORD *)(j + 32) ) /*0x17a745*/\n        *(_WORD *)(j + 72) = a4; /*0x17a748*/\n    }\n  }\n  return lock_done(a1); /*0x17a766*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x17a6f4",
+        "name": "sub_17A6F4"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a770",
+    "addr": "0x0017a770",
+    "code": "int __cdecl vm_set_policy(_DWORD *a1, unsigned int a2, int a3, int a4)\n{\n  unsigned int v4; // esi\n  int v5; // eax\n  int i; // ebx\n  int j; // eax\n  unsigned int v9; // [esp+Ch] [ebp-4h]\n\n  v4 = a2; /*0x17a77c*/\n  v5 = a3; /*0x17a77f*/\n  if ( !a1 ) /*0x17a784*/\n    return 5; /*0x17a786*/\n  if ( !a3 ) /*0x17a792*/\n    v5 = a1[6] - a1[5]; /*0x17a797*/\n  if ( !a2 ) /*0x17a79c*/\n    v4 = a1[5]; /*0x17a79e*/\n  v9 = v4 + v5; /*0x17a7a3*/\n  lock_read((int)a1); /*0x17a7a7*/\n  for ( i = a1[4]; (_DWORD *)i != a1 + 3; i = *(_DWORD *)(i + 4) ) /*0x17a7ac*/\n  {\n    if ( (*(_BYTE *)(i + 24) & 5) != 0 ) /*0x17a7b8*/\n    {\n      sub_17A6F4(*(_DWORD *)(i + 16), v4, v9, a4); /*0x17a7c7*/\n    }\n    else if ( *(_DWORD *)(i + 8) <= v9 && *(_DWORD *)(i + 12) > v4 ) /*0x17a7df*/\n    {\n      for ( j = *(_DWORD *)(i + 16); j; j = *(_DWORD *)(j + 32) ) /*0x17a7e6*/\n        *(_WORD *)(j + 72) = a4; /*0x17a7ec*/\n    }\n  }\n  lock_done((int)a1); /*0x17a802*/\n  return 0; /*0x17a80c*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x17a6f4",
+        "name": "sub_17A6F4"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a814",
+    "addr": "0x0017a814",
+    "code": "int vm_fault_range()\n{\n  return 4; /*0x17a81e*/\n}"
+  },
+  {
+    "requested_address": "0x0017a820",
+    "addr": "0x0017a820",
+    "code": "int __cdecl vm_deactivate(_DWORD *a1, unsigned int a2, unsigned int a3, int a4)\n{\n  unsigned int v4; // eax\n  unsigned int v6; // ecx\n  unsigned int v7; // eax\n  unsigned int v8; // edx\n  int v9; // esi\n  unsigned int v10; // ecx\n  volatile __int32 *v11; // edx\n  int j; // edx\n  unsigned int v13; // eax\n  unsigned int v14; // edx\n  unsigned int v15; // eax\n  int v16; // [esp+Ch] [ebp-14h]\n  unsigned int v17; // [esp+10h] [ebp-10h]\n  unsigned int v18; // [esp+14h] [ebp-Ch]\n  int i; // [esp+18h] [ebp-8h]\n  unsigned int v20; // [esp+1Ch] [ebp-4h]\n\n  v4 = a2; /*0x17a829*/\n  if ( !a1 ) /*0x17a830*/\n    return 5; /*0x17a832*/\n  if ( !a3 ) /*0x17a840*/\n    a3 = a1[6] - a1[5]; /*0x17a84b*/\n  if ( !a2 ) /*0x17a850*/\n    v4 = a1[5]; /*0x17a855*/\n  v20 = v4; /*0x17a858*/\n  lock_read((int)a1); /*0x17a85f*/\n  for ( i = a1[4]; (_DWORD *)i != a1 + 3; i = *(_DWORD *)(i + 4) ) /*0x17a875*/\n  {\n    if ( (*(_BYTE *)(i + 24) & 5) != 0 ) /*0x17a883*/\n    {\n      sub_17A594(*(_DWORD *)(i + 16), v20, a3, a4); /*0x17a898*/\n    }\n    else\n    {\n      v6 = *(_DWORD *)(i + 8); /*0x17a8ab*/\n      if ( a3 >= v6 ) /*0x17a8b1*/\n      {\n        v7 = *(_DWORD *)(i + 12); /*0x17a8b7*/\n        if ( v20 < v7 ) /*0x17a8bd*/\n        {\n          if ( v20 < v6 ) /*0x17a8c6*/\n            v20 = *(_DWORD *)(i + 8); /*0x17a8c8*/\n          v8 = a3; /*0x17a8cb*/\n          if ( v7 < a3 ) /*0x17a8d0*/\n            v8 = *(_DWORD *)(i + 12); /*0x17a8d2*/\n          v9 = *(_DWORD *)(i + 16); /*0x17a8d7*/\n          v17 = *(_DWORD *)(i + 20) + v20 - v6; /*0x17a8e4*/\n          v10 = *(_DWORD *)(i + 20) - v6 + v8; /*0x17a8e9*/\n          if ( v9 ) /*0x17a8ee*/\n          {\n            v11 = (volatile __int32 *)(v9 + 16); /*0x17a8f4*/\n            do /*0x17a90a*/\n            {\n              while ( *v11 ) /*0x17a8f8*/\n                ; /*0x17a8fa*/\n            }\n            while ( _InterlockedExchange(v11, 1) == 1 ); /*0x17a90a*/\n            for ( j = *(_DWORD *)v9; v9 != j; j = *(_DWORD *)(j + 8) ) /*0x17a910*/\n            {\n              v13 = *(_DWORD *)(j + 24); /*0x17a914*/\n              if ( v17 <= v13 && v13 < v10 ) /*0x17a91e*/\n              {\n                v16 = j; /*0x17a926*/\n                v18 = v10; /*0x17a929*/\n                vm_policy_apply(v9, j, a4); /*0x17a92c*/\n                v10 = v18; /*0x17a934*/\n                j = v16; /*0x17a937*/\n              }\n            }\n            v14 = v10 - v17; /*0x17a943*/\n            v15 = *(_DWORD *)(v9 + 20); /*0x17a946*/\n            if ( v15 ) /*0x17a94b*/\n            {\n              if ( v14 > v15 ) /*0x17a94f*/\n                v14 = *(_DWORD *)(v9 + 20); /*0x17a951*/\n            }\n            sub_17A4F0(*(_DWORD *)(v9 + 32), *(_DWORD *)(v9 + 36) + v17, v14 + *(_DWORD *)(v9 + 36) + v17, a4); /*0x17a96b*/\n            _InterlockedExchange((volatile __int32 *)(v9 + 16), 0); /*0x17a975*/\n            thread_wakeup_prim(v9, 0, 0); /*0x17a97d*/\n          }\n        }\n      }\n    }\n  }\n  lock_done((int)a1); /*0x17a9a0*/\n  return 0; /*0x17a9aa*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b7d0",
+        "name": "_lock_read"
+      },
+      {
+        "addr": "0x17a594",
+        "name": "sub_17A594"
+      },
+      {
+        "addr": "0x17a338",
+        "name": "_vm_policy_apply"
+      },
+      {
+        "addr": "0x17a4f0",
+        "name": "sub_17A4F0"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017a9b4",
+    "addr": "0x0017a9b4",
+    "code": "int vm_set_page_size()\n{\n  int result; // eax\n\n  page_mask = page_size - 1; /*0x17a9c0*/\n  if ( ((page_size - 1) & page_size) != 0 ) /*0x17a9c7*/\n    panic(aVmSetPageSizeP); /*0x17a9ce*/\n  page_shift = 0; /*0x17a9d3*/\n  result = page_size; /*0x17a9dd*/\n  if ( page_size != 1 ) /*0x17a9e5*/\n  {\n    do /*0x17aa01*/\n      result = 1 << ++page_shift; /*0x17a9fd*/\n    while ( 1 << page_shift != page_size ); /*0x17aa01*/\n  }\n  return result; /*0x17aa05*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0d24",
+        "name": "aVmSetPageSizeP",
+        "string": "vm_set_page_size: page size not a power of two"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017aa08",
+    "addr": "0x0017aa08",
+    "code": "int __cdecl vm_page_startup(unsigned int a1, int a2, int a3)\n{\n  _DWORD *v3; // ecx\n  unsigned int v4; // esi\n  unsigned int v5; // edx\n  _DWORD *v6; // eax\n  _DWORD *v7; // esi\n  void *v8; // eax\n  int v9; // eax\n  char v10; // cl\n  unsigned int v11; // eax\n  unsigned int v12; // eax\n  _DWORD *v13; // ecx\n  unsigned int v14; // esi\n  char *v15; // edx\n  int v16; // eax\n  unsigned int v18; // [esp+Ch] [ebp-1Ch]\n  _DWORD *v19; // [esp+Ch] [ebp-1Ch]\n  _DWORD **v20; // [esp+Ch] [ebp-1Ch]\n  unsigned int *v21; // [esp+10h] [ebp-18h]\n  unsigned int v22; // [esp+20h] [ebp-8h]\n  unsigned int v23; // [esp+24h] [ebp-4h]\n\n  dword_1F7454 = 0; /*0x17aa11*/\n  dword_1F7458 = 0; /*0x17aa1b*/\n  word_1F745C = 0; /*0x17aa25*/\n  byte_1F7460 = 1; /*0x17aa58*/\n  byte_1F7461 &= 0xE2u; /*0x17aa62*/\n  byte_1F745E = byte_1F745E & 0xC0 | 0x20; /*0x17aa6a*/\n  dword_1F7464 = 0; /*0x17aa70*/\n  dword_1F7468 = 0; /*0x17aa7a*/\n  dword_1F746C = 0; /*0x17aa84*/\n  vm_page_queue_free_lock = 0; /*0x17aa8e*/\n  vm_page_queue_lock = 0; /*0x17aa98*/\n  dword_1F6E4C = (int)&vm_page_queue_free; /*0x17aaa2*/\n  vm_page_queue_free = (int)&vm_page_queue_free; /*0x17aaac*/\n  dword_1F6E44 = (int)&vm_page_queue_active; /*0x17aab6*/\n  vm_page_queue_active = (int)&vm_page_queue_active; /*0x17aac0*/\n  dword_1F64E4 = (int)&vm_page_queue_inactive; /*0x17aaca*/\n  vm_page_queue_inactive = (int)&vm_page_queue_inactive; /*0x17aad4*/\n  v23 = 0; /*0x17aade*/\n  v18 = a1; /*0x17aae8*/\n  if ( a1 < a1 + 28 * a2 ) /*0x17aafa*/\n  {\n    v3 = (_DWORD *)(a1 + 20); /*0x17ab0f*/\n    do /*0x17ab33*/\n    {\n      v23 += (v3[1] & ~page_mask) - (~page_mask & (page_mask + *v3)); /*0x17ab23*/\n      v3 += 7; /*0x17ab26*/\n      v18 += 28; /*0x17ab29*/\n    }\n    while ( v18 < a1 + 28 * a2 ); /*0x17ab33*/\n  }\n  if ( !vm_page_bucket_count ) /*0x17ab3c*/\n  {\n    for ( vm_page_bucket_count = 1; vm_page_bucket_count < v23 >> page_shift; vm_page_bucket_count *= 2 ) /*0x17ab56*/\n      ; /*0x17ab66*/\n  }\n  vm_page_hash_mask = vm_page_bucket_count - 1; /*0x17ab78*/\n  if ( ((vm_page_bucket_count - 1) & vm_page_bucket_count) != 0 )\n    printf(\"vm_page_bootstrap: WARNING -- strange page hash\\n\");\n  vm_page_buckets = vm_alloc_from_regions(8 * vm_page_bucket_count, 4); /*0x17aba5*/\n  bzero((void *)vm_page_buckets, 8 * vm_page_bucket_count); /*0x17abba*/\n  v4 = 0; /*0x17abc2*/\n  v5 = vm_page_bucket_count; /*0x17abc4*/\n  if ( vm_page_bucket_count ) /*0x17abcc*/\n  {\n    v6 = (_DWORD *)vm_page_buckets; /*0x17abce*/\n    do /*0x17abe7*/\n    {\n      v6[1] = 0; /*0x17abd4*/\n      *v6 = 0; /*0x17abdb*/\n      v6 += 2; /*0x17abe1*/\n      ++v4; /*0x17abe4*/\n    }\n    while ( v4 < v5 ); /*0x17abe7*/\n  }\n  zdata_size = 8 * page_size; /*0x17abf5*/\n  zdata = vm_alloc_from_regions(8 * page_size, page_size); /*0x17ac02*/\n  bzero((void *)zdata, zdata_size); /*0x17ac0f*/\n  map_data_size = 800; /*0x17ac17*/\n  map_data = vm_alloc_from_regions(800, 4); /*0x17ac2d*/\n  bzero((void *)map_data, map_data_size); /*0x17ac3a*/\n  kentry_data_size = 90112; /*0x17ac42*/\n  kentry_data = vm_alloc_from_regions(90112, 4); /*0x17ac58*/\n  bzero((void *)kentry_data, kentry_data_size); /*0x17ac65*/\n  v19 = (_DWORD *)a1; /*0x17ac70*/\n  if ( a1 < a1 + 28 * a2 ) /*0x17ac82*/\n  {\n    v7 = (_DWORD *)(a1 + 20); /*0x17ac8d*/\n    do /*0x17ad0b*/\n    {\n      v8 = (void *)vm_alloc_from_regions( /*0x17acb6*/\n                     48 * (((~page_mask & v7[1]) - (~page_mask & (unsigned int)(*v7 + page_mask))) >> page_shift),\n                     4);\n      *v19 = v8; /*0x17acc1*/\n      bzero(v8, 48 * (((~page_mask & v7[1]) - (~page_mask & (unsigned int)(*v7 + page_mask))) >> page_shift)); /*0x17aceb*/\n      v7 += 7; /*0x17acf3*/\n      v19 += 7; /*0x17acf9*/\n    }\n    while ( (unsigned int)v19 < a1 + 28 * a2 ); /*0x17ad0b*/\n  }\n  vm_page_free_count = 0; /*0x17ad0d*/\n  v20 = (_DWORD **)a1; /*0x17ad1a*/\n  if ( a1 < a1 + 28 * a2 ) /*0x17ad2c*/\n  {\n    v21 = (unsigned int *)(a1 + 12); /*0x17ad3b*/\n    do /*0x17aded*/\n    {\n      v9 = ~page_mask; /*0x17ad4d*/\n      v21[2] = ~page_mask & (page_mask + v21[2]); /*0x17ad51*/\n      v21[3] &= v9; /*0x17ad54*/\n      v10 = page_shift; /*0x17ad57*/\n      *(v21 - 2) = v21[2] >> page_shift; /*0x17ad65*/\n      v11 = v21[3] >> v10; /*0x17ad6b*/\n      *(v21 - 1) = v11; /*0x17ad6d*/\n      v12 = v11 - *(v21 - 2); /*0x17ad70*/\n      *v21 = v12; /*0x17ad73*/\n      vm_page_free_count += v12; /*0x17ad75*/\n      v13 = *v20; /*0x17ad7e*/\n      v22 = v21[2]; /*0x17ad86*/\n      v14 = 0; /*0x17ad89*/\n      if ( *v21 ) /*0x17ad8e*/\n      {\n        v15 = (char *)v13 + 30; /*0x17ad92*/\n        do /*0x17addd*/\n        {\n          *(_DWORD *)(v15 + 6) = v22; /*0x17ad9b*/\n          v16 = dword_1F6E4C; /*0x17ad9e*/\n          if ( (int *)dword_1F6E4C == &vm_page_queue_free ) /*0x17ada8*/\n            vm_page_queue_free = (int)v13; /*0x17adaa*/\n          else\n            *(_DWORD *)dword_1F6E4C = v13; /*0x17adb4*/\n          *(_DWORD *)(v15 - 26) = v16; /*0x17adb6*/\n          *v13 = &vm_page_queue_free; /*0x17adb9*/\n          dword_1F6E4C = (int)v13; /*0x17adbf*/\n          *v15 |= 8u; /*0x17adc5*/\n          v15 += 48; /*0x17adc8*/\n          v13 += 12; /*0x17adcb*/\n          v22 += page_size; /*0x17add4*/\n          ++v14; /*0x17add7*/\n        }\n        while ( *v21 > v14 ); /*0x17addd*/\n      }\n      v21 += 7; /*0x17addf*/\n      v20 += 7; /*0x17ade3*/\n    }\n    while ( (unsigned int)v20 < a1 + 28 * a2 ); /*0x17aded*/\n  }\n  vm_pages_needed_lock = 0; /*0x17adf3*/\n  return a3; /*0x17ae03*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7454",
+        "name": "dword_1F7454"
+      },
+      {
+        "addr": "0x1f7458",
+        "name": "dword_1F7458"
+      },
+      {
+        "addr": "0x1f745c",
+        "name": "word_1F745C"
+      },
+      {
+        "addr": "0x1f7460",
+        "name": "byte_1F7460"
+      },
+      {
+        "addr": "0x1f7461",
+        "name": "byte_1F7461"
+      },
+      {
+        "addr": "0x1f745e",
+        "name": "byte_1F745E"
+      },
+      {
+        "addr": "0x1f7464",
+        "name": "dword_1F7464"
+      },
+      {
+        "addr": "0x1f7468",
+        "name": "dword_1F7468"
+      },
+      {
+        "addr": "0x1f746c",
+        "name": "dword_1F746C"
+      },
+      {
+        "addr": "0x1f7418",
+        "name": "_vm_page_queue_free_lock"
+      },
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x1f6e4c",
+        "name": "dword_1F6E4C"
+      },
+      {
+        "addr": "0x1f6e48",
+        "name": "_vm_page_queue_free"
+      },
+      {
+        "addr": "0x1f6e44",
+        "name": "dword_1F6E44"
+      },
+      {
+        "addr": "0x1f6e40",
+        "name": "_vm_page_queue_active"
+      },
+      {
+        "addr": "0x1f64e4",
+        "name": "dword_1F64E4"
+      },
+      {
+        "addr": "0x1f64e0",
+        "name": "_vm_page_queue_inactive"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d08",
+        "name": "_vm_page_bucket_count"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1e0d53",
+        "name": "aVmPageBootstra",
+        "string": "vm_page_bootstrap: WARNING -- strange page hash\n"
+      },
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x178964",
+        "name": "_vm_alloc_from_regions"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1dfcf4",
+        "name": "_zdata_size"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1f6df0",
+        "name": "_zdata"
+      },
+      {
+        "addr": "0x1f6eb8",
+        "name": "_map_data_size"
+      },
+      {
+        "addr": "0x1f6eb4",
+        "name": "_map_data"
+      },
+      {
+        "addr": "0x1f6eb0",
+        "name": "_kentry_data_size"
+      },
+      {
+        "addr": "0x1f6eac",
+        "name": "_kentry_data"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x1f6e54",
+        "name": "_vm_pages_needed_lock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017ae0c",
+    "addr": "0x0017ae0c",
+    "code": "int __cdecl vm_page_insert(int a1, int a2, unsigned int a3)\n{\n  int v3; // ebx\n  int v4; // edx\n  int result; // eax\n\n  if ( (*(_BYTE *)(a1 + 32) & 4) != 0 ) /*0x17ae1f*/\n    panic(aVmPageInsert); /*0x17ae26*/\n  *(_DWORD *)(a1 + 20) = a2; /*0x17ae2e*/\n  *(_DWORD *)(a1 + 24) = a3; /*0x17ae31*/\n  v3 = vm_page_buckets + 8 * (vm_page_hash_mask & (a2 + (a3 >> page_shift))); /*0x17ae4c*/\n  v4 = splimp(); /*0x17ae54*/\n  do /*0x17ae6a*/\n  {\n    while ( *(_DWORD *)v3 ) /*0x17ae58*/\n      ; /*0x17ae5a*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x17ae6a*/\n  *(_DWORD *)(a1 + 16) = *(_DWORD *)(v3 + 4); /*0x17ae6f*/\n  *(_DWORD *)(v3 + 4) = a1; /*0x17ae72*/\n  _InterlockedExchange((volatile __int32 *)v3, 0); /*0x17ae77*/\n  splx(v4); /*0x17ae7a*/\n  result = *(_DWORD *)(a2 + 4); /*0x17ae7f*/\n  if ( a2 == result ) /*0x17ae84*/\n    *(_DWORD *)a2 = a1; /*0x17ae86*/\n  else\n    *(_DWORD *)(result + 8) = a1; /*0x17ae8c*/\n  *(_DWORD *)(a1 + 12) = result; /*0x17ae8f*/\n  *(_DWORD *)(a1 + 8) = a2; /*0x17ae92*/\n  *(_DWORD *)(a2 + 4) = a1; /*0x17ae95*/\n  *(_BYTE *)(a1 + 32) |= 4u; /*0x17ae98*/\n  ++*(_WORD *)(a2 + 26); /*0x17ae9c*/\n  return result; /*0x17aea3*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0d84",
+        "name": "aVmPageInsert",
+        "string": "vm_page_insert"
+      },
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017aeac",
+    "addr": "0x0017aeac",
+    "code": "void __cdecl vm_page_remove(int a1)\n{\n  int v1; // ebx\n  int v2; // ecx\n  int v3; // eax\n  _DWORD *v4; // edx\n  int v5; // edx\n  _DWORD *v6; // eax\n\n  if ( (*(_BYTE *)(a1 + 32) & 4) != 0 ) /*0x17aeb9*/\n  {\n    v1 = vm_page_buckets + 8 * (vm_page_hash_mask & (*(_DWORD *)(a1 + 20) + (*(_DWORD *)(a1 + 24) >> page_shift))); /*0x17aed9*/\n    v2 = splimp(); /*0x17aee1*/\n    do /*0x17aef6*/\n    {\n      while ( *(_DWORD *)v1 ) /*0x17aee4*/\n        ; /*0x17aee6*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v1, 1) == 1 ); /*0x17aef6*/\n    v3 = *(_DWORD *)(v1 + 4); /*0x17aef8*/\n    if ( v3 == a1 ) /*0x17aefd*/\n    {\n      *(_DWORD *)(v1 + 4) = *(_DWORD *)(a1 + 16); /*0x17af02*/\n    }\n    else\n    {\n      do /*0x17af14*/\n      {\n        v4 = (_DWORD *)(v3 + 16); /*0x17af0c*/\n        v3 = *(_DWORD *)(v3 + 16); /*0x17af0f*/\n      }\n      while ( v3 != a1 ); /*0x17af14*/\n      *v4 = *(_DWORD *)(v3 + 16); /*0x17af19*/\n    }\n    _InterlockedExchange((volatile __int32 *)v1, 0); /*0x17af1d*/\n    splx(v2); /*0x17af20*/\n    v5 = *(_DWORD *)(a1 + 8); /*0x17af25*/\n    v6 = *(_DWORD **)(a1 + 12); /*0x17af28*/\n    if ( *(_DWORD *)(a1 + 20) == v5 ) /*0x17af2e*/\n      *(_DWORD *)(v5 + 4) = v6; /*0x17af30*/\n    else\n      *(_DWORD *)(v5 + 12) = v6; /*0x17af38*/\n    if ( *(_DWORD **)(a1 + 20) == v6 ) /*0x17af3e*/\n      *v6 = v5; /*0x17af08*/\n    else\n      v6[2] = v5; /*0x17af40*/\n    --*(_WORD *)(*(_DWORD *)(a1 + 20) + 26); /*0x17af46*/\n    *(_BYTE *)(a1 + 32) &= ~4u; /*0x17af4a*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017af58",
+    "addr": "0x0017af58",
+    "code": "_DWORD *__cdecl vm_page_lookup(int a1, unsigned int a2)\n{\n  int v2; // esi\n  _DWORD *i; // ebx\n  int v5; // [esp+Ch] [ebp-4h]\n\n  v2 = vm_page_buckets + 8 * (vm_page_hash_mask & (a1 + (a2 >> page_shift))); /*0x17af80*/\n  v5 = splimp(); /*0x17af88*/\n  do /*0x17af9e*/\n  {\n    while ( *(_DWORD *)v2 ) /*0x17af8c*/\n      ; /*0x17af8e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v2, 1) == 1 ); /*0x17af9e*/\n  for ( i = *(_DWORD **)(v2 + 4); i; i = (_DWORD *)i[4] ) /*0x17afa5*/\n  {\n    if ( i[5] == a1 && i[6] == a2 ) /*0x17afb3*/\n      break; /*0x17afb3*/\n  }\n  _InterlockedExchange((volatile __int32 *)v2, 0); /*0x17afbe*/\n  splx(v5); /*0x17afc4*/\n  return i; /*0x17afce*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017afd8",
+    "addr": "0x0017afd8",
+    "code": "__int32 __cdecl vm_page_rename(int a1, int a2, unsigned int a3)\n{\n  int v3; // ebx\n  int v4; // eax\n  _DWORD *v5; // edx\n  int v6; // edx\n  _DWORD *v7; // eax\n  int v8; // ebx\n  int v9; // edx\n  int v10; // eax\n  int v12; // [esp+Ch] [ebp-4h]\n\n  do /*0x17affd*/\n  {\n    while ( vm_page_queue_lock ) /*0x17afeb*/\n      ; /*0x17afe9*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_lock, 1) == 1 ); /*0x17affd*/\n  if ( (*(_BYTE *)(a1 + 32) & 4) != 0 ) /*0x17b003*/\n  {\n    v3 = vm_page_buckets + 8 * (vm_page_hash_mask & (*(_DWORD *)(a1 + 20) + (*(_DWORD *)(a1 + 24) >> page_shift))); /*0x17b023*/\n    v12 = splimp(); /*0x17b02b*/\n    do /*0x17b042*/\n    {\n      while ( *(_DWORD *)v3 ) /*0x17b030*/\n        ; /*0x17b032*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x17b042*/\n    v4 = *(_DWORD *)(v3 + 4); /*0x17b044*/\n    if ( v4 == a1 ) /*0x17b049*/\n    {\n      *(_DWORD *)(v3 + 4) = *(_DWORD *)(a1 + 16); /*0x17b04e*/\n    }\n    else\n    {\n      do /*0x17b060*/\n      {\n        v5 = (_DWORD *)(v4 + 16); /*0x17b058*/\n        v4 = *(_DWORD *)(v4 + 16); /*0x17b05b*/\n      }\n      while ( v4 != a1 ); /*0x17b060*/\n      *v5 = *(_DWORD *)(v4 + 16); /*0x17b065*/\n    }\n    _InterlockedExchange((volatile __int32 *)v3, 0); /*0x17b069*/\n    splx(v12); /*0x17b06f*/\n    v6 = *(_DWORD *)(a1 + 8); /*0x17b077*/\n    v7 = *(_DWORD **)(a1 + 12); /*0x17b07a*/\n    if ( *(_DWORD *)(a1 + 20) == v6 ) /*0x17b080*/\n      *(_DWORD *)(v6 + 4) = v7; /*0x17b082*/\n    else\n      *(_DWORD *)(v6 + 12) = v7; /*0x17b088*/\n    if ( *(_DWORD **)(a1 + 20) == v7 ) /*0x17b08e*/\n      *v7 = v6; /*0x17b054*/\n    else\n      v7[2] = v6; /*0x17b090*/\n    --*(_WORD *)(*(_DWORD *)(a1 + 20) + 26); /*0x17b096*/\n    *(_BYTE *)(a1 + 32) &= ~4u; /*0x17b09a*/\n  }\n  *(_DWORD *)(a1 + 20) = a2; /*0x17b0a1*/\n  *(_DWORD *)(a1 + 24) = a3; /*0x17b0a7*/\n  v8 = vm_page_buckets + 8 * (vm_page_hash_mask & (a2 + (a3 >> page_shift))); /*0x17b0c4*/\n  v9 = splimp(); /*0x17b0cc*/\n  do /*0x17b0e2*/\n  {\n    while ( *(_DWORD *)v8 ) /*0x17b0d0*/\n      ; /*0x17b0d2*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v8, 1) == 1 ); /*0x17b0e2*/\n  *(_DWORD *)(a1 + 16) = *(_DWORD *)(v8 + 4); /*0x17b0e7*/\n  *(_DWORD *)(v8 + 4) = a1; /*0x17b0ea*/\n  _InterlockedExchange((volatile __int32 *)v8, 0); /*0x17b0ef*/\n  splx(v9); /*0x17b0f2*/\n  v10 = *(_DWORD *)(a2 + 4); /*0x17b0fa*/\n  if ( a2 == v10 ) /*0x17b0ff*/\n    *(_DWORD *)a2 = a1; /*0x17b101*/\n  else\n    *(_DWORD *)(v10 + 8) = a1; /*0x17b108*/\n  *(_DWORD *)(a1 + 12) = v10; /*0x17b10b*/\n  *(_DWORD *)(a1 + 8) = a2; /*0x17b111*/\n  *(_DWORD *)(a2 + 4) = a1; /*0x17b114*/\n  *(_BYTE *)(a1 + 32) |= 4u; /*0x17b117*/\n  ++*(_WORD *)(a2 + 26); /*0x17b11b*/\n  return _InterlockedExchange(&vm_page_queue_lock, 0); /*0x17b12a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f64e8",
+        "name": "_vm_page_queue_lock"
+      },
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017b134",
+    "addr": "0x0017b134",
+    "code": "int __cdecl vm_page_init(int a1, int a2, unsigned int a3, int a4)\n{\n  int v4; // ebx\n  int v5; // edx\n  int result; // eax\n\n  qmemcpy((void *)a1, &vm_page_template, 0x30u); /*0x17b150*/\n  *(_DWORD *)(a1 + 36) = a4; /*0x17b152*/\n  if ( (*(_BYTE *)(a1 + 32) & 4) != 0 ) /*0x17b15c*/\n    panic(aVmPageInsert); /*0x17b163*/\n  *(_DWORD *)(a1 + 20) = a2; /*0x17b171*/\n  *(_DWORD *)(a1 + 24) = a3; /*0x17b174*/\n  v4 = vm_page_buckets + 8 * (vm_page_hash_mask & (a2 + (a3 >> page_shift))); /*0x17b191*/\n  v5 = splimp(); /*0x17b199*/\n  do /*0x17b1ae*/\n  {\n    while ( *(_DWORD *)v4 ) /*0x17b19c*/\n      ; /*0x17b19e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v4, 1) == 1 ); /*0x17b1ae*/\n  *(_DWORD *)(a1 + 16) = *(_DWORD *)(v4 + 4); /*0x17b1b6*/\n  *(_DWORD *)(v4 + 4) = a1; /*0x17b1b9*/\n  _InterlockedExchange((volatile __int32 *)v4, 0); /*0x17b1be*/\n  splx(v5); /*0x17b1c1*/\n  result = *(_DWORD *)(a2 + 4); /*0x17b1c9*/\n  if ( a2 == result ) /*0x17b1ce*/\n    *(_DWORD *)a2 = a1; /*0x17b1d3*/\n  else\n    *(_DWORD *)(result + 8) = a1; /*0x17b1db*/\n  *(_DWORD *)(a1 + 12) = result; /*0x17b1e1*/\n  *(_DWORD *)(a1 + 8) = a2; /*0x17b1e7*/\n  *(_DWORD *)(a2 + 4) = a1; /*0x17b1ea*/\n  *(_BYTE *)(a1 + 32) |= 4u; /*0x17b1ed*/\n  ++*(_WORD *)(a2 + 26); /*0x17b1f1*/\n  return result; /*0x17b1f8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7440",
+        "name": "_vm_page_template"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0d84",
+        "name": "aVmPageInsert",
+        "string": "vm_page_insert"
+      },
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0017b200",
+    "addr": "0x0017b200",
+    "code": "int __cdecl vm_page_alloc_sequential(int a1, unsigned int a2, int a3)\n{\n  int v3; // edx\n  int v5; // eax\n  int v6; // ebx\n  int v7; // ecx\n  int v8; // eax\n  _DWORD *v9; // edx\n  int v10; // edx\n  _DWORD *v11; // eax\n  int v12; // eax\n  int v13; // ebx\n  int v14; // edx\n  int v15; // eax\n  unsigned int v16; // eax\n  unsigned int v17; // edx\n  int v18; // edx\n  _DWORD *i; // ebx\n  int v20; // [esp+Ch] [ebp-Ch]\n  int v21; // [esp+10h] [ebp-8h]\n  int v22; // [esp+14h] [ebp-4h]\n\n  v3 = splimp(); /*0x17b20e*/\n  do /*0x17b229*/\n  {\n    while ( vm_page_queue_free_lock ) /*0x17b217*/\n      ; /*0x17b215*/\n  }\n  while ( _InterlockedExchange(&vm_page_queue_free_lock, 1) == 1 ); /*0x17b229*/\n  if ( (int *)vm_page_queue_free == &vm_page_queue_free /*0x17b25e*/\n    || vm_page_free_count < vm_page_free_reserved && !*(_DWORD *)(active_threads + 120) )\n  {\n    _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x17b239*/\n    splx(v3); /*0x17b240*/\n    return 0; /*0x17b245*/\n  }\n  else\n  {\n    v21 = vm_page_queue_free; /*0x17b282*/\n    v5 = *(_DWORD *)vm_page_queue_free; /*0x17b285*/\n    if ( *(int **)vm_page_queue_free == &vm_page_queue_free ) /*0x17b28c*/\n      dword_1F6E4C = (int)&vm_page_queue_free; /*0x17b28e*/\n    else\n      *(_DWORD *)(v5 + 4) = &vm_page_queue_free; /*0x17b29c*/\n    vm_page_queue_free = v5; /*0x17b2a3*/\n    *(_BYTE *)(v21 + 30) &= ~8u; /*0x17b2ab*/\n    --vm_page_free_count; /*0x17b2af*/\n    _InterlockedExchange(&vm_page_queue_free_lock, 0); /*0x17b2b7*/\n    splx(v3); /*0x17b2be*/\n    if ( (*(_BYTE *)(v21 + 32) & 4) != 0 ) /*0x17b2ca*/\n    {\n      v6 = vm_page_buckets + 8 * (vm_page_hash_mask & (*(_DWORD *)(v21 + 20) + (*(_DWORD *)(v21 + 24) >> page_shift))); /*0x17b2ea*/\n      v7 = splimp(); /*0x17b2f2*/\n      do /*0x17b306*/\n      {\n        while ( *(_DWORD *)v6 ) /*0x17b2f4*/\n          ; /*0x17b2f6*/\n      }\n      while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x17b306*/\n      v8 = *(_DWORD *)(v6 + 4); /*0x17b308*/\n      if ( v21 == v8 ) /*0x17b30e*/\n      {\n        *(_DWORD *)(v6 + 4) = *(_DWORD *)(v21 + 16); /*0x17b316*/\n      }\n      else\n      {\n        do /*0x17b329*/\n        {\n          v9 = (_DWORD *)(v8 + 16); /*0x17b320*/\n          v8 = *(_DWORD *)(v8 + 16); /*0x17b323*/\n        }\n        while ( v21 != v8 ); /*0x17b329*/\n        *v9 = *(_DWORD *)(v8 + 16); /*0x17b32e*/\n      }\n      _InterlockedExchange((volatile __int32 *)v6, 0); /*0x17b332*/\n      splx(v7); /*0x17b335*/\n      v10 = *(_DWORD *)(v21 + 8); /*0x17b340*/\n      v11 = *(_DWORD **)(v21 + 12); /*0x17b343*/\n      if ( *(_DWORD *)(v21 + 20) == v10 ) /*0x17b349*/\n        *(_DWORD *)(v10 + 4) = v11; /*0x17b34b*/\n      else\n        *(_DWORD *)(v10 + 12) = v11; /*0x17b350*/\n      if ( *(_DWORD **)(v21 + 20) == v11 ) /*0x17b359*/\n        *v11 = v10; /*0x17b31c*/\n      else\n        v11[2] = v10; /*0x17b35b*/\n      --*(_WORD *)(*(_DWORD *)(v21 + 20) + 26); /*0x17b364*/\n      *(_BYTE *)(v21 + 32) &= ~4u; /*0x17b368*/\n    }\n    v12 = *(_DWORD *)(v21 + 36); /*0x17b36f*/\n    qmemcpy((void *)v21, &vm_page_template, 0x30u); /*0x17b384*/\n    *(_DWORD *)(v21 + 36) = v12; /*0x17b386*/\n    if ( (*(_BYTE *)(v21 + 32) & 4) != 0 ) /*0x17b390*/\n      panic(aVmPageInsert); /*0x17b397*/\n    *(_DWORD *)(v21 + 20) = a1; /*0x17b3a5*/\n    *(_DWORD *)(v21 + 24) = a2; /*0x17b3ab*/\n    v13 = vm_page_buckets + 8 * (vm_page_hash_mask & (a1 + (a2 >> page_shift))); /*0x17b3c8*/\n    v14 = splimp(); /*0x17b3d0*/\n    do /*0x17b3e6*/\n    {\n      while ( *(_DWORD *)v13 ) /*0x17b3d4*/\n        ; /*0x17b3d6*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v13, 1) == 1 ); /*0x17b3e6*/\n    *(_DWORD *)(v21 + 16) = *(_DWORD *)(v13 + 4); /*0x17b3ee*/\n    *(_DWORD *)(v13 + 4) = v21; /*0x17b3f1*/\n    _InterlockedExchange((volatile __int32 *)v13, 0); /*0x17b3f6*/\n    splx(v14); /*0x17b3f9*/\n    v15 = *(_DWORD *)(a1 + 4); /*0x17b404*/\n    if ( a1 == v15 ) /*0x17b409*/\n      *(_DWORD *)a1 = v21; /*0x17b40e*/\n    else\n      *(_DWORD *)(v15 + 8) = v21; /*0x17b417*/\n    *(_DWORD *)(v21 + 12) = v15; /*0x17b41d*/\n    *(_DWORD *)(v21 + 8) = a1; /*0x17b423*/\n    *(_DWORD *)(a1 + 4) = v21; /*0x17b426*/\n    *(_BYTE *)(v21 + 32) |= 4u; /*0x17b429*/\n    ++*(_WORD *)(a1 + 26); /*0x17b42d*/\n    if ( vm_page_free_min > vm_page_free_count /*0x17b451*/\n      || vm_page_free_target > vm_page_free_count && vm_page_inactive_count < vm_page_inactive_target )\n    {\n      thread_wakeup_prim((int)&vm_pages_needed, 0, 0); /*0x17b45c*/\n    }\n    if ( (*(_BYTE *)(a1 + 72) & 3) != 0 && a3 ) /*0x17b475*/\n    {\n      v16 = *(_DWORD *)(a1 + 84); /*0x17b47b*/\n      v17 = a2 - v16; /*0x17b481*/\n      if ( (int)(a2 - v16) < 0 ) /*0x17b483*/\n        v17 = v16 - a2; /*0x17b485*/\n      if ( page_size == v17 ) /*0x17b48d*/\n      {\n        v22 = *(_DWORD *)(a1 + 84); /*0x17b493*/\n        v20 = vm_page_buckets + 8 * (vm_page_hash_mask & (a1 + (v16 >> page_shift))); /*0x17b4b0*/\n        v18 = splimp(); /*0x17b4b8*/\n        do /*0x17b4d2*/\n        {\n          while ( *(_DWORD *)v20 ) /*0x17b4c0*/\n            ; /*0x17b4c2*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)v20, 1) == 1 ); /*0x17b4d2*/\n        for ( i = *(_DWORD **)(v20 + 4); i; i = (_DWORD *)i[4] ) /*0x17b4d9*/\n        {\n          if ( i[5] == a1 && i[6] == v22 ) /*0x17b4ea*/\n            break; /*0x17b4ea*/\n        }\n        _InterlockedExchange((volatile __int32 *)v20, 0); /*0x17b4f5*/\n        splx(v18); /*0x17b4f8*/\n        if ( i ) /*0x17b504*/\n          vm_policy_apply(a1, (int)i, *(_WORD *)(a1 + 72) == 2); /*0x17b522*/\n      }\n    }\n    *(_DWORD *)(a1 + 84) = a2; /*0x17b52d*/\n    return v21; /*0x17b530*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1f7418",
+        "name": "_vm_page_queue_free_lock"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1f6e48",
+        "name": "_vm_page_queue_free"
+      },
+      {
+        "addr": "0x1f6e4c",
+        "name": "dword_1F6E4C"
+      },
+      {
+        "addr": "0x1f6e38",
+        "name": "_vm_page_free_count"
+      },
+      {
+        "addr": "0x1f7438",
+        "name": "_vm_page_buckets"
+      },
+      {
+        "addr": "0x1f743c",
+        "name": "_vm_page_hash_mask"
+      },
+      {
+        "addr": "0x1f6ea4",
+        "name": "_page_shift"
+      },
+      {
+        "addr": "0x1f7440",
+        "name": "_vm_page_template"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1e0d84",
+        "name": "aVmPageInsert",
+        "string": "vm_page_insert"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      },
+      {
+        "addr": "0x1f6e50",
+        "name": "_vm_pages_needed"
+      },
+      {
+        "addr": "0x1e0d14",
+        "name": "_vm_page_free_min"
+      },
+      {
+        "addr": "0x1e0d10",
+        "name": "_vm_page_free_target"
+      },
+      {
+        "addr": "0x1f64d8",
+        "name": "_vm_page_inactive_count"
+      },
+      {
+        "addr": "0x1e0d18",
+        "name": "_vm_page_inactive_target"
+      },
+      {
+        "addr": "0x17a338",
+        "name": "_vm_policy_apply"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e0d1c",
+        "name": "_vm_page_free_reserved"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      }
+    ]
+  }
+]

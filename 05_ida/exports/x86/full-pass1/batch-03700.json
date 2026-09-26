@@ -1,0 +1,553 @@
+[
+  {
+    "requested_address": "0x001ab88c",
+    "addr": "0x001ab88c",
+    "code": "void __cdecl -[IOTokenRing transmit:](IOTokenRing *self, SEL a2, $199DFB5D1DF31DC82E78091AC4DEC886 *a3)\n{\n  nb_free((int)a3); /*0x1ab893*/\n}",
+    "refs": [
+      {
+        "addr": "0x120a6c",
+        "name": "_nb_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab89c",
+    "addr": "0x001ab89c",
+    "code": "int __cdecl -[IOTokenRing outputPacket:address:](\n        IOTokenRing *self,\n        SEL a2,\n        $199DFB5D1DF31DC82E78091AC4DEC886 *a3,\n        void *a4)\n{\n  const char *v5; // eax\n  int v6; // edx\n  int v7; // esi\n  const char *v8; // eax\n  _BYTE *v9; // ebx\n  int v10; // [esp-8h] [ebp-18h]\n\n  if ( (*(_BYTE *)&self->_flags & 1) != 0 )\n  {\n    if ( self->_maxInfoFieldSize >= nb_size((int)a3) )\n    {\n      v6 = 0; /*0x1ab918*/\n      if ( *((char *)a4 + 8) < 0 ) /*0x1ab91e*/\n      {\n        v6 = *((_BYTE *)a4 + 14) & 0x1F; /*0x1ab926*/\n        if ( (*((_BYTE *)a4 + 14) & 1) != 0 || (unsigned int)(v6 - 2) > 0x10 ) /*0x1ab933*/\n          v6 = -1; /*0x1ab935*/\n      }\n      if ( v6 >= 0 ) /*0x1ab93c*/\n        v7 = v6 + 14; /*0x1ab944*/\n      else\n        v7 = v6; /*0x1ab93e*/\n      if ( v7 >= 0 )\n      {\n        nb_grow_top((int)a3, v7); /*0x1ab976*/\n        v9 = (_BYTE *)nb_map((int)a3); /*0x1ab981*/\n        bcopy(a4, v9, v7); /*0x1ab989*/\n        *v9 &= 0xF0u; /*0x1ab98e*/\n        -[IOTokenRing transmit:](self, sel_transmit_, a3); /*0x1ab99d*/\n        return 0; /*0x1ab9a2*/\n      }\n      else\n      {\n        v8 = -[IODevice name](self, sel_name); /*0x1ab956*/\n        IOLog((int)\"%s: bad mac header\\n\", v8);\n        nb_free((int)a3); /*0x1ab967*/\n        return 40; /*0x1ab96c*/\n      }\n    }\n    else\n    {\n      v10 = nb_size((int)a3); /*0x1ab8e6*/\n      v5 = -[IODevice name](self, sel_name); /*0x1ab8f2*/\n      IOLog((int)\"%s: netOutput bad frame size=%d\\n\", v5, v10);\n      nb_free((int)a3); /*0x1ab906*/\n      return 40; /*0x1ab90b*/\n    }\n  }\n  else\n  {\n    nb_free((int)a3); /*0x1ab8bb*/\n    return 50; /*0x1ab8c0*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x120b44",
+        "name": "_nb_grow_top"
+      },
+      {
+        "addr": "0x120a5c",
+        "name": "_nb_map"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1ab88c",
+        "name": "-[IOTokenRing transmit:]"
+      },
+      {
+        "addr": "0x20434c",
+        "name": "sel_transmit:",
+        "string": "transmit:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d75d0",
+        "name": "aSBadMacHeader",
+        "string": "%s: bad mac header\n"
+      },
+      {
+        "addr": "0x120a6c",
+        "name": "_nb_free"
+      },
+      {
+        "addr": "0x120a9c",
+        "name": "_nb_size"
+      },
+      {
+        "addr": "0x1d75ac",
+        "name": "aSNetoutputBadF",
+        "string": "%s: netOutput bad frame size=%d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab9b0",
+    "addr": "0x001ab9b0",
+    "code": "$199DFB5D1DF31DC82E78091AC4DEC886 *__cdecl -[IOTokenRing allocateNetbuf](IOTokenRing *self, SEL a2)\n{\n  int v2; // eax\n  $199DFB5D1DF31DC82E78091AC4DEC886 *v3; // ebx\n\n  v2 = nb_alloc(self->_maxInfoFieldSize + 32); /*0x1ab9c1*/\n  v3 = ($199DFB5D1DF31DC82E78091AC4DEC886 *)v2; /*0x1ab9c6*/\n  if ( v2 ) /*0x1ab9cd*/\n    nb_shrink_top(v2, 32); /*0x1ab9d2*/\n  return v3; /*0x1ab9d9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1209ec",
+        "name": "_nb_alloc"
+      },
+      {
+        "addr": "0x120b2c",
+        "name": "_nb_shrink_top"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ab9e0",
+    "addr": "0x001ab9e0",
+    "code": "int __cdecl -[IOTokenRing performCommand:data:](IOTokenRing *self, SEL a2, const char *a3, void *a4)\n{\n  int v4; // ebx\n\n  v4 = 0; /*0x1ab9e8*/\n  if ( !strcmp(a3, \"setflags\") ) /*0x1ab9f0*/\n    return 0; /*0x1ab9fc*/\n  if ( strcmp(a3, \"getaddr\") ) /*0x1aba06*/\n    return 22; /*0x1aba28*/\n  bcopy(&self->_nodeAddress, a4, 6u); /*0x1aba21*/\n  return v4; /*0x1aba32*/\n}",
+    "refs": [
+      {
+        "addr": "0x101e7c",
+        "name": "_strcmp"
+      },
+      {
+        "addr": "0x1d1209",
+        "name": "_IFCONTROL_SETFLAGS",
+        "string": "setflags"
+      },
+      {
+        "addr": "0x1d121a",
+        "name": "_IFCONTROL_GETADDR",
+        "string": "getaddr"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001aba38",
+    "addr": "0x001aba38",
+    "code": null,
+    "error": "Decompilation failed at 0x1aba38 (address: 0x1abaae)"
+  },
+  {
+    "requested_address": "0x001abaec",
+    "addr": "0x001abaec",
+    "code": "id __cdecl -[IOSCSIController initFromDeviceDescription:](IOSCSIController *self, SEL a2, id a3)\n{\n  id v3; // eax\n  unsigned int v5; // edx\n  int v6; // [esp-10h] [ebp-44h]\n  objc_super v7; // [esp+8h] [ebp-2Ch] BYREF\n  unsigned int v8; // [esp+10h] [ebp-24h] BYREF\n  unsigned int v9; // [esp+14h] [ebp-20h]\n  unsigned int v10; // [esp+18h] [ebp-1Ch]\n  unsigned int v11; // [esp+1Ch] [ebp-18h]\n  char v12[20]; // [esp+20h] [ebp-14h] BYREF\n\n  self->_reserveQ.prev = (queue_entry *)&self->_reserveQ; /*0x1abafd*/\n  self->_reserveQ.next = (queue_entry *)&self->_reserveQ; /*0x1abb03*/\n  v3 = -[Object class](self, sel_class); /*0x1abb18*/\n  if ( objc_msgSend(v3, sel_deviceStyle) ) /*0x1abb21*/\n    goto LABEL_6; /*0x1abb21*/\n  v7.receiver = self; /*0x1abb38*/\n  v7.super_class = (Class)stru_1FA334.ext; /*0x1abb41*/\n  if ( !-[IODirectDevice initFromDeviceDescription:](&v7, sel_initFromDeviceDescription_, a3) ) /*0x1abb48*/\n    return nullptr; /*0x1abb56*/\n  if ( !-[IODirectDevice startIOThread](self, sel_startIOThread) ) /*0x1abb64*/\n  {\nLABEL_6:\n    -[IODevice setUnit:](self, sel_setUnit_, dword_1E516C); /*0x1abb93*/\n    v6 = dword_1E516C++; /*0x1abb9e*/\n    sprintf(v12, \"sc%d\", v6); /*0x1abbae*/\n    -[IODevice setName:](self, sel_setName_, v12); /*0x1abbbc*/\n    -[IODevice setDeviceKind:](self, sel_setDeviceKind_, \"sc\"); /*0x1abbd1*/\n    -[IOSCSIController getDMAAlignment:](self, sel_getDMAAlignment_, &v8); /*0x1abbe2*/\n    v5 = v8; /*0x1abbe7*/\n    self->_worstCaseAlign = v8; /*0x1abbea*/\n    if ( v9 > v5 ) /*0x1abbf5*/\n      self->_worstCaseAlign = v9; /*0x1abbf7*/\n    if ( self->_worstCaseAlign < v10 ) /*0x1abc06*/\n      self->_worstCaseAlign = v10; /*0x1abc08*/\n    if ( self->_worstCaseAlign < v11 ) /*0x1abc17*/\n      self->_worstCaseAlign = v11; /*0x1abc19*/\n    if ( self->_worstCaseAlign == 1 ) /*0x1abc26*/\n      self->_worstCaseAlign = 0; /*0x1abc28*/\n    return self; /*0x1abc32*/\n  }\n  else\n  {\n    -[IOSCSIController free](self, sel_free); /*0x1abb78*/\n    return nullptr; /*0x1abb7d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1c9d08",
+        "name": "-[Object class]"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2029c8",
+        "name": "sel_deviceStyle",
+        "string": "deviceStyle"
+      },
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1a83e8",
+        "name": "-[IODirectDevice initFromDeviceDescription:]"
+      },
+      {
+        "addr": "0x203260",
+        "name": "sel_initFromDeviceDescription:",
+        "string": "initFromDeviceDescription:"
+      },
+      {
+        "addr": "0x1a43f8",
+        "name": "-[IODevice setUnit:]"
+      },
+      {
+        "addr": "0x202bf0",
+        "name": "sel_setUnit:",
+        "string": "setUnit:"
+      },
+      {
+        "addr": "0x1e516c",
+        "name": "dword_1E516C"
+      },
+      {
+        "addr": "0x10c188",
+        "name": "_sprintf"
+      },
+      {
+        "addr": "0x1d75e4",
+        "name": "aScD",
+        "string": "sc%d"
+      },
+      {
+        "addr": "0x1a42e8",
+        "name": "-[IODevice setName:]"
+      },
+      {
+        "addr": "0x202bfc",
+        "name": "sel_setName:",
+        "string": "setName:"
+      },
+      {
+        "addr": "0x1a433c",
+        "name": "-[IODevice setDeviceKind:]"
+      },
+      {
+        "addr": "0x202c08",
+        "name": "sel_setDeviceKind:",
+        "string": "setDeviceKind:"
+      },
+      {
+        "addr": "0x1d75ec",
+        "name": "aSc",
+        "string": "sc"
+      },
+      {
+        "addr": "0x1ac050",
+        "name": "-[IOSCSIController getDMAAlignment:]"
+      },
+      {
+        "addr": "0x2026dc",
+        "name": "sel_getDMAAlignment:",
+        "string": "getDMAAlignment:"
+      },
+      {
+        "addr": "0x1abc40",
+        "name": "-[IOSCSIController free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a8744",
+        "name": "-[IODirectDevice startIOThread]"
+      },
+      {
+        "addr": "0x203e04",
+        "name": "sel_startIOThread",
+        "string": "startIOThread"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abc40",
+    "addr": "0x001abc40",
+    "code": "id __cdecl -[IOSCSIController free](IOSCSIController *self, SEL a2)\n{\n  queue_entry *next; // edx\n  queue_entry *p_reserveQ; // ebx\n  queue_entry *v4; // esi\n  int v5; // ecx\n  int v6; // edx\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v7; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *v8; // eax\n  id v9; // edx\n  objc_super v11; // [esp+Ch] [ebp-8h] BYREF\n\n  next = self->_reserveQ.next; /*0x1abc4c*/\n  if ( next && &self->_reserveQ != ($BAB6C68F9D34F0972F921D3DB17D7446 *)next ) /*0x1abc5f*/\n  {\n    p_reserveQ = (queue_entry *)&self->_reserveQ; /*0x1abc61*/\n    do /*0x1abca5*/\n    {\n      v4 = self->_reserveQ.next; /*0x1abc67*/\n      v5 = *((_DWORD *)v4 + 5); /*0x1abc6d*/\n      v6 = *((_DWORD *)v4 + 6); /*0x1abc70*/\n      if ( p_reserveQ == (queue_entry *)v5 ) /*0x1abc75*/\n        v7 = &self->_reserveQ; /*0x1abc77*/\n      else\n        v7 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v5 + 20); /*0x1abc7c*/\n      v7->prev = (queue_entry *)v6; /*0x1abc7f*/\n      if ( p_reserveQ == (queue_entry *)v6 ) /*0x1abc84*/\n        v8 = &self->_reserveQ; /*0x1abc86*/\n      else\n        v8 = ($BAB6C68F9D34F0972F921D3DB17D7446 *)(v6 + 20); /*0x1abc8c*/\n      v8->next = (queue_entry *)v5; /*0x1abc8f*/\n      IOFree((int)v4, 28); /*0x1abc94*/\n    }\n    while ( self->_reserveQ.next != p_reserveQ ); /*0x1abca5*/\n  }\n  v9 = -[IODevice unit](self, sel_unit); /*0x1abcb7*/\n  if ( v9 == (id)(dword_1E516C - 1) ) /*0x1abcc4*/\n    dword_1E516C = (int)v9; /*0x1abcc6*/\n  v11.receiver = self; /*0x1abcd6*/\n  v11.super_class = (Class)stru_1FA334.ext; /*0x1abcdf*/\n  return -[IODirectDevice free](&v11, sel_free); /*0x1abcee*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1a43e8",
+        "name": "-[IODevice unit]"
+      },
+      {
+        "addr": "0x203404",
+        "name": "sel_unit",
+        "string": "unit"
+      },
+      {
+        "addr": "0x1e516c",
+        "name": "dword_1E516C"
+      },
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1a846c",
+        "name": "-[IODirectDevice free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abcf8",
+    "addr": "0x001abcf8",
+    "code": "int __cdecl -[IOSCSIController reserveTarget:lun:forOwner:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned __int8 a3,\n        unsigned __int8 a4,\n        id a5)\n{\n  return -[IOSCSIController reserveSCSI3Target:lun:forOwner:]( /*0x1abd20*/\n           self,\n           sel_reserveSCSI3Target_lun_forOwner_,\n           a3,\n           0,\n           a4,\n           0,\n           a5);\n}",
+    "refs": [
+      {
+        "addr": "0x1abd54",
+        "name": "-[IOSCSIController reserveSCSI3Target:lun:forOwner:]"
+      },
+      {
+        "addr": "0x204724",
+        "name": "sel_reserveSCSI3Target:lun:forOwner:",
+        "string": "reserveSCSI3Target:lun:forOwner:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abd28",
+    "addr": "0x001abd28",
+    "code": "void __cdecl -[IOSCSIController releaseTarget:lun:forOwner:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned __int8 a3,\n        unsigned __int8 a4,\n        id a5)\n{\n  -[IOSCSIController releaseSCSI3Target:lun:forOwner:](self, sel_releaseSCSI3Target_lun_forOwner_, a3, 0, a4, 0, a5); /*0x1abd49*/\n}",
+    "refs": [
+      {
+        "addr": "0x1abe3c",
+        "name": "-[IOSCSIController releaseSCSI3Target:lun:forOwner:]"
+      },
+      {
+        "addr": "0x204700",
+        "name": "sel_releaseSCSI3Target:lun:forOwner:",
+        "string": "releaseSCSI3Target:lun:forOwner:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abd54",
+    "addr": "0x001abd54",
+    "code": "int __cdecl -[IOSCSIController reserveSCSI3Target:lun:forOwner:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned __int64 a3,\n        unsigned __int64 a4,\n        id a5)\n{\n  int v5; // edi\n  int v6; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_reserveQ; // ecx\n  queue_entry *prev; // edx\n\n  v5 = 0; /*0x1abd60*/\n  objc_msgSend(self->_reserveLock, sel_lock); /*0x1abd76*/\n  if ( (int)a3 >= -[IOSCSIController numberOfTargets](self, sel_numberOfTargets) /*0x1abda4*/\n    || -[IOSCSIController searchReserveQ:lun:](self, sel_searchReserveQ_lun_, a3, a4) )\n  {\n    v5 = 1; /*0x1abdb0*/\n  }\n  else\n  {\n    v6 = IOMalloc(0x1Cu); /*0x1abdce*/\n    *(_QWORD *)v6 = a3; /*0x1abdd6*/\n    *(_QWORD *)(v6 + 8) = a4; /*0x1abde1*/\n    *(_DWORD *)(v6 + 16) = a5; /*0x1abded*/\n    p_reserveQ = &self->_reserveQ; /*0x1abdf3*/\n    if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->_reserveQ.next == &self->_reserveQ ) /*0x1abdff*/\n    {\n      self->_reserveQ.next = (queue_entry *)v6; /*0x1abdb8*/\n      self->_reserveQ.prev = (queue_entry *)v6; /*0x1abdbe*/\n      *(_DWORD *)(v6 + 20) = p_reserveQ; /*0x1abdc4*/\n      *(_DWORD *)(v6 + 24) = p_reserveQ; /*0x1abdc7*/\n    }\n    else\n    {\n      prev = self->_reserveQ.prev; /*0x1abe01*/\n      *(_DWORD *)(v6 + 24) = prev; /*0x1abe07*/\n      *(_DWORD *)(v6 + 20) = p_reserveQ; /*0x1abe0a*/\n      self->_reserveQ.prev = (queue_entry *)v6; /*0x1abe0d*/\n      *((_DWORD *)prev + 5) = v6; /*0x1abe13*/\n    }\n    ++self->_reserveCount; /*0x1abe16*/\n  }\n  objc_msgSend(self->_reserveLock, sel_unlock); /*0x1abe2a*/\n  return v5; /*0x1abe34*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1abf18",
+        "name": "-[IOSCSIController numberOfTargets]"
+      },
+      {
+        "addr": "0x2028f8",
+        "name": "sel_numberOfTargets",
+        "string": "numberOfTargets"
+      },
+      {
+        "addr": "0x1ac248",
+        "name": "-[IOSCSIController searchReserveQ:lun:]"
+      },
+      {
+        "addr": "0x2045d8",
+        "name": "sel_searchReserveQ:lun:",
+        "string": "searchReserveQ:lun:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abe3c",
+    "addr": "0x001abe3c",
+    "code": "void __cdecl -[IOSCSIController releaseSCSI3Target:lun:forOwner:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned __int64 a3,\n        unsigned __int64 a4,\n        id a5)\n{\n  $E7EB92A5B27EBB39AD62798E52927D35 *v5; // eax\n  IOSCSIController *var0; // ebx\n  IOSCSIController *var1; // ecx\n  queue_entry *v8; // edx\n  char *v9; // edx\n\n  objc_msgSend(self->_reserveLock, sel_lock); /*0x1abe56*/\n  if ( (int)a3 < -[IOSCSIController numberOfTargets](self, sel_numberOfTargets) )\n  {\n    v5 = -[IOSCSIController searchReserveQ:lun:](self, sel_searchReserveQ_lun_, a3, a4); /*0x1abe8e*/\n    if ( v5 )\n    {\n      if ( v5->var2 == a5 )\n      {\n        var0 = (IOSCSIController *)v5->var3.var0; /*0x1abebc*/\n        var1 = (IOSCSIController *)v5->var3.var1; /*0x1abebf*/\n        if ( &self->_reserveQ == ($BAB6C68F9D34F0972F921D3DB17D7446 *)var0 ) /*0x1abeca*/\n          v8 = v5->var3.var0; /*0x1abecc*/\n        else\n          v8 = (queue_entry *)&var0->super.super._deviceName[12]; /*0x1abed0*/\n        *((_DWORD *)v8 + 1) = var1; /*0x1abed3*/\n        if ( &self->_reserveQ == ($BAB6C68F9D34F0972F921D3DB17D7446 *)var1 ) /*0x1abede*/\n          v9 = (char *)var1; /*0x1abee0*/\n        else\n          v9 = &var1->super.super._deviceName[12]; /*0x1abee4*/\n        *(_DWORD *)v9 = var0; /*0x1abee7*/\n        IOFree((int)v5, 28); /*0x1abeec*/\n        --self->_reserveCount; /*0x1abef1*/\n      }\n      else\n      {\n        IOLog((int)\"IOSCSIController releaseTarget: INVALID OWNER\\n\");\n      }\n    }\n    else\n    {\n      IOLog((int)\"IOSCSIController releaseTarget: NOT RESERVED\\n\");\n    }\n  }\n  else\n  {\n    IOLog((int)\"IOSCSIController releaseTarget: INVALID TARGET\\n\");\n  }\n  objc_msgSend(self->_reserveLock, sel_unlock); /*0x1abf08*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1ac248",
+        "name": "-[IOSCSIController searchReserveQ:lun:]"
+      },
+      {
+        "addr": "0x2045d8",
+        "name": "sel_searchReserveQ:lun:",
+        "string": "searchReserveQ:lun:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d7650",
+        "name": "aIoscsicontroll_1",
+        "string": "IOSCSIController releaseTarget: INVALID OWNER\n"
+      },
+      {
+        "addr": "0x1d7620",
+        "name": "aIoscsicontroll_0",
+        "string": "IOSCSIController releaseTarget: NOT RESERVED\n"
+      },
+      {
+        "addr": "0x1d75f0",
+        "name": "aIoscsicontroll",
+        "string": "IOSCSIController releaseTarget: INVALID TARGET\n"
+      },
+      {
+        "addr": "0x1abf18",
+        "name": "-[IOSCSIController numberOfTargets]"
+      },
+      {
+        "addr": "0x2028f8",
+        "name": "sel_numberOfTargets",
+        "string": "numberOfTargets"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001abf18",
+    "addr": "0x001abf18",
+    "code": "int __cdecl -[IOSCSIController numberOfTargets](IOSCSIController *self, SEL a2)\n{\n  return 8; /*0x1abf22*/\n}"
+  },
+  {
+    "requested_address": "0x001abf24",
+    "addr": "0x001abf24",
+    "code": "unsigned int __cdecl -[IOSCSIController numReserved](IOSCSIController *self, SEL a2)\n{\n  return self->_reserveCount; /*0x1abf32*/\n}"
+  },
+  {
+    "requested_address": "0x001abf34",
+    "addr": "0x001abf34",
+    "code": "int -[IOSCSIController executeRequest:buffer:client:]()\n{\n  return 100; /*0x1abf3e*/\n}"
+  },
+  {
+    "requested_address": "0x001abf40",
+    "addr": "0x001abf40",
+    "code": "int -[IOSCSIController executeSCSI3Request:buffer:client:]()\n{\n  return 7; /*0x1abf4a*/\n}"
+  },
+  {
+    "requested_address": "0x001abf4c",
+    "addr": "0x001abf4c",
+    "code": "int __cdecl -[IOSCSIController resetSCSIBus](IOSCSIController *self, SEL a2)\n{\n  return 100; /*0x1abf56*/\n}"
+  },
+  {
+    "requested_address": "0x001abf58",
+    "addr": "0x001abf58",
+    "code": "int __cdecl -[IOSCSIController returnFromScStatus:](IOSCSIController *self, SEL a2, int a3)\n{\n  int result; // eax\n\n  switch ( a3 ) /*0x1abf67*/\n  {\n    case 0: /*0x1abf67*/\n      result = 0; /*0x1abfd0*/\n      break; /*0x1abfd5*/\n    case 7: /*0x1abf67*/\n      result = -706; /*0x1abfe4*/\n      break; /*0x1abfec*/\n    case 8: /*0x1abf67*/\n      result = -702; /*0x1ac014*/\n      break; /*0x1ac01c*/\n    case 9: /*0x1abf67*/\n      result = -712; /*0x1ac008*/\n      break; /*0x1ac010*/\n    case 14: /*0x1abf67*/\n      result = -713; /*0x1abffc*/\n      break; /*0x1ac004*/\n    case 17: /*0x1abf67*/\n      result = -719; /*0x1ac02c*/\n      break; /*0x1ac034*/\n    case 18: /*0x1abf67*/\n      result = -720; /*0x1abfd8*/\n      break; /*0x1abfe0*/\n    case 19: /*0x1abf67*/\n      result = -703; /*0x1abff0*/\n      break; /*0x1abff8*/\n    case 23: /*0x1abf67*/\n      result = -724; /*0x1ac020*/\n      break; /*0x1ac028*/\n    default:\n      result = -714; /*0x1ac038*/\n      break; /*0x1ac038*/\n  }\n  return result; /*0x1abfd4*/\n}"
+  },
+  {
+    "requested_address": "0x001ac044",
+    "addr": "0x001ac044",
+    "code": "unsigned int __cdecl -[IOSCSIController maxTransfer](IOSCSIController *self, SEL a2)\n{\n  return 0x1000000; /*0x1ac04e*/\n}"
+  },
+  {
+    "requested_address": "0x001ac050",
+    "addr": "0x001ac050",
+    "code": "void __cdecl -[IOSCSIController getDMAAlignment:](\n        IOSCSIController *self,\n        SEL a2,\n        $5E5F304956FB491AF6F034FDF0808287 *a3)\n{\n  a3->var0 = 1; /*0x1ac056*/\n  a3->var1 = 1; /*0x1ac05c*/\n  a3->var2 = 1; /*0x1ac063*/\n  a3->var3 = 1; /*0x1ac06a*/\n}"
+  },
+  {
+    "requested_address": "0x001ac078",
+    "addr": "0x001ac078",
+    "code": "unsigned int __cdecl -[IOSCSIController numQueueSamples](IOSCSIController *self, SEL a2)\n{\n  return 0; /*0x1ac07f*/\n}"
+  },
+  {
+    "requested_address": "0x001ac084",
+    "addr": "0x001ac084",
+    "code": "unsigned int __cdecl -[IOSCSIController sumQueueLengths](IOSCSIController *self, SEL a2)\n{\n  return 0; /*0x1ac08b*/\n}"
+  },
+  {
+    "requested_address": "0x001ac090",
+    "addr": "0x001ac090",
+    "code": "unsigned int __cdecl -[IOSCSIController maxQueueLength](IOSCSIController *self, SEL a2)\n{\n  return 0; /*0x1ac097*/\n}"
+  },
+  {
+    "requested_address": "0x001ac09c",
+    "addr": "0x001ac09c",
+    "code": "void __cdecl -[IOSCSIController resetStats](IOSCSIController *self, SEL a2)\n{\n  ; /*0x1ac09c*/\n}"
+  },
+  {
+    "requested_address": "0x001ac0a4",
+    "addr": "0x001ac0a4",
+    "code": "int __cdecl -[IOSCSIController getIntValues:forParameter:count:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int *a5)\n{\n  int i; // eax\n  unsigned int v7; // [esp+Ch] [ebp-18h]\n  objc_super v8; // [esp+10h] [ebp-14h] BYREF\n  _DWORD v9[3]; // [esp+18h] [ebp-Ch]\n\n  v7 = *a5; /*0x1ac0b5*/\n  if ( !*a5 ) /*0x1ac0b5*/\n    v7 = 512; /*0x1ac0bf*/\n  if ( !strcmp(a4, \"IOSCSIControllerStatistics\") ) /*0x1ac0d5*/\n  {\n    v9[0] = -[IOSCSIController maxQueueLength](self, sel_maxQueueLength); /*0x1ac0e9*/\n    v9[1] = -[IOSCSIController numQueueSamples](self, sel_numQueueSamples); /*0x1ac0fc*/\n    v9[2] = -[IOSCSIController sumQueueLengths](self, sel_sumQueueLengths); /*0x1ac10f*/\n    *a5 = 0; /*0x1ac115*/\n    for ( i = 0; i <= 2; ++i ) /*0x1ac11b*/\n    {\n      if ( *a5 == v7 ) /*0x1ac125*/\n        break; /*0x1ac125*/\n      a3[i] = v9[i]; /*0x1ac12e*/\n      ++*a5; /*0x1ac131*/\n    }\n    return 0; /*0x1ac139*/\n  }\n  else if ( !strcmp(a4, \"IOIsASCSIController\") ) /*0x1ac151*/\n  {\n    *a5 = 0; /*0x1ac183*/\n    return 0; /*0x1ac189*/\n  }\n  else\n  {\n    v8.receiver = self; /*0x1ac166*/\n    v8.super_class = (Class)stru_1FA334.ext; /*0x1ac16f*/\n    return -[IODevice getIntValues:forParameter:count:](&v8, sel_getIntValues_forParameter_count_, a3, a4, a5); /*0x1ac176*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ac090",
+        "name": "-[IOSCSIController maxQueueLength]"
+      },
+      {
+        "addr": "0x20466c",
+        "name": "sel_maxQueueLength",
+        "string": "maxQueueLength"
+      },
+      {
+        "addr": "0x1ac078",
+        "name": "-[IOSCSIController numQueueSamples]"
+      },
+      {
+        "addr": "0x20468c",
+        "name": "sel_numQueueSamples",
+        "string": "numQueueSamples"
+      },
+      {
+        "addr": "0x1ac084",
+        "name": "-[IOSCSIController sumQueueLengths]"
+      },
+      {
+        "addr": "0x20467c",
+        "name": "sel_sumQueueLengths",
+        "string": "sumQueueLengths"
+      },
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1a482c",
+        "name": "-[IODevice getIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202e1c",
+        "name": "sel_getIntValues:forParameter:count:",
+        "string": "getIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1d769c",
+        "name": "aIoisascsicontr",
+        "string": "IOIsASCSIController"
+      },
+      {
+        "addr": "0x1d7680",
+        "name": "aIoscsicontroll_2",
+        "string": "IOSCSIControllerStatistics"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ac198",
+    "addr": "0x001ac198",
+    "code": "int __cdecl -[IOSCSIController setIntValues:forParameter:count:](\n        IOSCSIController *self,\n        SEL a2,\n        unsigned int *a3,\n        char *a4,\n        unsigned int a5)\n{\n  objc_super v6; // [esp+Ch] [ebp-8h] BYREF\n\n  if ( !strcmp(a4, \"IOSCSIControllerStatistics\") ) /*0x1ac1b6*/\n  {\n    -[IOSCSIController resetStats](self, sel_resetStats); /*0x1ac1c2*/\n    return 0; /*0x1ac1c7*/\n  }\n  else\n  {\n    v6.receiver = self; /*0x1ac1dc*/\n    v6.super_class = (Class)stru_1FA334.ext; /*0x1ac1e5*/\n    return -[IODevice setIntValues:forParameter:count:](&v6, sel_setIntValues_forParameter_count_, a3, a4, a5); /*0x1ac1ec*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ac09c",
+        "name": "-[IOSCSIController resetStats]"
+      },
+      {
+        "addr": "0x204660",
+        "name": "sel_resetStats",
+        "string": "resetStats"
+      },
+      {
+        "addr": "0x1fa334",
+        "name": "stru_1FA334"
+      },
+      {
+        "addr": "0x1a49d0",
+        "name": "-[IODevice setIntValues:forParameter:count:]"
+      },
+      {
+        "addr": "0x202a88",
+        "name": "sel_setIntValues:forParameter:count:",
+        "string": "setIntValues:forParameter:count:"
+      },
+      {
+        "addr": "0x1d7680",
+        "name": "aIoscsicontroll_2",
+        "string": "IOSCSIControllerStatistics"
+      }
+    ]
+  }
+]

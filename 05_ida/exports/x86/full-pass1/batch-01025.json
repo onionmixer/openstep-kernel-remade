@@ -1,0 +1,440 @@
+[
+  {
+    "requested_address": "0x00137b88",
+    "addr": "0x00137b88",
+    "code": "int __cdecl xdr_char(XDR *a1, char *a2)\n{\n  __int32 v3; // [esp+4h] [ebp-4h] BYREF\n\n  v3 = *a2; /*0x137b98*/\n  if ( !xdr_long(a1, &v3) ) /*0x137ba0*/\n    return 0; /*0x137bb8*/\n  *a2 = v3; /*0x137bac*/\n  return 1; /*0x137bba*/\n}",
+    "refs": [
+      {
+        "addr": "0x1379ec",
+        "name": "_xdr_long"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137bc4",
+    "addr": "0x00137bc4",
+    "code": "int __cdecl xdr_bool(XDR *a1, int *a2)\n{\n  _BOOL4 v3; // [esp+8h] [ebp-4h] BYREF\n\n  switch ( a1->x_op )\n  {\n    case XDR_DECODE:\n      if ( !a1->x_ops->x_getlong(a1, (__int32 *)&v3) )\n      {\n        printf(\"xdr_bool: decode FAILED\\n\");\n        return 0; /*0x137c23*/\n      }\n      *a2 = v3; /*0x137c34*/\n      break;\n    case XDR_ENCODE:\n      v3 = *a2 != 0; /*0x137bef*/\n      return ((int (__stdcall *)(XDR *))a1->x_ops->x_putlong)(a1); /*0x137bff*/\n    case XDR_FREE:\n      break;\n    default:\n      printf(\"xdr_bool: bad op FAILED\\n\");\n      return 0; /*0x137be0*/\n  }\n  return 1; /*0x137c4f*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd275",
+        "name": "aXdrBoolDecodeF",
+        "string": "xdr_bool: decode FAILED\n"
+      },
+      {
+        "addr": "0x1dd28e",
+        "name": "aXdrBoolBadOpFa",
+        "string": "xdr_bool: bad op FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137c58",
+    "addr": "0x00137c58",
+    "code": "int __cdecl xdr_enum(XDR *a1, int *a2)\n{\n  xdr_op x_op; // eax\n\n  x_op = a1->x_op; /*0x137c64*/\n  if ( a1->x_op == XDR_ENCODE ) /*0x137c64*/\n    return ((int (__stdcall *)(XDR *, int *))a1->x_ops->x_putlong)(a1, a2); /*0x137c72*/\n  if ( x_op == XDR_DECODE ) /*0x137c7b*/\n    return ((int (__stdcall *)(XDR *, int *))a1->x_ops->x_getlong)(a1, a2); /*0x137c84*/\n  if ( x_op == XDR_FREE ) /*0x137c8f*/\n    return 1; /*0x137c91*/\n  printf(\"xdr_long: FAILED\\n\");\n  return 0; /*0x137c74*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd217",
+        "name": "aXdrLongFailed",
+        "string": "xdr_long: FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137cac",
+    "addr": "0x00137cac",
+    "code": "int __cdecl xdr_opaque(XDR *a1, char *a2, unsigned int a3)\n{\n  unsigned int v3; // ebx\n  xdr_op x_op; // eax\n  int v6; // [esp+0h] [ebp-Ch]\n  int v7; // [esp+4h] [ebp-8h]\n  int v8; // [esp+8h] [ebp-4h]\n  int savedregs; // [esp+Ch] [ebp+0h]\n\n  if ( !a3 ) /*0x137cbd*/\n    return 1; /*0x137d3d*/\n  v3 = a3 & 3; /*0x137cc1*/\n  if ( (a3 & 3) != 0 ) /*0x137cc4*/\n    v3 = 4 - v3; /*0x137ccd*/\n  x_op = a1->x_op; /*0x137ccf*/\n  if ( a1->x_op == XDR_DECODE )\n  {\n    if ( !a1->x_ops->x_getbytes(a1, a2, a3) )\n    {\n      printf(\"xdr_opaque: decode FAILED\\n\");\n      return 0; /*0x137cf4*/\n    }\n    if ( v3 ) /*0x137cfa*/\n      return ((int (__stdcall *)(XDR *, void *))a1->x_ops->x_getbytes)(a1, &unk_1E5A20); /*0x137d0b*/\n    return 1; /*0x137cfa*/\n  }\n  if ( x_op )\n  {\n    if ( x_op == XDR_FREE )\n    {\n      return 1; /*0x137d68*/\n    }\n    else\n    {\n      printf(\"xdr_opaque: bad op FAILED\\n\");\n      return 0; /*0x137d63*/\n    }\n  }\n  else\n  {\n    if ( !a1->x_ops->x_putbytes(a1, a2, a3) )\n    {\n      printf(\"xdr_opaque: encode FAILED\\n\");\n      return 0; /*0x137d32*/\n    }\n    if ( !v3 ) /*0x137d36*/\n      return 1; /*0x137d36*/\n    return ((int (__stdcall *)(XDR *, void *, unsigned int, int, int, int, int))a1->x_ops->x_putbytes)( /*0x137d4d*/\n             a1,\n             &unk_1DD213,\n             v3,\n             v6,\n             v7,\n             v8,\n             savedregs);\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd2a7",
+        "name": "aXdrOpaqueDecod",
+        "string": "xdr_opaque: decode FAILED\n"
+      },
+      {
+        "addr": "0x1e5a20",
+        "name": "unk_1E5A20"
+      },
+      {
+        "addr": "0x1dd2dd",
+        "name": "aXdrOpaqueBadOp",
+        "string": "xdr_opaque: bad op FAILED\n"
+      },
+      {
+        "addr": "0x1dd2c2",
+        "name": "aXdrOpaqueEncod",
+        "string": "xdr_opaque: encode FAILED\n"
+      },
+      {
+        "addr": "0x1dd213",
+        "name": "unk_1DD213"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137d78",
+    "addr": "0x00137d78",
+    "code": "int __cdecl xdr_bytes(XDR *a1, char **a2, unsigned int *a3, unsigned int a4)\n{\n  char *v4; // edi\n  unsigned int v6; // ebx\n  unsigned int v7; // esi\n  xdr_op x_op; // eax\n\n  v4 = *a2; /*0x137d84*/\n  if ( !xdr_u_long(a1, a3) )\n  {\n    printf(\"xdr_bytes: size FAILED\\n\");\n    return 0; /*0x137da3*/\n  }\n  v6 = *a3; /*0x137da8*/\n  if ( a4 < *a3 && a1->x_op != XDR_FREE )\n  {\n    printf(\"xdr_bytes: bad size FAILED\\n\");\n    return 0; /*0x137dc3*/\n  }\n  if ( a1->x_op == XDR_DECODE )\n  {\n    if ( !v6 ) /*0x137de6*/\n      return 1; /*0x137de6*/\n    if ( !v4 ) /*0x137df6*/\n    {\n      v4 = (char *)kalloc(v6); /*0x137dfe*/\n      *a2 = v4; /*0x137e00*/\n    }\n  }\n  else if ( a1->x_op )\n  {\n    if ( a1->x_op != XDR_FREE )\n    {\n      printf(\"xdr_bytes: bad op FAILED\\n\");\n      return 0; /*0x137ddd*/\n    }\n    if ( v4 ) /*0x137eaa*/\n    {\n      kfree((int)v4, v6); /*0x137eb2*/\n      *a2 = nullptr; /*0x137eb7*/\n    }\n    return 1; /*0x137ebd*/\n  }\n  if ( !v6 ) /*0x137e07*/\n    return 1; /*0x137e07*/\n  v7 = v6 & 3; /*0x137e0b*/\n  if ( (v6 & 3) != 0 ) /*0x137e0e*/\n    v7 = 4 - v7; /*0x137e17*/\n  x_op = a1->x_op; /*0x137e1c*/\n  if ( a1->x_op != XDR_DECODE )\n  {\n    if ( x_op )\n    {\n      if ( x_op != XDR_FREE )\n      {\n        printf(\"xdr_opaque: bad op FAILED\\n\");\n        return 0; /*0x137e9e*/\n      }\n    }\n    else\n    {\n      if ( !a1->x_ops->x_putbytes(a1, v4, v6) )\n      {\n        printf(\"xdr_opaque: encode FAILED\\n\");\n        return 0; /*0x137e72*/\n      }\n      if ( v7 ) /*0x137e76*/\n        return a1->x_ops->x_putbytes(a1, (const char *)&unk_1DD213, v7); /*0x137e8e*/\n    }\n    return 1; /*0x137ded*/\n  }\n  if ( a1->x_ops->x_getbytes(a1, v4, v6) ) /*0x137e2c*/\n  {\n    if ( v7 ) /*0x137e3e*/\n      return a1->x_ops->x_getbytes(a1, (char *)&unk_1E5A20, v7); /*0x137e52*/\n    return 1; /*0x137e3e*/\n  }\n  printf(\"xdr_opaque: decode FAILED\\n\");\n  return 0; /*0x137ed3*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd2f8",
+        "name": "aXdrBytesSizeFa",
+        "string": "xdr_bytes: size FAILED\n"
+      },
+      {
+        "addr": "0x137a44",
+        "name": "_xdr_u_long"
+      },
+      {
+        "addr": "0x1dd310",
+        "name": "aXdrBytesBadSiz",
+        "string": "xdr_bytes: bad size FAILED\n"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1dd32c",
+        "name": "aXdrBytesBadOpF",
+        "string": "xdr_bytes: bad op FAILED\n"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x1dd2dd",
+        "name": "aXdrOpaqueBadOp",
+        "string": "xdr_opaque: bad op FAILED\n"
+      },
+      {
+        "addr": "0x1dd2c2",
+        "name": "aXdrOpaqueEncod",
+        "string": "xdr_opaque: encode FAILED\n"
+      },
+      {
+        "addr": "0x1dd213",
+        "name": "unk_1DD213"
+      },
+      {
+        "addr": "0x1e5a20",
+        "name": "unk_1E5A20"
+      },
+      {
+        "addr": "0x1dd2a7",
+        "name": "aXdrOpaqueDecod",
+        "string": "xdr_opaque: decode FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137edc",
+    "addr": "0x00137edc",
+    "code": "int __cdecl xdr_netobj(XDR *a1, netobj *a2)\n{\n  return xdr_bytes(a1, &a2->n_bytes, &a2->n_len, 0x400u); /*0x137ef7*/\n}",
+    "refs": [
+      {
+        "addr": "0x137d78",
+        "name": "_xdr_bytes"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137efc",
+    "addr": "0x00137efc",
+    "code": "int __cdecl xdr_union(XDR *a1, int *a2, char *a3, const xdr_discrim *a4, xdrproc_t a5)\n{\n  const xdr_discrim *v5; // ebx\n  xdr_op x_op; // eax\n  int v7; // eax\n\n  v5 = a4; /*0x137f0b*/\n  x_op = a1->x_op; /*0x137f0e*/\n  if ( a1->x_op )\n  {\n    if ( x_op == XDR_DECODE )\n    {\n      v7 = a1->x_ops->x_getlong(a1, a2); /*0x137f2c*/\n    }\n    else\n    {\n      if ( x_op == XDR_FREE ) /*0x137f37*/\n        goto LABEL_10; /*0x137f37*/\n      printf(\"xdr_long: FAILED\\n\");\n      v7 = 0; /*0x137f43*/\n    }\n  }\n  else\n  {\n    v7 = a1->x_ops->x_putlong(a1, a2); /*0x137f1c*/\n  }\n  if ( !v7 )\n  {\n    printf(\"xdr_enum: dscmp FAILED\\n\");\n    return 0; /*0x137f94*/\n  }\nLABEL_10:\n  if ( !a4->proc ) /*0x137f5e*/\n  {\nLABEL_13:\n    if ( a5 ) /*0x137f71*/\n      return a5(a1, a3, -1u); /*0x137f7f*/\n    return 0; /*0x137f71*/\n  }\n  while ( v5->value != *a2 ) /*0x137f62*/\n  {\n    ++v5; /*0x137f64*/\n    if ( !v5->proc ) /*0x137f67*/\n      goto LABEL_13; /*0x137f6b*/\n  }\n  return v5->proc(a1, a3, -1u); /*0x137f99*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd217",
+        "name": "aXdrLongFailed",
+        "string": "xdr_long: FAILED\n"
+      },
+      {
+        "addr": "0x1dd346",
+        "name": "aXdrEnumDscmpFa",
+        "string": "xdr_enum: dscmp FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137fa0",
+    "addr": "0x00137fa0",
+    "code": "int __cdecl xdr_string(XDR *a1, char **a2, unsigned int a3)\n{\n  char *v3; // ebx\n  unsigned int v5; // edx\n  unsigned __int32 v6; // edi\n  xdr_op x_op; // eax\n  int v8; // [esp+0h] [ebp-10h]\n  int v9; // [esp+4h] [ebp-Ch]\n  int v10; // [esp+8h] [ebp-8h]\n  unsigned __int32 v11; // [esp+Ch] [ebp-4h] BYREF\n  int savedregs; // [esp+10h] [ebp+0h]\n\n  v3 = *a2; /*0x137faf*/\n  if ( a1->x_op ) /*0x137fb1*/\n  {\n    if ( a1->x_op != XDR_FREE ) /*0x137fba*/\n      goto LABEL_6; /*0x137fba*/\n    if ( !v3 ) /*0x137fbe*/\n      return 1; /*0x137fc5*/\n  }\n  v11 = strlen(*a2); /*0x137fdd*/\nLABEL_6:\n  if ( !xdr_u_long(a1, &v11) )\n  {\n    printf(\"xdr_string: size FAILED\\n\");\n    return 0; /*0x137ffd*/\n  }\n  if ( a3 < v11 )\n  {\n    printf(\"xdr_string: bad size FAILED\\n\");\n    return 0; /*0x138018*/\n  }\n  v5 = v11 + 1; /*0x138020*/\n  if ( a1->x_op == XDR_DECODE )\n  {\n    if ( !v3 ) /*0x13803e*/\n    {\n      v3 = (char *)kalloc(v5); /*0x138046*/\n      *a2 = v3; /*0x13804b*/\n    }\n    v3[v11] = 0; /*0x138053*/\n  }\n  else if ( a1->x_op )\n  {\n    if ( a1->x_op == XDR_FREE )\n    {\n      kfree((int)v3, v5); /*0x138106*/\n      *a2 = nullptr; /*0x13810e*/\n      return 1; /*0x138114*/\n    }\n    else\n    {\n      printf(\"xdr_string: bad op FAILED\\n\");\n      return 0; /*0x138126*/\n    }\n  }\n  if ( !v11 ) /*0x13805c*/\n    return 1; /*0x13805c*/\n  v6 = v11 & 3; /*0x138064*/\n  if ( (v11 & 3) != 0 ) /*0x138067*/\n    v6 = 4 - v6; /*0x138070*/\n  x_op = a1->x_op; /*0x138072*/\n  if ( a1->x_op == XDR_DECODE )\n  {\n    if ( !a1->x_ops->x_getbytes(a1, v3, v11) )\n    {\n      printf(\"xdr_opaque: decode FAILED\\n\");\n      return 0; /*0x138101*/\n    }\n    if ( !v6 ) /*0x138096*/\n      return 1; /*0x138096*/\n    return ((int (__stdcall *)(XDR *, void *, unsigned __int32, int, int, int, unsigned __int32, int))a1->x_ops->x_getbytes)( /*0x1380a9*/\n             a1,\n             &unk_1E5A20,\n             v6,\n             v8,\n             v9,\n             v10,\n             v11,\n             savedregs);\n  }\n  else\n  {\n    if ( x_op )\n    {\n      if ( x_op == XDR_FREE ) /*0x1380ef*/\n        return 1; /*0x1380ef*/\n      printf(\"xdr_opaque: bad op FAILED\\n\");\n      return 0; /*0x1380fa*/\n    }\n    if ( !a1->x_ops->x_putbytes(a1, v3, v11) )\n    {\n      printf(\"xdr_opaque: encode FAILED\\n\");\n      return 0; /*0x1380cb*/\n    }\n    if ( !v6 ) /*0x1380d2*/\n      return 1; /*0x1380d2*/\n    return ((int (__stdcall *)(XDR *, void *, unsigned __int32, int, int, int, unsigned __int32, int))a1->x_ops->x_putbytes)( /*0x1380e5*/\n             a1,\n             &unk_1DD213,\n             v6,\n             v8,\n             v9,\n             v10,\n             v11,\n             savedregs);\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd35e",
+        "name": "aXdrStringSizeF",
+        "string": "xdr_string: size FAILED\n"
+      },
+      {
+        "addr": "0x137a44",
+        "name": "_xdr_u_long"
+      },
+      {
+        "addr": "0x1dd377",
+        "name": "aXdrStringBadSi",
+        "string": "xdr_string: bad size FAILED\n"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x1dd394",
+        "name": "aXdrStringBadOp",
+        "string": "xdr_string: bad op FAILED\n"
+      },
+      {
+        "addr": "0x1dd2a7",
+        "name": "aXdrOpaqueDecod",
+        "string": "xdr_opaque: decode FAILED\n"
+      },
+      {
+        "addr": "0x1e5a20",
+        "name": "unk_1E5A20"
+      },
+      {
+        "addr": "0x1dd2dd",
+        "name": "aXdrOpaqueBadOp",
+        "string": "xdr_opaque: bad op FAILED\n"
+      },
+      {
+        "addr": "0x1dd2c2",
+        "name": "aXdrOpaqueEncod",
+        "string": "xdr_opaque: encode FAILED\n"
+      },
+      {
+        "addr": "0x1dd213",
+        "name": "unk_1DD213"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138134",
+    "addr": "0x00138134",
+    "code": "int __cdecl xdr_array(XDR *a1, char **a2, unsigned int *a3, unsigned int a4, unsigned int a5, xdrproc_t a6)\n{\n  char *v6; // esi\n  unsigned int v8; // edi\n  unsigned int i; // ebx\n  size_t v10; // [esp+Ch] [ebp-8h]\n  int v11; // [esp+10h] [ebp-4h]\n\n  v6 = *a2; /*0x138143*/\n  v11 = 1; /*0x138145*/\n  if ( !xdr_u_int(a1, a3) )\n  {\n    printf(\"xdr_array: size FAILED\\n\");\n    return 0; /*0x138169*/\n  }\n  v8 = *a3; /*0x138170*/\n  if ( a4 < *a3 && a1->x_op != XDR_FREE )\n  {\n    printf(\"xdr_array: bad size FAILED\\n\");\n    return 0; /*0x13818b*/\n  }\n  v10 = v8 * a5; /*0x138196*/\n  if ( v6 ) /*0x13819b*/\n    goto LABEL_13; /*0x13819b*/\n  if ( a1->x_op != XDR_DECODE ) /*0x1381a5*/\n  {\n    if ( a1->x_op != XDR_FREE ) /*0x1381aa*/\n      goto LABEL_13; /*0x1381aa*/\n    return 1; /*0x1381b9*/\n  }\n  if ( !v8 ) /*0x1381b2*/\n    return 1; /*0x1381b2*/\n  v6 = (char *)kalloc(v10); /*0x1381c5*/\n  *a2 = v6; /*0x1381ca*/\n  bzero(v6, v10); /*0x1381d1*/\nLABEL_13:\n  for ( i = 0; i < v8; ++i ) /*0x1381dd*/\n  {\n    if ( !v11 ) /*0x1381e4*/\n      break; /*0x1381e4*/\n    v11 = a6(a1, v6, -1u); /*0x1381f2*/\n    v6 += a5; /*0x1381f5*/\n  }\n  if ( a1->x_op == XDR_FREE ) /*0x138206*/\n  {\n    kfree((int)*a2, v10); /*0x138212*/\n    *a2 = nullptr; /*0x13821a*/\n  }\n  return v11; /*0x138226*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd3af",
+        "name": "aXdrArraySizeFa",
+        "string": "xdr_array: size FAILED\n"
+      },
+      {
+        "addr": "0x1379d8",
+        "name": "_xdr_u_int"
+      },
+      {
+        "addr": "0x1dd3c7",
+        "name": "aXdrArrayBadSiz",
+        "string": "xdr_array: bad size FAILED\n"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138230",
+    "addr": "0x00138230",
+    "code": "_DWORD *__cdecl xdrmbuf_init(_DWORD *a1, int a2, int a3)\n{\n  *a1 = a3; /*0x13823c*/\n  a1[1] = &xdrmbuf_ops; /*0x13823e*/\n  a1[4] = a2; /*0x138245*/\n  a1[3] = a2 + *(_DWORD *)(a2 + 4); /*0x13824d*/\n  a1[2] = 0; /*0x138250*/\n  a1[5] = *(__int16 *)(a2 + 8); /*0x13825b*/\n  return a1; /*0x138260*/\n}",
+    "refs": [
+      {
+        "addr": "0x1dd3e4",
+        "name": "_xdrmbuf_ops"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138264",
+    "addr": "0x00138264",
+    "code": "void xdrmbuf_destroy()\n{\n  ; /*0x138264*/\n}"
+  },
+  {
+    "requested_address": "0x0013826c",
+    "addr": "0x0013826c",
+    "code": "int __cdecl xdrmbuf_getlong(int a1, _DWORD *a2)\n{\n  int v2; // eax\n  bool v3; // sf\n  int v4; // eax\n  int *v5; // eax\n  int v6; // eax\n\n  v2 = *(_DWORD *)(a1 + 20); /*0x138277*/\n  v3 = v2 - 4 < 0; /*0x13827a*/\n  v4 = v2 - 4; /*0x13827a*/\n  *(_DWORD *)(a1 + 20) = v4; /*0x13827d*/\n  if ( v3 )\n  {\n    if ( v4 != -4 )\n      printf(\"xdr_mbuf: long crosses mbufs!\\n\");\n    v5 = *(int **)(a1 + 16); /*0x138291*/\n    if ( !v5 ) /*0x138296*/\n      return 0; /*0x138296*/\n    v6 = *v5; /*0x138298*/\n    *(_DWORD *)(a1 + 16) = v6; /*0x13829a*/\n    if ( !v6 ) /*0x13829f*/\n      return 0; /*0x1382a3*/\n    *(_DWORD *)(a1 + 12) = v6 + *(_DWORD *)(v6 + 4); /*0x1382ad*/\n    *(_DWORD *)(a1 + 20) = *(__int16 *)(v6 + 8) - 4; /*0x1382b7*/\n  }\n  *a2 = _byteswap_ulong(**(_DWORD **)(a1 + 12)); /*0x1382c1*/\n  *(_DWORD *)(a1 + 12) += 4; /*0x1382c3*/\n  return 1; /*0x1382cf*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd404",
+        "name": "aXdrMbufLongCro",
+        "string": "xdr_mbuf: long crosses mbufs!\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001382d8",
+    "addr": "0x001382d8",
+    "code": "int __cdecl xdrmbuf_putlong(_DWORD *a1, unsigned int *a2)\n{\n  int v2; // eax\n  bool v3; // sf\n  int v4; // eax\n  int *v5; // eax\n  int v6; // eax\n\n  v2 = a1[5]; /*0x1382e3*/\n  v3 = v2 - 4 < 0; /*0x1382e6*/\n  v4 = v2 - 4; /*0x1382e6*/\n  a1[5] = v4; /*0x1382e9*/\n  if ( v3 )\n  {\n    if ( v4 != -4 )\n      printf(\"xdr_mbuf: putlong, long crosses mbufs!\\n\");\n    v5 = (int *)a1[4]; /*0x1382fd*/\n    if ( !v5 ) /*0x138302*/\n      return 0; /*0x138302*/\n    v6 = *v5; /*0x138304*/\n    a1[4] = v6; /*0x138306*/\n    if ( !v6 ) /*0x13830b*/\n      return 0; /*0x13830f*/\n    a1[3] = v6 + *(_DWORD *)(v6 + 4); /*0x138319*/\n    a1[5] = *(__int16 *)(v6 + 8) - 4; /*0x138323*/\n  }\n  *(_DWORD *)a1[3] = _byteswap_ulong(*a2); /*0x13832f*/\n  a1[3] += 4; /*0x138331*/\n  return 1; /*0x13833d*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd423",
+        "name": "aXdrMbufPutlong",
+        "string": "xdr_mbuf: putlong, long crosses mbufs!\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138344",
+    "addr": "0x00138344",
+    "code": "int __cdecl xdrmbuf_getbytes(int a1, char *a2, size_t a3)\n{\n  signed __int32 v5; // eax\n  int v6; // eax\n  int *v7; // eax\n  int v9; // eax\n  int v10; // eax\n\n  while ( 1 ) /*0x13839f*/\n  {\n    v10 = *(_DWORD *)(a1 + 20) - a3; /*0x13839f*/\n    *(_DWORD *)(a1 + 20) = v10; /*0x1383a1*/\n    if ( v10 >= 0 ) /*0x1383a4*/\n    {\n      bcopy(*(const void **)(a1 + 12), a2, a3); /*0x1383ac*/\n      *(_DWORD *)(a1 + 12) += a3; /*0x1383b1*/\n      return 1; /*0x1383b9*/\n    }\n    v5 = a3 + *(_DWORD *)(a1 + 20); /*0x13835b*/\n    *(_DWORD *)(a1 + 20) = v5; /*0x13835d*/\n    if ( v5 > 0 ) /*0x138362*/\n    {\n      bcopy(*(const void **)(a1 + 12), a2, v5); /*0x13836a*/\n      v6 = *(_DWORD *)(a1 + 20); /*0x13836f*/\n      a2 += v6; /*0x138372*/\n      a3 -= v6; /*0x138374*/\n    }\n    v7 = *(int **)(a1 + 16); /*0x138379*/\n    if ( !v7 ) /*0x13837e*/\n      return 0; /*0x138382*/\n    v9 = *v7; /*0x138384*/\n    *(_DWORD *)(a1 + 16) = v9; /*0x138386*/\n    if ( !v9 ) /*0x13838b*/\n      break; /*0x13838b*/\n    *(_DWORD *)(a1 + 12) = v9 + *(_DWORD *)(v9 + 4); /*0x138392*/\n    *(_DWORD *)(a1 + 20) = *(__int16 *)(v9 + 8); /*0x138399*/\n  }\n  return 0; /*0x1383c1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001383c8",
+    "addr": "0x001383c8",
+    "code": "int __cdecl xdrmbuf_getmbuf(XDR *a1, char **a2, unsigned int *a3)\n{\n  char *x_base; // edx\n  unsigned int v5; // eax\n  unsigned int i; // ecx\n\n  if ( !xdr_u_int(a1, a3) ) /*0x1383d9*/\n    return 0; /*0x1383e5*/\n  x_base = a1->x_base; /*0x1383ec*/\n  v5 = *((__int16 *)x_base + 4) - a1->x_handy; /*0x1383f3*/\n  *((_DWORD *)x_base + 1) += v5; /*0x1383f6*/\n  *((_WORD *)x_base + 4) -= v5; /*0x1383f9*/\n  *a2 = x_base; /*0x1383fd*/\n  for ( i = 0; x_base; x_base = *(char **)x_base ) /*0x138403*/\n    i += *((__int16 *)x_base + 4); /*0x13840c*/\n  if ( *a3 <= i ) /*0x138416*/\n    return 1; /*0x138428*/\n  printf(\"xdrmbuf_getmbuf failed\\n\"); /*0x13841d*/\n  return 0; /*0x138430*/\n}",
+    "refs": [
+      {
+        "addr": "0x1379d8",
+        "name": "_xdr_u_int"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd44b",
+        "name": "aXdrmbufGetmbuf",
+        "string": "xdrmbuf_getmbuf failed\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138438",
+    "addr": "0x00138438",
+    "code": "int __cdecl xdrmbuf_putbytes(int a1, char *a2, size_t a3)\n{\n  signed __int32 v5; // eax\n  int v6; // eax\n  int *v7; // eax\n  int v9; // eax\n  int v10; // eax\n\n  while ( 1 ) /*0x138493*/\n  {\n    v10 = *(_DWORD *)(a1 + 20) - a3; /*0x138493*/\n    *(_DWORD *)(a1 + 20) = v10; /*0x138495*/\n    if ( v10 >= 0 ) /*0x138498*/\n    {\n      bcopy(a2, *(void **)(a1 + 12), a3); /*0x1384a0*/\n      *(_DWORD *)(a1 + 12) += a3; /*0x1384a5*/\n      return 1; /*0x1384ad*/\n    }\n    v5 = a3 + *(_DWORD *)(a1 + 20); /*0x13844f*/\n    *(_DWORD *)(a1 + 20) = v5; /*0x138451*/\n    if ( v5 > 0 ) /*0x138456*/\n    {\n      bcopy(a2, *(void **)(a1 + 12), v5); /*0x13845e*/\n      v6 = *(_DWORD *)(a1 + 20); /*0x138463*/\n      a2 += v6; /*0x138466*/\n      a3 -= v6; /*0x138468*/\n    }\n    v7 = *(int **)(a1 + 16); /*0x13846d*/\n    if ( !v7 ) /*0x138472*/\n      return 0; /*0x138476*/\n    v9 = *v7; /*0x138478*/\n    *(_DWORD *)(a1 + 16) = v9; /*0x13847a*/\n    if ( !v9 ) /*0x13847f*/\n      break; /*0x13847f*/\n    *(_DWORD *)(a1 + 12) = v9 + *(_DWORD *)(v9 + 4); /*0x138486*/\n    *(_DWORD *)(a1 + 20) = *(__int16 *)(v9 + 8); /*0x13848d*/\n  }\n  return 0; /*0x1384b5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001384bc",
+    "addr": "0x001384bc",
+    "code": "int __cdecl xdrmbuf_putbuf(_DWORD *a1, int a2, unsigned int a3, int a4, int a5)\n{\n  int v6; // eax\n  bool v7; // sf\n  int v8; // eax\n  int *v9; // eax\n  int v10; // eax\n  int *v11; // eax\n\n  if ( (a3 & 3) != 0 ) /*0x1384d3*/\n    return 0; /*0x1384d7*/\n  v6 = a1[5]; /*0x1384dc*/\n  v7 = v6 - 4 < 0; /*0x1384df*/\n  v8 = v6 - 4; /*0x1384df*/\n  a1[5] = v8; /*0x1384e2*/\n  if ( v7 )\n  {\n    if ( v8 != -4 )\n      printf(\"xdr_mbuf: putlong, long crosses mbufs!\\n\");\n    v9 = (int *)a1[4]; /*0x1384f9*/\n    if ( !v9 ) /*0x1384fe*/\n      return 0; /*0x1384fe*/\n    v10 = *v9; /*0x138500*/\n    a1[4] = v10; /*0x138502*/\n    if ( !v10 ) /*0x138507*/\n      return 0; /*0x138507*/\n    a1[3] = v10 + *(_DWORD *)(v10 + 4); /*0x13850e*/\n    a1[5] = *(__int16 *)(v10 + 8) - 4; /*0x138518*/\n  }\n  *(_DWORD *)a1[3] = _byteswap_ulong(a3); /*0x138525*/\n  a1[3] += 4; /*0x138527*/\n  *(_WORD *)(a1[4] + 8) -= *((_WORD *)a1 + 10); /*0x138532*/\n  v11 = mclgetx(a4, a5, a2, a3, 1); /*0x138545*/\n  if ( v11 )\n  {\n    *(_DWORD *)a1[4] = v11; /*0x138567*/\n    a1[5] = 0; /*0x138569*/\n    return 1; /*0x138570*/\n  }\n  else\n  {\n    printf(\"xdrmbuf_putbuf: mclgetx failed\\n\");\n    return 0; /*0x13855d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd423",
+        "name": "aXdrMbufPutlong",
+        "string": "xdr_mbuf: putlong, long crosses mbufs!\n"
+      },
+      {
+        "addr": "0x11499c",
+        "name": "_mclgetx"
+      },
+      {
+        "addr": "0x1dd463",
+        "name": "aXdrmbufPutbufM",
+        "string": "xdrmbuf_putbuf: mclgetx failed\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138580",
+    "addr": "0x00138580",
+    "code": "int __cdecl xdrmbuf_getpos(int a1)\n{\n  return *(_DWORD *)(a1 + 12) - (*(_DWORD *)(*(_DWORD *)(a1 + 16) + 4) + *(_DWORD *)(a1 + 16)); /*0x138595*/\n}"
+  },
+  {
+    "requested_address": "0x00138598",
+    "addr": "0x00138598",
+    "code": "int __cdecl xdrmbuf_setpos(_DWORD *a1, int a2)\n{\n  int v2; // eax\n  int v3; // edx\n\n  v2 = a2 + *(_DWORD *)(a1[4] + 4) + a1[4]; /*0x1385a4*/\n  v3 = a1[5] + a1[3]; /*0x1385aa*/\n  if ( v2 > v3 ) /*0x1385af*/\n    return 0; /*0x1385c4*/\n  a1[3] = v2; /*0x1385b1*/\n  a1[5] = v3 - v2; /*0x1385b6*/\n  return 1; /*0x1385c0*/\n}"
+  },
+  {
+    "requested_address": "0x001385cc",
+    "addr": "0x001385cc",
+    "code": "int __cdecl xdrmbuf_inline(int a1, int a2)\n{\n  int result; // eax\n  int v3; // edx\n\n  result = 0; /*0x1385d6*/\n  v3 = *(_DWORD *)(a1 + 20); /*0x1385d8*/\n  if ( v3 >= a2 ) /*0x1385dd*/\n  {\n    *(_DWORD *)(a1 + 20) = v3 - a2; /*0x1385e1*/\n    result = *(_DWORD *)(a1 + 12); /*0x1385e4*/\n    *(_DWORD *)(a1 + 12) = result + a2; /*0x1385e9*/\n  }\n  return result; /*0x1385ec*/\n}"
+  },
+  {
+    "requested_address": "0x001385f4",
+    "addr": "0x001385f4",
+    "code": "void __cdecl xdrmem_create(XDR *a1, char *a2, unsigned int a3, xdr_op a4)\n{\n  a1->x_op = a4; /*0x138604*/\n  a1->x_ops = (const __rpc_xdr::xdr_ops *)&unk_1DD484; /*0x138606*/\n  a1->x_base = a2; /*0x13860d*/\n  a1->x_private = a2; /*0x138610*/\n  a1->x_handy = a3; /*0x138613*/\n}",
+    "refs": [
+      {
+        "addr": "0x1dd484",
+        "name": "unk_1DD484"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00138620",
+    "addr": "0x00138620",
+    "code": null,
+    "error": "Decompilation failed at 0x138620"
+  },
+  {
+    "requested_address": "0x00138628",
+    "addr": "0x00138628",
+    "code": null,
+    "error": "Decompilation failed at 0x138628"
+  },
+  {
+    "requested_address": "0x0013865c",
+    "addr": "0x0013865c",
+    "code": null,
+    "error": "Decompilation failed at 0x13865c"
+  },
+  {
+    "requested_address": "0x00138690",
+    "addr": "0x00138690",
+    "code": null,
+    "error": "Decompilation failed at 0x138690"
+  }
+]

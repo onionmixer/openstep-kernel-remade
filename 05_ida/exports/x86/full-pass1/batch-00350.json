@@ -1,0 +1,903 @@
+[
+  {
+    "requested_address": "0x00113b5c",
+    "addr": "0x00113b5c",
+    "code": "int mbinit()\n{\n  vm_size_t v0; // ebx\n  int v1; // esi\n  int v2; // ebx\n\n  if ( page_size > 0xFFF ) /*0x113b6d*/\n    v0 = 1; /*0x113b80*/\n  else\n    v0 = 0x1000 / page_size; /*0x113b7a*/\n  v1 = splimp(); /*0x113b8a*/\n  v2 = 10 * v0; /*0x113b93*/\n  if ( !m_clalloc(v2, 0) || !m_clalloc(v2, 1) ) /*0x113ba7*/\n    panic(aMbinit); /*0x113bc1*/\n  return splx(v1); /*0x113bc9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1cc",
+        "name": "aMbinit",
+        "string": "mbinit"
+      },
+      {
+        "addr": "0x113bd0",
+        "name": "_m_clalloc"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113bd0",
+    "addr": "0x00113bd0",
+    "code": "_DWORD *__cdecl m_clalloc(int a1, int a2)\n{\n  _DWORD *v2; // edi\n  signed int v4; // esi\n  signed int v5; // ebx\n  signed int v6; // ebx\n  _WORD *v7; // esi\n\n  v2 = (_DWORD *)kmem_mb_alloc(mb_map, ~page_mask & (page_mask + page_size * a1)); /*0x113bfd*/\n  if ( !v2 ) /*0x113c04*/\n    return nullptr; /*0x113c06*/\n  if ( a2 == 1 ) /*0x113c13*/\n  {\n    v4 = (page_size * a1) >> 10; /*0x113c3b*/\n    v5 = 0; /*0x113c3e*/\n    if ( v4 ) /*0x113c42*/\n    {\n      do /*0x113c68*/\n      {\n        v2[1] = 0; /*0x113c44*/\n        *v2 = mclfree; /*0x113c51*/\n        mclfree = (int)v2; /*0x113c53*/\n        v2 += 256; /*0x113c59*/\n        ++dword_1E916C; /*0x113c5f*/\n        ++v5; /*0x113c65*/\n      }\n      while ( v5 < v4 ); /*0x113c68*/\n    }\n    dword_1E9164 += v4; /*0x113c6a*/\n  }\n  else if ( a2 > 1 ) /*0x113c15*/\n  {\n    if ( a2 == 2 ) /*0x113c23*/\n      dword_1E9168 += a1; /*0x113cc4*/\n  }\n  else if ( !a2 ) /*0x113c19*/\n  {\n    v6 = (page_size * a1) >> 7; /*0x113c7f*/\n    if ( v6 ) /*0x113c84*/\n    {\n      v7 = (_WORD *)v2 + 5; /*0x113c86*/\n      do /*0x113cbd*/\n      {\n        *(_DWORD *)(v7 - 3) = 0; /*0x113c8c*/\n        *v7 = 1; /*0x113c93*/\n        ++word_1E917E; /*0x113c98*/\n        ++mbstat; /*0x113c9f*/\n        m_free(v2); /*0x113ca6*/\n        v7 += 64; /*0x113cab*/\n        v2 += 32; /*0x113cb1*/\n        --v6; /*0x113cba*/\n      }\n      while ( v6 > 0 ); /*0x113cbd*/\n    }\n  }\n  return v2; /*0x113ccf*/\n}",
+    "refs": [
+      {
+        "addr": "0x1742a0",
+        "name": "_kmem_mb_alloc"
+      },
+      {
+        "addr": "0x1e8e20",
+        "name": "_mb_map"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e91c0",
+        "name": "_mclfree"
+      },
+      {
+        "addr": "0x1e916c",
+        "name": "dword_1E916C"
+      },
+      {
+        "addr": "0x1e9164",
+        "name": "dword_1E9164"
+      },
+      {
+        "addr": "0x1e9168",
+        "name": "dword_1E9168"
+      },
+      {
+        "addr": "0x1e917e",
+        "name": "word_1E917E"
+      },
+      {
+        "addr": "0x1e9160",
+        "name": "_mbstat"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113cd8",
+    "addr": "0x00113cd8",
+    "code": "void m_pgfree()\n{\n  ; /*0x113cd8*/\n}"
+  },
+  {
+    "requested_address": "0x00113ce0",
+    "addr": "0x00113ce0",
+    "code": "int __cdecl m_expand(int a1)\n{\n  int v1; // eax\n  int v2; // ebx\n  signed int v3; // edi\n  _WORD *v4; // esi\n  _DWORD *v6; // esi\n  unsigned int i; // ebx\n  void (*v8)(void); // eax\n  int v9; // [esp+Ch] [ebp-4h]\n\n  v9 = 0; /*0x113ce9*/\n  while ( 1 ) /*0x113d09*/\n  {\n    v1 = kmem_mb_alloc(mb_map, ~page_mask & (page_mask + page_size)); /*0x113d09*/\n    v2 = v1; /*0x113d0e*/\n    if ( v1 ) /*0x113d15*/\n    {\n      v3 = page_size >> 7; /*0x113d1d*/\n      if ( page_size >> 7 ) /*0x113d1d*/\n      {\n        v4 = (_WORD *)(v1 + 10); /*0x113d24*/\n        do /*0x113d59*/\n        {\n          *(_DWORD *)(v4 - 3) = 0; /*0x113d28*/\n          *v4 = 1; /*0x113d2f*/\n          ++word_1E917E; /*0x113d34*/\n          ++mbstat; /*0x113d3b*/\n          m_free(v2); /*0x113d42*/\n          v4 += 64; /*0x113d47*/\n          v2 += 128; /*0x113d4d*/\n          --v3; /*0x113d56*/\n        }\n        while ( v3 > 0 ); /*0x113d59*/\n      }\n      if ( v2 ) /*0x113d5d*/\n        return 1; /*0x113d64*/\n    }\n    if ( !a1 ) /*0x113d6c*/\n      break; /*0x113d6c*/\n    if ( ++v9 != 1 ) /*0x113d75*/\n      break; /*0x113d75*/\n    v6 = (_DWORD *)domains; /*0x113d7c*/\n    if ( domains ) /*0x113d84*/\n    {\n      do /*0x113da6*/\n      {\n        for ( i = v6[5]; v6[6] > i; i += 48 ) /*0x113d8e*/\n        {\n          v8 = *(void (**)(void))(i + 44); /*0x113d90*/\n          if ( v8 ) /*0x113d95*/\n            v8(); /*0x113d97*/\n        }\n        v6 = (_DWORD *)v6[7]; /*0x113da1*/\n      }\n      while ( v6 ); /*0x113da6*/\n    }\n    ++dword_1E9178; /*0x113da8*/\n  }\n  return 0; /*0x113db7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1742a0",
+        "name": "_kmem_mb_alloc"
+      },
+      {
+        "addr": "0x1e8e20",
+        "name": "_mb_map"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e917e",
+        "name": "word_1E917E"
+      },
+      {
+        "addr": "0x1e9160",
+        "name": "_mbstat"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x1e98d0",
+        "name": "_domains"
+      },
+      {
+        "addr": "0x1e9178",
+        "name": "dword_1E9178"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113dc0",
+    "addr": "0x00113dc0",
+    "code": "int *__cdecl m_get(int a1, int a2)\n{\n  int v2; // edi\n  int *v3; // ebx\n\n  v2 = splimp(); /*0x113dce*/\n  v3 = (int *)mfree; /*0x113dd0*/\n  if ( mfree ) /*0x113dd8*/\n  {\n    if ( *(_WORD *)(mfree + 10) ) /*0x113dda*/\n      panic(aMget); /*0x113de6*/\n    *(_WORD *)(mfree + 10) = a2; /*0x113dee*/\n    --word_1E917C[0]; /*0x113df2*/\n    ++word_1E917C[a2]; /*0x113df9*/\n    mfree = *v3; /*0x113e03*/\n    *v3 = 0; /*0x113e09*/\n    v3[1] = 12; /*0x113e0f*/\n  }\n  else\n  {\n    v3 = (int *)m_more(a1, a2); /*0x113e22*/\n  }\n  splx(v2); /*0x113e28*/\n  return v3; /*0x113e32*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1d3",
+        "name": "aMget",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113e3c",
+    "addr": "0x00113e3c",
+    "code": "int *__cdecl m_getclr(int a1, int a2)\n{\n  int v2; // edi\n  int *v3; // ebx\n\n  v2 = splimp(); /*0x113e4a*/\n  v3 = (int *)mfree; /*0x113e4c*/\n  if ( mfree ) /*0x113e54*/\n  {\n    if ( *(_WORD *)(mfree + 10) ) /*0x113e56*/\n      panic(aMget_0); /*0x113e62*/\n    *(_WORD *)(mfree + 10) = a2; /*0x113e6a*/\n    --word_1E917C[0]; /*0x113e6e*/\n    ++word_1E917C[a2]; /*0x113e75*/\n    mfree = *v3; /*0x113e7f*/\n    *v3 = 0; /*0x113e85*/\n    v3[1] = 12; /*0x113e8b*/\n  }\n  else\n  {\n    v3 = (int *)m_more(a1, a2); /*0x113e9e*/\n  }\n  splx(v2); /*0x113ea4*/\n  if ( !v3 ) /*0x113eae*/\n    return nullptr; /*0x113ec4*/\n  bzero((char *)v3 + v3[1], 0x70u); /*0x113eb8*/\n  return v3; /*0x113ec9*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1d8",
+        "name": "aMget_0",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113ed0",
+    "addr": "0x00113ed0",
+    "code": "int __cdecl m_free(int a1)\n{\n  int v1; // edi\n  int v2; // esi\n\n  v1 = splimp(); /*0x113ede*/\n  if ( !*(_WORD *)(a1 + 10) ) /*0x113ee0*/\n    panic(aMfree); /*0x113eec*/\n  --word_1E917C[*(__int16 *)(a1 + 10)]; /*0x113ef8*/\n  ++word_1E917C[0]; /*0x113f00*/\n  *(_WORD *)(a1 + 10) = 0; /*0x113f07*/\n  if ( *(_DWORD *)(a1 + 4) > 0x7Fu ) /*0x113f11*/\n    mclput(a1); /*0x113f14*/\n  v2 = *(_DWORD *)a1; /*0x113f1c*/\n  *(_DWORD *)a1 = mfree; /*0x113f24*/\n  *(_DWORD *)(a1 + 4) = 0; /*0x113f26*/\n  *(_DWORD *)(a1 + 124) = 0; /*0x113f2d*/\n  mfree = a1; /*0x113f34*/\n  splx(v1); /*0x113f3b*/\n  if ( m_want ) /*0x113f4a*/\n  {\n    m_want = 0; /*0x113f4c*/\n    wakeup((int)&mfree); /*0x113f5b*/\n  }\n  return v2; /*0x113f65*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1dd",
+        "name": "aMfree",
+        "string": "mfree"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x114a48",
+        "name": "_mclput"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00113f6c",
+    "addr": "0x00113f6c",
+    "code": "int *__cdecl m_more(int a1, int a2)\n{\n  int v2; // eax\n  int v3; // esi\n  signed int v4; // edi\n  _WORD *v5; // ebx\n  _DWORD *v6; // esi\n  unsigned int i; // ebx\n  void (*v8)(void); // eax\n  int v10; // eax\n  int *v11; // ebx\n  int v12; // [esp+Ch] [ebp-4h]\n\n  while ( 2 ) /*0x113f78*/\n  {\n    v12 = 0; /*0x113f78*/\n    while ( 1 ) /*0x113f99*/\n    {\n      v2 = kmem_mb_alloc(mb_map, ~page_mask & (page_mask + page_size)); /*0x113f99*/\n      v3 = v2; /*0x113f9e*/\n      if ( v2 ) /*0x113fa5*/\n      {\n        v4 = page_size >> 7; /*0x113fad*/\n        if ( page_size >> 7 ) /*0x113fad*/\n        {\n          v5 = (_WORD *)(v2 + 10); /*0x113fb4*/\n          do /*0x113fe9*/\n          {\n            *(_DWORD *)(v5 - 3) = 0; /*0x113fb8*/\n            *v5 = 1; /*0x113fbf*/\n            ++word_1E917E; /*0x113fc4*/\n            ++mbstat; /*0x113fcb*/\n            m_free(v3); /*0x113fd2*/\n            v5 += 64; /*0x113fd7*/\n            v3 += 128; /*0x113fdd*/\n            --v4; /*0x113fe6*/\n          }\n          while ( v4 > 0 ); /*0x113fe9*/\n        }\n        if ( v3 ) /*0x113fed*/\n        {\n          v10 = splimp(); /*0x114068*/\n          v11 = (int *)mfree; /*0x11406f*/\n          if ( !mfree ) /*0x114077*/\n            panic(aMMore); /*0x1140c5*/\n          if ( *(_WORD *)(mfree + 10) ) /*0x114079*/\n            panic(aMget_1); /*0x114085*/\n          *(_WORD *)(mfree + 10) = a2; /*0x114091*/\n          --word_1E917C[0]; /*0x114095*/\n          ++word_1E917C[a2]; /*0x11409f*/\n          mfree = *v11; /*0x1140a9*/\n          *v11 = 0; /*0x1140af*/\n          v11[1] = 12; /*0x1140b5*/\n          splx(v10); /*0x1140ce*/\n          return v11; /*0x11408d*/\n        }\n      }\n      if ( !a1 ) /*0x113ff3*/\n        break; /*0x113ff3*/\n      if ( ++v12 != 1 ) /*0x113ffc*/\n        break; /*0x113ffc*/\n      v6 = (_DWORD *)domains; /*0x113ffe*/\n      if ( domains ) /*0x114006*/\n      {\n        do /*0x114026*/\n        {\n          for ( i = v6[5]; v6[6] > i; i += 48 ) /*0x11400e*/\n          {\n            v8 = *(void (**)(void))(i + 44); /*0x114010*/\n            if ( v8 ) /*0x114015*/\n              v8(); /*0x114017*/\n          }\n          v6 = (_DWORD *)v6[7]; /*0x114021*/\n        }\n        while ( v6 ); /*0x114026*/\n      }\n      ++dword_1E9178; /*0x114028*/\n    }\n    if ( a1 == 1 ) /*0x114038*/\n    {\n      ++dword_1E9174; /*0x11403a*/\n      ++m_want; /*0x114040*/\n      sleep((unsigned int)&mfree); /*0x11404d*/\n      continue; /*0x114055*/\n    }\n    break;\n  }\n  ++dword_1E9170; /*0x11405c*/\n  return nullptr; /*0x1140d8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1742a0",
+        "name": "_kmem_mb_alloc"
+      },
+      {
+        "addr": "0x1e8e20",
+        "name": "_mb_map"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e917e",
+        "name": "word_1E917E"
+      },
+      {
+        "addr": "0x1e9160",
+        "name": "_mbstat"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1e8",
+        "name": "aMMore",
+        "string": "m_more"
+      },
+      {
+        "addr": "0x1db1e3",
+        "name": "aMget_1",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e98d0",
+        "name": "_domains"
+      },
+      {
+        "addr": "0x1e9178",
+        "name": "dword_1E9178"
+      },
+      {
+        "addr": "0x1e9174",
+        "name": "dword_1E9174"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x1e9170",
+        "name": "dword_1E9170"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001140e0",
+    "addr": "0x001140e0",
+    "code": "void __cdecl m_freem(int a1)\n{\n  int v1; // ebx\n  int v2; // edi\n  int v3; // esi\n  int v4; // [esp+Ch] [ebp-4h]\n\n  v1 = a1; /*0x1140e9*/\n  if ( a1 ) /*0x1140ee*/\n  {\n    v4 = splimp(); /*0x1140f9*/\n    do /*0x11418a*/\n    {\n      v2 = splimp(); /*0x114101*/\n      if ( !*(_WORD *)(v1 + 10) ) /*0x114103*/\n        panic(aMfree_0); /*0x11410f*/\n      --word_1E917C[*(__int16 *)(v1 + 10)]; /*0x11411b*/\n      ++word_1E917C[0]; /*0x114123*/\n      *(_WORD *)(v1 + 10) = 0; /*0x11412a*/\n      if ( *(_DWORD *)(v1 + 4) > 0x7Fu ) /*0x114134*/\n        mclput(v1); /*0x114137*/\n      v3 = *(_DWORD *)v1; /*0x11413f*/\n      *(_DWORD *)v1 = mfree; /*0x114147*/\n      *(_DWORD *)(v1 + 4) = 0; /*0x114149*/\n      *(_DWORD *)(v1 + 124) = 0; /*0x114150*/\n      mfree = v1; /*0x114157*/\n      splx(v2); /*0x11415e*/\n      if ( m_want ) /*0x11416d*/\n      {\n        m_want = 0; /*0x11416f*/\n        wakeup((int)&mfree); /*0x11417e*/\n      }\n      v1 = v3; /*0x114186*/\n    }\n    while ( v3 ); /*0x11418a*/\n    splx(v4); /*0x114194*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1ef",
+        "name": "aMfree_0",
+        "string": "mfree"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x114a48",
+        "name": "_mclput"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001141a4",
+    "addr": "0x001141a4",
+    "code": "int __cdecl m_copy(int *a1, int a2, int a3)\n{\n  int v4; // edi\n  int v5; // eax\n  int *v6; // ebx\n  __int16 v7; // dx\n  int v9; // ebx\n  int v10; // edi\n  int v11; // esi\n  int v12; // [esp+Ch] [ebp-10h]\n  int v13; // [esp+10h] [ebp-Ch]\n  int *v14; // [esp+14h] [ebp-8h]\n  int v15; // [esp+18h] [ebp-4h] BYREF\n\n  v4 = a2; /*0x1141b0*/\n  if ( a3 ) /*0x1141b7*/\n  {\n    if ( a2 < 0 || a3 < 0 ) /*0x1141c5*/\n      panic(aMCopy); /*0x1141cc*/\n    while ( v4 > 0 ) /*0x1141f7*/\n    {\n      if ( !a1 ) /*0x1141da*/\n        panic(aMCopy_0); /*0x1141e1*/\n      v5 = *((__int16 *)a1 + 4); /*0x1141e9*/\n      if ( v4 < v5 ) /*0x1141ef*/\n        break; /*0x1141ef*/\n      v4 -= v5; /*0x1141f1*/\n      a1 = (int *)*a1; /*0x1141f3*/\n    }\n    v14 = &v15; /*0x1141fc*/\n    v15 = 0; /*0x1141ff*/\n    while ( 1 ) /*0x114210*/\n    {\n      if ( !a1 ) /*0x114212*/\n      {\n        if ( a3 != 1000000000 ) /*0x11421b*/\n          panic(aMCopy_1); /*0x114226*/\n        return v15; /*0x11431b*/\n      }\n      v13 = splimp(); /*0x114235*/\n      v6 = (int *)mfree; /*0x114238*/\n      if ( mfree ) /*0x114240*/\n      {\n        if ( *(_WORD *)(mfree + 10) ) /*0x114242*/\n          panic(aMget_2); /*0x11424e*/\n        *(_WORD *)(mfree + 10) = *((_WORD *)a1 + 5); /*0x11425a*/\n        --word_1E917C[0]; /*0x11425e*/\n        ++word_1E917C[*((__int16 *)a1 + 5)]; /*0x114269*/\n        mfree = *v6; /*0x114273*/\n        *v6 = 0; /*0x114279*/\n        v6[1] = 12; /*0x11427f*/\n      }\n      else\n      {\n        v6 = m_more(0, *((__int16 *)a1 + 5)); /*0x114294*/\n      }\n      splx(v13); /*0x11429d*/\n      *v14 = (int)v6; /*0x1142a5*/\n      if ( !v6 ) /*0x1142ac*/\n        break; /*0x1142ac*/\n      v7 = a3; /*0x1142b4*/\n      if ( a3 > *((__int16 *)a1 + 4) - v4 ) /*0x1142b9*/\n        v7 = *((_WORD *)a1 + 4) - v4; /*0x1142bb*/\n      *((_WORD *)v6 + 4) = v7; /*0x1142bd*/\n      if ( (unsigned int)a1[1] <= 0x7C || v7 <= 112 ) /*0x1142cb*/\n      {\n        bcopy((char *)a1 + a1[1] + v4, (char *)v6 + v6[1], *((__int16 *)v6 + 4)); /*0x1142ef*/\n      }\n      else\n      {\n        mcldup(a1, v6, v4); /*0x1142d0*/\n        v6[1] += v4; /*0x1142d5*/\n      }\n      if ( a3 != 1000000000 ) /*0x1142fe*/\n        a3 -= *((__int16 *)v6 + 4); /*0x114304*/\n      v4 = 0; /*0x114307*/\n      a1 = (int *)*a1; /*0x114309*/\n      v14 = v6; /*0x11430b*/\n      if ( a3 <= 0 ) /*0x114312*/\n        return v15; /*0x114312*/\n    }\n    v9 = v15; /*0x114320*/\n    if ( v15 ) /*0x114325*/\n    {\n      v12 = splimp(); /*0x114330*/\n      do /*0x1143c2*/\n      {\n        v10 = splimp(); /*0x114339*/\n        if ( !*(_WORD *)(v9 + 10) ) /*0x11433b*/\n          panic(aMfree_0); /*0x114347*/\n        --word_1E917C[*(__int16 *)(v9 + 10)]; /*0x114353*/\n        ++word_1E917C[0]; /*0x11435b*/\n        *(_WORD *)(v9 + 10) = 0; /*0x114362*/\n        if ( *(_DWORD *)(v9 + 4) > 0x7Fu ) /*0x11436c*/\n          mclput(v9); /*0x11436f*/\n        v11 = *(_DWORD *)v9; /*0x114377*/\n        *(_DWORD *)v9 = mfree; /*0x11437f*/\n        *(_DWORD *)(v9 + 4) = 0; /*0x114381*/\n        *(_DWORD *)(v9 + 124) = 0; /*0x114388*/\n        mfree = v9; /*0x11438f*/\n        splx(v10); /*0x114396*/\n        if ( m_want ) /*0x1143a5*/\n        {\n          m_want = 0; /*0x1143a7*/\n          wakeup((int)&mfree); /*0x1143b6*/\n        }\n        v9 = v11; /*0x1143be*/\n      }\n      while ( v11 ); /*0x1143c2*/\n      splx(v12); /*0x1143cc*/\n    }\n  }\n  return 0; /*0x1143d6*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1f5",
+        "name": "aMCopy",
+        "string": "m_copy"
+      },
+      {
+        "addr": "0x1db1fc",
+        "name": "aMCopy_0",
+        "string": "m_copy"
+      },
+      {
+        "addr": "0x1db203",
+        "name": "aMCopy_1",
+        "string": "m_copy"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x1db20a",
+        "name": "aMget_2",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x114ac8",
+        "name": "_mcldup"
+      },
+      {
+        "addr": "0x1db1ef",
+        "name": "aMfree_0",
+        "string": "mfree"
+      },
+      {
+        "addr": "0x114a48",
+        "name": "_mclput"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001143e0",
+    "addr": "0x001143e0",
+    "code": "void __cdecl m_cat(int *a1, int a2)\n{\n  int *i; // edi\n  unsigned int v4; // ecx\n  int v5; // esi\n  int v6; // esi\n  size_t v7; // [esp+Ch] [ebp-8h]\n  int v8; // [esp+10h] [ebp-4h]\n\n  for ( i = a1; *i; i = (int *)*i ) /*0x1143ef*/\n    ; /*0x1143f8*/\n  while ( a2 ) /*0x1144da*/\n  {\n    v4 = i[1]; /*0x114404*/\n    if ( v4 > 0x7B || (v5 = *((__int16 *)i + 4), v7 = *(__int16 *)(a2 + 8), v7 + v5 + v4 > 0x7C) ) /*0x11441f*/\n    {\n      *i = a2; /*0x114421*/\n      return; /*0x114423*/\n    }\n    bcopy((const void *)(*(_DWORD *)(a2 + 4) + a2), (char *)i + v4 + v5, v7); /*0x114438*/\n    *((_WORD *)i + 4) += *(_WORD *)(a2 + 8); /*0x114441*/\n    v8 = splimp(); /*0x11444d*/\n    if ( !*(_WORD *)(a2 + 10) ) /*0x114450*/\n      panic(aMfree); /*0x11445c*/\n    --word_1E917C[*(__int16 *)(a2 + 10)]; /*0x114468*/\n    ++word_1E917C[0]; /*0x114470*/\n    *(_WORD *)(a2 + 10) = 0; /*0x114477*/\n    if ( *(_DWORD *)(a2 + 4) > 0x7Fu ) /*0x114481*/\n      mclput(a2); /*0x114484*/\n    v6 = *(_DWORD *)a2; /*0x11448c*/\n    *(_DWORD *)a2 = mfree; /*0x114494*/\n    *(_DWORD *)(a2 + 4) = 0; /*0x114496*/\n    *(_DWORD *)(a2 + 124) = 0; /*0x11449d*/\n    mfree = a2; /*0x1144a4*/\n    splx(v8); /*0x1144ae*/\n    if ( m_want ) /*0x1144bd*/\n    {\n      m_want = 0; /*0x1144bf*/\n      wakeup((int)&mfree); /*0x1144ce*/\n    }\n    a2 = v6; /*0x1144d6*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db1dd",
+        "name": "aMfree",
+        "string": "mfree"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x114a48",
+        "name": "_mclput"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001144ec",
+    "addr": "0x001144ec",
+    "code": "void __cdecl m_adj(int *a1, int a2)\n{\n  int v2; // ebx\n  int *v3; // edx\n  __int16 v4; // cx\n  int v5; // ecx\n  __int16 v6; // si\n  int v7; // ecx\n  int *v8; // edx\n  int v9; // eax\n\n  v2 = a2; /*0x1144f5*/\n  v3 = a1; /*0x1144f8*/\n  if ( a1 ) /*0x1144fc*/\n  {\n    if ( a2 < 0 ) /*0x114504*/\n    {\n      v5 = *((__int16 *)a1 + 4); /*0x11452e*/\n      if ( *a1 ) /*0x114532*/\n      {\n        do /*0x114540*/\n        {\n          v3 = (int *)*v3; /*0x114538*/\n          v5 += *((__int16 *)v3 + 4); /*0x11453e*/\n        }\n        while ( *v3 ); /*0x114540*/\n      }\n      v6 = *((_WORD *)v3 + 4); /*0x114545*/\n      if ( v6 < -a2 ) /*0x11454e*/\n      {\n        v7 = v5 + a2; /*0x114570*/\n        v8 = a1; /*0x114572*/\n        while ( 1 ) /*0x114578*/\n        {\n          v9 = *((__int16 *)v8 + 4); /*0x114578*/\n          if ( v9 >= v7 ) /*0x11457e*/\n            break; /*0x11457e*/\n          v7 -= v9; /*0x114580*/\n          v8 = (int *)*v8; /*0x114582*/\n          if ( !v8 ) /*0x114586*/\n            goto LABEL_18; /*0x114586*/\n        }\n        *((_WORD *)v8 + 4) = v7; /*0x114568*/\nLABEL_18:\n        while ( 1 ) /*0x114592*/\n        {\n          v8 = (int *)*v8; /*0x114592*/\n          if ( !v8 ) /*0x114596*/\n            break; /*0x114596*/\n          *((_WORD *)v8 + 4) = 0; /*0x11458c*/\n        }\n      }\n      else\n      {\n        *((_WORD *)v3 + 4) = v6 + a2; /*0x114553*/\n      }\n    }\n    else\n    {\n      while ( v2 > 0 ) /*0x11450a*/\n      {\n        v4 = *((_WORD *)v3 + 4); /*0x114510*/\n        if ( v4 > v2 ) /*0x114519*/\n        {\n          *((_WORD *)v3 + 4) = v4 - v2; /*0x11455f*/\n          v3[1] += v2; /*0x114563*/\n          return; /*0x114566*/\n        }\n        v2 -= v4; /*0x11451b*/\n        *((_WORD *)v3 + 4) = 0; /*0x11451d*/\n        v3 = (int *)*v3; /*0x114523*/\n        if ( !v3 ) /*0x114527*/\n          return; /*0x114527*/\n      }\n    }\n  }\n}"
+  },
+  {
+    "requested_address": "0x001145a4",
+    "addr": "0x001145a4",
+    "code": "int *__cdecl m_pullup(int a1, int a2)\n{\n  int v2; // esi\n  int *v3; // edi\n  int v4; // ebx\n  int v5; // ecx\n  signed __int32 v6; // ebx\n  __int16 v7; // ax\n  int v8; // ebx\n  int v9; // ebx\n  int v11; // ebx\n  int v12; // edi\n  int v13; // esi\n  int v14; // [esp+10h] [ebp-Ch]\n  int v15; // [esp+14h] [ebp-8h]\n  int v16; // [esp+18h] [ebp-4h]\n\n  v2 = a1; /*0x1145ad*/\n  if ( (unsigned int)(*(_DWORD *)(a1 + 4) + a2) <= 0x7C && *(_DWORD *)a1 ) /*0x1145bb*/\n  {\n    v3 = (int *)a1; /*0x1145c1*/\n    v2 = *(_DWORD *)a1; /*0x1145c3*/\n    a2 -= *(__int16 *)(a1 + 8); /*0x1145c9*/\n  }\n  else\n  {\n    if ( a2 > 112 ) /*0x1145d8*/\n      goto LABEL_35; /*0x1145d8*/\n    v4 = splimp(); /*0x1145e3*/\n    v3 = (int *)mfree; /*0x1145e5*/\n    if ( mfree ) /*0x1145ed*/\n    {\n      if ( *(_WORD *)(mfree + 10) ) /*0x1145ef*/\n        panic(aMget_3); /*0x1145fb*/\n      *(_WORD *)(mfree + 10) = *(_WORD *)(a1 + 10); /*0x114607*/\n      --word_1E917C[0]; /*0x11460b*/\n      ++word_1E917C[*(__int16 *)(a1 + 10)]; /*0x114616*/\n      mfree = *v3; /*0x114620*/\n      *v3 = 0; /*0x114626*/\n      v3[1] = 12; /*0x11462c*/\n    }\n    else\n    {\n      v3 = m_more(0, *(__int16 *)(a1 + 10)); /*0x114644*/\n    }\n    splx(v4); /*0x11464a*/\n    if ( !v3 ) /*0x114654*/\n      goto LABEL_35; /*0x114654*/\n    *((_WORD *)v3 + 4) = 0; /*0x11465a*/\n  }\n  v16 = 124 - v3[1]; /*0x114668*/\n  do /*0x114764*/\n  {\n    v5 = *((__int16 *)v3 + 4); /*0x114679*/\n    v6 = v16 - v5; /*0x114680*/\n    if ( v16 - v5 > a2 + 32 ) /*0x114684*/\n      v6 = a2 + 32; /*0x114686*/\n    if ( *(__int16 *)(v2 + 8) < v6 ) /*0x11468b*/\n      v6 = *(__int16 *)(v2 + 8); /*0x11468d*/\n    bcopy((const void *)(*(_DWORD *)(v2 + 4) + v2), (char *)v3 + v3[1] + v5, v6); /*0x11469f*/\n    a2 -= v6; /*0x1146a4*/\n    *((_WORD *)v3 + 4) += v6; /*0x1146a7*/\n    v7 = *(_WORD *)(v2 + 8) - v6; /*0x1146af*/\n    *(_WORD *)(v2 + 8) = v7; /*0x1146b2*/\n    if ( v7 ) /*0x1146bc*/\n    {\n      *(_DWORD *)(v2 + 4) += v6; /*0x1146be*/\n    }\n    else\n    {\n      v15 = splimp(); /*0x1146cd*/\n      if ( !*(_WORD *)(v2 + 10) ) /*0x1146d0*/\n        panic(aMfree); /*0x1146dc*/\n      --word_1E917C[*(__int16 *)(v2 + 10)]; /*0x1146e8*/\n      ++word_1E917C[0]; /*0x1146f0*/\n      *(_WORD *)(v2 + 10) = 0; /*0x1146f7*/\n      if ( *(_DWORD *)(v2 + 4) > 0x7Fu ) /*0x114701*/\n        mclput(v2); /*0x114704*/\n      v8 = *(_DWORD *)v2; /*0x11470c*/\n      *(_DWORD *)v2 = mfree; /*0x114714*/\n      *(_DWORD *)(v2 + 4) = 0; /*0x114716*/\n      *(_DWORD *)(v2 + 124) = 0; /*0x11471d*/\n      mfree = v2; /*0x114724*/\n      splx(v15); /*0x11472e*/\n      if ( m_want ) /*0x11473d*/\n      {\n        m_want = 0; /*0x11473f*/\n        wakeup((int)&mfree); /*0x11474e*/\n      }\n      v2 = v8; /*0x114756*/\n    }\n    if ( a2 <= 0 ) /*0x11475c*/\n    {\n      *v3 = v2; /*0x1147f4*/\n      return v3; /*0x1147f8*/\n    }\n  }\n  while ( v2 ); /*0x114764*/\n  v9 = splimp(); /*0x11476f*/\n  if ( !*((_WORD *)v3 + 5) ) /*0x114771*/\n    panic(aMfree); /*0x11477d*/\n  --word_1E917C[*((__int16 *)v3 + 5)]; /*0x114789*/\n  ++word_1E917C[0]; /*0x114791*/\n  *((_WORD *)v3 + 5) = 0; /*0x114798*/\n  if ( (unsigned int)v3[1] > 0x7F ) /*0x1147a2*/\n    mclput(v3); /*0x1147a5*/\n  *v3 = mfree; /*0x1147b3*/\n  v3[1] = 0; /*0x1147b5*/\n  v3[31] = 0; /*0x1147bc*/\n  mfree = (int)v3; /*0x1147c3*/\n  splx(v9); /*0x1147ca*/\n  if ( m_want ) /*0x1147d9*/\n  {\n    m_want = 0; /*0x1147db*/\n    wakeup((int)&mfree); /*0x1147ea*/\n  }\nLABEL_35:\n  v11 = v2; /*0x114800*/\n  if ( v2 ) /*0x114804*/\n  {\n    v14 = splimp(); /*0x11480f*/\n    do /*0x1148a2*/\n    {\n      v12 = splimp(); /*0x114819*/\n      if ( !*(_WORD *)(v11 + 10) ) /*0x11481b*/\n        panic(aMfree_0); /*0x114827*/\n      --word_1E917C[*(__int16 *)(v11 + 10)]; /*0x114833*/\n      ++word_1E917C[0]; /*0x11483b*/\n      *(_WORD *)(v11 + 10) = 0; /*0x114842*/\n      if ( *(_DWORD *)(v11 + 4) > 0x7Fu ) /*0x11484c*/\n        mclput(v11); /*0x11484f*/\n      v13 = *(_DWORD *)v11; /*0x114857*/\n      *(_DWORD *)v11 = mfree; /*0x11485f*/\n      *(_DWORD *)(v11 + 4) = 0; /*0x114861*/\n      *(_DWORD *)(v11 + 124) = 0; /*0x114868*/\n      mfree = v11; /*0x11486f*/\n      splx(v12); /*0x114876*/\n      if ( m_want ) /*0x114885*/\n      {\n        m_want = 0; /*0x114887*/\n        wakeup((int)&mfree); /*0x114896*/\n      }\n      v11 = v13; /*0x11489e*/\n    }\n    while ( v13 ); /*0x1148a2*/\n    splx(v14); /*0x1148ac*/\n  }\n  return nullptr; /*0x1148b6*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db20f",
+        "name": "aMget_3",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1db1dd",
+        "name": "aMfree",
+        "string": "mfree"
+      },
+      {
+        "addr": "0x114a48",
+        "name": "_mclput"
+      },
+      {
+        "addr": "0x1e9154",
+        "name": "_m_want"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      },
+      {
+        "addr": "0x1db1ef",
+        "name": "aMfree_0",
+        "string": "mfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001148c0",
+    "addr": "0x001148c0",
+    "code": "_BOOL4 __cdecl mclget(int a1)\n{\n  _DWORD *v1; // eax\n  signed int v2; // ecx\n  signed int v3; // edx\n  int *v4; // ebx\n  int v6; // [esp+Ch] [ebp-4h]\n\n  v6 = splimp(); /*0x1148d1*/\n  if ( !mclfree ) /*0x1148db*/\n  {\n    v1 = (_DWORD *)kmem_mb_alloc(mb_map, ~page_mask & (page_mask + page_size)); /*0x1148f6*/\n    if ( v1 ) /*0x114900*/\n    {\n      v2 = page_size >> 10; /*0x114908*/\n      v3 = 0; /*0x11490b*/\n      if ( page_size >> 10 ) /*0x114908*/\n      {\n        do /*0x114936*/\n        {\n          v1[1] = 0; /*0x114914*/\n          *v1 = mclfree; /*0x114921*/\n          mclfree = (int)v1; /*0x114923*/\n          v1 += 256; /*0x114928*/\n          ++dword_1E916C; /*0x11492d*/\n          ++v3; /*0x114933*/\n        }\n        while ( v3 < v2 ); /*0x114936*/\n      }\n      dword_1E9164 += v2; /*0x114938*/\n    }\n  }\n  v4 = (int *)mclfree; /*0x114940*/\n  if ( mclfree ) /*0x114948*/\n  {\n    ++mclrefcnt[(mclfree - mbutl) >> 10]; /*0x114955*/\n    --dword_1E916C; /*0x11495b*/\n    mclfree = *v4; /*0x114963*/\n    *(_WORD *)(a1 + 8) = 1024; /*0x114969*/\n    *(_DWORD *)(a1 + 4) = (char *)v4 - a1; /*0x114973*/\n    *(_WORD *)(a1 + 12) = 1; /*0x114976*/\n  }\n  splx(v6); /*0x114980*/\n  return v4 != nullptr; /*0x114992*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1742a0",
+        "name": "_kmem_mb_alloc"
+      },
+      {
+        "addr": "0x1e8e20",
+        "name": "_mb_map"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1e91c0",
+        "name": "_mclfree"
+      },
+      {
+        "addr": "0x1e916c",
+        "name": "dword_1E916C"
+      },
+      {
+        "addr": "0x1e9164",
+        "name": "dword_1E9164"
+      },
+      {
+        "addr": "0x1e91d0",
+        "name": "_mclrefcnt"
+      },
+      {
+        "addr": "0x1e91bc",
+        "name": "_mbutl"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0011499c",
+    "addr": "0x0011499c",
+    "code": "int *__cdecl mclgetx(int a1, int a2, int a3, __int16 a4, int a5)\n{\n  int v5; // esi\n  int *v6; // ebx\n\n  v5 = splimp(); /*0x1149a6*/\n  v6 = (int *)mfree; /*0x1149a8*/\n  if ( mfree ) /*0x1149b0*/\n  {\n    if ( *(_WORD *)(mfree + 10) ) /*0x1149b2*/\n      panic(aMget_4); /*0x1149be*/\n    *(_WORD *)(mfree + 10) = 1; /*0x1149c6*/\n    --word_1E917C[0]; /*0x1149cc*/\n    ++word_1E917E; /*0x1149d3*/\n    mfree = *v6; /*0x1149dc*/\n    *v6 = 0; /*0x1149e2*/\n    v6[1] = 12; /*0x1149e8*/\n  }\n  else\n  {\n    v6 = m_more(a5, 1); /*0x1149ff*/\n  }\n  splx(v5); /*0x114a05*/\n  if ( !v6 ) /*0x114a0c*/\n    return nullptr; /*0x114a3c*/\n  v6[1] = a3 - (_DWORD)v6; /*0x114a13*/\n  *((_WORD *)v6 + 4) = a4; /*0x114a1a*/\n  *((_WORD *)v6 + 6) = 2; /*0x114a1e*/\n  v6[4] = a1; /*0x114a27*/\n  v6[5] = a2; /*0x114a2d*/\n  v6[6] = 0; /*0x114a30*/\n  return v6; /*0x114a41*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x1e93d4",
+        "name": "_mfree"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db214",
+        "name": "aMget_4",
+        "string": "mget"
+      },
+      {
+        "addr": "0x1e917c",
+        "name": "word_1E917C"
+      },
+      {
+        "addr": "0x1e917e",
+        "name": "word_1E917E"
+      },
+      {
+        "addr": "0x113f6c",
+        "name": "_m_more"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114a48",
+    "addr": "0x00114a48",
+    "code": "int __cdecl mclput(int a1)\n{\n  __int16 v1; // ax\n  _DWORD *v2; // ecx\n  int result; // eax\n  char v4; // dl\n\n  v1 = *(_WORD *)(a1 + 12); /*0x114a4f*/\n  if ( v1 == 1 ) /*0x114a57*/\n  {\n    v2 = (_DWORD *)((*(_DWORD *)(a1 + 4) + a1) & 0xFFFFFC00); /*0x114a6b*/\n    result = ((int)v2 - mbutl) >> 10; /*0x114a79*/\n    v4 = mclrefcnt[result]; /*0x114a7c*/\n    mclrefcnt[result] = v4 - 1; /*0x114a86*/\n    if ( v4 == 1 ) /*0x114a8f*/\n    {\n      *v2 = mclfree; /*0x114a97*/\n      mclfree = (int)v2; /*0x114a99*/\n      ++dword_1E916C; /*0x114a9f*/\n    }\n  }\n  else\n  {\n    if ( v1 != 2 ) /*0x114a5d*/\n      panic(aMclput); /*0x114ab9*/\n    return (*(int (__stdcall **)(_DWORD))(a1 + 16))(*(_DWORD *)(a1 + 20)); /*0x114aaf*/\n  }\n  return result; /*0x114abe*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e91bc",
+        "name": "_mbutl"
+      },
+      {
+        "addr": "0x1e91d0",
+        "name": "_mclrefcnt"
+      },
+      {
+        "addr": "0x1e91c0",
+        "name": "_mclfree"
+      },
+      {
+        "addr": "0x1e916c",
+        "name": "dword_1E916C"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db219",
+        "name": "aMclput",
+        "string": "mclput"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114ac8",
+    "addr": "0x00114ac8",
+    "code": "int __cdecl mcldup(int a1, int a2, int a3)\n{\n  __int16 v3; // ax\n  int v4; // eax\n  int result; // eax\n  _DWORD *v6; // esi\n\n  v3 = *(_WORD *)(a1 + 12); /*0x114ad4*/\n  if ( v3 == 1 ) /*0x114adc*/\n  {\n    v4 = *(_DWORD *)(a1 + 4) + a1; /*0x114aea*/\n    *(_DWORD *)(a2 + 4) = v4 - a2; /*0x114af1*/\n    *(_WORD *)(a2 + 12) = 1; /*0x114af4*/\n    result = (v4 - mbutl) >> 10; /*0x114b00*/\n    ++mclrefcnt[result]; /*0x114b03*/\n  }\n  else\n  {\n    if ( v3 != 2 ) /*0x114ae2*/\n      panic(aMcldup); /*0x114b69*/\n    v6 = (_DWORD *)kalloc(*(__int16 *)(a2 + 8) + 4); /*0x114b19*/\n    *v6 = *(__int16 *)(a2 + 8) + 4; /*0x114b22*/\n    bcopy((const void *)(a3 + *(_DWORD *)(a1 + 4) + a1), v6 + 1, *(__int16 *)(a2 + 8)); /*0x114b36*/\n    result = (int)v6 + -a2 - a3 + 4; /*0x114b44*/\n    *(_DWORD *)(a2 + 4) = result; /*0x114b47*/\n    *(_WORD *)(a2 + 12) = 2; /*0x114b4a*/\n    *(_DWORD *)(a2 + 16) = sub_114B78; /*0x114b50*/\n    *(_DWORD *)(a2 + 20) = v6; /*0x114b57*/\n    *(_DWORD *)(a2 + 24) = 0; /*0x114b5a*/\n  }\n  return result; /*0x114b71*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e91bc",
+        "name": "_mbutl"
+      },
+      {
+        "addr": "0x1e91d0",
+        "name": "_mclrefcnt"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db220",
+        "name": "aMcldup",
+        "string": "mcldup"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x114b78",
+        "name": "sub_114B78"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114b78",
+    "addr": "0x00114b78",
+    "code": "int __cdecl sub_114B78(unsigned int *a1)\n{\n  return kfree((int)a1, *a1); /*0x114b89*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114b8c",
+    "addr": "0x00114b8c",
+    "code": "int __cdecl piconnect(int a1, int a2)\n{\n  *(_DWORD *)(*(_DWORD *)(a1 + 8) + 12) = *(_DWORD *)(a2 + 8); /*0x114b9c*/\n  *(_DWORD *)(*(_DWORD *)(a2 + 8) + 12) = *(_DWORD *)(a1 + 8); /*0x114ba5*/\n  *(_WORD *)(a1 + 62) = 4096; /*0x114ba8*/\n  *(_WORD *)(a1 + 66) = 0x2000; /*0x114bae*/\n  *(_BYTE *)(a1 + 6) |= 0x22u; /*0x114bb4*/\n  *(_WORD *)(a2 + 38) = 0; /*0x114bb8*/\n  *(_WORD *)(a2 + 42) = 0; /*0x114bbe*/\n  *(_BYTE *)(a2 + 6) |= 0x12u; /*0x114bc4*/\n  return 1; /*0x114bcd*/\n}"
+  },
+  {
+    "requested_address": "0x00114bd4",
+    "addr": "0x00114bd4",
+    "code": "int __cdecl socreate(int a1, char **a2, int a3, int a4)\n{\n  __int16 *v4; // esi\n  int *v6; // eax\n  char *v7; // ebx\n  int v8; // esi\n\n  if ( a4 ) /*0x114be4*/\n    v4 = pffindproto(a1, a4, a3); /*0x114bf1*/\n  else\n    v4 = pffindtype(a1, a3); /*0x114bff*/\n  if ( !v4 ) /*0x114c06*/\n    return 43; /*0x114c08*/\n  if ( *v4 != a3 ) /*0x114c15*/\n    return 41; /*0x114c17*/\n  v6 = m_getclr(1, 3); /*0x114c24*/\n  v7 = (char *)v6 + v6[1]; /*0x114c2b*/\n  *((_WORD *)v7 + 1) = 32; /*0x114c2e*/\n  *((_WORD *)v7 + 3) = 0; /*0x114c34*/\n  *(_WORD *)v7 = a3; /*0x114c3a*/\n  if ( !*(_WORD *)(*(_DWORD *)(active_u + 28) + 2) ) /*0x114c48*/\n    *((_WORD *)v7 + 3) = 128; /*0x114c4f*/\n  *((_DWORD *)v7 + 3) = v4; /*0x114c55*/\n  v8 = (*((int (__cdecl **)(char *, _DWORD, _DWORD, int, _DWORD))v4 + 7))(v7, 0, 0, a4, 0); /*0x114c68*/\n  if ( v8 ) /*0x114c6f*/\n  {\n    v7[6] |= 1u; /*0x114c71*/\n    sofree(v7); /*0x114c76*/\n    return v8; /*0x114c7b*/\n  }\n  else\n  {\n    *a2 = v7; /*0x114c83*/\n    return 0; /*0x114c85*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1139e4",
+        "name": "_pffindproto"
+      },
+      {
+        "addr": "0x113990",
+        "name": "_pffindtype"
+      },
+      {
+        "addr": "0x113e3c",
+        "name": "_m_getclr"
+      },
+      {
+        "addr": "0x1e8758",
+        "name": "_active_u"
+      },
+      {
+        "addr": "0x114d4c",
+        "name": "_sofree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114c94",
+    "addr": "0x00114c94",
+    "code": "int __cdecl sobind(int a1, int a2)\n{\n  int v2; // edi\n  int v3; // ebx\n\n  v2 = splnet(); /*0x114ca5*/\n  v3 = (*(int (__cdecl **)(int, int, _DWORD, int, _DWORD))(*(_DWORD *)(a1 + 12) + 28))(a1, 2, 0, a2, 0); /*0x114cb7*/\n  splx(v2); /*0x114cba*/\n  return v3; /*0x114cc4*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114ccc",
+    "addr": "0x00114ccc",
+    "code": "int __cdecl solisten(int a1, int a2)\n{\n  int v2; // edi\n  int v3; // esi\n  __int16 v5; // ax\n  int v6; // [esp+Ch] [ebp-4h]\n\n  v2 = a2; /*0x114cd8*/\n  v6 = splnet(); /*0x114ce0*/\n  v3 = (*(int (__cdecl **)(int, int, _DWORD, _DWORD, _DWORD))(*(_DWORD *)(a1 + 12) + 28))(a1, 3, 0, 0, 0); /*0x114cf4*/\n  if ( v3 ) /*0x114cfb*/\n  {\n    splx(v6); /*0x114d01*/\n    return v3; /*0x114d06*/\n  }\n  else\n  {\n    if ( !*(_DWORD *)(a1 + 28) ) /*0x114d0c*/\n    {\n      *(_DWORD *)(a1 + 28) = a1; /*0x114d12*/\n      *(_DWORD *)(a1 + 20) = a1; /*0x114d15*/\n      *(_BYTE *)(a1 + 2) |= 2u; /*0x114d18*/\n    }\n    if ( a2 < 0 ) /*0x114d1e*/\n      v2 = 0; /*0x114d20*/\n    v5 = v2; /*0x114d22*/\n    if ( v2 > 128 ) /*0x114d29*/\n      v5 = 128; /*0x114d2b*/\n    *(_WORD *)(a1 + 34) = v5; /*0x114d30*/\n    splx(v6); /*0x114d38*/\n    return 0; /*0x114d3d*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114d4c",
+    "addr": "0x00114d4c",
+    "code": "void __cdecl sofree(int a1)\n{\n  int v1; // eax\n\n  if ( !*(_DWORD *)(a1 + 8) && (*(_BYTE *)(a1 + 6) & 1) != 0 ) /*0x114d5d*/\n  {\n    if ( *(_DWORD *)(a1 + 16) ) /*0x114d5f*/\n    {\n      if ( !soqremque(a1, 0) && !soqremque(a1, 1) ) /*0x114d77*/\n        panic(aSofreeDq); /*0x114d88*/\n      *(_DWORD *)(a1 + 16) = 0; /*0x114d90*/\n    }\n    sbrelease(a1 + 60); /*0x114d9b*/\n    sorflush(a1); /*0x114da1*/\n    v1 = a1; /*0x114da6*/\n    LOBYTE(v1) = a1 & 0x80; /*0x114da8*/\n    m_free(v1); /*0x114dab*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db2dd",
+        "name": "aSofreeDq",
+        "string": "sofree dq"
+      },
+      {
+        "addr": "0x116354",
+        "name": "_soqremque"
+      },
+      {
+        "addr": "0x1165cc",
+        "name": "_sbrelease"
+      },
+      {
+        "addr": "0x115c4c",
+        "name": "_sorflush"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114db8",
+    "addr": "0x00114db8",
+    "code": "int __cdecl soclose(int a1)\n{\n  int v1; // edi\n  __int16 v2; // ax\n  __int16 v3; // dx\n  int v4; // eax\n  __int16 v5; // ax\n  int v6; // eax\n  int v8; // [esp+Ch] [ebp-4h]\n\n  v8 = splnet(); /*0x114dc9*/\n  v1 = 0; /*0x114dcc*/\n  if ( (*(_BYTE *)(a1 + 2) & 2) != 0 ) /*0x114dd2*/\n  {\n    while ( *(_DWORD *)(a1 + 20) != a1 ) /*0x114dd7*/\n      soabort(*(_DWORD *)(a1 + 20)); /*0x114de0*/\n    while ( *(_DWORD *)(a1 + 28) != a1 ) /*0x114dff*/\n      soabort(*(_DWORD *)(a1 + 28)); /*0x114df4*/\n  }\n  if ( *(_DWORD *)(a1 + 8) ) /*0x114e01*/\n  {\n    v2 = *(_WORD *)(a1 + 6); /*0x114e07*/\n    if ( (v2 & 2) != 0 && ((v2 & 8) != 0 || (v1 = sodisconnect(a1)) == 0) && *(char *)(a1 + 2) < 0 ) /*0x114e26*/\n    {\n      v3 = *(_WORD *)(a1 + 6); /*0x114e28*/\n      if ( (v3 & 0x108) != 0x108 && (v3 & 2) != 0 ) /*0x114e3b*/\n      {\n        do /*0x114e4f*/\n          sleep(a1 + 84); /*0x114e43*/\n        while ( (*(_BYTE *)(a1 + 6) & 2) != 0 ); /*0x114e4f*/\n      }\n    }\n    if ( *(_DWORD *)(a1 + 8) ) /*0x114e51*/\n    {\n      v4 = (*(int (__cdecl **)(int, int, _DWORD, _DWORD, _DWORD))(*(_DWORD *)(a1 + 12) + 28))(a1, 1, 0, 0, 0); /*0x114e66*/\n      if ( !v1 ) /*0x114e6d*/\n        v1 = v4; /*0x114e6f*/\n    }\n  }\n  if ( (*(_BYTE *)(a1 + 6) & 1) != 0 ) /*0x114e75*/\n    panic(aSocloseNofdref); /*0x114e7c*/\n  v5 = *(_WORD *)(a1 + 6); /*0x114e84*/\n  LOBYTE(v5) = v5 | 1; /*0x114e88*/\n  *(_WORD *)(a1 + 6) = v5; /*0x114e8a*/\n  if ( !*(_DWORD *)(a1 + 8) && (v5 & 1) != 0 ) /*0x114e96*/\n  {\n    if ( *(_DWORD *)(a1 + 16) ) /*0x114e98*/\n    {\n      if ( !soqremque(a1, 0) && !soqremque(a1, 1) ) /*0x114eb0*/\n        panic(aSofreeDq); /*0x114ec1*/\n      *(_DWORD *)(a1 + 16) = 0; /*0x114ec9*/\n    }\n    sbrelease(a1 + 60); /*0x114ed4*/\n    sorflush(a1); /*0x114eda*/\n    v6 = a1; /*0x114edf*/\n    LOBYTE(v6) = a1 & 0x80; /*0x114ee1*/\n    m_free(v6); /*0x114ee4*/\n  }\n  splx(v8); /*0x114ef0*/\n  return v1; /*0x114efa*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x114f04",
+        "name": "_soabort"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x115014",
+        "name": "_sodisconnect"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1db2e7",
+        "name": "aSocloseNofdref",
+        "string": "soclose: NOFDREF"
+      },
+      {
+        "addr": "0x1db2dd",
+        "name": "aSofreeDq",
+        "string": "sofree dq"
+      },
+      {
+        "addr": "0x116354",
+        "name": "_soqremque"
+      },
+      {
+        "addr": "0x1165cc",
+        "name": "_sbrelease"
+      },
+      {
+        "addr": "0x115c4c",
+        "name": "_sorflush"
+      },
+      {
+        "addr": "0x113ed0",
+        "name": "_m_free"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00114f04",
+    "addr": "0x00114f04",
+    "code": "int __cdecl soabort(int a1)\n{\n  return (*(int (__stdcall **)(int, int, _DWORD, _DWORD, _DWORD))(*(_DWORD *)(a1 + 12) + 28))(a1, 10, 0, 0, 0); /*0x114f1d*/\n}"
+  }
+]

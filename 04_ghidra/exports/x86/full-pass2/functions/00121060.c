@@ -1,0 +1,22 @@
+/* Ghidra decompiler output, not reconstructed GCC 2.7 source.
+ * Binary SHA-256: 33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890; entry: 0x00121060 */
+
+undefined4 _if_handle_input(undefined4 param_1,undefined4 param_2,undefined4 param_3)
+
+{
+  int iVar1;
+  int iVar2;
+  
+  iVar1 = _ifnet;
+  while( true ) {
+    if (iVar1 == 0) {
+      _nb_free(param_2);
+      return 0x2f;
+    }
+    if (((*(code **)(iVar1 + 0x3c) != (code *)0x0) && (*(int *)(iVar1 + 0x14) != 0)) &&
+       (iVar2 = (**(code **)(iVar1 + 0x3c))(iVar1,param_1,param_2,param_3), iVar2 == 0)) break;
+    iVar1 = *(int *)(iVar1 + 0x5c);
+  }
+  return 0;
+}
+

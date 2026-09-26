@@ -1,0 +1,684 @@
+[
+  {
+    "requested_address": "0x001b9348",
+    "addr": "0x001b9348",
+    "code": "$4BA88FAFA6E9A53AC825FB6F75E82BF2 *__cdecl -[AudioStream newRegion](AudioStream *self, SEL a2)\n{\n  $4BA88FAFA6E9A53AC825FB6F75E82BF2 *v2; // ebx\n\n  v2 = ($4BA88FAFA6E9A53AC825FB6F75E82BF2 *)IOMalloc(0x44u); /*0x1b9353*/\n  bzero(v2, 0x44u); /*0x1b9358*/\n  return v2; /*0x1b935f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9368",
+    "addr": "0x001b9368",
+    "code": "id __cdecl -[AudioStream free](AudioStream *self, SEL a2)\n{\n  int v2; // eax\n  int v3; // eax\n  int v4; // eax\n  int v5; // eax\n  $8EF4127CF77ECA3DDB612FCF233DC3A8 *sndReplyMsg; // eax\n  int userPort; // [esp-Ch] [ebp-18h]\n  int pausePort; // [esp-4h] [ebp-10h]\n  int resumePort; // [esp-4h] [ebp-10h]\n  int abortPort; // [esp-4h] [ebp-10h]\n  objc_super v12; // [esp+4h] [ebp-8h] BYREF\n\n  if ( self->pausePort ) /*0x1b9372*/\n  {\n    pausePort = self->pausePort; /*0x1b9379*/\n    v2 = task_self(); /*0x1b937a*/\n    port_deallocate_EXTERNAL(v2, pausePort); /*0x1b9380*/\n  }\n  if ( self->resumePort ) /*0x1b9388*/\n  {\n    resumePort = self->resumePort; /*0x1b938f*/\n    v3 = task_self(); /*0x1b9390*/\n    port_deallocate_EXTERNAL(v3, resumePort); /*0x1b9396*/\n  }\n  if ( self->abortPort ) /*0x1b939e*/\n  {\n    abortPort = self->abortPort; /*0x1b93a5*/\n    v4 = task_self(); /*0x1b93a6*/\n    port_deallocate_EXTERNAL(v4, abortPort); /*0x1b93ac*/\n  }\n  -[AudioStream freeRegions](self, sel_freeRegions); /*0x1b93bc*/\n  userPort = self->userPort; /*0x1b93c4*/\n  v5 = task_self(); /*0x1b93c5*/\n  if ( port_deallocate_EXTERNAL(v5, userPort) )\n    IOLog((int)\"Audio: stream port_deallocate: %s\\n\", \"MACH ERR\");\n  objc_msgSend(self->regionQueueLock, sel_free); /*0x1b93f4*/\n  sndReplyMsg = self->sndReplyMsg; /*0x1b93fc*/\n  if ( sndReplyMsg ) /*0x1b9401*/\n    IOFree((int)sndReplyMsg, 0x2000); /*0x1b9409*/\n  v12.receiver = self; /*0x1b9418*/\n  v12.super_class = (Class)stru_1FA4C4.super_class; /*0x1b9421*/\n  return -[Object free](&v12, sel_free); /*0x1b942d*/\n}",
+    "refs": [
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x1d0508",
+        "name": "_port_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1b92e0",
+        "name": "-[AudioStream freeRegions]"
+      },
+      {
+        "addr": "0x20647c",
+        "name": "sel_freeRegions",
+        "string": "freeRegions"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d87b4",
+        "name": "aAudioStreamPor",
+        "string": "Audio: stream port_deallocate: %s\n"
+      },
+      {
+        "addr": "0x1d86b8",
+        "name": "aMachErr",
+        "string": "MACH ERR"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1fa4c4",
+        "name": "stru_1FA4C4"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9434",
+    "addr": "0x001b9434",
+    "code": "id __cdecl -[AudioStream setOwner:](AudioStream *self, SEL a2, int a3)\n{\n  self->ownerPort = a3; /*0x1b943d*/\n  return self; /*0x1b9442*/\n}"
+  },
+  {
+    "requested_address": "0x001b9444",
+    "addr": "0x001b9444",
+    "code": "char __cdecl -[AudioStream bytesProcessed:atTime:](AudioStream *self, SEL a2, unsigned int *a3, unsigned int *a4)\n{\n  unsigned __int64 v4; // rax\n  unsigned __int64 v6; // rax\n\n  objc_msgSend(self->device, sel__outputStartTime); /*0x1b945e*/\n  LODWORD(v4) = objc_msgSend(self->device, sel__lastInterruptTimeStamp); /*0x1b946e*/\n  if ( v4 ) /*0x1b9478*/\n  {\n    v6 = v4 / 0x3E8; /*0x1b9499*/\n    if ( a4 ) /*0x1b94a0*/\n      *a4 = v6; /*0x1b94a2*/\n    *a3 = self->bytesProcessed; /*0x1b94a7*/\n    return 1; /*0x1b94a9*/\n  }\n  else\n  {\n    *a4 = 0; /*0x1b947e*/\n    *a3 = 0; /*0x1b9484*/\n    return 0; /*0x1b948a*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205cac",
+        "name": "sel__outputStartTime",
+        "string": "_outputStartTime"
+      },
+      {
+        "addr": "0x205cd8",
+        "name": "sel__lastInterruptTimeStamp",
+        "string": "_lastInterruptTimeStamp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b94b8",
+    "addr": "0x001b94b8",
+    "code": "int __cdecl -[AudioStream dataEncoding](AudioStream *self, SEL a2)\n{\n  int dataFormat; // eax\n\n  dataFormat = self->dataFormat; /*0x1b94be*/\n  if ( dataFormat == 1 ) /*0x1b94c4*/\n    return 602; /*0x1b94fc*/\n  if ( dataFormat > 1 ) /*0x1b94c6*/\n  {\n    if ( dataFormat == 2 ) /*0x1b94d3*/\n      return 603; /*0x1b9508*/\n    if ( dataFormat == 3 ) /*0x1b94d8*/\n      return 601; /*0x1b94f0*/\n  }\n  else if ( !dataFormat ) /*0x1b94ca*/\n  {\n    return 600; /*0x1b94e4*/\n  }\n  IOLog((int)\"Audio: unrecognized data format: %d\\n\", self->dataFormat);\n  return -1; /*0x1b94e3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d87d8",
+        "name": "aAudioUnrecogni_0",
+        "string": "Audio: unrecognized data format: %d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9524",
+    "addr": "0x001b9524",
+    "code": "void __cdecl -[AudioStream setDataEncoding:](AudioStream *self, SEL a2, int a3)\n{\n  switch ( a3 )\n  {\n    case 600:\n      self->dataFormat = 0; /*0x1b9554*/\n      break; /*0x1b955e*/\n    case 601:\n      self->dataFormat = 3; /*0x1b9560*/\n      break; /*0x1b956a*/\n    case 602:\n      self->dataFormat = 1; /*0x1b956c*/\n      break; /*0x1b9576*/\n    case 603:\n      self->dataFormat = 2; /*0x1b9578*/\n      break; /*0x1b9582*/\n    case 604:\n      self->dataFormat = 4; /*0x1b9584*/\n      break; /*0x1b958e*/\n    default:\n      IOLog((int)\"Audio: supported encoding: %d\\n\", a3);\n      break; /*0x1b9596*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8800",
+        "name": "aAudioSupported",
+        "string": "Audio: supported encoding: %d\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b95a0",
+    "addr": "0x001b95a0",
+    "code": "unsigned int __cdecl -[AudioStream samplingRate](AudioStream *self, SEL a2)\n{\n  return self->samplingRate; /*0x1b95ab*/\n}"
+  },
+  {
+    "requested_address": "0x001b95b0",
+    "addr": "0x001b95b0",
+    "code": "void __cdecl -[AudioStream setSamplingRate:](AudioStream *self, SEL a2, unsigned int a3)\n{\n  self->samplingRate = a3; /*0x1b95b9*/\n}"
+  },
+  {
+    "requested_address": "0x001b95c0",
+    "addr": "0x001b95c0",
+    "code": "unsigned int __cdecl -[AudioStream channelCount](AudioStream *self, SEL a2)\n{\n  return self->channelCount; /*0x1b95cb*/\n}"
+  },
+  {
+    "requested_address": "0x001b95d0",
+    "addr": "0x001b95d0",
+    "code": "void __cdecl -[AudioStream setChannelCount:](AudioStream *self, SEL a2, unsigned int a3)\n{\n  self->channelCount = a3; /*0x1b95d9*/\n}"
+  },
+  {
+    "requested_address": "0x001b95e0",
+    "addr": "0x001b95e0",
+    "code": "unsigned int __cdecl -[AudioStream lowWaterMark](AudioStream *self, SEL a2)\n{\n  return 0; /*0x1b95e7*/\n}"
+  },
+  {
+    "requested_address": "0x001b95ec",
+    "addr": "0x001b95ec",
+    "code": "void __cdecl -[AudioStream setLowWaterMark:](AudioStream *self, SEL a2, unsigned int a3)\n{\n  ; /*0x1b95ec*/\n}"
+  },
+  {
+    "requested_address": "0x001b95f4",
+    "addr": "0x001b95f4",
+    "code": "unsigned int __cdecl -[AudioStream highWaterMark](AudioStream *self, SEL a2)\n{\n  return 0; /*0x1b95fb*/\n}"
+  },
+  {
+    "requested_address": "0x001b9600",
+    "addr": "0x001b9600",
+    "code": "void __cdecl -[AudioStream setHighWaterMark:](AudioStream *self, SEL a2, unsigned int a3)\n{\n  ; /*0x1b9600*/\n}"
+  },
+  {
+    "requested_address": "0x001b9608",
+    "addr": "0x001b9608",
+    "code": "id __cdecl -[InputStream returnRecordedData](InputStream *self, SEL a2)\n{\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_regionQueue; // edx\n  unsigned int v3; // eax\n  int v4; // eax\n  char *v5; // eax\n  queue_entry *v6; // eax\n  void **v8; // [esp+Ch] [ebp-18h]\n  queue_entry *next; // [esp+10h] [ebp-14h]\n  int v10; // [esp+14h] [ebp-10h]\n  int v11; // [esp+18h] [ebp-Ch]\n  size_t v12; // [esp+1Ch] [ebp-8h]\n  size_t v13; // [esp+20h] [ebp-4h]\n\n  v10 = kern_serv_kernel_task_port(); /*0x1b9620*/\n  objc_msgSend(self->super.regionQueueLock, sel_lock); /*0x1b962e*/\n  p_regionQueue = &self->super.regionQueue; /*0x1b9633*/\n  if ( p_regionQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)p_regionQueue->next )\n  {\nLABEL_6:\n    objc_msgSend(self->super.regionQueueLock, sel_unlock); /*0x1b9660*/\n    self->wantsRecordedData = 1; /*0x1b9676*/\n  }\n  else\n  {\n    next = self->super.regionQueue.next; /*0x1b9640*/\n    while ( 1 ) /*0x1b9647*/\n    {\n      v3 = *((_DWORD *)next + 3); /*0x1b9647*/\n      if ( *(_DWORD *)next < v3 && *((_DWORD *)next + 1) > v3 ) /*0x1b9651*/\n        break; /*0x1b9651*/\n      next = *((queue_entry **)next + 15); /*0x1b9659*/\n      if ( p_regionQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)next ) /*0x1b965e*/\n        goto LABEL_6; /*0x1b965e*/\n    }\n    v8 = (void **)IOMalloc(0x44u); /*0x1b9687*/\n    qmemcpy(v8, next, 0x44u); /*0x1b969a*/\n    v4 = *((_DWORD *)next + 3); /*0x1b969c*/\n    v13 = v4 - *(_DWORD *)next; /*0x1b96a6*/\n    v12 = *((_DWORD *)next + 4) - v13; /*0x1b96ae*/\n    v11 = *((_DWORD *)next + 2) - v4; /*0x1b96b6*/\n    if ( vm_allocate_EXTERNAL(v10, v8, v13, 1) )\n    {\n      IOLog((int)\"Audio: cannot allocate record memory\\n\");\n      IOFree((int)v8, 68); /*0x1b96dd*/\n      objc_msgSend(self->super.regionQueueLock, sel_unlock); /*0x1b96ed*/\n      self->wantsRecordedData = 1; /*0x1b96f2*/\n    }\n    else\n    {\n      *((_DWORD *)next + 8) = 0; /*0x1b9713*/\n      *((_DWORD *)next + 10) = 0; /*0x1b971a*/\n      bcopy(*(const void **)next, *v8, v13); /*0x1b972e*/\n      if ( vm_deallocate_EXTERNAL(v10, *(_DWORD *)next, *((_DWORD *)next + 4)) )\n        IOLog((int)\"Audio: vm_deallocate: %s\\n\", \"MACH ERR\");\n      if ( vm_allocate_EXTERNAL(v10, next, v12, 1) )\n      {\n        IOLog((int)\"Audio: cannot allocate record memory\\n\");\n        v11 = 0; /*0x1b9786*/\n        v12 = 0; /*0x1b978d*/\n      }\n      *((_DWORD *)next + 4) = v12; /*0x1b979d*/\n      *((_DWORD *)next + 1) = *(_DWORD *)next + v12; /*0x1b97a5*/\n      *((_DWORD *)next + 3) = *(_DWORD *)next; /*0x1b97ad*/\n      *((_DWORD *)next + 2) = *(_DWORD *)next + v11; /*0x1b97b8*/\n      v8[4] = (void *)v13; /*0x1b97c1*/\n      v5 = (char *)*v8 + v13; /*0x1b97c7*/\n      v8[1] = v5; /*0x1b97c9*/\n      v8[2] = v5; /*0x1b97cc*/\n      v8[3] = v5; /*0x1b97cf*/\n      v8[12] = (void *)1; /*0x1b97d2*/\n      v8[11] = (void *)1; /*0x1b97d9*/\n      v6 = self->super.regionQueue.next; /*0x1b97e3*/\n      if ( &self->super.regionQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)v6 ) /*0x1b97e8*/\n      {\n        self->super.regionQueue.next = (queue_entry *)v8; /*0x1b96ff*/\n        self->super.regionQueue.prev = (queue_entry *)v8; /*0x1b9702*/\n        v8[15] = v6; /*0x1b9705*/\n        v8[16] = v6; /*0x1b9708*/\n      }\n      else\n      {\n        v8[16] = &self->super.regionQueue; /*0x1b97ee*/\n        v8[15] = v6; /*0x1b97f1*/\n        self->super.regionQueue.next = (queue_entry *)v8; /*0x1b97f4*/\n        *((_DWORD *)v6 + 16) = v8; /*0x1b97f7*/\n      }\n      objc_msgSend(self->super.regionQueueLock, sel_unlock); /*0x1b9805*/\n      self->wantsRecordedData = 0; /*0x1b980a*/\n    }\n  }\n  return self; /*0x1b9813*/\n}",
+    "refs": [
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8868",
+        "name": "aAudioCannotAll",
+        "string": "Audio: cannot allocate record memory\n"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1d8890",
+        "name": "aAudioVmDealloc",
+        "string": "Audio: vm_deallocate: %s\n"
+      },
+      {
+        "addr": "0x1d86b8",
+        "name": "aMachErr",
+        "string": "MACH ERR"
+      },
+      {
+        "addr": "0x1d0a40",
+        "name": "_vm_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1d0cb8",
+        "name": "_vm_allocate_EXTERNAL"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b981c",
+    "addr": "0x001b981c",
+    "code": "char __cdecl -[InputStream recordSize:tag:replyTo:replyMsgs:](\n        InputStream *self,\n        SEL a2,\n        unsigned int a3,\n        int a4,\n        int a5,\n        unsigned int a6)\n{\n  unsigned int v6; // esi\n  $4BA88FAFA6E9A53AC825FB6F75E82BF2 *v8; // ebx\n  unsigned int v9; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_regionQueue; // edx\n  queue_entry *prev; // eax\n  id v12; // eax\n  int v13; // [esp+Ch] [ebp-Ch]\n  int v14; // [esp+10h] [ebp-8h]\n  unsigned int v15; // [esp+14h] [ebp-4h] BYREF\n\n  v6 = a3; /*0x1b9828*/\n  v13 = kern_serv_kernel_task_port(); /*0x1b9833*/\n  v14 = IOConvertPort(v13, a5, a5, 2, 0); /*0x1b9840*/\n  if ( !self->super.dataFormat ) /*0x1b9846*/\n  {\n    if ( self->super.channelCount == 1 ) /*0x1b9850*/\n      v6 = a3 & 0xFFFFFFFE; /*0x1b9852*/\n    else\n      v6 = a3 & 0xFFFFFFFC; /*0x1b9858*/\n  }\n  if ( vm_allocate_EXTERNAL(v13, &v15, v6, 1) )\n  {\n    IOLog((int)\"Audio: record request (%d bytes) too large\\n\", v6);\n    return 0; /*0x1b987d*/\n  }\n  else\n  {\n    v8 = -[AudioStream newRegion](self, sel_newRegion); /*0x1b98a1*/\n    v9 = v15; /*0x1b98a3*/\n    v8->var0 = v15; /*0x1b98a6*/\n    v8->var3 = v9; /*0x1b98a8*/\n    v8->var2 = v9; /*0x1b98ab*/\n    v8->var1 = v6 + v8->var0; /*0x1b98b2*/\n    v8->var4 = v6; /*0x1b98b5*/\n    v8->var5 = a4; /*0x1b98bb*/\n    v8->var7 = v14; /*0x1b98c1*/\n    v8->var6 = a6; /*0x1b98c7*/\n    self->super.userReplyMessages = a6; /*0x1b98ca*/\n    self->super.userReplyPort = v14; /*0x1b98d0*/\n    objc_msgSend(self->super.regionQueueLock, sel_lock); /*0x1b98de*/\n    p_regionQueue = &self->super.regionQueue; /*0x1b98e6*/\n    if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->super.regionQueue.next == &self->super.regionQueue ) /*0x1b98ec*/\n    {\n      self->super.regionQueue.next = (queue_entry *)v8; /*0x1b9884*/\n      self->super.regionQueue.prev = (queue_entry *)v8; /*0x1b9887*/\n      v8->var11.var0 = (queue_entry *)p_regionQueue; /*0x1b988a*/\n      v8->var11.var1 = (queue_entry *)p_regionQueue; /*0x1b988d*/\n    }\n    else\n    {\n      prev = self->super.regionQueue.prev; /*0x1b98ee*/\n      v8->var11.var1 = prev; /*0x1b98f1*/\n      v8->var11.var0 = (queue_entry *)p_regionQueue; /*0x1b98f4*/\n      self->super.regionQueue.prev = (queue_entry *)v8; /*0x1b98f7*/\n      *((_DWORD *)prev + 15) = v8; /*0x1b98fa*/\n    }\n    objc_msgSend(self->super.regionQueueLock, sel_unlock); /*0x1b9908*/\n    v12 = -[AudioStream channel](self, sel_channel); /*0x1b9915*/\n    objc_msgSend(self->super.device, sel__dataPendingForChannel_, v12); /*0x1b9926*/\n    return 1; /*0x1b992b*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x1a9284",
+        "name": "_IOConvertPort"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8820",
+        "name": "aAudioRecordReq",
+        "string": "Audio: record request (%d bytes) too large\n"
+      },
+      {
+        "addr": "0x1b9348",
+        "name": "-[AudioStream newRegion]"
+      },
+      {
+        "addr": "0x206470",
+        "name": "sel_newRegion",
+        "string": "newRegion"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b8ac8",
+        "name": "-[AudioStream channel]"
+      },
+      {
+        "addr": "0x206008",
+        "name": "sel_channel",
+        "string": "channel"
+      },
+      {
+        "addr": "0x205d5c",
+        "name": "sel__dataPendingForChannel:",
+        "string": "_dataPendingForChannel:"
+      },
+      {
+        "addr": "0x1d0cb8",
+        "name": "_vm_allocate_EXTERNAL"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b993c",
+    "addr": "0x001b993c",
+    "code": "unsigned int __cdecl -[InputStream mixRegion:descriptor:buffer:maxCount:virgin:rate:format:channelCount:](\n        InputStream *self,\n        SEL a2,\n        $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3,\n        $2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *a4,\n        unsigned int a5,\n        unsigned int a6,\n        char a7,\n        unsigned int a8,\n        int a9,\n        unsigned int a10)\n{\n  unsigned int var2; // edx\n  unsigned int result; // eax\n\n  var2 = a3->var2; /*0x1b9946*/\n  result = a3->var1 - var2; /*0x1b994c*/\n  if ( result > a6 ) /*0x1b9950*/\n    result = a6; /*0x1b9952*/\n  a3->var2 = result + var2; /*0x1b9956*/\n  return result; /*0x1b9959*/\n}"
+  },
+  {
+    "requested_address": "0x001b9960",
+    "addr": "0x001b9960",
+    "code": "id __cdecl -[InputStream sendRecordedDataForRegion:](InputStream *self, SEL a2, $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3)\n{\n  unsigned int v3; // edi\n  unsigned int v4; // ebx\n  int v5; // eax\n  int v6; // ebx\n  int v7; // eax\n  int v8; // eax\n  int v10; // [esp+10h] [ebp-14h]\n  unsigned int v11; // [esp+14h] [ebp-10h]\n  int v12; // [esp+18h] [ebp-Ch]\n  _BYTE v13[4]; // [esp+1Ch] [ebp-8h] BYREF\n  int v14; // [esp+20h] [ebp-4h] BYREF\n\n  v3 = a3->var3 - a3->var0; /*0x1b9974*/\n  v4 = a3->var0 & ~page_mask; /*0x1b9981*/\n  v11 = a3->var0 - v4; /*0x1b9985*/\n  v10 = kern_serv_kernel_task_port(); /*0x1b998d*/\n  v5 = vm_read_EXTERNAL(v10, v4, ~page_mask & (page_mask + v3 + v11), &v14, v13); /*0x1b99ae*/\n  if ( v5 )\n    v5 = IOLog((int)\"Audio: vm_read returned %d\\n\", v5);\n  v12 = v14 + v11; /*0x1b99ce*/\n  if ( v3 ) /*0x1b99d5*/\n  {\n    v6 = IOConvertPort(v5, v4, a3->var7, 0, 1); /*0x1b99eb*/\n    v7 = IOConvertPort(v6, v6, self->super.kernUserPort, 0, 1); /*0x1b99f5*/\n    if ( self->super.type ) /*0x1b99fd*/\n    {\n      if ( !self->super.sndReplyMsg ) /*0x1b9a20*/\n      {\n        v8 = IOMalloc(0x2000u); /*0x1b9a2b*/\n        self->super.sndReplyMsg = ($8EF4127CF77ECA3DDB612FCF233DC3A8 *)v8; /*0x1b9a30*/\n        *(_BYTE *)(v8 + 3) = 1; /*0x1b9a33*/\n        *((_DWORD *)self->super.sndReplyMsg + 1) = 24; /*0x1b9a3a*/\n        *((_DWORD *)self->super.sndReplyMsg + 2) = 0; /*0x1b9a44*/\n        *((_DWORD *)self->super.sndReplyMsg + 3) = 0; /*0x1b9a4e*/\n        *((_DWORD *)self->super.sndReplyMsg + 4) = 0; /*0x1b9a58*/\n        *((_DWORD *)self->super.sndReplyMsg + 5) = 0; /*0x1b9a62*/\n      }\n      audio_snd_reply_recorded_data(self->super.sndReplyMsg, v6, a3->var5, v12, v3); /*0x1b9a80*/\n      msg_send(self->super.sndReplyMsg, 33, 1000); /*0x1b9a90*/\n    }\n    else\n    {\n      _NXAudioReplyRecordedData(v6, v7, v6, self->super.tag, a3->var5, v12, v3); /*0x1b9a19*/\n    }\n  }\n  return self; /*0x1b9a9a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x1d0b00",
+        "name": "_vm_read_EXTERNAL"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d884c",
+        "name": "aAudioVmReadRet",
+        "string": "Audio: vm_read returned %d\n"
+      },
+      {
+        "addr": "0x1a9284",
+        "name": "_IOConvertPort"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1bdc1c",
+        "name": "_audio_snd_reply_recorded_data"
+      },
+      {
+        "addr": "0x158774",
+        "name": "_msg_send"
+      },
+      {
+        "addr": "0x1c086c",
+        "name": "__NXAudioReplyRecordedData"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9aa4",
+    "addr": "0x001b9aa4",
+    "code": "id __cdecl -[InputStream completeRegion:descriptor:size:used:](\n        InputStream *self,\n        SEL a2,\n        $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3,\n        $2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *a4,\n        unsigned int a5,\n        unsigned int *a6)\n{\n  void *var3; // ecx\n  size_t v7; // edi\n  unsigned int v8; // edx\n  __int16 *v9; // edx\n  _WORD *v10; // ebx\n  int dataFormat; // eax\n  size_t j; // ecx\n  __int16 v13; // ax\n  _BYTE *v14; // ebx\n  size_t i; // ecx\n  size_t v17; // [esp+Ch] [ebp-8h]\n  __int16 *v18; // [esp+10h] [ebp-4h]\n\n  var3 = (void *)a3->var3; /*0x1b9ab3*/\n  v7 = a3->var2 - (_DWORD)var3; /*0x1b9ab9*/\n  v17 = v7; /*0x1b9abb*/\n  if ( a5 && v7 ) /*0x1b9ac8*/\n  {\n    v8 = *a6; /*0x1b9ad1*/\n    if ( *a6 + v7 > a5 ) /*0x1b9ad9*/\n      v17 = a5 - v8; /*0x1b9add*/\n    v9 = (__int16 *)(a4->var1 + v8); /*0x1b9ae3*/\n    v10 = (_WORD *)a3->var3; /*0x1b9ae6*/\n    dataFormat = self->super.dataFormat; /*0x1b9aeb*/\n    if ( dataFormat ) /*0x1b9af0*/\n    {\n      if ( dataFormat == 3 ) /*0x1b9b1b*/\n      {\n        v18 = v9; /*0x1b9b1d*/\n        v14 = (_BYTE *)a3->var3; /*0x1b9b20*/\n        for ( i = 0; v17 > i; ++i ) /*0x1b9b27*/\n        {\n          *v14++ = *(_BYTE *)v18 & 0x7F | *(_BYTE *)v18 ^ 0x80; /*0x1b9b3a*/\n          v18 = (__int16 *)((char *)v18 + 1); /*0x1b9b3e*/\n        }\n      }\n      else if ( dataFormat == 1 ) /*0x1b9b4f*/\n      {\n        bcopy(v9, var3, v17); /*0x1b9b57*/\n      }\n    }\n    else\n    {\n      for ( j = 0; v17 >> 1 > j; ++j ) /*0x1b9af7*/\n      {\n        v13 = *v9++; /*0x1b9b00*/\n        *v10++ = __ROR2__(v13, 8); /*0x1b9b0a*/\n      }\n    }\n    *a6 += v17; /*0x1b9b65*/\n    a3->var3 += v17; /*0x1b9b6a*/\n    self->super.bytesProcessed += v17; /*0x1b9b70*/\n  }\n  if ( ($2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *)a3->var9 == a4 || a3->var10.var2 ) /*0x1b9b7e*/\n    -[InputStream sendRecordedDataForRegion:](self, sel_sendRecordedDataForRegion_, a3); /*0x1b9b93*/\n  return self; /*0x1b9b9e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x1b9960",
+        "name": "-[InputStream sendRecordedDataForRegion:]"
+      },
+      {
+        "addr": "0x2065ec",
+        "name": "sel_sendRecordedDataForRegion:",
+        "string": "sendRecordedDataForRegion:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9ba8",
+    "addr": "0x001b9ba8",
+    "code": "id __cdecl -[InputStream dmaCompleteDescriptor:transfered:](\n        InputStream *self,\n        SEL a2,\n        $2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *a3,\n        unsigned int a4)\n{\n  objc_super v5; // [esp+4h] [ebp-8h] BYREF\n\n  v5.receiver = self; /*0x1b9bc1*/\n  v5.super_class = (Class)stru_1FA4C4.ext; /*0x1b9bca*/\n  -[AudioStream dmaCompleteDescriptor:transfered:](&v5, sel_dmaCompleteDescriptor_transfered_, a3, a4); /*0x1b9bd1*/\n  if ( self->wantsRecordedData ) /*0x1b9bd9*/\n    -[InputStream returnRecordedData](self, sel_returnRecordedData); /*0x1b9be7*/\n  return self; /*0x1b9bee*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa4c4",
+        "name": "stru_1FA4C4"
+      },
+      {
+        "addr": "0x1b8d80",
+        "name": "-[AudioStream dmaCompleteDescriptor:transfered:]"
+      },
+      {
+        "addr": "0x206308",
+        "name": "sel_dmaCompleteDescriptor:transfered:",
+        "string": "dmaCompleteDescriptor:transfered:"
+      },
+      {
+        "addr": "0x1b9608",
+        "name": "-[InputStream returnRecordedData]"
+      },
+      {
+        "addr": "0x206488",
+        "name": "sel_returnRecordedData",
+        "string": "returnRecordedData"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9bf8",
+    "addr": "0x001b9bf8",
+    "code": "id __cdecl -[InputStream freeRegion:](InputStream *self, SEL a2, $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3)\n{\n  int v3; // eax\n  unsigned int var0; // [esp-8h] [ebp-14h]\n  unsigned int var4; // [esp-4h] [ebp-10h]\n  objc_super v7; // [esp+4h] [ebp-8h] BYREF\n\n  var4 = a3->var4; /*0x1b9c05*/\n  var0 = a3->var0; /*0x1b9c08*/\n  v3 = kern_serv_kernel_task_port(); /*0x1b9c09*/\n  if ( vm_deallocate_EXTERNAL(v3, var0, var4) )\n    IOLog((int)\"Audio: stream vm_deallocate error %s\\n\", \"MACH ERR\");\n  v7.receiver = self; /*0x1b9c38*/\n  v7.super_class = (Class)stru_1FA4C4.ext; /*0x1b9c41*/\n  return -[AudioStream freeRegion:](&v7, sel_freeRegion_, a3); /*0x1b9c4d*/\n}",
+    "refs": [
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d88ac",
+        "name": "aAudioStreamVmD",
+        "string": "Audio: stream vm_deallocate error %s\n"
+      },
+      {
+        "addr": "0x1d86b8",
+        "name": "aMachErr",
+        "string": "MACH ERR"
+      },
+      {
+        "addr": "0x1d0a40",
+        "name": "_vm_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1fa4c4",
+        "name": "stru_1FA4C4"
+      },
+      {
+        "addr": "0x1b8d5c",
+        "name": "-[AudioStream freeRegion:]"
+      },
+      {
+        "addr": "0x20657c",
+        "name": "sel_freeRegion:",
+        "string": "freeRegion:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b9c54",
+    "addr": "0x001b9c54",
+    "code": "unsigned int __cdecl -[OutputStream mixRegion:descriptor:buffer:maxCount:virgin:rate:format:channelCount:](\n        OutputStream *self,\n        SEL a2,\n        $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3,\n        $2D87D4CA0FCCD4E0D80DDC4A8D8F85EA *a4,\n        unsigned int a5,\n        unsigned int a6,\n        char a7,\n        unsigned int a8,\n        int a9,\n        unsigned int a10)\n{\n  unsigned int v10; // eax\n  char *mixBuffer1; // edi\n  void *var2; // edx\n  unsigned int v13; // esi\n  unsigned int v14; // ecx\n  unsigned int v15; // eax\n  int v16; // edi\n  queue_entry *next; // eax\n  int v19; // [esp+10h] [ebp-30h]\n  unsigned int v20; // [esp+14h] [ebp-2Ch]\n  void *v21; // [esp+14h] [ebp-2Ch]\n  unsigned int v22; // [esp+18h] [ebp-28h]\n  char *mixBuffer2; // [esp+1Ch] [ebp-24h]\n  int dataFormat; // [esp+20h] [ebp-20h]\n  int v25; // [esp+24h] [ebp-1Ch]\n  unsigned int v26; // [esp+28h] [ebp-18h]\n  unsigned int v27; // [esp+2Ch] [ebp-14h]\n  unsigned int v28; // [esp+30h] [ebp-10h]\n  int v29; // [esp+38h] [ebp-8h] BYREF\n  int v30; // [esp+3Ch] [ebp-4h] BYREF\n\n  v28 = 0; /*0x1b9c63*/\n  v30 = 0; /*0x1b9c6a*/\n  v29 = 0; /*0x1b9c71*/\n  v27 = 0; /*0x1b9c78*/\n  v10 = 0; /*0x1b9c7f*/\n  v25 = 1; /*0x1b9c81*/\n  dataFormat = self->super.dataFormat; /*0x1b9c8e*/\n  mixBuffer1 = self->super.mixBuffer1; /*0x1b9c94*/\n  mixBuffer2 = self->super.mixBuffer2; /*0x1b9c9a*/\n  var2 = (void *)a3->var2; /*0x1b9ca0*/\n  v26 = a6; /*0x1b9ca6*/\n  v13 = a6; /*0x1b9ca9*/\n  v14 = a3->var1 - (_DWORD)var2; /*0x1b9caf*/\n  if ( a6 > v14 ) /*0x1b9cb6*/\n  {\n    v26 = a3->var1 - (_DWORD)var2; /*0x1b9cb8*/\n    v13 = v26; /*0x1b9cbb*/\n  }\n  if ( !dataFormat ) /*0x1b9cc2*/\n    v10 = 1; /*0x1b9cc4*/\n  if ( self->leftGain != 0x8000 || self->rightGain != 0x8000 ) /*0x1b9cdc*/\n    LOBYTE(v10) = v10 | 2; /*0x1b9cde*/\n  if ( self->super.channelCount == 1 && a10 == 2 ) /*0x1b9ced*/\n  {\n    LOBYTE(v10) = v10 | 0x10; /*0x1b9cef*/\n  }\n  else if ( self->super.channelCount == 2 && a10 == 1 ) /*0x1b9d01*/\n  {\n    LOBYTE(v10) = v10 | 0x20; /*0x1b9d03*/\n  }\n  if ( self->super.samplingRate == 22050 && a8 == 44100 ) /*0x1b9d18*/\n  {\n    LOBYTE(v10) = v10 | 4; /*0x1b9d1a*/\n  }\n  else if ( self->super.samplingRate == 44100 && a8 == 22050 ) /*0x1b9d33*/\n  {\n    LOBYTE(v10) = v10 | 8; /*0x1b9d35*/\n  }\n  if ( dataFormat == 3 ) /*0x1b9d3b*/\n  {\n    if ( !a9 ) /*0x1b9d41*/\n    {\n      LOBYTE(v10) = v10 | 0x40; /*0x1b9d43*/\n      goto LABEL_35; /*0x1b9d45*/\n    }\n    if ( a9 == 1 ) /*0x1b9d4c*/\n    {\n      LOBYTE(v10) = v10 | 0x80; /*0x1b9d4e*/\n      goto LABEL_35; /*0x1b9d50*/\n    }\n  }\n  if ( dataFormat ) /*0x1b9d58*/\n    goto LABEL_30; /*0x1b9d58*/\n  if ( a9 == 3 ) /*0x1b9d5e*/\n  {\n    BYTE1(v10) |= 1u; /*0x1b9d60*/\n    goto LABEL_35; /*0x1b9d63*/\n  }\n  if ( a9 != 1 ) /*0x1b9d6c*/\n  {\nLABEL_30:\n    if ( dataFormat == 1 ) /*0x1b9d78*/\n    {\n      if ( a9 ) /*0x1b9d7e*/\n      {\n        if ( a9 == 3 ) /*0x1b9d8c*/\n          BYTE1(v10) |= 8u; /*0x1b9d8e*/\n      }\n      else\n      {\n        BYTE1(v10) |= 4u; /*0x1b9d80*/\n      }\n    }\n  }\n  else\n  {\n    BYTE1(v10) |= 2u; /*0x1b9d6e*/\n  }\nLABEL_35:\n  if ( v10 == 24 ) /*0x1b9d94*/\n  {\n    audio_convertMonoToStereo(var2, mixBuffer1, v13, dataFormat); /*0x1ba00b*/\n    audio_resample44To22(mixBuffer1, mixBuffer2, 2 * v13, dataFormat); /*0x1ba023*/\n    goto LABEL_97; /*0x1ba028*/\n  }\n  if ( v10 > 0x18 ) /*0x1b9d9a*/\n  {\n    if ( v10 == 41 ) /*0x1b9e37*/\n    {\n      v13 *= 4; /*0x1ba1fc*/\n      if ( v14 < v13 ) /*0x1ba202*/\n        v13 = a3->var1 - (_DWORD)var2; /*0x1ba204*/\n      v26 = v13 >> 2; /*0x1ba20c*/\n      audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba219*/\n      audio_convertStereoToMono(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba231*/\n      audio_resample44To22(mixBuffer2, mixBuffer1, v13 >> 1, dataFormat); /*0x1ba24c*/\n      goto LABEL_119; /*0x1ba24c*/\n    }\n    if ( v10 > 0x29 ) /*0x1b9e3d*/\n    {\n      if ( v10 == 257 ) /*0x1b9e95*/\n      {\n        v13 *= 2; /*0x1ba2e0*/\n        if ( v14 < v13 ) /*0x1ba2e5*/\n          v13 = a3->var1 - (_DWORD)var2; /*0x1ba2e7*/\n        v26 = v13 >> 1; /*0x1ba2ee*/\n        audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba2f4*/\n        audio_convertLinear16ToLinear8(mixBuffer1, mixBuffer2, v13 >> 1); /*0x1ba308*/\n        dataFormat = 3; /*0x1ba30d*/\n      }\n      else\n      {\n        if ( v10 <= 0x101 ) /*0x1b9e9b*/\n        {\n          if ( v10 == 64 ) /*0x1b9ea0*/\n          {\n            v13 >>= 1; /*0x1ba084*/\n            audio_convertLinear8ToLinear16(var2, mixBuffer1, v13); /*0x1ba089*/\n            dataFormat = 0; /*0x1ba08e*/\n            goto LABEL_103; /*0x1ba095*/\n          }\n          if ( v10 == 128 ) /*0x1b9eab*/\n          {\n            audio_convertLinear8ToMulaw8(var2, mixBuffer1, v13); /*0x1ba09b*/\n            dataFormat = 1; /*0x1ba0a0*/\n            goto LABEL_103; /*0x1ba0a7*/\n          }\n          goto LABEL_130; /*0x1b9eab*/\n        }\n        if ( v10 == 1024 ) /*0x1b9ebd*/\n        {\n          v13 >>= 1; /*0x1ba05c*/\n          audio_convertMulaw8ToLinear16(var2, mixBuffer1, v13); /*0x1ba061*/\n          dataFormat = 0; /*0x1ba066*/\n          goto LABEL_103; /*0x1ba06d*/\n        }\n        if ( v10 > 0x400 ) /*0x1b9ec3*/\n        {\n          if ( v10 == 2048 ) /*0x1b9edd*/\n          {\n            audio_convertMulaw8ToLinear8(var2, mixBuffer1, v13); /*0x1ba073*/\n            dataFormat = 3; /*0x1ba078*/\n            goto LABEL_103; /*0x1ba07f*/\n          }\n          goto LABEL_130; /*0x1b9edd*/\n        }\n        if ( v10 != 513 ) /*0x1b9eca*/\n          goto LABEL_130; /*0x1b9eca*/\n        v13 *= 2; /*0x1ba318*/\n        if ( v14 < v13 ) /*0x1ba31d*/\n          v13 = a3->var1 - (_DWORD)var2; /*0x1ba31f*/\n        v26 = v13 >> 1; /*0x1ba326*/\n        audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba32c*/\n        audio_convertLinear16ToMulaw8(mixBuffer1, mixBuffer2, v13 >> 1); /*0x1ba340*/\n        dataFormat = 1; /*0x1ba345*/\n      }\nLABEL_129:\n      var2 = mixBuffer2; /*0x1ba34c*/\n      goto LABEL_131; /*0x1ba352*/\n    }\n    if ( v10 == 33 ) /*0x1b9e42*/\n    {\n      v13 *= 2; /*0x1ba128*/\n      if ( v14 < v13 ) /*0x1ba12d*/\n        v13 = a3->var1 - (_DWORD)var2; /*0x1ba12f*/\n      v26 = v13 >> 1; /*0x1ba136*/\n      audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba13c*/\n      audio_convertStereoToMono(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba154*/\n      goto LABEL_114; /*0x1ba159*/\n    }\n    if ( v10 <= 0x21 ) /*0x1b9e48*/\n    {\n      if ( v10 == 25 ) /*0x1b9e4d*/\n      {\n        audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba263*/\n        audio_convertMonoToStereo(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba272*/\n        audio_resample44To22(mixBuffer2, mixBuffer1, 2 * v13, dataFormat); /*0x1ba28a*/\n        var2 = mixBuffer1; /*0x1ba28f*/\n        goto LABEL_131; /*0x1ba294*/\n      }\n      if ( v10 != 32 ) /*0x1b9e56*/\n        goto LABEL_130; /*0x1b9e56*/\n      v13 *= 2; /*0x1b9f2c*/\n      if ( v14 < v13 ) /*0x1b9f31*/\n        v13 = a3->var1 - (_DWORD)var2; /*0x1b9f33*/\n      v26 = v13 >> 1; /*0x1b9f3a*/\n      audio_convertStereoToMono(var2, mixBuffer1, v13, dataFormat); /*0x1b9f4d*/\n      goto LABEL_119; /*0x1b9f52*/\n    }\n    if ( v10 == 37 ) /*0x1b9e67*/\n    {\n      audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba2a6*/\n      audio_convertStereoToMono(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba2be*/\n      audio_resample22To44(mixBuffer2, mixBuffer1, v13 >> 1, dataFormat); /*0x1ba2d0*/\n      goto LABEL_122; /*0x1ba2d0*/\n    }\n    if ( v10 > 0x25 ) /*0x1b9e6d*/\n    {\n      if ( v10 != 40 ) /*0x1b9e83*/\n        goto LABEL_130; /*0x1b9e83*/\n      v13 *= 4; /*0x1b9fb8*/\n      if ( v14 < v13 ) /*0x1b9fbe*/\n        v13 = a3->var1 - (_DWORD)var2; /*0x1b9fc0*/\n      v26 = v13 >> 2; /*0x1b9fc8*/\n      audio_convertStereoToMono(var2, mixBuffer1, v13, dataFormat); /*0x1b9fdb*/\n      audio_resample44To22(mixBuffer1, mixBuffer2, v13 >> 1, dataFormat); /*0x1b9ff7*/\n      goto LABEL_105; /*0x1b9ffc*/\n    }\n    if ( v10 != 36 ) /*0x1b9e72*/\n      goto LABEL_130; /*0x1b9e72*/\n    audio_convertStereoToMono(var2, mixBuffer1, v13, dataFormat); /*0x1ba03c*/\n    audio_resample22To44(mixBuffer1, mixBuffer2, v13 >> 1, dataFormat); /*0x1ba04c*/\nLABEL_97:\n    var2 = mixBuffer2; /*0x1ba051*/\n    goto LABEL_131; /*0x1ba057*/\n  }\n  if ( v10 == 5 ) /*0x1b9da3*/\n  {\n    v13 >>= 1; /*0x1ba15c*/\n    audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba165*/\n    audio_resample22To44(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba174*/\n    goto LABEL_129; /*0x1ba179*/\n  }\n  if ( v10 <= 5 ) /*0x1b9da9*/\n  {\n    if ( v10 == 2 ) /*0x1b9dae*/\n    {\n      v28 = audio_scaleSamples( /*0x1b9f09*/\n              var2,\n              mixBuffer1,\n              v13,\n              dataFormat,\n              self->super.channelCount,\n              self->leftGain,\n              self->rightGain);\n      var2 = mixBuffer1; /*0x1b9f0c*/\n      goto LABEL_131; /*0x1b9f11*/\n    }\n    if ( v10 <= 2 ) /*0x1b9db4*/\n    {\n      if ( !v10 ) /*0x1b9db8*/\n        goto LABEL_131; /*0x1b9db8*/\n      if ( v10 != 1 ) /*0x1b9dc1*/\n        goto LABEL_130; /*0x1b9dc1*/\n      audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba0b3*/\nLABEL_103:\n      var2 = mixBuffer1; /*0x1ba0b8*/\n      goto LABEL_131; /*0x1ba0bd*/\n    }\n    if ( v10 != 3 ) /*0x1b9dcf*/\n    {\n      if ( v10 != 4 ) /*0x1b9dd8*/\n        goto LABEL_130; /*0x1b9dd8*/\n      v13 >>= 1; /*0x1b9f58*/\n      audio_resample22To44(var2, mixBuffer1, v13, dataFormat); /*0x1b9f61*/\nLABEL_122:\n      var2 = mixBuffer1; /*0x1ba2d5*/\n      goto LABEL_131; /*0x1ba2da*/\n    }\n    audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba0cb*/\n    v28 = audio_scaleSamples( /*0x1ba0f4*/\n            mixBuffer1,\n            mixBuffer2,\n            v13,\n            dataFormat,\n            self->super.channelCount,\n            self->leftGain,\n            self->rightGain);\nLABEL_105:\n    var2 = mixBuffer2; /*0x1ba0f7*/\n    goto LABEL_131; /*0x1ba0fd*/\n  }\n  if ( v10 == 16 ) /*0x1b9de7*/\n  {\n    v13 >>= 1; /*0x1b9f18*/\n    audio_convertMonoToStereo(var2, mixBuffer1, v13, dataFormat); /*0x1b9f21*/\n    goto LABEL_122; /*0x1b9f26*/\n  }\n  if ( v10 <= 0x10 ) /*0x1b9ded*/\n  {\n    if ( v10 != 8 ) /*0x1b9df2*/\n    {\n      if ( v10 != 9 ) /*0x1b9dfb*/\n        goto LABEL_130; /*0x1b9dfb*/\n      v13 *= 2; /*0x1ba180*/\n      if ( v14 < v13 ) /*0x1ba185*/\n        v13 = a3->var1 - (_DWORD)var2; /*0x1ba187*/\n      v26 = v13 >> 1; /*0x1ba18e*/\n      audio_resample44To22(var2, mixBuffer1, v13, dataFormat); /*0x1ba1a1*/\n      audio_swapSamples(mixBuffer1, mixBuffer2, v13 >> 2); /*0x1ba1b1*/\nLABEL_114:\n      var2 = mixBuffer2; /*0x1ba1b6*/\n      goto LABEL_131; /*0x1ba1bc*/\n    }\n    v13 *= 2; /*0x1b9f68*/\n    if ( v14 < v13 ) /*0x1b9f6d*/\n      v13 = a3->var1 - (_DWORD)var2; /*0x1b9f6f*/\n    v26 = v13 >> 1; /*0x1b9f76*/\n    audio_resample44To22(var2, mixBuffer1, v13, dataFormat); /*0x1b9f89*/\nLABEL_119:\n    var2 = mixBuffer1; /*0x1ba251*/\n    goto LABEL_131; /*0x1ba256*/\n  }\n  if ( v10 == 20 ) /*0x1b9e0b*/\n  {\n    v13 >>= 2; /*0x1b9f90*/\n    audio_convertMonoToStereo(var2, mixBuffer1, v13, dataFormat); /*0x1b9f9a*/\n    audio_resample22To44(mixBuffer1, mixBuffer2, 2 * v13, dataFormat); /*0x1b9fac*/\n    goto LABEL_114; /*0x1b9fb1*/\n  }\n  if ( v10 > 0x14 ) /*0x1b9e11*/\n  {\n    if ( v10 == 21 ) /*0x1b9e27*/\n    {\n      v13 >>= 2; /*0x1ba1c4*/\n      audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba1ce*/\n      audio_convertMonoToStereo(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba1dd*/\n      audio_resample22To44(mixBuffer2, mixBuffer1, 2 * v13, dataFormat); /*0x1ba1ec*/\n      var2 = mixBuffer1; /*0x1ba1f1*/\n      goto LABEL_131; /*0x1ba1f6*/\n    }\n    goto LABEL_130; /*0x1b9e27*/\n  }\n  if ( v10 == 17 ) /*0x1b9e16*/\n  {\n    v13 >>= 1; /*0x1ba104*/\n    audio_swapSamples(var2, mixBuffer1, v13 >> 1); /*0x1ba10d*/\n    audio_convertMonoToStereo(mixBuffer1, mixBuffer2, v13, dataFormat); /*0x1ba11c*/\n    goto LABEL_129; /*0x1ba121*/\n  }\nLABEL_130:\n  v20 = a3->var2; /*0x1ba354*/\n  IOLog((int)\"Audio: unsupported mixing conversion 0x%x\\n\", v10);\n  v25 = 0; /*0x1ba362*/\n  var2 = (void *)v20; /*0x1ba36c*/\nLABEL_131:\n  if ( !v25 ) /*0x1ba373*/\n    goto LABEL_141; /*0x1ba373*/\n  if ( self->peakEnabled ) /*0x1ba37c*/\n  {\n    switch ( dataFormat ) /*0x1ba389*/\n    {\n      case 0: /*0x1ba389*/\n        v21 = var2; /*0x1ba39c*/\n        audio_linear16_peak(self->super.channelCount, var2, v26, &v30, &v29); /*0x1ba39f*/\nLABEL_139:\n        var2 = v21; /*0x1ba3ee*/\n        break; /*0x1ba3f1*/\n      case 3: /*0x1ba389*/\n        v21 = var2; /*0x1ba3c2*/\n        audio_linear8_peak(self->super.channelCount, var2, v26, &v30, &v29); /*0x1ba3c5*/\n        goto LABEL_139; /*0x1ba3ca*/\n      case 1: /*0x1ba389*/\n        v21 = var2; /*0x1ba3e6*/\n        audio_mulaw8_peak(self->super.channelCount, var2, v26, &v30, &v29); /*0x1ba3e9*/\n        goto LABEL_139; /*0x1ba3e9*/\n    }\n  }\n  v27 = audio_mix(var2, (void *)a5, v26, dataFormat, a7); /*0x1ba3f4*/\nLABEL_141:\n  a3->var2 += v13; /*0x1ba40e*/\n  v15 = v28; /*0x1ba414*/\n  if ( v27 > v28 ) /*0x1ba41a*/\n    v15 = v27; /*0x1ba41c*/\n  v19 = v30; /*0x1ba42e*/\n  v16 = v29; /*0x1ba431*/\n  v22 = v15; /*0x1ba434*/\n  next = self->xferQueue.next; /*0x1ba43a*/\n  if ( &self->xferQueue != ($BAB6C68F9D34F0972F921D3DB17D7446 *)next ) /*0x1ba443*/\n  {\n    while ( a4 != *($2D87D4CA0FCCD4E0D80DDC4A8D8F85EA **)next && *(_DWORD *)next ) /*0x1ba451*/\n    {\n      next = *((queue_entry **)next + 5); /*0x1ba46c*/\n      if ( &self->xferQueue == ($BAB6C68F9D34F0972F921D3DB17D7446 *)next ) /*0x1ba472*/\n        return v26; /*0x1ba472*/\n    }\n    *(_DWORD *)next = a4; /*0x1ba456*/\n    *((_DWORD *)next + 1) = v13; /*0x1ba458*/\n    *((_DWORD *)next + 2) = v19; /*0x1ba45e*/\n    *((_DWORD *)next + 3) = v16; /*0x1ba461*/\n    *((_DWORD *)next + 4) = v22; /*0x1ba467*/\n  }\n  return v26; /*0x1ba47a*/\n}",
+    "refs": [
+      {
+        "addr": "0x1be2f4",
+        "name": "_audio_convertMonoToStereo"
+      },
+      {
+        "addr": "0x1be284",
+        "name": "_audio_resample44To22"
+      },
+      {
+        "addr": "0x1bdef0",
+        "name": "_audio_swapSamples"
+      },
+      {
+        "addr": "0x1be374",
+        "name": "_audio_convertStereoToMono"
+      },
+      {
+        "addr": "0x1be4e4",
+        "name": "_audio_convertLinear16ToLinear8"
+      },
+      {
+        "addr": "0x1be480",
+        "name": "_audio_convertLinear8ToLinear16"
+      },
+      {
+        "addr": "0x1be4ac",
+        "name": "_audio_convertLinear8ToMulaw8"
+      },
+      {
+        "addr": "0x1be544",
+        "name": "_audio_convertMulaw8ToLinear16"
+      },
+      {
+        "addr": "0x1be570",
+        "name": "_audio_convertMulaw8ToLinear8"
+      },
+      {
+        "addr": "0x1be50c",
+        "name": "_audio_convertLinear16ToMulaw8"
+      },
+      {
+        "addr": "0x1be268",
+        "name": "_audio_resample22To44"
+      },
+      {
+        "addr": "0x1bdf50",
+        "name": "_audio_scaleSamples"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8968",
+        "name": "aAudioUnsupport",
+        "string": "Audio: unsupported mixing conversion 0x%x\n"
+      },
+      {
+        "addr": "0x1be7d4",
+        "name": "_audio_linear16_peak"
+      },
+      {
+        "addr": "0x1be874",
+        "name": "_audio_linear8_peak"
+      },
+      {
+        "addr": "0x1be71c",
+        "name": "_audio_mulaw8_peak"
+      },
+      {
+        "addr": "0x1be578",
+        "name": "_audio_mix"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba484",
+    "addr": "0x001ba484",
+    "code": "id __cdecl -[OutputStream initChannel:tag:user:owner:type:](\n        OutputStream *self,\n        SEL a2,\n        id a3,\n        int a4,\n        int *a5,\n        int a6,\n        unsigned int a7)\n{\n  unsigned int v8; // edi\n  queue_entry *p_xferQueue; // ebx\n  int v10; // eax\n  int v11; // edx\n  queue_entry *prev; // eax\n  objc_super v13; // [esp+Ch] [ebp-8h] BYREF\n\n  v13.receiver = self; /*0x1ba4ab*/\n  v13.super_class = (Class)stru_1FA514.super_class; /*0x1ba4b4*/\n  if ( !-[AudioStream initChannel:tag:user:owner:type:](&v13, sel_initChannel_tag_user_owner_type_, a3, a4, a5, a6, a7) ) /*0x1ba4bb*/\n    return nullptr; /*0x1ba4c7*/\n  self->rightGain = 0x8000; /*0x1ba4d0*/\n  self->leftGain = 0x8000; /*0x1ba4d7*/\n  self->peakHistory = 1; /*0x1ba4de*/\n  self->xferQueue.prev = (queue_entry *)&self->xferQueue; /*0x1ba4ee*/\n  self->xferQueue.next = (queue_entry *)&self->xferQueue; /*0x1ba4f4*/\n  v8 = 0; /*0x1ba4fa*/\n  p_xferQueue = (queue_entry *)&self->xferQueue; /*0x1ba4fc*/\n  while ( v8 < (unsigned int)objc_msgSend(a3, sel_dmaCount) ) /*0x1ba515*/\n  {\n    v10 = IOMalloc(0x1Cu); /*0x1ba519*/\n    v11 = v10; /*0x1ba51e*/\n    *(_DWORD *)v10 = 0; /*0x1ba520*/\n    *(_DWORD *)(v10 + 4) = 0; /*0x1ba526*/\n    *(_DWORD *)(v10 + 12) = 0; /*0x1ba52d*/\n    *(_DWORD *)(v10 + 8) = 0; /*0x1ba534*/\n    *(_DWORD *)(v10 + 16) = 0; /*0x1ba53b*/\n    if ( self->xferQueue.next == p_xferQueue ) /*0x1ba54b*/\n    {\n      self->xferQueue.next = (queue_entry *)v10; /*0x1ba568*/\n      self->xferQueue.prev = (queue_entry *)v10; /*0x1ba56e*/\n      *(_DWORD *)(v10 + 20) = p_xferQueue; /*0x1ba574*/\n      *(_DWORD *)(v10 + 24) = p_xferQueue; /*0x1ba577*/\n    }\n    else\n    {\n      prev = self->xferQueue.prev; /*0x1ba54d*/\n      *(_DWORD *)(v11 + 24) = prev; /*0x1ba553*/\n      *(_DWORD *)(v11 + 20) = p_xferQueue; /*0x1ba556*/\n      self->xferQueue.prev = (queue_entry *)v11; /*0x1ba559*/\n      *((_DWORD *)prev + 5) = v11; /*0x1ba55f*/\n    }\n    ++v8; /*0x1ba562*/\n  }\n  self->super.mixBuffer1 = (char *)IOMalloc(8 * page_size); /*0x1ba58f*/\n  self->super.mixBuffer2 = (char *)IOMalloc(4 * page_size); /*0x1ba5a5*/\n  return self; /*0x1ba5ad*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1b89b8",
+        "name": "-[AudioStream initChannel:tag:user:owner:type:]"
+      },
+      {
+        "addr": "0x206340",
+        "name": "sel_initChannel:tag:user:owner:type:",
+        "string": "initChannel:tag:user:owner:type:"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205e0c",
+        "name": "sel_dmaCount",
+        "string": "dmaCount"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba5b4",
+    "addr": "0x001ba5b4",
+    "code": "char __cdecl -[OutputStream playBuffer:size:tag:replyTo:replyMsgs:](\n        OutputStream *self,\n        SEL a2,\n        void *a3,\n        unsigned int a4,\n        int a5,\n        int a6,\n        unsigned int a7)\n{\n  unsigned int v7; // edi\n  unsigned int v8; // ebx\n  int v9; // eax\n  char v10; // al\n  int v11; // eax\n  $4BA88FAFA6E9A53AC825FB6F75E82BF2 *v13; // ebx\n  unsigned int v14; // eax\n  $BAB6C68F9D34F0972F921D3DB17D7446 *p_regionQueue; // edx\n  queue_entry *prev; // eax\n  id v17; // eax\n  int v18; // [esp+10h] [ebp-18h]\n  unsigned int v19; // [esp+18h] [ebp-10h]\n  int v20; // [esp+20h] [ebp-8h]\n  unsigned int v21; // [esp+24h] [ebp-4h] BYREF\n\n  v7 = a4; /*0x1ba5c3*/\n  v20 = IOConvertPort(a6, 2, 0); /*0x1ba5d3*/\n  if ( !self->super.dataFormat ) /*0x1ba5d9*/\n  {\n    if ( self->super.channelCount == 1 ) /*0x1ba5e3*/\n      v7 = a4 & 0xFFFFFFFE; /*0x1ba5e5*/\n    else\n      v7 = a4 & 0xFFFFFFFC; /*0x1ba5ec*/\n  }\n  v19 = (unsigned int)a3 & ~page_mask; /*0x1ba603*/\n  v8 = ((unsigned int)a3 + v7 - v19 + page_mask) & ~page_mask; /*0x1ba614*/\n  v18 = kern_serv_kernel_task_port(); /*0x1ba61b*/\n  v9 = task_self(); /*0x1ba627*/\n  if ( vm_protect_EXTERNAL(v9, v19, v8, 0, 1) )\n    IOLog(\"Audio: vm_protect returned %d\\n\");\n  if ( vm_allocate_EXTERNAL(v18, &v21, v8, 1) )\n  {\n    v10 = 0; /*0x1ba65e*/\n  }\n  else\n  {\n    if ( vm_write_EXTERNAL(v18, v21, v19, v8) )\n      IOLog(\"Audio: vm_write returned %d\\n\");\n    v11 = task_self(); /*0x1ba690*/\n    if ( vm_deallocate_EXTERNAL(v11, v19, v8) )\n      IOLog(\"Audio: vm_deallocate returned %d\\n\");\n    v21 += (unsigned int)a3 - v19; /*0x1ba6b3*/\n    v10 = 1; /*0x1ba6b6*/\n  }\n  if ( v10 )\n  {\n    v13 = -[AudioStream newRegion](self, sel_newRegion); /*0x1ba6f1*/\n    v14 = v21; /*0x1ba6f3*/\n    v13->var2 = v21; /*0x1ba6f6*/\n    v13->var0 = v14; /*0x1ba6f9*/\n    v13->var1 = v7 + v14; /*0x1ba6fd*/\n    v13->var4 = v7; /*0x1ba700*/\n    v13->var5 = a5; /*0x1ba706*/\n    v13->var7 = v20; /*0x1ba70c*/\n    v13->var6 = a7; /*0x1ba712*/\n    self->super.userReplyMessages = a7; /*0x1ba715*/\n    self->super.userReplyPort = v20; /*0x1ba71b*/\n    objc_msgSend(self->super.regionQueueLock, sel_lock); /*0x1ba729*/\n    p_regionQueue = &self->super.regionQueue; /*0x1ba731*/\n    if ( ($BAB6C68F9D34F0972F921D3DB17D7446 *)self->super.regionQueue.next == &self->super.regionQueue ) /*0x1ba737*/\n    {\n      self->super.regionQueue.next = (queue_entry *)v13; /*0x1ba6d4*/\n      self->super.regionQueue.prev = (queue_entry *)v13; /*0x1ba6d7*/\n      v13->var11.var0 = (queue_entry *)p_regionQueue; /*0x1ba6da*/\n      v13->var11.var1 = (queue_entry *)p_regionQueue; /*0x1ba6dd*/\n    }\n    else\n    {\n      prev = self->super.regionQueue.prev; /*0x1ba739*/\n      v13->var11.var1 = prev; /*0x1ba73c*/\n      v13->var11.var0 = (queue_entry *)p_regionQueue; /*0x1ba73f*/\n      self->super.regionQueue.prev = (queue_entry *)v13; /*0x1ba742*/\n      *((_DWORD *)prev + 15) = v13; /*0x1ba745*/\n    }\n    objc_msgSend(self->super.regionQueueLock, sel_unlock); /*0x1ba753*/\n    v17 = -[AudioStream channel](self, sel_channel); /*0x1ba760*/\n    objc_msgSend(self->super.device, sel__dataPendingForChannel_, v17); /*0x1ba771*/\n    return 1; /*0x1ba776*/\n  }\n  else\n  {\n    IOLog(\"Audio: playback request (%d bytes) too large\\n\");\n    return 0; /*0x1ba6ca*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1a9284",
+        "name": "_IOConvertPort"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d88d4",
+        "name": "aAudioVmProtect",
+        "string": "Audio: vm_protect returned %d\n"
+      },
+      {
+        "addr": "0x1d0dac",
+        "name": "_vm_protect_EXTERNAL"
+      },
+      {
+        "addr": "0x1d88f4",
+        "name": "aAudioVmWriteRe",
+        "string": "Audio: vm_write returned %d\n"
+      },
+      {
+        "addr": "0x1d0e8c",
+        "name": "_vm_write_EXTERNAL"
+      },
+      {
+        "addr": "0x1d8914",
+        "name": "aAudioVmDealloc_0",
+        "string": "Audio: vm_deallocate returned %d\n"
+      },
+      {
+        "addr": "0x1d0a40",
+        "name": "_vm_deallocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1d0cb8",
+        "name": "_vm_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1b9348",
+        "name": "-[AudioStream newRegion]"
+      },
+      {
+        "addr": "0x206470",
+        "name": "sel_newRegion",
+        "string": "newRegion"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1b8ac8",
+        "name": "-[AudioStream channel]"
+      },
+      {
+        "addr": "0x206008",
+        "name": "sel_channel",
+        "string": "channel"
+      },
+      {
+        "addr": "0x205d5c",
+        "name": "sel__dataPendingForChannel:",
+        "string": "_dataPendingForChannel:"
+      },
+      {
+        "addr": "0x1d8938",
+        "name": "aAudioPlaybackR",
+        "string": "Audio: playback request (%d bytes) too large\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001ba788",
+    "addr": "0x001ba788",
+    "code": "char __cdecl -[OutputStream canConvertRegion:rate:format:channelCount:](\n        OutputStream *self,\n        SEL a2,\n        $4BA88FAFA6E9A53AC825FB6F75E82BF2 *a3,\n        unsigned int a4,\n        int a5,\n        unsigned int a6)\n{\n  objc_super v7; // [esp+Ch] [ebp-8h] BYREF\n\n  v7.receiver = self; /*0x1ba7ab*/\n  v7.super_class = (Class)stru_1FA514.super_class; /*0x1ba7b4*/\n  return -[AudioStream canConvertRegion:rate:format:channelCount:]( /*0x1ba7fc*/\n           &v7,\n           sel_canConvertRegion_rate_format_channelCount_,\n           a3,\n           a4,\n           a5,\n           a6)\n      || a5 != 2\n      && a5 != 4\n      && (a4 == 22050 && self->super.samplingRate == 44100 || a4 == 44100 && self->super.samplingRate == 22050);\n}",
+    "refs": [
+      {
+        "addr": "0x1fa514",
+        "name": "stru_1FA514"
+      },
+      {
+        "addr": "0x1b8f30",
+        "name": "-[AudioStream canConvertRegion:rate:format:channelCount:]"
+      },
+      {
+        "addr": "0x2064c4",
+        "name": "sel_canConvertRegion:rate:format:channelCount:",
+        "string": "canConvertRegion:rate:format:channelCount:"
+      }
+    ]
+  }
+]

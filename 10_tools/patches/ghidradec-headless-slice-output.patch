@@ -1,0 +1,240 @@
+diff --git a/src/decompiler.cpp b/src/decompiler.cpp
+index 14deb7d..587ca4a 100644
+--- a/src/decompiler.cpp
++++ b/src/decompiler.cpp
+@@ -12,8 +12,9 @@
+ 
+ #define _CRT_SECURE_NO_WARNINGS
+ #include <algorithm>
+-#include <cctype>
+-#include <cstdint>
++#include <cctype>
++#include <cerrno>
++#include <cstdint>
+ #include <cstring>
+ #include <cstdlib>
+ #include <fstream>
+@@ -3655,8 +3656,12 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),
+ 				}
+ 			}
+ 		}
+-		if (di->decompiledFunction == nullptr) {
+-			std::map<ea_t, size_t> entries;
++		if (di->decompiledFunction == nullptr) {
++			qstring includeSkippedEnv;
++			const bool includeSkipped =
++				qgetenv("GHIDRADEC_BATCH_INCLUDE_SKIPPED", &includeSkippedEnv) &&
++				!includeSkippedEnv.empty() && std::string(includeSkippedEnv.c_str()) != "0";
++			std::map<ea_t, size_t> entries;
+ 			num = get_entry_qty();
+ 			int successes = 0, total = 0;
+ 			for (size_t i = 0; i < num; i++) {
+@@ -3673,7 +3678,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),
+ 						name = qs.c_str();
+ 					}
+ 					std::string reason;
+-					if (shouldSkipAllDecompilationFunction(this, f, name, reason)) {
++					if (shouldSkipAllDecompilationFunction(this, f, name, reason) && !includeSkipped) {
+ 						allFuncNames[ea] = name;
+ 						allFuncNoReturn[ea] = f != nullptr && !f->does_return();
+ 						TRACE_MSG("Skipping all-decompile entry function " << name.c_str() << " @ " << std::hex << ea << ": " << reason.c_str() << "\n");
+@@ -3693,7 +3698,7 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),
+ 				get_func_name(&qs, f->start_ea);
+ 				std::string name = qs.c_str();
+ 				std::string reason;
+-				if (shouldSkipAllDecompilationFunction(this, f, name, reason)) {
++				if (shouldSkipAllDecompilationFunction(this, f, name, reason) && !includeSkipped) {
+ 					allFuncNames[f->start_ea] = name;
+ 					allFuncNoReturn[f->start_ea] = f != nullptr && !f->does_return();
+ 					TRACE_MSG("Skipping all-decompile function " << name.c_str() << " @ " << std::hex << f->start_ea << ": " << reason.c_str() << "\n");
+@@ -3731,8 +3736,8 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),
+ 			}
+ 			TRACE_MSG((liveCallbacks ? "Prepared live-callback ranges for " : "Preloaded byte cache for ")
+ 				<< std::dec << allFuncRanges.size() << " all-decompile functions\n");
+-		} else {
+-			allFuncNames[di->decompiledFunction->start_ea] = getSymbolName(di->decompiledFunction->start_ea, "sub");
++		} else {
++			allFuncNames[di->decompiledFunction->start_ea] = getSymbolName(di->decompiledFunction->start_ea, "sub");
+ 			allFuncRanges[di->decompiledFunction->start_ea] = getFunctionRanges(di->decompiledFunction, "ram");
+ 			allFuncNoReturn[di->decompiledFunction->start_ea] = !di->decompiledFunction->does_return();
+ 			const bool liveCallbacks = liveCallbackRegressionMode();
+@@ -3746,9 +3751,43 @@ inf_is_64bit() ? 8 : 2, inf.cc.size_ldbl,                   ph.max_ptr_size(),
+ 				TRACE_MSG("Preloaded byte cache for " << std::dec << pages
+ 					<< " mapped segment pages for batch decompilation"
+ 					<< (limited ? " (limit reached)" : "") << "\n");
+-			}
+-		}
+-		if (!liveCallbackRegressionMode())
++			}
++		}
++		qstring batchFunctionStartsEnv;
++		if (qgetenv("GHIDRADEC_BATCH_FUNCTION_STARTS", &batchFunctionStartsEnv) && !batchFunctionStartsEnv.empty()) {
++			const std::string requestedText = batchFunctionStartsEnv.c_str();
++			std::set<ea_t> available(allFuncs.begin(), allFuncs.end());
++			std::set<ea_t> seen;
++			std::vector<ea_t> requested;
++			size_t position = 0;
++			while (position < requestedText.size()) {
++				size_t next = requestedText.find(',', position);
++				std::string token = requestedText.substr(position,
++					next == std::string::npos ? std::string::npos : next - position);
++				if (token.empty())
++					throw DecompError("GHIDRADEC_BATCH_FUNCTION_STARTS contains an empty address");
++				char* end = nullptr;
++				errno = 0;
++				unsigned long long parsed = strtoull(token.c_str(), &end, 0);
++				if (errno != 0 || end == token.c_str() || *end != '\0')
++					throw DecompError("GHIDRADEC_BATCH_FUNCTION_STARTS contains an invalid address: " + token);
++				ea_t start = (ea_t)parsed;
++				if ((unsigned long long)start != parsed || available.find(start) == available.end())
++					throw DecompError("GHIDRADEC_BATCH_FUNCTION_STARTS address is not an analyzed IDA function: " + token);
++				if (!seen.insert(start).second)
++					throw DecompError("GHIDRADEC_BATCH_FUNCTION_STARTS contains a duplicate address: " + token);
++				requested.push_back(start);
++				if (next == std::string::npos)
++					break;
++				position = next + 1;
++			}
++			if (requested.empty())
++				throw DecompError("GHIDRADEC_BATCH_FUNCTION_STARTS did not select any functions");
++			allFuncs.swap(requested);
++			TRACE_MSG("Restricted all-decompile run to " << std::dec << allFuncs.size()
++				<< " explicit IDA function start(s)\n");
++		}
++		if (!liveCallbackRegressionMode())
+ 			preloadBatchMappedSymbols();
+ 		else
+ 			TRACE_MSG("Skipping batch byte/symbol preloads for live-callback regression mode\n");
+@@ -4749,13 +4788,27 @@ static void idaapi localDecompilation(RdGlobalInfo *di)
+ 			di->idacb->updateDatabaseFromParams(notIded);
+ 			TRACE_MSG("all-decompile updateDatabaseFromParams complete\n");
+ 		}
+-		int successes = 0, total = 0;
+-		for (size_t i = startIndex; i < endIndex; i++) {
+-			if (di->idacb->imports.find(di->idacb->allFuncs[i]) != di->idacb->imports.end()) continue;
+-			std::string disp;
+-			total++;
+-			bool bSucc = false;
+-			code += tryDecomp(di, defaultDecMode, di->idacb->allFuncs[i], disp, bSucc, blockGraph);
++		int successes = 0, total = 0;
++		qstring batchFunctionMarkersEnv;
++		const bool batchFunctionMarkers =
++			qgetenv("GHIDRADEC_BATCH_FUNCTION_MARKERS", &batchFunctionMarkersEnv) &&
++			!batchFunctionMarkersEnv.empty() &&
++			std::string(batchFunctionMarkersEnv.c_str()) != "0";
++		for (size_t i = startIndex; i < endIndex; i++) {
++			std::string disp;
++			total++;
++			if (batchFunctionMarkers) {
++				code += "/* GHIDRADEC_FUNCTION index=" + std::to_string(i) +
++					" start=0x" + to_string((unsigned long long)di->idacb->allFuncs[i], std::hex) + " */\n";
++			}
++			if (di->idacb->imports.find(di->idacb->allFuncs[i]) != di->idacb->imports.end()) {
++				code += "//Skipped decompiling import function: " +
++					di->idacb->allFuncNames[di->idacb->allFuncs[i]] + " @ 0x" +
++					to_string((unsigned long long)di->idacb->allFuncs[i], std::hex) + "\n";
++				continue;
++			}
++			bool bSucc = false;
++			code += tryDecomp(di, defaultDecMode, di->idacb->allFuncs[i], disp, bSucc, blockGraph);
+ 			if (di->exiting) {
+ 				di->decompSuccess = false; return;
+ 			}
+diff --git a/src/idaplugin.cpp b/src/idaplugin.cpp
+index f66319e..da5c038 100644
+--- a/src/idaplugin.cpp
++++ b/src/idaplugin.cpp
+@@ -367,31 +367,32 @@ void GhidraDec::runSelectiveDecompilation(func_t *fnc2decomp, bool force)
+ /**
+  * Decompile everything, but do not show it in viewer, instead dump it into file.
+  */
+-void GhidraDec::runAllDecompilation()
+-{
+-	std::string defaultOut = decompInfo->inputPath + ".c";
+-	char* tmp;
+-	int iChoice;
+-	do {
+-		tmp = ask_file(                ///< Returns: file name
+-			true,                        ///< bool for_saving
+-			defaultOut.data(),           ///< const char *default_answer
+-			"%s",                        ///< const char *format
+-			"Save decompiled file"
+-		);
+-
+-		if (tmp == nullptr) ///< canceled
+-		{
+-			return;
+-		}
+-		struct stat st;
+-		if (stat(tmp, &st) == 0) {
+-			iChoice = ask_yn(ASKBTN_YES, "Overwrite existing file '%s'?", tmp);
+-			if (iChoice == ASKBTN_CANCEL) return;
+-		} else iChoice = ASKBTN_YES;
+-	} while (iChoice == ASKBTN_NO);
+-
+-	decompInfo->outputFile = tmp;
++void GhidraDec::runAllDecompilation()
++{
++	std::string defaultOut = decompInfo->inputPath + ".c";
++	qstring batchOutputEnv;
++	if (qgetenv("GHIDRADEC_BATCH_OUTPUT", &batchOutputEnv) && !batchOutputEnv.empty())
++	{
++		decompInfo->outputFile = batchOutputEnv.c_str();
++	}
++	else
++	{
++		char* tmp;
++		int iChoice;
++		do {
++			tmp = ask_file(true, defaultOut.data(), "%s", "Save decompiled file");
++			if (tmp == nullptr)
++			{
++				return;
++			}
++			struct stat st;
++			if (stat(tmp, &st) == 0) {
++				iChoice = ask_yn(ASKBTN_YES, "Overwrite existing file '%s'?", tmp);
++				if (iChoice == ASKBTN_CANCEL) return;
++			} else iChoice = ASKBTN_YES;
++		} while (iChoice == ASKBTN_NO);
++		decompInfo->outputFile = tmp;
++	}
+ 	decompInfo->ranges.clear();
+ 	decompInfo->decompiledFunction = nullptr;
+ 
+diff --git a/src/sleighinterface.cpp b/src/sleighinterface.cpp
+index e35e19a..edbba33 100644
+--- a/src/sleighinterface.cpp
++++ b/src/sleighinterface.cpp
+@@ -2394,7 +2394,30 @@ std::vector<uchar> DecompInterface::readResponse() {
+ 						callback->protocolRecorder("query(command_getmappedsymbols addr=\"" + addr.space +
+ 							":0x" + to_string(addr.offset, hex) + "\")", false);
+ 						MappedSymbolInfo msi = { KIND_HOLE };
+-						callback->getMappedSymbol(addr, msi);
++						const char* forceMappedSymbolHolesEnv =
++							std::getenv("GHIDRADEC_BATCH_FORCE_MAPPED_SYMBOL_HOLES");
++						const bool forceMappedSymbolHoles = forceMappedSymbolHolesEnv != nullptr &&
++							forceMappedSymbolHolesEnv[0] != '\0' &&
++							std::string(forceMappedSymbolHolesEnv) != "0";
++						if (!forceMappedSymbolHoles)
++							callback->getMappedSymbol(addr, msi);
++						const char* conservativeDataHolesEnv =
++							std::getenv("GHIDRADEC_BATCH_CONSERVATIVE_DATA_HOLES");
++						const bool conservativeDataHoles = conservativeDataHolesEnv != nullptr &&
++							conservativeDataHolesEnv[0] != '\0' &&
++							std::string(conservativeDataHolesEnv) != "0";
++						if (conservativeDataHoles && msi.kind == KIND_DATA) {
++							// Some IDA-derived data layouts cause the native Ghidra
++							// engine to terminate while ingesting a mapped-data symbol.
++							// In explicitly requested batch mode, reply with an ordinary
++							// mapped-memory hole instead.  This sacrifices inferred data
++							// typing but retains raw byte callbacks and avoids claiming a
++							// type that the bridge has not safely serialized.
++							msi = MappedSymbolInfo{ KIND_HOLE };
++							msi.readonly = false;
++							msi.volatil = false;
++							msi.size = 1;
++						}
+ 						callback->protocolRecorder("query(command_getmappedsymbols result kind=\"" +
+ 							mappedSymbolKindName(msi.kind) + "\" entry=\"0x" +
+ 							to_string(msi.entryPoint, hex) + "\" size=\"" +

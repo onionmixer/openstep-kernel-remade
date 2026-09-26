@@ -1,0 +1,2 @@
+0x001763b0	3	ADD ESP,0x4
+0x001763b3	3	MOV EDX,dword ptr [EBP + -0x1c]

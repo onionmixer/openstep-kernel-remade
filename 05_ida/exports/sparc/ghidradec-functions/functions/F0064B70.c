@@ -1,0 +1,69 @@
+
+/* WARNING: Removing unreachable block (ram,0xf0064bdc) */
+/* WARNING: Removing unreachable block (ram,0xf0064bbc) */
+/* WARNING: Removing unreachable block (ram,0xf0064be4) */
+/* WARNING: Removing unreachable block (ram,0xf0064b98) */
+
+undefined8 _exception_raise_continue_fast(undefined4 *param_1,int param_2)
+
+{
+  int iVar1;
+  int iVar2;
+  undefined *puVar3;
+  undefined4 unaff_l0;
+  undefined4 unaff_l1;
+  undefined4 unaff_l3;
+  undefined4 unaff_l4;
+  undefined4 unaff_l5;
+  undefined4 unaff_l6;
+  undefined4 unaff_l7;
+  undefined4 unaff_i0;
+  undefined4 unaff_i1;
+  undefined4 unaff_i2;
+  undefined4 unaff_i3;
+  undefined4 unaff_i4;
+  undefined4 unaff_i5;
+  undefined4 unaff_fp;
+  undefined4 unaff_i7;
+  bool in_DECOMPILE_MODE;
+  int in_CWP;
+  
+  iVar2 = _active_threads;
+  if (!in_DECOMPILE_MODE) {
+    *(undefined4 *)(in_CWP * 0x40 + 0x8000) = unaff_i0;
+    *(undefined4 *)((in_CWP * 0x10 + 1) * 4 + 0x8000) = unaff_i1;
+    *(undefined4 *)((in_CWP * 0x10 + 2) * 4 + 0x8000) = unaff_i2;
+    *(undefined4 *)((in_CWP * 0x10 + 3) * 4 + 0x8000) = unaff_i3;
+    *(undefined4 *)((in_CWP * 0x10 + 4) * 4 + 0x8000) = unaff_i4;
+    *(undefined4 *)((in_CWP * 0x10 + 5) * 4 + 0x8000) = unaff_i5;
+    *(undefined4 *)((in_CWP * 0x10 + 6) * 4 + 0x8000) = unaff_fp;
+    *(undefined4 *)((in_CWP * 0x10 + 7) * 4 + 0x8000) = unaff_i7;
+    *(undefined4 *)((in_CWP * 0x10 + 8) * 4 + 0x8000) = unaff_l0;
+    *(undefined4 *)((in_CWP * 0x10 + 9) * 4 + 0x8000) = unaff_l1;
+    *(undefined4 *)((in_CWP * 0x10 + 10) * 4 + 0x8000) = unaff_l3;
+    *(undefined4 *)((in_CWP * 0x10 + 0xb) * 4 + 0x8000) = unaff_l3;
+    *(undefined4 *)((in_CWP * 0x10 + 0xc) * 4 + 0x8000) = unaff_l4;
+    *(undefined4 *)((in_CWP * 0x10 + 0xd) * 4 + 0x8000) = unaff_l5;
+    *(undefined4 *)((in_CWP * 0x10 + 0xe) * 4 + 0x8000) = unaff_l6;
+    *(undefined4 *)((in_CWP * 0x10 + 0xf) * 4 + 0x8000) = unaff_l7;
+  }
+  puVar3 = DAT_f0134000;
+  param_1[8] = param_1[8] + -1;
+  param_1[1] = param_1[1] + -2;
+  *param_1 = 0;
+  iVar1 = param_2;
+  _exception_parse_reply();
+  if (iVar1 != 0) {
+    if (*(int *)(iVar2 + 200) != 0) {
+      _exception_try_task();
+    }
+    _exception_no_server();
+    return CONCAT44(param_2,param_1);
+  }
+  iVar2 = *(int *)(iVar2 + 0x38);
+  if (iVar2 != 0) {
+    _call_continuation();
+  }
+  _thread_exception_return();
+  return CONCAT44(puVar3,iVar2);
+}

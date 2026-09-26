@@ -1,0 +1,861 @@
+[
+  {
+    "requested_address": "0x0018060c",
+    "addr": "0x0018060c",
+    "code": "void __cdecl -[KernDevice _detachInterruptSources](KernDevice *self, SEL a2)\n{\n  id interrupts; // eax\n  id v3; // eax\n\n  interrupts = self->_interrupts; /*0x180613*/\n  if ( interrupts ) /*0x180618*/\n  {\n    v3 = objc_msgSend(interrupts, sel_freeObjects); /*0x180629*/\n    objc_msgSend(v3, sel_free); /*0x180632*/\n    self->_interrupts = nullptr; /*0x180637*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20225c",
+        "name": "sel_freeObjects",
+        "string": "freeObjects"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180648",
+    "addr": "0x00180648",
+    "code": "KernDeviceInterrupt *__cdecl -[KernDeviceInterrupt initWithInterruptPort:](KernDeviceInterrupt *self, SEL a2, void *a3)\n{\n  KernLock *v3; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  v5.receiver = self; /*0x18065d*/\n  v5.super_class = (Class)stru_1F9F74.super_class; /*0x180666*/\n  -[Object init](&v5, sel_init); /*0x18066d*/\n  v3 = +[Object alloc](aKernlock, sel_alloc); /*0x180689*/\n  self->_lock = -[KernLock initWithLevel:](v3, sel_initWithLevel_); /*0x180697*/\n  self->_ipcMessage = sub_17FFD8((int)a3); /*0x1806a0*/\n  return self; /*0x1806a8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9f74",
+        "name": "stru_1F9F74"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fdfd6",
+        "name": "aKernlock",
+        "string": "KernLock"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x17e764",
+        "name": "-[KernLock initWithLevel:]"
+      },
+      {
+        "addr": "0x201a2c",
+        "name": "sel_initWithLevel:",
+        "string": "initWithLevel:"
+      },
+      {
+        "addr": "0x17ffd8",
+        "name": "sub_17FFD8"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001806b0",
+    "addr": "0x001806b0",
+    "code": "id __cdecl -[KernDeviceInterrupt free](KernDeviceInterrupt *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  -[KernDeviceInterrupt detach](self, sel_detach); /*0x1806c2*/\n  objc_msgSend(self->_lock, sel_free); /*0x1806d2*/\n  sub_180078((int)self->_ipcMessage); /*0x1806db*/\n  v3.receiver = self; /*0x1806e7*/\n  v3.super_class = (Class)stru_1F9F74.super_class; /*0x1806f0*/\n  return -[Object free](&v3, sel_free); /*0x1806fc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1808ec",
+        "name": "-[KernDeviceInterrupt detach]"
+      },
+      {
+        "addr": "0x202100",
+        "name": "sel_detach",
+        "string": "detach"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x180078",
+        "name": "sub_180078"
+      },
+      {
+        "addr": "0x1f9f74",
+        "name": "stru_1F9F74"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180704",
+    "addr": "0x00180704",
+    "code": "id __cdecl -[KernDeviceInterrupt attachToBusInterrupt:withArgument:](\n        KernDeviceInterrupt *self,\n        SEL a2,\n        id a3,\n        void *a4)\n{\n  objc_msgSend(self->_lock, sel_acquire); /*0x18071a*/\n  if ( self->_busInterrupt ) /*0x180722*/\n  {\n    objc_msgSend(self->_lock, sel_release); /*0x180733*/\n    return nullptr; /*0x180738*/\n  }\n  else\n  {\n    self->_busInterrupt = a3; /*0x180740*/\n    objc_msgSend(self->_lock, sel_release); /*0x18074e*/\n    objc_msgSend(a3, sel_suspend); /*0x18075b*/\n    if ( objc_msgSend(a3, sel_attachDeviceInterrupt_, self) ) /*0x180769*/\n    {\n      objc_msgSend(self->_lock, sel_acquire); /*0x1807bb*/\n      self->_handler = IOSendInterrupt; /*0x1807c0*/\n      self->_handlerArgument = a4; /*0x1807ca*/\n      objc_msgSend(self->_lock, sel_release); /*0x1807d8*/\n      objc_msgSend(a3, sel_resume); /*0x1807e5*/\n      return self; /*0x1807ea*/\n    }\n    else\n    {\n      objc_msgSend(a3, sel_resume); /*0x18077d*/\n      objc_msgSend(self->_lock, sel_acquire); /*0x18078d*/\n      self->_busInterrupt = nullptr; /*0x180792*/\n      objc_msgSend(self->_lock, sel_release); /*0x1807a4*/\n      return nullptr; /*0x1807a9*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x202000",
+        "name": "sel_suspend",
+        "string": "suspend"
+      },
+      {
+        "addr": "0x18024c",
+        "name": "_IOSendInterrupt"
+      },
+      {
+        "addr": "0x201ff8",
+        "name": "sel_resume",
+        "string": "resume"
+      },
+      {
+        "addr": "0x202040",
+        "name": "sel_attachDeviceInterrupt:",
+        "string": "attachDeviceInterrupt:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001807f8",
+    "addr": "0x001807f8",
+    "code": "id __cdecl -[KernDeviceInterrupt attachToBusInterrupt:withSpecialHandler:argument:atLevel:](\n        KernDeviceInterrupt *self,\n        SEL a2,\n        id a3,\n        void *a4,\n        void *a5,\n        int a6)\n{\n  objc_msgSend(self->_lock, sel_acquire); /*0x18080e*/\n  if ( self->_busInterrupt ) /*0x180816*/\n  {\n    objc_msgSend(self->_lock, sel_release); /*0x180827*/\n    return nullptr; /*0x18082c*/\n  }\n  else\n  {\n    self->_busInterrupt = a3; /*0x180834*/\n    objc_msgSend(self->_lock, sel_release); /*0x180842*/\n    objc_msgSend(a3, sel_suspend); /*0x18084f*/\n    if ( objc_msgSend(self->_busInterrupt, sel_attachDeviceInterrupt_atLevel_, self, a6) ) /*0x180864*/\n    {\n      objc_msgSend(self->_lock, sel_acquire); /*0x1808b3*/\n      self->_handler = a4; /*0x1808bb*/\n      self->_handlerArgument = a5; /*0x1808c1*/\n      objc_msgSend(self->_lock, sel_release); /*0x1808cf*/\n      objc_msgSend(a3, sel_resume); /*0x1808dc*/\n      return self; /*0x1808e1*/\n    }\n    else\n    {\n      objc_msgSend(a3, sel_resume); /*0x180878*/\n      objc_msgSend(self->_lock, sel_acquire); /*0x180888*/\n      self->_busInterrupt = nullptr; /*0x18088d*/\n      objc_msgSend(self->_lock, sel_release); /*0x18089f*/\n      return nullptr; /*0x1808a4*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x202000",
+        "name": "sel_suspend",
+        "string": "suspend"
+      },
+      {
+        "addr": "0x201ff8",
+        "name": "sel_resume",
+        "string": "resume"
+      },
+      {
+        "addr": "0x202020",
+        "name": "sel_attachDeviceInterrupt:atLevel:",
+        "string": "attachDeviceInterrupt:atLevel:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001808ec",
+    "addr": "0x001808ec",
+    "code": "id __cdecl -[KernDeviceInterrupt detach](KernDeviceInterrupt *self, SEL a2)\n{\n  id busInterrupt; // edi\n  char isSuspended; // bl\n\n  objc_msgSend(self->_lock, sel_acquire); /*0x180900*/\n  busInterrupt = self->_busInterrupt; /*0x180908*/\n  if ( busInterrupt ) /*0x18090d*/\n  {\n    self->_busInterrupt = nullptr; /*0x180924*/\n    isSuspended = self->_isSuspended; /*0x18092b*/\n    self->_isSuspended = 0; /*0x18092e*/\n    objc_msgSend(self->_lock, sel_release); /*0x18093d*/\n    if ( !isSuspended ) /*0x180947*/\n      objc_msgSend(busInterrupt, sel_suspend); /*0x180951*/\n    objc_msgSend(busInterrupt, sel_detachDeviceInterrupt_, self); /*0x180962*/\n    objc_msgSend(busInterrupt, sel_resume); /*0x18096f*/\n    return self; /*0x180974*/\n  }\n  else\n  {\n    objc_msgSend(self->_lock, sel_release); /*0x18091a*/\n    return nullptr; /*0x18091f*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x202000",
+        "name": "sel_suspend",
+        "string": "suspend"
+      },
+      {
+        "addr": "0x202008",
+        "name": "sel_detachDeviceInterrupt:",
+        "string": "detachDeviceInterrupt:"
+      },
+      {
+        "addr": "0x201ff8",
+        "name": "sel_resume",
+        "string": "resume"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180980",
+    "addr": "0x00180980",
+    "code": "id __cdecl -[KernDeviceInterrupt suspend](KernDeviceInterrupt *self, SEL a2)\n{\n  id busInterrupt; // edi\n  char isSuspended; // bl\n\n  objc_msgSend(self->_lock, sel_acquire); /*0x180994*/\n  busInterrupt = self->_busInterrupt; /*0x18099c*/\n  if ( busInterrupt ) /*0x1809a1*/\n  {\n    isSuspended = self->_isSuspended; /*0x1809b8*/\n    self->_isSuspended = 1; /*0x1809bb*/\n    objc_msgSend(self->_lock, sel_release); /*0x1809ca*/\n    if ( !isSuspended ) /*0x1809d4*/\n      objc_msgSend(busInterrupt, sel_suspend); /*0x1809de*/\n    return self; /*0x1809e3*/\n  }\n  else\n  {\n    objc_msgSend(self->_lock, sel_release); /*0x1809ae*/\n    return nullptr; /*0x1809b3*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x202000",
+        "name": "sel_suspend",
+        "string": "suspend"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001809f0",
+    "addr": "0x001809f0",
+    "code": "id __cdecl -[KernDeviceInterrupt resume](KernDeviceInterrupt *self, SEL a2)\n{\n  id busInterrupt; // edi\n  char isSuspended; // bl\n\n  objc_msgSend(self->_lock, sel_acquire); /*0x180a04*/\n  busInterrupt = self->_busInterrupt; /*0x180a0c*/\n  if ( busInterrupt ) /*0x180a11*/\n  {\n    isSuspended = self->_isSuspended; /*0x180a28*/\n    self->_isSuspended = 0; /*0x180a2b*/\n    objc_msgSend(self->_lock, sel_release); /*0x180a3a*/\n    if ( isSuspended ) /*0x180a44*/\n      objc_msgSend(busInterrupt, sel_resume); /*0x180a4e*/\n    return self; /*0x180a53*/\n  }\n  else\n  {\n    objc_msgSend(self->_lock, sel_release); /*0x180a1e*/\n    return nullptr; /*0x180a23*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201a14",
+        "name": "sel_acquire",
+        "string": "acquire"
+      },
+      {
+        "addr": "0x201a0c",
+        "name": "sel_release",
+        "string": "release"
+      },
+      {
+        "addr": "0x201ff8",
+        "name": "sel_resume",
+        "string": "resume"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180a60",
+    "addr": "0x00180a60",
+    "code": "id __cdecl -[KernDeviceDescription allocateItems:numItems:forKey:](\n        KernDeviceDescription *self,\n        SEL a2,\n        unsigned int *a3,\n        unsigned int a4,\n        const char *a5)\n{\n  List *v5; // eax\n  List *v6; // eax\n  unsigned int i; // edi\n  unsigned int j; // esi\n  id v9; // ebx\n  id v10; // eax\n  id v11; // eax\n  id v12; // ebx\n  unsigned int k; // edi\n  id v14; // ebx\n  id v16; // eax\n  id v18; // [esp+10h] [ebp-14h]\n  unsigned __int8 v19; // [esp+14h] [ebp-10h]\n  List *v20; // [esp+18h] [ebp-Ch]\n  List *v21; // [esp+1Ch] [ebp-8h]\n  id v22; // [esp+20h] [ebp-4h]\n\n  v19 = -[KernDeviceDescription _isShared:](self, sel__isShared_, a5); /*0x180a7d*/\n  v22 = -[KernDeviceDescription resourcesForKey:](self, sel_resourcesForKey_, a5); /*0x180a94*/\n  v5 = +[Object alloc](aList, sel_alloc); /*0x180aac*/\n  v21 = -[List init](v5, sel_init); /*0x180aba*/\n  v6 = +[Object alloc](aList, sel_alloc); /*0x180ad5*/\n  v20 = -[List init](v6, sel_init); /*0x180ae3*/\n  for ( i = 0; a4 > i; ++i )\n  {\n    v18 = (id)*a3; /*0x180b01*/\n    for ( j = 0; j < (unsigned int)objc_msgSend(v22, sel_count); ++j ) /*0x180b04*/\n    {\n      v9 = objc_msgSend(v22, sel_objectAt_, j); /*0x180b3a*/\n      if ( v18 == objc_msgSend(v9, sel_item) ) /*0x180b48*/\n        goto LABEL_7; /*0x180b48*/\n    }\n    v9 = nullptr; /*0x180b50*/\nLABEL_7:\n    if ( v9 )\n    {\n      -[List addObject:](v21, sel_addObject_, v9); /*0x180b62*/\n    }\n    else\n    {\n      v10 = objc_msgSend(self->_bus, sel__lookupResourceWithKey_, a5); /*0x180b7e*/\n      if ( !v10\n        || (!v19 ? (v11 = objc_msgSend(v10, sel_reserveItem_, *a3)) : (v11 = objc_msgSend(v10, sel_shareItem_, *a3)),\n            (v12 = v11) == nullptr) )\n      {\n        v16 = -[List freeObjects](v20, sel_freeObjects); /*0x180ca6*/\n        objc_msgSend(v16, sel_free); /*0x180caf*/\n        -[List free](v21, sel_free); /*0x180cbf*/\n        return nullptr; /*0x180cc4*/\n      }\n      -[List addObject:](v20, sel_addObject_, v11); /*0x180bd0*/\n      -[List addObject:](v21, sel_addObject_, v12); /*0x180be1*/\n    }\n    ++a3; /*0x180be9*/\n  }\n  for ( k = 0; k < (unsigned int)objc_msgSend(v22, sel_count); ++k ) /*0x180bf7*/\n  {\n    v14 = objc_msgSend(v22, sel_objectAt_, k); /*0x180c24*/\n    if ( -[List indexOf:](v21, sel_indexOf_, v14) == -1 ) /*0x180c3d*/\n      objc_msgSend(v14, sel_free); /*0x180c47*/\n  }\n  objc_msgSend(v22, sel_empty); /*0x180c5f*/\n  -[KernDeviceDescription setResources:forKey:](self, sel_setResources_forKey_, v21, a5); /*0x180c77*/\n  -[List free](v20, sel_free); /*0x180c87*/\n  return self; /*0x180cc9*/\n}",
+    "refs": [
+      {
+        "addr": "0x181730",
+        "name": "-[KernDeviceDescription _isShared:]"
+      },
+      {
+        "addr": "0x2022a8",
+        "name": "sel__isShared:",
+        "string": "_isShared:"
+      },
+      {
+        "addr": "0x1813c0",
+        "name": "-[KernDeviceDescription resourcesForKey:]"
+      },
+      {
+        "addr": "0x20240c",
+        "name": "sel_resourcesForKey:",
+        "string": "resourcesForKey:"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9604",
+        "name": "-[List init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x201d80",
+        "name": "sel_item",
+        "string": "item"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x1c9914",
+        "name": "-[List addObject:]"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x201b7c",
+        "name": "sel__lookupResourceWithKey:",
+        "string": "_lookupResourceWithKey:"
+      },
+      {
+        "addr": "0x1c9658",
+        "name": "-[List freeObjects]"
+      },
+      {
+        "addr": "0x20225c",
+        "name": "sel_freeObjects",
+        "string": "freeObjects"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1c9620",
+        "name": "-[List free]"
+      },
+      {
+        "addr": "0x201df0",
+        "name": "sel_reserveItem:",
+        "string": "reserveItem:"
+      },
+      {
+        "addr": "0x201de4",
+        "name": "sel_shareItem:",
+        "string": "shareItem:"
+      },
+      {
+        "addr": "0x1c979c",
+        "name": "-[List indexOf:]"
+      },
+      {
+        "addr": "0x202084",
+        "name": "sel_indexOf:",
+        "string": "indexOf:"
+      },
+      {
+        "addr": "0x2024b4",
+        "name": "sel_empty",
+        "string": "empty"
+      },
+      {
+        "addr": "0x181458",
+        "name": "-[KernDeviceDescription setResources:forKey:]"
+      },
+      {
+        "addr": "0x2023e0",
+        "name": "sel_setResources:forKey:",
+        "string": "setResources:forKey:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180cd0",
+    "addr": "0x00180cd0",
+    "code": "id __cdecl -[KernDeviceDescription allocateRanges:numRanges:forKey:](\n        KernDeviceDescription *self,\n        SEL a2,\n        $85CD2974BE96D4886BB301820D1C36C2 *a3,\n        unsigned int a4,\n        const char *a5)\n{\n  List *v5; // eax\n  List *v6; // eax\n  unsigned int i; // edi\n  id v8; // ebx\n  int v9; // edx\n  id v10; // eax\n  id v11; // eax\n  id v12; // ebx\n  unsigned int k; // edi\n  id v14; // ebx\n  id v16; // eax\n  unsigned int j; // [esp+Ch] [ebp-1Ch]\n  unsigned __int8 v19; // [esp+18h] [ebp-10h]\n  List *v20; // [esp+1Ch] [ebp-Ch]\n  List *v21; // [esp+20h] [ebp-8h]\n  id v22; // [esp+24h] [ebp-4h]\n  $85CD2974BE96D4886BB301820D1C36C2 v23; // 0:^34.8\n\n  v19 = -[KernDeviceDescription _isShared:](self, sel__isShared_, a5); /*0x180ced*/\n  v22 = -[KernDeviceDescription resourcesForKey:](self, sel_resourcesForKey_, a5); /*0x180d04*/\n  v5 = +[Object alloc](aList, sel_alloc); /*0x180d1c*/\n  v21 = -[List init](v5, sel_init); /*0x180d2a*/\n  v6 = +[Object alloc](aList, sel_alloc); /*0x180d45*/\n  v20 = -[List init](v6, sel_init); /*0x180d53*/\n  for ( i = 0; a4 > i; ++i )\n  {\n    v23 = a3[i]; /*0x180d6a*/\n    for ( j = 0; j < (unsigned int)objc_msgSend(v22, sel_count); ++j ) /*0x180d74*/\n    {\n      v8 = objc_msgSend(v22, sel_objectAt_, j); /*0x180da8*/\n      if ( (id)v23.var0 == objc_msgSend(v8, sel_range) && v23.var1 == v9 ) /*0x180dc2*/\n        goto LABEL_8; /*0x180dc2*/\n    }\n    v8 = nullptr; /*0x180dcc*/\nLABEL_8:\n    if ( v8 )\n    {\n      -[List addObject:](v21, sel_addObject_, v8); /*0x180dde*/\n    }\n    else\n    {\n      v10 = objc_msgSend(self->_bus, sel__lookupResourceWithKey_, a5); /*0x180dfa*/\n      if ( !v10\n        || (!v19\n          ? (v11 = objc_msgSend(v10, sel_reserveRange_, v23.var0, v23.var1))\n          : (v11 = objc_msgSend(v10, sel_shareRange_, v23.var0, v23.var1)),\n            (v12 = v11) == nullptr) )\n      {\n        v16 = -[List freeObjects](v20, sel_freeObjects); /*0x180f1e*/\n        objc_msgSend(v16, sel_free); /*0x180f27*/\n        -[List free](v21, sel_free); /*0x180f37*/\n        return nullptr; /*0x180f3c*/\n      }\n      -[List addObject:](v20, sel_addObject_, v11); /*0x180e4c*/\n      -[List addObject:](v21, sel_addObject_, v12); /*0x180e5d*/\n    }\n  }\n  for ( k = 0; k < (unsigned int)objc_msgSend(v22, sel_count); ++k ) /*0x180e6f*/\n  {\n    v14 = objc_msgSend(v22, sel_objectAt_, k); /*0x180e9c*/\n    if ( -[List indexOf:](v21, sel_indexOf_, v14) == -1 ) /*0x180eb5*/\n      objc_msgSend(v14, sel_free); /*0x180ebf*/\n  }\n  objc_msgSend(v22, sel_empty); /*0x180ed7*/\n  -[KernDeviceDescription setResources:forKey:](self, sel_setResources_forKey_, v21, a5); /*0x180eef*/\n  -[List free](v20, sel_free); /*0x180eff*/\n  return self; /*0x180f41*/\n}",
+    "refs": [
+      {
+        "addr": "0x181730",
+        "name": "-[KernDeviceDescription _isShared:]"
+      },
+      {
+        "addr": "0x2022a8",
+        "name": "sel__isShared:",
+        "string": "_isShared:"
+      },
+      {
+        "addr": "0x1813c0",
+        "name": "-[KernDeviceDescription resourcesForKey:]"
+      },
+      {
+        "addr": "0x20240c",
+        "name": "sel_resourcesForKey:",
+        "string": "resourcesForKey:"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c9604",
+        "name": "-[List init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202250",
+        "name": "sel_objectAt:",
+        "string": "objectAt:"
+      },
+      {
+        "addr": "0x201cac",
+        "name": "sel_range",
+        "string": "range"
+      },
+      {
+        "addr": "0x20223c",
+        "name": "sel_count",
+        "string": "count"
+      },
+      {
+        "addr": "0x1c9914",
+        "name": "-[List addObject:]"
+      },
+      {
+        "addr": "0x202090",
+        "name": "sel_addObject:",
+        "string": "addObject:"
+      },
+      {
+        "addr": "0x201b7c",
+        "name": "sel__lookupResourceWithKey:",
+        "string": "_lookupResourceWithKey:"
+      },
+      {
+        "addr": "0x1c9658",
+        "name": "-[List freeObjects]"
+      },
+      {
+        "addr": "0x20225c",
+        "name": "sel_freeObjects",
+        "string": "freeObjects"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1c9620",
+        "name": "-[List free]"
+      },
+      {
+        "addr": "0x201d4c",
+        "name": "sel_reserveRange:",
+        "string": "reserveRange:"
+      },
+      {
+        "addr": "0x201d40",
+        "name": "sel_shareRange:",
+        "string": "shareRange:"
+      },
+      {
+        "addr": "0x1c979c",
+        "name": "-[List indexOf:]"
+      },
+      {
+        "addr": "0x202084",
+        "name": "sel_indexOf:",
+        "string": "indexOf:"
+      },
+      {
+        "addr": "0x2024b4",
+        "name": "sel_empty",
+        "string": "empty"
+      },
+      {
+        "addr": "0x181458",
+        "name": "-[KernDeviceDescription setResources:forKey:]"
+      },
+      {
+        "addr": "0x2023e0",
+        "name": "sel_setResources:forKey:",
+        "string": "setResources:forKey:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00180f48",
+    "addr": "0x00180f48",
+    "code": "_BOOL4 __cdecl sub_180F48(_BYTE *a1, _DWORD *a2, unsigned int *a3)\n{\n  _BYTE *v3; // edi\n  int v4; // ecx\n  int v5; // ebx\n  unsigned int v6; // esi\n  signed int v7; // ecx\n  int v8; // ebx\n  signed int v9; // eax\n  _BYTE *v10; // eax\n  unsigned int v12; // [esp+10h] [ebp-14h]\n  int v13; // [esp+18h] [ebp-Ch]\n  int v14; // [esp+1Ch] [ebp-8h]\n  unsigned int v15; // [esp+20h] [ebp-4h]\n\n  v3 = a1; /*0x180f51*/\n  v14 = 0; /*0x180f54*/\n  v12 = 0; /*0x180f5b*/\n  do /*0x180f86*/\n  {\n    v4 = (char)*v3++; /*0x180f64*/\n    v5 = 0; /*0x180f6b*/\n    if ( (_BYTE)v4 == 32 || (unsigned __int8)(v4 - 9) <= 1u ) /*0x180f78*/\n      v5 = 1; /*0x180f7f*/\n  }\n  while ( v5 ); /*0x180f86*/\n  if ( v4 == 45 ) /*0x180f8b*/\n  {\n    v14 = 1; /*0x180f8d*/\n  }\n  else if ( v4 != 43 ) /*0x180f9b*/\n  {\n    goto LABEL_10; /*0x180f9b*/\n  }\n  v4 = (char)*v3++; /*0x180f9d*/\nLABEL_10:\n  if ( v4 == 48 && (*v3 == 120 || *v3 == 88) ) /*0x180fae*/\n  {\n    v4 = (char)v3[1]; /*0x180fb0*/\n    v3 += 2; /*0x180fb4*/\n    v12 = 16; /*0x180fb7*/\n  }\n  if ( !v12 ) /*0x180fc2*/\n  {\n    v12 = 10; /*0x180fc4*/\n    if ( v4 == 48 ) /*0x180fce*/\n      v12 = 8; /*0x180fd0*/\n  }\n  v15 = 0xFFFFFFFF / v12; /*0x180fe4*/\n  v6 = 0; /*0x180fe7*/\n  v13 = 0; /*0x180fe9*/\n  while ( 1 ) /*0x180ff0*/\n  {\n    if ( (unsigned __int8)(v4 - 48) <= 9u ) /*0x180ff9*/\n    {\n      v7 = v4 - 48; /*0x180ffb*/\n      goto LABEL_28; /*0x180ffe*/\n    }\n    v8 = 0; /*0x181000*/\n    if ( (unsigned __int8)(v4 - 65) <= 0x19u || (unsigned __int8)(v4 - 97) <= 0x19u ) /*0x181012*/\n      v8 = 1; /*0x181014*/\n    if ( !v8 ) /*0x18101b*/\n      break; /*0x18101b*/\n    if ( (unsigned __int8)(v4 - 65) > 0x19u ) /*0x181023*/\n      v9 = v4 - 87; /*0x18102c*/\n    else\n      v9 = v4 - 55; /*0x181025*/\n    v7 = v9; /*0x18102f*/\nLABEL_28:\n    if ( (int)v12 <= v7 ) /*0x181034*/\n      break; /*0x181034*/\n    if ( v13 < 0 || v15 < v6 || v15 == v6 && (int)(0xFFFFFFFF % v12) < v7 ) /*0x181046*/\n    {\n      v13 = -1; /*0x181048*/\n    }\n    else\n    {\n      v13 = 1; /*0x181054*/\n      v6 = v7 + v12 * v6; /*0x18105f*/\n    }\n    v4 = (char)*v3++; /*0x181061*/\n  }\n  if ( v13 >= 0 ) /*0x18106c*/\n  {\n    if ( v14 ) /*0x18107c*/\n      v6 = -v6; /*0x18107e*/\n  }\n  else\n  {\n    v6 = -1; /*0x18106e*/\n  }\n  if ( a2 ) /*0x181084*/\n  {\n    v10 = a1; /*0x181086*/\n    if ( v13 ) /*0x18108d*/\n      v10 = v3 - 1; /*0x18108f*/\n    *a2 = v10; /*0x181095*/\n  }\n  if ( a3 ) /*0x18109b*/\n    *a3 = v6; /*0x1810a0*/\n  return v13 > 0; /*0x1810b1*/\n}"
+  },
+  {
+    "requested_address": "0x001810b8",
+    "addr": "0x001810b8",
+    "code": "id __cdecl -[KernDeviceDescription initFromConfigTable:](KernDeviceDescription *self, SEL a2, id a3)\n{\n  HashTable *v3; // eax\n  HashTable *v4; // eax\n  List *v5; // eax\n  id v6; // edi\n  _BYTE *v7; // ebx\n  int v9; // [esp+Ch] [ebp-Ch] BYREF\n  objc_super v10; // [esp+10h] [ebp-8h] BYREF\n\n  v10.receiver = self; /*0x1810ce*/\n  v10.super_class = (Class)stru_1F9FC4.super_class; /*0x1810d7*/\n  -[Object init](&v10, sel_init); /*0x1810de*/\n  self->_configTable = a3; /*0x1810e3*/\n  self->_device = nullptr; /*0x1810e6*/\n  v3 = +[Object alloc](aHashtable, sel_alloc); /*0x18110c*/\n  self->_stringTable = -[HashTable initKeyDesc:valueDesc:](v3, sel_initKeyDesc_valueDesc_); /*0x18111a*/\n  v4 = +[Object alloc](aHashtable, sel_alloc); /*0x18113c*/\n  self->_resourceTable = -[HashTable initKeyDesc:valueDesc:](v4, sel_initKeyDesc_valueDesc_); /*0x18114a*/\n  v5 = +[Object alloc](aList, sel_alloc); /*0x181165*/\n  self->_interruptList = -[List init](v5, sel_init); /*0x181173*/\n  v6 = objc_msgSend(self->_configTable, sel_valueForStringKey_, aBusType); /*0x18118b*/\n  self->_busClass = +[KernBus lookupBusClassWithName:](aKernbus, sel_lookupBusClassWithName_, v6); /*0x1811a1*/\n  v7 = objc_msgSend(self->_configTable, sel_valueForStringKey_, aBusId); /*0x1811bc*/\n  if ( v7 && sub_180F48(v7, nullptr, (unsigned int *)&v9) ) /*0x1811cc*/\n    self->_busId = v9; /*0x1811db*/\n  self->_bus = +[KernBus lookupBusInstanceWithName:busId:]( /*0x1811f6*/\n                 aKernbus,\n                 sel_lookupBusInstanceWithName_busId_,\n                 v6,\n                 self->_busId);\n  if ( v7 ) /*0x1811fe*/\n    objc_msgSend(self->_configTable, sel_freeString_, v7); /*0x18120c*/\n  if ( v6 ) /*0x181216*/\n    objc_msgSend(self->_configTable, sel_freeString_, v6); /*0x181224*/\n  return self; /*0x18122e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f9fc4",
+        "name": "stru_1F9FC4"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1fe0c9",
+        "name": "aHashtable",
+        "string": "HashTable"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1c8b28",
+        "name": "-[HashTable initKeyDesc:valueDesc:]"
+      },
+      {
+        "addr": "0x202468",
+        "name": "sel_initKeyDesc:valueDesc:",
+        "string": "initKeyDesc:valueDesc:"
+      },
+      {
+        "addr": "0x1fe1b2",
+        "name": "aList",
+        "string": "List"
+      },
+      {
+        "addr": "0x1c9604",
+        "name": "-[List init]"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1e0ffb",
+        "name": "aBusType",
+        "string": "Bus Type"
+      },
+      {
+        "addr": "0x17f488",
+        "name": "+[KernBus lookupBusClassWithName:]"
+      },
+      {
+        "addr": "0x1fe02d",
+        "name": "aKernbus",
+        "string": "KernBus"
+      },
+      {
+        "addr": "0x201afc",
+        "name": "sel_lookupBusClassWithName:",
+        "string": "lookupBusClassWithName:"
+      },
+      {
+        "addr": "0x1e1004",
+        "name": "aBusId",
+        "string": "Bus ID"
+      },
+      {
+        "addr": "0x180f48",
+        "name": "sub_180F48"
+      },
+      {
+        "addr": "0x17f4a8",
+        "name": "+[KernBus lookupBusInstanceWithName:busId:]"
+      },
+      {
+        "addr": "0x201ad8",
+        "name": "sel_lookupBusInstanceWithName:busId:",
+        "string": "lookupBusInstanceWithName:busId:"
+      },
+      {
+        "addr": "0x202494",
+        "name": "sel_freeString:",
+        "string": "freeString:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00181238",
+    "addr": "0x00181238",
+    "code": "KernDeviceDescription *__cdecl -[KernDeviceDescription init](KernDeviceDescription *self, SEL a2)\n{\n  return (KernDeviceDescription *)-[KernDeviceDescription initFromConfigTable:](self, sel_initFromConfigTable_, 0); /*0x18124f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1810b8",
+        "name": "-[KernDeviceDescription initFromConfigTable:]"
+      },
+      {
+        "addr": "0x201e90",
+        "name": "sel_initFromConfigTable:",
+        "string": "initFromConfigTable:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00181254",
+    "addr": "0x00181254",
+    "code": "id __cdecl -[KernDeviceDescription free](KernDeviceDescription *self, SEL a2)\n{\n  objc_super v3; // [esp+4h] [ebp-8h] BYREF\n\n  objc_msgSend(self->_stringTable, sel_freeKeys_values_, sub_181A08, sub_181A10); /*0x181273*/\n  objc_msgSend(self->_stringTable, sel_free); /*0x181283*/\n  objc_msgSend(self->_resourceTable, sel_freeKeys_values_, sub_181A08, sub_181A38); /*0x18129d*/\n  objc_msgSend(self->_resourceTable, sel_free); /*0x1812b0*/\n  objc_msgSend(self->_interruptList, sel_free); /*0x1812c0*/\n  v3.receiver = self; /*0x1812cc*/\n  v3.super_class = (Class)stru_1F9FC4.super_class; /*0x1812d5*/\n  return -[Object free](&v3, sel_free); /*0x1812e1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2024a0",
+        "name": "sel_freeKeys:values:",
+        "string": "freeKeys:values:"
+      },
+      {
+        "addr": "0x181a08",
+        "name": "sub_181A08"
+      },
+      {
+        "addr": "0x181a10",
+        "name": "sub_181A10"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x181a38",
+        "name": "sub_181A38"
+      },
+      {
+        "addr": "0x1f9fc4",
+        "name": "stru_1F9FC4"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001812e8",
+    "addr": "0x001812e8",
+    "code": "id __cdecl -[KernDeviceDescription configTable](KernDeviceDescription *self, SEL a2)\n{\n  return self->_configTable; /*0x1812f3*/\n}"
+  },
+  {
+    "requested_address": "0x001812f8",
+    "addr": "0x001812f8",
+    "code": "id __cdecl -[KernDeviceDescription setDevice:](KernDeviceDescription *self, SEL a2, id a3)\n{\n  id result; // eax\n\n  result = a3; /*0x1812fe*/\n  if ( !self->_device || !a3 ) /*0x181309*/\n    self->_device = a3; /*0x18130b*/\n  if ( self->_device != a3 ) /*0x181311*/\n    return nullptr; /*0x181313*/\n  return result; /*0x181317*/\n}"
+  },
+  {
+    "requested_address": "0x0018131c",
+    "addr": "0x0018131c",
+    "code": "id __cdecl -[KernDeviceDescription device](KernDeviceDescription *self, SEL a2)\n{\n  return self->_device; /*0x181327*/\n}"
+  },
+  {
+    "requested_address": "0x0018132c",
+    "addr": "0x0018132c",
+    "code": "id __cdecl -[KernDeviceDescription busClass](KernDeviceDescription *self, SEL a2)\n{\n  return self->_busClass; /*0x181337*/\n}"
+  },
+  {
+    "requested_address": "0x0018133c",
+    "addr": "0x0018133c",
+    "code": "id __cdecl -[KernDeviceDescription setBus:](KernDeviceDescription *self, SEL a2, id a3)\n{\n  self->_bus = a3; /*0x181345*/\n  return a3; /*0x18134c*/\n}"
+  },
+  {
+    "requested_address": "0x00181350",
+    "addr": "0x00181350",
+    "code": "id __cdecl -[KernDeviceDescription bus](KernDeviceDescription *self, SEL a2)\n{\n  return self->_bus; /*0x18135b*/\n}"
+  },
+  {
+    "requested_address": "0x00181360",
+    "addr": "0x00181360",
+    "code": "const char *__cdecl -[KernDeviceDescription stringForKey:](KernDeviceDescription *self, SEL a2, const char *a3)\n{\n  const char *v3; // ebx\n  const char *v4; // eax\n\n  v3 = (const char *)objc_msgSend(self->_stringTable, sel_valueForKey_, a3); /*0x18137d*/\n  if ( !v3 ) /*0x181384*/\n  {\n    v4 = (const char *)objc_msgSend(self->_configTable, sel_valueForStringKey_, a3); /*0x181392*/\n    v3 = v4; /*0x181397*/\n    if ( v4 ) /*0x18139e*/\n      objc_msgSend(self->_stringTable, sel_insertKey_value_, a3, v4); /*0x1813ad*/\n  }\n  return v3; /*0x1813b7*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201e80",
+        "name": "sel_valueForKey:",
+        "string": "valueForKey:"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001813c0",
+    "addr": "0x001813c0",
+    "code": "id __cdecl -[KernDeviceDescription resourcesForKey:](KernDeviceDescription *self, SEL a2, const char *a3)\n{\n  return objc_msgSend(self->_resourceTable, sel_valueForKey_, a3); /*0x1813dc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201e80",
+        "name": "sel_valueForKey:",
+        "string": "valueForKey:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001813e0",
+    "addr": "0x001813e0",
+    "code": "id __cdecl -[KernDeviceDescription setString:forKey:](\n        KernDeviceDescription *self,\n        SEL a2,\n        const char *a3,\n        const char *a4)\n{\n  char *v4; // eax\n  char *v5; // eax\n  const char *v6; // eax\n\n  v4 = (char *)IOMalloc(strlen(a3) + 1); /*0x181403*/\n  v5 = strcpy(v4, a3); /*0x18140e*/\n  v6 = (const char *)objc_msgSend(self->_stringTable, sel_insertKey_value_, a4, v5); /*0x181424*/\n  if ( v6 ) /*0x181430*/\n    IOFree((int)v6, strlen(v6) + 1); /*0x181445*/\n  return self; /*0x18144f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x101b48",
+        "name": "_strcpy"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00181458",
+    "addr": "0x00181458",
+    "code": "id __cdecl -[KernDeviceDescription setResources:forKey:](KernDeviceDescription *self, SEL a2, id a3, const char *a4)\n{\n  id v4; // eax\n  void *v5; // ebx\n\n  if ( !strcmp(a4, aIrqLevels_0) ) /*0x181472*/\n  {\n    objc_msgSend(self->_interruptList, sel_empty); /*0x181494*/\n    objc_msgSend(self->_interruptList, sel_appendList_, a3); /*0x1814ab*/\n  }\n  v4 = objc_msgSend(self->_resourceTable, sel_insertKey_value_, a4, a3); /*0x1814c6*/\n  v5 = v4; /*0x1814cb*/\n  if ( v4 && a3 != v4 ) /*0x1814d7*/\n  {\n    objc_msgSend(v4, sel_freeObjects); /*0x1814e1*/\n    objc_msgSend(v5, sel_free); /*0x1814ee*/\n  }\n  return self; /*0x1814f9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x2024b4",
+        "name": "sel_empty",
+        "string": "empty"
+      },
+      {
+        "addr": "0x2024bc",
+        "name": "sel_appendList:",
+        "string": "appendList:"
+      },
+      {
+        "addr": "0x1e0fe8",
+        "name": "aIrqLevels_0",
+        "string": "IRQ Levels"
+      },
+      {
+        "addr": "0x201e6c",
+        "name": "sel_insertKey:value:",
+        "string": "insertKey:value:"
+      },
+      {
+        "addr": "0x20225c",
+        "name": "sel_freeObjects",
+        "string": "freeObjects"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00181500",
+    "addr": "0x00181500",
+    "code": "char __cdecl -[KernDeviceDescription removeStringForKey:](KernDeviceDescription *self, SEL a2, const char *a3)\n{\n  const char *v3; // edx\n\n  v3 = (const char *)objc_msgSend(self->_stringTable, sel_removeKey_, a3); /*0x18151c*/\n  if ( !v3 ) /*0x181523*/\n    return 0; /*0x181525*/\n  IOFree((int)v3, strlen(v3) + 1); /*0x18153e*/\n  return 1; /*0x18154b*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201ecc",
+        "name": "sel_removeKey:",
+        "string": "removeKey:"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      }
+    ]
+  }
+]

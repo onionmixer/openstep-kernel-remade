@@ -1,0 +1,30 @@
+/* Ghidra decompiler output, not reconstructed GCC 2.7 source.
+ * Binary SHA-256: 33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890; entry: 0x0016fabc */
+
+void FUN_0016fabc(int *param_1,uint *param_2)
+
+{
+  task_t target_task;
+  uint uVar1;
+  uint local_8;
+  
+  if ((param_1[1] == 0x18) && (-1 < *param_1)) {
+    target_task = _convert_port_to_task(param_1[2]);
+    uVar1 = _task_threads(target_task,(thread_act_array_t *)(param_2 + 0xb),&local_8);
+    param_2[7] = uVar1;
+    _task_deallocate(target_task);
+    if (param_2[7] == 0) {
+      *param_2 = *param_2 | 0x80000000;
+      param_2[1] = 0x30;
+      param_2[8] = DAT_001e038c;
+      param_2[9] = DAT_001e0390;
+      param_2[10] = DAT_001e0394;
+      param_2[10] = local_8;
+    }
+  }
+  else {
+    param_2[7] = 0xfffffed0;
+  }
+  return;
+}
+

@@ -1,0 +1,4 @@
+0x00186f7c	4	MOV EAX,dword ptr [ESP + 0x4]
+0x00186f80	4	MOV ESP,dword ptr [ESP + 0x8]
+0x00186f84	2	MOV EBP,ESP
+0x00186f86	2	JMP EAX

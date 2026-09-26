@@ -1,0 +1,53 @@
+{
+  "scope": "Original OPENSTEP x86 VM backing/pageable/remove/delete/wire contracts and the designated direct recursive-lock callers. Whole VM, runtime behaviour, and whole-kernel completion unproved.",
+  "raw_sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890",
+  "external_source_inputs": false,
+  "independent_plan_review_received": false,
+  "new_dynamic_execution": false,
+  "whole_goal_complete": false,
+  "decoder": {"name": "Capstone", "version": "4.0.2", "mode": "x86 32-bit static original-file decode"},
+  "inputs": [
+    {"path": "03_original/x86/binaries/mach_kernel", "size": 1117920, "sha256": "33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890"},
+    {"path": "03_original/x86/inventory/macho.json", "size": 9437, "sha256": "b062440c71c08f5ab49cf23c0fe71465b9ff24812f9e6974f0d93e490cfebba3"},
+    {"path": "04_ghidra/exports/x86/full-pass5/functions.json", "size": 3162123, "sha256": "4648a31dc567bf9ca2692c5fed23ff14cd67ac770253ec0de3d1b36965e9ed3c"}
+  ],
+  "selected_bodies": [
+    {"address": "0x00173ebc", "name": "FUN_00173ebc", "bytes": 248, "instructions": 90, "calls": 4, "jumps": 12},
+    {"address": "0x00175b2c", "name": "vm_map_pageable", "bytes": 1294, "instructions": 459, "calls": 20, "jumps": 75},
+    {"address": "0x00176164", "name": "vm_map_delete", "bytes": 1072, "instructions": 394, "calls": 17, "jumps": 53},
+    {"address": "0x001765ac", "name": "vm_map_remove", "bytes": 79, "instructions": 38, "calls": 3, "jumps": 3},
+    {"address": "0x0017358c", "name": "vm_fault_wire", "bytes": 101, "instructions": 48, "calls": 3, "jumps": 3},
+    {"address": "0x001735f4", "name": "vm_fault_unwire", "bytes": 162, "instructions": 63, "calls": 6, "jumps": 5},
+    {"address": "0x00173898", "name": "vm_fault_wire_fast", "bytes": 455, "instructions": 165, "calls": 9, "jumps": 21},
+    {"address": "0x0017b200", "name": "vm_page_alloc_sequential", "bytes": 818, "instructions": 264, "calls": 13, "jumps": 40},
+    {"address": "0x0017b99c", "name": "vm_page_zero_fill", "bytes": 24, "instructions": 10, "calls": 1, "jumps": 0},
+    {"address": "0x001914c8", "name": "pmap_pageable", "bytes": 7, "instructions": 5, "calls": 0, "jumps": 0},
+    {"address": "0x001019c0", "name": "page_set", "bytes": 48, "instructions": 19, "calls": 0, "jumps": 1},
+    {"address": "0x00179350", "name": "vm_object_pmap_remove", "bytes": 94, "instructions": 45, "calls": 1, "jumps": 7},
+    {"address": "0x00179bbc", "name": "vm_object_page_remove", "bytes": 108, "instructions": 45, "calls": 2, "jumps": 7},
+    {"address": "0x0018fa44", "name": "pmap_remove", "bytes": 191, "instructions": 72, "calls": 3, "jumps": 12},
+    {"address": "0x00190b5c", "name": "pmap_change_wiring", "bytes": 193, "instructions": 77, "calls": 5, "jumps": 9},
+    {"address": "0x00190c24", "name": "pmap_extract", "bytes": 130, "instructions": 53, "calls": 2, "jumps": 6},
+    {"address": "0x00174518", "name": "kmem_alloc_wait", "bytes": 154, "instructions": 64, "calls": 9, "jumps": 5},
+    {"address": "0x00176888", "name": "vm_map_copy", "bytes": 4481, "instructions": 1587, "calls": 58, "jumps": 247}
+  ],
+  "counts": {"bodies": 18, "body_bytes": 9659, "instruction_heads": 3498, "direct_calls": 156, "jcc_or_jmp": 506, "recursive_direct_calls": 8, "asm_survey_population": 5253},
+  "recursive_call_sites": [
+    {"site": "0x00174541", "target": "0x0015bb9c", "kind": "set", "owner": "kmem_alloc_wait"},
+    {"site": "0x00174560", "target": "0x0015bbe0", "kind": "clear", "owner": "kmem_alloc_wait"},
+    {"site": "0x00175ff0", "target": "0x0015bb9c", "kind": "set", "owner": "vm_map_pageable"},
+    {"site": "0x0017603e", "target": "0x0015bbe0", "kind": "clear", "owner": "vm_map_pageable"},
+    {"site": "0x001776c0", "target": "0x0015bb9c", "kind": "set", "owner": "vm_map_copy"},
+    {"site": "0x00177885", "target": "0x0015bb9c", "kind": "set", "owner": "vm_map_copy"},
+    {"site": "0x001778b3", "target": "0x0015bbe0", "kind": "clear", "owner": "vm_map_copy"},
+    {"site": "0x001778c7", "target": "0x0015bbe0", "kind": "clear", "owner": "vm_map_copy"}
+  ],
+  "instruction_facts": {
+    "map_remove": ["lock_write then map+0x4c increment", "clamp start/end", "call vm_map_delete", "lock_done", "return preserved EAX"],
+    "map_delete": ["44-byte split copy via REP MOVSD count 11", "entry+0x28 is WORD accessed", "unwire before object/pmap remove", "unlink then map+0x1c and map+0x28 decrement", "normal EAX zero epilogue"],
+    "pageable": ["fourth argument zero increments entry+0x28", "nonzero preflight returns EAX=4 on zero count", "non-kernel wire path set_recursive/write_to_read/clear_recursive/done", "kernel path done before fault-wire loop"],
+    "wire_unwire": ["wire fast nonzero falls back to vm_fault without consuming its EAX", "unwire panics if pmap_extract returns zero", "unwire does not test vm_phys_to_vm_page result"],
+    "backing_helper": ["third argument zero returns one", "allocation failure returns zero only when fourth argument is zero", "otherwise wake/sleep/retry", "success subtracts global page size with no local size modulus guard"]
+  },
+  "limits": ["No runtime global initial values inferred from zerofill.", "No indirect-call, alias-writer, whole caller graph, or dynamic execution claim.", "No success, rollback, memory-safety, progress, ownership, or whole-kernel completion claim beyond stated static instruction facts."]
+}

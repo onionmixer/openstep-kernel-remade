@@ -1,0 +1,5 @@
+0x001cdee8	1	PUSH EBP
+0x001cdee9	2	MOV EBP,ESP
+0x001cdeeb	2	MOV ESP,EBP
+0x001cdeed	1	POP EBP
+0x001cdeee	1	RET

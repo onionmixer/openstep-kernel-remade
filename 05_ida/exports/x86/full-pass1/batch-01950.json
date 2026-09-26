@@ -1,0 +1,820 @@
+[
+  {
+    "requested_address": "0x0016af6c",
+    "addr": "0x0016af6c",
+    "code": "void __cdecl sub_16AF6C(_DWORD *a1)\n{\n  char *v1; // esi\n  int v2; // ebx\n  unsigned int v3; // eax\n\n  v1 = (char *)&unk_1F6E04; /*0x16af78*/\n  if ( !a1[5] ) /*0x16af7d*/\n  {\n    v2 = 1; /*0x16af83*/\n    if ( zone_free_space_count > 1 ) /*0x16af8f*/\n    {\n      while ( 1 ) /*0x16afa0*/\n      {\n        v3 = -**(_DWORD **)v1 & (**(_DWORD **)v1 + a1[7] - 1); /*0x16afa0*/\n        if ( *(_DWORD *)(*(_DWORD *)v1 + 4) >= v3 ) /*0x16afa5*/\n          break; /*0x16afa5*/\n        v1 += 4; /*0x16afb4*/\n        if ( zone_free_space_count <= ++v2 ) /*0x16afbb*/\n          return; /*0x16afbb*/\n      }\n      a1[7] = v3; /*0x16afa7*/\n      a1[15] = *(_DWORD *)v1; /*0x16afac*/\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f6e04",
+        "name": "unk_1F6E04"
+      },
+      {
+        "addr": "0x1f6e20",
+        "name": "_zone_free_space_count"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016afc8",
+    "addr": "0x0016afc8",
+    "code": "void zone_bootstrap()\n{\n  int *v0; // ebx\n  unsigned int v1; // edx\n  unsigned int v2; // esi\n  char v3; // al\n  unsigned int v4; // esi\n  int *v5; // ebx\n  int v6; // eax\n  unsigned int v7; // eax\n  int *v8; // eax\n  unsigned int v9; // esi\n  int *v10; // ebx\n  int v11; // eax\n  unsigned int v12; // eax\n  int *v13; // eax\n  unsigned int v14; // esi\n  vm_size_t v15; // edi\n  int *v16; // ebx\n  int v17; // eax\n  unsigned int v18; // eax\n  int *v19; // eax\n  int *v20; // [esp+Ch] [ebp-8h]\n  int *v21; // [esp+Ch] [ebp-8h]\n  int *v22; // [esp+10h] [ebp-4h]\n\n  all_zones_lock = 0; /*0x16afd1*/\n  first_zone = 0; /*0x16afdb*/\n  last_zone = (int)&first_zone; /*0x16afe5*/\n  num_zones = 0; /*0x16afef*/\n  zget_space_lock = 0; /*0x16aff9*/\n  dword_1F6DC4 = (int)&_zone_default_space_hint; /*0x16b003*/\n  dword_1F6DC8 = 1; /*0x16b00d*/\n  zone_free_space[0] = (int)_zone_default_space; /*0x16b017*/\n  zone_free_space_count = 1; /*0x16b021*/\n  zone_zone = 0; /*0x16b02b*/\n  v0 = zget_space(_zone_default_space, 0x44u, 0); /*0x16b04f*/\n  if ( !v0 ) /*0x16b056*/\n    panic(aZinit); /*0x16b05d*/\n  v1 = ~page_mask & (page_mask + 8704); /*0x16b07f*/\n  v2 = ~page_mask & (page_mask + 68); /*0x16b085*/\n  if ( v1 < v2 ) /*0x16b089*/\n    v1 = ~page_mask & (page_mask + 68); /*0x16b08b*/\n  v0[4] = 0; /*0x16b08d*/\n  v0[3] = 0; /*0x16b094*/\n  v0[5] = 0; /*0x16b09b*/\n  v0[6] = v1; /*0x16b0a2*/\n  v0[7] = 80; /*0x16b0a8*/\n  v0[8] = v2; /*0x16b0ab*/\n  *((_BYTE *)v0 + 44) &= ~1u; /*0x16b0ae*/\n  v0[10] = (int)aZones; /*0x16b0b2*/\n  v0[2] = 0; /*0x16b0b9*/\n  v0[9] = 0; /*0x16b0c0*/\n  v3 = v0[11] & 0xF1 | 8; /*0x16b0cc*/\n  *((_BYTE *)v0 + 44) = v3; /*0x16b0ce*/\n  if ( (v3 & 1) != 0 ) /*0x16b0d3*/\n    lock_init(v0 + 12, 1); /*0x16b0db*/\n  else\n    *v0 = 0; /*0x16b0e8*/\n  sub_16AF6C(v0); /*0x16b0ef*/\n  v0[16] = 0; /*0x16b0f4*/\n  do /*0x16b119*/\n  {\n    while ( all_zones_lock ) /*0x16b107*/\n      ; /*0x16b105*/\n  }\n  while ( _InterlockedExchange(&all_zones_lock, 1) == 1 ); /*0x16b119*/\n  *(_DWORD *)last_zone = v0; /*0x16b120*/\n  last_zone = (int)(v0 + 16); /*0x16b125*/\n  ++num_zones; /*0x16b12b*/\n  _InterlockedExchange(&all_zones_lock, 0); /*0x16b133*/\n  zone_zone = (int)v0; /*0x16b139*/\n  v4 = 16; /*0x16b13f*/\n  if ( (unsigned int)zone_free_space_count <= 7 ) /*0x16b14c*/\n  {\n    v20 = &zone_free_space[zone_free_space_count++]; /*0x16b159*/\n    v5 = zget_space(_zone_default_space, 0x1Cu, 0); /*0x16b170*/\n    *v5 = 16; /*0x16b172*/\n    v5[1] = 96; /*0x16b178*/\n    v5[2] = 0; /*0x16b17f*/\n    v5[3] = 0; /*0x16b186*/\n    v5[4] = 0; /*0x16b18d*/\n    do /*0x16b1a9*/\n    {\n      v6 = v5[4]; /*0x16b198*/\n      v5[4] = v6 + 1; /*0x16b19e*/\n      v4 >>= 1; /*0x16b1a1*/\n    }\n    while ( (v4 & 1) == 0 ); /*0x16b1a9*/\n    v7 = (unsigned int)v5[1] >> (v6 + 1); /*0x16b1b3*/\n    v5[6] = v7; /*0x16b1b5*/\n    v8 = zget_space(_zone_default_space, 16 * v7, 0); /*0x16b1c3*/\n    v5[5] = (int)v8; /*0x16b1ca*/\n    bzero(v8, 16 * v5[6]); /*0x16b1d5*/\n    *v20 = (int)v5; /*0x16b1dd*/\n  }\n  v9 = 128; /*0x16b1e2*/\n  if ( (unsigned int)zone_free_space_count <= 7 ) /*0x16b1ef*/\n  {\n    v21 = &zone_free_space[zone_free_space_count++]; /*0x16b1fc*/\n    v10 = zget_space(_zone_default_space, 0x1Cu, 0); /*0x16b213*/\n    *v10 = 128; /*0x16b215*/\n    v10[1] = 768; /*0x16b21b*/\n    v10[2] = 0; /*0x16b222*/\n    v10[3] = 0; /*0x16b229*/\n    v10[4] = 0; /*0x16b230*/\n    do /*0x16b24d*/\n    {\n      v11 = v10[4]; /*0x16b23c*/\n      v10[4] = v11 + 1; /*0x16b242*/\n      v9 >>= 1; /*0x16b245*/\n    }\n    while ( (v9 & 1) == 0 ); /*0x16b24d*/\n    v12 = (unsigned int)v10[1] >> (v11 + 1); /*0x16b257*/\n    v10[6] = v12; /*0x16b259*/\n    v13 = zget_space(_zone_default_space, 16 * v12, 0); /*0x16b267*/\n    v10[5] = (int)v13; /*0x16b26e*/\n    bzero(v13, 16 * v10[6]); /*0x16b279*/\n    *v21 = (int)v10; /*0x16b281*/\n  }\n  v14 = 1024; /*0x16b286*/\n  v15 = page_size; /*0x16b28b*/\n  if ( (unsigned int)zone_free_space_count <= 7 ) /*0x16b29c*/\n  {\n    v22 = &zone_free_space[zone_free_space_count++]; /*0x16b2a9*/\n    v16 = zget_space(_zone_default_space, 0x1Cu, 0); /*0x16b2c0*/\n    *v16 = 1024; /*0x16b2c2*/\n    v16[1] = v15; /*0x16b2c8*/\n    v16[2] = 0; /*0x16b2cb*/\n    v16[3] = 0; /*0x16b2d2*/\n    v16[4] = 0; /*0x16b2d9*/\n    do /*0x16b2f5*/\n    {\n      v17 = v16[4]; /*0x16b2e4*/\n      v16[4] = v17 + 1; /*0x16b2ea*/\n      v14 >>= 1; /*0x16b2ed*/\n    }\n    while ( (v14 & 1) == 0 ); /*0x16b2f5*/\n    v18 = (unsigned int)v16[1] >> (v17 + 1); /*0x16b2ff*/\n    v16[6] = v18; /*0x16b301*/\n    v19 = zget_space(_zone_default_space, 16 * v18, 0); /*0x16b30f*/\n    v16[5] = (int)v19; /*0x16b316*/\n    bzero(v19, 16 * v16[6]); /*0x16b321*/\n    *v22 = (int)v16; /*0x16b329*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1f6de0",
+        "name": "_all_zones_lock"
+      },
+      {
+        "addr": "0x1f6de4",
+        "name": "_first_zone"
+      },
+      {
+        "addr": "0x1f6de8",
+        "name": "_last_zone"
+      },
+      {
+        "addr": "0x1f6dec",
+        "name": "_num_zones"
+      },
+      {
+        "addr": "0x1f6df4",
+        "name": "_zget_space_lock"
+      },
+      {
+        "addr": "0x1f6dc4",
+        "name": "dword_1F6DC4"
+      },
+      {
+        "addr": "0x1f6dd0",
+        "name": "__zone_default_space_hint"
+      },
+      {
+        "addr": "0x1f6dc8",
+        "name": "dword_1F6DC8"
+      },
+      {
+        "addr": "0x1f6e00",
+        "name": "_zone_free_space"
+      },
+      {
+        "addr": "0x1f6db0",
+        "name": "__zone_default_space"
+      },
+      {
+        "addr": "0x1f6e20",
+        "name": "_zone_free_space_count"
+      },
+      {
+        "addr": "0x1f6e2c",
+        "name": "_zone_zone"
+      },
+      {
+        "addr": "0x16ada4",
+        "name": "_zget_space"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfcf8",
+        "name": "aZinit",
+        "string": "zinit"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x1dfd24",
+        "name": "aZones",
+        "string": "zones"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      },
+      {
+        "addr": "0x16af6c",
+        "name": "sub_16AF6C"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b338",
+    "addr": "0x0016b338",
+    "code": "int zone_init()\n{\n  int result; // eax\n\n  result = kmem_suballoc(kernel_map, &zone_min, &zone_max, zone_map_size, 0); /*0x16b355*/\n  zone_map = result; /*0x16b35a*/\n  return result; /*0x16b361*/\n}",
+    "refs": [
+      {
+        "addr": "0x173fbc",
+        "name": "_kmem_suballoc"
+      },
+      {
+        "addr": "0x1e8de8",
+        "name": "_kernel_map"
+      },
+      {
+        "addr": "0x1f6e28",
+        "name": "_zone_min"
+      },
+      {
+        "addr": "0x1f6e24",
+        "name": "_zone_max"
+      },
+      {
+        "addr": "0x1dfcf0",
+        "name": "_zone_map_size"
+      },
+      {
+        "addr": "0x1dfcec",
+        "name": "_zone_map"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b364",
+    "addr": "0x0016b364",
+    "code": "int *__cdecl sub_16B364(int a1, int a2)\n{\n  int v2; // edx\n  int *v3; // eax\n  int v4; // eax\n  int v5; // eax\n  int v6; // edx\n  int v7; // eax\n  unsigned int v8; // edx\n  char v9; // al\n  int v10; // eax\n  int v12; // eax\n  int *v13; // esi\n  unsigned int v14; // edi\n  int v15; // edx\n  int *v16; // eax\n  int **v17; // edx\n  int v18; // eax\n  int v19; // edx\n  int *v20; // eax\n  int v21; // edx\n  int v22; // eax\n  unsigned int v23; // [esp+Ch] [ebp-10h]\n  int v24; // [esp+14h] [ebp-8h]\n  int *v25; // [esp+18h] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x16b372*/\n    panic(aZallocNullZone); /*0x16b379*/\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b385*/\n  {\n    lock_write(a1 + 48); /*0x16b38b*/\n  }\n  else\n  {\n    v2 = splhigh(); /*0x16b39d*/\n    do /*0x16b3b2*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x16b3a0*/\n        ; /*0x16b3a2*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b3b2*/\n    *(_DWORD *)(a1 + 4) = v2; /*0x16b3b4*/\n  }\n  v3 = *(int **)(a1 + 16); /*0x16b3b7*/\n  v25 = v3; /*0x16b3ba*/\n  if ( !v3 ) /*0x16b3bf*/\n    goto LABEL_13; /*0x16b3bf*/\n  ++*(_DWORD *)(a1 + 8); /*0x16b3c1*/\n  *(_DWORD *)(a1 + 16) = *v3; /*0x16b3c6*/\n  if ( *(int **)(a1 + 12) == v3 ) /*0x16b3cc*/\n    *(_DWORD *)(a1 + 12) = 0; /*0x16b3ce*/\n  if ( !v25 ) /*0x16b3d9*/\n  {\nLABEL_13:\n    v24 = a1 + 48; /*0x16b3df*/\n    do /*0x16b3e8*/\n    {\n      if ( *(_DWORD *)(a1 + 36) ) /*0x16b3e8*/\n      {\n        if ( !a2 ) /*0x16b3f6*/\n        {\n          if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b3fc*/\n          {\n            lock_done(v24); /*0x16b414*/\n          }\n          else\n          {\n            v4 = *(_DWORD *)(a1 + 4); /*0x16b3fe*/\n            _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b403*/\n            splx(v4); /*0x16b406*/\n          }\n          return nullptr; /*0x16b4fd*/\n        }\n        assert_wait(a1 + 36, 1); /*0x16b432*/\n        if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b43e*/\n        {\n          lock_done(v24); /*0x16b424*/\n        }\n        else\n        {\n          v5 = *(_DWORD *)(a1 + 4); /*0x16b440*/\n          _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b445*/\n          splx(v5); /*0x16b448*/\n        }\n        thread_block_with_continuation(0); /*0x16b452*/\n        if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b45e*/\n        {\n          lock_write(v24); /*0x16b750*/\n        }\n        else\n        {\n          v6 = splhigh(); /*0x16b469*/\n          do /*0x16b47e*/\n          {\n            while ( *(_DWORD *)a1 ) /*0x16b46c*/\n              ; /*0x16b46e*/\n          }\n          while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b47e*/\n          *(_DWORD *)(a1 + 4) = v6; /*0x16b480*/\n        }\n        continue; /*0x16b483*/\n      }\n      v7 = *(_DWORD *)(a1 + 20); /*0x16b488*/\n      v8 = *(_DWORD *)(a1 + 24); /*0x16b48b*/\n      if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b492*/\n      {\n        if ( *(_DWORD *)(a1 + 32) + v7 > v8 ) /*0x16b499*/\n          goto LABEL_31; /*0x16b499*/\n      }\n      else if ( *(_DWORD *)(a1 + 28) + v7 > v8 ) /*0x16b4a5*/\n      {\nLABEL_31:\n        v9 = *(_BYTE *)(a1 + 44); /*0x16b4ab*/\n        if ( (v9 & 4) != 0 ) /*0x16b4b0*/\n          break; /*0x16b4b0*/\n        if ( (v9 & 8) != 0 ) /*0x16b4b8*/\n        {\n          *(_DWORD *)(a1 + 24) += *(_DWORD *)(a1 + 24) >> 1; /*0x16b4bf*/\n        }\n        else if ( !zone_ignore_overflow ) /*0x16b4db*/\n        {\n          if ( (v9 & 1) != 0 ) /*0x16b4e3*/\n          {\n            lock_done(v24); /*0x16b4cc*/\n          }\n          else\n          {\n            v10 = *(_DWORD *)(a1 + 4); /*0x16b4e5*/\n            _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b4ea*/\n            splx(v10); /*0x16b4ed*/\n          }\n          if ( a2 ) /*0x16b4f9*/\n          {\n            printf(\"zone \\\"%s\\\" empty.\\n\", *(const char **)(a1 + 40)); /*0x16b551*/\n            panic(aZalloc); /*0x16b55b*/\n          }\n          return nullptr; /*0x16b4f9*/\n        }\n      }\n      if ( (*(_BYTE *)(a1 + 44) & 1) != 0 && (*(_DWORD *)(a1 + 36) = 1, (*(_BYTE *)(a1 + 44) & 1) != 0) ) /*0x16b574*/\n      {\n        lock_done(v24); /*0x16b508*/\n      }\n      else\n      {\n        v12 = *(_DWORD *)(a1 + 4); /*0x16b576*/\n        _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b57b*/\n        splx(v12); /*0x16b57e*/\n      }\n      if ( (*(_BYTE *)(a1 + 44) & 1) == 0 ) /*0x16b58a*/\n      {\n        v25 = zget_space(*(_DWORD **)(a1 + 60), *(_DWORD *)(a1 + 28), a2); /*0x16b6d5*/\n        if ( !v25 ) /*0x16b6dd*/\n        {\n          if ( a2 ) /*0x16b6e3*/\n            panic(aZalloc_1); /*0x16b70d*/\n          return nullptr; /*0x16b6e3*/\n        }\n        if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b719*/\n        {\n          lock_write(v24); /*0x16b6f0*/\n        }\n        else\n        {\n          v21 = splhigh(); /*0x16b720*/\n          do /*0x16b736*/\n          {\n            while ( *(_DWORD *)a1 ) /*0x16b724*/\n              ; /*0x16b726*/\n          }\n          while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b736*/\n          *(_DWORD *)(a1 + 4) = v21; /*0x16b738*/\n        }\n        ++*(_DWORD *)(a1 + 8); /*0x16b73b*/\n        *(_DWORD *)(a1 + 20) += *(_DWORD *)(a1 + 28); /*0x16b741*/\n        if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b748*/\n        {\n          lock_done(v24); /*0x16b700*/\n        }\n        else\n        {\nLABEL_93:\n          v22 = *(_DWORD *)(a1 + 4); /*0x16b774*/\n          _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b779*/\n          splx(v22); /*0x16b77c*/\n        }\n        return v25; /*0x16b77c*/\n      }\n      if ( kmem_alloc_pageable(zone_map, &v25, *(_DWORD *)(a1 + 32)) ) /*0x16b59f*/\n        panic(aZalloc_0); /*0x16b5b0*/\n      v13 = v25; /*0x16b5b8*/\n      v23 = *(_DWORD *)(a1 + 32); /*0x16b5be*/\n      if ( !v25 ) /*0x16b5c3*/\n        panic(aZcramMemoryAtZ); /*0x16b5ca*/\n      v14 = *(_DWORD *)(a1 + 28); /*0x16b5d2*/\n      if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b5d9*/\n      {\n        lock_write(v24); /*0x16b514*/\n      }\n      else\n      {\n        v15 = splhigh(); /*0x16b5e4*/\n        do /*0x16b5fa*/\n        {\n          while ( *(_DWORD *)a1 ) /*0x16b5e8*/\n            ; /*0x16b5ea*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b5fa*/\n        *(_DWORD *)(a1 + 4) = v15; /*0x16b5fc*/\n      }\n      while ( v23 >= v14 ) /*0x16b638*/\n      {\n        v16 = *(int **)(a1 + 12); /*0x16b604*/\n        if ( !v16 || v13 <= v16 ) /*0x16b60d*/\n        {\n          v17 = (int **)(a1 + 16); /*0x16b60f*/\n          goto LABEL_63; /*0x16b612*/\n        }\n        do /*0x16b616*/\n        {\n          v17 = (int **)v16; /*0x16b618*/\nLABEL_63:\n          v16 = *v17; /*0x16b61a*/\n        }\n        while ( *v17 && v13 > v16 ); /*0x16b616*/\n        *v13 = (int)v16; /*0x16b620*/\n        *v17 = v13; /*0x16b622*/\n        *(_DWORD *)(a1 + 12) = v13; /*0x16b624*/\n        *(_DWORD *)(a1 + 8) = *(_DWORD *)(a1 + 8); /*0x16b62a*/\n        v23 -= v14; /*0x16b62d*/\n        v13 = (int *)((char *)v13 + v14); /*0x16b630*/\n        *(_DWORD *)(a1 + 20) += v14; /*0x16b632*/\n      }\n      if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b63e*/\n      {\n        lock_done(v24); /*0x16b528*/\n      }\n      else\n      {\n        v18 = *(_DWORD *)(a1 + 4); /*0x16b644*/\n        _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b649*/\n        splx(v18); /*0x16b64c*/\n      }\n      if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b658*/\n      {\n        lock_write(v24); /*0x16b538*/\n      }\n      else\n      {\n        v19 = splhigh(); /*0x16b663*/\n        do /*0x16b67a*/\n        {\n          while ( *(_DWORD *)a1 ) /*0x16b668*/\n            ; /*0x16b66a*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b67a*/\n        *(_DWORD *)(a1 + 4) = v19; /*0x16b67c*/\n      }\n      *(_DWORD *)(a1 + 36) = 0; /*0x16b67f*/\n      thread_wakeup_prim(a1 + 36, 0, 0); /*0x16b68e*/\n      v25 = *(int **)(a1 + 16); /*0x16b699*/\n      v20 = v25; /*0x16b69c*/\n      if ( !v25 ) /*0x16b6a1*/\n        goto LABEL_13; /*0x16b6a1*/\n      ++*(_DWORD *)(a1 + 8); /*0x16b6a7*/\n      *(_DWORD *)(a1 + 16) = *v20; /*0x16b6ac*/\n      if ( *(int **)(a1 + 12) == v20 ) /*0x16b6b2*/\n        *(_DWORD *)(a1 + 12) = 0; /*0x16b6b8*/\n    }\n    while ( !v25 ); /*0x16b3e8*/\n  }\n  if ( (*(_BYTE *)(a1 + 44) & 1) == 0 ) /*0x16b766*/\n    goto LABEL_93; /*0x16b766*/\n  lock_done(a1 + 48); /*0x16b76c*/\n  return v25; /*0x16b787*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfd2a",
+        "name": "aZallocNullZone",
+        "string": "zalloc: null zone"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x162f20",
+        "name": "_assert_wait"
+      },
+      {
+        "addr": "0x163a18",
+        "name": "_thread_block_with_continuation"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dfd3c",
+        "name": "aZoneSEmpty",
+        "string": "zone \"%s\" empty.\n"
+      },
+      {
+        "addr": "0x1dfd4e",
+        "name": "aZalloc",
+        "string": "zalloc"
+      },
+      {
+        "addr": "0x1dfce8",
+        "name": "_zone_ignore_overflow"
+      },
+      {
+        "addr": "0x16ada4",
+        "name": "_zget_space"
+      },
+      {
+        "addr": "0x1dfd5c",
+        "name": "aZalloc_1",
+        "string": "zalloc"
+      },
+      {
+        "addr": "0x1dfd55",
+        "name": "aZalloc_0",
+        "string": "zalloc"
+      },
+      {
+        "addr": "0x173e48",
+        "name": "_kmem_alloc_pageable"
+      },
+      {
+        "addr": "0x1dfcec",
+        "name": "_zone_map"
+      },
+      {
+        "addr": "0x1dfcfe",
+        "name": "aZcramMemoryAtZ",
+        "string": "zcram - memory at zero"
+      },
+      {
+        "addr": "0x1631a0",
+        "name": "_thread_wakeup_prim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b790",
+    "addr": "0x0016b790",
+    "code": "int __cdecl zalloc(int a1)\n{\n  return sub_16B364(a1, 1); /*0x16b7a0*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b364",
+        "name": "sub_16B364"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b7a4",
+    "addr": "0x0016b7a4",
+    "code": "int *__cdecl zalloc_noblock(int a1)\n{\n  return sub_16B364(a1, 0); /*0x16b7b4*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b364",
+        "name": "sub_16B364"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b7b8",
+    "addr": "0x0016b7b8",
+    "code": "_DWORD *__cdecl zget(int a1)\n{\n  int v1; // edx\n  _DWORD *v2; // esi\n  int v3; // eax\n\n  if ( !a1 ) /*0x16b7c2*/\n    panic(aZallocNullZone_0); /*0x16b7c9*/\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b7d5*/\n  {\n    lock_write(a1 + 48); /*0x16b7db*/\n  }\n  else\n  {\n    v1 = splhigh(); /*0x16b7ed*/\n    do /*0x16b802*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x16b7f0*/\n        ; /*0x16b7f2*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b802*/\n    *(_DWORD *)(a1 + 4) = v1; /*0x16b804*/\n  }\n  v2 = *(_DWORD **)(a1 + 16); /*0x16b807*/\n  if ( v2 ) /*0x16b80c*/\n  {\n    ++*(_DWORD *)(a1 + 8); /*0x16b80e*/\n    *(_DWORD *)(a1 + 16) = *v2; /*0x16b813*/\n    if ( *(_DWORD **)(a1 + 12) == v2 ) /*0x16b819*/\n      *(_DWORD *)(a1 + 12) = 0; /*0x16b81b*/\n  }\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b826*/\n  {\n    lock_done(a1 + 48); /*0x16b82c*/\n  }\n  else\n  {\n    v3 = *(_DWORD *)(a1 + 4); /*0x16b834*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b839*/\n    splx(v3); /*0x16b83c*/\n  }\n  return v2; /*0x16b846*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfd63",
+        "name": "aZallocNullZone_0",
+        "string": "zalloc: null zone"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b84c",
+    "addr": "0x0016b84c",
+    "code": "__int32 __cdecl zfree(int a1, _DWORD *a2)\n{\n  int v2; // edx\n  _DWORD *i; // ebx\n  _DWORD *v4; // eax\n  _DWORD *j; // edx\n  int v7; // eax\n\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b85c*/\n  {\n    lock_write(a1 + 48); /*0x16b862*/\n  }\n  else\n  {\n    v2 = splhigh(); /*0x16b871*/\n    do /*0x16b886*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x16b874*/\n        ; /*0x16b876*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x16b886*/\n    *(_DWORD *)(a1 + 4) = v2; /*0x16b888*/\n  }\n  if ( zone_check ) /*0x16b892*/\n  {\n    for ( i = *(_DWORD **)(a1 + 16); i; i = (_DWORD *)*i ) /*0x16b899*/\n    {\n      if ( i == a2 ) /*0x16b89e*/\n        panic(aZfree); /*0x16b8a5*/\n    }\n  }\n  v4 = *(_DWORD **)(a1 + 12); /*0x16b8b3*/\n  if ( v4 && a2 > v4 ) /*0x16b8bc*/\n    goto LABEL_16; /*0x16b8bc*/\n  for ( j = (_DWORD *)(a1 + 16); ; j = v4 ) /*0x16b8be*/\n  {\n    v4 = (_DWORD *)*j; /*0x16b8ca*/\n    if ( !*j || a2 <= v4 ) /*0x16b8c6*/\n      break; /*0x16b8c6*/\nLABEL_16:\n    ; /*0x16b8c8*/\n  }\n  *a2 = v4; /*0x16b8d0*/\n  *j = a2; /*0x16b8d2*/\n  *(_DWORD *)(a1 + 12) = a2; /*0x16b8d4*/\n  --*(_DWORD *)(a1 + 8); /*0x16b8d7*/\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b8de*/\n    return lock_done(a1 + 48); /*0x16b8e4*/\n  v7 = *(_DWORD *)(a1 + 4); /*0x16b8ec*/\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x16b8f1*/\n  return splx(v7); /*0x16b8fc*/\n}",
+    "refs": [
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1dfd7c",
+        "name": "aZfree",
+        "string": "zfree"
+      },
+      {
+        "addr": "0x1dfd78",
+        "name": "_zone_check"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b904",
+    "addr": "0x0016b904",
+    "code": "void zcollectable()\n{\n  ; /*0x16b904*/\n}"
+  },
+  {
+    "requested_address": "0x0016b90c",
+    "addr": "0x0016b90c",
+    "code": "char __cdecl zchange(int a1, char a2, char a3, char a4, int a5)\n{\n  char result; // al\n\n  result = (4 * (a4 & 1)) | (2 * (a3 & 1)) & 0xFB | a2 & 1 | *(_BYTE *)(a1 + 44) & 0xF8; /*0x16b93a*/\n  *(_BYTE *)(a1 + 44) = result; /*0x16b93c*/\n  if ( !a5 ) /*0x16b941*/\n    *(_DWORD *)(a1 + 60) = _zone_default_space; /*0x16b943*/\n  if ( (*(_BYTE *)(a1 + 44) & 1) != 0 ) /*0x16b94e*/\n    return lock_init((_DWORD *)(a1 + 48), 1); /*0x16b956*/\n  *(_DWORD *)a1 = 0; /*0x16b960*/\n  return result; /*0x16b966*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6db0",
+        "name": "__zone_default_space"
+      },
+      {
+        "addr": "0x15b54c",
+        "name": "_lock_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016b970",
+    "addr": "0x0016b970",
+    "code": "__int32 zone_gc()\n{\n  int v0; // edi\n  int v1; // ebx\n  int v2; // esi\n  int v3; // edx\n  _DWORD *v4; // eax\n  int v5; // eax\n\n  do /*0x16b991*/\n  {\n    while ( all_zones_lock ) /*0x16b97f*/\n      ; /*0x16b97d*/\n  }\n  while ( _InterlockedExchange(&all_zones_lock, 1) == 1 ); /*0x16b991*/\n  v0 = num_zones; /*0x16b993*/\n  v1 = first_zone; /*0x16b999*/\n  _InterlockedExchange(&all_zones_lock, 0); /*0x16b9a1*/\n  do /*0x16b9c1*/\n  {\n    while ( zget_space_lock ) /*0x16b9af*/\n      ; /*0x16b9ad*/\n  }\n  while ( _InterlockedExchange(&zget_space_lock, 1) == 1 ); /*0x16b9c1*/\n  v2 = 0; /*0x16b9c3*/\n  if ( num_zones > 0 ) /*0x16b9c7*/\n  {\n    do /*0x16ba70*/\n    {\n      if ( (*(_BYTE *)(v1 + 44) & 1) != 0 ) /*0x16b9d4*/\n      {\n        lock_write(v1 + 48); /*0x16b9da*/\n      }\n      else\n      {\n        v3 = splhigh(); /*0x16b9e9*/\n        do /*0x16b9fe*/\n        {\n          while ( *(_DWORD *)v1 ) /*0x16b9ec*/\n            ; /*0x16b9ee*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)v1, 1) == 1 ); /*0x16b9fe*/\n        *(_DWORD *)(v1 + 4) = v3; /*0x16ba00*/\n      }\n      if ( (*(_BYTE *)(v1 + 44) & 1) != 0 ) /*0x16ba07*/\n        goto LABEL_18; /*0x16ba07*/\n      v4 = *(_DWORD **)(v1 + 60); /*0x16ba09*/\n      if ( v4 && v4 != _zone_default_space ) /*0x16ba15*/\n        zone_collect((_DWORD *)v1); /*0x16ba18*/\n      if ( (*(_BYTE *)(v1 + 44) & 1) != 0 ) /*0x16ba24*/\n      {\nLABEL_18:\n        lock_done(v1 + 48); /*0x16ba2a*/\n      }\n      else\n      {\n        v5 = *(_DWORD *)(v1 + 4); /*0x16ba34*/\n        _InterlockedExchange((volatile __int32 *)v1, 0); /*0x16ba39*/\n        splx(v5); /*0x16ba3c*/\n      }\n      do /*0x16ba60*/\n      {\n        while ( all_zones_lock ) /*0x16ba4e*/\n          ; /*0x16ba4c*/\n      }\n      while ( _InterlockedExchange(&all_zones_lock, 1) == 1 ); /*0x16ba60*/\n      v1 = *(_DWORD *)(v1 + 64); /*0x16ba62*/\n      _InterlockedExchange(&all_zones_lock, 0); /*0x16ba67*/\n      ++v2; /*0x16ba6d*/\n    }\n    while ( v2 < v0 ); /*0x16ba70*/\n  }\n  return zone_free_space_reclaim(); /*0x16ba7e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6de0",
+        "name": "_all_zones_lock"
+      },
+      {
+        "addr": "0x1f6dec",
+        "name": "_num_zones"
+      },
+      {
+        "addr": "0x1f6de4",
+        "name": "_first_zone"
+      },
+      {
+        "addr": "0x1f6df4",
+        "name": "_zget_space_lock"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x16a7f4",
+        "name": "_zone_collect"
+      },
+      {
+        "addr": "0x1f6db0",
+        "name": "__zone_default_space"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x16ab34",
+        "name": "_zone_free_space_reclaim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016ba88",
+    "addr": "0x0016ba88",
+    "code": "__int32 consider_zone_gc()\n{\n  __int32 result; // eax\n\n  if ( !zone_gc_max_rate ) /*0x16ba92*/\n    zone_gc_max_rate = hz; /*0x16ba9a*/\n  if ( zone_gc_allowed ) /*0x16baa7*/\n  {\n    result = zone_gc_max_rate + zone_gc_last_tick; /*0x16baae*/\n    if ( sched_tick > (unsigned int)(zone_gc_max_rate + zone_gc_last_tick) ) /*0x16babc*/\n    {\n      zone_gc_last_tick = sched_tick; /*0x16babe*/\n      return zone_gc(); /*0x16bac4*/\n    }\n  }\n  return result; /*0x16bacb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1dfd8c",
+        "name": "_zone_gc_max_rate"
+      },
+      {
+        "addr": "0x1dee30",
+        "name": "_hz"
+      },
+      {
+        "addr": "0x1dfd88",
+        "name": "_zone_gc_last_tick"
+      },
+      {
+        "addr": "0x1f653c",
+        "name": "_sched_tick"
+      },
+      {
+        "addr": "0x16b970",
+        "name": "_zone_gc"
+      },
+      {
+        "addr": "0x1dfd84",
+        "name": "_zone_gc_allowed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016bad0",
+    "addr": "0x0016bad0",
+    "code": "__int32 zone_reclaim()\n{\n  do /*0x16baed*/\n  {\n    while ( zget_space_lock ) /*0x16badb*/\n      ; /*0x16bad9*/\n  }\n  while ( _InterlockedExchange(&zget_space_lock, 1) == 1 ); /*0x16baed*/\n  return zone_free_space_reclaim(); /*0x16baf6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6df4",
+        "name": "_zget_space_lock"
+      },
+      {
+        "addr": "0x16ab34",
+        "name": "_zone_free_space_reclaim"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016baf8",
+    "addr": "0x0016baf8",
+    "code": "int __cdecl host_zone_info(int a1, int *a2, unsigned int *a3, int *a4, unsigned int *a5)\n{\n  int result; // eax\n  int v6; // ebx\n  int v7; // ecx\n  int v8; // edx\n  int v9; // eax\n  _BOOL4 v10; // edx\n  int v11; // [esp+Ch] [ebp-70h]\n  char *__dst; // [esp+10h] [ebp-6Ch]\n  _DWORD *v13; // [esp+14h] [ebp-68h]\n  unsigned int v14; // [esp+18h] [ebp-64h]\n  unsigned int v15; // [esp+1Ch] [ebp-60h]\n  int v16; // [esp+20h] [ebp-5Ch]\n  int v17; // [esp+24h] [ebp-58h]\n  int v18; // [esp+28h] [ebp-54h]\n  int v19; // [esp+2Ch] [ebp-50h]\n  _DWORD v20[17]; // [esp+30h] [ebp-4Ch] BYREF\n  int v21; // [esp+74h] [ebp-8h] BYREF\n  int v22; // [esp+78h] [ebp-4h] BYREF\n\n  v18 = 0; /*0x16bb01*/\n  v16 = 0; /*0x16bb08*/\n  if ( !a1 ) /*0x16bb13*/\n    return 22; /*0x16bb1a*/\n  do /*0x16bb39*/\n  {\n    while ( all_zones_lock ) /*0x16bb27*/\n      ; /*0x16bb25*/\n  }\n  while ( _InterlockedExchange(&all_zones_lock, 1) == 1 ); /*0x16bb39*/\n  v15 = num_zones; /*0x16bb41*/\n  v6 = first_zone; /*0x16bb44*/\n  _InterlockedExchange(&all_zones_lock, 0); /*0x16bb4c*/\n  if ( *a3 < num_zones ) /*0x16bb57*/\n  {\n    v18 = ~page_mask & (page_mask + 80 * num_zones); /*0x16bb79*/\n    result = kmem_alloc_pageable(ipc_kernel_map, &v22, v18); /*0x16bb88*/\n    if ( result ) /*0x16bb92*/\n      return result; /*0x16bb92*/\n    v19 = v22; /*0x16bb9b*/\n  }\n  else\n  {\n    v19 = *a2; /*0x16bb5e*/\n  }\n  if ( *a5 >= v15 ) /*0x16bba6*/\n  {\n    v7 = *a4; /*0x16bbab*/\nLABEL_15:\n    v17 = v7; /*0x16bc0f*/\n    v14 = 0; /*0x16bc12*/\n    if ( v15 ) /*0x16bc1f*/\n    {\n      v13 = (_DWORD *)v7; /*0x16bc28*/\n      __dst = (char *)v19; /*0x16bc2e*/\n      do /*0x16bd44*/\n      {\n        if ( (*(_BYTE *)(v6 + 44) & 1) != 0 ) /*0x16bc38*/\n        {\n          lock_write(v6 + 48); /*0x16bc3e*/\n        }\n        else\n        {\n          v8 = splhigh(); /*0x16bc4d*/\n          do /*0x16bc62*/\n          {\n            while ( *(_DWORD *)v6 ) /*0x16bc50*/\n              ; /*0x16bc52*/\n          }\n          while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x16bc62*/\n          *(_DWORD *)(v6 + 4) = v8; /*0x16bc64*/\n        }\n        qmemcpy(v20, (const void *)v6, sizeof(v20)); /*0x16bc72*/\n        if ( (*(_BYTE *)(v6 + 44) & 1) != 0 ) /*0x16bc78*/\n        {\n          lock_done(v6 + 48); /*0x16bc7e*/\n        }\n        else\n        {\n          v9 = *(_DWORD *)(v6 + 4); /*0x16bc88*/\n          _InterlockedExchange((volatile __int32 *)v6, 0); /*0x16bc8d*/\n          splx(v9); /*0x16bc90*/\n        }\n        do /*0x16bcb4*/\n        {\n          while ( all_zones_lock ) /*0x16bca2*/\n            ; /*0x16bca0*/\n        }\n        while ( _InterlockedExchange(&all_zones_lock, 1) == 1 ); /*0x16bcb4*/\n        v6 = *(_DWORD *)(v6 + 64); /*0x16bcb6*/\n        _InterlockedExchange(&all_zones_lock, 0); /*0x16bcbb*/\n        strncpy(__dst, (const char *)v20[10], 0x50u); /*0x16bccb*/\n        *v13 = v20[2]; /*0x16bcd6*/\n        v13[1] = v20[5]; /*0x16bcdb*/\n        v13[2] = v20[6]; /*0x16bce1*/\n        v13[3] = v20[7]; /*0x16bce7*/\n        v13[4] = v20[8]; /*0x16bced*/\n        v13[5] = v20[11] & 1; /*0x16bcf9*/\n        v13[6] = (v20[11] & 2) != 0; /*0x16bd06*/\n        v13[7] = (v20[11] & 4) != 0; /*0x16bd14*/\n        v10 = 0; /*0x16bd1a*/\n        if ( v20[15] ) /*0x16bd21*/\n          v10 = v20[15] != (_DWORD)_zone_default_space; /*0x16bd2a*/\n        v13[8] = v10; /*0x16bd2e*/\n        v13 += 9; /*0x16bd34*/\n        __dst += 80; /*0x16bd37*/\n        ++v14; /*0x16bd3b*/\n      }\n      while ( v14 < v15 ); /*0x16bd44*/\n    }\n    if ( *a2 != v19 ) /*0x16bd52*/\n    {\n      if ( v18 != 80 * v15 ) /*0x16bd62*/\n        bzero((void *)(80 * v15 + v22), v18 - 80 * v15); /*0x16bd70*/\n      vm_move(ipc_kernel_map, v22, ipc_soft_map, v18, 1, (int)&v22); /*0x16bd94*/\n      *a2 = v22; /*0x16bd9f*/\n    }\n    *a3 = v15; /*0x16bdaa*/\n    if ( *a4 != v17 ) /*0x16bdb4*/\n    {\n      if ( v16 != 36 * v15 ) /*0x16bdc6*/\n        bzero((void *)(36 * v15 + v21), v16 - 36 * v15); /*0x16bdd4*/\n      vm_move(ipc_kernel_map, v21, ipc_soft_map, v16, 1, (int)&v21); /*0x16bdf8*/\n      *a4 = v21; /*0x16be03*/\n    }\n    *a5 = v15; /*0x16be0b*/\n    return 0; /*0x16be0d*/\n  }\n  v16 = ~page_mask & (page_mask + 36 * v15); /*0x16bbc3*/\n  result = kmem_alloc_pageable(ipc_kernel_map, &v21, v16); /*0x16bbd2*/\n  if ( !result ) /*0x16bbdc*/\n  {\n    v7 = v21; /*0x16bc0c*/\n    goto LABEL_15; /*0x16bc0c*/\n  }\n  if ( *a2 != v19 ) /*0x16bbe6*/\n  {\n    v11 = result; /*0x16bbfb*/\n    kmem_free(ipc_kernel_map, v22, v18); /*0x16bbfe*/\n    return v11; /*0x16bc03*/\n  }\n  return result; /*0x16be12*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6de0",
+        "name": "_all_zones_lock"
+      },
+      {
+        "addr": "0x1f6dec",
+        "name": "_num_zones"
+      },
+      {
+        "addr": "0x1f6de4",
+        "name": "_first_zone"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x173e48",
+        "name": "_kmem_alloc_pageable"
+      },
+      {
+        "addr": "0x1f622c",
+        "name": "_ipc_kernel_map"
+      },
+      {
+        "addr": "0x15b5d0",
+        "name": "_lock_write"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x15b73c",
+        "name": "_lock_done"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      },
+      {
+        "addr": "0x1f6db0",
+        "name": "__zone_default_space"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x178708",
+        "name": "_vm_move"
+      },
+      {
+        "addr": "0x1f6244",
+        "name": "_ipc_soft_map"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016be1c",
+    "addr": "0x0016be1c",
+    "code": "int __cdecl host_zone_free_space_info(int a1, int *a2, unsigned int *a3, int *a4, unsigned int *a5)\n{\n  unsigned int v6; // ebx\n  unsigned int i; // esi\n  _DWORD *v8; // edx\n  unsigned int v9; // ebx\n  _DWORD *v10; // eax\n  _DWORD *j; // eax\n  int v12; // ebx\n  int v13; // ebx\n  unsigned int v14; // [esp+Ch] [ebp-24h]\n  _DWORD *v15; // [esp+Ch] [ebp-24h]\n  _DWORD *v16; // [esp+10h] [ebp-20h]\n  unsigned int v17; // [esp+14h] [ebp-1Ch]\n  unsigned int v18; // [esp+18h] [ebp-18h]\n  unsigned int v19; // [esp+1Ch] [ebp-14h]\n  int v20; // [esp+20h] [ebp-10h] BYREF\n  int v21; // [esp+24h] [ebp-Ch] BYREF\n  int v22; // [esp+28h] [ebp-8h] BYREF\n  int v23; // [esp+2Ch] [ebp-4h] BYREF\n\n  if ( !a1 ) /*0x16be29*/\n    return 22; /*0x16be2b*/\n  v18 = 0; /*0x16be38*/\n  v19 = 0; /*0x16be3f*/\n  while ( 1 ) /*0x16be48*/\n  {\n    v14 = 0; /*0x16be48*/\n    v6 = 0; /*0x16be4f*/\n    do /*0x16be6d*/\n    {\n      while ( zget_space_lock ) /*0x16be5b*/\n        ; /*0x16be59*/\n    }\n    while ( _InterlockedExchange(&zget_space_lock, 1) == 1 ); /*0x16be6d*/\n    v17 = 0; /*0x16be6f*/\n    for ( i = 0; i < zone_free_space_count; ++i ) /*0x16be81*/\n      v17 += *(_DWORD *)(zone_free_space[i] + 12); /*0x16be8e*/\n    if ( *a3 > i ) /*0x16be9b*/\n      v6 = ~page_mask & (page_mask + 12 * i); /*0x16beac*/\n    if ( *a5 < v17 ) /*0x16beb6*/\n      v14 = ~page_mask & (page_mask + 8 * v17); /*0x16bec4*/\n    if ( v19 >= v6 && v14 <= v18 ) /*0x16bed2*/\n      break; /*0x16bed2*/\n    _InterlockedExchange(&zget_space_lock, 0); /*0x16beda*/\n    if ( v19 < v6 ) /*0x16bee3*/\n    {\n      if ( v19 ) /*0x16bee9*/\n        kmem_free(ipc_kernel_map, v23, v19); /*0x16befa*/\n      v19 = v6; /*0x16bf02*/\n      if ( kmem_alloc_pageable(ipc_kernel_map, &v23, v6) ) /*0x16bf11*/\n      {\n        if ( v18 ) /*0x16bf21*/\n          kmem_free(ipc_kernel_map, v22, v18); /*0x16bf2e*/\n        return 6; /*0x16bfb1*/\n      }\n      vm_map_pageable(ipc_kernel_map, v23, v23 + v6, 0); /*0x16bf43*/\n    }\n    if ( v18 < v14 ) /*0x16bf51*/\n    {\n      if ( v18 ) /*0x16bf5b*/\n        kmem_free(ipc_kernel_map, v22, v18); /*0x16bf6c*/\n      v18 = v14; /*0x16bf77*/\n      if ( kmem_alloc_pageable(ipc_kernel_map, &v22, v14) ) /*0x16bf86*/\n      {\n        if ( v19 ) /*0x16bf96*/\n          kmem_free(ipc_kernel_map, v23, v19); /*0x16bfa7*/\n        return 6; /*0x16bfa7*/\n      }\n      vm_map_pageable(ipc_kernel_map, v22, v22 + v14, 0); /*0x16bfcb*/\n    }\n  }\n  if ( v19 ) /*0x16bfdc*/\n    v15 = (_DWORD *)v23; /*0x16bfe1*/\n  else\n    v15 = (_DWORD *)*a2; /*0x16bfed*/\n  if ( v18 ) /*0x16bff4*/\n    v8 = (_DWORD *)v22; /*0x16bff6*/\n  else\n    v8 = (_DWORD *)*a4; /*0x16bfff*/\n  v9 = 0; /*0x16c001*/\n  if ( i ) /*0x16c005*/\n  {\n    v16 = v15 + 2; /*0x16c00d*/\n    do /*0x16c054*/\n    {\n      v10 = (_DWORD *)zone_free_space[v9]; /*0x16c010*/\n      *v15 = *v10; /*0x16c01c*/\n      *(v16 - 1) = v10[1]; /*0x16c024*/\n      *v16 = v10[3]; /*0x16c02a*/\n      v16 += 3; /*0x16c02f*/\n      v15 += 3; /*0x16c032*/\n      for ( j = (_DWORD *)v10[2]; j; j = (_DWORD *)*j ) /*0x16c03b*/\n      {\n        *v8 = j; /*0x16c040*/\n        v8[1] = j[1]; /*0x16c045*/\n        v8 += 2; /*0x16c048*/\n      }\n      ++v9; /*0x16c051*/\n    }\n    while ( v9 < i ); /*0x16c054*/\n  }\n  _InterlockedExchange(&zget_space_lock, 0); /*0x16c058*/\n  if ( i ) /*0x16c060*/\n  {\n    if ( v19 ) /*0x16c066*/\n    {\n      v12 = ~page_mask & (page_mask + 12 * i); /*0x16c07b*/\n      vm_map_pageable(ipc_kernel_map, v23, v12 + v23, 1); /*0x16c08e*/\n      vm_move(ipc_kernel_map, v23, ipc_soft_map, v12, 1, (int)&v21); /*0x16c0ac*/\n      if ( v19 != v12 ) /*0x16c0b7*/\n        kmem_free(ipc_kernel_map, v12 + v23, v19 - v12); /*0x16c0cc*/\n      *a2 = v21; /*0x16c0da*/\n    }\n  }\n  else\n  {\n    *a2 = 0; /*0x16c0e3*/\n    if ( v19 ) /*0x16c0ed*/\n      kmem_free(ipc_kernel_map, v23, v19); /*0x16c0fe*/\n  }\n  *a3 = i; /*0x16c109*/\n  if ( v17 ) /*0x16c10f*/\n  {\n    if ( v18 ) /*0x16c115*/\n    {\n      v13 = ~page_mask & (page_mask + 8 * v17); /*0x16c12a*/\n      vm_map_pageable(ipc_kernel_map, v22, v13 + v22, 1); /*0x16c13d*/\n      vm_move(ipc_kernel_map, v22, ipc_soft_map, v13, 1, (int)&v20); /*0x16c15b*/\n      if ( v18 != v13 ) /*0x16c166*/\n        kmem_free(ipc_kernel_map, v13 + v22, v18 - v13); /*0x16c17b*/\n      *a4 = v20; /*0x16c186*/\n    }\n  }\n  else\n  {\n    *a4 = 0; /*0x16c18f*/\n    if ( v18 ) /*0x16c199*/\n      kmem_free(ipc_kernel_map, v22, v18); /*0x16c1aa*/\n  }\n  *a5 = v17; /*0x16c1b5*/\n  return 0; /*0x16c1bc*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f6df4",
+        "name": "_zget_space_lock"
+      },
+      {
+        "addr": "0x1f6e00",
+        "name": "_zone_free_space"
+      },
+      {
+        "addr": "0x1f6e20",
+        "name": "_zone_free_space_count"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      },
+      {
+        "addr": "0x173e90",
+        "name": "_kmem_free"
+      },
+      {
+        "addr": "0x1f622c",
+        "name": "_ipc_kernel_map"
+      },
+      {
+        "addr": "0x173e48",
+        "name": "_kmem_alloc_pageable"
+      },
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x178708",
+        "name": "_vm_move"
+      },
+      {
+        "addr": "0x1f6244",
+        "name": "_ipc_soft_map"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016c1c4",
+    "addr": "0x0016c1c4",
+    "code": "void __noreturn kern_server_main()\n{\n  int v0; // eax\n  int v1; // edx\n  _DWORD *v2; // eax\n  _DWORD *v3; // ecx\n  int v4; // ebx\n  _DWORD *v5; // edx\n  int v6; // eax\n  int v7; // eax\n  int v8; // eax\n  int v9; // eax\n  int v10; // eax\n  int v11; // eax\n  _DWORD *v12; // eax\n  volatile __int32 *v13; // edx\n  _DWORD *i; // ecx\n  int v15; // ebx\n  _DWORD *v16; // edx\n  volatile __int32 *v17; // eax\n  volatile __int32 *v18; // edx\n  _DWORD *v19; // ecx\n  _DWORD *v20; // eax\n  int v21; // eax\n  unsigned int v22; // ebx\n  int v23; // eax\n  int (__cdecl *v24)(_DWORD); // eax\n  void (__cdecl *v25)(_DWORD, int); // eax\n  void (__cdecl *v26)(_DWORD, _DWORD); // eax\n  _DWORD *v27; // ebx\n  _DWORD *v28; // ecx\n  void *v29; // eax\n  int v30; // [esp-4h] [ebp-68h]\n  _DWORD *v31; // [esp+Ch] [ebp-58h]\n  int v32; // [esp+Ch] [ebp-58h]\n  _DWORD *j; // [esp+Ch] [ebp-58h]\n  int v34; // [esp+10h] [ebp-54h]\n  _DWORD *v35; // [esp+10h] [ebp-54h]\n  int v36; // [esp+18h] [ebp-4Ch]\n  int v37; // [esp+20h] [ebp-44h]\n  void *v38; // [esp+24h] [ebp-40h] BYREF\n  _DWORD v39[15]; // [esp+28h] [ebp-3Ch] BYREF\n\n  v38 = (void *)kalloc(0x4D4u); /*0x16c1d7*/\n  qmemcpy(v39, &kern_serv_proto, sizeof(v39)); /*0x16c1ec*/\n  v39[0] = &v38; /*0x16c1f1*/\n  v0 = *(_DWORD *)(active_threads + 12); /*0x16c1f9*/\n  if ( kernel_task != v0 ) /*0x16c205*/\n    *(_DWORD *)(v0 + 80) = 1; /*0x16c207*/\n  bzero(v38, 0x4D4u); /*0x16c217*/\n  *((_DWORD *)v38 + 306) = -1; /*0x16c21f*/\n  v1 = task_self(); /*0x16c22e*/\n  v2 = v38; /*0x16c230*/\n  *((_DWORD *)v38 + 2) = v1; /*0x16c233*/\n  v2[3] = active_threads; /*0x16c23c*/\n  *v2 = 0; /*0x16c242*/\n  v2[14] = v2 + 13; /*0x16c24b*/\n  v2[13] = v2 + 13; /*0x16c24e*/\n  v3 = v2 + 15; /*0x16c251*/\n  v2[16] = v2 + 15; /*0x16c254*/\n  v2[15] = v2 + 15; /*0x16c257*/\n  v2[305] = v2 + 304; /*0x16c260*/\n  v2[304] = v2 + 304; /*0x16c266*/\n  v34 = 19; /*0x16c26c*/\n  v4 = 95; /*0x16c273*/\n  v31 = v2 + 76; /*0x16c27e*/\n  do /*0x16c2b5*/\n  {\n    v5 = (_DWORD *)v2[16]; /*0x16c284*/\n    if ( v3 == v5 ) /*0x16c289*/\n      v2[15] = &v2[v4]; /*0x16c28e*/\n    else\n      v5[2] = &v2[v4]; /*0x16c297*/\n    v31[22] = v5; /*0x16c29d*/\n    v31[21] = v3; /*0x16c2a0*/\n    v2[16] = &v2[v4]; /*0x16c2a6*/\n    v4 -= 4; /*0x16c2a9*/\n    v31 -= 4; /*0x16c2af*/\n    --v34; /*0x16c2b2*/\n  }\n  while ( v34 >= 0 ); /*0x16c2b5*/\n  v6 = thread_self(2); /*0x16c2bd*/\n  if ( thread_get_special_port_EXTERNAL(v6) || !v37 )\n  {\n    printf(\"k_server: can't find listener port..terminating\\n\");\n    thread_terminate(active_threads); /*0x16c2e6*/\n    thread_halt_self(); /*0x16c2eb*/\n  }\n  *((_DWORD *)v38 + 5) = v37; /*0x16c2f9*/\n  v7 = task_self(); /*0x16c300*/\n  if ( port_allocate_EXTERNAL(v7) )\n  {\n    printf(\"k_server: can't allocate reply port..terminating\\n\");\n    thread_terminate(active_threads); /*0x16c323*/\n    thread_halt_self(); /*0x16c328*/\n  }\n  v8 = thread_self(2); /*0x16c336*/\n  if ( thread_set_special_port_EXTERNAL(v8) )\n  {\n    printf(\"k_server: can't set reply port..terminating\\n\");\n    thread_terminate(active_threads); /*0x16c359*/\n    thread_halt_self(); /*0x16c35e*/\n  }\n  v9 = task_self(); /*0x16c36a*/\n  if ( port_set_allocate_EXTERNAL(v9) )\n  {\n    printf(\"k_server: can't allocate port set..terminating\\n\");\n    thread_terminate(active_threads); /*0x16c38d*/\n    thread_halt_self(); /*0x16c392*/\n  }\n  *((_DWORD *)v38 + 8) = v36; /*0x16c3a0*/\n  v10 = task_self(); /*0x16c3ab*/\n  if ( port_set_add_EXTERNAL(v10) )\n  {\n    printf(\"k_server: can't add listener port\\n\");\n    thread_terminate(active_threads); /*0x16c3ce*/\n    thread_halt_self(); /*0x16c3d3*/\n  }\n  if ( port_allocate_EXTERNAL(*((_DWORD *)v38 + 2)) ) /*0x16c3e6*/\n    kern_serv_panic(*((_DWORD *)v38 + 4), aKServerCanTGet); /*0x16c418*/\n  else\n    port_set_add_EXTERNAL(*((_DWORD *)v38 + 2)); /*0x16c401*/\n  if ( *(_DWORD *)(active_threads + 12) != kernel_task ) /*0x16c42e*/\n  {\n    v30 = *((_DWORD *)v38 + 7); /*0x16c436*/\n    v11 = task_self(); /*0x16c439*/\n    task_set_special_port_EXTERNAL(v11, 2, v30); /*0x16c43f*/\n  }\n  kern_serv_notify(&v38, *((_DWORD *)v38 + 7), *((_DWORD *)v38 + 4)); /*0x16c456*/\n  *((_DWORD *)v38 + 307) = kern_serv_kernel_task_port(); /*0x16c465*/\n  v35 = (_DWORD *)kalloc(0x30u); /*0x16c472*/\n  v12 = v38; /*0x16c475*/\n  *((_DWORD *)v38 + 17) = v35; /*0x16c47b*/\n  v12[18] = 48; /*0x16c47e*/\n  while ( 1 ) /*0x16c48d*/\n  {\n    v32 = splhigh(); /*0x16c48d*/\n    v13 = (volatile __int32 *)v38; /*0x16c490*/\n    do /*0x16c4a6*/\n    {\n      while ( *v13 ) /*0x16c494*/\n        ; /*0x16c496*/\n    }\n    while ( _InterlockedExchange(v13, 1) == 1 ); /*0x16c4a6*/\n    for ( i = v38; (_DWORD *)i[13] != i + 13; i = v20 ) /*0x16c4a8*/\n    {\n      v15 = i[13]; /*0x16c4b0*/\n      v16 = *(_DWORD **)(v15 + 8); /*0x16c4b3*/\n      if ( i + 13 == v16 ) /*0x16c4bb*/\n        i[14] = v16; /*0x16c4bd*/\n      else\n        v16[3] = i + 13; /*0x16c4c4*/\n      v17 = (volatile __int32 *)v38; /*0x16c4c7*/\n      *((_DWORD *)v38 + 13) = v16; /*0x16c4ca*/\n      _InterlockedExchange(v17, 0); /*0x16c4cf*/\n      splx(v32); /*0x16c4d5*/\n      (*(void (__cdecl **)(_DWORD))v15)(*(_DWORD *)(v15 + 4)); /*0x16c4e0*/\n      v32 = splhigh(); /*0x16c4e7*/\n      v18 = (volatile __int32 *)v38; /*0x16c4ea*/\n      do /*0x16c502*/\n      {\n        while ( *v18 ) /*0x16c4f0*/\n          ; /*0x16c4f2*/\n      }\n      while ( _InterlockedExchange(v18, 1) == 1 ); /*0x16c502*/\n      v19 = *((_DWORD **)v38 + 16); /*0x16c507*/\n      if ( (char *)v38 + 60 == (char *)v19 ) /*0x16c50f*/\n        *((_DWORD *)v38 + 15) = v15; /*0x16c511*/\n      else\n        v19[2] = v15; /*0x16c518*/\n      *(_DWORD *)(v15 + 12) = v19; /*0x16c51b*/\n      v20 = v38; /*0x16c51e*/\n      *(_DWORD *)(v15 + 8) = (char *)v38 + 60; /*0x16c524*/\n      v20[16] = v15; /*0x16c527*/\n    }\n    _InterlockedExchange((volatile __int32 *)v38, 0); /*0x16c53d*/\n    splx(v32); /*0x16c543*/\n    while ( 1 ) /*0x16c551*/\n    {\n      v35[3] = v36; /*0x16c551*/\n      v35[1] = *((_DWORD *)v38 + 18); /*0x16c55a*/\n      v21 = msg_receive(v35, 0, 1000); /*0x16c568*/\n      if ( v21 != -204 ) /*0x16c575*/\n        break; /*0x16c575*/\n      v22 = *(_DWORD *)(*((_DWORD *)v38 + 17) + 4); /*0x16c59e*/\n      kfree(*((_DWORD *)v38 + 17), *((_DWORD *)v38 + 18)); /*0x16c5a6*/\n      *((_DWORD *)v38 + 18) = v22; /*0x16c5ae*/\n      v23 = kalloc(v22); /*0x16c5b2*/\n      *((_DWORD *)v38 + 17) = v23; /*0x16c5bc*/\n      v35 = (_DWORD *)v23; /*0x16c5bf*/\n    }\n    if ( v21 <= -204 ) /*0x16c577*/\n      break; /*0x16c577*/\n    if ( v21 != -203 ) /*0x16c589*/\n    {\n      if ( v21 ) /*0x16c591*/\nLABEL_49:\n        kern_serv_panic(*((_DWORD *)v38 + 4), aKernServerMain); /*0x16c5c8*/\nLABEL_50:\n      if ( v35[3] == *((_DWORD *)v38 + 7) ) /*0x16c5e8*/\n      {\n        if ( v35[5] == 65 ) /*0x16c5f3*/\n        {\n          v24 = *((int (__cdecl **)(_DWORD))v38 + 302); /*0x16c5f5*/\n          if ( v24 ) /*0x16c5fd*/\n          {\n            if ( !v24(v35[7]) ) /*0x16c603*/\n              goto LABEL_57; /*0x16c60a*/\n          }\n          else\n          {\n            v25 = *((void (__cdecl **)(_DWORD, int))v38 + 303); /*0x16c614*/\n            if ( v25 ) /*0x16c61c*/\n              v25(v35[7], 65); /*0x16c627*/\nLABEL_57:\n            kern_serv_port_gone((int *)&v38, v35[7]); /*0x16c62c*/\n          }\n        }\n        else\n        {\n          v26 = *((void (__cdecl **)(_DWORD, _DWORD))v38 + 303); /*0x16c644*/\n          if ( v26 ) /*0x16c64c*/\n            v26(v35[7], v35[5]); /*0x16c65a*/\n        }\n      }\n      else\n      {\n        if ( (unsigned int)(v35[5] - 64) <= 0xC ) /*0x16c670*/\n        {\n          for ( j = *((_DWORD **)v38 + 304); (char *)v38 + 1216 != (char *)j; j = (_DWORD *)j[2] ) /*0x16c68a*/\n          {\n            if ( j[1] == v35[7] ) /*0x16c69c*/\n            {\n              v35[4] = *j; /*0x16c6a3*/\n              msg_send(v35, 0, 0); /*0x16c6ab*/\n              v27 = (_DWORD *)j[2]; /*0x16c6b6*/\n              v28 = (_DWORD *)j[3]; /*0x16c6b9*/\n              if ( (char *)v38 + 1216 == (char *)v27 ) /*0x16c6c7*/\n                *((_DWORD *)v38 + 305) = v28; /*0x16c6c9*/\n              else\n                v27[3] = v28; /*0x16c6d4*/\n              if ( (char *)v38 + 1216 == (char *)v28 ) /*0x16c6e2*/\n                *((_DWORD *)v38 + 304) = v27; /*0x16c6e4*/\n              else\n                v28[2] = v27; /*0x16c6ec*/\n              kfree(j, 16); /*0x16c6f5*/\n            }\n          }\n        }\n        v29 = v38; /*0x16c716*/\n        *((_DWORD *)v38 + 1) = v35[3]; /*0x16c71f*/\n        if ( sub_16C758(v35, v29) == -303 && v35[3] == v37 ) /*0x16c740*/\n          kern_serv_handler(v35, v39); /*0x16c74b*/\n      }\n    }\n  }\n  if ( v21 != -207 ) /*0x16c57e*/\n    goto LABEL_49; /*0x16c57e*/\n  goto LABEL_50; /*0x16c57e*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1d1284",
+        "name": "_kern_serv_proto"
+      },
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x1dfb90",
+        "name": "_kernel_task"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x159c34",
+        "name": "_thread_self"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dfd90",
+        "name": "aKServerCanTFin",
+        "string": "k_server: can't find listener port..terminating\n"
+      },
+      {
+        "addr": "0x16727c",
+        "name": "_thread_terminate"
+      },
+      {
+        "addr": "0x1678b4",
+        "name": "_thread_halt_self"
+      },
+      {
+        "addr": "0x1d08a8",
+        "name": "_thread_get_special_port_EXTERNAL"
+      },
+      {
+        "addr": "0x1dfdc1",
+        "name": "aKServerCanTAll",
+        "string": "k_server: can't allocate reply port..terminating\n"
+      },
+      {
+        "addr": "0x1d0440",
+        "name": "_port_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1dfdf3",
+        "name": "aKServerCanTSet",
+        "string": "k_server: can't set reply port..terminating\n"
+      },
+      {
+        "addr": "0x1d0980",
+        "name": "_thread_set_special_port_EXTERNAL"
+      },
+      {
+        "addr": "0x1dfe20",
+        "name": "aKServerCanTAll_0",
+        "string": "k_server: can't allocate port set..terminating\n"
+      },
+      {
+        "addr": "0x1d0674",
+        "name": "_port_set_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1dfe50",
+        "name": "aKServerCanTAdd",
+        "string": "k_server: can't add listener port\n"
+      },
+      {
+        "addr": "0x1d05b4",
+        "name": "_port_set_add_EXTERNAL"
+      },
+      {
+        "addr": "0x16dca8",
+        "name": "_kern_serv_panic"
+      },
+      {
+        "addr": "0x1dfe73",
+        "name": "aKServerCanTGet",
+        "string": "k_server: can't get notify port"
+      },
+      {
+        "addr": "0x1d07e8",
+        "name": "_task_set_special_port_EXTERNAL"
+      },
+      {
+        "addr": "0x16c9a0",
+        "name": "_kern_serv_notify"
+      },
+      {
+        "addr": "0x16d1bc",
+        "name": "_kern_serv_kernel_task_port"
+      },
+      {
+        "addr": "0x18c0d8",
+        "name": "_splhigh"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1588d4",
+        "name": "_msg_receive"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      },
+      {
+        "addr": "0x1dfe93",
+        "name": "aKernServerMain",
+        "string": "kern_server_main: received return bad return from msg_receive"
+      },
+      {
+        "addr": "0x16c8d4",
+        "name": "_kern_serv_port_gone"
+      },
+      {
+        "addr": "0x158774",
+        "name": "_msg_send"
+      },
+      {
+        "addr": "0x16d650",
+        "name": "_kern_serv_handler"
+      },
+      {
+        "addr": "0x16c758",
+        "name": "sub_16C758"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016c758",
+    "addr": "0x0016c758",
+    "code": "int __cdecl sub_16C758(int a1, _DWORD *a2)\n{\n  int v3; // edx\n  int v4; // eax\n  int v5; // ebx\n  int v6; // eax\n  int v7; // eax\n  int v8; // ebx\n  int v9; // edx\n  int v10; // ebx\n  int v11; // eax\n  int v12; // [esp+Ch] [ebp-8h]\n  _DWORD *v13; // [esp+Ch] [ebp-8h]\n  int v14; // [esp+10h] [ebp-4h]\n\n  v12 = -200; /*0x16c76a*/\n  if ( !a2 ) /*0x16c773*/\n    return -303; /*0x16c77a*/\n  v3 = *(_DWORD *)(a1 + 12); /*0x16c783*/\n  if ( a2[299] != v3 ) /*0x16c78c*/\n  {\n    if ( a2[300] == v3 ) /*0x16c7a2*/\n    {\n      v4 = 4 * a2[301]; /*0x16c7a4*/\n      v5 = (int)&a2[v4 + 99]; /*0x16c7a7*/\n      if ( !a2[v4 + 102] ) /*0x16c7ae*/\n      {\nLABEL_7:\n        v6 = ((int (__cdecl *)(int, _DWORD))a2[v4 + 100])(a1, a2[v4 + 101]); /*0x16c7b4*/\nLABEL_19:\n        v12 = v6; /*0x16c8a8*/\n        goto LABEL_20; /*0x16c8a8*/\n      }\n      v13 = (_DWORD *)kalloc(0x2000u); /*0x16c7d2*/\n      *(_DWORD *)(a1 + 12) = *(_DWORD *)(v5 + 8); /*0x16c7db*/\n      (*(void (__cdecl **)(int, _DWORD *))(v5 + 4))(a1, v13); /*0x16c7e9*/\n      if ( v13[7] != -305 ) /*0x16c7f5*/\n        goto LABEL_17; /*0x16c7f5*/\n    }\n    else\n    {\n      v7 = 0; /*0x16c800*/\n      v8 = *(_DWORD *)(a1 + 12); /*0x16c802*/\n      v9 = 0; /*0x16c804*/\n      do /*0x16c818*/\n      {\n        if ( a2[v9 + 99] == v8 ) /*0x16c80f*/\n          break; /*0x16c80f*/\n        v9 += 4; /*0x16c811*/\n        ++v7; /*0x16c814*/\n      }\n      while ( v7 <= 49 ); /*0x16c818*/\n      if ( v7 == 50 ) /*0x16c81d*/\n        goto LABEL_20; /*0x16c81d*/\n      a2[300] = v8; /*0x16c823*/\n      a2[301] = v7; /*0x16c829*/\n      v4 = 4 * v7; /*0x16c82f*/\n      v10 = (int)&a2[v4 + 99]; /*0x16c832*/\n      if ( !a2[v4 + 102] ) /*0x16c83d*/\n        goto LABEL_7; /*0x16c83d*/\n      v13 = (_DWORD *)kalloc(0x2000u); /*0x16c85a*/\n      *(_DWORD *)(a1 + 12) = *(_DWORD *)(v10 + 8); /*0x16c863*/\n      (*(void (__cdecl **)(int, _DWORD *))(v10 + 4))(a1, v13); /*0x16c871*/\n      if ( v13[7] != -305 ) /*0x16c87d*/\n      {\nLABEL_17:\n        v11 = msg_send(v13, 0, 0); /*0x16c884*/\n        goto LABEL_18; /*0x16c88c*/\n      }\n    }\n    v11 = 0; /*0x16c87f*/\nLABEL_18:\n    v14 = v11; /*0x16c894*/\n    kfree(v13, 0x2000); /*0x16c8a0*/\n    v6 = v14; /*0x16c8a5*/\n    goto LABEL_19; /*0x16c8a5*/\n  }\n  v12 = -303; /*0x16c78e*/\nLABEL_20:\n  if ( v12 == -200 ) /*0x16c8b2*/\n  {\n    a2[299] = *(_DWORD *)(a1 + 12); /*0x16c8ba*/\n    return -303; /*0x16c8c0*/\n  }\n  return v12; /*0x16c8cd*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x158774",
+        "name": "_msg_send"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016c8d4",
+    "addr": "0x0016c8d4",
+    "code": "int __cdecl kern_serv_port_gone(int *a1, int a2)\n{\n  int result; // eax\n  int v3; // ecx\n  int i; // edx\n\n  result = *a1; /*0x16c8de*/\n  if ( *a1 ) /*0x16c8de*/\n  {\n    if ( *(_DWORD *)(result + 1200) == a2 ) /*0x16c8ea*/\n      *(_DWORD *)(result + 1200) = 0; /*0x16c8ec*/\n    v3 = 0; /*0x16c8f6*/\n    for ( i = 0; *(_DWORD *)(i + result + 396) != a2; i += 16 ) /*0x16c8f8*/\n    {\n      if ( ++v3 > 49 ) /*0x16c927*/\n        return result; /*0x16c927*/\n    }\n    *(_DWORD *)(i + result + 396) = 0; /*0x16c905*/\n    *(_DWORD *)(i + result + 400) = 0; /*0x16c910*/\n  }\n  return result; /*0x16c929*/\n}"
+  },
+  {
+    "requested_address": "0x0016c930",
+    "addr": "0x0016c930",
+    "code": "int __cdecl kern_serv_instance_loc(_DWORD *a1, _DWORD *a2)\n{\n  *a2 = *a1; /*0x16c93b*/\n  return 0; /*0x16c941*/\n}"
+  },
+  {
+    "requested_address": "0x0016c944",
+    "addr": "0x0016c944",
+    "code": "int __cdecl kern_serv_version(int a1, int a2)\n{\n  if ( a2 <= 1 ) /*0x16c952*/\n    return 103; /*0x16c960*/\n  *(_DWORD *)(*(_DWORD *)a1 + 1224) = a2; /*0x16c954*/\n  return 0; /*0x16c95e*/\n}"
+  },
+  {
+    "requested_address": "0x0016c96c",
+    "addr": "0x0016c96c",
+    "code": "int __cdecl kern_serv_load_objc(int a1, mach_header *mhp)\n{\n  *(_DWORD *)(*(_DWORD *)a1 + 1232) = mhp; /*0x16c977*/\n  objc_registerModule(mhp, 0); /*0x16c980*/\n  return 0; /*0x16c989*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce0cc",
+        "name": "_objc_registerModule"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016c98c",
+    "addr": "0x0016c98c",
+    "code": "int __cdecl kern_serv_boot_port(int a1, int a2)\n{\n  *(_DWORD *)(*(_DWORD *)a1 + 16) = a2; /*0x16c997*/\n  return 0; /*0x16c99e*/\n}"
+  },
+  {
+    "requested_address": "0x0016c9a0",
+    "addr": "0x0016c9a0",
+    "code": "int __cdecl kern_serv_notify(_DWORD *a1, int a2, int a3)\n{\n  _DWORD *v3; // ebx\n  int v4; // edx\n  int result; // eax\n  _DWORD *v6; // edx\n  _DWORD *v7; // edx\n  _DWORD *v8; // ecx\n  int v9; // [esp+10h] [ebp-8h] BYREF\n  int v10; // [esp+14h] [ebp-4h] BYREF\n\n  v3 = (_DWORD *)*a1; /*0x16c9b2*/\n  v4 = *(_DWORD *)(active_threads + 12); /*0x16c9b9*/\n  if ( kernel_task == v4 ) /*0x16c9c2*/\n  {\n    result = get_kern_port(v4, a3, &v10); /*0x16ca42*/\n    if ( !result ) /*0x16ca4c*/\n    {\n      result = get_kern_port(*(_DWORD *)(active_threads + 12), a2, &v9); /*0x16ca5c*/\n      if ( !result ) /*0x16ca66*/\n      {\n        port_request_notification(v10, v9); /*0x16ca70*/\n        return 0; /*0x16ca75*/\n      }\n    }\n  }\n  else if ( v3[7] == a2 ) /*0x16c9c7*/\n  {\n    return 0; /*0x16c9c9*/\n  }\n  else\n  {\n    v6 = (_DWORD *)v3[304]; /*0x16c9d0*/\n    if ( v3 + 304 == v6 ) /*0x16c9de*/\n    {\nLABEL_8:\n      v7 = (_DWORD *)kalloc(0x10u); /*0x16c9f4*/\n      *v7 = a2; /*0x16ca00*/\n      v7[1] = a3; /*0x16ca05*/\n      v8 = (_DWORD *)v3[305]; /*0x16ca08*/\n      if ( v3 + 304 == v8 ) /*0x16ca16*/\n        v3[304] = v7; /*0x16ca18*/\n      else\n        v8[2] = v7; /*0x16ca20*/\n      v7[3] = v8; /*0x16ca23*/\n      v7[2] = v3 + 304; /*0x16ca2c*/\n      v3[305] = v7; /*0x16ca2f*/\n      return 0; /*0x16ca35*/\n    }\n    else\n    {\n      while ( *v6 != a2 || v6[1] != a3 ) /*0x16c9e7*/\n      {\n        v6 = (_DWORD *)v6[2]; /*0x16c9ed*/\n        if ( v3 + 304 == v6 ) /*0x16c9f2*/\n          goto LABEL_8; /*0x16c9f2*/\n      }\n      return 5; /*0x16ca7c*/\n    }\n  }\n  return result; /*0x16ca84*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e8b54",
+        "name": "_active_threads"
+      },
+      {
+        "addr": "0x16d60c",
+        "name": "_get_kern_port"
+      },
+      {
+        "addr": "0x16d554",
+        "name": "_port_request_notification"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1dfb90",
+        "name": "_kernel_task"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016ca8c",
+    "addr": "0x0016ca8c",
+    "code": "int __cdecl kern_serv_wire_range(int a1, int a2, int a3)\n{\n  return vm_map_pageable(*(_DWORD *)(kernel_task + 12), ~page_mask & a2, ~page_mask & (page_mask + a3 + a2), 0); /*0x16cab9*/\n}",
+    "refs": [
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x1dfb90",
+        "name": "_kernel_task"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0016cabc",
+    "addr": "0x0016cabc",
+    "code": "int __cdecl kern_serv_unwire_range(int a1, int a2, int a3)\n{\n  return vm_map_pageable(*(_DWORD *)(kernel_task + 12), ~page_mask & a2, ~page_mask & (page_mask + a3 + a2), 1); /*0x16cae9*/\n}",
+    "refs": [
+      {
+        "addr": "0x175b2c",
+        "name": "_vm_map_pageable"
+      },
+      {
+        "addr": "0x1dfb90",
+        "name": "_kernel_task"
+      },
+      {
+        "addr": "0x1e89ec",
+        "name": "_page_mask"
+      }
+    ]
+  }
+]

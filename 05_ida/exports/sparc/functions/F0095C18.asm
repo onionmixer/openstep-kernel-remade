@@ -1,0 +1,21 @@
+F0095C18: 82102300                 mov     0x300, %g1
+F0095C1C: c0804080                 lda     [%g1]#ASI_NUCLEUS, %g0
+F0095C20: 84102000                 mov     0, %g2
+F0095C24: c2808080                 lda     [%g2]#ASI_NUCLEUS, %g1
+F0095C28: 82106002                 bset    2, %g1
+F0095C2C: c2a08080                 sta     %g1, [%g2]#ASI_NUCLEUS
+F0095C30: e03ba000                 std     %l0, [%sp+arg_0]
+F0095C34: e43ba008                 std     %l2, [%sp+arg_8]
+F0095C38: e83ba010                 std     %l4, [%sp+arg_10]
+F0095C3C: ec3ba018                 std     %l6, [%sp+arg_18]
+F0095C40: f03ba020                 std     %i0, [%sp+arg_20]
+F0095C44: f43ba028                 std     %i2, [%sp+arg_28]
+F0095C48: f83ba030                 std     %i4, [%sp+arg_30]
+F0095C4C: fc3ba038                 std     %fp, [%sp+arg_38]
+F0095C50: 82286002                 bclr    2, %g1
+F0095C54: c2a08080                 sta     %g1, [%g2]#ASI_NUCLEUS
+F0095C58: 84102400                 mov     0x400, %g2
+F0095C5C: c4808080                 lda     [%g2]#ASI_NUCLEUS, %g2
+F0095C60: 82102300                 mov     0x300, %g1
+F0095C64: c2804080                 lda     [%g1]#ASI_NUCLEUS, %g1
+F0095C68: 30bdb5f3                 ba,a    st_chk_flt

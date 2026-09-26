@@ -1,0 +1,433 @@
+[
+  {
+    "requested_address": "0x00137060",
+    "addr": "0x00137060",
+    "code": "void __cdecl svcerr_progvers(SVCXPRT *a1, unsigned __int32 a2, unsigned __int32 a3)\n{\n  _BYTE v3[4]; // [esp+4h] [ebp-30h] BYREF\n  int v4; // [esp+8h] [ebp-2Ch]\n  int v5; // [esp+Ch] [ebp-28h]\n  opaque_auth xp_verf; // [esp+10h] [ebp-24h]\n  int v7; // [esp+1Ch] [ebp-18h]\n  unsigned __int32 v8; // [esp+20h] [ebp-14h]\n  unsigned __int32 v9; // [esp+24h] [ebp-10h]\n\n  v4 = 1; /*0x137070*/\n  v5 = 0; /*0x137077*/\n  xp_verf = a1->xp_verf; /*0x137081*/\n  v7 = 2; /*0x137090*/\n  v8 = a2; /*0x137097*/\n  v9 = a3; /*0x13709a*/\n  a1->xp_ops->xp_reply(a1, v3); /*0x1370a8*/\n}"
+  },
+  {
+    "requested_address": "0x001370b4",
+    "addr": "0x001370b4",
+    "code": "void __cdecl svc_getreq(int a1)\n{\n  auth_stat v1; // eax\n  unsigned int v2; // ebx\n  int i; // edx\n  unsigned int v4; // eax\n  int v5; // eax\n  unsigned int v6; // [esp+Ch] [ebp-9Ch]\n  int v7; // [esp+10h] [ebp-98h]\n  unsigned __int32 v8; // [esp+24h] [ebp-84h]\n  char v9[4]; // [esp+28h] [ebp-80h] BYREF\n  int v10; // [esp+2Ch] [ebp-7Ch]\n  int v11; // [esp+30h] [ebp-78h]\n  int v12; // [esp+34h] [ebp-74h]\n  auth_stat v13; // [esp+38h] [ebp-70h]\n  int v14; // [esp+3Ch] [ebp-6Ch]\n  int v15; // [esp+40h] [ebp-68h]\n  unsigned int v16; // [esp+44h] [ebp-64h]\n  unsigned int v17; // [esp+48h] [ebp-60h]\n  svc_req v18; // [esp+58h] [ebp-50h] BYREF\n  rpc_msg v19; // [esp+78h] [ebp-30h] BYREF\n\n  if ( rqcred_head ) /*0x1370ca*/\n  {\n    v8 = rqcred_head; /*0x1370cc*/\n    rqcred_head = *(_DWORD *)rqcred_head; /*0x1370d4*/\n  }\n  else\n  {\n    v8 = kalloc(0x4B0u); /*0x1370f6*/\n  }\n  v19.ru.RM_rmb.ru.RP_ar.ru.AR_versions.low = v8; /*0x137105*/\n  v19.ru.RM_cmb.cb_verf.oa_base = (caddr_t)(v8 + 400); /*0x13710e*/\n  v18.rq_clntcred = (caddr_t)(v8 + 800); /*0x13711d*/\n  while ( 1 ) /*0x137134*/\n  {\n    if ( !(**(int (__cdecl ***)(int, rpc_msg *))(a1 + 8))(a1, &v19) ) /*0x137148*/\n      goto LABEL_22; /*0x137148*/\n    v18.rq_xprt = (SVCXPRT *)a1; /*0x13714e*/\n    *(_QWORD *)&v18.rq_prog = *(_QWORD *)&v19.ru.RM_rmb.ru.RP_ar.ar_verf.oa_flavor; /*0x137154*/\n    *(rejected_reply::$6C15D86E9FF71BEC28C6FBB4951D0AF6 *)&v18.rq_proc = *(rejected_reply::$6C15D86E9FF71BEC28C6FBB4951D0AF6 *)((char *)&v19.ru.RM_rmb.ru.RP_dr.ru + 4); /*0x137160*/\n    *(_QWORD *)&v18.rq_cred.oa_base = *((_QWORD *)&v19.ru.RM_rmb.ru.RP_dr + 2); /*0x13716c*/\n    v1 = _authenticate(&v18, &v19); /*0x137180*/\n    if ( v1 ) /*0x13718a*/\n    {\n      v10 = 1; /*0x13718c*/\n      v11 = 1; /*0x137193*/\n      v12 = 1; /*0x13719a*/\n      v13 = v1; /*0x1371a1*/\n      (*(void (__cdecl **)(int, char *))(*(_DWORD *)(a1 + 8) + 12))(a1, v9); /*0x1371b2*/\n      goto LABEL_22; /*0x1371b7*/\n    }\n    v7 = 0; /*0x1371bc*/\n    v6 = -1; /*0x1371c6*/\n    v2 = 0; /*0x1371d0*/\n    for ( i = dword_1E5A1C; i; i = *(_DWORD *)i ) /*0x1371da*/\n    {\n      if ( *(_DWORD *)(i + 4) == v18.rq_prog ) /*0x1371f9*/\n      {\n        v4 = *(_DWORD *)(i + 8); /*0x1371fb*/\n        if ( v18.rq_vers == v4 ) /*0x137204*/\n        {\n          (*(void (__cdecl **)(svc_req *, int))(i + 12))(&v18, a1); /*0x137270*/\n          goto LABEL_22; /*0x137275*/\n        }\n        v7 = 1; /*0x137206*/\n        if ( v6 > v4 ) /*0x137216*/\n          v6 = *(_DWORD *)(i + 8); /*0x137218*/\n        if ( v4 > v2 ) /*0x137220*/\n          v2 = *(_DWORD *)(i + 8); /*0x137222*/\n      }\n    }\n    v10 = 1; /*0x137233*/\n    v11 = 0; /*0x13723a*/\n    v12 = *(_DWORD *)(a1 + 32); /*0x137244*/\n    v13 = *(_DWORD *)(a1 + 36); /*0x13724a*/\n    v14 = *(_DWORD *)(a1 + 40); /*0x137250*/\n    if ( v7 ) /*0x137231*/\n    {\n      v15 = 2; /*0x137253*/\n      v16 = v6; /*0x137260*/\n      v17 = v2; /*0x137263*/\n    }\n    else\n    {\n      v15 = 1; /*0x137298*/\n    }\n    (*(void (__cdecl **)(int, char *))(*(_DWORD *)(a1 + 8) + 12))(a1, v9); /*0x1372ad*/\n    (*(void (__cdecl **)(int, _DWORD, _DWORD))(*(_DWORD *)(a1 + 8) + 16))(a1, 0, 0); /*0x1372bd*/\nLABEL_22:\n    v5 = (*(int (__cdecl **)(int))(*(_DWORD *)(a1 + 8) + 4))(a1); /*0x1372c9*/\n    if ( !v5 ) /*0x1372d0*/\n      break; /*0x1372d0*/\n    if ( v5 != 1 ) /*0x1372d9*/\n      goto LABEL_24; /*0x1372d9*/\n  }\n  (*(void (__stdcall **)(int))(*(_DWORD *)(a1 + 8) + 20))(a1); /*0x1370e3*/\nLABEL_24:\n  *(_DWORD *)v8 = rqcred_head; /*0x1372df*/\n  rqcred_head = v8; /*0x1372ed*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef1e4",
+        "name": "_rqcred_head"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x137340",
+        "name": "__authenticate"
+      },
+      {
+        "addr": "0x1e5a1c",
+        "name": "dword_1E5A1C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137300",
+    "addr": "0x00137300",
+    "code": "void __noreturn svc_run(void)\n{\n  int v0; // ebx\n  int v1; // [esp+10h] [ebp+8h]\n\n  while ( 1 ) /*0x13730d*/\n  {\n    v0 = splnet(); /*0x13730d*/\n    while ( !*(_WORD *)(*(_DWORD *)v1 + 36) ) /*0x137327*/\n      sbwait(*(_DWORD *)v1 + 36); /*0x137318*/\n    splx(v0); /*0x13732a*/\n    svc_getreq(v1); /*0x137330*/\n    ++Rpccnt; /*0x137335*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x116418",
+        "name": "_sbwait"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1370b4",
+        "name": "_svc_getreq"
+      },
+      {
+        "addr": "0x1ef1e0",
+        "name": "_Rpccnt"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137340",
+    "addr": "0x00137340",
+    "code": "auth_stat __cdecl _authenticate(svc_req *a1, rpc_msg *a2)\n{\n  unsigned int oa_flavor; // eax\n\n  a1->rq_cred = *(opaque_auth *)((_BYTE *)&a2->ru.RM_rmb.ru.RP_dr + 1); /*0x13734d*/\n  a1->rq_xprt->xp_verf.oa_flavor = _null_auth.oa_flavor; /*0x137365*/\n  a1->rq_xprt->xp_verf.oa_length = 0; /*0x13736b*/\n  oa_flavor = a1->rq_cred.oa_flavor; /*0x137372*/\n  if ( oa_flavor > 2 ) /*0x137378*/\n    return AUTH_REJECTEDCRED; /*0x137388*/\n  else\n    return ((auth_stat (__cdecl *)(svc_req *, rpc_msg *))funcs_137383[oa_flavor])(a1, a2); /*0x137383*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef1b0",
+        "name": "__null_auth"
+      },
+      {
+        "addr": "0x1dd1a8",
+        "name": "funcs_137383"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137394",
+    "addr": "0x00137394",
+    "code": "int _svcauth_null()\n{\n  return 0; /*0x13739b*/\n}"
+  },
+  {
+    "requested_address": "0x001373a0",
+    "addr": "0x001373a0",
+    "code": "int __cdecl _svcauth_unix(int a1, int a2)\n{\n  authunix_parms *v2; // edi\n  unsigned int *v3; // eax\n  char *v4; // ebx\n  size_t v5; // eax\n  unsigned int *v6; // ebx\n  unsigned int v7; // eax\n  unsigned int v8; // eax\n  unsigned int v9; // eax\n  unsigned int *v10; // ebx\n  int v11; // esi\n  int v12; // ebx\n  int i; // ecx\n  unsigned int v14; // eax\n  int v16; // [esp+10h] [ebp-24h]\n  size_t v17; // [esp+10h] [ebp-24h]\n  unsigned int v18; // [esp+14h] [ebp-20h]\n  XDR v19; // [esp+1Ch] [ebp-18h] BYREF\n\n  v2 = *(authunix_parms **)(a1 + 24); /*0x1373af*/\n  v2->aup_machname = (char *)&v2[1]; /*0x1373b8*/\n  v2->aup_gids = (int *)&v2[11].aup_len; /*0x1373c1*/\n  v18 = *(_DWORD *)(a2 + 32); /*0x1373c7*/\n  xdrmem_create(&v19, *(char **)(a2 + 28), v18, XDR_DECODE); /*0x1373d5*/\n  v3 = (unsigned int *)v19.x_ops->x_inline(&v19, v18); /*0x1373e5*/\n  if ( !v3 ) /*0x1373ee*/\n  {\n    if ( !xdr_authunix_parms(&v19, v2) ) /*0x1374c1*/\n    {\n      v19.x_op = XDR_FREE; /*0x1374cd*/\n      xdr_authunix_parms(&v19, v2); /*0x1374d9*/\n      v12 = 1; /*0x1374de*/\n      goto LABEL_14; /*0x1374e6*/\n    }\n    goto LABEL_13; /*0x1374cb*/\n  }\n  v2->aup_time = _byteswap_ulong(*v3); /*0x1373fb*/\n  v4 = (char *)(v3 + 2); /*0x1373ff*/\n  v16 = _byteswap_ulong(v3[1]); /*0x137404*/\n  if ( v16 <= 255 ) /*0x13740c*/\n  {\n    bcopy(v4, v2->aup_machname, v16); /*0x137417*/\n    v2->aup_machname[v16] = 0; /*0x137422*/\n    v5 = v16 + 3; /*0x137429*/\n    if ( v16 + 3 < 0 ) /*0x13742c*/\n      v5 = v16 + 6; /*0x137431*/\n    LOBYTE(v5) = v5 & 0xFC; /*0x137434*/\n    v17 = v5; /*0x137436*/\n    v6 = (unsigned int *)&v4[v5]; /*0x137439*/\n    v7 = *v6++; /*0x13743b*/\n    v2->aup_uid = _byteswap_ulong(v7); /*0x137445*/\n    v8 = *v6++; /*0x137448*/\n    v2->aup_gid = _byteswap_ulong(v8); /*0x13744f*/\n    v9 = *v6; /*0x137452*/\n    v10 = v6 + 1; /*0x137454*/\n    v11 = _byteswap_ulong(v9); /*0x137459*/\n    if ( v11 <= 16 ) /*0x13745e*/\n    {\n      v2->aup_len = v11; /*0x13746c*/\n      for ( i = 0; i < v11; ++i ) /*0x137473*/\n      {\n        v14 = *v10++; /*0x137478*/\n        v2->aup_gids[i] = _byteswap_ulong(v14); /*0x13748b*/\n      }\n      if ( v18 < v17 + 4 * v11 + 20 ) /*0x13749d*/\n      {\n        printf(\"bad auth_len gid %d str %d auth %d\", v11, v18, v18); /*0x1374aa*/\n        v12 = 1; /*0x1374af*/\n        goto LABEL_14; /*0x1374b7*/\n      }\nLABEL_13:\n      *(_DWORD *)(*(_DWORD *)(a1 + 28) + 32) = 0; /*0x1374e8*/\n      *(_DWORD *)(*(_DWORD *)(a1 + 28) + 40) = 0; /*0x1374f8*/\n      v12 = 0; /*0x1374ff*/\n      goto LABEL_14; /*0x1374ff*/\n    }\n  }\n  v12 = 1; /*0x137460*/\nLABEL_14:\n  ((void (__stdcall *)(XDR *))v19.x_ops->x_destroy)(&v19); /*0x137501*/\n  return v12; /*0x137512*/\n}",
+    "refs": [
+      {
+        "addr": "0x1385f4",
+        "name": "_xdrmem_create"
+      },
+      {
+        "addr": "0x1351d4",
+        "name": "_xdr_authunix_parms"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd1b4",
+        "name": "aBadAuthLenGidD",
+        "string": "bad auth_len gid %d str %d auth %d"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0013751c",
+    "addr": "0x0013751c",
+    "code": "int _svcauth_short()\n{\n  return 2; /*0x137526*/\n}"
+  },
+  {
+    "requested_address": "0x00137528",
+    "addr": "0x00137528",
+    "code": "SVCXPRT *__cdecl svckudp_create(int a1, unsigned __int16 a2)\n{\n  SVCXPRT *v2; // edi\n  char *v3; // esi\n\n  v2 = (SVCXPRT *)kalloc(0x34u); /*0x137539*/\n  v2->xp_p1 = (caddr_t)kalloc(0x2260u); /*0x137545*/\n  v3 = (char *)kalloc(0x1CCu); /*0x137552*/\n  bzero(v3, 0x1CCu); /*0x13755a*/\n  v2->xp_addrlen = 0; /*0x13755f*/\n  v2->xp_p2 = v3; /*0x137566*/\n  v2->xp_verf.oa_base = v3 + 60; /*0x13756c*/\n  v2->xp_ops = (SVCXPRT::xp_ops *)&svckudp_op; /*0x13756f*/\n  v2->xp_port = a2; /*0x137576*/\n  v2->xp_sock = a1; /*0x13757d*/\n  xprt_register(v2); /*0x137580*/\n  return v2; /*0x13758a*/\n}",
+    "refs": [
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      },
+      {
+        "addr": "0x1dd1d8",
+        "name": "_svckudp_op"
+      },
+      {
+        "addr": "0x136ddc",
+        "name": "_xprt_register"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137594",
+    "addr": "0x00137594",
+    "code": "int __cdecl svckudp_destroy(int a1)\n{\n  int v1; // ebx\n\n  v1 = *(_DWORD *)(a1 + 48); /*0x13759c*/\n  if ( *(_DWORD *)(v1 + 8) ) /*0x13759f*/\n    m_freem(*(_DWORD *)(v1 + 8)); /*0x1375a7*/\n  kfree(v1, 0x1CCu); /*0x1375b5*/\n  kfree(*(_DWORD *)(a1 + 44), 0x2260u); /*0x1375c3*/\n  return kfree(a1, 0x34u); /*0x1375d3*/\n}",
+    "refs": [
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x15a824",
+        "name": "_kfree"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001375dc",
+    "addr": "0x001375dc",
+    "code": "int __cdecl svckudp_recv(int *a1, rpc_msg *a2)\n{\n  int v2; // edi\n  int v3; // esi\n  int v4; // ebx\n  XDR *v6; // [esp+Ch] [ebp-4h]\n\n  v2 = a1[12]; /*0x1375e8*/\n  v6 = (XDR *)(v2 + 12); /*0x1375ee*/\n  ++rsstat; /*0x1375f1*/\n  v3 = splnet(); /*0x1375fc*/\n  v4 = ku_recvfrom(*a1, a1 + 4); /*0x13760a*/\n  splx(v3); /*0x13760d*/\n  if ( !v4 ) /*0x137617*/\n  {\n    ++dword_1EF288; /*0x137619*/\n    return 0; /*0x137621*/\n  }\n  if ( *(_WORD *)(v4 + 8) > 0xFu ) /*0x137629*/\n  {\n    xdrmbuf_init(v6, v4, 1); /*0x13763b*/\n    if ( xdr_callmsg(v6, a2) ) /*0x137648*/\n    {\n      *(_DWORD *)(v2 + 4) = a2->rm_xid; /*0x137659*/\n      *(_DWORD *)(v2 + 8) = v4; /*0x13765c*/\n      return 1; /*0x137664*/\n    }\n    ++dword_1EF290; /*0x137668*/\n  }\n  else\n  {\n    ++dword_1EF28C; /*0x13762b*/\n  }\n  m_freem(v4); /*0x13766f*/\n  *(_DWORD *)(v2 + 8) = 0; /*0x137674*/\n  ++dword_1EF284; /*0x13767b*/\n  return 0; /*0x137686*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef280",
+        "name": "_rsstat"
+      },
+      {
+        "addr": "0x18b958",
+        "name": "_splnet"
+      },
+      {
+        "addr": "0x136c00",
+        "name": "_ku_recvfrom"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x1ef288",
+        "name": "dword_1EF288"
+      },
+      {
+        "addr": "0x138230",
+        "name": "_xdrmbuf_init"
+      },
+      {
+        "addr": "0x136250",
+        "name": "_xdr_callmsg"
+      },
+      {
+        "addr": "0x1ef290",
+        "name": "dword_1EF290"
+      },
+      {
+        "addr": "0x1ef28c",
+        "name": "dword_1EF28C"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x1ef284",
+        "name": "dword_1EF284"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137690",
+    "addr": "0x00137690",
+    "code": "int __cdecl svckudp_send(int *a1, rpc_msg *a2)\n{\n  unsigned int v2; // ebx\n  int v3; // esi\n  int v4; // eax\n  int *v5; // eax\n  int v6; // esi\n  int v7; // eax\n  int v8; // edx\n  __int16 v9; // ax\n  void (__stdcall **v10)(_DWORD); // eax\n  int v12; // [esp+Ch] [ebp-4h]\n\n  v2 = a1[12]; /*0x13769c*/\n  v12 = 0; /*0x1376a2*/\n  v3 = splimp(); /*0x1376ae*/\n  while ( 1 ) /*0x1376c3*/\n  {\n    v4 = *(_DWORD *)v2; /*0x1376c3*/\n    if ( (*(_DWORD *)v2 & 1) == 0 ) /*0x1376c7*/\n      break; /*0x1376c7*/\n    LOBYTE(v4) = v4 | 2; /*0x1376b4*/\n    *(_DWORD *)v2 = v4; /*0x1376b6*/\n    sleep(v2); /*0x1376bb*/\n  }\n  *(_BYTE *)v2 |= 1u; /*0x1376c9*/\n  splx(v3); /*0x1376cd*/\n  v5 = mclgetx((int)sub_137994, v2, a1[11], 8800, 1); /*0x1376e6*/\n  v6 = (int)v5; /*0x1376eb*/\n  if ( v5 )\n  {\n    xdrmbuf_init(v2 + 36, v5, 0); /*0x13771b*/\n    a2->rm_xid = *(_DWORD *)(v2 + 4); /*0x137726*/\n    if ( xdr_replymsg((XDR *)(v2 + 36), a2) )\n    {\n      v9 = (*(int (__cdecl **)(unsigned int))(*(_DWORD *)(v2 + 40) + 16))(v2 + 36); /*0x13773d*/\n      if ( !*(_DWORD *)v6 ) /*0x137742*/\n        *(_WORD *)(v6 + 8) = v9; /*0x137747*/\n      if ( !ku_sendto_mbuf(*a1, v6, a1 + 4) ) /*0x137759*/\n        v12 = 1; /*0x137765*/\n    }\n    else\n    {\n      printf(\"svckudp_send: xdr_replymsg failed\\n\");\n      m_freem(v6); /*0x13777b*/\n    }\n    v10 = *(void (__stdcall ***)(_DWORD))(v2 + 44); /*0x137783*/\n    if ( v10 ) /*0x137788*/\n      (*v10)(*(_DWORD *)(v2 + 44)); /*0x13778d*/\n  }\n  else\n  {\n    v7 = *(_DWORD *)v2; /*0x1376f4*/\n    v8 = *(_DWORD *)v2; /*0x1376f6*/\n    LOBYTE(v8) = *(_DWORD *)v2 & 0xFE; /*0x1376f8*/\n    *(_DWORD *)v2 = v8; /*0x1376fb*/\n    if ( (v7 & 2) != 0 ) /*0x1376ff*/\n    {\n      LOBYTE(v7) = v7 & 0xFC; /*0x137705*/\n      *(_DWORD *)v2 = v7; /*0x137707*/\n      wakeup(v2); /*0x13770a*/\n    }\n  }\n  return v12; /*0x137795*/\n}",
+    "refs": [
+      {
+        "addr": "0x18b970",
+        "name": "_splimp"
+      },
+      {
+        "addr": "0x10a588",
+        "name": "_sleep"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      },
+      {
+        "addr": "0x11499c",
+        "name": "_mclgetx"
+      },
+      {
+        "addr": "0x137994",
+        "name": "sub_137994"
+      },
+      {
+        "addr": "0x138230",
+        "name": "_xdrmbuf_init"
+      },
+      {
+        "addr": "0x136cf8",
+        "name": "_ku_sendto_mbuf"
+      },
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd1f0",
+        "name": "aSvckudpSendXdr",
+        "string": "svckudp_send: xdr_replymsg failed\n"
+      },
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      },
+      {
+        "addr": "0x136720",
+        "name": "_xdr_replymsg"
+      },
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0013779c",
+    "addr": "0x0013779c",
+    "code": "int svckudp_stat()\n{\n  return 2; /*0x1377a6*/\n}"
+  },
+  {
+    "requested_address": "0x001377a8",
+    "addr": "0x001377a8",
+    "code": "int __cdecl svckudp_getargs(int a1, int (__stdcall *a2)(int, int), int a3)\n{\n  return a2(*(_DWORD *)(a1 + 48) + 12, a3); /*0x1377c0*/\n}"
+  },
+  {
+    "requested_address": "0x001377c4",
+    "addr": "0x001377c4",
+    "code": "int __cdecl svckudp_freeargs(int a1, int (__stdcall *a2)(int, int), int a3)\n{\n  int v3; // ebx\n\n  v3 = *(_DWORD *)(a1 + 48); /*0x1377d0*/\n  if ( *(_DWORD *)(v3 + 8) ) /*0x1377d6*/\n    m_freem(*(_DWORD *)(v3 + 8)); /*0x1377de*/\n  *(_DWORD *)(v3 + 8) = 0; /*0x1377e6*/\n  if ( !a3 ) /*0x1377ef*/\n    return 1; /*0x137804*/\n  *(_DWORD *)(v3 + 12) = 2; /*0x1377f1*/\n  return a2(v3 + 12, a3); /*0x13780c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1140e0",
+        "name": "_m_freem"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137814",
+    "addr": "0x00137814",
+    "code": "int __cdecl svckudp_dupsave(_DWORD *a1)\n{\n  _DWORD *v1; // ebx\n  int v2; // eax\n  _DWORD *v3; // eax\n  int result; // eax\n\n  if ( ndupreqs > 399 ) /*0x137826*/\n  {\n    v1 = *(_DWORD **)(drmru + 32); /*0x137859*/\n    sub_137944(v1); /*0x13785d*/\n  }\n  else\n  {\n    v1 = (_DWORD *)kalloc(0x28u); /*0x13782f*/\n    v2 = drmru; /*0x137831*/\n    if ( drmru ) /*0x137838*/\n    {\n      v1[8] = *(_DWORD *)(drmru + 32); /*0x13783d*/\n      *(_DWORD *)(v2 + 32) = v1; /*0x137840*/\n    }\n    else\n    {\n      v1[8] = v1; /*0x137848*/\n    }\n    ++ndupreqs; /*0x13784b*/\n  }\n  drmru = (int)v1; /*0x137862*/\n  *v1 = *(_DWORD *)(*(_DWORD *)(a1[7] + 48) + 4); /*0x137871*/\n  v1[7] = *a1; /*0x137875*/\n  v1[6] = a1[1]; /*0x13787b*/\n  v1[5] = a1[2]; /*0x137881*/\n  v3 = (_DWORD *)a1[7]; /*0x137884*/\n  v1[1] = v3[4]; /*0x13788a*/\n  v1[2] = v3[5]; /*0x137890*/\n  v1[3] = v3[6]; /*0x137896*/\n  v1[4] = v3[7]; /*0x13789c*/\n  v1[9] = drhashtbl[*v1 & 0x1F]; /*0x1378ab*/\n  result = *v1 & 0x1F; /*0x1378b0*/\n  drhashtbl[result] = (int)v1; /*0x1378b3*/\n  return result; /*0x1378bd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef270",
+        "name": "_drmru"
+      },
+      {
+        "addr": "0x137944",
+        "name": "sub_137944"
+      },
+      {
+        "addr": "0x15a75c",
+        "name": "_kalloc"
+      },
+      {
+        "addr": "0x1ef27c",
+        "name": "_ndupreqs"
+      },
+      {
+        "addr": "0x1ef1f0",
+        "name": "_drhashtbl"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001378c4",
+    "addr": "0x001378c4",
+    "code": "int __cdecl svckudp_dup(_DWORD *a1)\n{\n  int v1; // edi\n  _DWORD *i; // ebx\n\n  ++dupchecks; /*0x1378cd*/\n  v1 = *(_DWORD *)(*(_DWORD *)(a1[7] + 48) + 4); /*0x1378d9*/\n  for ( i = (_DWORD *)drhashtbl[v1 & 0x1F]; i; i = (_DWORD *)i[9] ) /*0x1378e1*/\n  {\n    if ( *i == v1 && i[7] == *a1 && i[6] == a1[1] && i[5] == a1[2] && !bcmp(i + 1, (const void *)(a1[7] + 16), 0x10u) ) /*0x13791e*/\n    {\n      ++dupreqs; /*0x137928*/\n      return 1; /*0x137933*/\n    }\n  }\n  return 0; /*0x13793d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef274",
+        "name": "_dupchecks"
+      },
+      {
+        "addr": "0x1ef1f0",
+        "name": "_drhashtbl"
+      },
+      {
+        "addr": "0x1ef278",
+        "name": "_dupreqs"
+      },
+      {
+        "addr": "0x1012fc",
+        "name": "_bcmp"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137944",
+    "addr": "0x00137944",
+    "code": "int __cdecl sub_137944(_DWORD *a1)\n{\n  _DWORD *v1; // ecx\n  int result; // eax\n  _DWORD *v3; // edx\n\n  v1 = nullptr; /*0x13794b*/\n  result = *a1 & 0x1F; /*0x13794f*/\n  v3 = (_DWORD *)drhashtbl[result]; /*0x137952*/\n  if ( v3 ) /*0x13795b*/\n  {\n    while ( v3 != a1 ) /*0x137962*/\n    {\n      v1 = v3; /*0x137984*/\n      v3 = (_DWORD *)v3[9]; /*0x137986*/\n      if ( !v3 ) /*0x13798b*/\n        return result; /*0x13798b*/\n    }\n    if ( v1 ) /*0x137966*/\n    {\n      v1[9] = v3[9]; /*0x13797f*/\n    }\n    else\n    {\n      result = *v3 & 0x1F; /*0x13796a*/\n      drhashtbl[result] = v3[9]; /*0x137970*/\n    }\n  }\n  return result; /*0x13798d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ef1f0",
+        "name": "_drhashtbl"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137994",
+    "addr": "0x00137994",
+    "code": "int __cdecl sub_137994(int *a1)\n{\n  int result; // eax\n  int v2; // ecx\n\n  result = *a1; /*0x13799a*/\n  v2 = *a1; /*0x13799c*/\n  LOBYTE(v2) = *a1 & 0xFE; /*0x13799e*/\n  *a1 = v2; /*0x1379a1*/\n  if ( (result & 2) != 0 ) /*0x1379a5*/\n  {\n    LOBYTE(result) = result & 0xFC; /*0x1379a7*/\n    *a1 = result; /*0x1379a9*/\n    return wakeup((int)a1); /*0x1379ac*/\n  }\n  return result; /*0x1379b3*/\n}",
+    "refs": [
+      {
+        "addr": "0x10ab38",
+        "name": "_wakeup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001379b8",
+    "addr": "0x001379b8",
+    "code": "int xdr_void(void)\n{\n  return 1; /*0x1379c2*/\n}"
+  },
+  {
+    "requested_address": "0x001379c4",
+    "addr": "0x001379c4",
+    "code": "int __cdecl xdr_int(XDR *a1, int *a2)\n{\n  return xdr_long(a1, a2); /*0x1379d6*/\n}",
+    "refs": [
+      {
+        "addr": "0x1379ec",
+        "name": "_xdr_long"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001379d8",
+    "addr": "0x001379d8",
+    "code": "int __cdecl xdr_u_int(XDR *a1, unsigned int *a2)\n{\n  return xdr_u_long(a1, a2); /*0x1379ea*/\n}",
+    "refs": [
+      {
+        "addr": "0x137a44",
+        "name": "_xdr_u_long"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001379ec",
+    "addr": "0x001379ec",
+    "code": "int __cdecl xdr_long(XDR *a1, __int32 *a2)\n{\n  xdr_op x_op; // eax\n\n  x_op = a1->x_op; /*0x1379f5*/\n  if ( a1->x_op == XDR_ENCODE ) /*0x1379f5*/\n    return ((int (__stdcall *)(XDR *, __int32 *))a1->x_ops->x_putlong)(a1, a2); /*0x137a03*/\n  if ( x_op == XDR_DECODE ) /*0x137a0f*/\n    return ((int (__stdcall *)(XDR *, __int32 *))a1->x_ops->x_getlong)(a1, a2); /*0x137a18*/\n  if ( x_op == XDR_FREE ) /*0x137a23*/\n    return 1; /*0x137a38*/\n  printf(\"xdr_long: FAILED\\n\");\n  return 0; /*0x137a07*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd217",
+        "name": "aXdrLongFailed",
+        "string": "xdr_long: FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137a44",
+    "addr": "0x00137a44",
+    "code": "int __cdecl xdr_u_long(XDR *a1, unsigned __int32 *a2)\n{\n  xdr_op x_op; // eax\n\n  x_op = a1->x_op; /*0x137a4d*/\n  if ( a1->x_op == XDR_DECODE ) /*0x137a52*/\n    return ((int (__stdcall *)(XDR *, unsigned __int32 *))a1->x_ops->x_getlong)(a1, a2); /*0x137a5b*/\n  if ( x_op == XDR_ENCODE ) /*0x137a66*/\n    return ((int (__stdcall *)(XDR *, unsigned __int32 *))a1->x_ops->x_putlong)(a1, a2); /*0x137a70*/\n  if ( x_op == XDR_FREE ) /*0x137a7b*/\n    return 1; /*0x137a90*/\n  printf(\"xdr_u_long: FAILED\\n\");\n  return 0; /*0x137a5f*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd229",
+        "name": "aXdrULongFailed",
+        "string": "xdr_u_long: FAILED\n"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00137a9c",
+    "addr": "0x00137a9c",
+    "code": "int __cdecl xdr_short(XDR *a1, __int16 *a2)\n{\n  int v3; // [esp+8h] [ebp-4h] BYREF\n\n  switch ( a1->x_op ) /*0x137aaf*/\n  {\n    case XDR_DECODE: /*0x137aaf*/\n      if ( !((int (__stdcall *)(XDR *, int *))a1->x_ops->x_getlong)(a1, &v3) ) /*0x137ade*/\n        return 0; /*0x137ae6*/\n      *a2 = v3; /*0x137aec*/\n      break;\n    case XDR_ENCODE: /*0x137aaf*/\n      v3 = *a2; /*0x137abf*/\n      return ((int (__stdcall *)(XDR *, int *))a1->x_ops->x_putlong)(a1, &v3); /*0x137acf*/\n    case XDR_FREE: /*0x137aaf*/\n      break;\n    default:\n      return 0; /*0x137ab8*/\n  }\n  return 1; /*0x137afd*/\n}"
+  },
+  {
+    "requested_address": "0x00137b04",
+    "addr": "0x00137b04",
+    "code": "int __cdecl xdr_u_short(XDR *a1, unsigned __int16 *a2)\n{\n  int v3; // [esp+8h] [ebp-4h] BYREF\n\n  switch ( a1->x_op )\n  {\n    case XDR_DECODE:\n      if ( !a1->x_ops->x_getlong(a1, &v3) )\n      {\n        printf(\"xdr_u_short: decode FAILED\\n\");\n        return 0; /*0x137b5b*/\n      }\n      *a2 = v3; /*0x137b64*/\n      break;\n    case XDR_ENCODE:\n      v3 = *a2; /*0x137b27*/\n      return ((int (__stdcall *)(XDR *))a1->x_ops->x_putlong)(a1); /*0x137b37*/\n    case XDR_FREE:\n      break;\n    default:\n      printf(\"xdr_u_short: bad op FAILED\\n\");\n      return 0; /*0x137b20*/\n  }\n  return 1; /*0x137b7f*/\n}",
+    "refs": [
+      {
+        "addr": "0x10c0d8",
+        "name": "_printf"
+      },
+      {
+        "addr": "0x1dd23d",
+        "name": "aXdrUShortDecod",
+        "string": "xdr_u_short: decode FAILED\n"
+      },
+      {
+        "addr": "0x1dd259",
+        "name": "aXdrUShortBadOp",
+        "string": "xdr_u_short: bad op FAILED\n"
+      }
+    ]
+  }
+]

@@ -1,0 +1,589 @@
+[
+  {
+    "requested_address": "0x0014cff0",
+    "addr": "0x0014cff0",
+    "code": "int __cdecl ipc_port_copyout_send(int a1, int a2)\n{\n  int v2; // ebx\n  int v4; // [esp+8h] [ebp-4h] BYREF\n\n  if ( !a1 || a1 == -1 ) /*0x14d002*/\n    return a1; /*0x14d040*/\n  v2 = ipc_object_copyout(a2, a1, 17, 1, &v4); /*0x14d016*/\n  if ( v2 ) /*0x14d01d*/\n  {\n    ipc_port_release_send(a1); /*0x14d020*/\n    if ( v2 == 20 ) /*0x14d028*/\n      return -1; /*0x14d02a*/\n    else\n      return 0; /*0x14d034*/\n  }\n  return v4; /*0x14d049*/\n}",
+    "refs": [
+      {
+        "addr": "0x14bdb4",
+        "name": "_ipc_object_copyout"
+      },
+      {
+        "addr": "0x14d050",
+        "name": "_ipc_port_release_send"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d050",
+    "addr": "0x0014d050",
+    "code": "int __cdecl ipc_port_release_send(int a1)\n{\n  int v1; // edx\n  int v2; // ebx\n  int v3; // eax\n  int result; // eax\n  int v5; // eax\n\n  v1 = 0; /*0x14d058*/\n  v2 = 0; /*0x14d05a*/\n  do /*0x14d06e*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d05c*/\n      ; /*0x14d05e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d06e*/\n  v3 = *(_DWORD *)(a1 + 4); /*0x14d070*/\n  *(_DWORD *)(a1 + 4) = v3 - 1; /*0x14d076*/\n  if ( *(int *)(a1 + 8) < 0 ) /*0x14d07d*/\n  {\n    v5 = *(_DWORD *)(a1 + 28); /*0x14d0a4*/\n    *(_DWORD *)(a1 + 28) = v5 - 1; /*0x14d0aa*/\n    if ( v5 == 1 ) /*0x14d0b0*/\n    {\n      v1 = *(_DWORD *)(a1 + 36); /*0x14d0b2*/\n      if ( v1 ) /*0x14d0b7*/\n      {\n        *(_DWORD *)(a1 + 36) = 0; /*0x14d0b9*/\n        v2 = *(_DWORD *)(a1 + 24); /*0x14d0c0*/\n      }\n    }\n    result = _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d0c5*/\n    if ( v1 ) /*0x14d0c9*/\n      return ipc_notify_no_senders(v1, v2); /*0x14d0cd*/\n  }\n  else\n  {\n    result = v3 - 1; /*0x14d07f*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d082*/\n    if ( !result ) /*0x14d086*/\n      return zfree(ipc_object_zones[*(_WORD *)(a1 + 10) & 0x7FFF], a1); /*0x14d09a*/\n  }\n  return result; /*0x14d0d5*/\n}",
+    "refs": [
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d0dc",
+    "addr": "0x0014d0dc",
+    "code": "int __cdecl ipc_port_make_sonce(int a1)\n{\n  do /*0x14d0f6*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d0e4*/\n      ; /*0x14d0e6*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d0f6*/\n  ++*(_DWORD *)(a1 + 32); /*0x14d0f8*/\n  ++*(_DWORD *)(a1 + 4); /*0x14d0fb*/\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d100*/\n  return a1; /*0x14d106*/\n}"
+  },
+  {
+    "requested_address": "0x0014d108",
+    "addr": "0x0014d108",
+    "code": "__int32 __cdecl ipc_port_release_sonce(int a1)\n{\n  int v1; // eax\n  __int32 result; // eax\n\n  do /*0x14d122*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d110*/\n      ; /*0x14d112*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d122*/\n  v1 = *(_DWORD *)(a1 + 4); /*0x14d124*/\n  *(_DWORD *)(a1 + 4) = v1 - 1; /*0x14d12a*/\n  if ( *(int *)(a1 + 8) < 0 ) /*0x14d131*/\n  {\n    --*(_DWORD *)(a1 + 32); /*0x14d158*/\n    return _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d15d*/\n  }\n  else\n  {\n    result = v1 - 1; /*0x14d133*/\n    _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d136*/\n    if ( !result ) /*0x14d13a*/\n      return zfree(ipc_object_zones[*(_WORD *)(a1 + 10) & 0x7FFF], a1); /*0x14d14e*/\n  }\n  return result; /*0x14d15f*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d168",
+    "addr": "0x0014d168",
+    "code": "int __cdecl ipc_port_release_receive(int a1)\n{\n  int v1; // ebx\n  int result; // eax\n\n  do /*0x14d182*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d170*/\n      ; /*0x14d172*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d182*/\n  v1 = *(_DWORD *)(a1 + 12); /*0x14d184*/\n  result = ipc_port_destroy(a1); /*0x14d188*/\n  if ( v1 ) /*0x14d192*/\n    return ipc_object_release(v1); /*0x14d195*/\n  return result; /*0x14d19a*/\n}",
+    "refs": [
+      {
+        "addr": "0x14cb80",
+        "name": "_ipc_port_destroy"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d1a4",
+    "addr": "0x0014d1a4",
+    "code": "_DWORD *__cdecl ipc_port_alloc_special(int a1)\n{\n  _DWORD *v1; // eax\n  _DWORD *v2; // ebx\n\n  v1 = (_DWORD *)zalloc(ipc_object_zones[0]); /*0x14d1af*/\n  v2 = v1; /*0x14d1b4*/\n  if ( !v1 ) /*0x14d1bb*/\n    return nullptr; /*0x14d238*/\n  *v1 = 0; /*0x14d1bd*/\n  v1[1] = 1; /*0x14d1c3*/\n  v1[2] = 0x80000000; /*0x14d1ca*/\n  v1[3] = a1; /*0x14d1d4*/\n  v1[4] = 1; /*0x14d1d7*/\n  v1[6] = 0; /*0x14d1de*/\n  v1[7] = 0; /*0x14d1e5*/\n  v1[8] = 0; /*0x14d1ec*/\n  v1[9] = 0; /*0x14d1f3*/\n  v1[10] = 0; /*0x14d1fa*/\n  v1[11] = 0; /*0x14d201*/\n  v1[12] = 0; /*0x14d208*/\n  v1[13] = 0; /*0x14d20f*/\n  v1[14] = 0; /*0x14d216*/\n  v1[15] = 5; /*0x14d21d*/\n  ipc_mqueue_init(v1 + 16); /*0x14d228*/\n  v2[19] = 0; /*0x14d22d*/\n  return v2; /*0x14d23a*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x14a634",
+        "name": "_ipc_mqueue_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d244",
+    "addr": "0x0014d244",
+    "code": "int __cdecl ipc_port_dealloc_special(int a1)\n{\n  int v1; // ebx\n  int v2; // eax\n  volatile __int32 *v3; // edx\n  volatile __int32 *v4; // edx\n\n  do /*0x14d25e*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d24c*/\n      ; /*0x14d24e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d25e*/\n  *(_DWORD *)(a1 + 16) = 0; /*0x14d260*/\n  *(_DWORD *)(a1 + 12) = 0; /*0x14d267*/\n  v1 = *(_DWORD *)(a1 + 48); /*0x14d26e*/\n  if ( v1 ) /*0x14d273*/\n  {\n    do /*0x14d28a*/\n    {\n      while ( *(_DWORD *)v1 ) /*0x14d278*/\n        ; /*0x14d27a*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v1, 1) == 1 ); /*0x14d28a*/\n    ipc_pset_remove(v1, a1); /*0x14d28e*/\n    v2 = *(_DWORD *)(v1 + 4); /*0x14d296*/\n    _InterlockedExchange((volatile __int32 *)v1, 0); /*0x14d29b*/\n    if ( !v2 ) /*0x14d29f*/\n      zfree(ipc_object_zones[*(_WORD *)(v1 + 10) & 0x7FFF], v1); /*0x14d2b3*/\n  }\n  else\n  {\n    v3 = (volatile __int32 *)(a1 + 64); /*0x14d2c0*/\n    do /*0x14d2d6*/\n    {\n      while ( *v3 ) /*0x14d2c4*/\n        ; /*0x14d2c6*/\n    }\n    while ( _InterlockedExchange(v3, 1) == 1 ); /*0x14d2d6*/\n    ipc_mqueue_changed(a1 + 64, 268451849); /*0x14d2e1*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 64), 0); /*0x14d2eb*/\n  }\n  *(_DWORD *)(a1 + 24) = 0; /*0x14d2ee*/\n  v4 = (volatile __int32 *)(a1 + 64); /*0x14d2f5*/\n  do /*0x14d30a*/\n  {\n    while ( *v4 ) /*0x14d2f8*/\n      ; /*0x14d2fa*/\n  }\n  while ( _InterlockedExchange(v4, 1) == 1 ); /*0x14d30a*/\n  *(_DWORD *)(a1 + 52) = 0; /*0x14d30c*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 64), 0); /*0x14d315*/\n  return ipc_port_destroy(a1); /*0x14d321*/\n}",
+    "refs": [
+      {
+        "addr": "0x14d734",
+        "name": "_ipc_pset_remove"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x14a728",
+        "name": "_ipc_mqueue_changed"
+      },
+      {
+        "addr": "0x14cb80",
+        "name": "_ipc_port_destroy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d328",
+    "addr": "0x0014d328",
+    "code": "int __cdecl ipc_port_alloc_compat(int a1, unsigned int *a2, int *a3)\n{\n  int v3; // ebx\n  unsigned int *v5; // edi\n  int *v6; // eax\n  unsigned int v7; // eax\n  unsigned int i; // edx\n  unsigned int *v9; // eax\n  unsigned int v10; // [esp+Ch] [ebp-14h]\n  int v11; // [esp+10h] [ebp-10h]\n  unsigned int v12; // [esp+10h] [ebp-10h]\n  unsigned int *v13; // [esp+14h] [ebp-Ch]\n  int *v14; // [esp+18h] [ebp-8h] BYREF\n  unsigned int v15; // [esp+1Ch] [ebp-4h] BYREF\n\n  v3 = zalloc(ipc_object_zones[0]); /*0x14d33d*/\n  if ( !v3 ) /*0x14d344*/\n    return 6; /*0x14d346*/\n  v13 = (unsigned int *)ipc_table_dnrequests; /*0x14d356*/\n  v5 = (unsigned int *)ipc_table_alloc(8 * *(_DWORD *)ipc_table_dnrequests); /*0x14d368*/\n  if ( v5 ) /*0x14d36f*/\n  {\n    v11 = ipc_entry_alloc(a1, &v15, &v14); /*0x14d399*/\n    if ( v11 ) /*0x14d3a1*/\n    {\n      zfree(ipc_object_zones[0], v3); /*0x14d3ab*/\n      ipc_table_free(8 * *v13, v5); /*0x14d3be*/\n      return v11; /*0x14d3c3*/\n    }\n    else\n    {\n      v6 = v14; /*0x14d3cc*/\n      v14[1] = v3; /*0x14d3cf*/\n      v6[2] = 1; /*0x14d3d2*/\n      *v6 |= 0x420000u; /*0x14d3d9*/\n      *(_DWORD *)v3 = 0; /*0x14d3df*/\n      do /*0x14d3fa*/\n      {\n        while ( *(_DWORD *)v3 ) /*0x14d3e8*/\n          ; /*0x14d3ea*/\n      }\n      while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x14d3fa*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14d401*/\n      *(_DWORD *)(v3 + 4) = 1; /*0x14d404*/\n      *(_DWORD *)(v3 + 8) = 0x80000000; /*0x14d40b*/\n      v7 = v15; /*0x14d412*/\n      *(_DWORD *)(v3 + 12) = a1; /*0x14d415*/\n      *(_DWORD *)(v3 + 16) = v7; /*0x14d418*/\n      *(_DWORD *)(v3 + 24) = 0; /*0x14d41b*/\n      *(_DWORD *)(v3 + 28) = 0; /*0x14d422*/\n      *(_DWORD *)(v3 + 32) = 0; /*0x14d429*/\n      *(_DWORD *)(v3 + 36) = 0; /*0x14d430*/\n      *(_DWORD *)(v3 + 40) = 0; /*0x14d437*/\n      *(_DWORD *)(v3 + 44) = 0; /*0x14d43e*/\n      *(_DWORD *)(v3 + 48) = 0; /*0x14d445*/\n      *(_DWORD *)(v3 + 52) = 0; /*0x14d44c*/\n      *(_DWORD *)(v3 + 56) = 0; /*0x14d453*/\n      *(_DWORD *)(v3 + 60) = 5; /*0x14d45a*/\n      ipc_mqueue_init((_DWORD *)(v3 + 64)); /*0x14d465*/\n      *(_DWORD *)(v3 + 76) = 0; /*0x14d46d*/\n      v12 = *v13; /*0x14d479*/\n      v10 = 0; /*0x14d47c*/\n      for ( i = 2; v12 > i; ++i ) /*0x14d48a*/\n      {\n        v9 = &v5[2 * i]; /*0x14d48c*/\n        v9[1] = 0; /*0x14d48f*/\n        *v9 = v10; /*0x14d499*/\n        v10 = i; /*0x14d49b*/\n      }\n      *v5 = v10; /*0x14d4a7*/\n      v5[1] = (unsigned int)v13; /*0x14d4ac*/\n      *(_DWORD *)(v3 + 44) = v5; /*0x14d4af*/\n      v5[3] = v15; /*0x14d4b5*/\n      v5[2] = a1 | 1; /*0x14d4be*/\n      ipc_space_reference(a1); /*0x14d4c5*/\n      *a2 = v15; /*0x14d4d0*/\n      *a3 = v3; /*0x14d4d5*/\n      return 0; /*0x14d4d7*/\n    }\n  }\n  else\n  {\n    zfree(ipc_object_zones[0], v3); /*0x14d379*/\n    return 6; /*0x14d37e*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x16b790",
+        "name": "_zalloc"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x1f6328",
+        "name": "_ipc_table_dnrequests"
+      },
+      {
+        "addr": "0x151b44",
+        "name": "_ipc_table_alloc"
+      },
+      {
+        "addr": "0x145f5c",
+        "name": "_ipc_entry_alloc"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x151bb8",
+        "name": "_ipc_table_free"
+      },
+      {
+        "addr": "0x14a634",
+        "name": "_ipc_mqueue_init"
+      },
+      {
+        "addr": "0x1506b0",
+        "name": "_ipc_space_reference"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d4e4",
+    "addr": "0x0014d4e4",
+    "code": "int __cdecl ipc_port_copyout_send_compat(int a1, int a2)\n{\n  int v2; // edx\n  int v3; // ecx\n  int v4; // eax\n  int v5; // eax\n  int v7; // [esp+8h] [ebp-4h] BYREF\n\n  if ( !a1 || a1 == -1 ) /*0x14d4fa*/\n    return a1; /*0x14d5a0*/\n  if ( ipc_object_copyout_compat(a2, a1, 17, &v7) ) /*0x14d50b*/\n  {\n    v2 = 0; /*0x14d51b*/\n    v3 = 0; /*0x14d51d*/\n    do /*0x14d532*/\n    {\n      while ( *(_DWORD *)a1 ) /*0x14d520*/\n        ; /*0x14d522*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d532*/\n    v4 = *(_DWORD *)(a1 + 4); /*0x14d534*/\n    *(_DWORD *)(a1 + 4) = v4 - 1; /*0x14d53a*/\n    if ( *(int *)(a1 + 8) < 0 ) /*0x14d541*/\n    {\n      v5 = *(_DWORD *)(a1 + 28); /*0x14d568*/\n      *(_DWORD *)(a1 + 28) = v5 - 1; /*0x14d56e*/\n      if ( v5 == 1 ) /*0x14d574*/\n      {\n        v2 = *(_DWORD *)(a1 + 36); /*0x14d576*/\n        if ( v2 ) /*0x14d57b*/\n        {\n          *(_DWORD *)(a1 + 36) = 0; /*0x14d57d*/\n          v3 = *(_DWORD *)(a1 + 24); /*0x14d584*/\n        }\n      }\n      _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d589*/\n      if ( v2 ) /*0x14d58d*/\n        ipc_notify_no_senders(v2, v3); /*0x14d591*/\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d546*/\n      if ( v4 == 1 ) /*0x14d54a*/\n        zfree(ipc_object_zones[*(_WORD *)(a1 + 10) & 0x7FFF], a1); /*0x14d55e*/\n    }\n    return 0; /*0x14d596*/\n  }\n  return v7; /*0x14d5a9*/\n}",
+    "refs": [
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x14c198",
+        "name": "_ipc_object_copyout_compat"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d5b0",
+    "addr": "0x0014d5b0",
+    "code": "int __cdecl ipc_port_copyout_receiver(int a1, int a2)\n{\n  int v3; // ebx\n  int v4; // esi\n\n  if ( !a1 || a1 == -1 ) /*0x14d5c2*/\n    return 0; /*0x14d5c4*/\n  do /*0x14d5da*/\n  {\n    while ( *(_DWORD *)a1 ) /*0x14d5c8*/\n      ; /*0x14d5ca*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a1, 1) == 1 ); /*0x14d5da*/\n  v3 = 0; /*0x14d5dc*/\n  if ( *(_DWORD *)(a1 + 12) == a2 ) /*0x14d5e1*/\n    v3 = *(_DWORD *)(a1 + 16); /*0x14d5e3*/\n  v4 = *(_DWORD *)(a1 + 4) - 1; /*0x14d5e9*/\n  *(_DWORD *)(a1 + 4) = v4; /*0x14d5ec*/\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14d5f2*/\n  if ( !v4 ) /*0x14d5f6*/\n    zfree(ipc_object_zones[*(_WORD *)(a1 + 10) & 0x7FFF], a1); /*0x14d60a*/\n  return v3; /*0x14d614*/\n}",
+    "refs": [
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d61c",
+    "addr": "0x0014d61c",
+    "code": "int __cdecl ipc_pset_alloc(int a1, _DWORD *a2, _DWORD *a3)\n{\n  int result; // eax\n  int v4; // eax\n  int v5; // [esp+8h] [ebp-8h] BYREF\n  int v6; // [esp+Ch] [ebp-4h] BYREF\n\n  result = ipc_object_alloc(a1, 1, 0x80000, 0, &v6, &v5); /*0x14d63f*/\n  if ( !result ) /*0x14d649*/\n  {\n    v4 = v5; /*0x14d64b*/\n    *(_DWORD *)(v5 + 12) = v6; /*0x14d651*/\n    ipc_mqueue_init((_DWORD *)(v4 + 16)); /*0x14d658*/\n    *a2 = v6; /*0x14d660*/\n    *a3 = v5; /*0x14d665*/\n    return 0; /*0x14d667*/\n  }\n  return result; /*0x14d66c*/\n}",
+    "refs": [
+      {
+        "addr": "0x14b9b0",
+        "name": "_ipc_object_alloc"
+      },
+      {
+        "addr": "0x14a634",
+        "name": "_ipc_mqueue_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d674",
+    "addr": "0x0014d674",
+    "code": "int __cdecl ipc_pset_alloc_name(unsigned int a1, unsigned int a2, _DWORD *a3)\n{\n  int result; // eax\n  int v4; // eax\n  int v5; // [esp+8h] [ebp-4h] BYREF\n\n  result = ipc_object_alloc_name(a1, 1, 0x80000, 0, a2, &v5); /*0x14d694*/\n  if ( !result ) /*0x14d69e*/\n  {\n    v4 = v5; /*0x14d6a0*/\n    *(_DWORD *)(v5 + 12) = a2; /*0x14d6a3*/\n    ipc_mqueue_init((_DWORD *)(v4 + 16)); /*0x14d6aa*/\n    *a3 = v5; /*0x14d6b2*/\n    return 0; /*0x14d6b4*/\n  }\n  return result; /*0x14d6b9*/\n}",
+    "refs": [
+      {
+        "addr": "0x14ba60",
+        "name": "_ipc_object_alloc_name"
+      },
+      {
+        "addr": "0x14a634",
+        "name": "_ipc_mqueue_init"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d6c0",
+    "addr": "0x0014d6c0",
+    "code": "__int32 __cdecl ipc_pset_add(int a1, int a2)\n{\n  volatile __int32 *v2; // edx\n  volatile __int32 *v3; // edx\n\n  *(_DWORD *)(a2 + 48) = a1; /*0x14d6cc*/\n  ++*(_DWORD *)(a1 + 4); /*0x14d6cf*/\n  v2 = (volatile __int32 *)(a2 + 64); /*0x14d6d2*/\n  do /*0x14d6ea*/\n  {\n    while ( *v2 ) /*0x14d6d8*/\n      ; /*0x14d6da*/\n  }\n  while ( _InterlockedExchange(v2, 1) == 1 ); /*0x14d6ea*/\n  v3 = (volatile __int32 *)(a1 + 16); /*0x14d6ec*/\n  do /*0x14d702*/\n  {\n    while ( *v3 ) /*0x14d6f0*/\n      ; /*0x14d6f2*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x14d702*/\n  ipc_mqueue_move(a1 + 16, a2 + 64, a2); /*0x14d70d*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x14d717*/\n  ipc_mqueue_changed(a2 + 64, 268451846); /*0x14d720*/\n  return _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14d72d*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a654",
+        "name": "_ipc_mqueue_move"
+      },
+      {
+        "addr": "0x14a728",
+        "name": "_ipc_mqueue_changed"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d734",
+    "addr": "0x0014d734",
+    "code": "__int32 __cdecl ipc_pset_remove(int a1, int a2)\n{\n  volatile __int32 *v2; // edx\n  volatile __int32 *v3; // edx\n\n  *(_DWORD *)(a2 + 48) = 0; /*0x14d73f*/\n  --*(_DWORD *)(a1 + 4); /*0x14d746*/\n  v2 = (volatile __int32 *)(a2 + 64); /*0x14d749*/\n  do /*0x14d75e*/\n  {\n    while ( *v2 ) /*0x14d74c*/\n      ; /*0x14d74e*/\n  }\n  while ( _InterlockedExchange(v2, 1) == 1 ); /*0x14d75e*/\n  v3 = (volatile __int32 *)(a1 + 16); /*0x14d760*/\n  do /*0x14d776*/\n  {\n    while ( *v3 ) /*0x14d764*/\n      ; /*0x14d766*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x14d776*/\n  ipc_mqueue_move(a2 + 64, a1 + 16, a2); /*0x14d781*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x14d788*/\n  return _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14d793*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a654",
+        "name": "_ipc_mqueue_move"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014d79c",
+    "addr": "0x0014d79c",
+    "code": "int __cdecl ipc_pset_move(int a1, int a2, unsigned int a3)\n{\n  unsigned int v3; // esi\n  volatile __int32 *v4; // edx\n  volatile __int32 *v5; // edx\n  volatile __int32 *v6; // edx\n  volatile __int32 *v7; // edx\n  int v8; // eax\n  volatile __int32 *v9; // edx\n  volatile __int32 *v10; // edx\n  volatile __int32 *v11; // ebx\n  volatile __int32 *v12; // edx\n  int v13; // eax\n  int result; // eax\n\n  do /*0x14d7c0*/\n  {\n    while ( *(_DWORD *)a2 ) /*0x14d7ab*/\n      ; /*0x14d7ad*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a2, 1) == 1 ); /*0x14d7c0*/\n  v3 = *(_DWORD *)(a2 + 48); /*0x14d7c2*/\n  if ( v3 == a3 ) /*0x14d7c7*/\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14d7cb*/\n  }\n  else if ( v3 ) /*0x14d7d6*/\n  {\n    if ( a3 ) /*0x14d86a*/\n    {\n      if ( v3 >= a3 ) /*0x14d92e*/\n      {\n        do /*0x14d96e*/\n        {\n          while ( *(_DWORD *)a3 ) /*0x14d95c*/\n            ; /*0x14d95e*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)a3, 1) == 1 ); /*0x14d96e*/\n        do /*0x14d982*/\n        {\n          while ( *(_DWORD *)v3 ) /*0x14d970*/\n            ; /*0x14d972*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x14d982*/\n      }\n      else\n      {\n        do /*0x14d942*/\n        {\n          while ( *(_DWORD *)v3 ) /*0x14d930*/\n            ; /*0x14d932*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x14d942*/\n        do /*0x14d956*/\n        {\n          while ( *(_DWORD *)a3 ) /*0x14d944*/\n            ; /*0x14d946*/\n        }\n        while ( _InterlockedExchange((volatile __int32 *)a3, 1) == 1 ); /*0x14d956*/\n      }\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14d986*/\n      *(_DWORD *)(a2 + 48) = 0; /*0x14d98c*/\n      --*(_DWORD *)(v3 + 4); /*0x14d993*/\n      v9 = (volatile __int32 *)(a2 + 64); /*0x14d999*/\n      do /*0x14d9ae*/\n      {\n        while ( *v9 ) /*0x14d99c*/\n          ; /*0x14d99e*/\n      }\n      while ( _InterlockedExchange(v9, 1) == 1 ); /*0x14d9ae*/\n      v10 = (volatile __int32 *)(v3 + 16); /*0x14d9b0*/\n      do /*0x14d9c6*/\n      {\n        while ( *v10 ) /*0x14d9b4*/\n          ; /*0x14d9b6*/\n      }\n      while ( _InterlockedExchange(v10, 1) == 1 ); /*0x14d9c6*/\n      v11 = (volatile __int32 *)(a2 + 64); /*0x14d9d3*/\n      ipc_mqueue_move(a2 + 64, v3 + 16, a2); /*0x14d9d7*/\n      _InterlockedExchange((volatile __int32 *)(v3 + 16), 0); /*0x14d9e1*/\n      _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14d9e9*/\n      *(_DWORD *)(a2 + 48) = a3; /*0x14d9ec*/\n      ++*(_DWORD *)(a3 + 4); /*0x14d9ef*/\n      do /*0x14da06*/\n      {\n        while ( *v11 ) /*0x14d9f4*/\n          ; /*0x14d9f6*/\n      }\n      while ( _InterlockedExchange(v11, 1) == 1 ); /*0x14da06*/\n      v12 = (volatile __int32 *)(a3 + 16); /*0x14da08*/\n      do /*0x14da1e*/\n      {\n        while ( *v12 ) /*0x14da0c*/\n          ; /*0x14da0e*/\n      }\n      while ( _InterlockedExchange(v12, 1) == 1 ); /*0x14da1e*/\n      ipc_mqueue_move(a3 + 16, a2 + 64, a2); /*0x14da2f*/\n      _InterlockedExchange((volatile __int32 *)(a3 + 16), 0); /*0x14da39*/\n      ipc_mqueue_changed(a2 + 64, 268451846); /*0x14da42*/\n      _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14da4f*/\n      _InterlockedExchange((volatile __int32 *)a3, 0); /*0x14da54*/\n      v13 = *(_DWORD *)(v3 + 4); /*0x14da56*/\n      _InterlockedExchange((volatile __int32 *)v3, 0); /*0x14da5b*/\n      if ( !v13 ) /*0x14da5f*/\n        zfree(ipc_object_zones[*(_WORD *)(v3 + 10) & 0x7FFF], v3); /*0x14da73*/\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14d872*/\n      do /*0x14d88a*/\n      {\n        while ( *(_DWORD *)v3 ) /*0x14d878*/\n          ; /*0x14d87a*/\n      }\n      while ( _InterlockedExchange((volatile __int32 *)v3, 1) == 1 ); /*0x14d88a*/\n      *(_DWORD *)(a2 + 48) = 0; /*0x14d88f*/\n      --*(_DWORD *)(v3 + 4); /*0x14d896*/\n      v6 = (volatile __int32 *)(a2 + 64); /*0x14d89c*/\n      do /*0x14d8b2*/\n      {\n        while ( *v6 ) /*0x14d8a0*/\n          ; /*0x14d8a2*/\n      }\n      while ( _InterlockedExchange(v6, 1) == 1 ); /*0x14d8b2*/\n      v7 = (volatile __int32 *)(v3 + 16); /*0x14d8b4*/\n      do /*0x14d8ca*/\n      {\n        while ( *v7 ) /*0x14d8b8*/\n          ; /*0x14d8ba*/\n      }\n      while ( _InterlockedExchange(v7, 1) == 1 ); /*0x14d8ca*/\n      ipc_mqueue_move(a2 + 64, v3 + 16, a2); /*0x14d8db*/\n      _InterlockedExchange((volatile __int32 *)(v3 + 16), 0); /*0x14d8e5*/\n      _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14d8ed*/\n      if ( *(int *)(v3 + 8) >= 0 ) /*0x14d8f4*/\n      {\n        v8 = *(_DWORD *)(v3 + 4); /*0x14d900*/\n        _InterlockedExchange((volatile __int32 *)v3, 0); /*0x14d905*/\n        if ( !v8 ) /*0x14d909*/\n          zfree(ipc_object_zones[*(_WORD *)(v3 + 10) & 0x7FFF], v3); /*0x14d91d*/\n        v3 = 0; /*0x14d922*/\n      }\n      else\n      {\n        _InterlockedExchange((volatile __int32 *)v3, 0); /*0x14d8f8*/\n      }\n    }\n  }\n  else\n  {\n    do /*0x14d7ee*/\n    {\n      while ( *(_DWORD *)a3 ) /*0x14d7dc*/\n        ; /*0x14d7de*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)a3, 1) == 1 ); /*0x14d7ee*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14d7f2*/\n    *(_DWORD *)(a2 + 48) = a3; /*0x14d7f8*/\n    ++*(_DWORD *)(a3 + 4); /*0x14d7fb*/\n    v4 = (volatile __int32 *)(a2 + 64); /*0x14d801*/\n    do /*0x14d816*/\n    {\n      while ( *v4 ) /*0x14d804*/\n        ; /*0x14d806*/\n    }\n    while ( _InterlockedExchange(v4, 1) == 1 ); /*0x14d816*/\n    v5 = (volatile __int32 *)(a3 + 16); /*0x14d818*/\n    do /*0x14d82e*/\n    {\n      while ( *v5 ) /*0x14d81c*/\n        ; /*0x14d81e*/\n    }\n    while ( _InterlockedExchange(v5, 1) == 1 ); /*0x14d82e*/\n    ipc_mqueue_move(a3 + 16, a2 + 64, a2); /*0x14d83f*/\n    _InterlockedExchange((volatile __int32 *)(a3 + 16), 0); /*0x14d849*/\n    ipc_mqueue_changed(a2 + 64, 268451846); /*0x14d852*/\n    _InterlockedExchange((volatile __int32 *)(a2 + 64), 0); /*0x14d85c*/\n    _InterlockedExchange((volatile __int32 *)a3, 0); /*0x14d861*/\n  }\n  _InterlockedExchange((volatile __int32 *)a2, 0); /*0x14da7d*/\n  result = 0; /*0x14da7f*/\n  if ( !a3 && !v3 ) /*0x14da87*/\n    return 12; /*0x14da89*/\n  return result; /*0x14da91*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a654",
+        "name": "_ipc_mqueue_move"
+      },
+      {
+        "addr": "0x14a728",
+        "name": "_ipc_mqueue_changed"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014da98",
+    "addr": "0x0014da98",
+    "code": "int __cdecl ipc_pset_destroy(int a1)\n{\n  volatile __int32 *v1; // edx\n  int v2; // ecx\n  int result; // eax\n\n  *(_DWORD *)(a1 + 8) &= ~0x80000000; /*0x14da9f*/\n  v1 = (volatile __int32 *)(a1 + 16); /*0x14daa6*/\n  do /*0x14dabe*/\n  {\n    while ( *v1 ) /*0x14daac*/\n      ; /*0x14daae*/\n  }\n  while ( _InterlockedExchange(v1, 1) == 1 ); /*0x14dabe*/\n  ipc_mqueue_changed(a1 + 16, 268451849); /*0x14dac9*/\n  _InterlockedExchange((volatile __int32 *)(a1 + 16), 0); /*0x14dad3*/\n  v2 = *(_DWORD *)(a1 + 4) - 1; /*0x14dad9*/\n  *(_DWORD *)(a1 + 4) = v2; /*0x14dadc*/\n  result = v2; /*0x14dadf*/\n  _InterlockedExchange((volatile __int32 *)a1, 0); /*0x14dae2*/\n  if ( !v2 ) /*0x14dae6*/\n    return zfree(ipc_object_zones[*(_WORD *)(a1 + 10) & 0x7FFF], a1); /*0x14dafa*/\n  return result; /*0x14daff*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a728",
+        "name": "_ipc_mqueue_changed"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014db08",
+    "addr": "0x0014db08",
+    "code": "int __cdecl ipc_right_lookup_write(int a1, unsigned int a2, int **a3)\n{\n  volatile __int32 *v3; // edx\n  int *v5; // eax\n\n  v3 = (volatile __int32 *)(a1 + 8); /*0x14db13*/\n  do /*0x14db2a*/\n  {\n    while ( *v3 ) /*0x14db18*/\n      ; /*0x14db1a*/\n  }\n  while ( _InterlockedExchange(v3, 1) == 1 ); /*0x14db2a*/\n  if ( *(_DWORD *)(a1 + 12) ) /*0x14db2c*/\n  {\n    v5 = ipc_entry_lookup((_DWORD *)a1, a2); /*0x14db45*/\n    if ( v5 ) /*0x14db4c*/\n    {\n      *a3 = v5; /*0x14db4e*/\n      return 0; /*0x14db50*/\n    }\n    else\n    {\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14db56*/\n      return 15; /*0x14db59*/\n    }\n  }\n  else\n  {\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14db34*/\n    return 16; /*0x14db37*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x145e98",
+        "name": "_ipc_entry_lookup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014db68",
+    "addr": "0x0014db68",
+    "code": "int __cdecl ipc_right_reverse(_DWORD *a1, int a2, unsigned int *a3, int **a4)\n{\n  unsigned int v4; // ebx\n  int *v5; // eax\n\n  do /*0x14db8e*/\n  {\n    while ( *(_DWORD *)a2 ) /*0x14db7c*/\n      ; /*0x14db7e*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a2, 1) == 1 ); /*0x14db8e*/\n  if ( *(int *)(a2 + 8) >= 0 ) /*0x14db94*/\n    goto LABEL_7; /*0x14db94*/\n  if ( *(_DWORD **)(a2 + 12) != a1 ) /*0x14db99*/\n  {\n    if ( ipc_hash_lookup((int)a1, a2, (int)a3, (int)a4) ) /*0x14dbb0*/\n      return 1; /*0x14dbb7*/\nLABEL_7:\n    _InterlockedExchange((volatile __int32 *)a2, 0); /*0x14dbb9*/\n    return 0; /*0x14dbbf*/\n  }\n  v4 = *(_DWORD *)(a2 + 16); /*0x14db9b*/\n  v5 = ipc_entry_lookup(a1, v4); /*0x14dba0*/\n  *a3 = v4; /*0x14dba5*/\n  *a4 = v5; /*0x14dba7*/\n  return 1; /*0x14dbcc*/\n}",
+    "refs": [
+      {
+        "addr": "0x146908",
+        "name": "_ipc_hash_lookup"
+      },
+      {
+        "addr": "0x145e98",
+        "name": "_ipc_entry_lookup"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014dbd4",
+    "addr": "0x0014dbd4",
+    "code": "int __cdecl ipc_right_dnrequest(int a1, unsigned int a2, int a3, int a4, _DWORD *a5)\n{\n  int v5; // ecx\n  int result; // eax\n  int *v7; // eax\n  int v8; // ecx\n  int v9; // ebx\n  volatile __int32 *v10; // edi\n  int v11; // eax\n  int v12; // esi\n  int v13; // eax\n  unsigned int *v14; // eax\n  unsigned int v15; // esi\n  int v16; // [esp+Ch] [ebp-10h]\n  int v17; // [esp+Ch] [ebp-10h]\n  volatile __int32 *v18; // [esp+10h] [ebp-Ch]\n  int v19; // [esp+14h] [ebp-8h] BYREF\n  int *v20; // [esp+18h] [ebp-4h]\n\n  v5 = a1; /*0x14dbdd*/\n  v18 = (volatile __int32 *)(a1 + 8); /*0x14dbe3*/\n  while ( 1 ) /*0x14dc00*/\n  {\n    do /*0x14dc00*/\n    {\n      while ( *v18 ) /*0x14dbeb*/\n        ; /*0x14dbed*/\n    }\n    while ( _InterlockedExchange(v18, 1) == 1 ); /*0x14dc00*/\n    if ( !*(_DWORD *)(v5 + 12) ) /*0x14dc02*/\n    {\n      _InterlockedExchange((volatile __int32 *)(v5 + 8), 0); /*0x14dc0a*/\n      return 16; /*0x14dc12*/\n    }\n    v16 = v5; /*0x14dc1d*/\n    v7 = ipc_entry_lookup((_DWORD *)v5, a2); /*0x14dc20*/\n    v8 = v16; /*0x14dc28*/\n    if ( !v7 ) /*0x14dc2d*/\n      goto LABEL_24; /*0x14dc2d*/\n    v20 = v7; /*0x14dc33*/\n    v9 = *v7; /*0x14dc36*/\n    if ( (*v7 & 0x70000) == 0 ) /*0x14dc3e*/\n      goto LABEL_26; /*0x14dc3e*/\n    v10 = (volatile __int32 *)v7[1]; /*0x14dc44*/\n    v11 = ipc_right_check(v16, v10, a2, v7); /*0x14dc51*/\n    v8 = v16; /*0x14dc59*/\n    if ( v11 ) /*0x14dc5e*/\n      break; /*0x14dc5e*/\n    if ( !a4 ) /*0x14dc68*/\n    {\n      if ( (v9 & 0x400000) != 0 || !v20[2] ) /*0x14dc75*/\n      {\n        v12 = 0; /*0x14dc94*/\n      }\n      else\n      {\n        v12 = ipc_right_dncancel(v16, v10, a2, v20); /*0x14dc8a*/\n        v8 = v16; /*0x14dc8c*/\n      }\n      _InterlockedExchange(v10, 0); /*0x14dc98*/\nLABEL_22:\n      _InterlockedExchange((volatile __int32 *)(v8 + 8), 0); /*0x14dd19*/\nLABEL_36:\n      *a5 = v12; /*0x14dda8*/\n      return 0; /*0x14ddad*/\n    }\n    if ( v20[2] ) /*0x14dc9f*/\n    {\n      v12 = ipc_right_dncancel(v16, v10, a2, v20); /*0x14dcb7*/\n      v8 = v16; /*0x14dcb9*/\n    }\n    else\n    {\n      v12 = 0; /*0x14dcc0*/\n    }\n    v17 = v8; /*0x14dccf*/\n    v13 = ipc_port_dnrequest((int)v10, a2, a4, &v19); /*0x14dcd2*/\n    v8 = v17; /*0x14dcda*/\n    if ( !v13 ) /*0x14dcdf*/\n    {\n      _InterlockedExchange(v10, 0); /*0x14dd06*/\n      v14 = (unsigned int *)v20; /*0x14dd08*/\n      v20[2] = v19; /*0x14dd0e*/\n      *v14 = v9 & 0xFFBFFFFF; /*0x14dd17*/\n      goto LABEL_22; /*0x14dd17*/\n    }\n    _InterlockedExchange((volatile __int32 *)(v17 + 8), 0); /*0x14dce3*/\n    result = ipc_port_dngrow((int)v10); /*0x14dcea*/\n    v5 = v17; /*0x14dcf2*/\n    if ( result ) /*0x14dcf7*/\n      return result; /*0x14dcf7*/\n  }\n  if ( (v9 & 0x400000) != 0 ) /*0x14dd2a*/\n  {\nLABEL_24:\n    _InterlockedExchange((volatile __int32 *)(v8 + 8), 0); /*0x14dd2c*/\n    return 15; /*0x14dd36*/\n  }\n  v9 = *v20; /*0x14dd3b*/\nLABEL_26:\n  if ( (v9 & 0x100000) != 0 && a3 && a4 ) /*0x14dd4f*/\n  {\n    v15 = (unsigned __int16)v9 + 1; /*0x14dd54*/\n    if ( v15 <= (unsigned __int16)v9 || v15 > 0xFFFF ) /*0x14dd61*/\n    {\n      _InterlockedExchange((volatile __int32 *)(v8 + 8), 0); /*0x14dd65*/\n      return 19; /*0x14dd6d*/\n    }\n    *v20 = v9 + 1; /*0x14dd74*/\n    _InterlockedExchange((volatile __int32 *)(v8 + 8), 0); /*0x14dd78*/\n    ipc_notify_dead_name(a4, a2); /*0x14dd83*/\n    v12 = 0; /*0x14dd88*/\n    goto LABEL_36; /*0x14dd8a*/\n  }\n  _InterlockedExchange((volatile __int32 *)(v8 + 8), 0); /*0x14dd8e*/\n  if ( (v9 & 0x170000) != 0 ) /*0x14dd97*/\n    return 4; /*0x14dd99*/\n  else\n    return 17; /*0x14dda0*/\n}",
+    "refs": [
+      {
+        "addr": "0x145e98",
+        "name": "_ipc_entry_lookup"
+      },
+      {
+        "addr": "0x14dec0",
+        "name": "_ipc_right_check"
+      },
+      {
+        "addr": "0x14ddbc",
+        "name": "_ipc_right_dncancel"
+      },
+      {
+        "addr": "0x14c490",
+        "name": "_ipc_port_dnrequest"
+      },
+      {
+        "addr": "0x14c4d0",
+        "name": "_ipc_port_dngrow"
+      },
+      {
+        "addr": "0x14b644",
+        "name": "_ipc_notify_dead_name"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014ddbc",
+    "addr": "0x0014ddbc",
+    "code": "int __cdecl ipc_right_dncancel(int a1, int a2, int a3, int a4)\n{\n  int result; // eax\n\n  result = ipc_port_dncancel(a2, a3, *(_DWORD *)(a4 + 8)); /*0x14ddcf*/\n  *(_DWORD *)(a4 + 8) = 0; /*0x14ddd4*/\n  if ( (*(_BYTE *)(a4 + 2) & 0x40) != 0 ) /*0x14dde2*/\n  {\n    ipc_space_release(a1); /*0x14dde8*/\n    return 0; /*0x14dded*/\n  }\n  return result; /*0x14ddef*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c650",
+        "name": "_ipc_port_dncancel"
+      },
+      {
+        "addr": "0x1506d8",
+        "name": "_ipc_space_release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014ddf8",
+    "addr": "0x0014ddf8",
+    "code": "int __cdecl ipc_right_inuse(unsigned int a1, unsigned int a2, int *a3)\n{\n  int v3; // esi\n  int v4; // eax\n  int v5; // ecx\n  int v6; // ebx\n  int v7; // eax\n\n  v3 = *a3; /*0x14de01*/\n  if ( (*a3 & 0x1F0000) != 0 ) /*0x14de0a*/\n  {\n    v4 = *a3 & 0x1F0000; /*0x14de05*/\n    v5 = v4; /*0x14de10*/\n    if ( (v3 & 0x400000) == 0 || v4 != 0x10000 && v4 != 0x40000 ) /*0x14de2c*/\n      goto LABEL_14; /*0x14de2c*/\n    v6 = a3[1]; /*0x14de2e*/\n    do /*0x14de46*/\n    {\n      while ( *(_DWORD *)v6 ) /*0x14de34*/\n        ; /*0x14de36*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v6, 1) == 1 ); /*0x14de46*/\n    v7 = *(_DWORD *)(v6 + 8) >> 31; /*0x14de4b*/\n    _InterlockedExchange((volatile __int32 *)v6, 0); /*0x14de50*/\n    if ( v7 ) /*0x14de54*/\n    {\nLABEL_14:\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14dea9*/\n      return 1; /*0x14deb1*/\n    }\n    if ( v5 == 0x10000 ) /*0x14de5c*/\n    {\n      if ( (v3 & 0x200000) != 0 ) /*0x14de64*/\n        ipc_marequest_cancel(a1, a2); /*0x14de6e*/\n      ipc_hash_delete(a1, v6, a2, (int)a3); /*0x14de80*/\n    }\n    ipc_object_release(v6); /*0x14de89*/\n    a3[2] = 0; /*0x14de8e*/\n    a3[1] = 0; /*0x14de95*/\n    *a3 &= 0xFF800000; /*0x14de9c*/\n  }\n  return 0; /*0x14deb9*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a360",
+        "name": "_ipc_marequest_cancel"
+      },
+      {
+        "addr": "0x1469a0",
+        "name": "_ipc_hash_delete"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014dec0",
+    "addr": "0x0014dec0",
+    "code": "int __cdecl ipc_right_check(_DWORD *a1, int a2, unsigned int a3, int *a4)\n{\n  int v5; // ebx\n  unsigned int v6; // ebx\n\n  do /*0x14dede*/\n  {\n    while ( *(_DWORD *)a2 ) /*0x14decc*/\n      ; /*0x14dece*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)a2, 1) == 1 ); /*0x14dede*/\n  if ( *(int *)(a2 + 8) < 0 ) /*0x14dee4*/\n    return 0; /*0x14dee6*/\n  _InterlockedExchange((volatile __int32 *)a2, 0); /*0x14def2*/\n  v5 = *a4; /*0x14def4*/\n  if ( (*a4 & 0x10000) != 0 ) /*0x14defc*/\n  {\n    if ( (v5 & 0x200000) != 0 ) /*0x14df04*/\n    {\n      v5 &= ~0x200000u; /*0x14df06*/\n      ipc_marequest_cancel((unsigned int)a1, a3); /*0x14df14*/\n    }\n    ipc_hash_delete((int)a1, a2, a3, (int)a4); /*0x14df26*/\n  }\n  ipc_object_release(a2); /*0x14df2f*/\n  if ( (v5 & 0x400000) != 0 ) /*0x14df3d*/\n  {\n    a4[2] = 0; /*0x14df3f*/\n    a4[1] = 0; /*0x14df46*/\n    ipc_entry_dealloc(a1, a3, a4); /*0x14df56*/\n  }\n  else\n  {\n    v6 = v5 & 0xFFE0FFFF | 0x100000; /*0x14df69*/\n    if ( a4[2] ) /*0x14df6f*/\n    {\n      a4[2] = 0; /*0x14df75*/\n      ++v6; /*0x14df7c*/\n    }\n    *a4 = v6; /*0x14df7d*/\n    a4[1] = 0; /*0x14df7f*/\n  }\n  return 1; /*0x14df8e*/\n}",
+    "refs": [
+      {
+        "addr": "0x14a360",
+        "name": "_ipc_marequest_cancel"
+      },
+      {
+        "addr": "0x1469a0",
+        "name": "_ipc_hash_delete"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      },
+      {
+        "addr": "0x146284",
+        "name": "_ipc_entry_dealloc"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014df98",
+    "addr": "0x0014df98",
+    "code": "void __cdecl ipc_right_clean(int a1, int a2, int a3)\n{\n  unsigned int v3; // esi\n  volatile __int32 *v4; // edx\n  int v5; // ebx\n  int v6; // ecx\n  int v7; // eax\n  int v8; // edi\n  int v9; // eax\n  int v10; // [esp+Ch] [ebp-8h]\n  int v11; // [esp+10h] [ebp-4h]\n\n  v3 = *(_DWORD *)a3 & 0x1F0000; /*0x14dfa6*/\n  if ( v3 == 196608 ) /*0x14dfb2*/\n  {\nLABEL_16:\n    v5 = *(_DWORD *)(a3 + 4); /*0x14e01c*/\n    v11 = 0; /*0x14e01f*/\n    v10 = 0; /*0x14e026*/\n    do /*0x14e042*/\n    {\n      while ( *(_DWORD *)v5 ) /*0x14e030*/\n        ; /*0x14e032*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v5, 1) == 1 ); /*0x14e042*/\n    if ( *(int *)(v5 + 8) < 0 ) /*0x14e048*/\n    {\n      if ( *(_DWORD *)(a3 + 8) ) /*0x14e07c*/\n      {\n        v7 = ipc_port_dncancel(v5, a2, *(_DWORD *)(a3 + 8)); /*0x14e089*/\n        *(_DWORD *)(a3 + 8) = 0; /*0x14e08e*/\n        if ( (*(_BYTE *)(a3 + 2) & 0x40) != 0 ) /*0x14e09c*/\n        {\n          ipc_space_release(a1); /*0x14e0a2*/\n          v7 = 0; /*0x14e0a7*/\n        }\n        v8 = v7; /*0x14e0ac*/\n      }\n      else\n      {\n        v8 = 0; /*0x14e0b0*/\n      }\n      if ( (v3 & 0x10000) != 0 ) /*0x14e0b8*/\n      {\n        v9 = *(_DWORD *)(v5 + 28); /*0x14e0ba*/\n        *(_DWORD *)(v5 + 28) = v9 - 1; /*0x14e0c0*/\n        if ( v9 == 1 ) /*0x14e0c6*/\n        {\n          v11 = *(_DWORD *)(v5 + 36); /*0x14e0cb*/\n          if ( v11 ) /*0x14e0d0*/\n          {\n            *(_DWORD *)(v5 + 36) = 0; /*0x14e0d2*/\n            v10 = *(_DWORD *)(v5 + 24); /*0x14e0dc*/\n          }\n        }\n      }\n      if ( (v3 & 0x20000) != 0 ) /*0x14e0e5*/\n      {\n        ipc_port_clear_receiver(v5); /*0x14e0e8*/\n        ipc_port_destroy(v5); /*0x14e0ee*/\n      }\n      else if ( (v3 & 0x40000) != 0 ) /*0x14e0fe*/\n      {\n        _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e102*/\n        ipc_notify_send_once(v5); /*0x14e105*/\n      }\n      else\n      {\n        --*(_DWORD *)(v5 + 4); /*0x14e110*/\n        _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e115*/\n      }\n      if ( v11 ) /*0x14e11b*/\n        ipc_notify_no_senders(v11, v10); /*0x14e125*/\n      if ( v8 ) /*0x14e12f*/\n        ipc_notify_port_deleted(v8, a2); /*0x14e136*/\n    }\n    else\n    {\n      v6 = *(_DWORD *)(v5 + 4) - 1; /*0x14e04d*/\n      *(_DWORD *)(v5 + 4) = v6; /*0x14e050*/\n      _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e056*/\n      if ( !v6 ) /*0x14e05a*/\n        zfree(ipc_object_zones[*(_WORD *)(v5 + 10) & 0x7FFF], v5); /*0x14e072*/\n    }\n    return; /*0x14e077*/\n  }\n  if ( v3 <= 0x30000 ) /*0x14dfb4*/\n  {\n    if ( v3 != 0x10000 && v3 != 0x20000 ) /*0x14dfc4*/\nLABEL_40:\n      panic(aIpcRightCleanS); /*0x14e140*/\n    goto LABEL_16; /*0x14dfc4*/\n  }\n  if ( v3 == 0x80000 ) /*0x14dfd2*/\n  {\n    v4 = *(volatile __int32 **)(a3 + 4); /*0x14dff8*/\n    do /*0x14e00e*/\n    {\n      while ( *v4 ) /*0x14dffc*/\n        ; /*0x14dffe*/\n    }\n    while ( _InterlockedExchange(v4, 1) == 1 ); /*0x14e00e*/\n    ipc_pset_destroy((int)v4); /*0x14e011*/\n    return; /*0x14e016*/\n  }\n  if ( v3 <= 0x80000 ) /*0x14dfd4*/\n  {\n    if ( v3 != 0x40000 ) /*0x14dfdc*/\n      goto LABEL_40; /*0x14dfdc*/\n    goto LABEL_16; /*0x14dfdc*/\n  }\n  if ( (int *)v3 != &dword_100000 ) /*0x14dfea*/\n    goto LABEL_40; /*0x14dfea*/\n}",
+    "refs": [
+      {
+        "addr": "0x14c650",
+        "name": "_ipc_port_dncancel"
+      },
+      {
+        "addr": "0x1506d8",
+        "name": "_ipc_space_release"
+      },
+      {
+        "addr": "0x14c89c",
+        "name": "_ipc_port_clear_receiver"
+      },
+      {
+        "addr": "0x14cb80",
+        "name": "_ipc_port_destroy"
+      },
+      {
+        "addr": "0x14b5d4",
+        "name": "_ipc_notify_send_once"
+      },
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x14b3ec",
+        "name": "_ipc_notify_port_deleted"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de95a",
+        "name": "aIpcRightCleanS",
+        "string": "ipc_right_clean: strange type"
+      },
+      {
+        "addr": "0x14da98",
+        "name": "_ipc_pset_destroy"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014e154",
+    "addr": "0x0014e154",
+    "code": "int __cdecl ipc_right_destroy(unsigned int a1, unsigned int a2, int a3)\n{\n  unsigned int v3; // esi\n  volatile __int32 *v4; // ebx\n  int v5; // ebx\n  int v6; // ecx\n  int v8; // eax\n  int v9; // eax\n  int v10; // [esp+Ch] [ebp-10h]\n  int v11; // [esp+10h] [ebp-Ch]\n  int v12; // [esp+14h] [ebp-8h]\n  int v13; // [esp+18h] [ebp-4h]\n\n  v13 = *(_DWORD *)a3; /*0x14e162*/\n  v3 = *(_DWORD *)a3 & 0x1F0000; /*0x14e167*/\n  if ( v3 != 196608 ) /*0x14e173*/\n  {\n    if ( (*(_DWORD *)a3 & 0x1F0000u) > 0x30000 ) /*0x14e179*/\n    {\n      if ( v3 == 0x80000 ) /*0x14e19e*/\n      {\n        v4 = *(volatile __int32 **)(a3 + 4); /*0x14e1d8*/\n        *(_DWORD *)(a3 + 4) = 0; /*0x14e1db*/\n        ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e1eb*/\n        do /*0x14e206*/\n        {\n          while ( *v4 ) /*0x14e1f4*/\n            ; /*0x14e1f6*/\n        }\n        while ( _InterlockedExchange(v4, 1) == 1 ); /*0x14e206*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e20d*/\n        ipc_pset_destroy((int)v4); /*0x14e211*/\n        return 0; /*0x14e216*/\n      }\n      if ( v3 > 0x80000 ) /*0x14e1a0*/\n      {\n        if ( (int *)v3 != &dword_100000 ) /*0x14e1b6*/\n          goto LABEL_45; /*0x14e1b6*/\n        ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e1c5*/\n        _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e1cf*/\n        return 0; /*0x14e1d2*/\n      }\n      if ( v3 != 0x40000 ) /*0x14e1a8*/\n        goto LABEL_45; /*0x14e1a8*/\n    }\n    else if ( v3 != 0x10000 && v3 != 0x20000 ) /*0x14e18d*/\n    {\nLABEL_45:\n      panic(aIpcRightDestro); /*0x14e3dc*/\n    }\n  }\n  v5 = *(_DWORD *)(a3 + 4); /*0x14e21c*/\n  v12 = 0; /*0x14e21f*/\n  v11 = 0; /*0x14e226*/\n  if ( (v13 & 0x200000) != 0 ) /*0x14e236*/\n    ipc_marequest_cancel(a1, a2); /*0x14e240*/\n  if ( v3 == 0x10000 ) /*0x14e24e*/\n    ipc_hash_delete(a1, v5, a2, a3); /*0x14e25a*/\n  do /*0x14e276*/\n  {\n    while ( *(_DWORD *)v5 ) /*0x14e264*/\n      ; /*0x14e266*/\n  }\n  while ( _InterlockedExchange((volatile __int32 *)v5, 1) == 1 ); /*0x14e276*/\n  if ( *(int *)(v5 + 8) < 0 ) /*0x14e27c*/\n  {\n    if ( *(_DWORD *)(a3 + 8) ) /*0x14e2e8*/\n    {\n      v8 = ipc_port_dncancel(v5, a2, *(_DWORD *)(a3 + 8)); /*0x14e2f5*/\n      *(_DWORD *)(a3 + 8) = 0; /*0x14e2fa*/\n      if ( (*(_BYTE *)(a3 + 2) & 0x40) != 0 ) /*0x14e308*/\n      {\n        ipc_space_release(a1); /*0x14e30e*/\n        v8 = 0; /*0x14e313*/\n      }\n      v10 = v8; /*0x14e318*/\n    }\n    else\n    {\n      v10 = 0; /*0x14e320*/\n    }\n    *(_DWORD *)(a3 + 4) = 0; /*0x14e327*/\n    ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e337*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e344*/\n    if ( (v3 & 0x10000) != 0 ) /*0x14e34d*/\n    {\n      v9 = *(_DWORD *)(v5 + 28); /*0x14e34f*/\n      *(_DWORD *)(v5 + 28) = v9 - 1; /*0x14e355*/\n      if ( v9 == 1 ) /*0x14e35b*/\n      {\n        v12 = *(_DWORD *)(v5 + 36); /*0x14e360*/\n        if ( v12 ) /*0x14e365*/\n        {\n          *(_DWORD *)(v5 + 36) = 0; /*0x14e367*/\n          v11 = *(_DWORD *)(v5 + 24); /*0x14e371*/\n        }\n      }\n    }\n    if ( (v3 & 0x20000) != 0 ) /*0x14e37a*/\n    {\n      ipc_port_clear_receiver(v5); /*0x14e37d*/\n      ipc_port_destroy(v5); /*0x14e383*/\n    }\n    else if ( (v3 & 0x40000) != 0 ) /*0x14e396*/\n    {\n      _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e39a*/\n      ipc_notify_send_once(v5); /*0x14e39d*/\n    }\n    else\n    {\n      --*(_DWORD *)(v5 + 4); /*0x14e3a8*/\n      _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e3ad*/\n    }\n    if ( v12 ) /*0x14e3b3*/\n      ipc_notify_no_senders(v12, v11); /*0x14e3bd*/\n    if ( v10 ) /*0x14e3c9*/\n      ipc_notify_port_deleted(v10, a2); /*0x14e3d3*/\n  }\n  else\n  {\n    v6 = *(_DWORD *)(v5 + 4) - 1; /*0x14e281*/\n    *(_DWORD *)(v5 + 4) = v6; /*0x14e284*/\n    _InterlockedExchange((volatile __int32 *)v5, 0); /*0x14e28a*/\n    if ( !v6 ) /*0x14e28e*/\n      zfree(ipc_object_zones[*(_WORD *)(v5 + 10) & 0x7FFF], v5); /*0x14e2a2*/\n    *(_DWORD *)(a3 + 8) = 0; /*0x14e2aa*/\n    *(_DWORD *)(a3 + 4) = 0; /*0x14e2b1*/\n    ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e2c1*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e2cb*/\n    if ( (v13 & 0x400000) != 0 ) /*0x14e2d7*/\n      return 15; /*0x14e2e2*/\n  }\n  return 0; /*0x14e3eb*/\n}",
+    "refs": [
+      {
+        "addr": "0x146284",
+        "name": "_ipc_entry_dealloc"
+      },
+      {
+        "addr": "0x14da98",
+        "name": "_ipc_pset_destroy"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      },
+      {
+        "addr": "0x10ca6c",
+        "name": "_panic"
+      },
+      {
+        "addr": "0x1de978",
+        "name": "aIpcRightDestro",
+        "string": "ipc_right_destroy: strange type"
+      },
+      {
+        "addr": "0x14a360",
+        "name": "_ipc_marequest_cancel"
+      },
+      {
+        "addr": "0x1469a0",
+        "name": "_ipc_hash_delete"
+      },
+      {
+        "addr": "0x14c650",
+        "name": "_ipc_port_dncancel"
+      },
+      {
+        "addr": "0x1506d8",
+        "name": "_ipc_space_release"
+      },
+      {
+        "addr": "0x14c89c",
+        "name": "_ipc_port_clear_receiver"
+      },
+      {
+        "addr": "0x14cb80",
+        "name": "_ipc_port_destroy"
+      },
+      {
+        "addr": "0x14b5d4",
+        "name": "_ipc_notify_send_once"
+      },
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x14b3ec",
+        "name": "_ipc_notify_port_deleted"
+      },
+      {
+        "addr": "0x16b84c",
+        "name": "_zfree"
+      },
+      {
+        "addr": "0x1f6230",
+        "name": "_ipc_object_zones"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0014e3f4",
+    "addr": "0x0014e3f4",
+    "code": "int __cdecl ipc_right_dealloc(unsigned int a1, unsigned int a2, int a3)\n{\n  int *v3; // eax\n  int v4; // esi\n  int v5; // ebx\n  unsigned int v6; // ebx\n  int v7; // eax\n  int v8; // ebx\n  int v9; // esi\n  int v10; // ebx\n  unsigned int v11; // ebx\n  int v12; // eax\n  int v13; // eax\n  int v14; // esi\n  int v15; // ebx\n  int v16; // edx\n  int v17; // eax\n  unsigned int v18; // ecx\n  int v20; // [esp+Ch] [ebp-10h]\n  int v21; // [esp+10h] [ebp-Ch]\n  int v22; // [esp+14h] [ebp-8h]\n  int v23; // [esp+18h] [ebp-4h]\n\n  v23 = *(_DWORD *)a3; /*0x14e402*/\n  v3 = (int *)(*(_DWORD *)a3 & 0x1F0000); /*0x14e407*/\n  if ( v3 == (int *)196608 ) /*0x14e411*/\n  {\n    v14 = 0; /*0x14e7a8*/\n    v15 = 0; /*0x14e7aa*/\n    v16 = *(_DWORD *)(a3 + 4); /*0x14e7ac*/\n    do /*0x14e7c2*/\n    {\n      while ( *(_DWORD *)v16 ) /*0x14e7b0*/\n        ; /*0x14e7b2*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v16, 1) == 1 ); /*0x14e7c2*/\n    if ( (_WORD)v23 == 1 ) /*0x14e7c9*/\n    {\n      v17 = *(_DWORD *)(v16 + 28); /*0x14e7cb*/\n      *(_DWORD *)(v16 + 28) = v17 - 1; /*0x14e7d1*/\n      if ( v17 == 1 ) /*0x14e7d7*/\n      {\n        v14 = *(_DWORD *)(v16 + 36); /*0x14e7d9*/\n        if ( v14 ) /*0x14e7de*/\n        {\n          *(_DWORD *)(v16 + 36) = 0; /*0x14e7e0*/\n          v15 = *(_DWORD *)(v16 + 24); /*0x14e7e7*/\n        }\n      }\n      v18 = v23 & 0xFFFE0000; /*0x14e7ed*/\n    }\n    else\n    {\n      v18 = v23 - 1; /*0x14e7fb*/\n    }\n    *(_DWORD *)a3 = v18; /*0x14e7fc*/\n    _InterlockedExchange((volatile __int32 *)v16, 0); /*0x14e800*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e807*/\n    if ( v14 ) /*0x14e80c*/\n      ipc_notify_no_senders(v14, v15); /*0x14e810*/\n    return 0; /*0x14e815*/\n  }\n  if ( (*(_DWORD *)a3 & 0x1F0000u) > 0x30000 ) /*0x14e417*/\n  {\n    if ( v3 != (int *)0x40000 ) /*0x14e431*/\n    {\n      if ( v3 != &dword_100000 ) /*0x14e438*/\n      {\nLABEL_73:\n        _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e818*/\n        return 17; /*0x14e825*/\n      }\n      goto LABEL_7; /*0x14e438*/\n    }\n    v4 = *(_DWORD *)(a3 + 4); /*0x14e46c*/\n    do /*0x14e482*/\n    {\n      while ( *(_DWORD *)v4 ) /*0x14e470*/\n        ; /*0x14e472*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v4, 1) == 1 ); /*0x14e482*/\n    if ( *(int *)(v4 + 8) < 0 ) /*0x14e488*/\n    {\n      if ( *(_DWORD *)(a3 + 8) ) /*0x14e537*/\n      {\n        v7 = ipc_port_dncancel(v4, a2, *(_DWORD *)(a3 + 8)); /*0x14e544*/\n        *(_DWORD *)(a3 + 8) = 0; /*0x14e549*/\n        if ( (*(_BYTE *)(a3 + 2) & 0x40) != 0 ) /*0x14e557*/\n        {\n          ipc_space_release(a1); /*0x14e55d*/\n          v7 = 0; /*0x14e562*/\n        }\n        v8 = v7; /*0x14e567*/\n      }\n      else\n      {\n        v8 = 0; /*0x14e56c*/\n      }\n      _InterlockedExchange((volatile __int32 *)v4, 0); /*0x14e570*/\n      *(_DWORD *)(a3 + 4) = 0; /*0x14e572*/\n      ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e582*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e58f*/\n      ipc_notify_send_once(v4); /*0x14e593*/\n      if ( v8 ) /*0x14e59d*/\n        ipc_notify_port_deleted(v8, a2); /*0x14e5a8*/\n      return 0; /*0x14e5ad*/\n    }\n    _InterlockedExchange((volatile __int32 *)v4, 0); /*0x14e490*/\n    v5 = *(_DWORD *)a3; /*0x14e492*/\n    if ( (*(_DWORD *)a3 & 0x10000) != 0 ) /*0x14e49a*/\n    {\n      if ( (v5 & 0x200000) != 0 ) /*0x14e4a2*/\n      {\n        v5 &= ~0x200000u; /*0x14e4a4*/\n        ipc_marequest_cancel(a1, a2); /*0x14e4b2*/\n      }\n      ipc_hash_delete(a1, v4, a2, a3); /*0x14e4c4*/\n    }\n    ipc_object_release(v4); /*0x14e4cd*/\n    if ( (v5 & 0x400000) != 0 ) /*0x14e4db*/\n      goto LABEL_39; /*0x14e4db*/\n    v6 = v5 & 0xFFE0FFFF | 0x100000; /*0x14e50d*/\n    if ( *(_DWORD *)(a3 + 8) ) /*0x14e513*/\n    {\n      *(_DWORD *)(a3 + 8) = 0; /*0x14e519*/\n      ++v6; /*0x14e520*/\n    }\n    *(_DWORD *)a3 = v6; /*0x14e521*/\n    *(_DWORD *)(a3 + 4) = 0; /*0x14e523*/\n  }\n  else\n  {\n    if ( v3 != (int *)0x10000 ) /*0x14e41e*/\n      goto LABEL_73; /*0x14e41e*/\n    v22 = 0; /*0x14e5b4*/\n    v21 = 0; /*0x14e5bb*/\n    v20 = 0; /*0x14e5c2*/\n    v9 = *(_DWORD *)(a3 + 4); /*0x14e5c9*/\n    do /*0x14e5de*/\n    {\n      while ( *(_DWORD *)v9 ) /*0x14e5cc*/\n        ; /*0x14e5ce*/\n    }\n    while ( _InterlockedExchange((volatile __int32 *)v9, 1) == 1 ); /*0x14e5de*/\n    if ( *(int *)(v9 + 8) < 0 ) /*0x14e5e4*/\n    {\n      if ( (_WORD)v23 == 1 ) /*0x14e6ad*/\n      {\n        v12 = *(_DWORD *)(v9 + 28); /*0x14e6b3*/\n        *(_DWORD *)(v9 + 28) = v12 - 1; /*0x14e6b9*/\n        if ( v12 == 1 ) /*0x14e6bf*/\n        {\n          v21 = *(_DWORD *)(v9 + 36); /*0x14e6c4*/\n          if ( v21 ) /*0x14e6c9*/\n          {\n            *(_DWORD *)(v9 + 36) = 0; /*0x14e6cb*/\n            v20 = *(_DWORD *)(v9 + 24); /*0x14e6d5*/\n          }\n        }\n        if ( *(_DWORD *)(a3 + 8) ) /*0x14e6d8*/\n        {\n          v13 = ipc_port_dncancel(v9, a2, *(_DWORD *)(a3 + 8)); /*0x14e6e5*/\n          *(_DWORD *)(a3 + 8) = 0; /*0x14e6ea*/\n          if ( (*(_BYTE *)(a3 + 2) & 0x40) != 0 ) /*0x14e6f8*/\n          {\n            ipc_space_release(a1); /*0x14e6fe*/\n            v13 = 0; /*0x14e703*/\n          }\n          v22 = v13; /*0x14e708*/\n        }\n        else\n        {\n          v22 = 0; /*0x14e710*/\n        }\n        ipc_hash_delete(a1, v9, a2, a3); /*0x14e721*/\n        if ( (v23 & 0x200000) != 0 ) /*0x14e732*/\n          ipc_marequest_cancel(a1, a2); /*0x14e73c*/\n        --*(_DWORD *)(v9 + 4); /*0x14e744*/\n        *(_DWORD *)(a3 + 4) = 0; /*0x14e747*/\n        ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e757*/\n      }\n      else\n      {\n        *(_DWORD *)a3 = v23 - 1; /*0x14e768*/\n      }\n      _InterlockedExchange((volatile __int32 *)v9, 0); /*0x14e76c*/\n      _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e773*/\n      if ( v21 ) /*0x14e77a*/\n        ipc_notify_no_senders(v21, v20); /*0x14e784*/\n      if ( v22 ) /*0x14e790*/\n        ipc_notify_port_deleted(v22, a2); /*0x14e79e*/\n      return 0; /*0x14e7a3*/\n    }\n    _InterlockedExchange((volatile __int32 *)v9, 0); /*0x14e5ec*/\n    v10 = *(_DWORD *)a3; /*0x14e5ee*/\n    if ( (*(_DWORD *)a3 & 0x10000) != 0 ) /*0x14e5f6*/\n    {\n      if ( (v10 & 0x200000) != 0 ) /*0x14e5fe*/\n      {\n        v10 &= ~0x200000u; /*0x14e600*/\n        ipc_marequest_cancel(a1, a2); /*0x14e60e*/\n      }\n      ipc_hash_delete(a1, v9, a2, a3); /*0x14e620*/\n    }\n    ipc_object_release(v9); /*0x14e629*/\n    if ( (v10 & 0x400000) != 0 ) /*0x14e637*/\n    {\nLABEL_39:\n      *(_DWORD *)(a3 + 8) = 0; /*0x14e639*/\n      *(_DWORD *)(a3 + 4) = 0; /*0x14e640*/\n      ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e650*/\n      goto LABEL_43; /*0x14e65d*/\n    }\n    v11 = v10 & 0xFFE0FFFF | 0x100000; /*0x14e669*/\n    if ( *(_DWORD *)(a3 + 8) ) /*0x14e66f*/\n    {\n      *(_DWORD *)(a3 + 8) = 0; /*0x14e675*/\n      ++v11; /*0x14e67c*/\n    }\n    *(_DWORD *)a3 = v11; /*0x14e67d*/\n    *(_DWORD *)(a3 + 4) = 0; /*0x14e67f*/\n  }\nLABEL_43:\n  if ( (v23 & 0x400000) == 0 ) /*0x14e698*/\n  {\n    v23 = *(_DWORD *)a3; /*0x14e6a0*/\nLABEL_7:\n    if ( (_WORD)v23 == 1 ) /*0x14e443*/\n      ipc_entry_dealloc((_DWORD *)a1, a2, (int *)a3); /*0x14e44e*/\n    else\n      *(_DWORD *)a3 = v23 - 1; /*0x14e45c*/\n    _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e463*/\n    return 0; /*0x14e82a*/\n  }\n  _InterlockedExchange((volatile __int32 *)(a1 + 8), 0); /*0x14e831*/\n  return 15; /*0x14e83c*/\n}",
+    "refs": [
+      {
+        "addr": "0x14b55c",
+        "name": "_ipc_notify_no_senders"
+      },
+      {
+        "addr": "0x100000",
+        "name": "dword_100000"
+      },
+      {
+        "addr": "0x14c650",
+        "name": "_ipc_port_dncancel"
+      },
+      {
+        "addr": "0x1506d8",
+        "name": "_ipc_space_release"
+      },
+      {
+        "addr": "0x146284",
+        "name": "_ipc_entry_dealloc"
+      },
+      {
+        "addr": "0x14b5d4",
+        "name": "_ipc_notify_send_once"
+      },
+      {
+        "addr": "0x14b3ec",
+        "name": "_ipc_notify_port_deleted"
+      },
+      {
+        "addr": "0x14a360",
+        "name": "_ipc_marequest_cancel"
+      },
+      {
+        "addr": "0x1469a0",
+        "name": "_ipc_hash_delete"
+      },
+      {
+        "addr": "0x14b86c",
+        "name": "_ipc_object_release"
+      }
+    ]
+  }
+]

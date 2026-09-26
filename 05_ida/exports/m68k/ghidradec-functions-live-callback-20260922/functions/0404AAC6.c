@@ -1,0 +1,22 @@
+
+void _stack_statistics(undefined4 *param_1,uint *param_2)
+
+{
+  undefined4 *puVar1;
+  uint uVar2;
+  
+  _lock_read(&_stack_queue_lock);
+  puVar1 = dword_40B3712;
+  if (_stack_check_usage != 0) {
+    for (; (undefined4 **)puVar1 != &dword_40B3712; puVar1 = (undefined4 *)*puVar1) {
+      uVar2 = _stack_usage(puVar1 + 3);
+      if (*param_2 < uVar2) {
+        *param_2 = uVar2;
+      }
+    }
+  }
+  *param_1 = dword_40AF7D4;
+  _lock_done(&_stack_queue_lock);
+  return;
+}
+

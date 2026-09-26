@@ -1,0 +1,4 @@
+0x001a202c	3	MOV EBX,dword ptr [EBP + 0x8]
+0x001a202f	7	MOV dword ptr [EBX + 0x74],0x0
+0x001a2036	2	XOR EAX,EAX
+0x001a2038	5	JMP 0x001a20c8

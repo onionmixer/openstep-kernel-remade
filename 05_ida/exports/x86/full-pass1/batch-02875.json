@@ -1,0 +1,845 @@
+[
+  {
+    "requested_address": "0x00188234",
+    "addr": "0x00188234",
+    "code": "int __cdecl dma_assign_chan(unsigned int a1)\n{\n  int v1; // eax\n\n  v1 = (unsigned __int8)dma_assigned_bits; /*0x188240*/\n  if ( _bittest(&v1, a1) ) /*0x188246*/\n    return 0; /*0x188260*/\n  dma_assigned_bits |= 1 << a1; /*0x188251*/\n  return 1; /*0x18825e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188268",
+    "addr": "0x00188268",
+    "code": "int __cdecl dma_deassign_chan(int a1)\n{\n  int result; // eax\n\n  dma_mask_chan(a1); /*0x188270*/\n  result = __ROL4__(-2, a1); /*0x18827c*/\n  dma_assigned_bits &= result; /*0x18827e*/\n  return result; /*0x188284*/\n}",
+    "refs": [
+      {
+        "addr": "0x18828c",
+        "name": "_dma_mask_chan"
+      },
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018828c",
+    "addr": "0x0018828c",
+    "code": "char __cdecl dma_mask_chan(signed int a1)\n{\n  int v1; // eax\n  _BOOL4 v2; // ebx\n  unsigned __int16 v3; // dx\n  unsigned __int16 v4; // dx\n  _BOOL4 v5; // ebx\n  unsigned __int16 v6; // dx\n  unsigned __int8 v8; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v9; // [esp+10h] [ebp-8h]\n\n  v1 = (unsigned __int8)dma_assigned_bits; /*0x188297*/\n  if ( _bittest(&v1, a1) ) /*0x18829e*/\n  {\n    v2 = a1 > 3; /*0x1882b6*/\n    v9 = dma_cmd_regs[v2] | 4; /*0x1882c1*/\n    dma_cmd_regs[v2] = v9; /*0x1882c4*/\n    us_spin(1); /*0x1882cc*/\n    if ( a1 <= 3 ) /*0x1882d6*/\n      v3 = _dma_chip_port; /*0x1882e4*/\n    else\n      v3 = word_1E18A0; /*0x1882d8*/\n    __outbyte(v3, v9); /*0x1882ee*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1882ef*/\n    us_spin(1); /*0x1882f8*/\n    if ( a1 > 3 ) /*0x188303*/\n      v4 = word_1E18A4; /*0x188310*/\n    else\n      v4 = word_1E1896; /*0x188305*/\n    __outbyte(v4, a1 & 3 | 4); /*0x18831a*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18831b*/\n    v5 = a1 > 3; /*0x188328*/\n    v8 = dma_cmd_regs[v5] & 0xFB; /*0x188333*/\n    dma_cmd_regs[v5] = v8; /*0x188336*/\n    us_spin(1); /*0x18833e*/\n    if ( a1 <= 3 ) /*0x188345*/\n      v6 = _dma_chip_port; /*0x188350*/\n    else\n      v6 = word_1E18A0; /*0x188347*/\n    LOBYTE(v1) = v8; /*0x188357*/\n    __outbyte(v6, v8); /*0x18835a*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18835b*/\n  }\n  return v1; /*0x188365*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a4",
+        "name": "word_1E18A4"
+      },
+      {
+        "addr": "0x1e1896",
+        "name": "word_1E1896"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018836c",
+    "addr": "0x0018836c",
+    "code": "char __cdecl dma_unmask_chan(signed int a1)\n{\n  int v1; // eax\n  _BOOL4 v2; // ebx\n  unsigned __int16 v3; // dx\n  unsigned __int16 v4; // dx\n  _BOOL4 v5; // ebx\n  unsigned __int16 v6; // dx\n  unsigned __int8 v8; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v9; // [esp+10h] [ebp-8h]\n\n  v1 = (unsigned __int8)dma_assigned_bits; /*0x188377*/\n  if ( _bittest(&v1, a1) ) /*0x18837e*/\n  {\n    v2 = a1 > 3; /*0x188394*/\n    v9 = dma_cmd_regs[v2] | 4; /*0x18839f*/\n    dma_cmd_regs[v2] = v9; /*0x1883a2*/\n    us_spin(1); /*0x1883aa*/\n    if ( a1 <= 3 ) /*0x1883b4*/\n      v3 = _dma_chip_port; /*0x1883c0*/\n    else\n      v3 = word_1E18A0; /*0x1883b6*/\n    __outbyte(v3, v9); /*0x1883ca*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1883cb*/\n    us_spin(1); /*0x1883d4*/\n    if ( a1 > 3 ) /*0x1883df*/\n      v4 = word_1E18A4; /*0x1883ec*/\n    else\n      v4 = word_1E1896; /*0x1883e1*/\n    __outbyte(v4, a1 & 3); /*0x1883f6*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1883f7*/\n    v5 = a1 > 3; /*0x188404*/\n    v8 = dma_cmd_regs[v5] & 0xFB; /*0x18840f*/\n    dma_cmd_regs[v5] = v8; /*0x188412*/\n    us_spin(1); /*0x18841a*/\n    if ( a1 <= 3 ) /*0x188421*/\n      v6 = _dma_chip_port; /*0x18842c*/\n    else\n      v6 = word_1E18A0; /*0x188423*/\n    LOBYTE(v1) = v8; /*0x188433*/\n    __outbyte(v6, v8); /*0x188436*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188437*/\n  }\n  return v1; /*0x188441*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a4",
+        "name": "word_1E18A4"
+      },
+      {
+        "addr": "0x1e1896",
+        "name": "word_1E1896"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188448",
+    "addr": "0x00188448",
+    "code": "char __cdecl dma_chan_xfer_mode(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x188453*/\n  if ( _bittest(&v2, a1) ) /*0x18845a*/\n  {\n    v3 = (a2 << 6) | dma_write_regs[2 * a1] & 0x3F; /*0x188474*/\n    dma_write_regs[2 * a1] = v3; /*0x188476*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x188485*/\n    v4 = a1 > 3; /*0x18848e*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x188499*/\n    dma_cmd_regs[v4] = v11; /*0x18849c*/\n    us_spin(1); /*0x1884a4*/\n    if ( a1 <= 3 ) /*0x1884ae*/\n      v5 = _dma_chip_port; /*0x1884bc*/\n    else\n      v5 = word_1E18A0; /*0x1884b0*/\n    __outbyte(v5, v11); /*0x1884c6*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1884c7*/\n    us_spin(1); /*0x1884d0*/\n    if ( a1 > 3 ) /*0x1884db*/\n      v6 = word_1E18A6; /*0x1884e8*/\n    else\n      v6 = word_1E1898; /*0x1884dd*/\n    __outbyte(v6, v12); /*0x1884f2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1884f3*/\n    v7 = a1 > 3; /*0x188500*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x18850b*/\n    dma_cmd_regs[v7] = v10; /*0x18850e*/\n    us_spin(1); /*0x188516*/\n    if ( a1 <= 3 ) /*0x18851d*/\n      v8 = _dma_chip_port; /*0x188528*/\n    else\n      v8 = word_1E18A0; /*0x18851f*/\n    LOBYTE(v2) = v10; /*0x18852f*/\n    __outbyte(v8, v10); /*0x188532*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188533*/\n  }\n  return v2; /*0x18853d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a6",
+        "name": "word_1E18A6"
+      },
+      {
+        "addr": "0x1e1898",
+        "name": "word_1E1898"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188544",
+    "addr": "0x00188544",
+    "code": "char __cdecl dma_chan_autoinit(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x18854f*/\n  if ( _bittest(&v2, a1) ) /*0x188556*/\n  {\n    v3 = (16 * (a2 & 1)) | dma_write_regs[2 * a1] & 0xEF; /*0x188573*/\n    dma_write_regs[2 * a1] = v3; /*0x188575*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x188584*/\n    v4 = a1 > 3; /*0x18858d*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x188598*/\n    dma_cmd_regs[v4] = v11; /*0x18859b*/\n    us_spin(1); /*0x1885a3*/\n    if ( a1 <= 3 ) /*0x1885ad*/\n      v5 = _dma_chip_port; /*0x1885b8*/\n    else\n      v5 = word_1E18A0; /*0x1885af*/\n    __outbyte(v5, v11); /*0x1885c2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1885c3*/\n    us_spin(1); /*0x1885cc*/\n    if ( a1 > 3 ) /*0x1885d7*/\n      v6 = word_1E18A6; /*0x1885e4*/\n    else\n      v6 = word_1E1898; /*0x1885d9*/\n    __outbyte(v6, v12); /*0x1885ee*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1885ef*/\n    v7 = a1 > 3; /*0x1885fc*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x188607*/\n    dma_cmd_regs[v7] = v10; /*0x18860a*/\n    us_spin(1); /*0x188612*/\n    if ( a1 <= 3 ) /*0x188619*/\n      v8 = _dma_chip_port; /*0x188624*/\n    else\n      v8 = word_1E18A0; /*0x18861b*/\n    LOBYTE(v2) = v10; /*0x18862b*/\n    __outbyte(v8, v10); /*0x18862e*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18862f*/\n  }\n  return v2; /*0x188639*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a6",
+        "name": "word_1E18A6"
+      },
+      {
+        "addr": "0x1e1898",
+        "name": "word_1E1898"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188640",
+    "addr": "0x00188640",
+    "code": "char __cdecl dma_chan_adrs_dir(signed int a1, int a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x18864b*/\n  if ( _bittest(&v2, a1) ) /*0x188652*/\n  {\n    v3 = (32 * (a2 != 0)) | dma_write_regs[2 * a1] & 0xDF; /*0x188670*/\n    dma_write_regs[2 * a1] = v3; /*0x188672*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x188681*/\n    v4 = a1 > 3; /*0x18868a*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x188695*/\n    dma_cmd_regs[v4] = v11; /*0x188698*/\n    us_spin(1); /*0x1886a0*/\n    if ( a1 <= 3 ) /*0x1886aa*/\n      v5 = _dma_chip_port; /*0x1886b8*/\n    else\n      v5 = word_1E18A0; /*0x1886ac*/\n    __outbyte(v5, v11); /*0x1886c2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1886c3*/\n    us_spin(1); /*0x1886cc*/\n    if ( a1 > 3 ) /*0x1886d7*/\n      v6 = word_1E18A6; /*0x1886e4*/\n    else\n      v6 = word_1E1898; /*0x1886d9*/\n    __outbyte(v6, v12); /*0x1886ee*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1886ef*/\n    v7 = a1 > 3; /*0x1886fc*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x188707*/\n    dma_cmd_regs[v7] = v10; /*0x18870a*/\n    us_spin(1); /*0x188712*/\n    if ( a1 <= 3 ) /*0x188719*/\n      v8 = _dma_chip_port; /*0x188724*/\n    else\n      v8 = word_1E18A0; /*0x18871b*/\n    LOBYTE(v2) = v10; /*0x18872b*/\n    __outbyte(v8, v10); /*0x18872e*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18872f*/\n  }\n  return v2; /*0x188739*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a6",
+        "name": "word_1E18A6"
+      },
+      {
+        "addr": "0x1e1898",
+        "name": "word_1E1898"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188740",
+    "addr": "0x00188740",
+    "code": "char __cdecl dma_chan_xfer_dir(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x18874b*/\n  if ( _bittest(&v2, a1) ) /*0x188752*/\n  {\n    v3 = (4 * (a2 & 3)) | dma_write_regs[2 * a1] & 0xF3; /*0x18876f*/\n    dma_write_regs[2 * a1] = v3; /*0x188771*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x188780*/\n    v4 = a1 > 3; /*0x188789*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x188794*/\n    dma_cmd_regs[v4] = v11; /*0x188797*/\n    us_spin(1); /*0x18879f*/\n    if ( a1 <= 3 ) /*0x1887a9*/\n      v5 = _dma_chip_port; /*0x1887b4*/\n    else\n      v5 = word_1E18A0; /*0x1887ab*/\n    __outbyte(v5, v11); /*0x1887be*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1887bf*/\n    us_spin(1); /*0x1887c8*/\n    if ( a1 > 3 ) /*0x1887d3*/\n      v6 = word_1E18A6; /*0x1887e0*/\n    else\n      v6 = word_1E1898; /*0x1887d5*/\n    __outbyte(v6, v12); /*0x1887ea*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1887eb*/\n    v7 = a1 > 3; /*0x1887f8*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x188803*/\n    dma_cmd_regs[v7] = v10; /*0x188806*/\n    us_spin(1); /*0x18880e*/\n    if ( a1 <= 3 ) /*0x188815*/\n      v8 = _dma_chip_port; /*0x188820*/\n    else\n      v8 = word_1E18A0; /*0x188817*/\n    LOBYTE(v2) = v10; /*0x188827*/\n    __outbyte(v8, v10); /*0x18882a*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18882b*/\n  }\n  return v2; /*0x188835*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a6",
+        "name": "word_1E18A6"
+      },
+      {
+        "addr": "0x1e1898",
+        "name": "word_1E1898"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018883c",
+    "addr": "0x0018883c",
+    "code": "int __cdecl dma_xfer_chan(int a1, int a2)\n{\n  int v2; // eax\n  int v4; // ecx\n  _BOOL4 v5; // ebx\n  unsigned __int16 v6; // dx\n  unsigned __int16 v7; // dx\n  _BOOL4 v8; // ebx\n  unsigned __int16 v9; // dx\n  int v10; // eax\n  char v11; // al\n  _BOOL4 v12; // ebx\n  unsigned __int16 v13; // dx\n  unsigned __int16 v14; // dx\n  _BOOL4 v15; // ebx\n  unsigned __int16 v16; // dx\n  unsigned __int8 v17; // al\n  int v18; // eax\n  char v19; // cl\n  _BOOL4 v20; // ebx\n  unsigned __int16 v21; // dx\n  unsigned __int16 v22; // dx\n  _BOOL4 v23; // ebx\n  int v24; // esi\n  _BOOL4 v25; // ebx\n  unsigned __int16 v26; // dx\n  unsigned __int16 v27; // dx\n  _BOOL4 v28; // ebx\n  unsigned __int16 v29; // dx\n  unsigned int v30; // edx\n  int v31; // esi\n  _BOOL4 v32; // ebx\n  unsigned __int16 v33; // dx\n  unsigned __int16 v34; // dx\n  _BOOL4 v35; // ebx\n  unsigned __int16 v36; // dx\n  int v37; // eax\n  _BOOL4 v38; // ebx\n  unsigned __int16 v39; // dx\n  unsigned __int16 v40; // dx\n  _BOOL4 v41; // ebx\n  unsigned __int16 v42; // dx\n  unsigned __int8 v43; // [esp+18h] [ebp-44h]\n  unsigned __int8 v44; // [esp+1Ch] [ebp-40h]\n  unsigned __int8 v45; // [esp+24h] [ebp-38h]\n  unsigned __int8 v46; // [esp+28h] [ebp-34h]\n  unsigned __int8 v47; // [esp+2Ch] [ebp-30h]\n  unsigned __int8 v48; // [esp+30h] [ebp-2Ch]\n  char v49; // [esp+34h] [ebp-28h]\n  unsigned __int8 v50; // [esp+38h] [ebp-24h]\n  unsigned __int8 v51; // [esp+3Ch] [ebp-20h]\n  char v52; // [esp+40h] [ebp-1Ch]\n  unsigned __int8 v53; // [esp+44h] [ebp-18h]\n  unsigned __int8 v54; // [esp+48h] [ebp-14h]\n  unsigned __int8 v55; // [esp+4Ch] [ebp-10h]\n  unsigned __int8 v56; // [esp+50h] [ebp-Ch]\n  int v57; // [esp+58h] [ebp-4h] BYREF\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x188848*/\n  if ( !_bittest(&v2, a1) ) /*0x18884f*/\n    return 0; /*0x18884f*/\n  if ( !eisa_present() ) /*0x188854*/\n    *(_BYTE *)(a2 + 20) |= 0x30u; /*0x188860*/\n  if ( !dma_xfer(a2, &v57) ) /*0x18886c*/\n    return 0; /*0x18887c*/\n  *(_DWORD *)(a2 + 8) = a1; /*0x188887*/\n  *(_BYTE *)(a2 + 20) |= 4u; /*0x18888a*/\n  v4 = (unsigned __int8)dma_assigned_bits; /*0x18888e*/\n  if ( _bittest(&v4, a1) ) /*0x188895*/\n  {\n    v5 = a1 > 3; /*0x1888ad*/\n    v56 = dma_cmd_regs[v5] | 4; /*0x1888b8*/\n    dma_cmd_regs[v5] = v56; /*0x1888bb*/\n    us_spin(1); /*0x1888c3*/\n    if ( a1 <= 3 ) /*0x1888cd*/\n      v6 = _dma_chip_port; /*0x1888d8*/\n    else\n      v6 = word_1E18A0; /*0x1888cf*/\n    __outbyte(v6, v56); /*0x1888e2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1888e3*/\n    us_spin(1); /*0x1888ec*/\n    if ( a1 > 3 ) /*0x1888f7*/\n      v7 = word_1E18A4; /*0x188904*/\n    else\n      v7 = word_1E1896; /*0x1888f9*/\n    __outbyte(v7, a1 & 3 | 4); /*0x18890e*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18890f*/\n    v8 = a1 > 3; /*0x18891c*/\n    v55 = dma_cmd_regs[v8] & 0xFB; /*0x188927*/\n    dma_cmd_regs[v8] = v55; /*0x18892a*/\n    us_spin(1); /*0x188932*/\n    if ( a1 <= 3 ) /*0x18893c*/\n      v9 = _dma_chip_port; /*0x188948*/\n    else\n      v9 = word_1E18A0; /*0x18893e*/\n    __outbyte(v9, v55); /*0x188952*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188953*/\n  }\n  if ( (*(_BYTE *)(a2 + 20) & 8) != 0 ) /*0x188961*/\n  {\n    v10 = (unsigned __int8)dma_assigned_bits; /*0x188967*/\n    if ( _bittest(&v10, a1) ) /*0x18896e*/\n    {\n      v11 = dma_write_regs[2 * a1] & 0xF3 | 4; /*0x188982*/\n      dma_write_regs[2 * a1] = v11; /*0x188984*/\n      v54 = v11 & 0xFC | a1 & 3; /*0x188993*/\n      v12 = a1 > 3; /*0x18899c*/\n      v53 = dma_cmd_regs[v12] | 4; /*0x1889a7*/\n      dma_cmd_regs[v12] = v53; /*0x1889aa*/\n      us_spin(1); /*0x1889b2*/\n      if ( a1 <= 3 ) /*0x1889bc*/\n        v13 = _dma_chip_port; /*0x1889c8*/\n      else\n        v13 = word_1E18A0; /*0x1889be*/\n      __outbyte(v13, v53); /*0x1889d2*/\n      _InterlockedIncrement(dword_1E75EC); /*0x1889d3*/\n      us_spin(1); /*0x1889dc*/\n      if ( a1 > 3 ) /*0x1889e7*/\n        v14 = word_1E18A6; /*0x1889f4*/\n      else\n        v14 = word_1E1898; /*0x1889e9*/\n      __outbyte(v14, v54); /*0x1889fe*/\n      _InterlockedIncrement(dword_1E75EC); /*0x1889ff*/\n      v15 = a1 > 3; /*0x188a0c*/\n      v52 = dma_cmd_regs[v15] & 0xFB; /*0x188a17*/\n      dma_cmd_regs[v15] = v52; /*0x188a1a*/\n      us_spin(1); /*0x188a22*/\n      if ( a1 <= 3 ) /*0x188a2c*/\n        v16 = _dma_chip_port; /*0x188a40*/\n      else\n        v16 = word_1E18A0; /*0x188a2e*/\n      v17 = v52; /*0x188a35*/\nLABEL_40:\n      __outbyte(v16, v17); /*0x188b2e*/\n      _InterlockedIncrement(dword_1E75EC); /*0x188b2f*/\n    }\n  }\n  else\n  {\n    v18 = (unsigned __int8)dma_assigned_bits; /*0x188a50*/\n    if ( _bittest(&v18, a1) ) /*0x188a57*/\n    {\n      v19 = dma_write_regs[2 * a1] & 0xF3 | 8; /*0x188a6c*/\n      dma_write_regs[2 * a1] = v19; /*0x188a6f*/\n      v51 = v19 & 0xFC | a1 & 3; /*0x188a7f*/\n      v20 = a1 > 3; /*0x188a88*/\n      v50 = dma_cmd_regs[v20] | 4; /*0x188a94*/\n      dma_cmd_regs[v20] = v50; /*0x188a97*/\n      us_spin(1); /*0x188a9f*/\n      if ( a1 <= 3 ) /*0x188aa9*/\n        v21 = _dma_chip_port; /*0x188ab4*/\n      else\n        v21 = word_1E18A0; /*0x188aab*/\n      __outbyte(v21, v50); /*0x188abe*/\n      _InterlockedIncrement(dword_1E75EC); /*0x188abf*/\n      us_spin(1); /*0x188ac8*/\n      if ( a1 > 3 ) /*0x188ad3*/\n        v22 = word_1E18A6; /*0x188ae0*/\n      else\n        v22 = word_1E1898; /*0x188ad5*/\n      __outbyte(v22, v51); /*0x188aea*/\n      _InterlockedIncrement(dword_1E75EC); /*0x188aeb*/\n      v23 = a1 > 3; /*0x188af8*/\n      v49 = dma_cmd_regs[v23] & 0xFB; /*0x188b03*/\n      dma_cmd_regs[v23] = v49; /*0x188b06*/\n      us_spin(1); /*0x188b0e*/\n      if ( a1 <= 3 ) /*0x188b18*/\n        v16 = _dma_chip_port; /*0x188b24*/\n      else\n        v16 = word_1E18A0; /*0x188b1a*/\n      v17 = v49; /*0x188b2b*/\n      goto LABEL_40; /*0x188b2b*/\n    }\n  }\n  v24 = v57; /*0x188b36*/\n  if ( (((unsigned __int8)byte_1F74F1[2 * a1] >> 2) & 3) == 1 ) /*0x188b49*/\n    LOWORD(v24) = (unsigned __int16)v57 >> 1; /*0x188b50*/\n  v25 = a1 > 3; /*0x188b59*/\n  v48 = dma_cmd_regs[v25] | 4; /*0x188b64*/\n  dma_cmd_regs[v25] = v48; /*0x188b67*/\n  us_spin(1); /*0x188b6f*/\n  if ( a1 <= 3 ) /*0x188b79*/\n    v26 = _dma_chip_port; /*0x188b84*/\n  else\n    v26 = word_1E18A0; /*0x188b7b*/\n  __outbyte(v26, v48); /*0x188b8e*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188b8f*/\n  us_spin(1); /*0x188b98*/\n  if ( a1 > 3 ) /*0x188ba3*/\n    v27 = word_1E18A8; /*0x188bb0*/\n  else\n    v27 = word_1E189A; /*0x188ba5*/\n  __outbyte(v27, 0xFFu); /*0x188bb9*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188bba*/\n  us_spin(1); /*0x188bc3*/\n  __outbyte(_dma_chan_port[5 * a1], v24); /*0x188bde*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188bdf*/\n  us_spin(1); /*0x188be8*/\n  __outbyte(_dma_chan_port[5 * a1], BYTE1(v24)); /*0x188bfe*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188bff*/\n  us_spin(1); /*0x188c08*/\n  __outbyte(word_1E1844[5 * a1], BYTE2(v24)); /*0x188c1e*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188c1f*/\n  if ( eisa_present() ) /*0x188c26*/\n  {\n    us_spin(1); /*0x188c33*/\n    __outbyte(word_1E1846[5 * a1], HIBYTE(v24)); /*0x188c47*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188c48*/\n  }\n  v28 = a1 > 3; /*0x188c55*/\n  v47 = dma_cmd_regs[v28] & 0xFB; /*0x188c60*/\n  dma_cmd_regs[v28] = v47; /*0x188c63*/\n  us_spin(1); /*0x188c6b*/\n  if ( a1 <= 3 ) /*0x188c75*/\n    v29 = _dma_chip_port; /*0x188c80*/\n  else\n    v29 = word_1E18A0; /*0x188c77*/\n  __outbyte(v29, v47); /*0x188c8a*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188c8b*/\n  v30 = *(_DWORD *)(a2 + 4); /*0x188c95*/\n  if ( (((unsigned __int8)byte_1F74F1[2 * a1] >> 2) & 3) == 1 ) /*0x188cad*/\n    v31 = (v30 >> 1) - 1; /*0x188cb3*/\n  else\n    v31 = v30 - 1; /*0x188cb8*/\n  v32 = a1 > 3; /*0x188cc1*/\n  v46 = dma_cmd_regs[v32] | 4; /*0x188ccd*/\n  dma_cmd_regs[v32] = v46; /*0x188cd0*/\n  us_spin(1); /*0x188cd8*/\n  if ( a1 <= 3 ) /*0x188ce2*/\n    v33 = _dma_chip_port; /*0x188cf0*/\n  else\n    v33 = word_1E18A0; /*0x188ce4*/\n  __outbyte(v33, v46); /*0x188cfa*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188cfb*/\n  us_spin(1); /*0x188d04*/\n  if ( a1 > 3 ) /*0x188d0f*/\n    v34 = word_1E18A8; /*0x188d1c*/\n  else\n    v34 = word_1E189A; /*0x188d11*/\n  __outbyte(v34, 0xFFu); /*0x188d25*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188d26*/\n  us_spin(1); /*0x188d2f*/\n  __outbyte(word_1E1848[5 * a1], v31); /*0x188d4a*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188d4b*/\n  us_spin(1); /*0x188d54*/\n  __outbyte(word_1E1848[5 * a1], BYTE1(v31)); /*0x188d6a*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188d6b*/\n  if ( eisa_present() ) /*0x188d72*/\n  {\n    us_spin(1); /*0x188d7f*/\n    __outbyte(word_1E184A[5 * a1], BYTE2(v31)); /*0x188d93*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188d94*/\n  }\n  v35 = a1 > 3; /*0x188da1*/\n  v45 = dma_cmd_regs[v35] & 0xFB; /*0x188dac*/\n  dma_cmd_regs[v35] = v45; /*0x188daf*/\n  us_spin(1); /*0x188db7*/\n  if ( a1 <= 3 ) /*0x188dc1*/\n    v36 = _dma_chip_port; /*0x188dcc*/\n  else\n    v36 = word_1E18A0; /*0x188dc3*/\n  __outbyte(v36, v45); /*0x188dd6*/\n  _InterlockedIncrement(dword_1E75EC); /*0x188dd7*/\n  if ( a1 > 3 ) /*0x188de1*/\n    prev_tcstatus1 &= __ROL4__(-2, a1 - 4); /*0x188dfe*/\n  else\n    prev_tcstatus0 &= __ROL4__(-2, a1); /*0x188dec*/\n  v37 = (unsigned __int8)dma_assigned_bits; /*0x188e04*/\n  if ( _bittest(&v37, a1) ) /*0x188e0b*/\n  {\n    v38 = a1 > 3; /*0x188e21*/\n    v44 = dma_cmd_regs[v38] | 4; /*0x188e2c*/\n    dma_cmd_regs[v38] = v44; /*0x188e2f*/\n    us_spin(1); /*0x188e37*/\n    if ( a1 <= 3 ) /*0x188e41*/\n      v39 = _dma_chip_port; /*0x188e4c*/\n    else\n      v39 = word_1E18A0; /*0x188e43*/\n    __outbyte(v39, v44); /*0x188e56*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188e57*/\n    us_spin(1); /*0x188e60*/\n    if ( a1 > 3 ) /*0x188e6b*/\n      v40 = word_1E18A4; /*0x188e78*/\n    else\n      v40 = word_1E1896; /*0x188e6d*/\n    __outbyte(v40, a1 & 3); /*0x188e82*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188e83*/\n    v41 = a1 > 3; /*0x188e90*/\n    v43 = dma_cmd_regs[v41] & 0xFB; /*0x188e9b*/\n    dma_cmd_regs[v41] = v43; /*0x188e9e*/\n    us_spin(1); /*0x188ea6*/\n    if ( a1 <= 3 ) /*0x188ead*/\n      v42 = _dma_chip_port; /*0x188eb8*/\n    else\n      v42 = word_1E18A0; /*0x188eaf*/\n    __outbyte(v42, v43); /*0x188ec2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x188ec3*/\n  }\n  return 1; /*0x188ed2*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1946e0",
+        "name": "_eisa_present"
+      },
+      {
+        "addr": "0x188edc",
+        "name": "_dma_xfer"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a4",
+        "name": "word_1E18A4"
+      },
+      {
+        "addr": "0x1e1896",
+        "name": "word_1E1896"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1e18a6",
+        "name": "word_1E18A6"
+      },
+      {
+        "addr": "0x1e1898",
+        "name": "word_1E1898"
+      },
+      {
+        "addr": "0x1f74f1",
+        "name": "byte_1F74F1"
+      },
+      {
+        "addr": "0x1e18a8",
+        "name": "word_1E18A8"
+      },
+      {
+        "addr": "0x1e189a",
+        "name": "word_1E189A"
+      },
+      {
+        "addr": "0x1e1842",
+        "name": "__dma_chan_port"
+      },
+      {
+        "addr": "0x1e1844",
+        "name": "word_1E1844"
+      },
+      {
+        "addr": "0x1e1846",
+        "name": "word_1E1846"
+      },
+      {
+        "addr": "0x1e1848",
+        "name": "word_1E1848"
+      },
+      {
+        "addr": "0x1e184a",
+        "name": "word_1E184A"
+      },
+      {
+        "addr": "0x1f7504",
+        "name": "_prev_tcstatus1"
+      },
+      {
+        "addr": "0x1f7500",
+        "name": "_prev_tcstatus0"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188edc",
+    "addr": "0x00188edc",
+    "code": "int __cdecl dma_xfer(int a1, _DWORD *a2)\n{\n  char v2; // al\n  char v4; // al\n  void *v5; // esi\n\n  v2 = *(_BYTE *)(a1 + 20); /*0x188eeb*/\n  if ( (v2 & 0x10) == 0 || *(_DWORD *)a1 <= 0xFFFFFFu || (v2 & 2) != 0 ) /*0x188efc*/\n  {\n    *a2 = *(_DWORD *)a1; /*0x188f36*/\n  }\n  else\n  {\n    if ( !dma_buf_alloc((int **)(a1 + 12), *(_DWORD *)(a1 + 4)) ) /*0x188f03*/\n      return 0; /*0x188f11*/\n    v4 = *(_BYTE *)(a1 + 20) | 2; /*0x188f17*/\n    *(_BYTE *)(a1 + 20) = v4; /*0x188f19*/\n    v5 = *(void **)(a1 + 12); /*0x188f1c*/\n    if ( (v4 & 8) == 0 ) /*0x188f21*/\n      bcopy(*(const void **)a1, v5, *(_DWORD *)(a1 + 4)); /*0x188f2b*/\n    *a2 = v5; /*0x188f30*/\n  }\n  *(_BYTE *)(a1 + 20) |= 1u; /*0x188f38*/\n  return 1; /*0x188f44*/\n}",
+    "refs": [
+      {
+        "addr": "0x18980c",
+        "name": "_dma_buf_alloc"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188f4c",
+    "addr": "0x00188f4c",
+    "code": "void __cdecl dma_xfer_done(int a1)\n{\n  char v1; // al\n\n  v1 = *(_BYTE *)(a1 + 20); /*0x188f54*/\n  if ( (v1 & 1) != 0 ) /*0x188f59*/\n  {\n    if ( (v1 & 2) != 0 ) /*0x188f5d*/\n    {\n      if ( (v1 & 8) != 0 ) /*0x188f67*/\n        bcopy(*(const void **)(a1 + 12), *(void **)a1, *(_DWORD *)(a1 + 4)); /*0x188f71*/\n      dma_buf_free(a1 + 12); /*0x188f7a*/\n    }\n    *(_BYTE *)(a1 + 20) &= 0xFCu; /*0x188f7f*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x18987c",
+        "name": "_dma_buf_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188f8c",
+    "addr": "0x00188f8c",
+    "code": "void __cdecl dma_xfer_abort(int a1)\n{\n  char v1; // al\n\n  v1 = *(_BYTE *)(a1 + 20); /*0x188f93*/\n  if ( (v1 & 1) != 0 ) /*0x188f98*/\n  {\n    if ( (v1 & 2) != 0 ) /*0x188f9c*/\n      dma_buf_free(a1 + 12); /*0x188fa2*/\n    *(_BYTE *)(a1 + 20) &= 0xFCu; /*0x188fa7*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18987c",
+        "name": "_dma_buf_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00188fb4",
+    "addr": "0x00188fb4",
+    "code": "char __cdecl dma_xfer_width(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x188fbf*/\n  if ( _bittest(&v2, a1) ) /*0x188fc6*/\n  {\n    v3 = (4 * (a2 & 3)) | dma_write_regs[2 * a1 + 1] & 0xF3; /*0x188fe6*/\n    dma_write_regs[2 * a1 + 1] = v3; /*0x188fe8*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x188ff5*/\n    v4 = a1 > 3; /*0x188ffe*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x189009*/\n    dma_cmd_regs[v4] = v11; /*0x18900c*/\n    us_spin(1); /*0x189014*/\n    if ( a1 <= 3 ) /*0x18901e*/\n      v5 = _dma_chip_port; /*0x18902c*/\n    else\n      v5 = word_1E18A0; /*0x189020*/\n    __outbyte(v5, v11); /*0x189036*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189037*/\n    us_spin(1); /*0x189040*/\n    if ( a1 > 3 ) /*0x18904b*/\n      v6 = word_1E18AC; /*0x189058*/\n    else\n      v6 = word_1E189E; /*0x18904d*/\n    __outbyte(v6, v12); /*0x189062*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189063*/\n    v7 = a1 > 3; /*0x189070*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x18907b*/\n    dma_cmd_regs[v7] = v10; /*0x18907e*/\n    us_spin(1); /*0x189086*/\n    if ( a1 <= 3 ) /*0x18908d*/\n      v8 = _dma_chip_port; /*0x189098*/\n    else\n      v8 = word_1E18A0; /*0x18908f*/\n    LOBYTE(v2) = v10; /*0x18909f*/\n    __outbyte(v8, v10); /*0x1890a2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1890a3*/\n  }\n  return v2; /*0x1890ad*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18ac",
+        "name": "word_1E18AC"
+      },
+      {
+        "addr": "0x1e189e",
+        "name": "word_1E189E"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001890b4",
+    "addr": "0x001890b4",
+    "code": "int __cdecl get_dma_xfer_width(unsigned int a1)\n{\n  int v1; // eax\n\n  v1 = (unsigned __int8)dma_assigned_bits; /*0x1890ba*/\n  if ( _bittest(&v1, a1) ) /*0x1890c1*/\n    return ((unsigned __int8)byte_1F74F1[2 * a1] >> 2) & 3; /*0x1890d0*/\n  else\n    return -1; /*0x1890d8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f1",
+        "name": "byte_1F74F1"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001890e4",
+    "addr": "0x001890e4",
+    "code": "char __cdecl dma_timing(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x1890ef*/\n  if ( _bittest(&v2, a1) ) /*0x1890f6*/\n  {\n    v3 = (16 * (a2 & 3)) | dma_write_regs[2 * a1 + 1] & 0xCF; /*0x189116*/\n    dma_write_regs[2 * a1 + 1] = v3; /*0x189118*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x189125*/\n    v4 = a1 > 3; /*0x18912e*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x189139*/\n    dma_cmd_regs[v4] = v11; /*0x18913c*/\n    us_spin(1); /*0x189144*/\n    if ( a1 <= 3 ) /*0x18914e*/\n      v5 = _dma_chip_port; /*0x18915c*/\n    else\n      v5 = word_1E18A0; /*0x189150*/\n    __outbyte(v5, v11); /*0x189166*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189167*/\n    us_spin(1); /*0x189170*/\n    if ( a1 > 3 ) /*0x18917b*/\n      v6 = word_1E18AC; /*0x189188*/\n    else\n      v6 = word_1E189E; /*0x18917d*/\n    __outbyte(v6, v12); /*0x189192*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189193*/\n    v7 = a1 > 3; /*0x1891a0*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x1891ab*/\n    dma_cmd_regs[v7] = v10; /*0x1891ae*/\n    us_spin(1); /*0x1891b6*/\n    if ( a1 <= 3 ) /*0x1891bd*/\n      v8 = _dma_chip_port; /*0x1891c8*/\n    else\n      v8 = word_1E18A0; /*0x1891bf*/\n    LOBYTE(v2) = v10; /*0x1891cf*/\n    __outbyte(v8, v10); /*0x1891d2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1891d3*/\n  }\n  return v2; /*0x1891dd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18ac",
+        "name": "word_1E18AC"
+      },
+      {
+        "addr": "0x1e189e",
+        "name": "word_1E189E"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001891e4",
+    "addr": "0x001891e4",
+    "code": "char __cdecl dma_eop_in(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x1891ef*/\n  if ( _bittest(&v2, a1) ) /*0x1891f6*/\n  {\n    v3 = ((a2 & 1) << 6) | dma_write_regs[2 * a1 + 1] & 0xBF; /*0x189216*/\n    dma_write_regs[2 * a1 + 1] = v3; /*0x189218*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x189225*/\n    v4 = a1 > 3; /*0x18922e*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x189239*/\n    dma_cmd_regs[v4] = v11; /*0x18923c*/\n    us_spin(1); /*0x189244*/\n    if ( a1 <= 3 ) /*0x18924e*/\n      v5 = _dma_chip_port; /*0x18925c*/\n    else\n      v5 = word_1E18A0; /*0x189250*/\n    __outbyte(v5, v11); /*0x189266*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189267*/\n    us_spin(1); /*0x189270*/\n    if ( a1 > 3 ) /*0x18927b*/\n      v6 = word_1E18AC; /*0x189288*/\n    else\n      v6 = word_1E189E; /*0x18927d*/\n    __outbyte(v6, v12); /*0x189292*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189293*/\n    v7 = a1 > 3; /*0x1892a0*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x1892ab*/\n    dma_cmd_regs[v7] = v10; /*0x1892ae*/\n    us_spin(1); /*0x1892b6*/\n    if ( a1 <= 3 ) /*0x1892bd*/\n      v8 = _dma_chip_port; /*0x1892c8*/\n    else\n      v8 = word_1E18A0; /*0x1892bf*/\n    LOBYTE(v2) = v10; /*0x1892cf*/\n    __outbyte(v8, v10); /*0x1892d2*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1892d3*/\n  }\n  return v2; /*0x1892dd*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18ac",
+        "name": "word_1E18AC"
+      },
+      {
+        "addr": "0x1e189e",
+        "name": "word_1E189E"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001892e4",
+    "addr": "0x001892e4",
+    "code": "char __cdecl dma_stop_enable(signed int a1, char a2)\n{\n  int v2; // eax\n  char v3; // al\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int16 v6; // dx\n  _BOOL4 v7; // ebx\n  unsigned __int16 v8; // dx\n  unsigned __int8 v10; // [esp+Ch] [ebp-Ch]\n  unsigned __int8 v11; // [esp+10h] [ebp-8h]\n  unsigned __int8 v12; // [esp+14h] [ebp-4h]\n\n  v2 = (unsigned __int8)dma_assigned_bits; /*0x1892ef*/\n  if ( _bittest(&v2, a1) ) /*0x1892f6*/\n  {\n    v3 = (a2 << 7) | dma_write_regs[2 * a1 + 1] & 0x7F; /*0x189313*/\n    dma_write_regs[2 * a1 + 1] = v3; /*0x189315*/\n    v12 = v3 & 0xFC | a1 & 3; /*0x189322*/\n    v4 = a1 > 3; /*0x18932b*/\n    v11 = dma_cmd_regs[v4] | 4; /*0x189336*/\n    dma_cmd_regs[v4] = v11; /*0x189339*/\n    us_spin(1); /*0x189341*/\n    if ( a1 <= 3 ) /*0x18934b*/\n      v5 = _dma_chip_port; /*0x189358*/\n    else\n      v5 = word_1E18A0; /*0x18934d*/\n    __outbyte(v5, v11); /*0x189362*/\n    _InterlockedIncrement(dword_1E75EC); /*0x189363*/\n    us_spin(1); /*0x18936c*/\n    if ( a1 > 3 ) /*0x189377*/\n      v6 = word_1E18AC; /*0x189384*/\n    else\n      v6 = word_1E189E; /*0x189379*/\n    __outbyte(v6, v12); /*0x18938e*/\n    _InterlockedIncrement(dword_1E75EC); /*0x18938f*/\n    v7 = a1 > 3; /*0x18939c*/\n    v10 = dma_cmd_regs[v7] & 0xFB; /*0x1893a7*/\n    dma_cmd_regs[v7] = v10; /*0x1893aa*/\n    us_spin(1); /*0x1893b2*/\n    if ( a1 <= 3 ) /*0x1893b9*/\n      v8 = _dma_chip_port; /*0x1893c4*/\n    else\n      v8 = word_1E18A0; /*0x1893bb*/\n    LOBYTE(v2) = v10; /*0x1893cb*/\n    __outbyte(v8, v10); /*0x1893ce*/\n    _InterlockedIncrement(dword_1E75EC); /*0x1893cf*/\n  }\n  return v2; /*0x1893d9*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74dc",
+        "name": "_dma_assigned_bits"
+      },
+      {
+        "addr": "0x1f74f0",
+        "name": "_dma_write_regs"
+      },
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18ac",
+        "name": "word_1E18AC"
+      },
+      {
+        "addr": "0x1e189e",
+        "name": "word_1E189E"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001893e0",
+    "addr": "0x001893e0",
+    "code": "int __cdecl is_dma_done(int a1)\n{\n  unsigned int v1; // ebx\n  unsigned __int16 v2; // dx\n  unsigned __int8 v3; // al\n  int v4; // eax\n\n  v1 = a1; /*0x1893e4*/\n  us_spin(1); /*0x1893e9*/\n  if ( a1 > 3 ) /*0x1893f1*/\n    v2 = word_1E18A0; /*0x1893fc*/\n  else\n    v2 = _dma_chip_port; /*0x1893f3*/\n  v3 = __inbyte(v2); /*0x189403*/\n  if ( a1 <= 3 ) /*0x189407*/\n  {\n    v4 = prev_tcstatus0 | v3 & 0xF; /*0x18941f*/\n    prev_tcstatus0 = v4; /*0x189425*/\n  }\n  else\n  {\n    v1 = a1 - 4; /*0x189409*/\n    v4 = prev_tcstatus1 | v3 & 0xF; /*0x18940f*/\n    prev_tcstatus1 = v4; /*0x189415*/\n  }\n  return _bittest(&v4, v1); /*0x189435*/\n}",
+    "refs": [
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1f7500",
+        "name": "_prev_tcstatus0"
+      },
+      {
+        "addr": "0x1f7504",
+        "name": "_prev_tcstatus1"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018943c",
+    "addr": "0x0018943c",
+    "code": "unsigned int __cdecl get_dma_addr(int a1)\n{\n  _BOOL4 v1; // ebx\n  unsigned __int16 v2; // dx\n  unsigned __int16 v3; // dx\n  unsigned __int8 v4; // al\n  int v5; // esi\n  unsigned __int8 v6; // al\n  unsigned int v7; // esi\n  unsigned __int8 v8; // al\n  unsigned int v9; // esi\n  int v10; // eax\n  _BOOL4 v11; // ebx\n  unsigned __int16 v12; // dx\n  unsigned __int8 v14; // [esp+14h] [ebp-8h]\n  unsigned __int8 v15; // [esp+18h] [ebp-4h]\n\n  v1 = a1 > 3; /*0x189450*/\n  v15 = dma_cmd_regs[v1] | 4; /*0x18945b*/\n  dma_cmd_regs[v1] = v15; /*0x18945e*/\n  us_spin(1); /*0x189466*/\n  if ( a1 <= 3 ) /*0x189470*/\n    v2 = _dma_chip_port; /*0x18947c*/\n  else\n    v2 = word_1E18A0; /*0x189472*/\n  __outbyte(v2, v15); /*0x189486*/\n  _InterlockedIncrement(dword_1E75EC); /*0x189487*/\n  us_spin(1); /*0x189490*/\n  if ( a1 > 3 ) /*0x18949b*/\n    v3 = word_1E18A8; /*0x1894a8*/\n  else\n    v3 = word_1E189A; /*0x18949d*/\n  __outbyte(v3, 0xFFu); /*0x1894b1*/\n  _InterlockedIncrement(dword_1E75EC); /*0x1894b2*/\n  us_spin(1); /*0x1894bb*/\n  v4 = __inbyte(_dma_chan_port[5 * a1]); /*0x1894d1*/\n  v5 = v4; /*0x1894d8*/\n  us_spin(1); /*0x1894dc*/\n  v6 = __inbyte(_dma_chan_port[5 * a1]); /*0x1894eb*/\n  v7 = (v6 << 8) | v5 & 0xFFFF00FF; /*0x1894ff*/\n  us_spin(1); /*0x189503*/\n  v8 = __inbyte(word_1E1844[5 * a1]); /*0x189512*/\n  v9 = (v8 << 16) | v7 & 0xFF00FFFF; /*0x189526*/\n  if ( eisa_present() ) /*0x189528*/\n  {\n    v10 = us_spin(1); /*0x189535*/\n    LOBYTE(v10) = __inbyte(word_1E1846[5 * a1]); /*0x189544*/\n    v9 = (v10 << 24) | v9 & 0xFFFFFF; /*0x18954e*/\n  }\n  v11 = a1 > 3; /*0x189556*/\n  v14 = dma_cmd_regs[v11] & 0xFB; /*0x189561*/\n  dma_cmd_regs[v11] = v14; /*0x189564*/\n  us_spin(1); /*0x18956c*/\n  if ( a1 <= 3 ) /*0x189573*/\n    v12 = _dma_chip_port; /*0x189580*/\n  else\n    v12 = word_1E18A0; /*0x189575*/\n  __outbyte(v12, v14); /*0x18958a*/\n  _InterlockedIncrement(dword_1E75EC); /*0x18958b*/\n  if ( (((unsigned __int8)byte_1F74F1[2 * a1] >> 2) & 3) == 1 ) /*0x1895a2*/\n    LOWORD(v9) = 2 * v9; /*0x1895a9*/\n  return v9; /*0x1895b1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a8",
+        "name": "word_1E18A8"
+      },
+      {
+        "addr": "0x1e189a",
+        "name": "word_1E189A"
+      },
+      {
+        "addr": "0x1e1842",
+        "name": "__dma_chan_port"
+      },
+      {
+        "addr": "0x1e1844",
+        "name": "word_1E1844"
+      },
+      {
+        "addr": "0x1e1846",
+        "name": "word_1E1846"
+      },
+      {
+        "addr": "0x1946e0",
+        "name": "_eisa_present"
+      },
+      {
+        "addr": "0x1f74f1",
+        "name": "byte_1F74F1"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001895b8",
+    "addr": "0x001895b8",
+    "code": "int __cdecl get_dma_count(int a1)\n{\n  _BOOL4 v1; // ebx\n  unsigned __int16 v2; // dx\n  unsigned __int16 v3; // dx\n  _BOOL4 v4; // ebx\n  unsigned __int16 v5; // dx\n  unsigned __int8 v6; // al\n  _BOOL4 v7; // ebx\n  char v9; // [esp+14h] [ebp-Ch]\n  char v10; // [esp+18h] [ebp-8h]\n  unsigned __int8 v11; // [esp+1Ch] [ebp-4h]\n\n  v1 = a1 > 3; /*0x1895c8*/\n  v11 = dma_cmd_regs[v1] | 4; /*0x1895d4*/\n  dma_cmd_regs[v1] = v11; /*0x1895d7*/\n  us_spin(1); /*0x1895df*/\n  if ( a1 <= 3 ) /*0x1895e9*/\n    v2 = _dma_chip_port; /*0x1895f4*/\n  else\n    v2 = word_1E18A0; /*0x1895eb*/\n  __outbyte(v2, v11); /*0x1895fe*/\n  _InterlockedIncrement(dword_1E75EC); /*0x1895ff*/\n  us_spin(1); /*0x18960a*/\n  if ( a1 > 3 ) /*0x189616*/\n    v3 = word_1E18A8; /*0x189624*/\n  else\n    v3 = word_1E189A; /*0x189618*/\n  __outbyte(v3, 0xFFu); /*0x18962d*/\n  _InterlockedIncrement(dword_1E75EC); /*0x18962e*/\n  us_spin(1); /*0x189637*/\n  __inbyte(_dma_chan_port[5 * a1 + 3]); /*0x189654*/\n  us_spin(1); /*0x18965f*/\n  __inbyte(_dma_chan_port[5 * a1 + 3]); /*0x18966c*/\n  if ( eisa_present() ) /*0x189682*/\n  {\n    __inbyte(_dma_chan_port[5 * a1 + 4]); /*0x189692*/\n    v4 = a1 > 3; /*0x1896af*/\n    v10 = dma_cmd_regs[v4] & 0xFB; /*0x1896bb*/\n    dma_cmd_regs[v4] = v10; /*0x1896be*/\n    us_spin(1); /*0x1896c6*/\n    if ( a1 <= 3 ) /*0x1896cd*/\n      v5 = _dma_chip_port; /*0x1896d8*/\n    else\n      v5 = word_1E18A0; /*0x1896cf*/\n    v6 = v10; /*0x1896df*/\n  }\n  else\n  {\n    v7 = a1 > 3; /*0x1896eb*/\n    v9 = dma_cmd_regs[v7] & 0xFB; /*0x1896f6*/\n    dma_cmd_regs[v7] = v9; /*0x1896f9*/\n    us_spin(1); /*0x189701*/\n    if ( a1 <= 3 ) /*0x189708*/\n      v5 = _dma_chip_port; /*0x189714*/\n    else\n      v5 = word_1E18A0; /*0x18970a*/\n    v6 = v9; /*0x18971b*/\n  }\n  __outbyte(v5, v6); /*0x18971e*/\n  _InterlockedIncrement(dword_1E75EC); /*0x18971f*/\n  return ((unsigned __int8)byte_1F74F1[2 * a1] >> 2) & 3; /*0x18973e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f74e0",
+        "name": "_dma_cmd_regs"
+      },
+      {
+        "addr": "0x18d1e4",
+        "name": "_us_spin"
+      },
+      {
+        "addr": "0x1e1892",
+        "name": "__dma_chip_port"
+      },
+      {
+        "addr": "0x1e18a0",
+        "name": "word_1E18A0"
+      },
+      {
+        "addr": "0x1e75ec",
+        "name": "dword_1E75EC"
+      },
+      {
+        "addr": "0x1e18a8",
+        "name": "word_1E18A8"
+      },
+      {
+        "addr": "0x1e189a",
+        "name": "word_1E189A"
+      },
+      {
+        "addr": "0x1e1842",
+        "name": "__dma_chan_port"
+      },
+      {
+        "addr": "0x1946e0",
+        "name": "_eisa_present"
+      },
+      {
+        "addr": "0x1f74f1",
+        "name": "byte_1F74F1"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x00189748",
+    "addr": "0x00189748",
+    "code": "void dma_buf_initialize()\n{\n  vm_size_t v0; // ebx\n  void *v1; // esp\n  int v2; // esi\n  int *v3; // ecx\n  int v4; // ebx\n  _BYTE *v5; // [esp-4h] [ebp-18h]\n  _BYTE v6[12]; // [esp+0h] [ebp-14h] BYREF\n  int *v7[2]; // [esp+Ch] [ebp-8h] BYREF\n\n  v0 = 0x10000 / page_size + 1; /*0x18975e*/\n  v1 = alloca(8 * v0); /*0x189768*/\n  v2 = 0; /*0x18976c*/\n  dma_buf_sm = (int)sub_1898BC; /*0x18976e*/\n  dma_buf_lg = (int)sub_1898EC; /*0x189778*/\n  do /*0x1897b3*/\n  {\n    if ( dma_buf_alloc(v7, page_size) != 1 ) /*0x18979a*/\n      break; /*0x18979a*/\n    v3 = v7[1]; /*0x18979f*/\n    *(int **)&v6[8 * v2] = v7[0]; /*0x1897a2*/\n    *(_DWORD *)&v6[8 * v2++ + 4] = v3; /*0x1897a5*/\n    if ( --v0 == -1 ) /*0x1897ae*/\n      break; /*0x1897ae*/\n  }\n  while ( (_WORD)page_size + LOWORD(v7[0]) ); /*0x1897b3*/\n  if ( v2 ) /*0x1897c6*/\n  {\n    v4 = 8 * v2 - 8; /*0x1897c8*/\n    do /*0x1897e2*/\n    {\n      v5 = &v6[v4]; /*0x1897d3*/\n      v4 -= 8; /*0x1897d4*/\n      --v2; /*0x1897d7*/\n      dma_buf_free((int)v5); /*0x1897d8*/\n    }\n    while ( v2 ); /*0x1897e2*/\n  }\n  if ( dma_buf_alloc(v7, 0x10000u) == 1 ) /*0x1897f8*/\n    dma_buf_free((int)v7); /*0x1897fb*/\n}",
+    "refs": [
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x1f7520",
+        "name": "_dma_buf_sm"
+      },
+      {
+        "addr": "0x1898bc",
+        "name": "sub_1898BC"
+      },
+      {
+        "addr": "0x1f7510",
+        "name": "_dma_buf_lg"
+      },
+      {
+        "addr": "0x1898ec",
+        "name": "sub_1898EC"
+      },
+      {
+        "addr": "0x18980c",
+        "name": "_dma_buf_alloc"
+      },
+      {
+        "addr": "0x18987c",
+        "name": "_dma_buf_free"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018980c",
+    "addr": "0x0018980c",
+    "code": "int __cdecl dma_buf_alloc(int **a1, vm_size_t a2)\n{\n  int *v2; // ebx\n  int v3; // edi\n  int *v4; // esi\n\n  if ( a2 > 0x10000 ) /*0x18981a*/\n    return 0; /*0x18981a*/\n  v2 = &dma_buf_sm; /*0x18981c*/\n  if ( page_size < a2 ) /*0x189827*/\n    v2 = &dma_buf_lg; /*0x189829*/\n  v3 = spldma(); /*0x189833*/\n  v4 = (int *)v2[1]; /*0x189835*/\n  if ( v4 ) /*0x18983a*/\n  {\n    v2[1] = *v4; /*0x18983e*/\n    --v2[2]; /*0x189841*/\n  }\n  else\n  {\n    v4 = (int *)((int (*)(void))*v2)(); /*0x18984c*/\n    if ( v4 ) /*0x189850*/\n      ++v2[3]; /*0x189852*/\n  }\n  splx(v3); /*0x189856*/\n  if ( !v4 ) /*0x18985d*/\n    return 0; /*0x189870*/\n  *a1 = v4; /*0x189862*/\n  a1[1] = v2; /*0x189864*/\n  return 1; /*0x189875*/\n}",
+    "refs": [
+      {
+        "addr": "0x1f7520",
+        "name": "_dma_buf_sm"
+      },
+      {
+        "addr": "0x1f7510",
+        "name": "_dma_buf_lg"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x18bcc8",
+        "name": "_spldma"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x0018987c",
+    "addr": "0x0018987c",
+    "code": "void __cdecl dma_buf_free(int a1)\n{\n  _DWORD *v1; // esi\n  int v2; // ebx\n  int v3; // eax\n\n  v1 = *(_DWORD **)a1; /*0x189885*/\n  if ( *(_DWORD *)a1 ) /*0x189885*/\n  {\n    v2 = *(_DWORD *)(a1 + 4); /*0x18988b*/\n    v3 = spldma(); /*0x18988e*/\n    *v1 = *(_DWORD *)(v2 + 4); /*0x189896*/\n    *(_DWORD *)(v2 + 4) = v1; /*0x189898*/\n    ++*(_DWORD *)(v2 + 8); /*0x18989b*/\n    splx(v3); /*0x18989f*/\n    *(_DWORD *)a1 = 0; /*0x1898a4*/\n    *(_DWORD *)(a1 + 4) = 0; /*0x1898aa*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x18bcc8",
+        "name": "_spldma"
+      },
+      {
+        "addr": "0x18b544",
+        "name": "_splx"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001898bc",
+    "addr": "0x001898bc",
+    "code": "void *sub_1898BC()\n{\n  void *v0; // eax\n  void *v1; // ebx\n\n  v0 = (void *)alloc_cnvmem(page_size, page_size); /*0x1898c8*/\n  v1 = v0; /*0x1898cd*/\n  if ( v0 ) /*0x1898d4*/\n    bzero(v0, page_size); /*0x1898de*/\n  return v1; /*0x1898e5*/\n}",
+    "refs": [
+      {
+        "addr": "0x18ad9c",
+        "name": "_alloc_cnvmem"
+      },
+      {
+        "addr": "0x1e0d0c",
+        "name": "_page_size"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001898ec",
+    "addr": "0x001898ec",
+    "code": "void *sub_1898EC()\n{\n  void *v0; // eax\n  void *v1; // ebx\n\n  v0 = (void *)alloc_cnvmem(0x10000, 0x10000); /*0x1898fa*/\n  v1 = v0; /*0x1898ff*/\n  if ( v0 ) /*0x189906*/\n    bzero(v0, 0x10000u); /*0x18990e*/\n  return v1; /*0x189915*/\n}",
+    "refs": [
+      {
+        "addr": "0x18ad9c",
+        "name": "_alloc_cnvmem"
+      },
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  }
+]

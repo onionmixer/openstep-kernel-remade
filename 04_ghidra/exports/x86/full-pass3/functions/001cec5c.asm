@@ -1,0 +1,40 @@
+0x001cec5c	1	PUSH EBP
+0x001cec5d	2	MOV EBP,ESP
+0x001cec5f	3	MOV EAX,dword ptr [EBP + 0xc]
+0x001cec62	2	TEST EAX,EAX
+0x001cec64	2	JZ 0x001cecac
+0x001cec66	3	MOV EDX,dword ptr [EAX + 0x8]
+0x001cec69	2	XOR ECX,ECX
+0x001cec6b	1	NOP
+0x001cec6c	3	CMP byte ptr [EDX],0x0
+0x001cec6f	2	JZ 0x001ceca4
+0x001cec71	3	MOVZX EAX,byte ptr [EDX]
+0x001cec74	2	XOR ECX,EAX
+0x001cec76	1	INC EDX
+0x001cec77	3	CMP byte ptr [EDX],0x0
+0x001cec7a	2	JZ 0x001ceca4
+0x001cec7c	3	MOVZX EAX,byte ptr [EDX]
+0x001cec7f	3	SHL EAX,0x8
+0x001cec82	2	XOR ECX,EAX
+0x001cec84	1	INC EDX
+0x001cec85	3	CMP byte ptr [EDX],0x0
+0x001cec88	2	JZ 0x001ceca4
+0x001cec8a	3	MOVZX EAX,byte ptr [EDX]
+0x001cec8d	3	SHL EAX,0x10
+0x001cec90	2	XOR ECX,EAX
+0x001cec92	1	INC EDX
+0x001cec93	3	CMP byte ptr [EDX],0x0
+0x001cec96	2	JZ 0x001ceca4
+0x001cec98	2	MOV AL,byte ptr [EDX]
+0x001cec9a	3	SHL EAX,0x18
+0x001cec9d	2	XOR ECX,EAX
+0x001cec9f	1	INC EDX
+0x001ceca0	2	JMP 0x001cec6c
+0x001ceca4	2	MOV EAX,ECX
+0x001ceca6	2	MOV ESP,EBP
+0x001ceca8	1	POP EBP
+0x001ceca9	1	RET
+0x001cecac	2	XOR EAX,EAX
+0x001cecae	2	MOV ESP,EBP
+0x001cecb0	1	POP EBP
+0x001cecb1	1	RET

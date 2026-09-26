@@ -1,0 +1,1615 @@
+[
+  {
+    "requested_address": "0x001b37bc",
+    "addr": "0x001b37bc",
+    "code": "id __cdecl +[IOEventSource registerEventSource:](id a1, SEL a2, id a3)\n{\n  id v3; // eax\n\n  v3 = +[EventDriver instance](aEventdriver_0, sel_instance); /*0x1b37d8*/\n  return objc_msgSend(v3, sel_registerEventSource_); /*0x1b37e8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b0b64",
+        "name": "+[EventDriver instance]"
+      },
+      {
+        "addr": "0x1fea7c",
+        "name": "aEventdriver_0",
+        "string": "EventDriver"
+      },
+      {
+        "addr": "0x204e0c",
+        "name": "sel_instance",
+        "string": "instance"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205298",
+        "name": "sel_registerEventSource:",
+        "string": "registerEventSource:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b37ec",
+    "addr": "0x001b37ec",
+    "code": "IOEventSource *__cdecl -[IOEventSource init](IOEventSource *self, SEL a2)\n{\n  NXLock *ownerLock; // eax\n  objc_super v4; // [esp+4h] [ebp-8h] BYREF\n\n  v4.receiver = self; /*0x1b37fd*/\n  v4.super_class = (Class)stru_1FA424.super_class; /*0x1b3806*/\n  -[IODevice init](&v4, sel_init); /*0x1b380d*/\n  self->_owner = nullptr; /*0x1b3812*/\n  self->_desiredOwner = nullptr; /*0x1b381c*/\n  ownerLock = self->_ownerLock; /*0x1b3829*/\n  if ( ownerLock ) /*0x1b3831*/\n    -[NXLock free](ownerLock, sel_free); /*0x1b383b*/\n  self->_ownerLock = +[Object new](aNxlock, sel_new); /*0x1b3856*/\n  return self; /*0x1b385e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa424",
+        "name": "stru_1FA424"
+      },
+      {
+        "addr": "0x1a40f8",
+        "name": "-[IODevice init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1a9034",
+        "name": "-[NXLock free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3868",
+    "addr": "0x001b3868",
+    "code": "id __cdecl -[IOEventSource free](IOEventSource *self, SEL a2)\n{\n  NXLock *ownerLock; // eax\n  objc_super v4; // [esp+4h] [ebp-8h] BYREF\n\n  ownerLock = self->_ownerLock; /*0x1b3872*/\n  if ( ownerLock ) /*0x1b387a*/\n    -[NXLock free](ownerLock, sel_free); /*0x1b3884*/\n  v4.receiver = self; /*0x1b3893*/\n  v4.super_class = (Class)stru_1FA424.super_class; /*0x1b389c*/\n  return -[IODevice free](&v4, sel_free); /*0x1b38a8*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a9034",
+        "name": "-[NXLock free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1fa424",
+        "name": "stru_1FA424"
+      },
+      {
+        "addr": "0x1a4130",
+        "name": "-[IODevice free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b38b0",
+    "addr": "0x001b38b0",
+    "code": "id __cdecl -[IOEventSource owner](IOEventSource *self, SEL a2)\n{\n  return self->_owner; /*0x1b38be*/\n}"
+  },
+  {
+    "requested_address": "0x001b38c0",
+    "addr": "0x001b38c0",
+    "code": "id __cdecl -[IOEventSource ownerLock](IOEventSource *self, SEL a2)\n{\n  return self->_ownerLock; /*0x1b38ce*/\n}"
+  },
+  {
+    "requested_address": "0x001b38d0",
+    "addr": "0x001b38d0",
+    "code": "int __cdecl -[IOEventSource becomeOwner:](IOEventSource *self, SEL a2, id a3)\n{\n  id owner; // eax\n  int v4; // ebx\n  const char *v5; // eax\n\n  -[NXLock lock](self->_ownerLock, sel_lock); /*0x1b38ea*/\n  owner = self->_owner; /*0x1b38f2*/\n  if ( owner )\n  {\n    if ( (unsigned __int8)objc_msgSend(owner, sel_respondsTo_, sel_relinquishOwnership_) )\n    {\n      v4 = (int)objc_msgSend(self->_owner, sel_relinquishOwnership_, self); /*0x1b392b*/\n    }\n    else\n    {\n      v5 = -[IODevice name](self, sel_name); /*0x1b393c*/\n      IOLog((int)\"%s: owner does not respond to relinquishOwnership:\\n\", v5);\n      v4 = -725; /*0x1b394c*/\n    }\n    if ( !v4 ) /*0x1b3956*/\n      self->_owner = a3; /*0x1b3958*/\n  }\n  else\n  {\n    self->_owner = a3; /*0x1b3960*/\n    v4 = 0; /*0x1b3966*/\n  }\n  -[NXLock unlock](self->_ownerLock, sel_unlock); /*0x1b3976*/\n  return v4; /*0x1b3980*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a9080",
+        "name": "-[NXLock lock]"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202dbc",
+        "name": "sel_relinquishOwnership:",
+        "string": "relinquishOwnership:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d82b8",
+        "name": "aSOwnerDoesNotR",
+        "string": "%s: owner does not respond to relinquishOwnership:\n"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      },
+      {
+        "addr": "0x1a909c",
+        "name": "-[NXLock unlock]"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3988",
+    "addr": "0x001b3988",
+    "code": "int __cdecl -[IOEventSource relinquishOwnership:](IOEventSource *self, SEL a2, id a3)\n{\n  int v3; // esi\n  id desiredOwner; // eax\n  const char *v5; // eax\n\n  -[NXLock lock](self->_ownerLock, sel_lock); /*0x1b39a2*/\n  if ( self->_owner == a3 ) /*0x1b39b0*/\n  {\n    v3 = 0; /*0x1b39b2*/\n    self->_owner = nullptr; /*0x1b39b4*/\n  }\n  else\n  {\n    v3 = -725; /*0x1b39c0*/\n  }\n  -[NXLock unlock](self->_ownerLock, sel_unlock); /*0x1b39d3*/\n  if ( !v3 )\n  {\n    desiredOwner = self->_desiredOwner; /*0x1b39df*/\n    if ( desiredOwner )\n    {\n      if ( desiredOwner != a3 )\n      {\n        if ( (unsigned __int8)objc_msgSend(desiredOwner, sel_respondsTo_, sel_canBecomeOwner_) )\n        {\n          objc_msgSend(self->_desiredOwner, sel_canBecomeOwner_, self); /*0x1b3a17*/\n        }\n        else\n        {\n          v5 = -[IODevice name](self, sel_name); /*0x1b3a28*/\n          IOLog((int)\"%s: desiredOwner does not respond to canBecomeOwner:\\n\", v5);\n        }\n      }\n    }\n  }\n  return v3; /*0x1b3a3d*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a9080",
+        "name": "-[NXLock lock]"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a909c",
+        "name": "-[NXLock unlock]"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202af4",
+        "name": "sel_canBecomeOwner:",
+        "string": "canBecomeOwner:"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d82ec",
+        "name": "aSDesiredownerD",
+        "string": "%s: desiredOwner does not respond to canBecomeOwner:\n"
+      },
+      {
+        "addr": "0x202a00",
+        "name": "sel_respondsTo:",
+        "string": "respondsTo:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3a44",
+    "addr": "0x001b3a44",
+    "code": "int __cdecl -[IOEventSource desireOwnership:](IOEventSource *self, SEL a2, id a3)\n{\n  id desiredOwner; // eax\n  int v4; // ebx\n\n  -[NXLock lock](self->_ownerLock, sel_lock); /*0x1b3a5d*/\n  desiredOwner = self->_desiredOwner; /*0x1b3a65*/\n  if ( !desiredOwner || desiredOwner == a3 ) /*0x1b3a71*/\n  {\n    self->_desiredOwner = a3; /*0x1b3a7c*/\n    v4 = 0; /*0x1b3a82*/\n  }\n  else\n  {\n    v4 = -725; /*0x1b3a73*/\n  }\n  -[NXLock unlock](self->_ownerLock, sel_unlock); /*0x1b3a92*/\n  return v4; /*0x1b3a9c*/\n}",
+    "refs": [
+      {
+        "addr": "0x1a9080",
+        "name": "-[NXLock lock]"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a909c",
+        "name": "-[NXLock unlock]"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3aa4",
+    "addr": "0x001b3aa4",
+    "code": "id __cdecl -[KeyMap _parseKeyMapping:length:into:](\n        KeyMap *self,\n        SEL a2,\n        const char *a3,\n        int a4,\n        $5F1FB785E9540639F1FC986CD3AD7963 *a5)\n{\n  int v5; // eax\n  int v6; // eax\n  int v7; // esi\n  int v8; // ecx\n  int v9; // eax\n  int v10; // eax\n  char v11; // cl\n  int v12; // eax\n  char v13; // dl\n  int v14; // eax\n  int v15; // esi\n  int v16; // eax\n  int v17; // ecx\n  int var2; // edx\n  int v19; // ecx\n  int v20; // edx\n  int v21; // eax\n  int v22; // eax\n  int v23; // eax\n  int v24; // esi\n  int v25; // ecx\n  int v26; // eax\n  int v27; // eax\n  int i; // esi\n  int v29; // esi\n  int v30; // ecx\n  int v31; // eax\n  unsigned __int16 v32; // ax\n  int j; // esi\n  int v35; // eax\n  int v36; // [esp+Ch] [ebp-20h]\n  int v37; // [esp+Ch] [ebp-20h]\n  int v38; // [esp+10h] [ebp-1Ch]\n  int v39; // [esp+10h] [ebp-1Ch]\n  int v40; // [esp+18h] [ebp-14h]\n  int v41; // [esp+1Ch] [ebp-10h]\n  int v42; // [esp+1Ch] [ebp-10h]\n  char *v43; // [esp+20h] [ebp-Ch]\n  const char *v44; // [esp+24h] [ebp-8h]\n  int v45; // [esp+28h] [ebp-4h]\n\n  v40 = -1; /*0x1b3ab0*/\n  bzero(a5, 0x4F0u); /*0x1b3ac0*/\n  a5->var2 = -1; /*0x1b3ac5*/\n  a5->var4 = -1; /*0x1b3acf*/\n  a5->var6 = -1; /*0x1b3ad9*/\n  v44 = &a3[a4]; /*0x1b3ae8*/\n  v43 = (char *)a3; /*0x1b3aee*/\n  a5->var10 = (char *)a3; /*0x1b3afb*/\n  a5->var11 = a4; /*0x1b3b01*/\n  if ( &a3[a4] > a3 ) /*0x1b3b0d*/\n  {\n    v5 = *(unsigned __int16 *)a3; /*0x1b3b1a*/\n    v43 = (char *)(a3 + 2); /*0x1b3b1d*/\n  }\n  else\n  {\n    v5 = 0; /*0x1b3b0f*/\n  }\n  v45 = v5; /*0x1b3b2a*/\n  a5->var0 = v5; /*0x1b3b30*/\n  if ( v44 > v43 ) /*0x1b3b39*/\n  {\n    if ( v5 ) /*0x1b3b48*/\n    {\n      v6 = *(unsigned __int16 *)v43; /*0x1b3b4a*/\n      v43 += 2; /*0x1b3b4d*/\n    }\n    else\n    {\n      v6 = (unsigned __int8)*v43++; /*0x1b3b54*/\n    }\n    v38 = v6; /*0x1b3b5a*/\n  }\n  else\n  {\n    v38 = 0; /*0x1b3b3b*/\n  }\n  v7 = 0; /*0x1b3b5d*/\n  if ( v38 <= 0 ) /*0x1b3b62*/\n  {\nLABEL_37:\n    if ( v44 > v43 ) /*0x1b3c54*/\n    {\n      if ( v45 ) /*0x1b3c60*/\n      {\n        v14 = *(unsigned __int16 *)v43; /*0x1b3c62*/\n        v43 += 2; /*0x1b3c65*/\n      }\n      else\n      {\n        v14 = (unsigned __int8)*v43++; /*0x1b3c6c*/\n      }\n    }\n    else\n    {\n      v14 = 0; /*0x1b3c56*/\n    }\n    a5->var4 = v14; /*0x1b3c75*/\n    v42 = v14; /*0x1b3c7b*/\n    v15 = 0; /*0x1b3c7e*/\n    while ( 1 ) /*0x1b3c80*/\n    {\n      if ( v42 <= v15 ) /*0x1b3c83*/\n      {\n        a5->var5[v15] = nullptr; /*0x1b3da3*/\n      }\n      else\n      {\n        a5->var5[v15] = v43; /*0x1b3c8f*/\n        if ( v44 > v43 ) /*0x1b3c9c*/\n        {\n          if ( v45 ) /*0x1b3ca8*/\n          {\n            v16 = *(unsigned __int16 *)v43; /*0x1b3caa*/\n            v43 += 2; /*0x1b3cad*/\n          }\n          else\n          {\n            v16 = (unsigned __int8)*v43++; /*0x1b3cb4*/\n          }\n        }\n        else\n        {\n          v16 = 0; /*0x1b3c9e*/\n        }\n        if ( v45 ) /*0x1b3cbe*/\n        {\n          if ( v16 != 0xFFFF ) /*0x1b3cc5*/\n            goto LABEL_53; /*0x1b3cc5*/\n        }\n        else if ( v16 != 255 ) /*0x1b3cd1*/\n        {\nLABEL_53:\n          a5->var1[v15] |= 0x20u; /*0x1b3cd7*/\n          v17 = 0; /*0x1b3cdf*/\n          v37 = 1; /*0x1b3ce1*/\n          var2 = a5->var2; /*0x1b3ce8*/\n          if ( var2 >= 0 ) /*0x1b3cf0*/\n          {\n            do /*0x1b3d05*/\n            {\n              if ( (v16 & 1) != 0 ) /*0x1b3cf6*/\n                v37 *= 2; /*0x1b3cfd*/\n              ++v17; /*0x1b3d00*/\n              v16 >>= 1; /*0x1b3d01*/\n            }\n            while ( v17 <= var2 ); /*0x1b3d05*/\n          }\n          v19 = 0; /*0x1b3d07*/\n          if ( v37 <= 0 ) /*0x1b3d0c*/\n            goto LABEL_79; /*0x1b3d0c*/\n          while ( 2 ) /*0x1b3d26*/\n          {\n            if ( v44 > v43 ) /*0x1b3d26*/\n            {\n              if ( v45 ) /*0x1b3d30*/\n              {\n                v21 = *(unsigned __int16 *)v43; /*0x1b3d32*/\n                v43 += 2; /*0x1b3d35*/\n              }\n              else\n              {\n                v21 = (unsigned __int8)*v43++; /*0x1b3d3c*/\n              }\n              v20 = v21; /*0x1b3d42*/\n            }\n            else\n            {\n              v20 = 0; /*0x1b3d28*/\n            }\n            if ( v44 > v43 ) /*0x1b3d4a*/\n            {\n              if ( v45 ) /*0x1b3d54*/\n              {\n                v22 = *(unsigned __int16 *)v43; /*0x1b3d56*/\n                v43 += 2; /*0x1b3d59*/\n              }\n              else\n              {\n                v22 = (unsigned __int8)*v43++; /*0x1b3d60*/\n              }\n            }\n            else\n            {\n              v22 = 0; /*0x1b3d4c*/\n            }\n            if ( v45 ) /*0x1b3d6a*/\n            {\n              if ( v20 != 0xFFFF ) /*0x1b3d72*/\n                goto LABEL_75; /*0x1b3d72*/\n            }\n            else if ( v20 != 255 ) /*0x1b3d7e*/\n            {\n              goto LABEL_75; /*0x1b3d7e*/\n            }\n            if ( v40 < v22 ) /*0x1b3d83*/\n              v40 = v22; /*0x1b3d85*/\nLABEL_75:\n            if ( v37 <= ++v19 ) /*0x1b3d8c*/\n              goto LABEL_79; /*0x1b3d8c*/\n            continue; /*0x1b3d8c*/\n          }\n        }\n        a5->var5[v15] = nullptr; /*0x1b3d93*/\n      }\nLABEL_79:\n      if ( ++v15 > 127 ) /*0x1b3db2*/\n      {\n        if ( v44 > v43 ) /*0x1b3dbe*/\n        {\n          if ( v45 ) /*0x1b3dc8*/\n          {\n            v23 = *(unsigned __int16 *)v43; /*0x1b3dca*/\n            v43 += 2; /*0x1b3dcd*/\n          }\n          else\n          {\n            v23 = (unsigned __int8)*v43++; /*0x1b3dd4*/\n          }\n        }\n        else\n        {\n          v23 = 0; /*0x1b3dc0*/\n        }\n        a5->var6 = v23; /*0x1b3ddd*/\n        if ( v40 < v23 ) /*0x1b3de6*/\n        {\n          v24 = 0; /*0x1b3dec*/\n          if ( v23 > 0 ) /*0x1b3df0*/\n          {\n            do /*0x1b3e76*/\n            {\n              a5->var7[v24] = v43; /*0x1b3dfe*/\n              v25 = 0; /*0x1b3e05*/\n              if ( v44 > v43 ) /*0x1b3e0d*/\n              {\n                if ( v45 ) /*0x1b3e18*/\n                {\n                  v26 = *(unsigned __int16 *)v43; /*0x1b3e1a*/\n                  v43 += 2; /*0x1b3e1d*/\n                }\n                else\n                {\n                  v26 = (unsigned __int8)*v43++; /*0x1b3e24*/\n                }\n              }\n              else\n              {\n                v26 = 0; /*0x1b3e0f*/\n              }\n              if ( v26 > 0 ) /*0x1b3e2c*/\n              {\n                do /*0x1b3e6a*/\n                {\n                  if ( v43 < v44 ) /*0x1b3e3e*/\n                  {\n                    if ( v45 ) /*0x1b3e42*/\n                      v43 += 2; /*0x1b3e44*/\n                    else\n                      ++v43; /*0x1b3e4c*/\n                    if ( v43 < v44 ) /*0x1b3e55*/\n                    {\n                      if ( v45 ) /*0x1b3e59*/\n                        v43 += 2; /*0x1b3e5b*/\n                      else\n                        ++v43; /*0x1b3e64*/\n                    }\n                  }\n                  ++v25; /*0x1b3e67*/\n                }\n                while ( v25 < v26 ); /*0x1b3e6a*/\n              }\n              ++v24; /*0x1b3e6c*/\n            }\n            while ( a5->var6 > v24 ); /*0x1b3e76*/\n          }\n          if ( v44 > v43 ) /*0x1b3e7e*/\n          {\n            if ( v45 ) /*0x1b3e90*/\n            {\n              v27 = *(unsigned __int16 *)v43; /*0x1b3e92*/\n              v43 += 2; /*0x1b3e95*/\n            }\n            else\n            {\n              v27 = (unsigned __int8)*v43++; /*0x1b3e9c*/\n            }\n            v39 = v27; /*0x1b3ea2*/\n          }\n          else\n          {\n            v39 = 0; /*0x1b3e80*/\n          }\n          if ( v39 <= 9 && v39 ) /*0x1b3eb3*/\n          {\n            for ( i = 8; i >= 0; --i ) /*0x1b3eb5*/\n              a5->var9[i] = -1; /*0x1b3ebf*/\n            v29 = 0; /*0x1b3ecc*/\n            while ( 1 ) /*0x1b3eda*/\n            {\n              if ( v44 > v43 ) /*0x1b3eda*/\n              {\n                if ( v45 ) /*0x1b3ee4*/\n                {\n                  v31 = *(unsigned __int16 *)v43; /*0x1b3ee6*/\n                  v43 += 2; /*0x1b3ee9*/\n                }\n                else\n                {\n                  v31 = (unsigned __int8)*v43++; /*0x1b3ef0*/\n                }\n                v30 = v31; /*0x1b3ef6*/\n              }\n              else\n              {\n                v30 = 0; /*0x1b3edc*/\n              }\n              if ( v44 > v43 ) /*0x1b3efe*/\n              {\n                if ( v45 ) /*0x1b3f08*/\n                {\n                  v32 = *(_WORD *)v43; /*0x1b3f0a*/\n                  v43 += 2; /*0x1b3f0d*/\n                }\n                else\n                {\n                  v32 = (unsigned __int8)*v43++; /*0x1b3f14*/\n                }\n              }\n              else\n              {\n                v32 = 0; /*0x1b3f00*/\n              }\n              if ( v30 > 8 ) /*0x1b3f1d*/\n                break; /*0x1b3f1d*/\n              a5->var9[v30] = v32; /*0x1b3f22*/\n              if ( v39 <= ++v29 ) /*0x1b3f2e*/\n              {\n                for ( j = 0; j <= 6; ++j ) /*0x1b3f38*/\n                {\n                  if ( a5->var9[j] != 0xFFFF ) /*0x1b3f4b*/\n                  {\n                    v35 = a5->var9[j]; /*0x1b3f4d*/\n                    a5->var1[v35] |= 0x60u; /*0x1b3f52*/\n                  }\n                }\n                return self; /*0x1b3f5d*/\n              }\n            }\n          }\n        }\n        return nullptr; /*0x1b3f1d*/\n      }\n    }\n  }\n  while ( 1 ) /*0x1b3b6e*/\n  {\n    if ( v44 > v43 ) /*0x1b3b6e*/\n    {\n      if ( v45 ) /*0x1b3b78*/\n      {\n        v9 = *(unsigned __int16 *)v43; /*0x1b3b7a*/\n        v43 += 2; /*0x1b3b7d*/\n      }\n      else\n      {\n        v9 = (unsigned __int8)*v43++; /*0x1b3b84*/\n      }\n      v8 = v9; /*0x1b3b8a*/\n    }\n    else\n    {\n      v8 = 0; /*0x1b3b70*/\n    }\n    if ( v8 > 15 ) /*0x1b3b8f*/\n      return nullptr; /*0x1b3f63*/\n    if ( a5->var2 < v8 ) /*0x1b3b9e*/\n      a5->var2 = v8; /*0x1b3ba0*/\n    a5->var3[v8] = v43; /*0x1b3bac*/\n    v36 = 0; /*0x1b3bb3*/\n    if ( v44 > v43 ) /*0x1b3bc0*/\n    {\n      if ( v45 ) /*0x1b3bd0*/\n      {\n        v10 = *(unsigned __int16 *)v43; /*0x1b3bd2*/\n        v43 += 2; /*0x1b3bd5*/\n      }\n      else\n      {\n        v10 = (unsigned __int8)*v43++; /*0x1b3bdc*/\n      }\n      v41 = v10; /*0x1b3be2*/\n    }\n    else\n    {\n      v41 = 0; /*0x1b3bc2*/\n    }\n    if ( v41 > 0 ) /*0x1b3beb*/\n    {\n      v11 = v8 & 0xF | 0x10; /*0x1b3bf3*/\n      do /*0x1b3bfe*/\n      {\n        if ( v44 > v43 ) /*0x1b3bfe*/\n        {\n          if ( v45 ) /*0x1b3c08*/\n          {\n            v12 = *(unsigned __int16 *)v43; /*0x1b3c0a*/\n            v43 += 2; /*0x1b3c0d*/\n          }\n          else\n          {\n            v12 = (unsigned __int8)*v43++; /*0x1b3c14*/\n          }\n        }\n        else\n        {\n          v12 = 0; /*0x1b3c00*/\n        }\n        if ( v12 > 127 ) /*0x1b3c1d*/\n          return nullptr; /*0x1b3c2d*/\n        v13 = a5->var1[v12]; /*0x1b3c26*/\n        if ( (v13 & 0x10) != 0 ) /*0x1b3c2d*/\n          return nullptr; /*0x1b3c2d*/\n        a5->var1[v12] = v11 | v13; /*0x1b3c35*/\n      }\n      while ( ++v36 < v41 ); /*0x1b3bfe*/\n    }\n    if ( v38 <= ++v7 ) /*0x1b3c48*/\n      goto LABEL_37; /*0x1b3c48*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x101600",
+        "name": "_bzero"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b3f6c",
+    "addr": "0x001b3f6c",
+    "code": "void __cdecl -[KeyMap _doCharGen:direction:](KeyMap *self, SEL a2, int a3, char a4)\n{\n  int v4; // eax\n  char *v5; // ebx\n  __int16 *v6; // ebx\n  int v7; // edx\n  int v8; // esi\n  int maxMod; // ecx\n  __int16 *v10; // ebx\n  int v11; // ebx\n  char *v12; // ebx\n  int v13; // eax\n  __int16 *v14; // ebx\n  int v15; // edx\n  int v16; // esi\n  int v17; // ecx\n  int v18; // edx\n  __int16 *v19; // ebx\n  int v20; // eax\n  char *v21; // ebx\n  int v22; // esi\n  unsigned __int8 *v23; // ebx\n  _BYTE *v24; // ebx\n  id v25; // eax\n  int v26; // esi\n  unsigned int v27; // esi\n  bool v28; // bl\n  unsigned int v29; // esi\n  id v30; // [esp-18h] [ebp-48h]\n  int v31; // [esp+Ch] [ebp-24h]\n  int v32; // [esp+10h] [ebp-20h]\n  int v33; // [esp+10h] [ebp-20h]\n  unsigned int v34; // [esp+14h] [ebp-1Ch]\n  int v35; // [esp+18h] [ebp-18h]\n  int v36; // [esp+18h] [ebp-18h]\n  int v37; // [esp+1Ch] [ebp-14h]\n  int v38; // [esp+1Ch] [ebp-14h]\n  id v39; // [esp+20h] [ebp-10h]\n  int v40; // [esp+28h] [ebp-8h]\n\n  objc_msgSend(self->delegate, sel_setCharKeyActive_, 1); /*0x1b3f8e*/\n  v40 = 11; /*0x1b3f96*/\n  if ( a4 == 1 ) /*0x1b3fa1*/\n    v40 = 10; /*0x1b3fa3*/\n  v34 = (unsigned int)objc_msgSend(self->delegate, sel_eventFlags); /*0x1b3fc0*/\n  v4 = HIWORD(v34); /*0x1b3fc3*/\n  v5 = self->curMapping.keyDefs[a3]; /*0x1b3fd6*/\n  if ( v5 ) /*0x1b3fe2*/\n  {\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n    {\n      v32 = *(__int16 *)v5; /*0x1b3ff1*/\n      v6 = (__int16 *)(v5 + 2); /*0x1b3ff4*/\n    }\n    else\n    {\n      v32 = (unsigned __int8)*v5; /*0x1b3fff*/\n      v6 = (__int16 *)(v5 + 1); /*0x1b4002*/\n    }\n    if ( v32 && v4 ) /*0x1b400b*/\n    {\n      v7 = 2; /*0x1b400d*/\n      if ( self->curMapping.shorts ) /*0x1b3fc9*/\n        v7 = 4; /*0x1b4018*/\n      v8 = 0; /*0x1b401d*/\n      maxMod = self->curMapping.maxMod; /*0x1b4022*/\n      if ( maxMod >= 0 ) /*0x1b402d*/\n      {\n        do /*0x1b4050*/\n        {\n          if ( (v32 & 1) != 0 ) /*0x1b403d*/\n          {\n            if ( (v4 & 1) != 0 ) /*0x1b4041*/\n              v6 = (__int16 *)((char *)v6 + v7); /*0x1b4043*/\n            v7 *= 2; /*0x1b4045*/\n          }\n          v32 >>= 1; /*0x1b4047*/\n          v4 >>= 1; /*0x1b404a*/\n          ++v8; /*0x1b404c*/\n        }\n        while ( maxMod >= v8 ); /*0x1b4050*/\n      }\n    }\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n    {\n      v37 = *v6; /*0x1b405b*/\n      v10 = v6 + 1; /*0x1b405e*/\n    }\n    else\n    {\n      v37 = *(unsigned __int8 *)v6; /*0x1b4067*/\n      v10 = (__int16 *)((char *)v6 + 1); /*0x1b406a*/\n    }\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n      v11 = *v10; /*0x1b4071*/\n    else\n      v11 = *(unsigned __int8 *)v10; /*0x1b4078*/\n    v35 = v11; /*0x1b407b*/\n    v12 = self->curMapping.keyDefs[a3]; /*0x1b4084*/\n    v13 = (v34 & 0x30000) >> 16; /*0x1b4093*/\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n    {\n      v33 = *(__int16 *)v12; /*0x1b409f*/\n      v14 = (__int16 *)(v12 + 2); /*0x1b40a2*/\n    }\n    else\n    {\n      v33 = (unsigned __int8)*v12; /*0x1b40ab*/\n      v14 = (__int16 *)(v12 + 1); /*0x1b40ae*/\n    }\n    if ( v33 && v13 ) /*0x1b40b7*/\n    {\n      v15 = 2; /*0x1b40b9*/\n      if ( self->curMapping.shorts ) /*0x1b3fc9*/\n        v15 = 4; /*0x1b40c4*/\n      v16 = 0; /*0x1b40c9*/\n      v17 = self->curMapping.maxMod; /*0x1b40ce*/\n      if ( v17 >= 0 ) /*0x1b40d9*/\n      {\n        do /*0x1b40fc*/\n        {\n          if ( (v33 & 1) != 0 ) /*0x1b40e9*/\n          {\n            if ( (v13 & 1) != 0 ) /*0x1b40ed*/\n              v14 = (__int16 *)((char *)v14 + v15); /*0x1b40ef*/\n            v15 *= 2; /*0x1b40f1*/\n          }\n          v33 >>= 1; /*0x1b40f3*/\n          v13 >>= 1; /*0x1b40f6*/\n          ++v16; /*0x1b40f8*/\n        }\n        while ( v17 >= v16 ); /*0x1b40fc*/\n      }\n    }\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n    {\n      v18 = *v14; /*0x1b4104*/\n      v19 = v14 + 1; /*0x1b4107*/\n    }\n    else\n    {\n      v18 = *(unsigned __int8 *)v14; /*0x1b410c*/\n      v19 = (__int16 *)((char *)v14 + 1); /*0x1b410f*/\n    }\n    if ( self->curMapping.shorts ) /*0x1b3fc9*/\n      v20 = *v19; /*0x1b4116*/\n    else\n      v20 = *(unsigned __int8 *)v19; /*0x1b411c*/\n    if ( self->curMapping.shorts || v37 != 255 ) /*0x1b413b*/\n    {\n      objc_msgSend( /*0x1b42ff*/\n        self->delegate,\n        sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n        v40,\n        v34,\n        a3,\n        v35,\n        v37,\n        v20,\n        v18);\n    }\n    else\n    {\n      v21 = self->curMapping.seqDefs[v35]; /*0x1b4147*/\n      v39 = (id)v34; /*0x1b4151*/\n      v22 = 0; /*0x1b4154*/\n      v31 = (unsigned __int8)*v21; /*0x1b416f*/\n      v23 = (unsigned __int8 *)(v21 + 1); /*0x1b4172*/\n      while ( v31 > v22 ) /*0x1b4282*/\n      {\n        if ( v22 % 10 == 9 ) /*0x1b4185*/\n          thread_block(); /*0x1b4187*/\n        v38 = *v23; /*0x1b41a3*/\n        v24 = v23 + 1; /*0x1b41a6*/\n        if ( v38 == 255 ) /*0x1b41ae*/\n        {\n          if ( a4 == 1 ) /*0x1b41b8*/\n          {\n            v34 |= 1 << (*v24 + 16); /*0x1b41e5*/\n            v23 = v24 + 1; /*0x1b41e8*/\n            v30 = objc_msgSend(self->delegate, sel_deviceFlags); /*0x1b420e*/\n            objc_msgSend( /*0x1b4222*/\n              self->delegate,\n              sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n              12,\n              v30,\n              a3,\n              0,\n              0,\n              0,\n              0);\n          }\n          else\n          {\n            v23 = v24 + 1; /*0x1b4230*/\n          }\n        }\n        else\n        {\n          v36 = (unsigned __int8)*v24; /*0x1b424b*/\n          v23 = v24 + 1; /*0x1b424e*/\n          objc_msgSend( /*0x1b4276*/\n            self->delegate,\n            sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n            v40,\n            v34,\n            a3,\n            v36,\n            v38,\n            v36,\n            v38);\n        }\n        ++v22; /*0x1b427e*/\n      }\n      if ( (id)v34 != v39 ) /*0x1b428e*/\n      {\n        v25 = objc_msgSend(self->delegate, sel_deviceFlags); /*0x1b42ad*/\n        objc_msgSend( /*0x1b42c9*/\n          self->delegate,\n          sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n          12,\n          v25);\n        v34 = (unsigned int)v39; /*0x1b42d1*/\n      }\n    }\n  }\n  if ( (self->curMapping.keyBits[a3] & 0x40) != 0 ) /*0x1b4312*/\n  {\n    v26 = 0; /*0x1b4318*/\n    while ( a3 != self->curMapping.specialKeys[v26] ) /*0x1b432a*/\n    {\n      if ( ++v26 > 6 ) /*0x1b4420*/\n        return; /*0x1b4420*/\n    }\n    objc_msgSend(self->delegate, sel_keyboardSpecialEvent_flags_keyCode_specialty_, v40, v34, a3, v26); /*0x1b434e*/\n    if ( v26 == 4 && !self->curMapping.modDefs[0] && a4 == 1 ) /*0x1b4373*/\n    {\n      v27 = (unsigned int)objc_msgSend(self->delegate, sel_deviceFlags); /*0x1b438c*/\n      v28 = (unsigned __int8)objc_msgSend(self->delegate, sel_alphaLock) == 0; /*0x1b43a9*/\n      objc_msgSend(self->delegate, sel_setAlphaLock_, v28); /*0x1b43c1*/\n      if ( v28 ) /*0x1b43cb*/\n        v29 = v27 | 0x10000; /*0x1b43cd*/\n      else\n        v29 = v27 & 0xFFFEFFFF; /*0x1b43d8*/\n      objc_msgSend(self->delegate, sel_setDeviceFlags_, v29); /*0x1b43f0*/\n      objc_msgSend( /*0x1b4415*/\n        self->delegate,\n        sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n        12,\n        v29,\n        a3,\n        0,\n        0,\n        0,\n        0);\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202e40",
+        "name": "sel_setCharKeyActive:",
+        "string": "setCharKeyActive:"
+      },
+      {
+        "addr": "0x202d08",
+        "name": "sel_eventFlags",
+        "string": "eventFlags"
+      },
+      {
+        "addr": "0x202ec4",
+        "name": "sel_keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:",
+        "string": "keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:"
+      },
+      {
+        "addr": "0x165328",
+        "name": "_thread_block"
+      },
+      {
+        "addr": "0x202e74",
+        "name": "sel_deviceFlags",
+        "string": "deviceFlags"
+      },
+      {
+        "addr": "0x202e94",
+        "name": "sel_keyboardSpecialEvent:flags:keyCode:specialty:",
+        "string": "keyboardSpecialEvent:flags:keyCode:specialty:"
+      },
+      {
+        "addr": "0x202d2c",
+        "name": "sel_alphaLock",
+        "string": "alphaLock"
+      },
+      {
+        "addr": "0x202e54",
+        "name": "sel_setAlphaLock:",
+        "string": "setAlphaLock:"
+      },
+      {
+        "addr": "0x202e64",
+        "name": "sel_setDeviceFlags:",
+        "string": "setDeviceFlags:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4430",
+    "addr": "0x001b4430",
+    "code": "id __cdecl -[KeyMap initFromKeyMapping:length:canFree:](KeyMap *self, SEL a2, const char *a3, int a4, char a5)\n{\n  objc_super v6; // [esp+8h] [ebp-8h] BYREF\n\n  v6.receiver = self; /*0x1b4447*/\n  v6.super_class = (Class)stru_1FA424.ext; /*0x1b4450*/\n  -[Object init](&v6, sel_init); /*0x1b4457*/\n  if ( !self->keyMappingLock ) /*0x1b445f*/\n    self->keyMappingLock = +[Object new](aNxlock, sel_new); /*0x1b447b*/\n  if ( -[KeyMap setKeyMapping:length:canFree:](self, sel_setKeyMapping_length_canFree_, a3, a4, a5) ) /*0x1b4499*/\n    return self; /*0x1b44b4*/\n  else\n    return -[KeyMap free](self, sel_free); /*0x1b44ad*/\n}",
+    "refs": [
+      {
+        "addr": "0x1fa424",
+        "name": "stru_1FA424"
+      },
+      {
+        "addr": "0x1c9c88",
+        "name": "-[Object init]"
+      },
+      {
+        "addr": "0x201a24",
+        "name": "sel_init",
+        "string": "init"
+      },
+      {
+        "addr": "0x1c9c18",
+        "name": "+[Object new]"
+      },
+      {
+        "addr": "0x1fe4a1",
+        "name": "aNxlock",
+        "string": "NXLock"
+      },
+      {
+        "addr": "0x202a84",
+        "name": "sel_new",
+        "string": "new"
+      },
+      {
+        "addr": "0x1b45ac",
+        "name": "-[KeyMap free]"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1b44c0",
+        "name": "-[KeyMap setKeyMapping:length:canFree:]"
+      },
+      {
+        "addr": "0x205454",
+        "name": "sel_setKeyMapping:length:canFree:",
+        "string": "setKeyMapping:length:canFree:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b44c0",
+    "addr": "0x001b44c0",
+    "code": "id __cdecl -[KeyMap setKeyMapping:length:canFree:](KeyMap *self, SEL a2, const char *a3, int a4, char a5)\n{\n  char *mapping; // eax\n  _BYTE v7[1264]; // [esp+8h] [ebp-4F0h] BYREF\n\n  if ( !-[KeyMap _parseKeyMapping:length:into:](self, sel__parseKeyMapping_length_into_, a3, a4, v7) ) /*0x1b44ed*/\n    return nullptr; /*0x1b44f9*/\n  objc_msgSend(self->keyMappingLock, sel_lock); /*0x1b450e*/\n  mapping = self->curMapping.mapping; /*0x1b4516*/\n  if ( mapping ) /*0x1b451e*/\n  {\n    if ( self->canFreeMapping == 1 ) /*0x1b4527*/\n      IOFree((int)mapping, self->curMapping.mappingLen); /*0x1b4531*/\n  }\n  bcopy(v7, &self->curMapping, 0x4F0u); /*0x1b4549*/\n  self->canFreeMapping = a5; /*0x1b4554*/\n  objc_msgSend(self->keyMappingLock, sel_unlock); /*0x1b4568*/\n  return self; /*0x1b456f*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b3aa4",
+        "name": "-[KeyMap _parseKeyMapping:length:into:]"
+      },
+      {
+        "addr": "0x205434",
+        "name": "sel__parseKeyMapping:length:into:",
+        "string": "_parseKeyMapping:length:into:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x1013cc",
+        "name": "_bcopy"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b457c",
+    "addr": "0x001b457c",
+    "code": "const char *__cdecl -[KeyMap keyMapping:](KeyMap *self, SEL a2, int *a3)\n{\n  if ( a3 ) /*0x1b4587*/\n    *a3 = self->curMapping.mappingLen; /*0x1b458f*/\n  return self->curMapping.mapping; /*0x1b4599*/\n}"
+  },
+  {
+    "requested_address": "0x001b459c",
+    "addr": "0x001b459c",
+    "code": "int __cdecl -[KeyMap keyMappingLength](KeyMap *self, SEL a2)\n{\n  return self->curMapping.mappingLen; /*0x1b45aa*/\n}"
+  },
+  {
+    "requested_address": "0x001b45ac",
+    "addr": "0x001b45ac",
+    "code": "id __cdecl -[KeyMap free](KeyMap *self, SEL a2)\n{\n  id keyMappingLock; // esi\n  char *mapping; // eax\n  objc_super v5; // [esp+8h] [ebp-8h] BYREF\n\n  objc_msgSend(self->keyMappingLock, sel_lock); /*0x1b45c5*/\n  keyMappingLock = self->keyMappingLock; /*0x1b45ca*/\n  self->keyMappingLock = nullptr; /*0x1b45d0*/\n  mapping = self->curMapping.mapping; /*0x1b45dd*/\n  if ( mapping && self->canFreeMapping == 1 ) /*0x1b45ee*/\n  {\n    IOFree((int)mapping, self->curMapping.mappingLen); /*0x1b45f8*/\n    self->curMapping.mapping = nullptr; /*0x1b45fd*/\n  }\n  objc_msgSend(keyMappingLock, sel_unlock); /*0x1b4612*/\n  objc_msgSend(keyMappingLock, sel_free); /*0x1b461f*/\n  v5.receiver = self; /*0x1b462b*/\n  v5.super_class = (Class)stru_1FA424.ext; /*0x1b4634*/\n  return -[Object free](&v5, sel_free); /*0x1b4643*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1a5458",
+        "name": "_IOFree"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      },
+      {
+        "addr": "0x201920",
+        "name": "sel_free",
+        "string": "free"
+      },
+      {
+        "addr": "0x1fa424",
+        "name": "stru_1FA424"
+      },
+      {
+        "addr": "0x1c9cdc",
+        "name": "-[Object free]"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b464c",
+    "addr": "0x001b464c",
+    "code": "id __cdecl -[KeyMap setDelegate:](KeyMap *self, SEL a2, id a3)\n{\n  const char *ClassName; // eax\n\n  if ( (unsigned __int8)objc_msgSend(a3, sel_conformsTo_, &stru_1FDF5C) )\n  {\n    self->delegate = a3; /*0x1b4670*/\n  }\n  else\n  {\n    ClassName = object_getClassName(a3); /*0x1b4679*/\n    IOLog((int)\"KeyMap setDelegate: new delegate [%s] does not implement KeyMapDelegate protocol.\\n\", ClassName);\n  }\n  return self; /*0x1b468e*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ccb5c",
+        "name": "_object_getClassName"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8324",
+        "name": "aKeymapSetdeleg",
+        "string": "KeyMap setDelegate: new delegate [%s] does not implement KeyMapDelegate protocol.\n"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201988",
+        "name": "sel_conformsTo:",
+        "string": "conformsTo:"
+      },
+      {
+        "addr": "0x1fdf5c",
+        "name": "stru_1FDF5C"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4694",
+    "addr": "0x001b4694",
+    "code": "id __cdecl -[KeyMap delegate](KeyMap *self, SEL a2)\n{\n  return self->delegate; /*0x1b46a2*/\n}"
+  },
+  {
+    "requested_address": "0x001b46a4",
+    "addr": "0x001b46a4",
+    "code": "id __cdecl -[KeyMap doKeyboardEvent:direction:keyBits:](\n        KeyMap *self,\n        SEL a2,\n        unsigned int a3,\n        char a4,\n        unsigned int *a5)\n{\n  char v6; // [esp+Ch] [ebp-Ch]\n\n  objc_msgSend(self->keyMappingLock, sel_lock); /*0x1b46c7*/\n  if ( self->curMapping.mapping ) /*0x1b46cf*/\n  {\n    v6 = self->curMapping.keyBits[a3]; /*0x1b46e0*/\n    if ( a4 == 1 ) /*0x1b46e7*/\n    {\n      a5[a3 >> 5] |= 1 << (a3 & 0x1F); /*0x1b4701*/\n      if ( (v6 & 0x10) != 0 ) /*0x1b470a*/\n        -[KeyMap _doModCalc:keyBits:](self, sel__doModCalc_keyBits_, a3, a5); /*0x1b4716*/\n      if ( (v6 & 0x20) != 0 ) /*0x1b4724*/\n        -[KeyMap _doCharGen:direction:](self, sel__doCharGen_direction_, a3, 1); /*0x1b472f*/\n    }\n    else\n    {\n      a5[a3 >> 5] &= __ROL4__(-2, a3 & 0x1F); /*0x1b474a*/\n      if ( (v6 & 0x20) != 0 ) /*0x1b4753*/\n        -[KeyMap _doCharGen:direction:](self, sel__doCharGen_direction_, a3, a4); /*0x1b4763*/\n      if ( (v6 & 0x10) != 0 ) /*0x1b4771*/\n        -[KeyMap _doModCalc:keyBits:](self, sel__doModCalc_keyBits_, a3, a5); /*0x1b4780*/\n    }\n  }\n  objc_msgSend(self->keyMappingLock, sel_unlock); /*0x1b4796*/\n  return self; /*0x1b47a0*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x201928",
+        "name": "sel_lock",
+        "string": "lock"
+      },
+      {
+        "addr": "0x1b4994",
+        "name": "-[KeyMap _doModCalc:keyBits:]"
+      },
+      {
+        "addr": "0x205408",
+        "name": "sel__doModCalc:keyBits:",
+        "string": "_doModCalc:keyBits:"
+      },
+      {
+        "addr": "0x1b3f6c",
+        "name": "-[KeyMap _doCharGen:direction:]"
+      },
+      {
+        "addr": "0x2053f0",
+        "name": "sel__doCharGen:direction:",
+        "string": "_doCharGen:direction:"
+      },
+      {
+        "addr": "0x202be8",
+        "name": "sel_unlock",
+        "string": "unlock"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b47a8",
+    "addr": "0x001b47a8",
+    "code": "void __cdecl -[KeyMap _calcModBit:keyBits:](KeyMap *self, SEL a2, int a3, unsigned int *a4)\n{\n  char *v4; // ebx\n  int v5; // esi\n  __int16 *v6; // ebx\n  unsigned int v7; // eax\n  unsigned int v8; // esi\n  _BOOL4 v9; // [esp-4h] [ebp-24h]\n  int v10; // [esp+10h] [ebp-10h]\n  signed __int16 shorts; // [esp+14h] [ebp-Ch]\n  unsigned int v12; // [esp+18h] [ebp-8h]\n  int v13; // [esp+1Ch] [ebp-4h]\n\n  v13 = 1 << (a3 + 16); /*0x1b47be*/\n  v12 = ~v13 & (unsigned int)objc_msgSend(self->delegate, sel_deviceFlags); /*0x1b47e0*/\n  shorts = self->curMapping.shorts; /*0x1b47ed*/\n  v4 = self->curMapping.modDefs[a3]; /*0x1b47f7*/\n  if ( v4 ) /*0x1b4800*/\n  {\n    v5 = 0; /*0x1b4802*/\n    if ( shorts ) /*0x1b4809*/\n    {\n      v10 = *(__int16 *)v4; /*0x1b480e*/\n      v6 = (__int16 *)(v4 + 2); /*0x1b4811*/\n    }\n    else\n    {\n      v10 = (unsigned __int8)*v4; /*0x1b481b*/\n      v6 = (__int16 *)(v4 + 1); /*0x1b481e*/\n    }\n    if ( v10 > 0 ) /*0x1b4822*/\n    {\n      while ( 1 ) /*0x1b4829*/\n      {\n        if ( shorts ) /*0x1b4829*/\n        {\n          v7 = *v6++; /*0x1b482b*/\n        }\n        else\n        {\n          v7 = *(unsigned __int8 *)v6; /*0x1b4834*/\n          v6 = (__int16 *)((char *)v6 + 1); /*0x1b4837*/\n        }\n        if ( ((1 << (v7 & 0x1F)) & a4[v7 >> 5]) != 0 ) /*0x1b484f*/\n          break; /*0x1b484f*/\n        if ( v10 <= ++v5 ) /*0x1b4855*/\n          goto LABEL_13; /*0x1b4855*/\n      }\n      v12 |= v13; /*0x1b485f*/\n    }\n  }\nLABEL_13:\n  if ( a3 == 1 ) /*0x1b4866*/\n  {\n    if ( (v12 & 0x100000) != 0 && !self->curMapping.modDefs[0] && self->curMapping.specialKeys[4] == 0xFFFF ) /*0x1b4890*/\n    {\n      if ( (v12 & v13) != 0 ) /*0x1b4897*/\n      {\n        objc_msgSend(self->delegate, sel_setCharKeyActive_, 0); /*0x1b48a1*/\n      }\n      else if ( !(unsigned __int8)objc_msgSend(self->delegate, sel_charKeyActive) ) /*0x1b48b5*/\n      {\n        v9 = (unsigned __int8)objc_msgSend(self->delegate, sel_alphaLock) == 0; /*0x1b48e4*/\n        objc_msgSend(self->delegate, sel_setAlphaLock_, v9); /*0x1b48f6*/\n      }\n    }\n    v8 = v12 & 0xFFFEFFFF; /*0x1b4901*/\n    if ( (unsigned __int8)objc_msgSend(self->delegate, sel_alphaLock) == 1 ) /*0x1b492e*/\n      v12 = v8 | 0x10000; /*0x1b4936*/\n    else\n      v12 = ((v12 & 0x20000) >> 1) | v8; /*0x1b493e*/\n  }\n  else if ( !a3 ) /*0x1b4948*/\n  {\n    objc_msgSend(self->delegate, sel_setAlphaLock_, HIWORD(v12) & 1); /*0x1b4965*/\n  }\n  objc_msgSend(self->delegate, sel_setDeviceFlags_, v12); /*0x1b4982*/\n}",
+    "refs": [
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202e74",
+        "name": "sel_deviceFlags",
+        "string": "deviceFlags"
+      },
+      {
+        "addr": "0x202e40",
+        "name": "sel_setCharKeyActive:",
+        "string": "setCharKeyActive:"
+      },
+      {
+        "addr": "0x202d2c",
+        "name": "sel_alphaLock",
+        "string": "alphaLock"
+      },
+      {
+        "addr": "0x202e54",
+        "name": "sel_setAlphaLock:",
+        "string": "setAlphaLock:"
+      },
+      {
+        "addr": "0x202d38",
+        "name": "sel_charKeyActive",
+        "string": "charKeyActive"
+      },
+      {
+        "addr": "0x202e64",
+        "name": "sel_setDeviceFlags:",
+        "string": "setDeviceFlags:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4994",
+    "addr": "0x001b4994",
+    "code": "void __cdecl -[KeyMap _doModCalc:keyBits:](KeyMap *self, SEL a2, int a3, unsigned int *a4)\n{\n  char v4; // bl\n  id v5; // eax\n  id v6; // eax\n\n  v4 = self->curMapping.keyBits[a3]; /*0x1b49a0*/\n  if ( (v4 & 0x10) != 0 ) /*0x1b49a8*/\n  {\n    -[KeyMap _calcModBit:keyBits:](self, sel__calcModBit_keyBits_, v4 & 0xF, a4); /*0x1b49bc*/\n    if ( (v4 & 0x20) != 0 ) /*0x1b49c7*/\n    {\n      v6 = objc_msgSend(self->delegate, sel_eventFlags); /*0x1b4a0e*/\n      objc_msgSend(self->delegate, sel_updateEventFlags_, v6); /*0x1b4a22*/\n    }\n    else\n    {\n      v5 = objc_msgSend(self->delegate, sel_eventFlags); /*0x1b49e0*/\n      objc_msgSend( /*0x1b49f9*/\n        self->delegate,\n        sel_keyboardEvent_flags_keyCode_charCode_charSet_originalCharCode_originalCharSet_,\n        12,\n        v5);\n    }\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1b47a8",
+        "name": "-[KeyMap _calcModBit:keyBits:]"
+      },
+      {
+        "addr": "0x20541c",
+        "name": "sel__calcModBit:keyBits:",
+        "string": "_calcModBit:keyBits:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x202d08",
+        "name": "sel_eventFlags",
+        "string": "eventFlags"
+      },
+      {
+        "addr": "0x202e80",
+        "name": "sel_updateEventFlags:",
+        "string": "updateEventFlags:"
+      },
+      {
+        "addr": "0x202ec4",
+        "name": "sel_keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:",
+        "string": "keyboardEvent:flags:keyCode:charCode:charSet:originalCharCode:originalCharSet:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4a34",
+    "addr": "0x001b4a34",
+    "code": "void __cdecl -[IOAudio _commandOccurred](IOAudio *self, SEL a2)\n{\n  id v2; // eax\n  id v3; // eax\n  id v4; // eax\n  id v5; // eax\n\n  v2 = -[IOAudio _audioCommand](self, sel__audioCommand); /*0x1b4a4b*/\n  switch ( (unsigned int)objc_msgSend(v2, sel_command) ) /*0x1b4a6a*/\n  {\n    case 0u: /*0x1b4a6a*/\n      -[IOAudio updateInputGainLeft](self, sel_updateInputGainLeft); /*0x1b4aec*/\n      break; /*0x1b4af2*/\n    case 1u: /*0x1b4a6a*/\n      -[IOAudio updateInputGainRight](self, sel_updateInputGainRight); /*0x1b4b00*/\n      break; /*0x1b4b06*/\n    case 2u: /*0x1b4a6a*/\n      -[IOAudio updateOutputMute](self, sel_updateOutputMute); /*0x1b4b14*/\n      break; /*0x1b4b1a*/\n    case 3u: /*0x1b4a6a*/\n      -[IOAudio updateOutputAttenuationLeft](self, sel_updateOutputAttenuationLeft); /*0x1b4b28*/\n      break; /*0x1b4b2e*/\n    case 4u: /*0x1b4a6a*/\n      -[IOAudio updateOutputAttenuationRight](self, sel_updateOutputAttenuationRight); /*0x1b4b3c*/\n      break; /*0x1b4b42*/\n    case 5u: /*0x1b4a6a*/\n      -[IOAudio updateLoudnessEnhanced](self, sel_updateLoudnessEnhanced); /*0x1b4b50*/\n      break; /*0x1b4b56*/\n    case 6u: /*0x1b4a6a*/\n      if ( -[IOAudio isInputActive](self, sel_isInputActive) ) /*0x1b4b64*/\n      {\n        v3 = -[IOAudio _inputChannel](self, sel__inputChannel); /*0x1b4b78*/\n        -[IOAudio _stopDMAForChannel:](self, sel__stopDMAForChannel_, v3); /*0x1b4b86*/\n      }\n      break; /*0x1b4b86*/\n    case 7u: /*0x1b4a6a*/\n      if ( -[IOAudio isOutputActive](self, sel_isOutputActive) ) /*0x1b4b9c*/\n      {\n        v4 = -[IOAudio _outputChannel](self, sel__outputChannel); /*0x1b4bb0*/\n        -[IOAudio _stopDMAForChannel:](self, sel__stopDMAForChannel_, v4); /*0x1b4bbe*/\n      }\n      break; /*0x1b4bbe*/\n    case 8u: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 30, 1); /*0x1b4bd8*/\n      break; /*0x1b4bde*/\n    case 9u: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 30, 0); /*0x1b4bf0*/\n      break; /*0x1b4bf6*/\n    case 0xAu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 31, 1); /*0x1b4c08*/\n      break; /*0x1b4c0e*/\n    case 0xBu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 31, 0); /*0x1b4c20*/\n      break; /*0x1b4c26*/\n    case 0xCu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 32, 1); /*0x1b4c38*/\n      break; /*0x1b4c3e*/\n    case 0xDu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 32, 0); /*0x1b4c50*/\n      break; /*0x1b4c56*/\n    case 0xEu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 33, 1); /*0x1b4c68*/\n      break; /*0x1b4c6e*/\n    case 0xFu: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 33, 0); /*0x1b4c80*/\n      break; /*0x1b4c86*/\n    case 0x10u: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 34, 1); /*0x1b4c98*/\n      break; /*0x1b4c9e*/\n    case 0x11u: /*0x1b4a6a*/\n      -[IOAudio setInput:enable:](self, sel_setInput_enable_, 34, 0); /*0x1b4cb0*/\n      break; /*0x1b4cb6*/\n    case 0x12u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 25, 1); /*0x1b4cc8*/\n      break; /*0x1b4cce*/\n    case 0x13u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 25, 0); /*0x1b4ce0*/\n      break; /*0x1b4ce6*/\n    case 0x14u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 26, 1); /*0x1b4cf8*/\n      break; /*0x1b4cfe*/\n    case 0x15u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 26, 0); /*0x1b4d10*/\n      break; /*0x1b4d16*/\n    case 0x16u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 27, 1); /*0x1b4d24*/\n      break; /*0x1b4d2a*/\n    case 0x17u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 27, 0); /*0x1b4d38*/\n      break; /*0x1b4d3e*/\n    case 0x18u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 28, 1); /*0x1b4d4c*/\n      break; /*0x1b4d52*/\n    case 0x19u: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 28, 0); /*0x1b4d60*/\n      break; /*0x1b4d66*/\n    case 0x1Au: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 29, 1); /*0x1b4d74*/\n      break; /*0x1b4d7a*/\n    case 0x1Bu: /*0x1b4a6a*/\n      -[IOAudio setOutput:enable:](self, sel_setOutput_enable_, 29, 0); /*0x1b4d88*/\n      break; /*0x1b4d88*/\n    default:\n      break;\n  }\n  v5 = -[IOAudio _audioCommand](self, sel__audioCommand); /*0x1b4d92*/\n  objc_msgSend(v5, sel_done_); /*0x1b4daa*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b6260",
+        "name": "-[IOAudio _audioCommand]"
+      },
+      {
+        "addr": "0x205494",
+        "name": "sel__audioCommand",
+        "string": "_audioCommand"
+      },
+      {
+        "addr": "0x1b74d0",
+        "name": "-[IOAudio updateInputGainLeft]"
+      },
+      {
+        "addr": "0x205748",
+        "name": "sel_updateInputGainLeft",
+        "string": "updateInputGainLeft"
+      },
+      {
+        "addr": "0x1b74d8",
+        "name": "-[IOAudio updateInputGainRight]"
+      },
+      {
+        "addr": "0x205730",
+        "name": "sel_updateInputGainRight",
+        "string": "updateInputGainRight"
+      },
+      {
+        "addr": "0x1b74e0",
+        "name": "-[IOAudio updateOutputMute]"
+      },
+      {
+        "addr": "0x20571c",
+        "name": "sel_updateOutputMute",
+        "string": "updateOutputMute"
+      },
+      {
+        "addr": "0x1b74e8",
+        "name": "-[IOAudio updateOutputAttenuationLeft]"
+      },
+      {
+        "addr": "0x205700",
+        "name": "sel_updateOutputAttenuationLeft",
+        "string": "updateOutputAttenuationLeft"
+      },
+      {
+        "addr": "0x1b74f0",
+        "name": "-[IOAudio updateOutputAttenuationRight]"
+      },
+      {
+        "addr": "0x2056e0",
+        "name": "sel_updateOutputAttenuationRight",
+        "string": "updateOutputAttenuationRight"
+      },
+      {
+        "addr": "0x1b74c8",
+        "name": "-[IOAudio updateLoudnessEnhanced]"
+      },
+      {
+        "addr": "0x20575c",
+        "name": "sel_updateLoudnessEnhanced",
+        "string": "updateLoudnessEnhanced"
+      },
+      {
+        "addr": "0x1b6234",
+        "name": "-[IOAudio _inputChannel]"
+      },
+      {
+        "addr": "0x205474",
+        "name": "sel__inputChannel",
+        "string": "_inputChannel"
+      },
+      {
+        "addr": "0x1b65ec",
+        "name": "-[IOAudio _stopDMAForChannel:]"
+      },
+      {
+        "addr": "0x205c4c",
+        "name": "sel__stopDMAForChannel:",
+        "string": "_stopDMAForChannel:"
+      },
+      {
+        "addr": "0x1b7320",
+        "name": "-[IOAudio isInputActive]"
+      },
+      {
+        "addr": "0x2058ac",
+        "name": "sel_isInputActive",
+        "string": "isInputActive"
+      },
+      {
+        "addr": "0x1b6244",
+        "name": "-[IOAudio _outputChannel]"
+      },
+      {
+        "addr": "0x205484",
+        "name": "sel__outputChannel",
+        "string": "_outputChannel"
+      },
+      {
+        "addr": "0x1b7334",
+        "name": "-[IOAudio isOutputActive]"
+      },
+      {
+        "addr": "0x20589c",
+        "name": "sel_isOutputActive",
+        "string": "isOutputActive"
+      },
+      {
+        "addr": "0x1b74f8",
+        "name": "-[IOAudio setInput:enable:]"
+      },
+      {
+        "addr": "0x2056cc",
+        "name": "sel_setInput:enable:",
+        "string": "setInput:enable:"
+      },
+      {
+        "addr": "0x1b7500",
+        "name": "-[IOAudio setOutput:enable:]"
+      },
+      {
+        "addr": "0x2056b8",
+        "name": "sel_setOutput:enable:",
+        "string": "setOutput:enable:"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205e04",
+        "name": "sel_command",
+        "string": "command"
+      },
+      {
+        "addr": "0x204438",
+        "name": "sel_done:",
+        "string": "done:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4db8",
+    "addr": "0x001b4db8",
+    "code": "char __cdecl -[IOAudio _attemptToStartDMAForChannel:channelStatus:](IOAudio *self, SEL a2, id a3, char a4)\n{\n  unsigned int i; // ebx\n  id v5; // eax\n  id v6; // eax\n  id v8; // [esp-Ch] [ebp-30h]\n  int v9; // [esp-Ch] [ebp-30h]\n  char v10; // [esp+Ch] [ebp-18h]\n  _DWORD v11[2]; // [esp+10h] [ebp-14h] BYREF\n  id v12; // [esp+18h] [ebp-Ch] BYREF\n  unsigned int dataEncoding; // [esp+1Ch] [ebp-8h] BYREF\n  id v14; // [esp+20h] [ebp-4h] BYREF\n\n  v14 = nullptr; /*0x1b4dca*/\n  dataEncoding = -1; /*0x1b4dd1*/\n  v12 = nullptr; /*0x1b4dd8*/\n  v10 = 0; /*0x1b4ddf*/\n  if ( a4 ) /*0x1b4de5*/\n  {\n    v14 = -[IOAudio sampleRate](self, sel_sampleRate); /*0x1b4df4*/\n    dataEncoding = self->_dataEncoding; /*0x1b4dfd*/\n    v12 = -[IOAudio channelCount](self, sel_channelCount); /*0x1b4e0d*/\n  }\n  for ( i = 0; /*0x1b4e13*/\n        i < (unsigned int)objc_msgSend(a3, sel_dmaCount) >> 1\n     && (unsigned __int8)objc_msgSend(a3, sel_enqueueDescriptor_dataFormat_channelCount_, &v14, &dataEncoding, &v12);\n        ++i )\n  {\n    ; /*0x1b4e50*/\n  }\n  if ( objc_msgSend(a3, sel_enqueueCount) ) /*0x1b4e5c*/\n  {\n    -[IOAudio _setSampleRate:](self, sel__setSampleRate_, v14); /*0x1b4e78*/\n    -[IOAudio _setDataEncoding:](self, sel__setDataEncoding_, dataEncoding); /*0x1b4e89*/\n    -[IOAudio _setChannelCount:](self, sel__setChannelCount_, v12); /*0x1b4e9a*/\n    objc_msgSend(a3, sel_descriptorSize); /*0x1b4eaa*/\n    objc_msgSend(a3, sel_channelBuffer); /*0x1b4eb8*/\n    objc_msgSend(a3, sel_isRead); /*0x1b4ec9*/\n    v5 = objc_msgSend(a3, sel_localChannel); /*0x1b4edd*/\n    v10 = -[IOAudio startDMAForChannel:read:buffer:bufferSizeForInterrupts:]( /*0x1b4ef3*/\n            self,\n            sel_startDMAForChannel_read_buffer_bufferSizeForInterrupts_,\n            v5);\n    if ( v10 ) /*0x1b4efb*/\n    {\n      IOGetTimestamp(v11); /*0x1b4f01*/\n      -[IOAudio _setOutputStartTime:](self, sel__setOutputStartTime_, v11[0], v11[1]); /*0x1b4f16*/\n      if ( (unsigned __int8)objc_msgSend(a3, sel_isRead) ) /*0x1b4f23*/\n        -[IOAudio _setInputActive:](self, sel__setInputActive_, 1); /*0x1b4f37*/\n      else\n        -[IOAudio _setOutputActive:](self, sel__setOutputActive_, 1); /*0x1b4f46*/\n      if ( -[IOAudio _timeout](self, sel__timeout) == -1 ) /*0x1b4f61*/\n      {\n        v8 = objc_msgSend(a3, sel_descriptorSize); /*0x1b4f74*/\n        -[IOAudio _setTimeout:](self, sel__setTimeout_, v8); /*0x1b4f75*/\n      }\n    }\n    else\n    {\n      while ( objc_msgSend(a3, sel_enqueueCount) ) /*0x1b4f8a*/\n        objc_msgSend(a3, sel_dequeueDescriptor); /*0x1b4f94*/\n      v9 = (char)objc_msgSend(a3, sel_isRead); /*0x1b4fb0*/\n      v6 = objc_msgSend(a3, sel_localChannel); /*0x1b4fb9*/\n      -[IOAudio stopDMAForChannel:read:](self, sel_stopDMAForChannel_read_, v6); /*0x1b4fca*/\n      objc_msgSend(a3, sel_freeDescriptors); /*0x1b4fd7*/\n      -[IOAudio _setTimeout:](self, sel__setTimeout_, v9); /*0x1b4fe9*/\n    }\n  }\n  return v10; /*0x1b4ff5*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b72ac",
+        "name": "-[IOAudio sampleRate]"
+      },
+      {
+        "addr": "0x2058dc",
+        "name": "sel_sampleRate",
+        "string": "sampleRate"
+      },
+      {
+        "addr": "0x1b7310",
+        "name": "-[IOAudio channelCount]"
+      },
+      {
+        "addr": "0x2058bc",
+        "name": "sel_channelCount",
+        "string": "channelCount"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205e0c",
+        "name": "sel_dmaCount",
+        "string": "dmaCount"
+      },
+      {
+        "addr": "0x205e18",
+        "name": "sel_enqueueDescriptor:dataFormat:channelCount:",
+        "string": "enqueueDescriptor:dataFormat:channelCount:"
+      },
+      {
+        "addr": "0x1b6270",
+        "name": "-[IOAudio _setSampleRate:]"
+      },
+      {
+        "addr": "0x205d9c",
+        "name": "sel__setSampleRate:",
+        "string": "_setSampleRate:"
+      },
+      {
+        "addr": "0x1b6284",
+        "name": "-[IOAudio _setDataEncoding:]"
+      },
+      {
+        "addr": "0x205d88",
+        "name": "sel__setDataEncoding:",
+        "string": "_setDataEncoding:"
+      },
+      {
+        "addr": "0x1b6298",
+        "name": "-[IOAudio _setChannelCount:]"
+      },
+      {
+        "addr": "0x205d74",
+        "name": "sel__setChannelCount:",
+        "string": "_setChannelCount:"
+      },
+      {
+        "addr": "0x205e74",
+        "name": "sel_descriptorSize",
+        "string": "descriptorSize"
+      },
+      {
+        "addr": "0x205e64",
+        "name": "sel_channelBuffer",
+        "string": "channelBuffer"
+      },
+      {
+        "addr": "0x205dfc",
+        "name": "sel_isRead",
+        "string": "isRead"
+      },
+      {
+        "addr": "0x205e54",
+        "name": "sel_localChannel",
+        "string": "localChannel"
+      },
+      {
+        "addr": "0x1b736c",
+        "name": "-[IOAudio startDMAForChannel:read:buffer:bufferSizeForInterrupts:]"
+      },
+      {
+        "addr": "0x20583c",
+        "name": "sel_startDMAForChannel:read:buffer:bufferSizeForInterrupts:",
+        "string": "startDMAForChannel:read:buffer:bufferSizeForInterrupts:"
+      },
+      {
+        "addr": "0x1a54f8",
+        "name": "_IOGetTimestamp"
+      },
+      {
+        "addr": "0x1b64e4",
+        "name": "-[IOAudio _setOutputStartTime:]"
+      },
+      {
+        "addr": "0x205cc0",
+        "name": "sel__setOutputStartTime:",
+        "string": "_setOutputStartTime:"
+      },
+      {
+        "addr": "0x1b6970",
+        "name": "-[IOAudio _setInputActive:]"
+      },
+      {
+        "addr": "0x205b94",
+        "name": "sel__setInputActive:",
+        "string": "_setInputActive:"
+      },
+      {
+        "addr": "0x1b6984",
+        "name": "-[IOAudio _setOutputActive:]"
+      },
+      {
+        "addr": "0x205b80",
+        "name": "sel__setOutputActive:",
+        "string": "_setOutputActive:"
+      },
+      {
+        "addr": "0x1b6474",
+        "name": "-[IOAudio _setTimeout:]"
+      },
+      {
+        "addr": "0x205d0c",
+        "name": "sel__setTimeout:",
+        "string": "_setTimeout:"
+      },
+      {
+        "addr": "0x1b6488",
+        "name": "-[IOAudio _timeout]"
+      },
+      {
+        "addr": "0x2054d8",
+        "name": "sel__timeout",
+        "string": "_timeout"
+      },
+      {
+        "addr": "0x205e84",
+        "name": "sel_dequeueDescriptor",
+        "string": "dequeueDescriptor"
+      },
+      {
+        "addr": "0x205e44",
+        "name": "sel_enqueueCount",
+        "string": "enqueueCount"
+      },
+      {
+        "addr": "0x1b738c",
+        "name": "-[IOAudio stopDMAForChannel:read:]"
+      },
+      {
+        "addr": "0x205824",
+        "name": "sel_stopDMAForChannel:read:",
+        "string": "stopDMAForChannel:read:"
+      },
+      {
+        "addr": "0x205e98",
+        "name": "sel_freeDescriptors",
+        "string": "freeDescriptors"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b4ffc",
+    "addr": "0x001b4ffc",
+    "code": "int __cdecl -[IOAudio _intValueForParameter:forObject:](IOAudio *self, SEL a2, int a3, id a4)\n{\n  int v4; // ebx\n  id v5; // eax\n  const char *v6; // ecx\n  id v7; // eax\n  id v8; // ebx\n  id v9; // eax\n  id v10; // eax\n  id v12; // ebx\n  id v13; // eax\n  id v14; // eax\n\n  v4 = 0; /*0x1b5008*/\n  v5 = -[IOAudio _inputChannel](self, sel__inputChannel); /*0x1b5012*/\n  if ( (unsigned __int8)objc_msgSend(a4, sel_isEqual_, v5) )\n  {\n    switch ( a3 ) /*0x1b503d*/\n    {\n      case 0: /*0x1b503d*/\n        v6 = sel_descriptorSize; /*0x1b50d0*/\n        goto LABEL_51; /*0x1b50d6*/\n      case 1: /*0x1b503d*/\n        v6 = sel_dmaCount; /*0x1b50dc*/\n        goto LABEL_51; /*0x1b50e2*/\n      case 2: /*0x1b503d*/\n        return (char)objc_msgSend(a4, sel_isDetectingPeaks);\n      case 14: /*0x1b503d*/\n        v7 = -[IOAudio _analogInputSource](self, sel__analogInputSource); /*0x1b50f0*/\n        goto LABEL_52; /*0x1b50f0*/\n      case 16: /*0x1b503d*/\n        v8 = -[IOAudio inputGainLeft](self, sel_inputGainLeft); /*0x1b5105*/\n        v9 = -[IOAudio inputGainRight](self, sel_inputGainRight); /*0x1b510f*/\n        return ((unsigned int)v9 + (unsigned int)v8) >> 1; /*0x1b510f*/\n      case 17: /*0x1b503d*/\n        v7 = -[IOAudio inputGainLeft](self, sel_inputGainLeft); /*0x1b511c*/\n        goto LABEL_52; /*0x1b511c*/\n      case 18: /*0x1b503d*/\n        v7 = -[IOAudio inputGainRight](self, sel_inputGainRight); /*0x1b512c*/\n        goto LABEL_52; /*0x1b512c*/\n      case 30: /*0x1b503d*/\n        v4 = *((char *)self->_audioPrivate + 16); /*0x1b513a*/\n        break; /*0x1b513e*/\n      case 31: /*0x1b503d*/\n        v4 = *((char *)self->_audioPrivate + 17); /*0x1b514a*/\n        break; /*0x1b514e*/\n      case 32: /*0x1b503d*/\n        v4 = *((char *)self->_audioPrivate + 18); /*0x1b515a*/\n        break; /*0x1b515e*/\n      case 33: /*0x1b503d*/\n        v4 = *((char *)self->_audioPrivate + 19); /*0x1b516a*/\n        break; /*0x1b516e*/\n      case 34: /*0x1b503d*/\n        v4 = *((char *)self->_audioPrivate + 20); /*0x1b517a*/\n        break; /*0x1b517e*/\n      default:\n        return v4;\n    }\n  }\n  else\n  {\n    v10 = -[IOAudio _outputChannel](self, sel__outputChannel); /*0x1b518c*/\n    if ( (unsigned __int8)objc_msgSend(a4, sel_isEqual_, v10) )\n    {\n      switch ( a3 ) /*0x1b51b7*/\n      {\n        case 0: /*0x1b51b7*/\n          v6 = sel_descriptorSize; /*0x1b5238*/\n          goto LABEL_51; /*0x1b523e*/\n        case 1: /*0x1b51b7*/\n          v6 = sel_dmaCount; /*0x1b5244*/\n          goto LABEL_51; /*0x1b524a*/\n        case 2: /*0x1b51b7*/\n          return (char)objc_msgSend(a4, sel_isDetectingPeaks);\n        case 3: /*0x1b51b7*/\n        case 4: /*0x1b51b7*/\n        case 5: /*0x1b51b7*/\n        case 6: /*0x1b51b7*/\n          v4 = 0; /*0x1b5250*/\n          break; /*0x1b5252*/\n        case 7: /*0x1b51b7*/\n        case 8: /*0x1b51b7*/\n        case 9: /*0x1b51b7*/\n          return -[IOAudio isOutputMuted](self, sel_isOutputMuted); /*0x1b5260*/\n        case 10: /*0x1b51b7*/\n          return -[IOAudio isLoudnessEnhanced](self, sel_isLoudnessEnhanced); /*0x1b5270*/\n        case 11: /*0x1b51b7*/\n          v12 = -[IOAudio outputAttenuationLeft](self, sel_outputAttenuationLeft); /*0x1b5285*/\n          v4 = (-[IOAudio outputAttenuationRight](self, sel_outputAttenuationRight) + (int)v12) / 2; /*0x1b529f*/\n          break; /*0x1b52a1*/\n        case 12: /*0x1b51b7*/\n          v7 = -[IOAudio outputAttenuationLeft](self, sel_outputAttenuationLeft); /*0x1b52b0*/\n          goto LABEL_52; /*0x1b52b0*/\n        case 13: /*0x1b51b7*/\n          v7 = -[IOAudio outputAttenuationRight](self, sel_outputAttenuationRight); /*0x1b52c0*/\n          goto LABEL_52; /*0x1b52c0*/\n        case 25: /*0x1b51b7*/\n          v4 = *((char *)self->_audioPrivate + 22); /*0x1b52de*/\n          break; /*0x1b52e2*/\n        case 26: /*0x1b51b7*/\n          v4 = *((char *)self->_audioPrivate + 21); /*0x1b52ce*/\n          break; /*0x1b52d2*/\n        case 27: /*0x1b51b7*/\n          v4 = *((char *)self->_audioPrivate + 23); /*0x1b52ee*/\n          break; /*0x1b52f2*/\n        case 28: /*0x1b51b7*/\n          v4 = *((char *)self->_audioPrivate + 24); /*0x1b52fe*/\n          break; /*0x1b5302*/\n        case 29: /*0x1b51b7*/\n          v4 = *((char *)self->_audioPrivate + 25); /*0x1b530e*/\n          break; /*0x1b5312*/\n        default:\n          return v4;\n      }\n    }\n    else\n    {\n      v13 = +[Object class](aInputstream, sel_class); /*0x1b5326*/\n      if ( (unsigned __int8)objc_msgSend(a4, sel_isKindOf_, v13) )\n      {\n        switch ( a3 ) /*0x1b5351*/\n        {\n          case 400: /*0x1b5351*/\n            v6 = sel_dataEncoding; /*0x1b5370*/\n            goto LABEL_51; /*0x1b5376*/\n          case 401: /*0x1b5351*/\n            v6 = sel_samplingRate; /*0x1b537c*/\n            goto LABEL_51; /*0x1b5382*/\n          case 402: /*0x1b5351*/\n            v6 = sel_channelCount; /*0x1b5388*/\n            goto LABEL_51; /*0x1b538e*/\n          case 403: /*0x1b5351*/\n            v6 = sel_highWaterMark; /*0x1b5394*/\n            goto LABEL_51; /*0x1b539a*/\n          case 404: /*0x1b5351*/\n            v6 = sel_lowWaterMark; /*0x1b53a0*/\n            goto LABEL_51; /*0x1b53a6*/\n          case 405: /*0x1b5351*/\n            v4 = 605; /*0x1b53ac*/\n            break; /*0x1b53b1*/\n          default:\n            return v4;\n        }\n      }\n      else\n      {\n        v14 = +[Object class](aOutputstream, sel_class); /*0x1b53c6*/\n        if ( !(unsigned __int8)objc_msgSend(a4, sel_isKindOf_, v14) )\n        {\n          IOLog((int)\"Audio: unknown parameter object\\n\");\n          return 0; /*0x1b54b8*/\n        }\n        switch ( a3 ) /*0x1b53f5*/\n        {\n          case 400: /*0x1b53f5*/\n            v6 = sel_dataEncoding; /*0x1b5428*/\n            goto LABEL_51; /*0x1b542e*/\n          case 401: /*0x1b53f5*/\n            v6 = sel_samplingRate; /*0x1b5430*/\n            goto LABEL_51; /*0x1b5436*/\n          case 402: /*0x1b53f5*/\n            v6 = sel_channelCount; /*0x1b5438*/\n            goto LABEL_51; /*0x1b543e*/\n          case 403: /*0x1b53f5*/\n            v6 = sel_highWaterMark; /*0x1b5440*/\n            goto LABEL_51; /*0x1b5446*/\n          case 404: /*0x1b53f5*/\n            v6 = sel_lowWaterMark; /*0x1b5448*/\n            goto LABEL_51; /*0x1b544e*/\n          case 406: /*0x1b53f5*/\n            return 607; /*0x1b5455*/\n          case 407: /*0x1b53f5*/\n            return (char)objc_msgSend(a4, sel_isDetectingPeaks); /*0x1b5468*/\n          case 408: /*0x1b53f5*/\n            v8 = objc_msgSend(a4, sel_gainLeft); /*0x1b5479*/\n            v9 = objc_msgSend(a4, sel_gainRight); /*0x1b5483*/\n            return ((unsigned int)v9 + (unsigned int)v8) >> 1; /*0x1b548e*/\n          case 409: /*0x1b53f5*/\n            v6 = sel_gainLeft; /*0x1b5490*/\n            goto LABEL_51; /*0x1b5496*/\n          case 410: /*0x1b53f5*/\n            v6 = sel_gainRight; /*0x1b5498*/\nLABEL_51:\n            v7 = objc_msgSend(a4, v6); /*0x1b549e*/\nLABEL_52:\n            v4 = (int)v7; /*0x1b54a5*/\n            break; /*0x1b54a7*/\n          default:\n            return v4;\n        }\n      }\n    }\n  }\n  return v4; /*0x1b54c1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b6234",
+        "name": "-[IOAudio _inputChannel]"
+      },
+      {
+        "addr": "0x205474",
+        "name": "sel__inputChannel",
+        "string": "_inputChannel"
+      },
+      {
+        "addr": "0x205e74",
+        "name": "sel_descriptorSize",
+        "string": "descriptorSize"
+      },
+      {
+        "addr": "0x205e0c",
+        "name": "sel_dmaCount",
+        "string": "dmaCount"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205eb4",
+        "name": "sel_isDetectingPeaks",
+        "string": "isDetectingPeaks"
+      },
+      {
+        "addr": "0x1b6b80",
+        "name": "-[IOAudio _analogInputSource]"
+      },
+      {
+        "addr": "0x205b44",
+        "name": "sel__analogInputSource",
+        "string": "_analogInputSource"
+      },
+      {
+        "addr": "0x1b7460",
+        "name": "-[IOAudio inputGainLeft]"
+      },
+      {
+        "addr": "0x2057d8",
+        "name": "sel_inputGainLeft",
+        "string": "inputGainLeft"
+      },
+      {
+        "addr": "0x1b7470",
+        "name": "-[IOAudio inputGainRight]"
+      },
+      {
+        "addr": "0x2057c8",
+        "name": "sel_inputGainRight",
+        "string": "inputGainRight"
+      },
+      {
+        "addr": "0x1b6244",
+        "name": "-[IOAudio _outputChannel]"
+      },
+      {
+        "addr": "0x205484",
+        "name": "sel__outputChannel",
+        "string": "_outputChannel"
+      },
+      {
+        "addr": "0x1b74a0",
+        "name": "-[IOAudio isOutputMuted]"
+      },
+      {
+        "addr": "0x205788",
+        "name": "sel_isOutputMuted",
+        "string": "isOutputMuted"
+      },
+      {
+        "addr": "0x1b74b4",
+        "name": "-[IOAudio isLoudnessEnhanced]"
+      },
+      {
+        "addr": "0x205774",
+        "name": "sel_isLoudnessEnhanced",
+        "string": "isLoudnessEnhanced"
+      },
+      {
+        "addr": "0x1b7480",
+        "name": "-[IOAudio outputAttenuationLeft]"
+      },
+      {
+        "addr": "0x2057b0",
+        "name": "sel_outputAttenuationLeft",
+        "string": "outputAttenuationLeft"
+      },
+      {
+        "addr": "0x1b7490",
+        "name": "-[IOAudio outputAttenuationRight]"
+      },
+      {
+        "addr": "0x205798",
+        "name": "sel_outputAttenuationRight",
+        "string": "outputAttenuationRight"
+      },
+      {
+        "addr": "0x1c9d14",
+        "name": "+[Object class]"
+      },
+      {
+        "addr": "0x1feb67",
+        "name": "aInputstream",
+        "string": "InputStream"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x2058cc",
+        "name": "sel_dataEncoding",
+        "string": "dataEncoding"
+      },
+      {
+        "addr": "0x205ec8",
+        "name": "sel_samplingRate",
+        "string": "samplingRate"
+      },
+      {
+        "addr": "0x2058bc",
+        "name": "sel_channelCount",
+        "string": "channelCount"
+      },
+      {
+        "addr": "0x205ed8",
+        "name": "sel_highWaterMark",
+        "string": "highWaterMark"
+      },
+      {
+        "addr": "0x205ee8",
+        "name": "sel_lowWaterMark",
+        "string": "lowWaterMark"
+      },
+      {
+        "addr": "0x1feb73",
+        "name": "aOutputstream",
+        "string": "OutputStream"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8450",
+        "name": "aAudioUnknownPa",
+        "string": "Audio: unknown parameter object\n"
+      },
+      {
+        "addr": "0x201e50",
+        "name": "sel_isKindOf:",
+        "string": "isKindOf:"
+      },
+      {
+        "addr": "0x205ef8",
+        "name": "sel_gainLeft",
+        "string": "gainLeft"
+      },
+      {
+        "addr": "0x205f04",
+        "name": "sel_gainRight",
+        "string": "gainRight"
+      },
+      {
+        "addr": "0x205ea8",
+        "name": "sel_isEqual:",
+        "string": "isEqual:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b54c8",
+    "addr": "0x001b54c8",
+    "code": "char __cdecl -[IOAudio _setParameter:toInt:forObject:](IOAudio *self, SEL a2, int a3, int a4, id a5)\n{\n  id v5; // eax\n  id v6; // eax\n  id v7; // eax\n  id v8; // eax\n  int v10; // [esp-10h] [ebp-20h]\n  int v11; // [esp-10h] [ebp-20h]\n  int v12; // [esp-4h] [ebp-14h]\n  char v13; // [esp+Ch] [ebp-4h]\n\n  v13 = 1; /*0x1b54da*/\n  v5 = -[IOAudio _inputChannel](self, sel__inputChannel); /*0x1b54e6*/\n  if ( (unsigned __int8)objc_msgSend(a5, sel_isEqual_, v5) )\n  {\n    switch ( a3 ) /*0x1b5511*/\n    {\n      case 0: /*0x1b5511*/\n      case 1: /*0x1b5511*/\n        return v13;\n      case 2: /*0x1b5511*/\n        goto LABEL_3;\n      case 14: /*0x1b5511*/\n        -[IOAudio _setAnalogInputSource:](self, sel__setAnalogInputSource_, v10); /*0x1b55ef*/\n        break; /*0x1b55ef*/\n      case 16: /*0x1b5511*/\n        -[IOAudio _setInputGainLeft:](self, sel__setInputGainLeft_, a4); /*0x1b55bd*/\n        -[IOAudio _setInputGainRight:](self, sel__setInputGainRight_, a4); /*0x1b55c9*/\n        break; /*0x1b55c9*/\n      case 17: /*0x1b5511*/\n        -[IOAudio _setInputGainLeft:](self, sel__setInputGainLeft_, v10); /*0x1b55d7*/\n        break; /*0x1b55d7*/\n      case 18: /*0x1b5511*/\n        -[IOAudio _setInputGainRight:](self, sel__setInputGainRight_, v10); /*0x1b55e3*/\n        break; /*0x1b55e3*/\n      case 30: /*0x1b5511*/\n      case 31: /*0x1b5511*/\n      case 32: /*0x1b5511*/\n      case 33: /*0x1b5511*/\n      case 34: /*0x1b5511*/\n        -[IOAudio _setInputFor:to:](self, sel__setInputFor_to_, a3, (char)a4); /*0x1b5602*/\n        break; /*0x1b5602*/\n      default:\n        return 0;\n    }\n  }\n  else\n  {\n    v6 = -[IOAudio _outputChannel](self, sel__outputChannel); /*0x1b5610*/\n    if ( (unsigned __int8)objc_msgSend(a5, sel_isEqual_, v6) )\n    {\n      switch ( a3 ) /*0x1b563b*/\n      {\n        case 0: /*0x1b563b*/\n        case 1: /*0x1b563b*/\n        case 3: /*0x1b563b*/\n        case 4: /*0x1b563b*/\n        case 5: /*0x1b563b*/\n        case 6: /*0x1b563b*/\n          return v13;\n        case 2: /*0x1b563b*/\nLABEL_3:\n          objc_msgSend(a5, sel_setDetectPeaks_, (char)a4); /*0x1b55a4*/\n          return v13; /*0x1b55ae*/\n        case 7: /*0x1b563b*/\n        case 8: /*0x1b563b*/\n        case 9: /*0x1b563b*/\n          -[IOAudio _setOutputMute:](self, sel__setOutputMute_, v11); /*0x1b56d6*/\n          return v13; /*0x1b56d6*/\n        case 10: /*0x1b563b*/\n          -[IOAudio _setLoudnessEnhanced:](self, sel__setLoudnessEnhanced_, v11); /*0x1b56e2*/\n          return v13; /*0x1b56e2*/\n        case 11: /*0x1b563b*/\n          -[IOAudio _setOutputAttenuationLeft:](self, sel__setOutputAttenuationLeft_, a4); /*0x1b56ed*/\n          goto LABEL_15; /*0x1b56f2*/\n        case 12: /*0x1b563b*/\n          -[IOAudio _setOutputAttenuationLeft:](self, sel__setOutputAttenuationLeft_, v11); /*0x1b56fb*/\n          return v13; /*0x1b56fb*/\n        case 13: /*0x1b563b*/\nLABEL_15:\n          -[IOAudio _setOutputAttenuationRight:](self, sel__setOutputAttenuationRight_, a4); /*0x1b5700*/\n          break; /*0x1b5709*/\n        case 25: /*0x1b563b*/\n        case 26: /*0x1b563b*/\n        case 27: /*0x1b563b*/\n        case 28: /*0x1b563b*/\n        case 29: /*0x1b563b*/\n          -[IOAudio _setOutputFor:to:](self, sel__setOutputFor_to_, a3, (char)a4); /*0x1b5724*/\n          break; /*0x1b5724*/\n        default:\n          return 0;\n      }\n    }\n    else\n    {\n      v7 = +[Object class](aInputstream, sel_class); /*0x1b573e*/\n      if ( (unsigned __int8)objc_msgSend(a5, sel_isKindOf_, v7) )\n      {\n        switch ( a3 ) /*0x1b576d*/\n        {\n          case 400: /*0x1b576d*/\n            goto LABEL_21;\n          case 401: /*0x1b576d*/\n            goto LABEL_22;\n          case 402: /*0x1b576d*/\n            goto LABEL_23;\n          case 403: /*0x1b576d*/\n            goto LABEL_24;\n          case 404: /*0x1b576d*/\n            goto LABEL_25;\n          case 405: /*0x1b576d*/\n            if ( a4 != 605 ) /*0x1b57ce*/\n              return 0; /*0x1b57ce*/\n            break; /*0x1b57ce*/\n          default:\n            return 0;\n        }\n      }\n      else\n      {\n        v8 = +[Object class](aOutputstream, sel_class); /*0x1b57ea*/\n        if ( (unsigned __int8)objc_msgSend(a5, sel_isKindOf_, v8) )\n        {\n          switch ( a3 ) /*0x1b5819*/\n          {\n            case 400: /*0x1b5819*/\nLABEL_21:\n              objc_msgSend(a5, sel_setDataEncoding_, a4); /*0x1b578c*/\n              return v13; /*0x1b5793*/\n            case 401: /*0x1b5819*/\nLABEL_22:\n              objc_msgSend(a5, sel_setSamplingRate_, a4); /*0x1b5798*/\n              return v13; /*0x1b579f*/\n            case 402: /*0x1b5819*/\nLABEL_23:\n              objc_msgSend(a5, sel_setChannelCount_, a4); /*0x1b57a4*/\n              return v13; /*0x1b57ab*/\n            case 403: /*0x1b5819*/\nLABEL_24:\n              objc_msgSend(a5, sel_setHighWaterMark_, a4); /*0x1b57b0*/\n              return v13; /*0x1b57b7*/\n            case 404: /*0x1b5819*/\nLABEL_25:\n              objc_msgSend(a5, sel_setLowWaterMark_, a4); /*0x1b57bc*/\n              return v13; /*0x1b57c3*/\n            case 406: /*0x1b5819*/\n              if ( a4 != 607 ) /*0x1b588e*/\n                return 0; /*0x1b588e*/\n              return v13; /*0x1b588e*/\n            case 407: /*0x1b5819*/\n              objc_msgSend(a5, sel_setDetectPeaks_, (char)a4); /*0x1b589e*/\n              return v13; /*0x1b589e*/\n            case 408: /*0x1b5819*/\n              objc_msgSend(a5, sel_setGainLeft_, a4); /*0x1b58a9*/\n              goto LABEL_35; /*0x1b58ae*/\n            case 409: /*0x1b5819*/\n              objc_msgSend(a5, sel_setGainLeft_, a4); /*0x1b58b7*/\n              return v13; /*0x1b58b7*/\n            case 410: /*0x1b5819*/\nLABEL_35:\n              objc_msgSend(a5, sel_setGainRight_, v12); /*0x1b58bc*/\n              break; /*0x1b58c5*/\n            default:\n              return 0;\n          }\n        }\n        else\n        {\n          IOLog(\"Audio: unknown parameter object\\n\");\n          return 0; /*0x1b58d6*/\n        }\n      }\n    }\n  }\n  return v13; /*0x1b58e1*/\n}",
+    "refs": [
+      {
+        "addr": "0x1b6234",
+        "name": "-[IOAudio _inputChannel]"
+      },
+      {
+        "addr": "0x205474",
+        "name": "sel__inputChannel",
+        "string": "_inputChannel"
+      },
+      {
+        "addr": "0x1b6bd0",
+        "name": "-[IOAudio _setAnalogInputSource:]"
+      },
+      {
+        "addr": "0x205b2c",
+        "name": "sel__setAnalogInputSource:",
+        "string": "_setAnalogInputSource:"
+      },
+      {
+        "addr": "0x1b6838",
+        "name": "-[IOAudio _setInputGainLeft:]"
+      },
+      {
+        "addr": "0x205c1c",
+        "name": "sel__setInputGainLeft:",
+        "string": "_setInputGainLeft:"
+      },
+      {
+        "addr": "0x1b686c",
+        "name": "-[IOAudio _setInputGainRight:]"
+      },
+      {
+        "addr": "0x205c08",
+        "name": "sel__setInputGainRight:",
+        "string": "_setInputGainRight:"
+      },
+      {
+        "addr": "0x1b6998",
+        "name": "-[IOAudio _setInputFor:to:]"
+      },
+      {
+        "addr": "0x205b6c",
+        "name": "sel__setInputFor:to:",
+        "string": "_setInputFor:to:"
+      },
+      {
+        "addr": "0x1b6244",
+        "name": "-[IOAudio _outputChannel]"
+      },
+      {
+        "addr": "0x205484",
+        "name": "sel__outputChannel",
+        "string": "_outputChannel"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x205f10",
+        "name": "sel_setDetectPeaks:",
+        "string": "setDetectPeaks:"
+      },
+      {
+        "addr": "0x1b68a0",
+        "name": "-[IOAudio _setOutputMute:]"
+      },
+      {
+        "addr": "0x205bf8",
+        "name": "sel__setOutputMute:",
+        "string": "_setOutputMute:"
+      },
+      {
+        "addr": "0x1b68d4",
+        "name": "-[IOAudio _setLoudnessEnhanced:]"
+      },
+      {
+        "addr": "0x205be0",
+        "name": "sel__setLoudnessEnhanced:",
+        "string": "_setLoudnessEnhanced:"
+      },
+      {
+        "addr": "0x1b6908",
+        "name": "-[IOAudio _setOutputAttenuationLeft:]"
+      },
+      {
+        "addr": "0x205bc4",
+        "name": "sel__setOutputAttenuationLeft:",
+        "string": "_setOutputAttenuationLeft:"
+      },
+      {
+        "addr": "0x1b693c",
+        "name": "-[IOAudio _setOutputAttenuationRight:]"
+      },
+      {
+        "addr": "0x205ba8",
+        "name": "sel__setOutputAttenuationRight:",
+        "string": "_setOutputAttenuationRight:"
+      },
+      {
+        "addr": "0x1b6a8c",
+        "name": "-[IOAudio _setOutputFor:to:]"
+      },
+      {
+        "addr": "0x205b58",
+        "name": "sel__setOutputFor:to:",
+        "string": "_setOutputFor:to:"
+      },
+      {
+        "addr": "0x1c9d14",
+        "name": "+[Object class]"
+      },
+      {
+        "addr": "0x1feb67",
+        "name": "aInputstream",
+        "string": "InputStream"
+      },
+      {
+        "addr": "0x201980",
+        "name": "sel_class",
+        "string": "class"
+      },
+      {
+        "addr": "0x1feb73",
+        "name": "aOutputstream",
+        "string": "OutputStream"
+      },
+      {
+        "addr": "0x205f20",
+        "name": "sel_setDataEncoding:",
+        "string": "setDataEncoding:"
+      },
+      {
+        "addr": "0x205f34",
+        "name": "sel_setSamplingRate:",
+        "string": "setSamplingRate:"
+      },
+      {
+        "addr": "0x205f48",
+        "name": "sel_setChannelCount:",
+        "string": "setChannelCount:"
+      },
+      {
+        "addr": "0x205f5c",
+        "name": "sel_setHighWaterMark:",
+        "string": "setHighWaterMark:"
+      },
+      {
+        "addr": "0x205f70",
+        "name": "sel_setLowWaterMark:",
+        "string": "setLowWaterMark:"
+      },
+      {
+        "addr": "0x205f84",
+        "name": "sel_setGainLeft:",
+        "string": "setGainLeft:"
+      },
+      {
+        "addr": "0x205f94",
+        "name": "sel_setGainRight:",
+        "string": "setGainRight:"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8450",
+        "name": "aAudioUnknownPa",
+        "string": "Audio: unknown parameter object\n"
+      },
+      {
+        "addr": "0x201e50",
+        "name": "sel_isKindOf:",
+        "string": "isKindOf:"
+      },
+      {
+        "addr": "0x205ea8",
+        "name": "sel_isEqual:",
+        "string": "isEqual:"
+      }
+    ]
+  },
+  {
+    "requested_address": "0x001b58e8",
+    "addr": "0x001b58e8",
+    "code": "id __cdecl -[IOAudio initFromDeviceDescription:](IOAudio *self, SEL a2, id a3)\n{\n  id v3; // eax\n  int v4; // eax\n  id v6; // eax\n  Class v7; // eax\n  id v8; // eax\n  AudioChannel *v9; // eax\n  id v10; // eax\n  AudioChannel *v11; // eax\n  id v12; // eax\n  int v13; // eax\n  int v14; // eax\n  int v15; // eax\n  int v16; // eax\n  AudioCommand *v17; // eax\n  int v18; // edi\n  char *__src; // [esp+Ch] [ebp-114h]\n  int v20; // [esp+10h] [ebp-110h] BYREF\n  objc_super v21; // [esp+14h] [ebp-10Ch] BYREF\n  char __dst[260]; // [esp+1Ch] [ebp-104h] BYREF\n\n  v21.receiver = self; /*0x1b5902*/\n  v21.super_class = (Class)stru_1FA474.super_class; /*0x1b590e*/\n  if ( !-[IODirectDevice initFromDeviceDescription:](&v21, sel_initFromDeviceDescription_, a3) ) /*0x1b591b*/\n    return nullptr; /*0x1b591b*/\n  if ( -[IODirectDevice attachInterruptPort](self, sel_attachInterruptPort) ) /*0x1b592f*/\n    return nullptr; /*0x1b592f*/\n  v3 = -[IODirectDevice interruptPort](self, sel_interruptPort); /*0x1b5945*/\n  v4 = task_self(v3); /*0x1b594e*/\n  port_set_backlog_EXTERNAL(v4); /*0x1b5954*/\n  if ( !-[IOAudio reset](self, sel_reset) ) /*0x1b5961*/\n    return nullptr; /*0x1b596d*/\n  -[IOAudio _initAudioHardwareSettings](self, sel__initAudioHardwareSettings); /*0x1b597c*/\n  v6 = objc_msgSend(a3, sel_configTable); /*0x1b5989*/\n  if ( v6 )\n  {\n    __src = (char *)objc_msgSend(v6, sel_valueForStringKey_, \"Server Name\"); /*0x1b59ba*/\n    strncpy(__dst, __src, 257 - (strlen(\"KernelServerInstance\") + 1)); /*0x1b59eb*/\n    strcat(__dst, \"KernelServerInstance\"); /*0x1b59f6*/\n    v7 = objc_lookUpClass(__dst); /*0x1b59ff*/\n    if ( v7 )\n    {\n      v8 = -[objc_class kernelServerInstance](v7, aKernelserverin_0); /*0x1b5a28*/\n      if ( v8 )\n      {\n        audioKernServInit(v8); /*0x1b5a49*/\n        audio_makeIMuLawTab(); /*0x1b5a4e*/\n        self->_audioPrivate = (void *)IOMalloc(28); /*0x1b5a5a*/\n        if ( +[IOAudio _instance](aIoaudio, sel__instance) )\n          IOLog(\"Audio: replacing previously registered driver\\n\");\n        +[IOAudio _setInstance:](aIoaudio, sel__setInstance_, self); /*0x1b5a96*/\n        v9 = +[Object alloc](aAudiochannel, sel_alloc); /*0x1b5ab3*/\n        v10 = -[AudioChannel initOnDevice:read:](v9, sel_initOnDevice_read_); /*0x1b5abc*/\n        self->_inputChannel = v10; /*0x1b5ac1*/\n        +[IOAudio _addChannel:](aIoaudio, sel__addChannel_, v10); /*0x1b5ad6*/\n        v11 = +[Object alloc](aAudiochannel, sel_alloc); /*0x1b5af6*/\n        v12 = -[AudioChannel initOnDevice:read:](v11, sel_initOnDevice_read_); /*0x1b5aff*/\n        self->_outputChannel = v12; /*0x1b5b04*/\n        +[IOAudio _addChannel:](aIoaudio, sel__addChannel_, v12); /*0x1b5b19*/\n        objc_msgSend(self->_inputChannel, sel_setLocalChannel_, 0); /*0x1b5b2e*/\n        if ( objc_msgSend(a3, sel_numChannels) == (id)1 ) /*0x1b5b49*/\n        {\n          objc_msgSend(a3, sel_interrupt); /*0x1b5b53*/\n          objc_msgSend(a3, sel_channel); /*0x1b5b61*/\n          -[IODevice name](self, sel_name); /*0x1b5b72*/\n          IOLog(\"%s at dma channel %d irq %d\\n\"); /*0x1b5b80*/\n          objc_msgSend(self->_outputChannel, sel_setLocalChannel_, 0); /*0x1b5b95*/\n        }\n        else if ( objc_msgSend(a3, sel_numChannels) == (id)2 ) /*0x1b5bb3*/\n        {\n          objc_msgSend(a3, sel_channelList); /*0x1b5bbd*/\n          objc_msgSend(a3, sel_interrupt); /*0x1b5bcc*/\n          -[IODevice name](self, sel_name); /*0x1b5be1*/\n          IOLog(\"%s at dma channels %d and %d irq %d\\n\"); /*0x1b5bef*/\n          objc_msgSend(self->_outputChannel, sel_setLocalChannel_, 1); /*0x1b5c07*/\n        }\n        v13 = task_self(&v20); /*0x1b5c16*/\n        if ( port_set_allocate_EXTERNAL(v13) )\n          IOLog(\"Audio: port_set_allocate: %d\\n\");\n        self->_devicePortSet = v20; /*0x1b5c3c*/\n        -[IODirectDevice interruptPort](self, sel_interruptPort); /*0x1b5c4a*/\n        v14 = task_self(self->_devicePortSet); /*0x1b5c5a*/\n        if ( port_set_add_EXTERNAL(v14) )\n          IOLog(\"Audio: port_set_add\\n\");\n        v15 = task_self(&v20); /*0x1b5c7a*/\n        if ( port_allocate_EXTERNAL(v15) )\n          IOLog(\"Audio: port_allocate\");\n        self->_commandPort = v20; /*0x1b5c9f*/\n        v16 = task_self(self->_devicePortSet); /*0x1b5cad*/\n        if ( port_set_add_EXTERNAL(v16) )\n          IOLog(\"Audio: port_set_add\\n\");\n        self->_commandPort = IOConvertPort(self->_commandPort, 1, 0); /*0x1b5cdc*/\n        v17 = +[Object alloc](aAudiocommand, sel_alloc); /*0x1b5cf8*/\n        self->_audioCommand = -[AudioCommand initPort:](v17, sel_initPort_); /*0x1b5d06*/\n        -[IOAudio _setTimeout:](self, sel__setTimeout_, -1); /*0x1b5d16*/\n        v18 = IOForkThread(sub_1B5D68, self); /*0x1b5d29*/\n        IOSetThreadPolicy(v18, 2); /*0x1b5d2e*/\n        IOSetThreadPriority(v18, 30); /*0x1b5d36*/\n        IOForkThread(sub_1B5EB0, self); /*0x1b5d41*/\n        -[IODevice registerDevice](self, sel_registerDevice); /*0x1b5d51*/\n        return self; /*0x1b5d56*/\n      }\n      else\n      {\n        IOLog(\"Audio: no kernel server instance\\n\");\n        return nullptr; /*0x1b5a3e*/\n      }\n    }\n    else\n    {\n      IOLog(\"Audio: no kernel server instance class '%s'\\n\");\n      return nullptr; /*0x1b5a16*/\n    }\n  }\n  else\n  {\n    IOLog(\"Audio: no configTable\\n\");\n    return nullptr; /*0x1b599f*/\n  }\n}",
+    "refs": [
+      {
+        "addr": "0x1fa474",
+        "name": "stru_1FA474"
+      },
+      {
+        "addr": "0x1a83e8",
+        "name": "-[IODirectDevice initFromDeviceDescription:]"
+      },
+      {
+        "addr": "0x203260",
+        "name": "sel_initFromDeviceDescription:",
+        "string": "initFromDeviceDescription:"
+      },
+      {
+        "addr": "0x1a8614",
+        "name": "-[IODirectDevice attachInterruptPort]"
+      },
+      {
+        "addr": "0x203e50",
+        "name": "sel_attachInterruptPort",
+        "string": "attachInterruptPort"
+      },
+      {
+        "addr": "0x1a8604",
+        "name": "-[IODirectDevice interruptPort]"
+      },
+      {
+        "addr": "0x203e64",
+        "name": "sel_interruptPort",
+        "string": "interruptPort"
+      },
+      {
+        "addr": "0x159b58",
+        "name": "_task_self"
+      },
+      {
+        "addr": "0x1d0bf8",
+        "name": "_port_set_backlog_EXTERNAL"
+      },
+      {
+        "addr": "0x1b723c",
+        "name": "-[IOAudio reset]"
+      },
+      {
+        "addr": "0x2058e8",
+        "name": "sel_reset",
+        "string": "reset"
+      },
+      {
+        "addr": "0x1b6f74",
+        "name": "-[IOAudio _initAudioHardwareSettings]"
+      },
+      {
+        "addr": "0x205a20",
+        "name": "sel__initAudioHardwareSettings",
+        "string": "_initAudioHardwareSettings"
+      },
+      {
+        "addr": "0x1ce960",
+        "name": "_objc_msgSend"
+      },
+      {
+        "addr": "0x20245c",
+        "name": "sel_configTable",
+        "string": "configTable"
+      },
+      {
+        "addr": "0x202480",
+        "name": "sel_valueForStringKey:",
+        "string": "valueForStringKey:"
+      },
+      {
+        "addr": "0x1d84a4",
+        "name": "aServerName",
+        "string": "Server Name"
+      },
+      {
+        "addr": "0x101bc0",
+        "name": "_strncpy"
+      },
+      {
+        "addr": "0x1d8474",
+        "name": "aKernelserverin",
+        "string": "KernelServerInstance"
+      },
+      {
+        "addr": "0x101cb8",
+        "name": "_strcat"
+      },
+      {
+        "addr": "0x1ced70",
+        "name": "_objc_lookUpClass"
+      },
+      {
+        "addr": "0x209a94",
+        "name": "-[objc_class kernelServerInstance]"
+      },
+      {
+        "addr": "0x205fbc",
+        "name": "aKernelserverin_0",
+        "string": "kernelServerInstance"
+      },
+      {
+        "addr": "0x1bad30",
+        "name": "_audioKernServInit"
+      },
+      {
+        "addr": "0x1be9c0",
+        "name": "_audio_makeIMuLawTab"
+      },
+      {
+        "addr": "0x1a5448",
+        "name": "_IOMalloc"
+      },
+      {
+        "addr": "0x1a5514",
+        "name": "_IOLog"
+      },
+      {
+        "addr": "0x1d8504",
+        "name": "aAudioReplacing",
+        "string": "Audio: replacing previously registered driver\n"
+      },
+      {
+        "addr": "0x1b6228",
+        "name": "+[IOAudio _instance]"
+      },
+      {
+        "addr": "0x1feb4e",
+        "name": "aIoaudio",
+        "string": "IOAudio"
+      },
+      {
+        "addr": "0x205904",
+        "name": "sel__instance",
+        "string": "_instance"
+      },
+      {
+        "addr": "0x1b6218",
+        "name": "+[IOAudio _setInstance:]"
+      },
+      {
+        "addr": "0x205910",
+        "name": "sel__setInstance:",
+        "string": "_setInstance:"
+      },
+      {
+        "addr": "0x1c9c50",
+        "name": "+[Object alloc]"
+      },
+      {
+        "addr": "0x1feb80",
+        "name": "aAudiochannel",
+        "string": "AudioChannel"
+      },
+      {
+        "addr": "0x201900",
+        "name": "sel_alloc",
+        "string": "alloc"
+      },
+      {
+        "addr": "0x1b7914",
+        "name": "-[AudioChannel initOnDevice:read:]"
+      },
+      {
+        "addr": "0x205fd4",
+        "name": "sel_initOnDevice:read:",
+        "string": "initOnDevice:read:"
+      },
+      {
+        "addr": "0x1b5fe8",
+        "name": "+[IOAudio _addChannel:]"
+      },
+      {
+        "addr": "0x20598c",
+        "name": "sel__addChannel:",
+        "string": "_addChannel:"
+      },
+      {
+        "addr": "0x205fe8",
+        "name": "sel_setLocalChannel:",
+        "string": "setLocalChannel:"
+      },
+      {
+        "addr": "0x203bfc",
+        "name": "sel_interrupt",
+        "string": "interrupt"
+      },
+      {
+        "addr": "0x206008",
+        "name": "sel_channel",
+        "string": "channel"
+      },
+      {
+        "addr": "0x1a42d8",
+        "name": "-[IODevice name]"
+      },
+      {
+        "addr": "0x20193c",
+        "name": "sel_name",
+        "string": "name"
+      },
+      {
+        "addr": "0x1d8534",
+        "name": "aSAtDmaChannelD",
+        "string": "%s at dma channel %d irq %d\n"
+      },
+      {
+        "addr": "0x206010",
+        "name": "sel_channelList",
+        "string": "channelList"
+      },
+      {
+        "addr": "0x1d8554",
+        "name": "aSAtDmaChannels",
+        "string": "%s at dma channels %d and %d irq %d\n"
+      },
+      {
+        "addr": "0x205ffc",
+        "name": "sel_numChannels",
+        "string": "numChannels"
+      },
+      {
+        "addr": "0x1d83c0",
+        "name": "aAudioPortSetAl",
+        "string": "Audio: port_set_allocate: %d\n"
+      },
+      {
+        "addr": "0x1d0674",
+        "name": "_port_set_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1d83a8",
+        "name": "aAudioPortSetAd",
+        "string": "Audio: port_set_add\n"
+      },
+      {
+        "addr": "0x1d05b4",
+        "name": "_port_set_add_EXTERNAL"
+      },
+      {
+        "addr": "0x1d8378",
+        "name": "aAudioPortAlloc",
+        "string": "Audio: port_allocate"
+      },
+      {
+        "addr": "0x1d0440",
+        "name": "_port_allocate_EXTERNAL"
+      },
+      {
+        "addr": "0x1a9284",
+        "name": "_IOConvertPort"
+      },
+      {
+        "addr": "0x1feb8d",
+        "name": "aAudiocommand",
+        "string": "AudioCommand"
+      },
+      {
+        "addr": "0x1bab5c",
+        "name": "-[AudioCommand initPort:]"
+      },
+      {
+        "addr": "0x204448",
+        "name": "sel_initPort:",
+        "string": "initPort:"
+      },
+      {
+        "addr": "0x1b6474",
+        "name": "-[IOAudio _setTimeout:]"
+      },
+      {
+        "addr": "0x205d0c",
+        "name": "sel__setTimeout:",
+        "string": "_setTimeout:"
+      },
+      {
+        "addr": "0x1a90ec",
+        "name": "_IOForkThread"
+      },
+      {
+        "addr": "0x1b5d68",
+        "name": "sub_1B5D68"
+      },
+      {
+        "addr": "0x1a91bc",
+        "name": "_IOSetThreadPolicy"
+      },
+      {
+        "addr": "0x1a9184",
+        "name": "_IOSetThreadPriority"
+      },
+      {
+        "addr": "0x1b5eb0",
+        "name": "sub_1B5EB0"
+      },
+      {
+        "addr": "0x1a416c",
+        "name": "-[IODevice registerDevice]"
+      },
+      {
+        "addr": "0x202c28",
+        "name": "sel_registerDevice",
+        "string": "registerDevice"
+      },
+      {
+        "addr": "0x1d84e0",
+        "name": "aAudioNoKernelS_0",
+        "string": "Audio: no kernel server instance\n"
+      },
+      {
+        "addr": "0x1d84b0",
+        "name": "aAudioNoKernelS",
+        "string": "Audio: no kernel server instance class '%s'\n"
+      },
+      {
+        "addr": "0x1d848c",
+        "name": "aAudioNoConfigt",
+        "string": "Audio: no configTable\n"
+      }
+    ]
+  }
+]

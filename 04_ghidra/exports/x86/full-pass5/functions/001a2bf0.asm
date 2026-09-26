@@ -1,0 +1,3 @@
+0x001a2bf0	3	MOV EDX,dword ptr [EBP + 0x8]
+0x001a2bf3	7	MOV dword ptr [EDX + 0x74],0x0
+0x001a2bfa	2	XOR EAX,EAX

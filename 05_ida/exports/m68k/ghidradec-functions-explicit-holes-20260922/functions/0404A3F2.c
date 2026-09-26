@@ -1,0 +1,4 @@
+
+//Decompiler native message:  Low-level Error: Bad decompile address: r0x0404a3f2 ram may not be a global space in the spec file.
+//Decompiling function: _free @ 0x404a3f2
+
