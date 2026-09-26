@@ -12,7 +12,7 @@ See [the full analysis plan](02_plan/FULL_ANALYSIS.md), [the multi-architecture 
 
 ## Tools
 
-- **IDA Pro:** Creates architecture-specific databases, disassembly listings, function candidates, and cross-reference exports. Its output is checked against the original file-backed bytes.
+- **IDA:** Creates architecture-specific databases, disassembly listings, function candidates, and cross-reference exports. Its output is checked against the original file-backed bytes.
 - **Ghidra and GhidraDec:** Produce separately stored decompiler hypotheses and support independent headless checks. A decompiler result is not treated as original-binary proof.
 - **Python:** Runs all explicit calculations and produces repeatable Mach-O, byte, hash, coverage, and audit reports.
 - **Git:** Tracks plans, scripts, reports, and reviewable text while excluding original binaries, analysis databases, and local temporary files.
