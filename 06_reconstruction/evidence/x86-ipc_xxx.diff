@@ -1,0 +1,147 @@
+--- 01_resources/upstream/darwin01/kernel/kern/ipc_xxx.c	1999-03-17 01:54:34.000000000 +0900
++++ 07_kernel/src/kern/ipc_xxx.c	2026-10-01 23:49:26.093873839 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1994 NeXT Computer, Inc.
+  *
+@@ -47,15 +49,10 @@
+ {
+ 	port_name_t	name;
+ 
+-	if (port != IP_NULL) {
+-		port = ipc_port_copy_send(port);
+-		if (port != IP_DEAD)
+-			ipc_object_copyout(
+-				task->itk_space, port,
+-					MACH_MSG_TYPE_PORT_SEND, TRUE, &name);
+-		else
+-			name = PORT_NULL;
+-	}
++	if (port != IP_NULL)
++		ipc_object_copyout(
++			task->itk_space, ipc_port_copy_send(port),
++				MACH_MSG_TYPE_PORT_SEND, TRUE, &name);
+ 	else
+ 		name = PORT_NULL;
+ 
+@@ -73,7 +70,7 @@
+ 	register ipc_port_t port;
+ 	port_name_t name;
+ 
+-	if (!is_suser()) {
++	if (!suser()) {
+ 		name = PORT_NULL;
+ 	}
+ 	else {
+@@ -91,7 +88,7 @@
+ 	register ipc_port_t port;
+ 	port_name_t name;
+ 
+-	if (!is_suser()) {
++	if (!suser()) {
+ 		port = realhost.host_self;
+ 	}
+ 	else {
+@@ -108,21 +105,7 @@
+  * the name service (or object service).
+  */
+ 
+-ipc_port_t lookupd_port, lookupd_port_priv;
+-
+-static
+-ipc_port_t
+-_lookupd_port_choose(void)
+-{
+-    ipc_port_t port;
+-
+-    if (lookupd_port_priv != IP_NULL && is_suser1())
+-	port = lookupd_port_priv;
+-    else
+-	port = lookupd_port;
+-
+-    return port;
+-}
++ipc_port_t lookupd_port;
+ 
+ port_name_t
+ _lookupd_port(name)
+@@ -132,7 +115,7 @@
+ 	ipc_port_t port;
+ 
+ 	if (name != PORT_NULL) {
+-		if (!is_suser())	
++		if (!suser())	
+ 			name = PORT_NULL;
+ 		else {
+ 			if (ipc_object_copyin(self->itk_space,
+@@ -147,34 +130,6 @@
+ 		}
+ 	}	
+ 	else {
+-		port = _lookupd_port_choose();
+-		name = do_object_copyout(self, port);
+-	}
+-	return name;
+-}
+-
+-port_name_t
+-_lookupd_port1(
+-	port_name_t	name)
+-{
+-	register task_t self = current_thread()->task;
+-	ipc_port_t port;
+-
+-	if (!is_suser())
+-		return (PORT_NULL);
+-
+-	if (name != PORT_NULL) {
+-		if (ipc_object_copyin(self->itk_space,
+-				      name, MACH_MSG_TYPE_MAKE_SEND,
+-				      		&port) == KERN_SUCCESS) {
+-			if (lookupd_port_priv != IP_NULL)
+-				ipc_port_release_send(lookupd_port_priv);
+-			lookupd_port_priv = port;
+-		}
+-		else
+-			name = PORT_NULL;
+-	}	
+-	else {
+ 		port = lookupd_port;
+ 		name = do_object_copyout(self, port);
+ 	}
+@@ -196,7 +151,7 @@
+ 	register ipc_port_t port;
+ 	port_name_t name;
+ 
+-	if (num == 0 && !is_suser()) /* Security check on privileged port */
++	if (num == 0 && !suser()) /* Security check on privileged port */
+ 		return PORT_NULL;
+ 	if ( num < 0 || num > (sizeof ev_port_list/sizeof ev_port_list[0]) )
+ 		return PORT_NULL;
+@@ -266,21 +221,3 @@
+ 	if (port != IP_NULL)
+ 		ipc_port_release_send(port);		/* XXX */
+ }
+-
+-void
+-send_notification(task, msg_id, name)
+-	register task_t task;		/* Who we're notifying */
+-	int msg_id;			/* What event occurred */
+-	port_name_t name;		/* What port is involved */
+-{
+-	ipc_port_t	tnotify;
+-	
+-	if (msg_id != NOTIFY_MSG_ACCEPTED)
+-		return;
+-	
+-	if (task_get_special_port(task,
+-				TASK_NOTIFY_PORT, &tnotify) != KERN_SUCCESS)
+-		return;
+-		
+-	ipc_notify_msg_accepted_compat(tnotify, name);
+-}

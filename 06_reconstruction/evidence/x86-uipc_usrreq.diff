@@ -1,0 +1,35 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/uipc_usrreq.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/uipc_usrreq.c	2026-10-02 18:31:57.348064100 +0900
+@@ -66,6 +66,7 @@
+ 	struct unpcb *unp = sotounpcb(so);
+ 	register struct socket *so2;
+ 	int error = 0;
++	struct timeval tv;	/* plan 161 (authored) */
+ 
+ 	if (req == PRU_CONTROL)
+ 		return (EOPNOTSUPP);
+@@ -259,9 +260,10 @@
+ 		((struct stat *) m)->st_uid = u.u_uid;
+ 		((struct stat *) m)->st_gid = u.u_gid;
+ 		((struct stat *) m)->st_size = so->so_rcv.sb_cc;
+-		((struct stat *) m)->st_atime = time.tv_sec;
+-		((struct stat *) m)->st_mtime = time.tv_sec;
+-		((struct stat *) m)->st_ctime = time.tv_sec;
++		getthetime(&tv);	/* plan 161 (authored; original bytes) */
++		((struct stat *) m)->st_atime = tv.tv_sec;
++		((struct stat *) m)->st_mtime = tv.tv_sec;
++		((struct stat *) m)->st_ctime = tv.tv_sec;
+ 		return (0);
+ 
+ 	case PRU_RCVOOB:
+@@ -329,6 +331,10 @@
+ 	case SOCK_DGRAM:
+ 		error = soreserve(so, unpdg_sendspace, unpdg_recvspace);
+ 		break;
++
++	default:		/* plan 161 (authored; original string 0x1db3ec) */
++		error = 0;
++		panic("unp_attack: bad so_type");
+ 	}
+ 	if (error)
+ 		return (error);

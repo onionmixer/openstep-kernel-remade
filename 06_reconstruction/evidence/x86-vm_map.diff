@@ -1,0 +1,457 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_map.c	1999-03-17 01:56:06.000000000 +0900
++++ 07_kernel/src/vm/vm_map.c	2026-10-02 12:26:43.093230445 +0900
+@@ -22,6 +22,22 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++/*
++ * Some lines below are taken from NeXTMach mk-108.1 vm/vm_map.c
++ * (https://github.com/johnsonjh/NeXTMach.git commit
++ * f6bdb9c3268f0eadc545d41bcc0564453b17001e; see 07_kernel/MODIFICATIONS.md),
++ * whose notices are:
++ *
++ * Mach Operating System
++ * Copyright (c) 1987 Carnegie-Mellon University
++ * All rights reserved.  The CMU software License Agreement specifies
++ * the terms and conditions for use and redistribution.
++ *
++ *	Author:	Avadis Tevanian, Jr., Michael Wayne Young
++ *	Copyright (C) 1985, Avadis Tevanian, Jr., Michael Wayne Young
++ */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1993-1987 Carnegie Mellon University
+@@ -387,8 +403,9 @@
+ 	vm_offset_t	start;
+ 	vm_offset_t	end;
+ {
+-	vm_map_entry_t		new_entry;
+-	vm_map_entry_t		prev_entry;
++	register vm_map_entry_t		new_entry;
++	register vm_map_entry_t		prev_entry;
++	vm_map_entry_t			temp_entry;
+ 	boolean_t vm_map_lookup_entry();
+ 
+ 	/*
+@@ -405,9 +422,11 @@
+ 	 *	existing entry, this range is bogus.
+ 	 */
+ 
+-	if (vm_map_lookup_entry(map, start, &prev_entry))
++	if (vm_map_lookup_entry(map, start, &temp_entry))
+ 		return(KERN_NO_SPACE);
+ 
++	prev_entry = temp_entry;
++
+ 	/*
+ 	 *	Assert that the next entry doesn't overlap the
+ 	 *	end point.
+@@ -585,165 +604,6 @@
+ }
+ 
+ /*
+- *	Routine:	vm_map_find_entry
+- *	Purpose:
+- *		Allocate a range in the specified virtual address map,
+- *		returning the entry allocated for that range.
+- *		Used by kmem_alloc, etc.  Returns wired entries.
+- *
+- *		The map must be locked.
+- *
+- *		If an entry is allocated, the object/offset fields
+- *		are initialized to zero.  If an object is supplied,
+- *		then an existing entry may be extended.
+- */
+-kern_return_t vm_map_find_entry(map, address, size, mask, object, o_entry)
+-	register vm_map_t	map;
+-	vm_offset_t		*address;	/* OUT */
+-	vm_size_t		size;
+-	vm_offset_t		mask;
+-	vm_object_t		object;
+-	vm_map_entry_t		*o_entry;	/* OUT */
+-{
+-	register vm_map_entry_t	entry, new_entry;
+-	register vm_offset_t	start;
+-	register vm_offset_t	end;
+-
+-	/*
+-	 *	Look for the first possible address;
+-	 *	if there's already something at this
+-	 *	address, we have to start after it.
+-	 */
+-
+-	if ((entry = map->first_free) == vm_map_to_entry(map))
+-		start = map->min_offset;
+-	else
+-		start = entry->vme_end;
+-
+-	/*
+-	 *	In any case, the "entry" always precedes
+-	 *	the proposed new region throughout the loop:
+-	 */
+-
+-	while (TRUE) {
+-		register vm_map_entry_t	next;
+-
+-		/*
+-		 *	Find the end of the proposed new region.
+-		 *	Be sure we didn't go beyond the end, or
+-		 *	wrap around the address.
+-		 */
+-
+-		start = ((start + mask) & ~mask);
+-		end = start + size;
+-
+-		if ((end > map->max_offset) || (end < start))
+-			return(KERN_NO_SPACE);
+-
+-		/*
+-		 *	If there are no more entries, we must win.
+-		 */
+-
+-		next = entry->vme_next;
+-		if (next == vm_map_to_entry(map))
+-			break;
+-
+-		/*
+-		 *	If there is another entry, it must be
+-		 *	after the end of the potential new region.
+-		 */
+-
+-		if (next->vme_start >= end)
+-			break;
+-
+-		/*
+-		 *	Didn't fit -- move to the next entry.
+-		 */
+-
+-		entry = next;
+-		start = entry->vme_end;
+-	}
+-
+-	/*
+-	 *	At this point,
+-	 *		"start" and "end" should define the endpoints of the
+-	 *			available new range, and
+-	 *		"entry" should refer to the region before the new
+-	 *			range, and
+-	 *
+-	 *		the map should be locked.
+-	 */
+-
+-	*address = start;
+-
+-	/*
+-	 *	See whether we can avoid creating a new entry by
+-	 *	extending one of our neighbors.  [So far, we only attempt to
+-	 *	extend from below.]
+-	 */
+-
+-	if ((object != VM_OBJECT_NULL) &&
+-	    (entry != vm_map_to_entry(map)) &&
+-	    (entry->vme_end == start) &&
+-	    (!entry->is_shared) &&
+-	    (!entry->is_sub_map) &&
+-	    (entry->object.vm_object == object) &&
+-	    (entry->needs_copy == FALSE) &&
+-	    (entry->inheritance == VM_INHERIT_DEFAULT) &&
+-	    (entry->protection == VM_PROT_DEFAULT) &&
+-	    (entry->max_protection == VM_PROT_ALL) &&
+-	    (entry->wired_count == 1) &&
+-	    (entry->user_wired_count == 0)) {
+-		/*
+-		 *	Because this is a special case,
+-		 *	we don't need to use vm_object_coalesce.
+-		 */
+-
+-		entry->vme_end = end;
+-		new_entry = entry;
+-	} else {
+-		new_entry = vm_map_entry_create(map);
+-
+-		new_entry->vme_start = start;
+-		new_entry->vme_end = end;
+-
+-		new_entry->is_shared = FALSE;
+-		new_entry->is_sub_map = FALSE;
+-		new_entry->object.vm_object = VM_OBJECT_NULL;
+-		new_entry->offset = (vm_offset_t) 0;
+-
+-		new_entry->needs_copy = FALSE;
+-
+-		new_entry->inheritance = VM_INHERIT_DEFAULT;
+-		new_entry->protection = VM_PROT_DEFAULT;
+-		new_entry->max_protection = VM_PROT_ALL;
+-		new_entry->wired_count = 1;
+-		new_entry->user_wired_count = 0;
+-
+-		new_entry->in_transition = FALSE;
+-		new_entry->needs_wakeup = FALSE;
+-
+-		/*
+-		 *	Insert the new entry into the list
+-		 */
+-
+-		vm_map_entry_link(map, entry, new_entry);
+-    	}
+-
+-	map->size += size;
+-
+-	/*
+-	 *	Update the free space hint and the lookup hint
+-	 */
+-
+-	map->first_free = new_entry;
+-	SAVE_HINT(map, new_entry);
+-
+-	*o_entry = new_entry;
+-	return(KERN_SUCCESS);
+-}
+-
+-/*
+  *	vm_map_find finds an unallocated region in the target address
+  *	map with the given length.  The search is defined to be
+  *	first-fit from the specified address; the region found is
+@@ -1561,115 +1421,6 @@
+ 	return(result);
+ }
+ 
+-kern_return_t vm_map_reallocate(map, start, end)
+-	register vm_map_t	map;
+-	register vm_offset_t	start;
+-	register vm_offset_t	end;
+-{
+-	register vm_map_entry_t	entry;
+-	vm_map_entry_t		first_entry;
+-
+-	vm_map_lock(map);
+-	VM_MAP_RANGE_CHECK(map, start, end);
+-
+-	/*
+-	 *	Find the start of the region, and clip it
+-	 */
+-
+-	if (!vm_map_lookup_entry(map, start, &first_entry))
+-		entry = first_entry->vme_next;
+-	else {
+-		entry = first_entry;
+-		vm_map_clip_start(map, entry, start);
+-
+-		/*
+-		 *	Fix the lookup hint now, rather than each
+-		 *	time though the loop.
+-		 */
+-
+-		SAVE_HINT(map, entry->vme_prev);
+-	}
+-
+-	/*
+-	 *	Step through all entries in this region
+-	 */
+-
+-	while ((entry != vm_map_to_entry(map)) &&
+-	       (entry->vme_start < end)) {
+-		vm_map_entry_t		next;
+-		register vm_offset_t	s, e;
+-		register vm_object_t	object;
+-		extern vm_object_t	kernel_object;
+-
+-		vm_map_clip_end(map, entry, end);
+-
+-		next = entry->vme_next;
+-		s = entry->vme_start;
+-		e = entry->vme_end;
+-
+-		/*
+-		 *	Unwire before removing addresses from the pmap;
+-		 *	otherwise, unwiring will put the entries back in
+-		 *	the pmap.
+-		 */
+-
+-		object = entry->object.vm_object;
+-		if (entry->wired_count != 0)
+-			vm_map_entry_unwire(map, entry);
+-
+-		if (object == kernel_object)
+-			vm_object_page_remove(object, entry->offset,
+-					entry->offset + (e - s));
+-		
+-		/*
+-		 *	If this is a sharing map, we must remove
+-		 *	*all* references to this data, since we can't
+-		 *	find all of the physical maps which are sharing
+-		 *	it.
+-		 */
+-
+-		if (!map->is_main_map)
+-			vm_object_pmap_remove(object,
+-					 entry->offset,
+-					 entry->offset + (e - s));
+-
+-		pmap_remove(map->pmap, s, e);
+-
+-		/*
+-		 *	Release the reference to the underlying object
+-		 *	only after removing all pmap entries pointing
+-		 *	to its pages.  (Otherwise, its page frames may
+-		 *	be reallocated, and any modify bits will be
+-		 *	set in the wrong object!)
+-		 */
+-
+-		if (entry->is_a_map || entry->is_sub_map)
+-			vm_map_deallocate(entry->object.share_map);
+-		else
+-			vm_object_deallocate(entry->object.vm_object);
+-
+-		entry->is_a_map = FALSE;
+-		entry->is_sub_map = FALSE;
+-		entry->object.vm_object = VM_OBJECT_NULL;
+-		entry->offset = 0;
+-
+-		entry->copy_on_write = FALSE;
+-		entry->needs_copy = FALSE;
+-
+-		if (map->is_main_map) {
+-			entry->protection =
+-				(entry->max_protection & VM_PROT_DEFAULT);
+-			entry->wired_count = 0;
+-		}
+-
+-		entry = next;
+-	}
+-
+-	vm_map_unlock(map);
+-
+-	return(KERN_SUCCESS);
+-}
+-
+ /*
+  *	vm_map_check_protection:
+  *
+@@ -2285,7 +2036,7 @@
+ 						old_entry->offset,
+ 						FALSE, FALSE);
+ 				if (check != KERN_SUCCESS)
+-					kprintf("vm_map_fork: copy in share_map region failed\n");
++					printf("vm_map_fork: copy in share_map region failed\n");
+ 			}
+ 			else {
+ 				vm_map_copy_entry(old_map, new_map, old_entry,
+@@ -2789,12 +2540,11 @@
+ 	vm_map_entry_t	entry;
+ 	register
+ 	vm_offset_t	tmp_offset;
+-	vm_offset_t	start, inaddress = *address;
++	vm_offset_t	start;
+ 
+ 	if (map == VM_MAP_NULL)
+ 		return(KERN_INVALID_ARGUMENT);
+ 
+-again_after_submap:	
+ 	start = *address;
+ 
+ 	vm_map_lock_read(map);
+@@ -2815,8 +2565,6 @@
+ 	*size = (entry->vme_end - start);
+ 
+ 	tmp_offset = entry->offset;
+-#define VM_OBJECT_NAME(object)		\
+-	vm_object_name((map == kernel_map) ? object : VM_OBJECT_NULL)
+ 
+ 	if (entry->is_a_map) {
+ 		register
+@@ -2831,87 +2579,27 @@
+ 		if ((share_size = (tmp_entry->vme_end - tmp_offset)) < *size)
+ 			*size = share_size;
+ 
+-		*object_name = VM_OBJECT_NAME(tmp_entry->object.vm_object);
++		*object_name = vm_object_name(tmp_entry->object.vm_object);
+ 		*offset_in_object = tmp_entry->offset +
+ 					(tmp_offset - tmp_entry->vme_start);
+ 
+ 		*is_shared = (share_map->ref_count != 1);
+ 		vm_map_unlock_read(share_map);
+ 	} else if (entry->is_sub_map) {
+-	    	vm_map_t	sub_map;
+-		vm_offset_t	oldstart = start;
+-
+-		sub_map = entry->object.sub_map;
+-		vm_map_reference(sub_map);
+-		vm_map_unlock_read(map);
+-
+-		vm_map_lock_read(sub_map);
+-
+-		if (!vm_map_lookup_entry(sub_map, inaddress, &tmp_entry)) {
+-			if ((entry = tmp_entry->vme_next) ==
+-					vm_map_to_entry(sub_map)) {
+-				vm_map_unlock_read(sub_map);
+-				vm_map_deallocate(sub_map);
+-				inaddress = *address = oldstart + *size;
+-				goto again_after_submap;
+-			}
+-		}
+-		else
+-			entry = tmp_entry;
+-
+-		start = entry->vme_start;
+-		*protection = entry->protection;
+-		*max_protection = entry->max_protection;
+-		*inheritance = entry->inheritance;
+-		*address = start;
+-		*size = (entry->vme_end - start);
+-
+-		*is_shared = sub_map->hdr.entries_pageable;
+-		*object_name = VM_OBJECT_NAME(entry->object.vm_object);
+-		*offset_in_object = entry->offset;
+-
+-		vm_map_unlock_read(sub_map);
+-
+-		vm_map_deallocate(sub_map);
+-
+-		return(KERN_SUCCESS);
++		*is_shared = FALSE;
++		*object_name = PORT_NULL;	// FIXME: what name for submap?
++		*offset_in_object = tmp_offset;
+ 	} else {
+ 		*is_shared = FALSE;
+-		*object_name = VM_OBJECT_NAME(entry->object.vm_object);
++		*object_name = vm_object_name(entry->object.vm_object);
+ 		*offset_in_object = tmp_offset;
+ 	}
+-#undef VM_OBJECT_NAME
+ 
+ 	vm_map_unlock_read(map);
+ 
+ 	return(KERN_SUCCESS);
+ }
+ 
+-#if	MACH_DEBUG
+-#include <kern/host.h>
+-
+-kern_return_t	host_vm_region(
+-	host_t		host,
+-	vm_offset_t	*address,		/* IN/OUT */
+-	vm_size_t	*size,			/* OUT */
+-	vm_prot_t	*protection,		/* OUT */
+-	vm_prot_t	*max_protection,       	/* OUT */
+-	vm_inherit_t	*inheritance,		/* OUT */
+-	boolean_t	*is_pageable,		/* OUT */
+-	port_t		*object_name,		/* OUT */
+-	vm_offset_t	*offset_in_object	/* OUT */
+-)
+-{
+-	if (host == HOST_NULL)
+-		return(KERN_INVALID_ARGUMENT);
+-
+-	return vm_region(kernel_map, address, size,
+-			 protection, max_protection,
+-			 inheritance, is_pageable,
+-			 object_name, offset_in_object);
+-}
+-#endif	/* MACH_DEBUG */
+-
+ /*
+  *	vm_move:
+  *

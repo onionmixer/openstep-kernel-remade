@@ -1,0 +1,81 @@
+--- darwin01/kernel/ipc/ipc_entry.c	1999-03-17 01:54:00.000000000 +0900
++++ ipc/ipc_entry.c	2026-10-01 22:22:30.628724191 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1995, 1994, 1993, 1992, 1991, 1990  
+  * Open Software Foundation, Inc. 
+@@ -274,7 +276,7 @@
+ 		if (kr == KERN_SUCCESS)
+ 			return kr;
+ 
+-		kr = ipc_entry_grow_table(space, ITS_SIZE_NONE);
++		kr = ipc_entry_grow_table(space);
+ 		if (kr != KERN_SUCCESS)
+ 			return kr; /* space is unlocked */
+ 	}
+@@ -413,7 +415,7 @@
+ 			 *	we must restart.
+ 			 */
+ 
+-			kr = ipc_entry_grow_table(space, ITS_SIZE_NONE);
++			kr = ipc_entry_grow_table(space);
+ 			assert(kr != KERN_NO_SPACE);
+ 			if (kr != KERN_SUCCESS) {
+ 				/* space is unlocked */
+@@ -591,10 +593,9 @@
+ 
+ kern_return_t
+ ipc_entry_grow_table(
+-	ipc_space_t	space,
+-	int		target_size)
++	ipc_space_t	space)
+ {
+-	ipc_entry_num_t osize, size, nsize, psize;
++	ipc_entry_num_t osize, size, nsize;
+ 
+ 	do {
+ 		ipc_entry_t otable, table;
+@@ -628,28 +629,6 @@
+ 		oits = its - 1;
+ 		osize = oits->its_size;
+ 		
+-		/*
+-		 * If there is no target size, then the new size is simply
+-		 * specified by is_table_next.  If there is a target
+-		 * size, then search for the next entry.
+-		 */
+-		if (target_size != ITS_SIZE_NONE) {
+-			if (target_size <= osize) {
+-				is_write_unlock(space);
+-				return KERN_SUCCESS;
+-			}
+-
+-			psize = osize;
+-			while ((psize != size) && (target_size > size)) {
+-				psize = size;
+-				its++;
+-				size = its->its_size;
+-			}
+-			if (psize == size) {
+-				is_write_unlock(space);
+-				return KERN_NO_SPACE;
+-			}
+-		}
+ 		nits = its + 1;
+ 		nsize = nits->its_size;
+ 
+@@ -701,8 +680,7 @@
+ 		}
+ 
+ 		assert(space->is_table == otable);
+-		assert((space->is_table_next == its) ||
+-		       (target_size != ITS_SIZE_NONE));
++		assert(space->is_table_next == its);
+ 		assert(space->is_table_size == osize);
+ 
+ 		space->is_table = table;

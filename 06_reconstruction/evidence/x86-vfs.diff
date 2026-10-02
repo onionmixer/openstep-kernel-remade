@@ -1,0 +1,87 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs.c	2026-10-02 18:49:43.949740648 +0900
+@@ -43,7 +43,7 @@
+ #import <sys/bootconf.h>
+ 
+ #import <kern/zalloc.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 164: NeXTMach vm/vm_param.h (as plans 138/139/162) */
+ 
+ /*
+  * vfs global data
+@@ -94,6 +94,7 @@
+ 	struct vfssw *vs;
+ 	extern struct vnodeops ufs_vnodeops;
+ 	int saved_flag;
++	int error;		/* plan 164 (authored) */
+ 
+ #if	NeXT
+ 	/*
+@@ -141,10 +142,19 @@
+ 		 * Check that this vnode is not the root of a mounted
+ 		 * filesystem
+ 		 */
+-		if ((vp->v_flag & VROOT) && !(uap->flags & M_REMOUNT)) {
+-			VN_RELE(vp);
+-			u.u_error = EBUSY;
+-			return;
++		if (vp->v_flag & VROOT) {	/* plan 164 (authored; original bytes) */
++			if (!(uap->flags & M_REMOUNT)) {
++				VN_RELE(vp);
++				u.u_error = EBUSY;
++				return;
++			}
++		} else {
++			error = VOP_ACCESS(vp, VWRITE, u.u_cred);
++			if (error) {
++				VN_RELE(vp);
++				u.u_error = error;
++				return;
++			}
+ 		}
+ 	} else {
+ 		/*
+@@ -294,6 +304,7 @@
+ 			ILOCK(VTOI(vp));
+ #endif	NeXT
+ 	} else {
++		saved_flag = 0;		/* plan 164.2 (authored; original bytes) */
+ 		u.u_error = pn_get(uap->dir, UIO_USERSPACE, &pn);
+ 		if (u.u_error) {
+ 			VN_RELE(vp);
+@@ -326,6 +337,7 @@
+ 			 * and needs to be searched to find the dev).
+ 			 */
+ 		} else {
++			strncpy(vfsp->vfs_name, pn.pn_path, MAXNAMLEN);	/* plan 164.1 (authored) */
+ 			/*
+ 			 * Mount the filesystem.
+ 			 * Lock covered vnode (XXX this currently only works if
+@@ -336,6 +348,10 @@
+ 				didlock = 1;
+ 			}
+ 		}
++		/* plan 164.1 (authored; original bytes, string and flag value; no SDK name for 0x100) */
++		if (vfsp->vfs_name &&
++		    strncmp(vfsp->vfs_name, "/Net/AppleShare", 15) == 0)
++			vfsp->vfs_flag |= 0x100;
+ 		/*
+ 		 * All user level mounts are NOSUID
+ 		 */
+@@ -610,7 +626,7 @@
+ void
+ vfs_mountroot()
+ {
+-	register int error;
++	register int error = 0;	/* plan 164 (authored) */
+ 	struct vfssw *vsw;
+ 	extern char *strcpy();
+ 
+@@ -642,6 +658,7 @@
+ 		}
+ 	}
+ 	if (error) {
++		printf("vfs_mountroot: error=%d\n", error);	/* plan 164 (authored; original string) */
+ 		panic("vfs_mountroot: cannot mount root");
+ 	}
+ #ifdef VFSSTATS

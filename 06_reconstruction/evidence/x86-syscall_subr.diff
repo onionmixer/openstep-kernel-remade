@@ -1,0 +1,152 @@
+--- 01_resources/upstream/darwin01/kernel/kern/syscall_subr.c	1999-03-17 01:54:46.000000000 +0900
++++ 07_kernel/src/kern/syscall_subr.c	2026-10-02 14:39:10.813793983 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1991,1990,1989,1988,1987 Carnegie Mellon University
+@@ -404,3 +406,140 @@
+     (void) splx(s);
+     return(KERN_SUCCESS);
+ }
++
++/*
++ * plan 138: map_fd from NeXTMach https://github.com/johnsonjh/NeXTMach.git
++ * f6bdb9c3268f0eadc545d41bcc0564453b17001e mk-108.1/kern/syscall_subr.c:165,170,620-741
++ * (the original kernel has _map_fd at the end of this object).  NeXTMach notice:
++ */
++/* 
++ * Mach Operating System
++ * Copyright (c) 1989 Carnegie-Mellon University
++ * Copyright (c) 1988 Carnegie-Mellon University
++ * Copyright (c) 1987 Carnegie-Mellon University
++ * All rights reserved.  The CMU software License Agreement specifies
++ * the terms and conditions for use and redistribution.
++ */
++#import <sys/user.h>
++#import <kern/mfs.h>
++#if	NeXT
++#import <sys/vnode.h>
++#else	NeXT
++#import <sys/inode.h>
++#endif	NeXT
++#import <sys/dir.h>
++#import <sys/quota.h>
++#import <sys/kernel.h>
++#import <sys/file.h>
++
++#import <mach/kern_return.h>	/* plan 138: NeXTMach sys/kern_return.h */
++#import <kern/task.h>
++#import <mach/vm_param.h>	/* plan 138: NeXTMach vm/vm_param.h */
++#import <vm/vm_map.h>
++#import <vm/memory_object.h>
++#import <vm/vnode_pager.h>
++
++map_fd(fd, offset, va, findspace, size)
++	int		fd;
++	vm_offset_t	offset;
++	vm_offset_t	*va;
++	boolean_t	findspace;
++	vm_size_t	size;
++{
++	register struct file	*fp;
++	register struct vnode *vp;
++	vm_map_t	user_map;
++	kern_return_t	result;
++	vm_offset_t	user_addr;
++	vm_size_t	user_size;
++	vm_pager_t	pager;
++	vm_map_t	copy_map;
++	vm_offset_t	off;
++
++	user_map = current_task()->map;
++
++	/*
++	 *	Find the inode; verify that it's a regular file.
++	 */
++
++	fp = getf(fd);
++	if (fp == NULL)
++		return(KERN_INVALID_ARGUMENT);
++	vp = (struct vnode *)fp->f_data;
++	if (fp->f_type != DTYPE_VNODE)
++		return(KERN_INVALID_ARGUMENT);
++
++	if (vp->v_type != VREG)
++		return(KERN_INVALID_ARGUMENT);
++
++	user_size = round_page(size);
++
++	if (findspace) {
++		/*
++		 *	Allocate dummy memory.
++		 */
++		result = vm_allocate(user_map, &user_addr, size, TRUE);
++		if (result != KERN_SUCCESS)
++			return(result);
++		if (copyout(&user_addr, va, sizeof(vm_offset_t))) {
++			(void) vm_deallocate(user_map, user_addr, size);
++			return(KERN_INVALID_ADDRESS);
++		}
++	}
++	else {
++		/*
++		 *	Get user's address, and verify that it's
++		 *	page-aligned and writable.
++		 */
++
++		if (copyin(va, &user_addr, sizeof(vm_offset_t)))
++			return(KERN_INVALID_ADDRESS);
++		if ((trunc_page(user_addr) != user_addr))
++			return(KERN_INVALID_ARGUMENT);
++		if (!vm_map_check_protection(user_map, user_addr,
++				(vm_offset_t)(user_addr + user_size),
++				VM_PROT_READ|VM_PROT_WRITE))
++			return(KERN_INVALID_ARGUMENT);
++	}
++
++#if	NeXT
++	/*
++	 * Allow user to map in a zero length file.
++	 */
++	if (size == 0)
++		return KERN_SUCCESS;
++#endif	NeXT
++
++	/*
++	 *	Map in the file.
++	 */
++
++	pager = vnode_pager_setup(vp, FALSE, FALSE);
++
++	/*
++	 *	Map into private map, then copy into our address space.
++	 */
++	copy_map = vm_map_create(pmap_create(user_size), 0, user_size, TRUE);
++	off = 0;
++	result = vm_allocate_with_pager(copy_map, &off, user_size, FALSE,
++					pager,
++					offset);
++	if (result == KERN_SUCCESS)
++		result = vm_map_copy(user_map, copy_map, user_addr, user_size,
++					0, FALSE, FALSE);
++
++	if ((result != KERN_SUCCESS) && findspace)
++		(void) vm_deallocate(user_map, user_addr, user_size);
++
++	vm_map_deallocate(copy_map);
++
++	/*
++	 * Set credentials.
++	 */
++	if (vp->vm_info->cred == NULL) {
++		crhold(u.u_cred);
++		vp->vm_info->cred = u.u_cred;
++	}
++
++	return(result);
++}

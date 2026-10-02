@@ -1,0 +1,22 @@
+--- 01_resources/upstream/nextmach/mk-108.1/rpc/auth_kern.c	2026-09-11 10:02:49.613218860 +0900
++++ 07_kernel/src/bsd/rpc/auth_kern.c	2026-10-02 18:01:24.892277894 +0900
+@@ -99,6 +99,7 @@
+ 	register gid_t *gp, *gpend;
+ 	register int gidlen, credsize;
+ 	register long *ptr;
++	struct timeval now;	/* plan 158 (authored) */
+ 
+ 	/*
+ 	 * First we try a fast path to get through
+@@ -115,9 +116,10 @@
+ 		/*
+ 		 * We can do the fast path.
+ 		 */
++		getthetime(&now);	/* plan 158 (authored) */
+ 		IXDR_PUT_LONG(ptr, AUTH_UNIX);	/* cred flavor */
+ 		IXDR_PUT_LONG(ptr, credsize);	/* cred len */
+-		IXDR_PUT_LONG(ptr, time.tv_sec);
++		IXDR_PUT_LONG(ptr, now.tv_sec);	/* plan 158 (authored) */
+ 		IXDR_PUT_LONG(ptr, hostnamelen);
+ 		bcopy(hostname, (caddr_t)ptr, (u_int)hostnamelen);
+ 		ptr += roundup(hostnamelen, 4) / 4;

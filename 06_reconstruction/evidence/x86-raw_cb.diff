@@ -1,0 +1,35 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/raw_cb.c	2026-09-11 10:02:49.560218209 +0900
++++ 07_kernel/src/bsd/net/raw_cb.c	2026-10-02 16:23:26.860295737 +0900
+@@ -38,6 +38,10 @@
+ #import <net/raw_cb.h>
+ #import <netinet/in.h>
+ 
++#ifdef MULTICAST					/* plan 150 (authored) */
++extern struct socket *ip_mrouter;
++#endif MULTICAST
++
+ /*
+  * Routines to manage the raw protocol control blocks. 
+  *
+@@ -64,7 +68,7 @@
+ 	if (sbreserve(&so->so_snd, RAWSNDQ) == 0)
+ 		goto bad;
+         /* recvfrom needs extra space for address */
+-        if (sbreserve(&so->so_rcv, RAWRCVQ + sizeof(struct sockaddr)) == 0)
++        if (sbreserve(&so->so_rcv, RAWRCVQ + sizeof(struct raw_header)) == 0)	/* plan 150: original 0x824 */
+ 		goto bad2;
+ 	rp = mtod(m, struct rawcb *);
+ 	rp->rcb_socket = so;
+@@ -97,6 +101,12 @@
+ 	remque(rp);
+ 	if (rp->rcb_options)
+ 		m_freem(dtom(rp->rcb_options));
++#ifdef MULTICAST					/* plan 150 (authored) */
++	if (so == ip_mrouter)
++		ip_mrouter_done();
++	if (rp->rcb_proto.sp_family == AF_INET)
++		ip_freemoptions(rp->rcb_moptions);
++#endif MULTICAST
+ 	m_freem(dtom(rp));
+ }
+ 

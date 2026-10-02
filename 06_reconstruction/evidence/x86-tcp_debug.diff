@@ -1,0 +1,60 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/tcp_debug.c	2026-09-11 10:02:49.575218393 +0900
++++ 07_kernel/src/bsd/netinet/tcp_debug.c	2026-10-02 16:40:52.730985805 +0900
+@@ -19,13 +19,15 @@
+  *	@(#)tcp_debug.c	7.2 (Berkeley) 12/7/87
+  */
+ 
+-#if	DEBUG
++/* plan 152 (authored): no outer DEBUG guard; recorder always built */
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <sys/mbuf.h>
+ #import <sys/socket.h>
+ #import <sys/socketvar.h>
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ #define PRUREQUESTS
++#endif
+ #import <sys/protosw.h>
+ #import <sys/errno.h>
+ 
+@@ -38,17 +40,25 @@
+ #import <netinet/ip.h>
+ #import <netinet/ip_var.h>
+ #import <netinet/tcp.h>
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ #define TCPSTATES
++#endif
+ #import <netinet/tcp_fsm.h>
+ #import <netinet/tcp_seq.h>
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ #define	TCPTIMERS
++#endif
+ #import <netinet/tcp_timer.h>
+ #import <netinet/tcp_var.h>
+ #import <netinet/tcpip.h>
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ #define	TANAMES
++#endif
+ #import <netinet/tcp_debug.h>
+ 
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ int	tcpconsdebug = 0;
++#endif
+ /*
+  * Tcp debug routines
+  */
+@@ -77,6 +87,7 @@
+ 	else
+ 		bzero((caddr_t)&td->td_ti, sizeof (*ti));
+ 	td->td_req = req;
++#ifdef TCPDEBUG	/* plan 152 (authored) */
+ 	if (tcpconsdebug == 0)
+ 		return;
+ 	if (tp)
+@@ -134,5 +145,5 @@
+ 	    tp->snd_max);
+ 	printf("\tsnd_(wl1,wl2,wnd) (%x,%x,%x)\n",
+ 	    tp->snd_wl1, tp->snd_wl2, tp->snd_wnd);
++#endif	/* TCPDEBUG (plan 152) */
+ }
+-#endif	DEBUG

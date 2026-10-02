@@ -1,0 +1,1 @@
+#define NOD 0

@@ -1,0 +1,43 @@
+--- 01_resources/upstream/darwin01/kernel/kern/mach_header.c	1999-03-17 01:54:39.000000000 +0900
++++ 07_kernel/src/kern/mach_header.c	2026-10-02 10:53:38.951587002 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  *	File: kern/mach_header.c
+  *
+@@ -109,31 +111,6 @@
+ 	return result;
+ }
+ 
+-/*
+- * This routine returns the a pointer to the data for the named segment
+- * if it exist in the mach header passed to it.  Also it returns
+- * the size of the segment data indirectly through the pointer size.
+- * Otherwise it returns zero for the pointer and the size.
+- */
+-void *
+-getsegdatafromheader(
+-    struct mach_header *mhp,
+-	char *segname,
+-	int *size)
+-{
+-	const struct segment_command *sc;
+-	void *result;
+-
+-	sc = getsegbynamefromheader(mhp, segname);
+-	if(sc == (struct segment_command *)0){
+-	    *size = 0;
+-	    return((char *)0);
+-	}
+-	*size = sc->vmsize;
+-	result = (void *)sc->vmaddr;
+-	return result;
+-}
+-
+ /*
+  * This routine returns the section structure for the named section in the
+  * named segment for the mach_header pointer passed to it if it exist.

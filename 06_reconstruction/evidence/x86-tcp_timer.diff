@@ -1,0 +1,40 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/tcp_timer.c	2026-09-11 10:02:49.576218406 +0900
++++ 07_kernel/src/bsd/netinet/tcp_timer.c	2026-10-02 16:32:46.772672369 +0900
+@@ -172,9 +172,10 @@
+ 			break;
+ 		}
+ 		tcpstat.tcps_rexmttimeo++;
+-		rexmt = ((tp->t_srtt >> 2) + tp->t_rttvar) >> 1;
+-		rexmt *= tcp_backoff[tp->t_rxtshift];
+-		TCPT_RANGESET(tp->t_rxtcur, rexmt, TCPTV_MIN, TCPTV_REXMTMAX);
++		/* plan 151 (authored, 4.3-Reno form; original bytes) */
++		rexmt = TCP_REXMTVAL(tp) * tcp_backoff[tp->t_rxtshift];
++		TCPT_RANGESET(tp->t_rxtcur, rexmt,
++		    tp->t_rttmin, TCPTV_REXMTMAX);
+ 		tp->t_timer[TCPT_REXMT] = tp->t_rxtcur;
+ 		/*
+ 		 * If losing, let the lower level know and try for
+@@ -226,6 +227,7 @@
+ 			win = 2;
+ 		tp->snd_cwnd = tp->t_maxseg;
+ 		tp->snd_ssthresh = win * tp->t_maxseg;
++		tp->t_dupacks = 0;	/* plan 151 (authored; original bytes) */
+ 		}
+ 		(void) tcp_output(tp);
+ 		break;
+@@ -272,11 +274,11 @@
+ 			 * The keepalive packet must have nonzero length
+ 			 * to get a 4.2 host to respond.
+ 			 */
+-			tcp_respond(tp, tp->t_template,
+-			    tp->rcv_nxt - 1, tp->snd_una - 1, 0);
++			tcp_respond(tp, tp->t_template, (struct mbuf *)0,
++			    tp->rcv_nxt - 1, tp->snd_una - 1, 0);	/* plan 151 (authored) */
+ #else
+-			tcp_respond(tp, tp->t_template,
+-			    tp->rcv_nxt, tp->snd_una - 1, 0);
++			tcp_respond(tp, tp->t_template, (struct mbuf *)0,
++			    tp->rcv_nxt, tp->snd_una - 1, 0);	/* plan 151 (authored) */
+ #endif
+ 			tp->t_timer[TCPT_KEEP] = tcp_keepintvl;
+ 		} else

@@ -1,0 +1,52 @@
+--- darwin01/kernel/vm/vm_pager.c	1999-03-17 01:56:07.000000000 +0900
++++ src/vm/vm_pager.c	2026-10-01 14:18:00.837658036 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1987 Carnegie-Mellon University
+@@ -58,6 +60,10 @@
+ extern
+ boolean_t	vm_page_zero_fill();
+ 
++void vm_pager_init()
++{
++}
++
+ pager_return_t vm_pager_get(pager, m, error)
+ 	vm_pager_t	pager;
+ 	vm_page_t	m;
+@@ -68,7 +74,7 @@
+ 		return(PAGER_SUCCESS);
+ 	}
+ 	if (pager->is_device)
+-		panic("vm_pager_get device");
++		return(device_pagein(m));
+ 	return(vnode_pagein(m, error));
+ }
+ 
+@@ -79,7 +85,7 @@
+ 	if (pager == vm_pager_null)
+ 		panic("vm_pager_put: null pager");
+ 	if (pager->is_device)
+-	    panic("vm_pager_put device");
++		return(device_pageout(m));
+ 	return(vnode_pageout(m));
+ }
+ 
+@@ -89,8 +95,9 @@
+ 	if (pager == vm_pager_null)
+ 		panic("vm_pager_deallocate: null pager");
+ 	if (pager->is_device)
+-		panic("vm_pager_deallocate device");
+-	vnode_dealloc(pager);
++		device_dealloc(pager);
++	else
++		vnode_dealloc(pager);
+ }
+ 
+ vm_pager_t vm_pager_allocate(size)

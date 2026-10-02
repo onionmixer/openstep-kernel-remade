@@ -1,0 +1,29 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/subr_xxx.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/subr_xxx.c	2026-10-02 16:10:43.088351274 +0900
+@@ -71,6 +71,8 @@
+ #import <vm/vm_kern.h>
+ 
+ #import <sys/param.h>
++#import <mach/exception.h>	/* plan 148 */
++#import <sys/ux_exception.h>	/* plan 148 */
+ #import <sys/systm.h>
+ #import <sys/conf.h>
+ #import <sys/user.h>
+@@ -110,6 +112,17 @@
+ {
+ }
+ 
++/*
++ * plan 148: nosys -- NeXTMach mk-108.1 next/trap.c:1067-1078 with
++ * exception_from_kernel() in place of thread_doexception() (original 0x10ccd4).
++ */
++nosys()
++{
++	if (u.u_signal[SIGSYS] == SIG_IGN || u.u_signal[SIGSYS] == SIG_HOLD)
++		u.u_error = EINVAL;
++	exception_from_kernel(EXC_SOFTWARE, EXC_UNIX_BAD_SYSCALL, 0);
++}
++
+ #if defined(romp) || defined(ns32000) || defined(sun) || NeXT
+ #define	notdef
+ #endif	romp || ns32000 || sun || NeXT

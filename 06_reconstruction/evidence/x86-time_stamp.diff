@@ -1,0 +1,41 @@
+--- darwin01/kernel/kern/time_stamp.c	1999-03-17 01:54:49.000000000 +0900
++++ kern/time_stamp.c	2026-10-01 20:39:13.352029262 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1987 Carnegie-Mellon University
+@@ -46,6 +48,10 @@
+ #import <kern/time_stamp.h>
+ #import <kern/clock.h>
+ 
++/* Reconstructed from the original binary (no reference source), 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++extern unsigned long long clock_value(clock_type_t which_clock);
++extern void ns_time_to_tsval(unsigned long long value, struct tsval *tsp);
++
+ #if	m68k
+ #import <machdep/m68k/eventc.h>
+ #endif	m68k
+@@ -62,14 +68,11 @@
+ #if	m68k
+ 	event_set_ts(&ts);
+ #else	m68k
+-	unsigned long long	usec_now;
+-	tvalspec_t		now;
++	/* Reconstructed from the original binary (no reference source), 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++	unsigned long long	now;
+ 
+-	now = clock_get_counter(System);
+-	usec_now = ((unsigned long long)now.tv_sec * USEC_PER_SEC) +
+-			(now.tv_nsec / NSEC_PER_USEC);
+-	ts.low_val = (unsigned int)usec_now;
+-	ts.high_val = usec_now >> 32;
++	now = clock_value(System);
++	ns_time_to_tsval(now, &ts);
+ #endif	m68k
+ 
+ 	if (copyout(&ts, tsp, sizeof(struct tsval)) != KERN_SUCCESS)

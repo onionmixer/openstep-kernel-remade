@@ -1,0 +1,21 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_pageout.c	1999-03-17 01:56:07.000000000 +0900
++++ 08_build/runs/tools/s5p72-probe-stage-1/src/vm/vm_pageout.c	2026-10-02 06:36:37.527520416 +0900
+@@ -376,10 +376,6 @@
+ 	thread_t	self = current_thread();
+ 	boolean_t	vm_pageout_scan_did_work = TRUE;
+ 
+-	stack_privilege(self);
+-	self->sched_pri = self->priority = MAXPRI_USER;
+-	self->policy = POLICY_FIXEDPRI;
+-	self->sched_data = min_quantum;
+ 	self->vm_privilege = TRUE;
+ 
+ 	(void) spl0();
+@@ -405,7 +401,6 @@
+ 		/*
+ 		** This is 0.50% of available free pages
+ 		*/
+-		if ((vm_page_free_reserved = vm_page_free_min / 4) < 3)
+ 			vm_page_free_reserved = 3;
+ 	}
+ 	if (vm_pageout_free_min == 0) {

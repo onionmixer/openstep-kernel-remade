@@ -1,0 +1,82 @@
+--- darwin01/kernel/ipc/ipc_object.c	1999-03-17 01:54:04.000000000 +0900
++++ ipc/ipc_object.c	2026-10-01 22:16:14.345172229 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1995, 1994, 1993, 1992, 1991, 1990  
+  * Open Software Foundation, Inc. 
+@@ -398,6 +400,7 @@
+ 
+ 	    default:
+ 		panic("ipc_object_copyin_type: strange rights");
++		return 0; /* in case assert/panic returns */
+ 	}
+ }
+ 
+@@ -598,7 +601,7 @@
+ 		break;
+ 
+ 	    default:
+-		panic("ipc_object_copyout_dest: strange rights");
++		break;
+ 	}
+ }
+ 
+@@ -654,7 +657,7 @@
+ 		if (kr != KERN_SUCCESS) {
+ 			/* unlocks/locks space, so must start again */
+ 
+-			kr = ipc_entry_grow_table(space, ITS_SIZE_NONE);
++			kr = ipc_entry_grow_table(space);
+ 			if (kr != KERN_SUCCESS)
+ 				return kr; /* space is unlocked */
+ 
+@@ -792,7 +795,7 @@
+ 	mach_msg_type_name_t	msgt_name,
+ 	mach_port_t		*namep)
+ {
+-	mach_port_t name;
++	mach_port_t name = MACH_PORT_NULL;
+ 
+ 	assert(IO_VALID(object));
+ 	assert(io_active(object));
+@@ -810,7 +813,7 @@
+ 	    case MACH_MSG_TYPE_PORT_SEND: {
+ 		ipc_port_t port = (ipc_port_t) object;
+ 		ipc_port_t nsrequest = IP_NULL;
+-		mach_port_mscount_t mscount;
++		mach_port_mscount_t mscount = 0; /* '=0' to shut up lint */
+ 
+ 		assert(port->ip_srights > 0);
+ 		if (--port->ip_srights == 0) {
+@@ -1074,7 +1077,7 @@
+ 		if (kr != KERN_SUCCESS) {
+ 			/* unlocks/locks space, so must start again */
+ 
+-			kr = ipc_entry_grow_table(space, ITS_SIZE_NONE);
++			kr = ipc_entry_grow_table(space);
+ 			if (kr != KERN_SUCCESS)
+ 				return kr; /* space is unlocked */
+ 
+@@ -1098,7 +1101,7 @@
+ 			ipc_entry_dealloc(space, name, entry);
+ 			is_write_unlock(space);
+ 
+-			kr = ipc_port_dngrow(port, ITS_SIZE_NONE);
++			kr = ipc_port_dngrow(port);
+ 			/* port is unlocked */
+ 			if (kr != KERN_SUCCESS)
+ 				return kr;
+@@ -1203,7 +1206,7 @@
+ 			ipc_entry_dealloc(space, name, entry);
+ 			is_write_unlock(space);
+ 
+-			kr = ipc_port_dngrow(port, ITS_SIZE_NONE);
++			kr = ipc_port_dngrow(port);
+ 			/* port is unlocked */
+ 			if (kr != KERN_SUCCESS)
+ 				return kr;

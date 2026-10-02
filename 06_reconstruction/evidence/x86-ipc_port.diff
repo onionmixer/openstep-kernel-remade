@@ -1,0 +1,136 @@
+--- darwin01/kernel/ipc/ipc_port.c	1999-03-17 01:54:04.000000000 +0900
++++ ipc/ipc_port.c	2026-10-01 22:33:12.422825375 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1995, 1994, 1993, 1992, 1991, 1990  
+  * Open Software Foundation, Inc. 
+@@ -181,8 +183,7 @@
+ 
+ kern_return_t
+ ipc_port_dngrow(
+-	ipc_port_t	port,
+-	int		target_size)
++	ipc_port_t	port)
+ {
+ 	ipc_table_size_t its;
+ 	ipc_port_request_t otable, ntable;
+@@ -195,21 +196,6 @@
+ 	else
+ 		its = otable->ipr_size + 1;
+ 
+-	if (target_size != ITS_SIZE_NONE) {
+-		if ((otable != IPR_NULL) &&
+-		    (target_size <= otable->ipr_size->its_size)) {
+-			ip_unlock(port);
+-			return KERN_SUCCESS;
+-	        }
+-		while ((its->its_size) && (its->its_size < target_size)) {
+-			its++;
+-		}
+-		if (its->its_size == 0) {
+-			ip_unlock(port);
+-			return KERN_NO_SPACE;
+-		}
+-	}
+-
+ 	ip_reference(port);
+ 	ip_unlock(port);
+ 
+@@ -232,7 +218,7 @@
+ 	if (ip_active(port) &&
+ 	    (port->ip_dnrequests == otable) &&
+ 	    ((otable == IPR_NULL) || (otable->ipr_size+1 == its))) {
+-		ipc_table_size_t oits;
++		ipc_table_size_t oits = 0; /* '=0' to shut up lint */
+ 		ipc_table_elems_t osize, nsize;
+ 		ipc_port_request_index_t free, i;
+ 
+@@ -427,37 +413,56 @@
+ }
+ 
+ /*
+- *	Routine:	ipc_port_set_seqno
++ *	Routine:	ipc_port_lock_mqueue
+  *	Purpose:
+- *		Changes a port's sequence number.
++ *		Locks and returns the message queue that the port is using.
++ *		The message queue may be in the port or in its port set.
+  *	Conditions:
+  *		The port is locked and active.
++ *		Port set, message queue locks may be taken.
+  */
+ 
+-void
+-ipc_port_set_seqno(
+-	ipc_port_t		port,
+-	mach_port_seqno_t	seqno)
++ipc_mqueue_t
++ipc_port_lock_mqueue(port)
++	ipc_port_t port;
+ {
+ 	if (port->ip_pset != IPS_NULL) {
+ 		ipc_pset_t pset = port->ip_pset;
+ 
+ 		ips_lock(pset);
+-		if (!ips_active(pset)) {
+-			ipc_pset_remove(pset, port);
+-			ips_check_unlock(pset);
+-			goto no_port_set;
+-		} else {
++		if (ips_active(pset)) {
+ 			imq_lock(&pset->ips_messages);
+-			port->ip_seqno = seqno;
+-			imq_unlock(&pset->ips_messages);
++			ips_unlock(pset);
++			return &pset->ips_messages;
+ 		}
+-	} else {
+-	    no_port_set:
+-		imq_lock(&port->ip_messages);
+-		port->ip_seqno = seqno;
+-		imq_unlock(&port->ip_messages);
++
++		ipc_pset_remove(pset, port);
++		ips_check_unlock(pset);
+ 	}
++
++	imq_lock(&port->ip_messages);
++	return &port->ip_messages;
++}
++
++/*
++ *	Routine:	ipc_port_set_seqno
++ *	Purpose:
++ *		Changes a port's sequence number.
++ *	Conditions:
++ *		The port is locked and active.
++ *		Port set, message queue locks may be taken.
++ */
++
++void
++ipc_port_set_seqno(port, seqno)
++	ipc_port_t port;
++	mach_port_seqno_t seqno;
++{
++	ipc_mqueue_t mqueue;
++
++	mqueue = ipc_port_lock_mqueue(port);
++	port->ip_seqno = seqno;
++	imq_unlock(mqueue);
+ }
+ 
+ /*
+@@ -1117,7 +1122,7 @@
+ 	ipc_port_t	port)
+ {
+ 	ipc_port_t nsrequest = IP_NULL;
+-	mach_port_mscount_t mscount;
++	mach_port_mscount_t mscount = 0;
+ 
+ 	assert(IP_VALID(port));
+ 

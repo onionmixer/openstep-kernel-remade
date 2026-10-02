@@ -1,0 +1,105 @@
+--- darwin01/kernel/machdep/i386/libc/memset.c	1999-03-17 01:55:36.000000000 +0900
++++ src/machdep/i386/libc/memset.c	2026-10-01 14:50:04.545021709 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /* Copyright (c) 1991 NeXT Computer, Inc.  All rights reserved.
+  *
+  *      File:   libc/i386/ansi/memset.c
+@@ -246,93 +248,3 @@
+ 
+     return orig_dst;
+ }
+-
+-#import <mach/mach_types.h>
+-#import <sys/errno.h>
+-
+-/*
+- * Maintain the recover field in the thread_t structure
+- */
+-static inline void
+-set_recover(int (*vector)())
+-{
+-    current_thread()->recover = (vm_offset_t)vector;
+-    return;
+-}
+-
+-static inline void
+-clear_recover()
+-{
+-    current_thread()->recover = 0;
+-}
+-
+-void *safe_memset(void *, int, unsigned long);
+-
+-int safe_bzero(void *dst, unsigned long ulen)
+-{
+-    if (safe_memset(dst, 0, ulen) == (void *)(-1))
+-	return EFAULT;
+-    else
+-	return 0;
+-}
+-
+-
+-void *safe_memset(void *dst, int val, unsigned long ulen)
+-{
+-    int len = ulen;
+-    void *orig_dst = dst;
+-    int need_to_set;
+-    int alignment;
+-
+-    val |= (val << 8);
+-    val |= (val << 16);
+-
+-    set_recover(&&do_fault);
+-
+-    /* Always do a forward copy */
+-
+-    if (len < MIN_TO_ALIGN) {
+-	simple_char_set(dst, val, len);
+-	clear_recover();
+-	return orig_dst;
+-    }
+-
+-    if (need_to_set = BYTES_PAST_ALIGNMENT(dst, 2 * sizeof(int))) {
+-	need_to_set = (2 * sizeof(int)) - need_to_set;
+-	simple_char_set(dst, val, need_to_set);
+-	len -= need_to_set;
+-	UNS(dst) += need_to_set;
+-    }
+-
+-    alignment = MODULO_LOOP_UNROLL(len, int, 8);
+-    UNS(dst) += alignment - LOOP_STRIDE(int, 8);
+-    switch (alignment) {
+-	    do {
+-			INT(dst, 0) = val;
+-        case 28:	INT(dst, 4) = val;
+-        case 24:	INT(dst, 8) = val;
+-        case 20:	INT(dst, 12) = val;
+-        case 16:	INT(dst, 16) = val;
+-        case 12:	INT(dst, 20) = val;
+-        case 8:		INT(dst, 24) = val;
+-        case 4:         INT(dst, 28) = val;
+-        case 0:
+-			UNS(dst) += LOOP_STRIDE(int, 8);
+-			len -= LOOP_STRIDE(int, 8);
+-	    } while (len >= 0);
+-	len &= sizeof(int) - 1;
+-    }
+-	
+-    switch (len) {
+-	case 3:	CHAR(dst, 2) = val;
+-	case 2:	CHAR(dst, 1) = val;
+-	case 1:	CHAR(dst, 0) = val;
+-    }
+-
+-    clear_recover();
+-    return orig_dst;
+-
+-do_fault:
+-    clear_recover();
+-    return (void *)(-1);
+-}

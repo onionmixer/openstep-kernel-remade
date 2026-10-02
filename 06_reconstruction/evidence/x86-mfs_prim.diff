@@ -1,0 +1,331 @@
+--- 01_resources/upstream/nextmach/mk-108.1/kern/mfs_prim.c	2026-09-11 10:02:49.545218024 +0900
++++ 07_kernel/src/kern/mfs_prim.c	2026-10-02 15:15:00.638082268 +0900
+@@ -51,7 +51,7 @@
+ 
+ #import <vm/vm_kern.h>
+ #import <vm/vm_pager.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 139: NeXTMach vm/vm_param.h */
+ 
+ #import <kern/xpr.h>
+ 
+@@ -100,8 +100,15 @@
+ 
+ int		mfs_files_max = 100;		/* maximum # of files mapped */
+ int		mfs_files_mapped = 0;		/* current # mapped */
++int		mfs_mclean, mfs_mdirty;		/* plan 139: vmp_invalidate counters (original __common) */
+ 
+ #define CHUNK_SIZE	(64*1024)	/* XXX */
++#define MFS_MAP_SIZE_MAX	(16 * 1024 * 1024)	/* plan 139 (as Darwin mapfs.c:181) */
++#define	MFS_MAP_SIZE_PER_UNIT	(1024 * 1024)	/* plan 139 (Darwin mapfs.c:185) */
++#define	MFS_MEMORY_UNIT		(1024 * 1024)	/* plan 139 (Darwin mapfs.c:186) */
++#define MFS_NOFLUSH	1	/* plan 139 (Darwin mapfs.h:106; original tests flag & 1) */
++#define MFS_NOINVALID	2	/* plan 139 (Darwin mapfs.h:107; original tests flag & 2) */
++void	vmp_push_all();		/* plan 139 */
+ #endif	MACH_NBC
+ 
+ /*
+@@ -124,6 +131,14 @@
+ 	lock_init(&mfs_alloc_lock_data, TRUE);
+ 	mfs_alloc_wanted = FALSE;
+ 	mfs_map = kmem_suballoc(kernel_map, &min, &max, mfs_map_size, TRUE);
++
++	/* plan 139: as Darwin 0.1 kern/mapfs.c mapfs_init (bytes checked, run s5p113-v2) */
++	mfs_map_size = (int) ((long long) MFS_MAP_SIZE_PER_UNIT /
++				(long long) MFS_MEMORY_UNIT *
++				(long long) machine_info.memory_size);
++
++	if (mfs_map_size > MFS_MAP_SIZE_MAX)
++		mfs_map_size = MFS_MAP_SIZE_MAX;
+ 	if (mfs_max_window == 0)
+ 		mfs_max_window = mfs_map_size / 20;
+ 	if (mfs_max_window < CHUNK_SIZE)
+@@ -786,6 +801,8 @@
+ #import <sys/uio.h>
+ #import <sys/vfs.h>
+ 
++extern int	nmfsbuf;	/* plan 139: original _nmfsbuf (defined elsewhere) */
++
+ boolean_t mfs_io(vp, uio, rw, ioflag, cred)
+ 	register struct vnode	*vp;
+ 	register struct uio	*uio;
+@@ -799,7 +816,9 @@
+ 	off_t			vsize;
+ 	int			error;
+ 	off_t			base;
++	off_t			flush_offset;	/* plan 139 (authored) */
+ 	int			bcount;
++	int			nbufs, i;	/* plan 139 (authored) */
+ 
+ 	XPR(XPR_VM_OBJECT, ("mfs_io(%c): vp 0x%x, offset %d, size %d\n",
+ 		rw == UIO_READ ? 'R' : 'W',
+@@ -839,6 +858,9 @@
+ 		}
+ 		vmp->cred = cred;
+ 	}
++	vmp->error = 0;				/* plan 139 (as Darwin mapfs.c) */
++	flush_offset = uio->uio_offset;		/* plan 139 (authored) */
++	nbufs = 0;				/* plan 139 (authored) */
+ 
+ 	do {
+ 		n = MIN((unsigned)bsize, uio->uio_resid);
+@@ -888,15 +910,37 @@
+ 			crfree(vmp->cred);
+ 			vmp->cred = NULL;
+ 		}
++		/*
++		 * plan 139 (authored from the original object, 0x15f329-0x15f3b1):
++		 * on a file system with vfs_flag bit 0x100 (no name in the SDK
++		 * headers) push and flush every nmfsbuf blocks written.
++		 */
++		if ((rw == UIO_WRITE) && (vp->v_vfsp->vfs_flag & 0x100)) {
++			if (++nbufs >= nmfsbuf) {
++				if (error == 0) {
++					vmp_push(vmp);
++					for (i = 0; i < nbufs; i++) {
++						blkflush(vp, btodb(flush_offset, VOP_DEVBLOCKSIZE(vp)), bsize);
++						flush_offset += bsize;
++					}
++					if (vmp->error) {
++						error = vmp->error;
++						vmp->error = 0;
++					}
++				}
++				nbufs = 0;
++			}
++		}
+ 	} while (error == 0 && uio->uio_resid > 0 && n != 0);
+-	if ((error == 0) && (rw == UIO_WRITE) && (ioflag & IO_SYNC)) {
++	if ((error == 0) && (rw == UIO_WRITE) &&
++	    ((ioflag & IO_SYNC) || (vp->v_vfsp->vfs_flag & 0x100))) {	/* plan 139 */
+ 		off_t offset;
+ 		
+ 		vmp_push(vmp);	/* initiate all i/o */
+ 		
+ 		/* wait for i/o to complete */
+ 		for (offset = base; offset < base + bcount; offset += bsize)
+-			blkflush(vp, btodb(offset), bsize);
++			blkflush(vp, btodb(offset, VOP_DEVBLOCKSIZE(vp)), bsize);	/* plan 139 */
+ 
+ 		if (vmp->error) {
+ 			error = vmp->error;
+@@ -967,8 +1011,65 @@
+ 		vmp_get(vmp);
+ 		vmp_push(vmp);
+ 		vmp_put(vmp);
++		return(vmp->error);	/* plan 139 */
+ 	}
+-	return(vmp->error);
++	return(0);			/* plan 139 */
++}
++
++/*
++ * plan 139: mfs_fsync_invalidate is in the original (0x15f78c) but not in NeXTMach;
++ * text from Darwin 0.1 kernel-1.tar.gz kernel/kern/mapfs.c:1526-1574 (inside #if 0 there;
++ * APSL 1.0, 07_kernel/LICENSES/APSL-1.0.txt), renamed from mapfs_fsync_invalidate,
++ * v_vm_info -> vm_info, without the VREG test (absent in the original bytes).
++ */
++/*
++ *	Sync pages in specified vnode, annd invalidate clean.
++ *	The vm_info lock protects the vm_info from modification,
++ *	or removal. XXX Must protect against sync/invalidate race 
++ */
++int
++mfs_fsync_invalidate(vp, flag)
++	struct vnode	*vp;
++{
++	struct vm_info	*vmp;
++
++	vmp = vp->vm_info;
++	if (vmp != VM_INFO_NULL && vmp->mapped) {
++
++		/*	Part of vmp_get(vmp), we don't actually
++	 	 *	need the write lock if we hold a ref as
++	 	 *	we are not changing the vm_info data
++ 	 	 *
++	 	 *	Remove from LRU list (if its there).
++	 	 */
++		vm_info_lock();
++		if (vmp->queued) {
++			vm_info_dequeue(vmp);
++		}
++		vmp->use_count++;	/* to protect requeueing in vmp_put */
++		vm_info_unlock();
++
++		if (!(flag & MFS_NOFLUSH))
++			vmp_push_all(vmp);
++
++		/* This is not under a lock, nor is it in vm_put XXX */
++		/* But it is below */
++		if (!(flag & MFS_NOINVALID)){
++			vmp->invalidate = FALSE;
++			vmp_invalidate(vmp);
++		}
++		/*
++	 	 *	Place back on LRU list if noone else using it.
++	 	 */
++		vm_info_lock();
++		if (--vmp->use_count == 0) {
++			vm_info_enqueue(vmp);
++		}
++		vm_info_unlock();
++		return(vmp->error);
++
++	}
++	return(0);
+ }
+ 
+ #ifdef	NeXT
+@@ -1055,9 +1156,15 @@
+ 
+ 	vm_page_lock_queues();
+ 	vm_object_lock(object);	/* mfs code holds reference */
++	if (vmp->object != object)	/* plan 139 */
++		return;
+ 	m = (vm_page_t) queue_first(&object->memq);
+ 	while (!queue_end(&object->memq, (queue_entry_t) m)) {
+ 		vm_page_t next = (vm_page_t) queue_next(&m->listq);
++		if (m->nfspagereq == TRUE) {	/* plan 139 */
++			m = next;
++			continue;
++		}
+ 		if (m->busy) {
+ 			PAGE_ASSERT_WAIT(m, FALSE);
+ 			vm_object_unlock(object);
+@@ -1067,7 +1174,16 @@
+ 			vm_object_lock(object);
+ 			continue;	/* try again */
+ 		}
+-		vm_page_free(m);
++		if (m->wire_count == 0) {	/* plan 139 (as Darwin mapfs.c vmp_invalidate) */
++			pmap_remove_all(VM_PAGE_TO_PHYS(m));
++			if ((m->clean == FALSE) ||
++			    pmap_is_modified(VM_PAGE_TO_PHYS(m))) {
++				mfs_mdirty++;
++			} else {
++				mfs_mclean++;
++				vm_page_free(m);
++			}
++		}
+ 		m = next;
+ 	}
+ 	vm_object_unlock(object);
+@@ -1109,7 +1225,7 @@
+ 	start = trunc_page(start);
+ 	while (start < end) {
+ 		m = vm_page_lookup(object, start);
+-		if (m != VM_PAGE_NULL) {
++		if ((m != VM_PAGE_NULL) && (m->nfspagereq == FALSE)) {	/* plan 139 */
+ 			if (m->busy) {
+ 				PAGE_ASSERT_WAIT(m, FALSE);
+ 				vm_object_unlock(object);
+@@ -1169,6 +1285,109 @@
+ }
+ 
+ /*
++ * plan 139: vmp_push_all is in the original (0x15fe70) but not in NeXTMach; text from
++ * Darwin 0.1 kernel-1.tar.gz kernel/kern/mapfs.c:1927-2039 (inside #if 0 there; APSL 1.0)
++ * without the nfsdirty store, the pager-error statements and the trailing
++ * VOP_GETATTR block (absent in the original bytes).
++ */
++/* Something must be done to handle dirty wired pages. XXX joh */
++void
++vmp_push_all(vmp)
++	struct vm_info		*vmp;
++{
++	register vm_object_t	object;
++	register vm_page_t	m;
++
++	vmp->dirty = FALSE;
++
++	object = vmp->object;
++	if (object == VM_OBJECT_NULL)
++		return;
++
++	vm_page_lock_queues();
++	vm_object_lock(object);	/* mfs code holds reference */
++
++retry:
++	m = (vm_page_t) queue_first(&object->memq);
++	while (!queue_end(&object->memq, (queue_entry_t) m)) {
++		/* We don't want to deadlock on the page we are bring in */
++		if (m->nfspagereq == FALSE){
++			if (m->busy) {
++#if SCRUBVM3
++				/* THIS SHOULD NOT HAPPEN IF ONLY ASYNC
++			 	 * on SWAP */
++				/* hint if we miss it its ok */
++				if (m->dry_vp){
++					/* object and page queues locked, note
++				 	 * page might not be clean wrt backing
++				 	 * store */	
++					(void) vm_page_completeio(m, TRUE);
++				} else {
++#endif
++					PAGE_ASSERT_WAIT(m, FALSE);
++					vm_object_unlock(object);
++					vm_page_unlock_queues();
++					thread_block();
++					vm_page_lock_queues();
++					vm_object_lock(object);
++					/* Page may be long gone, XXX Forward 
++					 * progress */
++					goto retry;	
++#if SCRUBVM3
++				}
++#endif
++			}
++			if (!m->active) {
++				vm_page_activate(m); /* so deactivate works */
++			}
++			vm_page_deactivate(m);	/* gets dirty/laundry bit */
++			/*
++			 *	Prevent pageout from playing with
++			 *	this page.  We know it is inactive right
++			 *	now (and are holding lots of locks keeping
++			 *	it there).
++			 */
++			queue_remove(&vm_page_queue_inactive, m, vm_page_t,
++				     pageq);
++			m->inactive = FALSE;
++			vm_page_inactive_count--;
++			m->busy = TRUE;
++			if (m->laundry) {
++				pager_return_t	ret;
++
++				pmap_remove_all(VM_PAGE_TO_PHYS(m));
++				object->paging_in_progress++;
++				vm_object_unlock(object);
++				vm_page_unlock_queues();
++				/* should call pageout daemon code */
++				ret = vnode_pageout(m);
++				vm_page_lock_queues();
++				vm_object_lock(object);
++				object->paging_in_progress--;
++				if (ret == PAGER_SUCCESS) {
++					/* vnode_pageout marks clean */
++					m->laundry = FALSE;
++				} else {
++					/* don't set dirty bit, unrecoverable
++					   errors will cause update to go
++					   crazy.  User is responsible for
++					   retrying the write */
++					/* vmp->dirty = TRUE; */
++				}
++				/* if pager failed, activate below */
++			}
++			vm_page_activate(m);
++			m->busy = FALSE;
++			PAGE_WAKEUP(m);
++		}
++		m = (vm_page_t) queue_next(&m->listq);
++	}
++	vm_object_unlock(object);
++	vm_page_unlock_queues();
++
++}
++
++/*
+  * Loadable file system support to avoid exporting struct vm_info.
+  */
+ void vm_info_free(struct vnode *vp)

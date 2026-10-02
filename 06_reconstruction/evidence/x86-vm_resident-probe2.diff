@@ -1,0 +1,98 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_resident.c	1999-03-17 01:56:08.000000000 +0900
++++ 08_build/runs/tools/s5p70-probe-stage-1/src/vm/vm_resident.c	2026-10-02 06:30:45.305496784 +0900
+@@ -254,7 +254,6 @@
+ 
+ #define	PALLOC_PAGES(name, type, size)				\
+ MACRO_BEGIN							\
+-	(size) = round_page(size);				\
+ 	(type *)(name) = (type *)				\
+ 		vm_alloc_from_regions((size), PAGE_SIZE);	\
+ 	bzero((name), (size));					\
+@@ -420,7 +419,8 @@
+ 	 */
+ 	simple_lock_init(&vm_pages_needed_lock);
+ 
+-	return(virtual_avail);
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	return(vavail);
+ }
+ 
+ /*
+@@ -842,18 +842,16 @@
+ }
+ 
+ /*
+- *	_vm_page_deactivate:
++ *	vm_page_deactivate:
+  *
+- *	Internal routine to Returns the given page to the inactive list,
+- *	Page is put at the head of the inactive list if age is TRUE.
++ *	Returns the given page to the inactive list,
+  *	indicating that no physical maps have access
+  *	to this page.  [Used by the physical mapping system.]
+  *
+  *	The page queues must be locked.
+  */
+-static void _vm_page_deactivate(m, age)
++void vm_page_deactivate(m)
+ 	register vm_page_t	m;
+-	register boolean_t age;
+ {
+ 	VM_PAGE_CHECK(m);
+ 
+@@ -865,51 +863,21 @@
+ 	if (m->active) {
+ 		pmap_clear_reference(VM_PAGE_TO_PHYS(m));
+ 		queue_remove(&vm_page_queue_active, m, vm_page_t, pageq);
+-		if (age)
+-			queue_enter_first(&vm_page_queue_inactive, m, vm_page_t, pageq);
+-		else
+-			queue_enter(&vm_page_queue_inactive, m, vm_page_t, pageq);
++		queue_enter(&vm_page_queue_inactive, m, vm_page_t, pageq);
+ 		m->active = FALSE;
+ 		m->inactive = TRUE;
+ 		vm_page_active_count--;
+ 		vm_page_inactive_count++;
+ 		if (m->clean && pmap_is_modified(VM_PAGE_TO_PHYS(m)))
+ 			m->clean = FALSE;
++
++#if	!MACH_XP
+ 		m->laundry = !m->clean;
++#endif	!MACH_XP
+ 	}
+ }
+ 
+ /*
+- *	vm_page_deactivate:
+- *
+- *	Returns the given page to the inactive list,
+- *	indicating that no physical maps have access
+- *	to this page.  [Used by the physical mapping system.]
+- *
+- *	The page queues must be locked.
+- */
+-void vm_page_deactivate(m)
+-	register vm_page_t	m;
+-{
+-	_vm_page_deactivate(m, FALSE);
+-}
+-
+-/*
+- *	vm_page_deactivate_first:
+- *
+- *	Returns the given page to the head of inactive list,
+- *	indicating that no physical maps have access
+- *	to this page.  [Used by the physical mapping system.]
+- *
+- *	The page queues must be locked.
+- */
+-void vm_page_deactivate_first(m)
+-	register vm_page_t	m;
+-{
+-	_vm_page_deactivate(m, FALSE);
+-}
+-
+-/*
+  *	vm_page_activate:
+  *
+  *	Put the specified page on the active list (if appropriate).

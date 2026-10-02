@@ -1,0 +1,32 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_resident.c	1999-03-17 01:56:08.000000000 +0900
++++ 08_build/runs/tools/s5p69-probe-stage-1/src/vm/vm_resident.c	2026-10-02 06:26:16.751038726 +0900
+@@ -254,7 +254,6 @@
+ 
+ #define	PALLOC_PAGES(name, type, size)				\
+ MACRO_BEGIN							\
+-	(size) = round_page(size);				\
+ 	(type *)(name) = (type *)				\
+ 		vm_alloc_from_regions((size), PAGE_SIZE);	\
+ 	bzero((name), (size));					\
+@@ -892,21 +891,6 @@
+ 	register vm_page_t	m;
+ {
+ 	_vm_page_deactivate(m, FALSE);
+-}
+-
+-/*
+- *	vm_page_deactivate_first:
+- *
+- *	Returns the given page to the head of inactive list,
+- *	indicating that no physical maps have access
+- *	to this page.  [Used by the physical mapping system.]
+- *
+- *	The page queues must be locked.
+- */
+-void vm_page_deactivate_first(m)
+-	register vm_page_t	m;
+-{
+-	_vm_page_deactivate(m, FALSE);
+ }
+ 
+ /*

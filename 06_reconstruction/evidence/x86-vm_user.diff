@@ -1,0 +1,74 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_user.c	1999-03-17 01:56:08.000000000 +0900
++++ 07_kernel/src/vm/vm_user.c	2026-10-02 00:11:15.933135504 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1987 Carnegie-Mellon University
+@@ -186,21 +188,6 @@
+ 	return(vm_map_remove(map, trunc_page(start), round_page(start+size)));
+ }
+ 
+-kern_return_t vm_reallocate(map, start, size)
+-	register vm_map_t	map;
+-	vm_offset_t		start;
+-	vm_size_t		size;
+-{
+-	if (map == VM_MAP_NULL)
+-		return(KERN_INVALID_ARGUMENT);
+-
+-	if (size == (vm_offset_t) 0)
+-		return(KERN_SUCCESS);
+-
+-	return(vm_map_reallocate(
+-			map, trunc_page(start), round_page(start+size)));
+-}
+-
+ /*
+  *	vm_inherit sets the inheritence of the specified range in the
+  *	specified map.
+@@ -324,40 +311,3 @@
+ 	return(vm_map_copy(map, map, dest_address, size, source_address, FALSE, FALSE));
+ }
+ 
+-
+-
+-/*
+- *	Specify that the range of the virtual address space
+- *	of the target task must not cause page faults for
+- *	the indicated accesses.
+- *
+- *	[ To unwire the pages, specify VM_PROT_NONE. ]
+- */
+-kern_return_t
+-vm_wire(
+-	host_t			host,
+-	register vm_map_t	map,
+-	vm_offset_t		start,
+-	vm_size_t		size,
+-	vm_prot_t		access)
+-{
+-	kern_return_t		rc;
+-
+-	if (host == HOST_NULL)
+-		return KERN_INVALID_HOST;
+-
+-	if (map == VM_MAP_NULL)
+-		return KERN_INVALID_TASK;
+-
+-	if (access & ~VM_PROT_ALL)
+-		return KERN_INVALID_ARGUMENT;
+-
+-	if (access != VM_PROT_NONE) {
+-		rc = vm_map_pageable(map, trunc_page(start),
+-				 round_page(start+size), FALSE);
+-	} else {
+-		rc = vm_map_pageable(map, trunc_page(start),
+-				   round_page(start+size), TRUE);
+-	}
+-	return rc;
+-}

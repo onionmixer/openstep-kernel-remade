@@ -1,0 +1,23 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/uipc_mbuf.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/uipc_mbuf.c	2026-10-02 18:34:56.074137665 +0900
+@@ -28,7 +28,7 @@
+ 
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 162: NeXTMach vm/vm_param.h (as plans 138/139) */
+ #import <kern/kalloc.h>
+ #import <sys/param.h>
+ #import <sys/user.h>
+@@ -53,9 +53,9 @@
+ 	else
+ 		initcl = 1;
+ 	s = splimp();
+-	if (m_clalloc(initcl, MPG_MBUFS, M_DONTWAIT) == 0)
++	if (m_clalloc(initcl * 10, MPG_MBUFS, M_DONTWAIT) == 0)	/* plan 162 (authored) */
+ 		goto bad;
+-	if (m_clalloc(initcl, MPG_CLUSTERS, M_DONTWAIT) == 0)
++	if (m_clalloc(initcl * 10, MPG_CLUSTERS, M_DONTWAIT) == 0)	/* plan 162 (authored) */
+ 		goto bad;
+ 	splx(s);
+ 	return;

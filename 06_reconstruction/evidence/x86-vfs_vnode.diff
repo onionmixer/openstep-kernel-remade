@@ -1,0 +1,47 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_vnode.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_vnode.c	2026-10-02 18:16:37.078782721 +0900
+@@ -34,6 +34,9 @@
+ 
+ #if	MACH
+ #import <kern/mfs.h>
++#if	POSIX_KERN
++#import <sys/proc.h>		/* plan 159 (authored) */
++#endif	POSIX_KERN
+ #endif	MACH
+ 
+ struct vnode *rootvp;           /* vnode of root filesystem */
+@@ -68,7 +71,11 @@
+ 	auio.uio_segflg = seg;
+ 	auio.uio_resid = len;
+ #if	MACH_NBC
+-	if (vp->v_type == VREG) {
++	if (vp->v_type == VREG
++#if	POSIX_KERN
++	    && !u.u_procp->p_posix	/* plan 159 (authored; original bytes) */
++#endif	POSIX_KERN
++	    ) {
+ 		map_vnode(vp);
+ 		error = mfs_io(vp, &auio, rw, ioflag, u.u_cred);
+ 		unmap_vnode(vp);
+@@ -261,7 +268,8 @@
+ 		error = VOP_SETATTR(vp, &vattr, u.u_cred);
+ 	}
+ #if	MACH_NBC
+-	if ((filemode & O_NO_MFS) == 0 && vp->v_type == VREG)
++	if (error == 0 &&	/* plan 159.1 (authored; original bytes) */
++	    (filemode & O_NO_MFS) == 0 && vp->v_type == VREG)
+ /*		if (ip->i_dev != magic_dev) break;*/
+ 		map_vnode(vp);
+ #endif	MACH_NBC
+@@ -355,8 +363,9 @@
+ 	  * to write to things like /dev/console which
+ 	  * don't really modify the file system.
+ 	  */
+-	  && *vpp != (struct vnode *)0 && (*vpp)->v_type != VCHR
+-	  && (*vpp)->v_type != VBLK
++	  /* plan 159.2 (authored; original bytes): a new file on a read-only fs is EROFS */
++	  && (*vpp == (struct vnode *)0 || ((*vpp)->v_type != VCHR
++	  && (*vpp)->v_type != VBLK))
+ #endif	NeXT
+ 	) {
+ 		if (*vpp) {

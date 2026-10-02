@@ -1,0 +1,31 @@
+--- darwin01/kernel/ipc/ipc_hash.c	1999-03-17 01:54:01.000000000 +0900
++++ ipc/ipc_hash.c	2026-10-01 20:24:54.528529509 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1995, 1994, 1993, 1992, 1991, 1990  
+  * Open Software Foundation, Inc. 
+@@ -130,15 +132,10 @@
+ 	mach_port_t	*namep,
+ 	ipc_entry_t	*entryp)
+ {
+-	boolean_t 	rv;
+-
+-	rv = ipc_hash_local_lookup(space, obj, namep, entryp);
+-	if (!rv) {
+-		if (space->is_tree_hash > 0)
+-			rv = ipc_hash_global_lookup(space, obj, namep,
+-				(ipc_tree_entry_t *) entryp);
+-	}
+-	return (rv);
++	return (ipc_hash_local_lookup(space, obj, namep, entryp) ||
++		((space->is_tree_hash > 0) &&
++		 ipc_hash_global_lookup(space, obj, namep,
++					(ipc_tree_entry_t *) entryp)));
+ }
+ 
+ /*

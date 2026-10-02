@@ -1,0 +1,65 @@
+--- 01_resources/upstream/darwin01/kernel/kern/thread.c	1999-03-17 01:54:47.000000000 +0900
++++ 08_build/runs/tools/s5p91-probe-stage-b/src/kern/thread.c	2026-10-02 11:51:22.955427727 +0900
+@@ -389,12 +389,13 @@
+ 
+ 	thread_template.recover = (vm_offset_t) 0;
+ 	thread_template.vm_privilege = FALSE;
++	thread_template.tmp_address = (vm_offset_t) 0;
++	thread_template.tmp_object = VM_OBJECT_NULL;
+ 
+ 	/* thread_template.u_address (later) */
+ 	thread_template.unix_lock = -1;		/* XXX for Unix */
+ 
+ 	thread_template.user_stop_count = 1;
+-	thread_template.sleep_time = 0;
+ 
+ 	/* thread_template.<IPC structures> (later) */
+ 
+@@ -494,8 +495,8 @@
+ 	 */
+ 	new_thread->_uthread = (struct uthread *) zalloc(u_thread_zone);
+ 
+-//	uarea_zero(new_thread);		/* XXX */
+-//	uarea_init(new_thread);
++	uarea_zero(new_thread);		/* XXX */
++	uarea_init(new_thread);
+ 
+ 	/*
+ 	 *	Find the processor set for the parent task.
+@@ -713,7 +714,6 @@
+ 	reset_timeout_check(&thread->timer);
+ 	
+ 	reset_timeout_check(&thread->depress_timer);
+-	thread->depress_priority = -1;
+ 
+ 	/*
+ 	 *	Accumulate times for dead threads in task.
+@@ -741,6 +741,11 @@
+ 	 *	Clean up global variables
+ 	 */
+ 
++	if (thread->tmp_address != (vm_offset_t) 0)
++		kmem_free(kernel_map, thread->tmp_address, PAGE_SIZE);
++	if (thread->tmp_object != VM_OBJECT_NULL)
++		vm_object_deallocate(thread->tmp_object);
++
+ 	/* Currently nothing */
+ 
+ 	/*
+@@ -1640,7 +1645,7 @@
+ 	    if (state == TH_STATE_RUNNING)
+ 		basic_info->sleep_time = 0;
+ 	    else
+-		basic_info->sleep_time = thread->sleep_time;
++		basic_info->sleep_time = sched_tick - thread->sched_stamp;
+ 
+ 	    thread_unlock(thread);
+ 	    splx(s);
+@@ -1807,7 +1812,6 @@
+ 
+ void reaper_thread(void)
+ {
+-	current_thread()->vm_privilege = TRUE;
+ 	reaper_thread_continue();
+ 	/*NOTREACHED*/
+ }

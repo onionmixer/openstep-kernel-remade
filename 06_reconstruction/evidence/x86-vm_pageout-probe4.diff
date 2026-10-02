@@ -1,0 +1,80 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_pageout.c	1999-03-17 01:56:07.000000000 +0900
++++ 08_build/runs/tools/s5p74-probe-stage-1/src/vm/vm_pageout.c	2026-10-02 06:39:55.972583367 +0900
+@@ -51,7 +51,7 @@
+ int	vm_pages_needed;		/* Event on which pageout daemon sleeps */
+ int	vm_pageout_free_min = 0;	/* Stop pageout to wait for pagers at this free level */
+ 
+-int	vm_page_free_min_sanity = 256*1024;
++int	vm_page_free_min_sanity = 128*1024;
+ 
+ #if	MACH_VM_DEBUG
+ long	vm_page_total_pages = 0;
+@@ -68,7 +68,6 @@
+ 	register int		page_shortage;
+ 	register int		s;
+ 	register int		pages_freed = 0;
+-	register int            pages_cleaned = 0;
+ 	boolean_t		free_pages;
+ 	boolean_t		did_work = FALSE;
+ #if	MACH_VM_DEBUG
+@@ -128,7 +127,7 @@
+ 
+ 			s = splimp();
+ 			simple_lock(&vm_page_queue_free_lock);
+-			if ((vm_page_free_count + pages_cleaned) >= vm_page_free_target) {
++			if (vm_page_free_count >= vm_page_free_target) {
+ 				simple_unlock(&vm_page_queue_free_lock);
+ 				splx(s);
+ 				break;
+@@ -287,7 +286,6 @@
+ #if	MACH_VM_DEBUG
+ 					dbg_pages_cleaned++;
+ #endif	/* MACH_VM_DEBUG */
+-					pages_cleaned++;
+ 				    }
+ 				}
+ 
+@@ -350,19 +348,6 @@
+ 
+ 	vm_page_unlock_queues();
+ 
+-	if (!pages_cleaned && !pages_freed && did_work) {
+-		/*
+-		 * We did not issue any IO in the loop and did not free any
+-		 * pages. Yield to someone before proceeding so that we do
+-		 * not go compute bound, which will prevent the threads trying
+-		 * to do a biodone() from running. If that does not happen,
+-		 * no forward progress would be made.
+-		 */
+-		thread_will_wait(current_thread());
+-		thread_set_timeout(2);	/* 2 ticks */
+-		thread_block();
+-	}
+-
+ 	return did_work;
+ }
+ 
+@@ -373,14 +358,9 @@
+ 
+ void vm_pageout()
+ {
+-	thread_t	self = current_thread();
+ 	boolean_t	vm_pageout_scan_did_work = TRUE;
+ 
+-	stack_privilege(self);
+-	self->sched_pri = self->priority = MAXPRI_USER;
+-	self->policy = POLICY_FIXEDPRI;
+-	self->sched_data = min_quantum;
+-	self->vm_privilege = TRUE;
++	current_thread()->vm_privilege = TRUE;
+ 
+ 	(void) spl0();
+ 
+@@ -405,7 +385,6 @@
+ 		/*
+ 		** This is 0.50% of available free pages
+ 		*/
+-		if ((vm_page_free_reserved = vm_page_free_min / 4) < 3)
+ 			vm_page_free_reserved = 3;
+ 	}
+ 	if (vm_pageout_free_min == 0) {

@@ -1,0 +1,20 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_fault.c	1999-03-17 01:56:05.000000000 +0900
++++ 07_kernel/src/vm/vm_fault.c	2026-10-02 06:23:44.317398266 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1987 Carnegie-Mellon University
+@@ -1232,7 +1234,7 @@
+ 	for (va = entry->vme_start; va < end_addr; va += PAGE_SIZE) {
+ 		pa = pmap_extract(pmap, va);
+ 		if (pa == (vm_offset_t) 0)
+-			continue;
++			panic("unwire: page not in pmap");
+ 
+ 		pmap_change_wiring(pmap, va, FALSE);
+ 		vm_page_unwire(PHYS_TO_VM_PAGE(pa));

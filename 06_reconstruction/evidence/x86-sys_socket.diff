@@ -1,0 +1,24 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/sys_socket.c	2026-09-11 10:02:49.486217299 +0900
++++ 07_kernel/src/bsd/kern/sys_socket.c	2026-10-02 17:15:03.230773759 +0900
+@@ -35,6 +35,9 @@
+ #import <sys/ioctl.h>
+ #import <sys/uio.h>
+ #import <sys/stat.h>
++#if	POSIX_KERN
++#import <sys/proc.h>		/* plan 155 (authored) */
++#endif	POSIX_KERN
+ 
+ #import <machine/spl.h>
+ 
+@@ -52,6 +55,11 @@
+ {
+ 	int soreceive(), sosend();
+ 
++#if	POSIX_KERN
++	/* plan 155 (authored): POSIX non-blocking pipe semantics (original bytes) */
++	if (u.u_procp->p_posix && (fp->f_flag & FPOSIX_PIPE))
++		uio->uio_fmode = fp->f_flag;
++#endif	POSIX_KERN
+ 	return (
+ 	    (*(rw==UIO_READ?soreceive:sosend))
+ 	      ((struct socket *)fp->f_data, 0, uio, 0, 0));

@@ -1,0 +1,69 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_io.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_io.c	2026-10-02 18:26:07.970544809 +0900
+@@ -23,6 +23,13 @@
+ #import <sys/ioctl.h>
+ 
+ #import <kern/mfs.h>		/* MACH */
++/* plan 160 (authored): headers for the vno_stat generation number */
++#import <nfs_server.h>
++#import <ufs/inode.h>
++#import <rpc/types.h>		/* bool_t for nfs/nfs.h (as nfs_export.c) */
++#import <nfs/nfs.h>
++#import <nfs/rnode.h>
++extern struct vnodeops nfs_vnodeops;
+ 
+ #define sigmask(m)	(1 << ((m)-1))
+ 
+@@ -65,8 +72,16 @@
+ 		iomode |= IO_APPEND;
+ 	if (fp->f_flag & FSYNC)
+ 		iomode |= IO_SYNC;
++#if	POSIX_KERN
++	if (vp->v_type == VFIFO)	/* plan 160 (authored; original bytes) */
++		uiop->uio_fmode = fp->f_flag;
++#endif	POSIX_KERN
+ 	/* MACH */
+-	if ((vp->v_type == VREG) && (vp->vm_info->mapped)) {
++	if ((vp->v_type == VREG) && (vp->vm_info->mapped)
++#if	POSIX_KERN
++	    && !u.u_procp->p_posix	/* plan 160 (authored) */
++#endif	POSIX_KERN
++	    ) {
+ 		error = mfs_io(vp, uiop, rw, iomode, fp->f_cred);
+ 	} else
+ 	/* MACH */
+@@ -192,6 +207,7 @@
+ {
+ 	register int error;
+ 	struct vattr vattr;
++	struct ufid *fid;	/* plan 160 (authored) */
+ 
+ 	error = VOP_GETATTR(vp, &vattr, u.u_cred);
+ 	if (error)
+@@ -226,6 +242,17 @@
+ 	sb->st_rdev = (dev_t)vattr.va_rdev;
+ 	sb->st_blocks = vattr.va_blocks;
+ 	sb->st_spare4[0] = sb->st_spare4[1] = 0;
++	/* plan 160 (authored; original bytes): file generation number */
++	if (vp->v_op == &ufs_vnodeops) {
++		sb->st_spare4[0] = 0xfeedface;
++		sb->st_spare4[1] = VTOI(vp)->i_gen;
++	} else if (vp->v_op == &nfs_vnodeops) {
++		fid = (struct ufid *)&vtor(vp)->r_fh.fh_len;
++		if (fid->ufid_ino == sb->st_ino) {
++			sb->st_spare4[0] = 0xfeedface;
++			sb->st_spare4[1] = fid->ufid_gen;
++		}
++	}
+ 	return (0);
+ }
+ 
+@@ -336,7 +363,7 @@
+ 	register struct file *fp;
+ 	int cmd;
+ {
+-	register int priority;
++	volatile int priority;	/* plan 160.1 (authored; original bytes, variant s5p134-v2) */
+ 	register struct vnode *vp;
+ 
+ 	/*

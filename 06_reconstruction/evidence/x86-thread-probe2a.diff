@@ -1,0 +1,19 @@
+--- 01_resources/upstream/darwin01/kernel/kern/thread.c	1999-03-17 01:54:47.000000000 +0900
++++ 08_build/runs/tools/s5p91-probe-stage-a/src/kern/thread.c	2026-10-02 11:51:22.918427369 +0900
+@@ -394,7 +394,6 @@
+ 	thread_template.unix_lock = -1;		/* XXX for Unix */
+ 
+ 	thread_template.user_stop_count = 1;
+-	thread_template.sleep_time = 0;
+ 
+ 	/* thread_template.<IPC structures> (later) */
+ 
+@@ -1640,7 +1639,7 @@
+ 	    if (state == TH_STATE_RUNNING)
+ 		basic_info->sleep_time = 0;
+ 	    else
+-		basic_info->sleep_time = thread->sleep_time;
++		basic_info->sleep_time = sched_tick - thread->sched_stamp;
+ 
+ 	    thread_unlock(thread);
+ 	    splx(s);

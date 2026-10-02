@@ -1,0 +1,75 @@
+--- 01_resources/upstream/darwin01/kernel/kern/kalloc.c	1999-03-17 01:54:34.000000000 +0900
++++ 08_build/runs/tools/s5p36-probe-stage-4/src/kern/kalloc.c	2026-10-01 23:32:18.075547942 +0900
+@@ -258,24 +258,57 @@
+ 	}
+ }
+ 
+-struct zone *kalloc_zone(
+-	vm_size_t	size)
++/*
++ * Trival implementation of malloc/free calls.  This version encodes the
++ * length into the memory returned.  A better implementation would do this
++ * only for memory which is allocated >= pagesize.  < pagesize would
++ * check the address for the zone to free to.
++ */
++void *malloc(unsigned int size)
+ {
+-	register int zindex = 0;
+-	register vm_size_t allocsize;
++	unsigned int *addr;
+ 
+-	/* compute the size of the block that we will actually allocate */
++	size += 8;
++	addr = (unsigned int *)kalloc(size);
++	if (!addr)
++		return addr;
++	bzero(addr, size);
++	*addr = size;
++	return (void *)(addr+2);
++}
+ 
+-	allocsize = size;
+-	if (size <= k_zone_maxsize) {
+-		allocsize = k_zone_elemsize[0];
+-		zindex = 0;
+-		while (allocsize < size) {
+-			allocsize = k_zone_elemsize[++zindex];
+-		}
++void *calloc(unsigned int num, unsigned int size)
++{
++	return malloc(num*size);
++}
+ 
+-		return (k_zone[zindex]);
+-	}
++void *realloc(void *addr, unsigned int size)
++{
++	unsigned int *sizep = ((unsigned int *)addr) - 2;
++	unsigned int *new;
+ 
+-	return (0);
++	if (addr == 0)
++		return malloc(size);
++	new = (unsigned int *)kalloc(size+8);
++	if (!new)
++		return new;
++	*new = size+8;
++	if (size < *sizep)
++		bcopy(addr, new+2, size);
++	else
++		bcopy(addr, new+2, *sizep);
++	kfree((caddr_t)sizep, *sizep);
++	return (void *)(new+2);
+ }
++
++void free(void *data)
++{
++    unsigned int *sizep;
++
++    if (data == 0)
++	return;
++    sizep = (((unsigned int *)data)-2);
++    kfree ((caddr_t)sizep, *sizep);
++}
++
++void malloc_good_size(unsigned int size) {}

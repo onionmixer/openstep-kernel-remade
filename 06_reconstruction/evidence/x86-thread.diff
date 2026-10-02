@@ -1,0 +1,113 @@
+--- 01_resources/upstream/darwin01/kernel/kern/thread.c	1999-03-17 01:54:47.000000000 +0900
++++ 07_kernel/src/kern/thread.c	2026-10-02 12:14:32.702758320 +0900
+@@ -22,6 +22,16 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++/*
++ * Some lines below are taken from Mach4 (01_resources/upstream/mach4, kernel/kern/thread.c;
++ * see 07_kernel/MODIFICATIONS.md for the exact lines), whose notice is:
++ *
++ * Mach Operating System
++ * Copyright (c) 1994-1987 Carnegie Mellon University
++ * All Rights Reserved.  (Same permission terms as the CMU notice above.)
++ */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1993-1987 Carnegie Mellon University
+@@ -389,12 +399,13 @@
+ 
+ 	thread_template.recover = (vm_offset_t) 0;
+ 	thread_template.vm_privilege = FALSE;
++	thread_template.tmp_address = (vm_offset_t) 0;
++	thread_template.tmp_object = VM_OBJECT_NULL;
+ 
+ 	/* thread_template.u_address (later) */
+ 	thread_template.unix_lock = -1;		/* XXX for Unix */
+ 
+ 	thread_template.user_stop_count = 1;
+-	thread_template.sleep_time = 0;
+ 
+ 	/* thread_template.<IPC structures> (later) */
+ 
+@@ -494,8 +505,8 @@
+ 	 */
+ 	new_thread->_uthread = (struct uthread *) zalloc(u_thread_zone);
+ 
+-//	uarea_zero(new_thread);		/* XXX */
+-//	uarea_init(new_thread);
++	uarea_zero(new_thread);		/* XXX */
++	uarea_init(new_thread);
+ 
+ 	/*
+ 	 *	Find the processor set for the parent task.
+@@ -741,6 +752,11 @@
+ 	 *	Clean up global variables
+ 	 */
+ 
++	if (thread->tmp_address != (vm_offset_t) 0)
++		kmem_free(kernel_map, thread->tmp_address, PAGE_SIZE);
++	if (thread->tmp_object != VM_OBJECT_NULL)
++		vm_object_deallocate(thread->tmp_object);
++
+ 	/* Currently nothing */
+ 
+ 	/*
+@@ -1178,6 +1194,25 @@
+ 			return KERN_SUCCESS;
+ 		}
+ 
++		/*
++		 *	If the thread is at a nice continuation,
++		 *	or a continuation with a cleanup routine,
++		 *	call the cleanup routine.
++		 */
++		if ((((thread->swap_func == mach_msg_continue) ||
++		      (thread->swap_func == mach_msg_receive_continue)) &&
++		     mach_msg_interrupt(thread)) ||
++		    (thread->swap_func == thread_exception_return) ||
++		    (thread->swap_func == thread_bootstrap_return)) {
++			s = splsched();
++			thread_lock(thread);
++			thread->state |= TH_HALTED;
++			thread_ast_clear(thread, AST_HALT);
++			thread_unlock(thread);
++			splx(s);
++
++			return KERN_SUCCESS;
++		}
+ 
+ 		/*
+ 		 *	Force the thread to stop at a clean
+@@ -1640,7 +1675,7 @@
+ 	    if (state == TH_STATE_RUNNING)
+ 		basic_info->sleep_time = 0;
+ 	    else
+-		basic_info->sleep_time = thread->sleep_time;
++		basic_info->sleep_time = sched_tick - thread->sched_stamp;
+ 
+ 	    thread_unlock(thread);
+ 	    splx(s);
+@@ -1662,7 +1697,11 @@
+ 
+ #if	MACH_FIXPRI
+ 	    sched_info->policy = thread->policy;
+-	    if (thread->policy == POLICY_FIXEDPRI) {
++	    if (   thread->policy == POLICY_FIXEDPRI
++#if	NeXT
++		|| thread->policy == POLICY_INTERACTIVE
++#endif	NeXT
++	    ) {
+ 		sched_info->data = (thread->sched_data * tick)/1000;
+ 	    }
+ 	    else {
+@@ -1807,7 +1846,6 @@
+ 
+ void reaper_thread(void)
+ {
+-	current_thread()->vm_privilege = TRUE;
+ 	reaper_thread_continue();
+ 	/*NOTREACHED*/
+ }

@@ -1,0 +1,105 @@
+--- 01_resources/upstream/darwin01/kernel/vm/vm_object.c	1999-03-17 01:56:06.000000000 +0900
++++ 08_build/runs/tools/s5p62-probe-stage-1/src/vm/vm_object.c	2026-10-02 05:02:01.814667473 +0900
+@@ -118,7 +118,8 @@
+ struct zone	*vm_object_zone;	/* vm backing store zone */
+ 
+ struct vm_object	kernel_object_store, vm_submap_object_store;
+-#define	VM_OBJECT_HASH_COUNT		1024
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++#define	VM_OBJECT_HASH_COUNT		128
+ #define	VM_OBJECT_MEMORY_UNIT		(1024 * 1024)
+ #define	VM_OBJECTS_PER_MEMORY_UNIT	50
+ int		vm_cache_max;		/* set in vm_object_init */
+@@ -547,20 +548,6 @@
+ }
+ 
+ /*
+- *	vm_object_deactivate_pages_first
+- *
+- *	Deactivate pages in the specified object. Age them.
+- *	(Keep its pages in memory even though it is no longer referenced.)
+- *
+- *	The object must be locked.
+- */
+-void vm_object_deactivate_pages_first(object)
+-	register vm_object_t	object;
+-{
+-	_vm_object_deactivate_pages(object, TRUE);
+-}
+-
+-/*
+  *	Trim the object cache to size.
+  */
+ vm_object_cache_trim()
+@@ -573,7 +560,7 @@
+ 		vm_object_cache_unlock();
+ 
+ 		if (object != vm_object_lookup(object->pager))
+-			panic("vm_object_cache_trim: I'm sooo confused.");
++			panic("vm_object_deactivate: I'm sooo confused.");
+ 		vm_object_cache_object(object, FALSE);
+ 
+ 		vm_object_cache_lock();
+@@ -581,17 +568,6 @@
+ 	vm_object_cache_unlock();
+ }
+ 
+-/*
+-* 
+-*/
+-kern_return_t
+-adjust_vm_object_cache(vm_size_t oldval, vm_size_t newval)
+-{
+-	vm_cache_max = newval;
+-	vm_object_cache_trim();
+-	return(KERN_SUCCESS);	
+-}
+-
+ kern_return_t vm_object_cache_object(object, should_cache)
+ 	vm_object_t	object;
+ 	boolean_t	should_cache;
+@@ -973,9 +949,8 @@
+  *	vm_object_hash hashes the pager/id pair.
+  */
+ /* Shift for sizeof(struct vm_object_hash_entry) */
+-#define VM_OBJECT_HASH_SHIFT	8
+ #define vm_object_hash(pager) \
+-	((((unsigned)pager) >> VM_OBJECT_HASH_SHIFT) % VM_OBJECT_HASH_COUNT)
++	(((unsigned)pager)%VM_OBJECT_HASH_COUNT)
+ 
+ /*
+  *	vm_object_lookup looks in the object cache for an object with the
+@@ -1110,33 +1085,6 @@
+ 	vm_object_cache_unlock();
+ }
+ 
+-/*
+- *	Remove some number of entries from the object cache.
+- */
+-int
+-vm_object_cache_steal(num)
+-	register int num;
+-{
+-	register vm_object_t	object;
+-	register int		num_removed = 0;
+-
+-	vm_object_cache_lock();
+-	while (num_removed < num && !queue_empty(&vm_object_cached_list)) {
+-		object = (vm_object_t) queue_first(&vm_object_cached_list);
+-		vm_object_cache_unlock();
+-
+-		if (object != vm_object_lookup(object->pager))
+-			panic("vm_object_cache_steal: I'm sooo confused.");
+-		vm_object_cache_object(object, FALSE);
+-		num_removed++;
+-
+-		vm_object_cache_lock();
+-	}
+-	vm_object_cache_unlock();
+-
+-	return(num_removed);
+-}
+-
+ boolean_t	vm_object_collapse_allowed = TRUE;
+ /*
+  *	vm_object_collapse:

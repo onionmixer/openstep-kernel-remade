@@ -1,0 +1,101 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/netisr.c	2026-09-11 10:02:49.560218209 +0900
++++ 07_kernel/src/bsd/net/netisr.c	2026-10-02 16:54:33.504109044 +0900
+@@ -33,59 +33,59 @@
+ #import <kern/thread.h>
+ #import <kern/sched_prim.h>
+ 
+-void netisr_thread()
++/*
++ * plan 154 (authored, D024): continuation form of the network thread as in
++ * the original (structure as Darwin 0.1 bsd/net/netisr.c; protocol blocks
++ * kept from this file).
++ */
++void netisr_thread_continue(void)
+ {
+-	register thread_t thread = current_thread();
+-
+-	/*
+-	 *	Make this the highest priority thread,
+-	 *	and bind it to the master cpu.
+-	 */
+-#if	NeXT
+-	thread->priority = 31;
+-	thread->sched_pri = 31;
+-#else	NeXT
+-	thread->priority = 0;
+-	thread->sched_pri = 0;
+-#endif	NeXT
+-	thread_bind(thread, master_cpu);
+-	thread_block();	/* resume on master */
+-
+ 	/*
+ 	 *	All routines this thread calls expect to be called
+ 	 *	at splnet.
+ 	 */
+ 	(void) splnet();
+ 
+-	while (TRUE) {
+-		assert_wait((int) &soft_net_wakeup, FALSE);
+-		thread_block();
+-
+-		while (netisr != 0) {
++	while (netisr != 0) {
+ #if	NIMP > 0
+-			if (netisr & (1<<NETISR_IMP)){
+-				netisr &= ~(1<<NETISR_IMP);
+-				impintr();
+-			}
++		if (netisr & (1<<NETISR_IMP)){
++			netisr &= ~(1<<NETISR_IMP);
++			impintr();
++		}
+ #endif	NIMP > 0
+ #ifdef	INET
+-			if (netisr & (1<<NETISR_IP)){
+-				netisr &= ~(1<<NETISR_IP);
+-				ipintr();
+-			}
++		if (netisr & (1<<NETISR_IP)){
++			netisr &= ~(1<<NETISR_IP);
++			ipintr();
++		}
+ #endif	INET
+ #ifdef	NS
+-			if (netisr & (1<<NETISR_NS)){
+-				netisr &= ~(1<<NETISR_NS);
+-				nsintr();
+-			}
++		if (netisr & (1<<NETISR_NS)){
++			netisr &= ~(1<<NETISR_NS);
++			nsintr();
++		}
+ #endif	NS
+-			if (netisr & (1<<NETISR_RAW)){
+-				netisr &= ~(1<<NETISR_RAW);
+-				rawintr();
+-			}
++		if (netisr & (1<<NETISR_RAW)){
++			netisr &= ~(1<<NETISR_RAW);
++			rawintr();
+ 		}
+-
+ 	}
++	assert_wait((event_t) &soft_net_wakeup, FALSE);
++	thread_block_with_continuation(netisr_thread_continue);
++	/* NOTREACHED */
++}
++
++void netisr_thread()
++{
++	register thread_t thread = current_thread();
++
++	/*
++	 *	Make sure that this thread always has a kernel stack,
++	 *	and bind it to the master cpu.
++	 */
++	stack_privilege(thread);
++	thread_bind(thread, master_processor);
++	thread_block_with_continuation(netisr_thread_continue);
++	/* NOTREACHED */
+ }
+ 

@@ -1,0 +1,192 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/netif.c	2026-09-11 10:02:49.560218209 +0900
++++ 07_kernel/src/bsd/net/netif.c	2026-10-02 16:47:18.112997761 +0900
+@@ -40,6 +40,16 @@
+ const char IFCONTROL_GETADDR[] = "getaddr";
+ const char IFCONTROL_AUTOADDR[] = "autoaddr";
+ const char IFCONTROL_UNIXIOCTL[] = "unix-ioctl";
++/* plan 153 (authored): four further commands and the detached-name marker (original __TEXT,__const) */
++const char IFCONTROL_RCVPROMISCUOUS[] = "promiscuous-on";
++const char IFCONTROL_RCVPROMISCOFF[] = "promiscuous-off";
++const char IFCONTROL_ADDMULTICAST[] = "add-multicast";
++const char IFCONTROL_RMVMULTICAST[] = "rmv-multicast";
++static const char if_null_name[] = "null";
++
++extern long hostid;			/* plan 153 (authored) */
++static int if_null_func();		/* plan 153 (authored) */
++static netbuf_t if_null_getbuf();	/* plan 153 (authored) */
+ 
+ int 
+ if_output(
+@@ -109,6 +119,14 @@
+ 		return (ifp->if_control(netif, IFCONTROL_SETFLAGS,
+ 					(void *)&ifr->ifr_ifru));
+ 		
++	case SIOCADDMULTI:	/* plan 153 (authored) */
++		return (ifp->if_control(netif, IFCONTROL_ADDMULTICAST,
++					(void *)data));
++		
++	case SIOCDELMULTI:	/* plan 153 (authored) */
++		return (ifp->if_control(netif, IFCONTROL_RMVMULTICAST,
++					(void *)data));
++		
+ 	default:
+ 		ioctl_stuff.ioctl_command = command;
+ 		ioctl_stuff.ioctl_data = data;
+@@ -185,6 +203,15 @@
+ 	return (((struct ifnet *)netif)->if_mtu);
+ }
+ 
++/* plan 153 (authored) */
++netif_class_t
++if_class(
++	 netif_t netif
++	 )
++{
++	return (((struct ifnet *)netif)->if_class);
++}
++
+ unsigned
+ if_flags(
+ 	 netif_t netif
+@@ -275,7 +302,7 @@
+ 		unsigned ierrors
+ 		)
+ {
+-	((struct ifnet *)netif)->if_oerrors = ierrors;
++	((struct ifnet *)netif)->if_ierrors = ierrors;	/* plan 153 (corrected field; original bytes) */
+ }
+ 
+ void
+@@ -287,6 +314,42 @@
+ 	((struct ifnet *)netif)->if_collisions = collisions;
+ }
+ 
++/* plan 153 (authored): interface list walk and detach */
++netif_t
++iflist_first(void)
++{
++	return ((netif_t)ifnet);
++}
++
++netif_t
++iflist_next(
++	    netif_t netif
++	    )
++{
++	return ((netif_t)((struct ifnet *)netif)->if_next);
++}
++
++void
++if_detach(
++	  netif_t netif
++	  )
++{
++	struct ifnet *ifp = (struct ifnet *)netif;
++
++	ifp->if_name = (char *)if_null_name;
++	ifp->if_type = (char *)if_null_name;
++	ifp->if_unit = 0;
++	ifp->if_mtu = 0;
++	ifp->if_flags = 0;
++	ifp->if_snd.ifq_maxlen = 0;
++	ifp->if_init = if_null_func;
++	ifp->if_output = if_null_func;
++	ifp->if_control = if_null_func;
++	ifp->if_input = if_null_func;
++	ifp->if_getbuf = if_null_getbuf;
++	ifp->if_private = NULL;
++}
++
+ static void
+ pingvirtuals(
+ 	     netif_t rnetif
+@@ -317,15 +380,28 @@
+ 	  )
+ {
+ 	struct ifnet *ifp;
+-	struct ifnet **ifpp = &ifnet;
++	struct ifnet **ifpp;
++	int found = 0;
+ 
+-	ifp = (struct ifnet *)kalloc(sizeof(struct ifnet));
+-	bzero((void *)ifp, sizeof(struct ifnet));
++	/* plan 153 (authored): reuse a detached entry of the same class */
++	for (ifp = ifnet; ifp != NULL; ifp = ifp->if_next) {
++		if (ifp->if_name == (char *)if_null_name &&
++		    ifp->if_class == class) {
++			found++;
++			break;
++		}
++	}
++	if (!found) {
++		ifp = (struct ifnet *)kalloc(sizeof(struct ifnet));
++		bzero((void *)ifp, sizeof(struct ifnet));
++	}
+ 	ifp->if_name = (char *)name;
+ 	ifp->if_type = (char *)type;
+ 	ifp->if_unit = unit;
+ 	ifp->if_mtu = mtu;
+ 	ifp->if_flags = flags;
++	ifp->if_metric = 0;		/* plan 153 (authored) */
++	ifp->if_addrlist = NULL;	/* plan 153 (authored) */
+ 	ifp->if_snd.ifq_maxlen = ifqmaxlen;
+ 	ifp->if_init = init_func;
+ 	ifp->if_output = output_func;
+@@ -334,15 +410,32 @@
+ 	ifp->if_getbuf = getbuf_func;
+ 	ifp->if_private = private;
+ 	ifp->if_class = class;
++	ifp->if_ipackets = 0;		/* plan 153 (authored) */
++	ifp->if_ierrors = 0;
++	ifp->if_opackets = 0;
++	ifp->if_oerrors = 0;
++	ifp->if_collisions = 0;
+ 	
+-	for (ifpp = &ifnet; 
+-	     *ifpp != NULL && (*ifpp)->if_class >= class;
+-	     ifpp = &(*ifpp)->if_next) {
++	if (!found) {			/* plan 153 (authored) */
++		for (ifpp = &ifnet; 
++		     *ifpp != NULL && (*ifpp)->if_class >= class;
++		     ifpp = &(*ifpp)->if_next) {
++		}
++		ifp->if_next = *ifpp;
++		*ifpp = ifp;	
+ 	}
+-	ifp->if_next = *ifpp;
+-	*ifpp = ifp;	
+ 	if (ifp->if_class == NETIFCLASS_REAL) {
+ 		pingvirtuals((netif_t)ifp);
++		if (hostid == 0) {	/* plan 153 (authored) */
++			u_char ea[6];
++
++			if (if_control((netif_t)ifp, IFCONTROL_GETADDR,
++				       (void *)ea) == 0) {
++				ea[2] ^= ea[0];
++				ea[3] ^= ea[1];
++				hostid = ntohl(*(long *)&ea[2]);
++			}
++		}
+ 	}
+ 	return ((netif_t)ifp);
+ }
+@@ -468,8 +561,15 @@
+ 	return (ifp->if_output(ifp, nb, addr));
+ }
+ 
++/* plan 153 (authored): handlers of a detached interface */
++static int
++if_null_func()
++{
++	return (EIO);
++}
+ 
+-
+-
+-
+-
++static netbuf_t
++if_null_getbuf()
++{
++	return (NULL);
++}

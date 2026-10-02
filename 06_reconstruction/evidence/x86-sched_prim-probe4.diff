@@ -1,0 +1,183 @@
+--- 01_resources/upstream/darwin01/kernel/kern/sched_prim.c	1999-03-17 01:54:45.000000000 +0900
++++ 08_build/runs/tools/s5p96-probe-stage-1/src/kern/sched_prim.c	2026-10-02 12:07:06.254173606 +0900
+@@ -93,6 +93,9 @@
+ #define		DEFAULT_PREEMPTION_RATE		100	/* (1/s) */
+ int		default_preemption_rate = DEFAULT_PREEMPTION_RATE;
+ int		min_quantum;
++timer_elt_data_t recompute_priorities_timer;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++extern void	init_timeout_element(timer_elt_t);
+ 
+ unsigned	sched_tick;
+ 
+@@ -202,21 +205,12 @@
+ 
+ void sched_init(void)
+ {
+-	/*
+-	 *	Calculate the minimum quantum
+-	 *	in ticks.
+-	 */
+-	if (default_preemption_rate < 1)
+-		default_preemption_rate = DEFAULT_PREEMPTION_RATE;
+-	min_quantum = hz / default_preemption_rate;
+-	/*
+-	 *	Round up result (4/5) to an
+-	 *	integral number of ticks.
+-	 */
+-	if (((hz * 10) / default_preemption_rate) - (min_quantum * 10) >= 5)
+-		min_quantum++;
+-	if (min_quantum < 1)
+-		min_quantum = 1;
++	recompute_priorities_timer.fcn = (int (*)())recompute_priorities;
++	recompute_priorities_timer.param = (char *)0;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	init_timeout_element(&recompute_priorities_timer);
++
++	min_quantum = hz / 10;		/* context switch 10 times/second */
+ 
+ 	wait_queue_init();
+ 	pset_sys_bootstrap();		/* initialize processer mgmt. */
+@@ -272,8 +266,12 @@
+ {
+ 	thread->timer.fcn = (int (*)())thread_timeout;
+ 	thread->timer.param = (char *)thread;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	init_timeout_element(&thread->timer);
+ 	thread->depress_timer.fcn = (int (*)())thread_depress_timeout;
+ 	thread->depress_timer.param = (char *)thread;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	init_timeout_element(&thread->depress_timer);
+ }
+ 
+ /*
+@@ -581,8 +579,7 @@
+ #if	RUNQ_DEBUG
+ 		CHECKRQ(&pset->runq, "thread_select");
+ #endif	/* DEBUG */
+-		if (pset->runq.count == 0 ||
+-		    pset->runq.high < thread->sched_pri) {
++		if (pset->runq.count == 0) {
+ 			/*
+ 			 *	Nothing else runnable.  Return if this
+ 			 *	thread is still runnable on this processor.
+@@ -717,7 +714,8 @@
+ 		    ast_context(new_thread, cpu_number());
+ 		    timer_switch(&new_thread->system_timer);
+ 
+-		    old_thread->swap_func = continuation;
++		    /* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++		    switch_unix_context(new_thread);
+ 		    stack_handoff(old_thread, new_thread);
+ 
+ 		    /*
+@@ -730,6 +728,7 @@
+ 		     */
+ 
+ 		    thread_lock(old_thread);
++		    old_thread->swap_func = continuation;
+ 
+ 		    switch (old_thread->state) {
+ 			case TH_RUN	      | TH_SUSP:
+@@ -780,8 +779,6 @@
+ 			    break;
+ 
+ 			default:
+-			    printf("illegal handoff thread state 0x%x\n",
+-				   		old_thread->state);
+ 			    panic("thread_invoke");
+ 		    }
+ 		    thread_unlock(old_thread);
+@@ -856,6 +853,8 @@
+ 	 *	changing address spaces.  It updates active_threads.
+ 	 *	It returns only if a continuation is not supplied.
+ 	 */
++	/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	switch_unix_context(new_thread);
+ 	counter_always(c_thread_invoke_csw++);
+ 	old_thread = switch_context(old_thread, continuation, new_thread);
+ 
+@@ -1142,15 +1141,12 @@
+  */
+ void recompute_priorities(void)
+ {
+-	static int recompute_priority_ticks;
+ #if	SIMPLE_CLOCK
+ 	int	new_usec;
+ #endif	/* SIMPLE_CLOCK */
+ 
+-	if (recompute_priority_ticks-- > 0)
+-		return;
+-
+ 	sched_tick++;		/* age usage one more time */
++	set_timeout(&recompute_priorities_timer, hz);
+ #if	SIMPLE_CLOCK
+ 	/*
+ 	 *	Compensate for clock drift.  sched_usec is an
+@@ -1166,8 +1162,6 @@
+ 	if (sched_thread_id != THREAD_NULL) {
+ 		clear_wait(sched_thread_id, THREAD_AWAKENED, FALSE);
+ 	}
+-
+-	recompute_priority_ticks = hz;
+ }
+ 
+ /*
+@@ -1189,11 +1183,6 @@
+ 
+ 	assert(ticks != 0);
+ 
+-	if ((thread->state & TH_RUN) == 0)
+-		thread->sleep_time += ticks;
+-	else
+-		thread->sleep_time = 0;
+-
+ 	/*
+ 	 *	If asleep for more than 30 seconds forget all
+ 	 *	cpu_usage, else catch up on missed aging.
+@@ -1863,21 +1852,23 @@
+  */
+ void sched_thread_continue(void)
+ {
+-    /*
+-     *	Compute the scheduler load factors.
+-     */
+-    compute_mach_factor();
++    while (TRUE) {
++	/*
++	 *	Compute the scheduler load factors.
++	 */
++	compute_mach_factor();
+ 
+-    /*
+-     *	Scan the run queues for runnable threads that need to
+-     *	have their priorities recalculated.
+-     */
+-    do_thread_scan();
++	/*
++	 *	Scan the run queues for runnable threads that need to
++	 *	have their priorities recalculated.
++	 */
++	if (sched_tick & 1)
++	    do_thread_scan();
+ 
+-    assert_wait((event_t) 0, FALSE);
+-    counter(c_sched_thread_block++);
+-    thread_block_with_continuation(sched_thread_continue);
+-    /*NOTREACHED*/
++	assert_wait((event_t) 0, FALSE);
++	counter(c_sched_thread_block++);
++	thread_block_with_continuation(sched_thread_continue);
++    }
+ }
+ 
+ void sched_thread(void)
+@@ -1949,7 +1940,7 @@
+ 		    thread_t next = (thread_t) queue_next(&thread->links);
+ 
+ 		    if ((thread->state & TH_SCHED_STATE) == TH_RUN &&
+-			thread->sched_stamp != sched_tick) {
++			sched_tick - thread->sched_stamp > 1) {
+ 			    /*
+ 			     *	Stuck, save its id for later.
+ 			     */

@@ -1,0 +1,28 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/tty_tty.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/tty_tty.c	2026-10-02 17:53:46.492124327 +0900
+@@ -69,9 +69,25 @@
+ {
+ 
+ 	if (cmd == TIOCNOTTY) {
++#if	POSIX_KERN
++		/* plan 156 (authored): POSIX session form (original bytes) */
++		struct proc *p;
++		struct posix_proc *px;
++
++		p = u.u_procp;
++		px = get_posix_proc(p->p_pid);
++		if (SESS_LEADER(p, px)) {
++			px->p_session->s_ttyp = 0;
++			px->p_session->s_ttyd = 0;
++		}
++		p->p_flag &= ~SCTTY;
++		u.u_ttyp = 0;
++		u.u_ttyd = 0;
++#else	POSIX_KERN
+ 		u.u_ttyp = 0;
+ 		u.u_ttyd = 0;
+ 		u.u_procp->p_pgrp = 0;
++#endif	POSIX_KERN
+ 		return (0);
+ 	}
+ 	if (u.u_ttyp == NULL)

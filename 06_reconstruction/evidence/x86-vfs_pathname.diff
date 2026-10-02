@@ -1,0 +1,13 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_pathname.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_pathname.c	2026-10-02 17:56:56.590259363 +0900
+@@ -81,6 +81,10 @@
+ 		error =
+ 		    copystr(str, pnp->pn_path, MAXPATHLEN, &pnp->pn_pathlen);
+ 	}
++	/* plan 157 (authored): unterminated full-length path (original bytes) */
++	if (error == 0 && pnp->pn_pathlen == MAXPATHLEN &&
++	    pnp->pn_path[MAXPATHLEN - 1] != '\0')
++		error = ENAMETOOLONG;
+ 	pnp->pn_pathlen--;		/* don't count null byte */
+ 	if (error)
+ 		pn_free(pnp);

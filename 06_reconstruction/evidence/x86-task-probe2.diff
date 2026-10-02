@@ -1,0 +1,39 @@
+--- 01_resources/upstream/darwin01/kernel/kern/task.c	1999-03-17 01:54:47.000000000 +0900
++++ 08_build/runs/tools/s5p79-probe-stage-2/src/kern/task.c	2026-10-02 10:43:20.735692196 +0900
+@@ -149,6 +149,8 @@
+ 	if (new_task == TASK_NULL) {
+ 		panic("task_create: no memory for task structure");
+ 	}
++	new_task->u_address = (struct utask *) zalloc(u_task_zone);	/* UNIX */
++	utask_zero(new_task);
+ 
+ 	/* one ref for just being alive; one for our caller */
+ 	new_task->ref_count = 2;
+@@ -174,8 +176,6 @@
+ 	new_task->pcb_common = 0;
+ 	pcb_common_init(new_task);
+ 
+-	new_task->proc = 0;
+-
+ 	new_task->kernel_vm_space = FALSE;
+ 
+ 	ipc_task_init(new_task, parent_task);
+@@ -256,6 +256,7 @@
+ 	vm_map_deallocate(task->map);
+ 	is_release(task->itk_space);
+ 	pcb_common_terminate(task);
++	utask_free(task->u_address);
+ 	zfree(task_zone, (vm_offset_t) task);
+ }
+ 
+@@ -287,10 +288,6 @@
+ 	if (task == TASK_NULL)
+ 		return KERN_INVALID_ARGUMENT;
+ 
+-	/* Disallow termination of U**X proc tasks */
+-	if (task->proc)
+-		return KERN_FAILURE;
+-
+ 	list = &task->thread_list;
+ 	cur_task = current_task();
+ 	cur_thread = current_thread();

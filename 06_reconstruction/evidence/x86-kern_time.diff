@@ -1,0 +1,229 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_time.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_time.c	2026-10-02 16:03:41.397107522 +0900
+@@ -46,6 +46,10 @@
+ 
+ #import <machine/reg.h>
+ #import <machine/cpu.h>
++#import <mach/time_value.h>		/* plan 145 (authored) */
++#import <kern/host.h>			/* plan 145 (authored) */
++
++extern volatile mapped_time_value_t *mtime;	/* plan 145 (authored) */
+ /* 
+  * Time of day and interval timer support.
+  *
+@@ -111,19 +115,38 @@
+ setthetime(tv)
+ 	struct timeval *tv;
+ {
+-	int s;
++	struct timeval now;			/* plan 145 (authored) */
++	time_value_t new_time;			/* plan 145 (authored) */
+ 
+ 	if (!suser())
+ 		return;
+-	boottime.tv_sec += tv->tv_sec - time.tv_sec;
+-	s = splhigh(); time = *tv; splx(s);
+-	resettodr();
++	getthetime(&now);			/* plan 145 (authored) */
++	boottime.tv_sec += tv->tv_sec - now.tv_sec;
++	boottime.tv_usec = 0;			/* plan 145 (authored) */
++	new_time.seconds = tv->tv_sec;		/* plan 145 (authored) */
++	new_time.microseconds = tv->tv_usec;	/* plan 145 (authored) */
++	host_set_time(realhost.host_priv_self, new_time);	/* plan 145 (authored) */
++}
++
++/*
++ * plan 145 (authored): read the mapped time (mach/time_value.h comment; volatile
++ * mtime and a time_value_t local are the form that matches the original, run s5p119-v2).
++ */
++getthetime(tv)
++	struct timeval *tv;
++{
++	time_value_t t;
++
++	do {
++		t.seconds = mtime->seconds;
++		t.microseconds = mtime->microseconds;
++	} while (t.seconds != mtime->check_seconds);
++	tv->tv_sec = t.seconds;
++	tv->tv_usec = t.microseconds;
+ }
+ 
+-extern	int tickadj;			/* "standard" clock skew, us./tick */
+-int	tickdelta;			/* current clock skew, us. per tick */
+-long	timedelta;			/* unapplied time correction, us. */
+-long	bigadj = 1000000;		/* use 10x skew above bigadj us. */
++/* plan 145: tickadj/tickdelta/timedelta/bigadj are not defined here in the original
++ * (0x1dee40-0x1dee4c lie apart from this object's data); adjtime no longer uses them. */
+ 
+ adjtime()
+ {
+@@ -132,8 +155,7 @@
+ 		struct timeval *olddelta;
+ 	} *uap = (struct a *)u.u_ap;
+ 	struct timeval atv, oatv;
+-	register long ndelta;
+-	int s;
++	time_value_t adj, oadj;			/* plan 145 (authored) */
+ 
+ 	if (!suser()) 
+ 		return;
+@@ -141,26 +163,62 @@
+ 		sizeof (struct timeval));
+ 	if (u.u_error)
+ 		return;
+-	ndelta = atv.tv_sec * 1000000 + atv.tv_usec;
+-	if (timedelta == 0)
+-		if (ndelta > bigadj)
+-			tickdelta = 10 * tickadj;
+-		else
+-			tickdelta = tickadj;
+-	if (ndelta % tickdelta)
+-		ndelta = ndelta / tickdelta * tickdelta;
+-
+-	s = splclock();
++	adj.seconds = atv.tv_sec;		/* plan 145 (authored) */
++	adj.microseconds = atv.tv_usec;		/* plan 145 (authored) */
++	host_adjust_time(realhost.host_priv_self, adj, &oadj);	/* plan 145 (authored) */
+ 	if (uap->olddelta) {
+-		oatv.tv_sec = timedelta / 1000000;
+-		oatv.tv_usec = timedelta % 1000000;
+-	}
+-	timedelta = ndelta;
+-	splx(s);
+-
+-	if (uap->olddelta)
++		oatv.tv_sec = oadj.seconds;	/* plan 145 (authored) */
++		oatv.tv_usec = oadj.microseconds;	/* plan 145 (authored) */
+ 		(void) copyout((caddr_t)&oatv, (caddr_t)uap->olddelta,
+ 			sizeof (struct timeval));
++	}
++}
++
++#define SECDAY          ((unsigned)(24*60*60))          /* seconds per day */
++#define SECYR           ((unsigned)(365*SECDAY))        /* per common year */
++#define YRREF           70      /* UNIX time referenced to 1970 */
++
++/*
++ * plan 145 (authored): inittodr with the structure and messages of Darwin 0.1
++ * kern_time.c:221-293 (APSL 1.0), using a local timeval instead of time.
++ */
++inittodr(base)
++	time_t base;
++{
++	struct timeval now;
++	long deltat;
++
++	if (base < (87-YRREF) * SECYR || base < 0) {	/* fs < than 1987? */
++		printf("WARNING: preposterous time in file system");
++		goto check;
++	}
++	microtime(&now);
++	boottime.tv_sec = now.tv_sec;
++	boottime.tv_usec = 0;
++	deltat = boottime.tv_sec - base;
++	if (deltat < 0)
++		deltat = -deltat;
++	if ((deltat < 2*SECDAY) && (boottime.tv_sec > base))
++		return;
++	if (boottime.tv_sec < SECYR) {
++		printf ("WARNING: clock not set properly");
++		now.tv_sec = base;
++		now.tv_usec = 0;
++		setthetime(&now);
++		boottime = now;
++		goto check;
++	}
++	if (deltat > 90*SECDAY) {	/* assume rtc is way off */
++		printf ("WARNING: preposterous time in Real Time Clock");
++		now.tv_sec = base;
++		now.tv_usec = 0;
++		setthetime(&now);
++		boottime = now;
++		goto check;
++	}
++	printf("WARNING: clock lost %d days", deltat / SECDAY);
++check:
++	printf(" -- CHECK AND RESET THE DATE!\n");
+ }
+ 
+ /*
+@@ -192,6 +250,7 @@
+ 	} *uap = (struct a *)u.u_ap;
+ 	struct itimerval aitv;
+ 	int s;
++	struct timeval now;			/* plan 145 (authored) */
+ 
+ 	if (uap->which > 2) {
+ 		u.u_error = EINVAL;
+@@ -199,6 +258,7 @@
+ 	}
+ 	s = splclock();
+ 	if (uap->which == ITIMER_REAL) {
++		getthetime(&now);		/* plan 145 (authored) */
+ 		/*
+ 		 * Convert from absoulte to relative time in .it_value
+ 		 * part of real time timer.  If time for real time timer
+@@ -207,10 +267,10 @@
+ 		 */
+ 		aitv = u.u_procp->p_realtimer;
+ 		if (timerisset(&aitv.it_value))
+-			if (timercmp(&aitv.it_value, &time, <))
++			if (timercmp(&aitv.it_value, &now, <))
+ 				timerclear(&aitv.it_value);
+ 			else
+-				timevalsub(&aitv.it_value, &time);
++				timevalsub(&aitv.it_value, &now);
+ 	} else
+ 		aitv = u.u_timer[uap->which];
+ 	splx(s);
+@@ -227,6 +287,7 @@
+ 	struct itimerval aitv, *aitvp;
+ 	int s;
+ 	register struct proc *p = u.u_procp;
++	struct timeval now;			/* plan 145 (authored) */
+ 
+ 	if (uap->which > 2) {
+ 		u.u_error = EINVAL;
+@@ -249,9 +310,10 @@
+ 	}
+ 	s = splclock();
+ 	if (uap->which == ITIMER_REAL) {
++		getthetime(&now);		/* plan 145 (authored) */
+ 		untimeout(realitexpire, (caddr_t)p);
+ 		if (timerisset(&aitv.it_value)) {
+-			timevaladd(&aitv.it_value, &time);
++			timevaladd(&aitv.it_value, &now);
+ 			timeout(realitexpire, (caddr_t)p, hzto(&aitv.it_value));
+ 		}
+ 		p->p_realtimer = aitv;
+@@ -272,6 +334,7 @@
+ 	register struct proc *p;
+ {
+ 	int s;
++	struct timeval now;			/* plan 145 (authored) */
+ 
+ 	psignal(p, SIGALRM);
+ 	if (!timerisset(&p->p_realtimer.it_interval)) {
+@@ -283,9 +346,10 @@
+ 	 * If the time's way off, don't try to compensate by getting
+ 	 * there incrementally.
+ 	 */
++	getthetime(&now);			/* plan 145 (authored) */
+ 	s = splclock();
+-	if (p->p_realtimer.it_value.tv_sec < time.tv_sec - 10) {
+-		p->p_realtimer.it_value = time;
++	if (p->p_realtimer.it_value.tv_sec < now.tv_sec - 10) {
++		p->p_realtimer.it_value = now;
+ 		timeout(realitexpire, (caddr_t)p,
+ 			hzto(&p->p_realtimer.it_value));
+ 		splx(s);
+@@ -298,7 +362,7 @@
+ 		s = splclock();
+ 		timevaladd(&p->p_realtimer.it_value,
+ 		    &p->p_realtimer.it_interval);
+-		if (timercmp(&p->p_realtimer.it_value, &time, >)) {
++		if (timercmp(&p->p_realtimer.it_value, &now, >)) {
+ 			timeout(realitexpire, (caddr_t)p,
+ 			    hzto(&p->p_realtimer.it_value));
+ 			splx(s);

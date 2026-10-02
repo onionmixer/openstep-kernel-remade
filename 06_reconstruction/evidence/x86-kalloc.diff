@@ -1,0 +1,102 @@
+--- 01_resources/upstream/darwin01/kernel/kern/kalloc.c	1999-03-17 01:54:34.000000000 +0900
++++ 07_kernel/src/kern/kalloc.c	2026-10-02 04:24:02.757830107 +0900
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++
+ /* 
+  * Mach Operating System
+  * Copyright (c) 1991,1990,1989,1988,1987 Carnegie Mellon University
+@@ -258,24 +260,75 @@
+ 	}
+ }
+ 
+-struct zone *kalloc_zone(
+-	vm_size_t	size)
++/*
++ * malloc() through malloc_good_size() below are from NeXTMach mk-108.1
++ * kern/kalloc.c (https://github.com/johnsonjh/NeXTMach.git commit
++ * f6bdb9c3268f0eadc545d41bcc0564453b17001e, lines 332-376), whose notice is:
++ *
++ * Mach Operating System
++ * Copyright (c) 1987 Carnegie-Mellon University
++ * All rights reserved.  The CMU software License Agreement specifies
++ * the terms and conditions for use and redistribution.
++ *
++ *	Author:	Avadis Tevanian, Jr.
++ *	Copyright (C) 1985, Avadis Tevanian, Jr.
++ */
++/*
++ * Trival implementation of malloc/free calls.  This version encodes the
++ * length into the memory returned.  A better implementation would do this
++ * only for memory which is allocated >= pagesize.  < pagesize would
++ * check the address for the zone to free to.
++ */
++void *malloc(unsigned int size)
+ {
+-	register int zindex = 0;
+-	register vm_size_t allocsize;
++	unsigned int *addr;
+ 
+-	/* compute the size of the block that we will actually allocate */
++	size += 8;
++	addr = (unsigned int *)kalloc(size);
++	if (!addr)
++		return addr;
++	bzero(addr, size);
++	*addr = size;
++	return (void *)(addr+2);
++}
+ 
+-	allocsize = size;
+-	if (size <= k_zone_maxsize) {
+-		allocsize = k_zone_elemsize[0];
+-		zindex = 0;
+-		while (allocsize < size) {
+-			allocsize = k_zone_elemsize[++zindex];
+-		}
++void *calloc(unsigned int num, unsigned int size)
++{
++	return malloc(num*size);
++}
+ 
+-		return (k_zone[zindex]);
+-	}
++void *realloc(void *addr, unsigned int size)
++{
++	unsigned int *sizep = ((unsigned int *)addr) - 2;
++	unsigned int *new;
+ 
+-	return (0);
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	if (addr == 0)
++		return malloc(size);
++	new = (unsigned int *)kalloc(size+8);
++	if (!new)
++		return new;
++	*new = size+8;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++	if (size < *sizep)
++		bcopy(addr, new+2, size);
++	else
++		bcopy(addr, new+2, *sizep);
++	kfree((caddr_t)sizep, *sizep);
++	return (void *)(new+2);
+ }
++
++void free(void *data)
++{
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++    unsigned int *sizep;
++
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++    if (data == 0)
++	return;
++/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++    sizep = (((unsigned int *)data)-2);
++    kfree ((caddr_t)sizep, *sizep);
++}
++
++void malloc_good_size(unsigned int size) {}

@@ -1,0 +1,29 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/tcp_usrreq.c	2026-09-11 10:02:49.576218406 +0900
++++ 07_kernel/src/bsd/netinet/tcp_usrreq.c	2026-10-02 18:39:03.992825361 +0900
+@@ -318,10 +318,9 @@
+ 	default:
+ 		panic("tcp_usrreq");
+ 	}
+-#if	DEBUG
++	/* plan 163 (authored): no DEBUG guard; tcp_trace is in the kernel (plan 152) */
+ 	if (tp && (so->so_options & SO_DEBUG))
+ 		tcp_trace(TA_USER, ostate, tp, (struct tcpiphdr *)0, req);
+-#endif	DEBUG
+ 	splx(s);
+ 	return (error);
+ }
+@@ -400,9 +399,11 @@
+ 	struct inpcb *inp;
+ 	int error;
+ 
+-	error = soreserve(so, tcp_sendspace, tcp_recvspace);
+-	if (error)
+-		return (error);
++	if (so->so_snd.sb_hiwat == 0 || so->so_rcv.sb_hiwat == 0) {	/* plan 163 (authored) */
++		error = soreserve(so, tcp_sendspace, tcp_recvspace);
++		if (error)
++			return (error);
++	}
+ 	error = in_pcballoc(so, &tcb);
+ 	if (error)
+ 		return (error);

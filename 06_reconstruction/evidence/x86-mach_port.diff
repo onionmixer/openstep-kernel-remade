@@ -1,0 +1,114 @@
+--- 01_resources/upstream/darwin01/kernel/ipc/mach_port.c	1999-03-17 01:54:08.000000000 +0900
++++ 07_kernel/src/ipc/mach_port.c	2026-10-01 23:02:38.845922728 +0900
+@@ -22,6 +22,39 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-01: Darwin 0.1 ipc/mach_port.c with restoration edits (vm_move size
++ * vm_size_used in mach_port_names and mach_port_get_set_status) and the function
++ * old_mach_port_get_receive_status taken from Mach 4 kernel/ipc/mach_port.c;
++ * see 07_kernel/MODIFICATIONS.md.  The following Mach 4 notice applies to that function. */
++/*
++ * Mach Operating System
++ * Copyright (c) 1991,1990,1989 Carnegie Mellon University.
++ * Copyright (c) 1993,1994 The University of Utah and
++ * the Computer Systems Laboratory (CSL).
++ * All rights reserved.
++ *
++ * Permission to use, copy, modify and distribute this software and its
++ * documentation is hereby granted, provided that both the copyright
++ * notice and this permission notice appear in all copies of the
++ * software, derivative works or modified versions, and any portions
++ * thereof, and that both notices appear in supporting documentation.
++ *
++ * CARNEGIE MELLON, THE UNIVERSITY OF UTAH AND CSL ALLOW FREE USE OF
++ * THIS SOFTWARE IN ITS "AS IS" CONDITION, AND DISCLAIM ANY LIABILITY
++ * OF ANY KIND FOR ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF
++ * THIS SOFTWARE.
++ *
++ * Carnegie Mellon requests users of this software to return to
++ *
++ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
++ *  School of Computer Science
++ *  Carnegie Mellon University
++ *  Pittsburgh PA 15213-3890
++ *
++ * any improvements or extensions that they make and grant Carnegie Mellon
++ * the rights to redistribute these changes.
++ */
++
+ /*
+  * Copyright (c) 1995, 1994, 1993, 1992, 1991, 1990  
+  * Open Software Foundation, Inc. 
+@@ -377,13 +410,13 @@
+ 
+ 		kr = vm_move(
+ 			ipc_kernel_map, addr1,
+-			ipc_soft_map, size_used,
++			ipc_soft_map, vm_size_used,
+ 			TRUE, &memory1);
+ 		assert(kr == KERN_SUCCESS);
+ 
+ 		kr = vm_move(
+ 			ipc_kernel_map, addr2,
+-			ipc_soft_map, size_used,
++			ipc_soft_map, vm_size_used,
+ 			TRUE, &memory2);
+ 		assert(kr == KERN_SUCCESS);
+ #else	/* MACH_OLD_VM_COPY */
+@@ -834,6 +867,46 @@
+ }
+ 
+ /*
++ *	Routine:	old_mach_port_get_receive_status [kernel call]
++ *	Purpose:
++ *		Compatibility for code written before sequence numbers.
++ *		Retrieves mucho info about a receive right.
++ *	Conditions:
++ *		Nothing locked.
++ *	Returns:
++ *		KERN_SUCCESS		Retrieved status.
++ *		KERN_INVALID_TASK	The space is null.
++ *		KERN_INVALID_TASK	The space is dead.
++ *		KERN_INVALID_NAME	The name doesn't denote a right.
++ *		KERN_INVALID_RIGHT	Name doesn't denote receive rights.
++ */
++
++kern_return_t
++old_mach_port_get_receive_status(space, name, statusp)
++	ipc_space_t space;
++	mach_port_t name;
++	old_mach_port_status_t *statusp;
++{
++	mach_port_status_t status;
++	kern_return_t kr;
++
++	kr = mach_port_get_receive_status(space, name, &status);
++	if (kr != KERN_SUCCESS)
++		return kr;
++
++	statusp->mps_pset = status.mps_pset;
++	statusp->mps_mscount = status.mps_mscount;
++	statusp->mps_qlimit = status.mps_qlimit;
++	statusp->mps_msgcount = status.mps_msgcount;
++	statusp->mps_sorights = status.mps_sorights;
++	statusp->mps_srights = status.mps_srights;
++	statusp->mps_pdrequest = status.mps_pdrequest;
++	statusp->mps_nsrequest = status.mps_nsrequest;
++
++	return KERN_SUCCESS;
++}
++
++/*
+  *	Routine:	mach_port_set_qlimit [kernel call]
+  *	Purpose:
+  *		Changes a receive right's queue limit.
+@@ -1148,7 +1221,7 @@
+ 
+ 		kr = vm_move(
+ 			ipc_kernel_map, addr,
+-			ipc_soft_map, size_used,
++			ipc_soft_map, vm_size_used,
+ 			TRUE, &memory);
+ 		assert(kr == KERN_SUCCESS);
+ #else	/* MACH_OLD_VM_COPY */

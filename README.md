@@ -26,6 +26,8 @@ See [the full analysis plan](02_plan/FULL_ANALYSIS.md), [the multi-architecture 
 05_ida/         IDA databases, snapshots, and exports
 09_validation/  Evidence audits and validation reports
 10_tools/       Repeatable analysis and audit tools
+11_emulation/   QEMU platform for i386, SPARC and m68k (sources, builds and firmware not tracked)
+12_archive/     Imported records of retired workspaces (not tracked; not kernel-analysis evidence)
 ```
 
 ## What is not in this repository
