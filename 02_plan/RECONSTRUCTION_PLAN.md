@@ -1593,3 +1593,89 @@ codex 교차검토(gpt-6.1-sol, k83bqzgmu) 판정:
 - `07_kernel/MODIFICATIONS.md` 552→572: 두 `.defs` 행 + objc 머리 18 행(PROVENANCE 964–978·985–987; 각 행 SHA 를 실제 파일과 대조한 뒤 씀).
 - 근거 md 두 곳(`x86-EventServer.md`·`x86-audioServer.md`)에 입력 출처 문단 추가.
 - 검사(python): 기존 바이트는 접두로 그대로, PROVENANCE 7 열·destination 중복 0, 새 MODIFICATIONS 행 5 열·문구 포함, `src/` `.defs` 누락 0, "nearly the same" PROVENANCE 행 가운데 MODIFICATIONS 에 없는 것 0. 07 코드·빌드 변경 없음.
+
+## 408. S7-4 세부 계획 — x86 기록 마무리: 등급 P 70 객체의 링크 배치 증명과 재판정 규칙, `STATUS.md` 갱신(07·빌드 변경 없음; 코딩 전, 2026-10-08)
+
+배경(사용자 지시 "1 작업 진행"): 링크한 커널이 원본과 바이트 동일해졌으므로(§402·404), 객체 단독 L1 로는 위치를 정하지 못해 P 로 둔 절을 링크 결과로 확인하고
+재판정 규칙을 정합니다. `02_plan/STATUS.md` 는 머리가 "2026-09-11" 인 분석 단계 서술이라 지금 상태로 고칩니다.
+
+확인한 사실(이번 세션, python):
+- `objects_partial.tsv` 70 행: `unverified_sections` 가 `__DATA,__bss` 만 60, `__bss`+`__TEXT,__const` 5, `__const` 만 4, **빈 칸 1(`x86-vol`)**.
+  `x86-vol` 은 근거 `06_reconstruction/evidence/x86-vol.md:6`·`:8` 이 "`__DATA,__bss` reference-inferred … 24 B at [0x1e7588, …)" 라고 적어 표 칸이 빠진 기록 공백입니다.
+- 링크 run `08_build/runs/s6p404-ln1`: 객체별 배치 지도(link map)는 없습니다(`run.cmd` 에 `-M` 없음). 대신 strip 전 `out/mach_kernel.sys` 에 지역 기호 2,776·외부 3,751 과
+  STAB(N_SO 0x64 792 개 — 이름 있는 것 396, N_STSYM 0x26 6,368, N_LCSYM 0x28 660, N_FUN 0x24 4,480 등)이 있습니다. `__bss` 의 지역 기호는 184 개입니다.
+- 링크 입력 순서는 `run.cmd` 의 `ld -r`(libDriver_kern.o, libkobjc.o) 두 줄과 최종 `ld -static …` 줄에 있습니다.
+
+방법 — 링크 배치 증명(읽기 전용 도구 `10_tools/reconstruction/l2_place.py`, 새 파일):
+1. 입력: `run.cmd`(링크 순서), `src/objs/*.o`, `out/libDriver_kern.o`·`out/libkobjc.o`, `out/mach_kernel.sys`, 원본 `03_original/x86/binaries/mach_kernel`. 모든 입력의 SHA-256 을 출력에 적습니다.
+2. ld 배치 모의: 출력 절마다 입력 순서대로 각 입력 절을 그 절의 정렬로 올림한 주소에 둡니다. `ld -r` 묶음 두 개는 안쪽도 같은 방식으로 모의하고, 그 결과를 묶음 객체의 기호표와 대조합니다.
+3. 모의 검증(독립 근거와 대조, 불일치 0 이어야 함): (a) 출력 절의 시작·크기가 `.sys` 의 절과 같음, (b) `.sys` 의 모든 비-STAB 기호(지역·외부) 값 = 모의한 입력 절 시작 + 그 기호의 객체 안 값,
+   (c) STAB N_STSYM·N_LCSYM·N_FUN 의 주소도 같은 식으로 맞음(N_SO 범위로 객체를 가름). 기호·STAB 가 없는 입력 절은 (a) 의 누적 크기로만 확인되므로 따로 셉니다.
+4. P 객체마다 미검증 절의 모의 위치 [시작, 끝): `__const` 는 객체 바이트 = 원본 바이트(원본 파일에서 읽음), `__bss` 는 원본 `__bss` 안에 있고 표·근거에 적힌 reference-inferred 주소와 같음.
+   객체는 표의 최종 객체가 아니라 s6 재빌드 객체이므로, 두 객체의 SHA 가 같은지(또는 §394 의 L1 재판정이 같은 등급인지)를 함께 적습니다.
+5. 출력 `09_validation/reconstruction/s6-l2-place-20261008.json`. 도구 자기 시험: 일부러 순서를 바꾼 입력·정렬을 틀린 입력에서 3 이 실패해야 합니다.
+
+재판정 규칙(사용자 결정 D063 대상, 4 가 모두 통과한 객체에만 적용):
+- ① **P 유지 + 증명 열**: 등급 정의는 그대로, `objects_partial.tsv` 에 링크 배치 증명 결과 열을 더함. README 커버리지는 "P(링크 배치 증명 완료)" 로 표시.
+- ② **A 로 승격**: `objects_confirmed.tsv` 로 옮기고 A 정의를 "L1 OBJECT_MATCH 또는 (P + 링크 배치 증명)" 으로 넓힘. 증명 근거 열을 둠. 객체 단독 증명과 링크 증명이 같은 등급으로 섞입니다.
+- ③ **새 등급(예: `A-L2`)**: `objects_confirmed.tsv` 에 넣되 등급 이름으로 구분. 정의 "P 의 미검증 절이 L2 링크 배치 증명으로 확인됨".
+- 공통: 증명이 실패한 객체는 P 로 남기고 사유를 적습니다. `x86-vol` 의 빈 칸은 어느 선택이든 근거 md 대로 채웁니다.
+
+`STATUS.md` 갱신: 머리를 2026-10-08 현재 상태(바이트 동일 L2, QEMU L3, 객체 수·커버리지, 남은 항목, m68k·SPARC 다음)로 새로 쓰고, 기존 2026-09-11 서술은 "이전 기록" 으로 아래에 그대로 둡니다(지우지 않음).
+
+검사(python): 표 행 수(70 + 315 + 17 + 2 = 404 유지), 각 행 열 수, 등급 집계, README 커버리지 수치 재계산, 기존 행 바이트 보존(바뀐 행만 diff).
+하지 않는 것: 07·빌드·링크 재실행, 다른 아키텍처.
+
+codex 교차검토(gpt-6.1-sol, kcsi6w165) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 70 행 60/5/4/1·`x86-vol` 빈 칸·`.sys` 기호/STAB 수·link map 없음이 맞음 | 이번 세션 python(위 사실 줄과 같은 출력) | ✅ |
+| 표 합계 404 중 confirmed 315 는 A 314 + A\* 1 | (A\* 수는 이 계획에 옮기지 않음 — 집계는 코딩 뒤 python 으로) | ⏭️ STATUS 작성 때 python 으로 다시 셈 |
+| **`ld -r` 이 문자열·메시지 참조 절을 합침 → "모든 출력 절을 이어 붙여 모의" 는 틀림** | python: libDriver_kern.o `__cstring` 이어 붙임 12,374 ↔ 실제 11,567, `__message_refs` 4,028 ↔ 2,204, `__cls_refs` 216 ↔ 84; libkobjc.o `__cstring` 1,801 ↔ 1,680, `__message_refs` 252 ↔ 204, `__cls_refs` 12 ↔ 8; 반면 `__bss` 224·8, `__const` 2,236·738 은 이어 붙임과 같음 | ✅ **내 계획이 틀림** — 증명 범위를 `__bss`(zerofill)·일반 `__const` 로 좁힘 |
+| `-lcc` 구성원(`_muldi3.o`·`_udivdi3.o`)이 입력에서 빠짐 | `run.cmd` 마지막 ld 줄에 `-lcc` 있음(python) | ✅ 입력에 넣음(아카이브 해시·i386 조각·구성원 해시) |
+| 기호 식: 링크 값 = 기여 시작 + n_value − 입력 절 addr, `ld -r` 두 단계 합성 | Mach-O MH_OBJECT 의 n_value 는 객체 주소 공간 값(macho_obj 의 절 `addr` 열 확인) | ✅ |
+| `__common` 은 링크가 따로 배정 | §399–401 기록(처음 언급 순) | ✅ 이 증명 범위 밖(P 의 미검증 절에 `__common` 없음 — 60/5/4/1 분류 출력) |
+| `-segalign` 은 절 시작에 영향 → 시작은 `.sys` 관측값으로 쓰고 "예측 아님" 이라 적을 것 | 원칙상 맞음 | ✅ |
+| **P 70 중 재빌드 객체 해시가 기록과 같은 것 21, 다른 것 49; 68 은 구조 기준선 같음, `nfs_subr`·`swapfs` 는 `expected_ok` 만** | python: 기준선 `s6-l2-baseline-20261008/<n>-*.json` 의 inputs 해시 ↔ `s6-l1-*-s6l4-*.json` 의 obj_sha256 → 같음 21·다름 49; (same_as_baseline, expected_ok) = (True,None) 68·(None,True) 2 = nfs_subr·swapfs | ✅ "같은 해시 또는 같은 등급" 대신 아래 항목 B |
+| `.sys` 비-STAB 절대 기호 120, 지역 이름 중복 50 무리 → 이름만으로 맞추면 안 됨 | python: 120·50 | ✅ 기호를 종류·입력 순서로 식별 |
+| N_SO 없는 어셈블리 입력 6, 라이브러리 구성원 식별 필요 | (402 − 396 = 6 은 python 으로 맞음; 어느 입력인지는 도구에서 셈) | ⚖️ 도구가 세어 출력 |
+| 기호·STAB 닻이 없는 `__const` 기여 8 → "순서 의존 귀속" 으로 표시 | 아직 측정 안 함 | ⚖️ 도구가 세어 출력, 표시 규칙은 채택 |
+| `bios`·`SCSIGenericKern` 은 reference-inferred 주소가 없음(참조 없는 bss) | `objects_partial.tsv` bios 행 "16 B unreferenced" 확인 | ✅ 위치와 닻만 보고 |
+| 권장 ①(P 유지 + 증명 열): A 는 OBJECT_MATCH + 경계 증명, P 는 OBJECT_MATCH 가 아님; ③ 은 도구가 모르는 등급 | `06_reconstruction/README.md:24`(A 정의), `:26`(P 정의) sed; `10_tools/reconstruction/l2_baseline.py` 의 등급 분기 `A`/`A*`/`P` 만 확인 | ✅ 권장안 ① 로 함(결정은 사용자) |
+| STATUS 는 바이트 동일 커널과 PIC 판 QEMU 부팅을 구분, L 커버리지 따로, 역사적 소스 동일성 주장 금지 | AGENTS.md:15(사실·해석·구현·검증 분리) sed | ✅ |
+| 증명 한계: 저장된 재빌드 링크의 배치 증명이지, 구별 불가한 0 저장소·반복 상수의 역사적 귀속 증명이 아님 | 원칙상 맞음 | ✅ 출력과 표에 한계 문구 |
+
+수정한 방법(위 "방법" 2–4 를 대체):
+- A. 범위: P 객체의 미검증 절, 즉 `__DATA,__bss`(S_ZEROFILL)와 일반 `__TEXT,__const` 만. 이 두 종류는 이어 붙임 모의가 `ld -r` 결과와 맞음을 위 python 으로 확인했고, 최종 링크 `__bss` 합계(12,432)도 도구가 다시 확인합니다.
+  입력: `run.cmd` 순서의 `src/objs/*.o`, 두 `ld -r` 묶음, `-lcc` 구성원(아카이브 해시·i386 조각·구성원 해시·추출 순서). 각 출력 절의 시작은 `.sys` 관측값이며 "예측" 이 아님을 출력에 적습니다.
+- B. 객체 동일성: 각 P 객체마다 (1) 기록된 객체(기준선 `inputs` 경로, 70 개 모두 디스크에 있고 해시 일치)와 (2) 링크에 쓰인 재빌드 객체(`s6-l1-*-s6l4` obj_sha256 → `input.expected` → `src/objs`)를 묶고,
+  두 객체의 미검증 절이 같은지(크기·정렬·`__const` 바이트·그 절의 기호 이름·값) 직접 비교합니다. `nfs_subr`·`swapfs` 는 이 비교에 더해 재빌드 객체로 L1 비교를 다시 돌려 표의 등급·사유와 같은지 확인합니다.
+- C. 배치 검증: 그 두 절 종류에 대해 기여 시작 = 이어 붙임 모의, 그리고 (a) 합계가 `.sys` 절 크기와 같음, (b) 그 절에 놓이는 모든 비-STAB 절 기호(N_SECT; 절대 기호 제외)가 "기여 시작 + n_value − 입력 절 addr" 과 같음(입력 순서·발생 순서로 식별),
+  (c) 주소가 그 절에 드는 STAB N_STSYM·N_LCSYM 도 같음. 불일치 0 이어야 합니다. 기호·STAB 닻이 없는 기여는 "순서 의존 귀속" 으로 따로 셉니다.
+- D. P 객체 판정: 미검증 절의 링크 위치 [시작, 끝)를 적고, `__const` 는 그 범위의 원본 바이트 = 객체 바이트, `__bss` 는 원본 `__bss` 안 + 기록된 reference-inferred 주소와 같음(참조 없는 bss 는 위치와 닻만).
+- E. 한계 문구: "저장된 재빌드 링크(s6p404-ln1)에서의 배치 증명이며, 구별할 수 없는 0 저장소·반복 상수의 역사적 귀속은 증명하지 않음".
+- F. 도구 자기 시험: 입력 순서를 바꾼 경우·정렬을 틀린 경우·한 객체를 빼는 경우에 C 가 실패해야 합니다.
+
+재판정 권장: ① P 유지 + 증명 열(`l2_placement`: 결과·근거 json·닻 유무). 사용자 결정(D063) 전에는 표를 바꾸지 않고 도구·증명 json 만 만듭니다(읽기 전용 작업).
+`STATUS.md` 는 위 원칙(구분·한계)으로 쓰고, 수치는 모두 python 으로 다시 셉니다.
+
+결과 1 — 링크 배치 증명(2026-10-08, 읽기 전용; 도구 `10_tools/reconstruction/l2_place.py`, 출력 `09_validation/reconstruction/s6-l2-place-20261008.json`):
+- 배치 모의 6 개(`.sys`·`libDriver_kern.o`·`libkobjc.o` × `__bss`·`__const`) 모두 통과: 끝 주소, 비-STAB 절 기호 다중집합, N_STSYM·N_LCSYM 다중집합이 기대와 같음.
+  `.sys` `__bss` 0x1e56c0·12,432 B, `__const` 0x1d10bc·22,772 B — 원본 절과 같은 시작·크기(python). `-lcc` 구성원 순서는 `.sys` 의 text 기호 주소로 관측.
+- P 70 행 모두 증명 통과(`proof_ok` 70): 재빌드 L1 json 이 객체 해시에 묶여 있고 P 일관성 규칙(l2_baseline.py) 통과, 기록된 객체와 재빌드 객체의 미검증 절이 크기·정렬·플래그·`__const` 바이트·절 기호까지 같음
+  (해시가 같은 객체 21, 다른 객체 49 — 다른 49 도 미검증 절은 같음), 링크 위치가 원본 절 안, `__const` 9 개는 원본 바이트와 같음, `__bss` 63 개는 기록된 reference-inferred 위치와 시작(구간이면 끝도)이 같음.
+- 기록 위치가 없는 `__bss` 3: `bios` [0x1e75a4, 0x1e75b4)·`SCSIGenericKern` [0x1e7570, 0x1e7574)(참조 없는 bss, 위치와 기호·STAB 닻만), `vol` [0x1e7588, 0x1e75a0)(표 칸이 빈 기록 공백; 근거 `x86-vol.md:8` 의 구간과 같음).
+- 닻(기호·STAB) 없는 기여 = 순서 의존 귀속: `__const` 8 개(intr·PCresume·vm_machdep·fp_support·i386_init·PCexception·trap·pmap — 4 B `18 00 20 00` 류). 바이트는 원본과 같습니다.
+- 도구 첫 실행의 실패 24 는 표 문장의 다른 주소("one Delta 0x…")까지 위치로 읽은 도구 파싱 오류였고, "reference-inferred[-single] at" 뒤의 위치만 읽도록 고친 뒤 0 이 됐습니다(kalloc 의 "-single" 표기 포함).
+- 자기 시험: 입력 순서 바꾸기·`__const` 입력 빼기·채움이 있는 기여의 정렬 낮추기 세 경우 모두 배치 모의가 실패함(검출).
+- 한계(출력에도 적음): 저장된 재빌드 링크 s6p404-ln1 에서의 배치 증명이며, 구별할 수 없는 0 저장소·반복 상수의 역사적 귀속은 증명하지 않습니다. `.sys` 절 시작은 관측값입니다.
+- 다음: 재판정 규칙 D063 사용자 결정 → 표·README·`STATUS.md` 반영.
+
+결과 2 — D063 반영(2026-10-08, 사용자 선택 "P 유지 + 증명 열 (Recommended)"):
+- `06_reconstruction/objects_partial.tsv`: `l2_placement` 열을 `evidence` 앞에 넣음(12→13 열, 71 줄 유지). `l2_forms.py` 가 열 5·6·마지막(`evidence`)을 읽으므로 끝이 아닌 자리에 넣었고,
+  표를 고치기 전후 `l2_forms.py` 출력이 바이트 단위로 같음(cmp). `x86-vol` 의 빈 `unverified_sections` 를 근거 md 대로 채움 → `l2_place.py` 재실행에서 표·L1 일치 70/70, 증명 70/70.
+  기록 스크립트는 scratchpad `rec408.py`(먼저 시험 실행; 기존 칸이 새 열을 뺀 새 행과 같은지 행마다 확인).
+- 표에 큰따옴표가 든 줄이 20 개 있어 `csv` 모듈 대신 탭으로 직접 나눠 읽고 쓰도록 했고(`l2_place.py` 도 같게 고침, 결과 json 동일), 이전 `csv` 읽기 결과도 탭 나누기와 같았음(따옴표로 시작하는 칸 0).
+- `02_plan/DECISIONS.md` D063, `06_reconstruction/README.md`(P 정의 뒤에 `l2_placement` 설명), `README.md`(상태 표의 P 칸), `02_plan/STATUS.md`(머리를 2026-10-08 상태로 새로 쓰고 2026-09-11 서술은 아래에 그대로 보존).
+- STATUS 수치(python): 315(A 314·A\* 1)·70·17·2 = 404, 커버리지 합 850,838 B·남은 598 B·비율 73.13/26.76/0.04 % 재계산 일치.

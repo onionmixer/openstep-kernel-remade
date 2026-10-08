@@ -17,7 +17,7 @@ Workspace, and `hostinfo` reports the original version string.
 
 | Item | Result |
 |---|---|
-| Recorded objects (with `__text`) | 385: grade A 315 (one A\*), grade P 70 (not an object match: every file-backed section except the listed unverified ones matches in bytes and references; the unverified ones are unreferenced sections or zero-fill placed only through references — `06_reconstruction/README.md`) |
+| Recorded objects (with `__text`) | 385: grade A 315 (one A\*), grade P 70 (not an object match: every file-backed section except the listed unverified ones matches in bytes and references; the unverified ones are unreferenced sections or zero-fill placed only through references — `06_reconstruction/README.md`). In the linked kernel all 70 have their unverified sections proved in place (link-placement proof, column `l2_placement`; the grade stays P, decision D063) |
 | Data-only objects | 17 (`objects_data.tsv`: syscall table, device switches, protocol tables, `param.c`, version strings, …) |
 | Toolchain library members | 2 (`__muldi3`, `__udivdi3` from `/lib/libcc.a`, linked with `-lcc`) |
 | `__text` coverage by grade | A 73.13 %, P 26.76 %, L 0.04 %; the remaining 598 bytes are alignment padding |
