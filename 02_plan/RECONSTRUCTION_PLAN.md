@@ -1549,4 +1549,47 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
    - 정리: 사용자 결정에 따라 최상위 `--help/`·`--help.manifest.json` 삭제(추적되지 않던 부산물); 도구 해시 기록은 로컬 유지.
    - 종료(사용자 "확인은 끝났습니다"): `qmp_stop.py`(qmp_capabilities → stop → quit; 이벤트 STOP·SHUTDOWN), QEMU PID 1179582 종료 확인, `tail` 은 파이프가 닫혀 스스로 끝남, 시험 디스크·저장소 디스크 SHA 가 시작 전과 같음(dec0572b…, 36e437f6…).
 6. `HOWTOUSE.md`(저장소 최상위, 새 파일, 사용자 지시 2026-10-08): 결과물·원본 대조·QEMU 용 PIC 판·시험 디스크·부팅·끄기·실기 시험(사용자 작업)·디버깅 참고. codex 사실 확인 지적 넷을 확인해 고침 — Workspace 부팅은 PIC 판(대조 시험 없음), `.sys` 는 `__LINKEDIT`·LC_SYMTAB 이 다름(plan 402 탐침 비교에서도 그 둘), 실기 시험은 "새 정보 없음" 이 아니라 결과 파일로 새로 부팅한 적 없음(plan 403), gdb 소켓은 `/tmp/kr-<arch>-gdb.sock`(vm-common.sh:54).
-7. README 갱신(2026-10-08, 사용자 지시): 제목·현재 상태(x86 바이트 일치, QEMU Workspace 부팅, 객체·등급·커버리지 표)·스크린샷(`docs/images/qemu-i386-reconstructed-kernel-hostinfo-20261008.png`, 사용자 제공 화면 사본, SHA 원본과 같음, 801×661)·HOWTOCOMPILE/HOWTOUSE 안내·출처와 라이선스·도구·디렉터리 구성·저장소에 없는 것. codex 사실 확인(k1ig0efbh) 지적 다섯을 확인해 고침 — P 등급 설명(06_reconstruction/README.md:26, objects_partial 의 kern_notify·PCresume 행), PROVENANCE 가 모든 파일을 담지 않음(생성 머리 21–22·문서 제외; 내 python 대조에서 `src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 도 행 없음 — 이번 세션 전부터의 누락, 사용자에게 보고), 라이선스 TBD(PROVENANCE 364 곳)·Darwin 파일 중 BSD 고지(ansi.h, PROVENANCE:3), 입력 해시 없는 보고서(l1-sectof-diff-20261002.json).
+7. README 갱신(2026-10-08, 사용자 지시): 제목·현재 상태(x86 바이트 일치, QEMU Workspace 부팅, 객체·등급·커버리지 표)·스크린샷(`docs/images/qemu-i386-reconstructed-kernel-hostinfo-20261008.png`, 사용자 제공 화면 사본, SHA 원본과 같음, 801×661)·HOWTOCOMPILE/HOWTOUSE 안내·출처와 라이선스·도구·디렉터리 구성·저장소에 없는 것. codex 사실 확인(k1ig0efbh) 지적 다섯을 확인해 고침 — P 등급 설명(06_reconstruction/README.md:26, objects_partial 의 kern_notify·PCresume 행), PROVENANCE 가 모든 파일을 담지 않음(생성 머리 21–22·문서 제외; 내 python 대조에서 `src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 도 행 없음 — 이번 세션 전부터의 누락, 사용자에게 보고 → plan 407 로 보완), 라이선스 TBD(PROVENANCE 364 곳)·Darwin 파일 중 BSD 고지(ansi.h, PROVENANCE:3), 입력 해시 없는 보고서(l1-sectof-diff-20261002.json).
+
+## 407. S7-3 세부 계획 — 기록 공백 보완: `Event.defs`·`audio.defs` 의 PROVENANCE·MODIFICATIONS 행(기록만, 07 코드·빌드 변경 없음; 코딩 전, 2026-10-08)
+
+배경: plan 406 항목 7 의 python 대조에서 `07_kernel/src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 가 `07_kernel/PROVENANCE.tsv` 에 행이 없음을 찾았습니다(사용자 지시 "미처리 보완 진행"). 두 파일은 plan 343(2026-10-06)에서 D030 사본으로 두었으나, 그때 기록은 PROVENANCE 872→876(생성 C 3 + msg_type.h)·MODIFICATIONS 378→381 로 .defs 두 행이 빠졌습니다(plans/RECONSTRUCTION_PLAN-321-373.md 의 §343 기록 줄).
+
+확인한 사실(이번 세션, python·sha256sum):
+- 07 `Event.defs` SHA-256 cbaf090903ca6d9f146b4ca21b6f662cf851718fc750dfb9f50421cfc60a08bb(86 줄), `audio.defs` 420e65d9d68c5e50f08e378bafecafa2add078e175b74293c961de7719fb1f12(365 줄).
+- Darwin 원문 `01_resources/upstream/darwin01/driverkit-1/libDriver/Kernel/Event.defs` 361d8cd4…(104 줄), `audio.defs` 20a635a4…(383 줄); 아카이브 `driverkit-139.1-1.tar.gz` 255235626e702fe52b28564c0bc5644a686f1e886697f1c567b6a4275bc43102.
+- difflib: 차이는 머리 주석뿐 — Darwin 의 저작권·APSL 머리와 파일 설명 주석(Event: `File: bsd/dev/Event_server.defs`, audio: `audio.defs / MIG interface to audio driver kernel server.`)이 프로젝트 D030 머리 주석으로 바뀌었고 본문은 같습니다.
+- 07 git 추적 파일 중 `src/` 의 `.defs` 로 PROVENANCE 행이 없는 것은 이 둘뿐입니다(PROVENANCE 1,045 행, 7 열).
+
+할 일(선례: PROVENANCE `audioReply.defs` 행, MODIFICATIONS `audioReply.defs` 행):
+1. `07_kernel/PROVENANCE.tsv` 끝에 두 행을 덧붙입니다(중간 삽입은 문서들이 인용한 행 번호를 밀므로 하지 않음). 열: destination · `authored` · `255235626e70…`(아카이브) · `darwin01/driverkit-1/libDriver/Kernel/<이름>` · D030 문구(nearly the same as Darwin 0.1 …, body verbatim, head comment replaced, Darwin notices not included, D017) · 작성 2026-10-06(plan 343)·파일 SHA-256·Darwin 파일 SHA-256·MIG 입력(생성 C, s5p343-mig2)·행 추가 plan 407 · 근거 `06_reconstruction/evidence/x86-EventServer.md` / `x86-audioServer.md`.
+2. `07_kernel/MODIFICATIONS.md` 끝에 두 행(날짜 2026-10-08, 작성일 2026-10-06 은 설명에).
+3. 검사(python): 행 수 1,046→1,048·552→554, 모든 행 7 열, destination 중복 없음, 새 행의 SHA 가 실제 파일과 같음, `.defs` 누락 0, 기존 행 바이트 그대로(앞부분 접두 비교).
+4. 기록: 이 절에 결과, §406 항목 7 의 "사용자에게 보고" 뒤에 "→ plan 407 로 보완".
+
+하지 않는 것: 07 `.defs` 본문·머리 수정, 빌드, 다른 표(objects_*·functions) 수정.
+
+codex 교차검토(gpt-6.1-sol, k83bqzgmu) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 계획의 해시·줄 수·머리 주석만 다름·`.defs` 누락 둘뿐이 맞음 | 이번 세션 sha256sum, python difflib, PROVENANCE destination 과 git ls-files 대조(누락 `.defs` 2) | ✅(이미 내가 측정한 값과 같음; codex 가 인용한 매니페스트 줄은 쓰지 않음) |
+| 끝에 덧붙이는 것이 맞음(행 번호 인용이 있음) | 이 계획 항목 1 의 이유와 같음; PROVENANCE·MODIFICATIONS 마지막 바이트 `0a`(xxd) | ✅ |
+| "1,045 행"은 머리 뺀 레코드, 1,046→1,048 은 물리 줄 수 — 구분해 적을 것 | wc -l 1046, csv 레코드 1045 | ✅ 검사 문구를 고침(아래 3) |
+| MODIFICATIONS 는 5 열, "7 열"은 PROVENANCE 만 | MODIFICATIONS.md:12 머리 `| Date | File | Original version | Change | Evidence |` | ✅ |
+| MODIFICATIONS 변경 칸에 "nearly the same as Darwin 0.1 …"·본문 그대로·머리 교체·고지 없음·작성 plan 343·기록 plan 407 을 넣을 것 | MODIFICATIONS.md:375(audioReply.defs 선례), AGENTS.md:6(D030) | ✅ |
+| 근거 md(x86-EventServer.md·x86-audioServer.md)에 입력 .defs 출처 문단을 덧붙일 것 | 두 파일 전문을 읽음 — 생성물 검증만 있고 .defs 출처 설명 없음 | ✅ 짧은 문단 추가 |
+| objects·functions·README 는 고칠 필요 없음 | 이 보완은 객체 결과를 바꾸지 않음(07 코드 변경 없음) | ⏭️(행동 변화 없음; 인용 줄은 쓰지 않음) |
+| **objc 머리 18 개(PROVENANCE 964–978·985–987)가 MODIFICATIONS 에 없음**, D047 은 MODIFICATIONS 에도 문구를 요구 | python: MODIFICATIONS 파일 칸 467 개와 PROVENANCE destination 대조 → 18 개 모두 없음; DECISIONS.md:51 D047 끝 "파일 머리·PROVENANCE·MODIFICATIONS 에 "nearly the same as Darwin 0.1 objc-1 <file>"" 확인; 18 개 SHA 가 PROVENANCE 기록과 같고 Darwin 원문과의 차이가 모두 첫 코드 줄 앞(머리 주석)뿐(difflib) | ✅ **새 발견** — 같은 종류의 기록 공백이므로 이번 보완에 넣음(아래 5) |
+| 그 밖의 추적 소스 파일 누락 없음, 생성 머리 22 개는 README 예외 | 내 대조: "nearly the same" 또는 authored 이면서 MODIFICATIONS 에 없는 행은 위 18 + spl.h(:251)·diskstruct.h(:654) — 둘은 Darwin 문장을 옮기지 않음(PROVENANCE 문구 "no text copied"·"no reference text") → D030 문구 대상 아님 | ⚖️ 누락 18 은 확인, 생성 머리 22 개 수는 이 작업에 쓰지 않음 |
+
+보강한 할 일:
+3. 검사(python): 물리 줄 수 PROVENANCE 1,046→1,048(레코드 1,045→1,047), MODIFICATIONS 552→572(행 2+18); PROVENANCE 모든 레코드 7 열·destination 중복 없음; MODIFICATIONS 새 행 5 열·각 행에 "nearly the same as Darwin 0.1" 문구; 새 PROVENANCE 행 SHA 가 실제 파일과 같음; `.defs` 누락 0; D030/D047 "nearly the same" 행 가운데 MODIFICATIONS 에 없는 것 0; 기존 내용은 앞부분 접두 비교로 바이트 그대로.
+5. `07_kernel/MODIFICATIONS.md` 끝에 objc 머리 18 행(날짜 2026-10-08; 선례 MODIFICATIONS `src/objc-runtime/maptable.m` 행 꼴; 원판 `objc-1.tar.gz sha256 3809cc3d…` `darwin01/objc/<이름>`; 변경 칸 "whole file nearly the same as Darwin 0.1 objc-1 <이름> (body verbatim; leading notice comments replaced by the project head comment), D030/D047; authored 2026-10-07 (plan 356/358/359); record added 2026-10-08 (plan 407)"; 근거는 각 PROVENANCE 행의 근거 칸).
+6. 근거 md 두 곳(x86-EventServer.md·x86-audioServer.md)에 입력 .defs 출처 문단.
+
+결과(2026-10-08, scratchpad `rec407.py`, 먼저 시험 실행 뒤 `--write`):
+- `07_kernel/PROVENANCE.tsv` 물리 줄 1,046→1,048(레코드 1,045→1,047): `Event.defs`·`audio.defs` 행(작성 plan 343, Darwin 파일 SHA 포함, "row added … plan 407").
+- `07_kernel/MODIFICATIONS.md` 552→572: 두 `.defs` 행 + objc 머리 18 행(PROVENANCE 964–978·985–987; 각 행 SHA 를 실제 파일과 대조한 뒤 씀).
+- 근거 md 두 곳(`x86-EventServer.md`·`x86-audioServer.md`)에 입력 출처 문단 추가.
+- 검사(python): 기존 바이트는 접두로 그대로, PROVENANCE 7 열·destination 중복 0, 새 MODIFICATIONS 행 5 열·문구 포함, `src/` `.defs` 누락 0, "nearly the same" PROVENANCE 행 가운데 MODIFICATIONS 에 없는 것 0. 07 코드·빌드 변경 없음.
