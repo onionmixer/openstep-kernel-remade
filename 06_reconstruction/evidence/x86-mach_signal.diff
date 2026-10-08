@@ -1,0 +1,14 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/mach_signal.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/mach_signal.c	2026-10-03 12:39:22.167862105 +0900
+@@ -66,7 +66,11 @@
+ 	 *	This is an exception signal - deliver directly to thread.
+ 	 */
+ 	sig_lock_simple(p);
++#if	NeXT
++	sig_thread->_uthread->uu_sig |= mask;	/* plan 196 (original 0x10ba48) */
++#else	NeXT
+ 	sig_thread->u_address.uthread->uu_sig |= mask;
++#endif	NeXT
+ 	sig_unlock(p);
+ }
+ 

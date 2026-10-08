@@ -1,0 +1,46 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/driverkit/objc_support.m	2026-10-07 17:18:41.612071008 +0900
+@@ -0,0 +1,43 @@
++/*
++ * objc_support.m - stream and abort stubs for the kernel ObjC runtime
++ * (plan 376, D054).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * 0x17e1e8-0x17e231; no ObjC module record).  The text is nearly the same
++ * as the first part (lines 36-72) of Darwin 0.1
++ * kernel/driverkit/objc_support.m (the zone part of that file is
++ * reconstructed separately, objc-runtime/objc-zone.c); kept as
++ * project-authored under D027/D030, without Darwin's notices (license
++ * judgement: D017).  NXPrintf calls vlog (original 0x17e20a), not log.
++ */
++
++#import <streams/streams.h>
++#import <bsd/sys/syslog.h>
++#import <stdarg.h>
++#import <bsd/machine/spl.h>
++
++char **NXArgv;
++
++int NXFlush(NXStream *s)
++{
++	/*
++	 * Nothing to do for now.
++	 */
++	return 0;
++}
++
++void NXPrintf(NXStream *s, const char *format, ...)
++{
++	register sp = splhigh();
++	va_list ap;
++
++	va_start(ap, format);
++	vlog(LOG_ERR, format, ap);
++	va_end(ap);
++	splx(sp);
++}
++
++void abort()
++{
++	panic("objc: fatal error\n");
++}

@@ -1,0 +1,55 @@
+--- 01_resources/upstream/nextmach/mk-108.1/rpc/clnt_kudp.c	2026-09-11 10:02:49.613218860 +0900
++++ 07_kernel/src/bsd/rpc/clnt_kudp.c	2026-10-03 12:13:41.312924572 +0900
+@@ -37,6 +37,7 @@
+ #import <sys/user.h>
+ #import <sys/kernel.h>
+ #import <sys/proc.h>
++#import <kern/thread.h>		/* plan 191: current_thread()->allocInProgress */
+ #import <sys/socket.h>
+ #import <sys/socketvar.h>
+ #import <sys/mbuf.h>
+@@ -225,7 +226,10 @@
+ 	h = ptoh(p);
+ 
+ 	if (!clntkudpxid) {
+-		clntkudpxid = time.tv_usec;
++		struct timeval tv;	/* plan 191 (authored; original 0x1353eb) */
++
++		getthetime(&tv);
++		clntkudpxid = tv.tv_usec;
+ 	}
+ 
+ 	/* handle */
+@@ -280,6 +284,7 @@
+ 	current_thread()->allocInProgress = FALSE;
+ #if	MACH
+ 	kfree((caddr_t)p->cku_outbuf, (u_int)UDPMSGSIZE);
++	crfree(p->cku_cred);	/* plan 191 (authored; original 0x13552b) */
+ 	kfree((caddr_t)p, sizeof (struct cku_private));
+ #else	MACH
+ 	kmem_free((caddr_t)p->cku_outbuf, (u_int)UDPMSGSIZE);
+@@ -303,10 +308,24 @@
+ 	p->cku_retrys = retrys;
+ 	p->cku_addr = *addr;
+ 	p->cku_cred = cred;
++	crhold(cred);		/* plan 191 (authored; original 0x135574) */
+ 	p->cku_flags &= (CKU_BUFBUSY | CKU_BUFWANTED);
+ }
+ 
+ /*
++ * plan 191 (authored, D024; original _clntkudp_freecred 0x135584):
++ * release the credential taken by clntkudp_init.
++ */
++clntkudp_freecred(h)
++	CLIENT *h;
++{
++	struct cku_private *p = htop(h);
++
++	crfree(p->cku_cred);
++	p->cku_cred = (struct ucred *)0xefefefef;
++}
++
++/*
+  * Time out back off function. tim is in hz
+  */
+ #define MAXTIMO	(60 * hz)

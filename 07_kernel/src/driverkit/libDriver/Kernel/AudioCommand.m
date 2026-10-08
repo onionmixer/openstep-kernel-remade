@@ -1,0 +1,86 @@
+/*
+ * AudioCommand.m (plan 342).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "Kernel/AudioCommand.m", 0x1bab5c-0x1bad2f).
+ * The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/AudioCommand.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+#import "AudioCommand.h"
+#import <driverkit/IOAudioPrivate.h>		// AD_CMD_MSG_SYNCHRONOUS
+
+#import <mach/message.h>		// msg_header_t
+#import <machkit/NXLock.h>
+#import <driverkit/kernelDriver.h>
+ 
+/*
+ * FIXME: This is from <kern/ipc_basics.h>, which can't be
+ * imported because of a conflict with <mach/mach_types.h>
+ */
+extern msg_return_t msg_send_from_kernel();
+
+@implementation AudioCommand
+
+- initPort:(port_t)port
+{
+    [super init];
+
+    interLock = [[NXConditionLock alloc] initWith:AUDIO_COMMAND_IDLE];
+    driverPort_kern = port;
+    return self;
+}
+
+- free
+{
+    [interLock free];
+    return [super free];
+}
+
+- (ADCommand) command
+{
+    return (command);
+}
+
+- (void)done:(int)_ret
+{
+    if ([interLock condition] == AUDIO_COMMAND_BUSY) {
+	[interLock lock];
+	ret = _ret;
+	[interLock unlockWith:AUDIO_COMMAND_DONE];
+    }
+
+}
+
+- (int)send:(ADCommand)_command
+{
+    msg_header_t	msg = { 0 };
+    int			result = 0;
+ 
+ 
+     [interLock lockWhen:AUDIO_COMMAND_IDLE];
+        
+    command = _command;
+    
+    msg.msg_size = sizeof (msg);
+    msg.msg_remote_port = driverPort_kern;
+    msg.msg_id =  AD_CMD_MSG_SYNCHRONOUS;
+    
+    [interLock unlockWith:AUDIO_COMMAND_BUSY];
+    
+    result = msg_send_from_kernel(&msg, SEND_TIMEOUT, 1000);
+    if (result == SEND_SUCCESS) {
+	[interLock lockWhen:AUDIO_COMMAND_DONE];
+	result = ret;
+    }
+    else
+    	[interLock lock];
+    
+    [interLock unlockWith:AUDIO_COMMAND_IDLE];
+    
+    return (result);
+
+}
+
+@end

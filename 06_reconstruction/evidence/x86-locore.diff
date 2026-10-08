@@ -1,0 +1,32 @@
+--- 01_resources/upstream/darwin01/kernel/machdep/i386/locore.s	1999-03-17 01:55:28.000000000 +0900
++++ 07_kernel/src/machdep/i386/locore.s	2026-10-07 14:53:57.679844225 +0900
+@@ -37,7 +37,17 @@
+ 
+ #import <architecture/i386/asm_help.h>
+ 
+-#import <assym.h>
++/* plan 364: the generated assym.h is not part of this tree (Darwin's
++ * genassym.c does not compile with the 4.2 headers); the six values used
++ * here are defined from the original bytes instead (build choice):
++ * selectors at 0x186d27/0x186d31/0x186d38, frame offsets at 0x186d40 and
++ * 0x186de6/0x186dea, each the same at every use. */
++#define	KDSSEL		0x10
++#define	LDATASEL	0x50
++#define	NULLSEL		0
++#define	EBP		0x18
++#define	ERR		0x34
++#define	EFL		0x40
+ 
+ 	TEXT
+ 
+@@ -687,9 +697,7 @@
+ 	movl	4(%esp),%eax
+ 	movl	8(%esp),%esp
+ 	movl	%esp,%ebp
+-	call	*%eax	
+-0:	hlt
+-	jmp	0b
++	jmp	*%eax		// plan 364: original 0x186f86 ff e0 (not call/hlt/jmp)
+ 
+ #ifdef	GPROF
+ LEAF(mcount, 0)

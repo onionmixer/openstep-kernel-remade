@@ -1,0 +1,141 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/in_pcb.c	2026-09-11 10:02:49.570218332 +0900
++++ 07_kernel/src/bsd/netinet/in_pcb.c	2026-10-03 08:04:04.487486678 +0900
+@@ -58,6 +58,8 @@
+ #import <sys/protosw.h>
+ 
+ #import <machine/spl.h>
++#import <kern/queue.h>		/* plan 166: inline insque/remque as in the original */
++#import <netinet/ip_var.h>	/* plan 166: struct ip_moptions */
+ 
+ struct mbuf *hosts = 0;		/* for netstat */
+ 
+@@ -159,7 +161,7 @@
+ 	struct mbuf *nam;
+ {
+ 	struct in_ifaddr *ia;
+-	struct sockaddr_in *ifaddr;
++	struct sockaddr_in *ifaddr = 0;	/* plan 166 */
+ 	register struct sockaddr_in *sin = mtod(nam, struct sockaddr_in *);
+ 
+ 	if (nam->m_len != sizeof (*sin))
+@@ -234,6 +236,24 @@
+ 			if (ia == 0)
+ 				return (EADDRNOTAVAIL);
+ 		}
++#ifdef	MULTICAST
++		/* plan 166 (authored; original 0x125143-0x125190) */
++		if (IN_MULTICAST(ntohl(sin->sin_addr.s_addr)) &&
++		    inp->inp_moptions) {
++			struct ip_moptions *imo;
++			struct ifnet *ifp;
++
++			imo = mtod(inp->inp_moptions, struct ip_moptions *);
++			ifp = imo->imo_multicast_ifp;
++			if (ifp) {
++				for (ia = in_ifaddr; ia; ia = ia->ia_next)
++					if (ia->ia_ifp == ifp)
++						break;
++				if (ia == 0)
++					return (EADDRNOTAVAIL);
++			}
++		}
++#endif	MULTICAST
+ 		ifaddr = (struct sockaddr_in *)&ia->ia_addr;
+ 	}
+ 	if (in_pcblookup(inp->inp_head,
+@@ -243,6 +263,13 @@
+ 	    inp->inp_lport,
+ 	    0))
+ 		return (EADDRINUSE);
++	/* plan 166 (authored; original 0x1251cc-0x1251fd): no connection to oneself */
++	if ((inp->inp_socket->so_proto->pr_flags & PR_CONNREQUIRED) &&
++	    sin->sin_port == inp->inp_lport &&
++	    (inp->inp_laddr.s_addr ?
++	     inp->inp_laddr.s_addr : ifaddr->sin_addr.s_addr) ==
++	    sin->sin_addr.s_addr)
++		return (ECONNREFUSED);
+ 	if (inp->inp_laddr.s_addr == INADDR_ANY) {
+ 		if (inp->inp_lport == 0)
+ 			(void)in_pcbbind(inp, (struct mbuf *)0);
+@@ -274,6 +301,9 @@
+ 		(void)m_free(inp->inp_options);
+ 	if (inp->inp_route.ro_rt)
+ 		rtfree(inp->inp_route.ro_rt);
++#ifdef	MULTICAST
++	ip_freemoptions(inp->inp_moptions);	/* plan 166 (authored) */
++#endif	MULTICAST
+ 	remque(inp);
+ #if	MACH
+ 	kfree((caddr_t)inp, sizeof(*inp));
+@@ -315,28 +345,50 @@
+  * associated with address dst.  Call the protocol specific
+  * routine (if any) to handle each connection.
+  */
+-in_pcbnotify(head, dst, errno, notify)
++int	in_rtchange();		/* plan 166 */
++
++in_pcbnotify(head, dst, fport, laddr, lport, cmd, notify)	/* plan 166 (authored, 4.3-Reno form; original 0x125340) */
+ 	struct inpcb *head;
+-	register struct in_addr *dst;
+-	int errno, (*notify)();
++	struct sockaddr *dst;
++	u_short fport, lport;
++	struct in_addr laddr;
++	int cmd, (*notify)();
+ {
++	extern u_char inetctlerrmap[];
+ 	register struct inpcb *inp, *oinp;
+-	int s = splimp();
++	struct in_addr faddr;
++	int error;
+ 
++	if ((unsigned)cmd > PRC_NCMDS || dst->sa_family != AF_INET)
++		return;
++	faddr = ((struct sockaddr_in *)dst)->sin_addr;
++	if (faddr.s_addr == INADDR_ANY)
++		return;
++	if (PRC_IS_REDIRECT(cmd) || cmd == PRC_HOSTDEAD ||
++	    cmd == PRC_ROUTEDEAD) {
++		fport = 0;	/* plan 166.1: separate statements (variant v3) */
++		lport = 0;
++		laddr.s_addr = INADDR_ANY;
++		if (cmd != PRC_HOSTDEAD)
++			notify = in_rtchange;
++	}
++	error = inetctlerrmap[cmd];
+ 	for (inp = head->inp_next; inp != head;) {
+-		if (inp->inp_faddr.s_addr != dst->s_addr ||
+-		    inp->inp_socket == 0) {
++		if (inp->inp_faddr.s_addr != faddr.s_addr ||
++		    inp->inp_socket == 0 ||
++		    (lport && inp->inp_lport != lport) ||
++		    (laddr.s_addr && inp->inp_laddr.s_addr != laddr.s_addr) ||
++		    (fport && inp->inp_fport != fport)) {
+ 			inp = inp->inp_next;
+ 			continue;
+ 		}
+-		if (errno) 
+-			inp->inp_socket->so_error = errno;
++		if (error)
++			inp->inp_socket->so_error = error;
+ 		oinp = inp;
+ 		inp = inp->inp_next;
+ 		if (notify)
+ 			(*notify)(oinp);
+ 	}
+-	splx(s);
+ }
+ 
+ /*
+@@ -405,8 +457,9 @@
+ 		if (inp->inp_faddr.s_addr != INADDR_ANY) {
+ 			if (faddr.s_addr == INADDR_ANY)
+ 				wildcard++;
+-			else if (inp->inp_faddr.s_addr != faddr.s_addr ||
+-			    inp->inp_fport != fport)
++			else if (inp->inp_fport != fport ||	/* plan 166 (authored) */
++			    IN_MULTICAST(ntohl(inp->inp_faddr.s_addr)) ||
++			    inp->inp_faddr.s_addr != faddr.s_addr)
+ 				continue;
+ 		} else {
+ 			if (faddr.s_addr != INADDR_ANY)

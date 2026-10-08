@@ -1,0 +1,185 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/in.c	2026-09-11 10:02:49.570218332 +0900
++++ 07_kernel/src/bsd/netinet/in.c	2026-10-03 08:41:24.629331729 +0900
+@@ -42,6 +42,9 @@
+ 
+ #import <netinet/in.h>
+ #import <netinet/in_var.h>
++#import <netinet/in_systm.h>
++#import <netinet/ip.h>
++#import <netinet/ip_icmp.h>	/* plan 171: ICMP_MASKREQ/ICMP_MASKREPLY */
+ 
+ #import <machine/spl.h>
+ 
+@@ -110,6 +113,10 @@
+ 		net = i & IN_CLASSB_NET;
+ 	else if (IN_CLASSC(i))
+ 		net = i & IN_CLASSC_NET;
++#ifdef	MULTICAST
++	else if (IN_CLASSD(i))		/* plan 171 (authored) */
++		net = i & IN_CLASSD_NET;
++#endif	MULTICAST
+ 	else
+ 		return (0);
+ 
+@@ -143,6 +150,11 @@
+ 	} else if (IN_CLASSC(i)) {
+ 		net = i & IN_CLASSC_NET;
+ 		host = i & IN_CLASSC_HOST;
++#ifdef	MULTICAST
++	} else if (IN_CLASSD(i)) {	/* plan 171 (authored) */
++		net = i & IN_CLASSD_NET;
++		host = i & IN_CLASSD_HOST;
++#endif	MULTICAST
+ 	} else
+ 		return (i);
+ 
+@@ -227,6 +239,7 @@
+ 	struct ifaddr *ifa;
+ 	struct mbuf *m;
+ 	int error;
++	int i;		/* plan 171 */
+ 
+ 	/*
+ 	 * Find address for this interface, if it exists.
+@@ -366,15 +379,32 @@
+ 		return (in_ifinit(ifp, ia, &ifr->ifr_addr));
+ 
+ 	case SIOCSIFNETMASK:
++		/* plan 171 (authored; original 0x123a24-0x123a46) */
++		ia->ia_flags &= ~(IFA_NETMASK_AUTH | IFA_AWAITING_MASK);
+ 		ia->ia_subnetmask = ntohl(satosin(&ifr->ifr_addr)->sin_addr.s_addr);
++		if (ia->ia_subnetmask) {
++			ia->ia_flags |= IFA_NETMASK_AUTH;
++			icmp_sendMaskPacket(ifp, ICMP_MASKREPLY, 0);
++		}
+ 		break;
+ 
+ #if	NeXT
+ 	case SIOCAUTONETMASK:
++		/* plan 171 (authored; original 0x123a4c-0x123aa4) */
++		ia->ia_flags &= ~IFA_NETMASK_AUTH;
+ 		if ((ifp->if_flags & IFF_UP) == 0) {
+ 			return (ENETDOWN);
+ 		}
+-		return (icmp_maskrequest(ifp));
++		ia->ia_flags |= IFA_AWAITING_MASK;
++		for (i = 0; i <= 4; i++) {
++			error = icmp_sendMaskPacket(ifp, ICMP_MASKREQ,
++			    i > 5 ? 32 : (1 << i) >> 1);
++			if (error)
++				return (error);
++			if ((ia->ia_flags & IFA_AWAITING_MASK) == 0)
++				return (0);
++		}
++		return (ENETDOWN);
+ #endif	NeXT
+ 
+ 	default:
+@@ -407,6 +437,9 @@
+ 	struct sockaddr oldaddr;
+ 	struct sockaddr_in netaddr;
+ 	int s = splimp(), error;
++#ifdef	MULTICAST
++	struct in_addr addr;	/* plan 171 */
++#endif	MULTICAST
+ 
+ 	oldaddr = ia->ia_addr;
+ 	ia->ia_addr = *(struct sockaddr *)sin;
+@@ -484,6 +517,11 @@
+ 		    (int)SIOCADDRT, RTF_UP);
+ 	}
+ 	ia->ia_flags |= IFA_ROUTE;
++#ifdef	MULTICAST
++	/* plan 171 (authored; original 0x123d23-0x123d33): join the all-hosts group */
++	addr.s_addr = htonl(INADDR_ALLHOSTS_GROUP);
++	in_addmulti(addr, ifp);
++#endif	MULTICAST
+ 	splx(s);
+ 	return (0);
+ }
+@@ -556,6 +594,8 @@
+ 		if (i) *b++ = '.';
+ 		if (*p > 99) {
+ 			*b++ = '0' + (*p / 100);
++			if ((*p % 100) / 10 == 0)	/* plan 171 (authored; original bytes) */
++				*b++ = '0';
+ 			*p %= 100;
+ 		}
+ 		if (*p > 9) {
+@@ -618,4 +658,76 @@
+ 
+ #endif /* NeXT */
+ 
++#ifdef	MULTICAST
++/*
++ * plan 171 (authored, D024; original _in_addmulti 0x123fc0 and _in_delmulti
++ * 0x1240d4, MULTICAST 1.0 form): add or drop a membership in a multicast group.
++ */
++struct in_multi *
++in_addmulti(addr, ifp)
++	struct in_addr addr;
++	struct ifnet *ifp;
++{
++	register struct in_multi *inm;
++	struct in_ifaddr *ia;
++	struct mbuf *m;
++	struct ifreq ifr;
++	caddr_t ifrp;	/* plan 171.1 (variant v1) */
++	int s = splnet();
++
++	IN_LOOKUP_MULTI(addr, ifp, inm);
++	if (inm != NULL) {
++		++inm->inm_refcount;
++	} else {
++		IFP_TO_IA(ifp, ia);
++		if (ia == NULL ||
++		    (m = m_getclr(M_DONTWAIT, MT_IPMADDR)) == NULL) {
++			splx(s);
++			return (NULL);
++		}
++		inm = mtod(m, struct in_multi *);
++		inm->inm_addr = addr;
++		inm->inm_ifp = ifp;
++		inm->inm_refcount = 1;
++		inm->inm_ia = ia;	/* plan 171.1: after refcount (original store order) */
++		inm->inm_next = ia->ia_multiaddrs;
++		ia->ia_multiaddrs = inm;
++		ifrp = (caddr_t)&ifr;
++		((struct sockaddr_in *)&ifr.ifr_addr)->sin_family = AF_INET;
++		((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr = addr;
++		if (ifp->if_control == NULL ||
++		    if_ioctl((netif_t)ifp, SIOCADDMULTI, (void *)ifrp) != 0) {
++			ia->ia_multiaddrs = inm->inm_next;
++			m_free(m);
++			inm = NULL;
++		} else
++			igmp_joingroup(inm);
++	}
++	splx(s);
++	return (inm);
++}
++
++in_delmulti(inm)
++	register struct in_multi *inm;
++{
++	register struct in_multi **p;
++	struct ifreq ifr;
++	int s = splnet();
++
++	if (--inm->inm_refcount == 0) {
++		igmp_leavegroup(inm);
++		for (p = &inm->inm_ia->ia_multiaddrs;
++		     *p != inm;
++		     p = &(*p)->inm_next)
++			continue;
++		*p = (*p)->inm_next;
++		((struct sockaddr_in *)&ifr.ifr_addr)->sin_family = AF_INET;
++		((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr = inm->inm_addr;
++		if_ioctl((netif_t)inm->inm_ifp, SIOCDELMULTI, (void *)&ifr);
++		m_free(dtom(inm));
++	}
++	splx(s);
++}
++#endif	MULTICAST
++
+ #endif /* INET */

@@ -1,0 +1,54 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/if_venip.c	2026-09-11 10:02:49.560218209 +0900
++++ 07_kernel/src/bsd/net/if_venip.c	2026-10-03 09:40:47.690791449 +0900
+@@ -21,6 +21,7 @@
+ #import <sys/socket.h>
+ #import <sys/errno.h>
+ #import <net/netif.h>
++#import <net/if.h>		/* plan 176: struct ifreq */
+ #import <net/netbuf.h>
+ #import <netinet/in.h>
+ #import <net/etherdefs.h>
+@@ -84,6 +85,8 @@
+ 	switch (dst->sa_family) {
+ 	case AF_UNSPEC:
+ 		bcopy(dst->sa_data, &eh, sizeof(eh));
++		/* plan 176.1 (authored; original 0x11fa87): type given in host order */
++		eh.ether_type = htons(eh.ether_type);
+ 		break;
+ 	case AF_INET:
+ 		idst = ((struct sockaddr_in *)dst)->sin_addr;
+@@ -146,7 +149,8 @@
+ 			return (EAFNOSUPPORT);
+ 		}
+ 		s = splimp();
+-		if_flags_set(ifp, if_flags(ifp) | IFF_UP);
++		/* plan 176 (authored; original 0x11f625) */
++		if_flags_set(ifp, if_flags(ifp) | IFF_UP | IFF_RUNNING);
+ 		if_init(rifp);
+ #if GDB
+ 		/*
+@@ -165,6 +169,24 @@
+ 				  &sin->sin_addr);
+ 		}
+ 		splx(s);
++#ifdef	MULTICAST
++	} else if (strcmp(command, IFCONTROL_ADDMULTICAST) == 0 ||
++		   strcmp(command, IFCONTROL_RMVMULTICAST) == 0) {
++		/*
++		 * plan 176 (authored, D024; original 0x11f684-0x11f6de):
++		 * map the IP group address to an ethernet multicast
++		 * address for the real interface.
++		 */
++		struct ether_addr enaddr;
++
++		sin = (struct sockaddr_in *)&((struct ifreq *)data)->ifr_addr;
++		if (sin->sin_family == AF_INET) {	/* plan 176.1 (EAFNOSUPPORT after, 0x11f6e0) */
++			ETHER_MAP_IP_MULTICAST(&sin->sin_addr,
++			    enaddr.ether_addr_octet);
++			return (if_control(rifp, command, (void *)&enaddr));
++		}
++		return (EAFNOSUPPORT);
++#endif	MULTICAST
+ 	} else {
+ 		/*
+ 		 * Let lower layer handle

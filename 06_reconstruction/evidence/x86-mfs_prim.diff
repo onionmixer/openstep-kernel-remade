@@ -1,6 +1,41 @@
 --- 01_resources/upstream/nextmach/mk-108.1/kern/mfs_prim.c	2026-09-11 10:02:49.545218024 +0900
-+++ 07_kernel/src/kern/mfs_prim.c	2026-10-02 15:15:00.638082268 +0900
-@@ -51,7 +51,7 @@
++++ 07_kernel/src/kern/mfs_prim.c	2026-10-08 19:40:46.879931294 +0900
+@@ -35,6 +35,34 @@
+  *	Created.
+  */
+ 
++/*
++ * Lines marked "plan 397 (Darwin)" are the same as Darwin 0.1
++ * kernel/kern/mapfs.c:132 and :1081 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #import <mach_nbc.h>
+ 
+ #import <kern/lock.h>
+@@ -51,7 +79,7 @@
  
  #import <vm/vm_kern.h>
  #import <vm/vm_pager.h>
@@ -9,7 +44,15 @@
  
  #import <kern/xpr.h>
  
-@@ -100,8 +100,15 @@
+@@ -67,6 +95,7 @@
+ #define	vm_info_unlock()	simple_unlock(&vm_info_lock_data)
+ 
+ #if	MACH_NBC
++lock_data_t		mfsbuf_lock;		/* lock for active_mfsbufs */	/* plan 397 (Darwin): Darwin 0.1 kern/mapfs.c:132 */
+ lock_data_t		mfs_alloc_lock_data;
+ boolean_t		mfs_alloc_wanted;
+ long			mfs_alloc_blocks = 0;
+@@ -100,8 +129,15 @@
  
  int		mfs_files_max = 100;		/* maximum # of files mapped */
  int		mfs_files_mapped = 0;		/* current # mapped */
@@ -25,7 +68,7 @@
  #endif	MACH_NBC
  
  /*
-@@ -124,6 +131,14 @@
+@@ -124,6 +160,14 @@
  	lock_init(&mfs_alloc_lock_data, TRUE);
  	mfs_alloc_wanted = FALSE;
  	mfs_map = kmem_suballoc(kernel_map, &min, &max, mfs_map_size, TRUE);
@@ -40,16 +83,17 @@
  	if (mfs_max_window == 0)
  		mfs_max_window = mfs_map_size / 20;
  	if (mfs_max_window < CHUNK_SIZE)
-@@ -786,6 +801,8 @@
+@@ -786,6 +830,9 @@
  #import <sys/uio.h>
  #import <sys/vfs.h>
  
++int active_mfsbufs = 0;		/* global record of buf count in use by mfs */	/* plan 397 (Darwin): Darwin 0.1 kern/mapfs.c:1081 */
 +extern int	nmfsbuf;	/* plan 139: original _nmfsbuf (defined elsewhere) */
 +
  boolean_t mfs_io(vp, uio, rw, ioflag, cred)
  	register struct vnode	*vp;
  	register struct uio	*uio;
-@@ -799,7 +816,9 @@
+@@ -799,7 +846,9 @@
  	off_t			vsize;
  	int			error;
  	off_t			base;
@@ -59,7 +103,7 @@
  
  	XPR(XPR_VM_OBJECT, ("mfs_io(%c): vp 0x%x, offset %d, size %d\n",
  		rw == UIO_READ ? 'R' : 'W',
-@@ -839,6 +858,9 @@
+@@ -839,6 +888,9 @@
  		}
  		vmp->cred = cred;
  	}
@@ -69,7 +113,7 @@
  
  	do {
  		n = MIN((unsigned)bsize, uio->uio_resid);
-@@ -888,15 +910,37 @@
+@@ -888,15 +940,37 @@
  			crfree(vmp->cred);
  			vmp->cred = NULL;
  		}
@@ -109,7 +153,7 @@
  
  		if (vmp->error) {
  			error = vmp->error;
-@@ -967,8 +1011,65 @@
+@@ -967,8 +1041,65 @@
  		vmp_get(vmp);
  		vmp_push(vmp);
  		vmp_put(vmp);
@@ -176,7 +220,7 @@
  }
  
  #ifdef	NeXT
-@@ -1055,9 +1156,15 @@
+@@ -1055,9 +1186,15 @@
  
  	vm_page_lock_queues();
  	vm_object_lock(object);	/* mfs code holds reference */
@@ -192,7 +236,7 @@
  		if (m->busy) {
  			PAGE_ASSERT_WAIT(m, FALSE);
  			vm_object_unlock(object);
-@@ -1067,7 +1174,16 @@
+@@ -1067,7 +1204,16 @@
  			vm_object_lock(object);
  			continue;	/* try again */
  		}
@@ -210,7 +254,7 @@
  		m = next;
  	}
  	vm_object_unlock(object);
-@@ -1109,7 +1225,7 @@
+@@ -1109,7 +1255,7 @@
  	start = trunc_page(start);
  	while (start < end) {
  		m = vm_page_lookup(object, start);
@@ -219,7 +263,7 @@
  			if (m->busy) {
  				PAGE_ASSERT_WAIT(m, FALSE);
  				vm_object_unlock(object);
-@@ -1169,6 +1285,109 @@
+@@ -1169,6 +1315,109 @@
  }
  
  /*

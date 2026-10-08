@@ -1,0 +1,465 @@
+/*
+ * kern/kdp_udp.c -- UDP/IP transport of the kernel debugger (plan 257).
+ *
+ * Written for this project from the OPENSTEP 4.2 x86 kernel object
+ * [0x1624a8, 0x162d80) (D024).  Darwin 0.1 kern/kdp_udp.c, a later form
+ * of this file, was consulted for structure only; the control flow is
+ * fixed by the bytes and may resemble it (D027).  Differences from
+ * Darwin 0.1: the packet driver (kdp_machdep.c) is called directly, no
+ * kprintf, a different message for a missing state, UDP port 1139.
+ */
+
+#import <mach/boolean.h>
+#import <mach/exception.h>
+
+#import <sys/param.h>
+#import <sys/systm.h>
+#import <sys/socket.h>
+
+#import <net/if.h>
+#import <net/route.h>
+#import <netinet/in.h>
+#import <netinet/in_systm.h>
+#import <netinet/in_var.h>
+#import <net/etherdefs.h>
+#import <netinet/ip.h>
+#import <netinet/ip_var.h>
+#import <netinet/in_pcb.h>
+#import <netinet/udp.h>
+#import <netinet/udp_var.h>
+
+#import <mach/mach_types.h>		/* after the BSD network headers (ip_timestamp) */
+#import <kern/kdp_internal.h>
+#import <kern/miniMon.h>
+
+/* plan 257: the original's debugger port (Darwin 0.1 uses 41139) */
+#undef	KDP_REMOTE_PORT
+#define	KDP_REMOTE_PORT		1139
+
+extern int	kmtrygetc(void);
+extern void	kdp_en_send_pkt(void *pkt, unsigned int pkt_len);
+extern void	kdp_en_recv_pkt(void *pkt, unsigned int *pkt_len,
+		    unsigned int timeout);
+extern int	udp_ttl;
+
+static unsigned char	exception_seq;
+
+static struct {
+    unsigned char	data[ETHERMAXPACKET];
+    unsigned int	off, len;
+    boolean_t		input;
+} pkt, saved_reply;
+
+struct {
+    struct {
+	struct in_addr		in;
+	struct ether_addr	ea;
+    } loc;
+    struct {
+	struct in_addr		in;
+	struct ether_addr	ea;
+    } rmt;
+} adr;
+
+static char
+*exception_message[] = {
+    "Unknown",
+    "Memory access",		/* EXC_BAD_ACCESS */
+    "Failed instruction",	/* EXC_BAD_INSTRUCTION */
+    "Arithmetic",		/* EXC_ARITHMETIC */
+    "Emulation",		/* EXC_EMULATION */
+    "Software",			/* EXC_SOFTWARE */
+    "Breakpoint"		/* EXC_BREAKPOINT */
+};
+
+static inline void	kdp_handler(void *);
+
+static inline void
+enaddr_copy(
+    void	*src,
+    void	*dst
+)
+{
+    bcopy((caddr_t)src, (caddr_t)dst, sizeof(struct ether_addr));
+}
+
+/* IP header checksum over hlen words, byte by byte */
+static inline unsigned short
+ip_sum(
+    unsigned char	*c,
+    unsigned int	hlen
+)
+{
+    unsigned int	high, low, sum;
+
+    high = low = 0;
+    while (hlen-- > 0) {
+	low += c[1] + c[3];
+	high += c[0] + c[2];
+
+	c += sizeof (int);
+    }
+
+    sum = (high << 8) + low;
+    sum = (sum >> 16) + (sum & 65535);
+
+    return (sum > 65535 ? sum - 65535 : sum);
+}
+
+/*
+ * Turn the request in pkt into the reply to its sender.
+ */
+static void
+kdp_reply(
+    unsigned short		reply_port
+)
+{
+    struct udpiphdr		aligned_ui, *ui = &aligned_ui;
+    struct ip			aligned_ip, *ip = &aligned_ip;
+    struct in_addr		tmp_ipaddr;
+    struct ether_addr		tmp_enaddr;
+    struct ether_header		*eh;
+
+    if (!pkt.input)
+	kdp_panic("kdp_reply");
+
+    pkt.off -= sizeof (struct udpiphdr);
+
+    bcopy(&pkt.data[pkt.off], ui, sizeof(*ui));
+    ui->ui_next = ui->ui_prev = 0;
+    ui->ui_x1 = 0;
+    ui->ui_pr = IPPROTO_UDP;
+    ui->ui_len = htons((u_short)pkt.len + sizeof (struct udphdr));
+    tmp_ipaddr = ui->ui_src;
+    ui->ui_src = ui->ui_dst;
+    ui->ui_dst = tmp_ipaddr;
+    ui->ui_sport = htons(KDP_REMOTE_PORT);
+    ui->ui_dport = reply_port;
+    ui->ui_ulen = ui->ui_len;
+    ui->ui_sum = 0;
+    bcopy(ui, &pkt.data[pkt.off], sizeof(*ui));
+
+    bcopy(&pkt.data[pkt.off], ip, sizeof(*ip));
+    ip->ip_len = htons(sizeof (struct udpiphdr) + pkt.len);
+    ip->ip_v = IPVERSION;
+    ip->ip_id = htons(ip_id++);
+    ip->ip_hl = sizeof (struct ip) >> 2;
+    ip->ip_ttl = udp_ttl;
+    ip->ip_sum = 0;
+    ip->ip_sum = htons(~ip_sum((unsigned char *)ip, ip->ip_hl));
+    bcopy(ip, &pkt.data[pkt.off], sizeof(*ip));
+
+    pkt.len += sizeof (struct udpiphdr);
+
+    pkt.off -= sizeof (struct ether_header);
+
+    eh = (struct ether_header *)&pkt.data[pkt.off];
+    enaddr_copy(eh->ether_shost, &tmp_enaddr);
+    enaddr_copy(eh->ether_dhost, eh->ether_shost);
+    enaddr_copy(&tmp_enaddr, eh->ether_dhost);
+    eh->ether_type = htons(ETHERTYPE_IP);
+
+    pkt.len += sizeof (struct ether_header);
+
+    /* kept for a retransmission */
+    bcopy(&pkt, &saved_reply, sizeof(pkt));
+
+    kdp_en_send_pkt(&pkt.data[pkt.off], pkt.len);
+
+    exception_seq++;
+}
+
+/*
+ * Send the message in pkt to the connected debugger.
+ */
+static void
+kdp_send(
+    unsigned short		remote_port
+)
+{
+    struct udpiphdr		aligned_ui, *ui = &aligned_ui;
+    struct ip			aligned_ip, *ip = &aligned_ip;
+    struct ether_header		*eh;
+
+    if (pkt.input)
+	kdp_panic("kdp_send");
+
+    pkt.off -= sizeof (struct udpiphdr);
+
+    bcopy(&pkt.data[pkt.off], ui, sizeof(*ui));
+    ui->ui_next = ui->ui_prev = 0;
+    ui->ui_x1 = 0;
+    ui->ui_pr = IPPROTO_UDP;
+    ui->ui_len = htons((u_short)pkt.len + sizeof (struct udphdr));
+    ui->ui_src = adr.loc.in;
+    ui->ui_dst = adr.rmt.in;
+    ui->ui_sport = htons(KDP_REMOTE_PORT);
+    ui->ui_dport = remote_port;
+    ui->ui_ulen = ui->ui_len;
+    ui->ui_sum = 0;
+    bcopy(ui, &pkt.data[pkt.off], sizeof(*ui));
+
+    bcopy(&pkt.data[pkt.off], ip, sizeof(*ip));
+    ip->ip_len = htons(sizeof (struct udpiphdr) + pkt.len);
+    ip->ip_v = IPVERSION;
+    ip->ip_id = htons(ip_id++);
+    ip->ip_hl = sizeof (struct ip) >> 2;
+    ip->ip_ttl = udp_ttl;
+    ip->ip_sum = 0;
+    ip->ip_sum = htons(~ip_sum((unsigned char *)ip, ip->ip_hl));
+    bcopy(ip, &pkt.data[pkt.off], sizeof(*ip));
+
+    pkt.len += sizeof (struct udpiphdr);
+
+    pkt.off -= sizeof (struct ether_header);
+
+    eh = (struct ether_header *)&pkt.data[pkt.off];
+    enaddr_copy(&adr.loc.ea, eh->ether_shost);
+    enaddr_copy(&adr.rmt.ea, eh->ether_dhost);
+    eh->ether_type = htons(ETHERTYPE_IP);
+
+    pkt.len += sizeof (struct ether_header);
+
+    kdp_en_send_pkt(&pkt.data[pkt.off], pkt.len);
+}
+
+/*
+ * Take one packet from the driver; keep it in pkt if it is a UDP
+ * datagram for the debugger port.
+ */
+static void
+kdp_poll(
+    void
+)
+{
+    struct ether_header		*eh;
+    struct udpiphdr		aligned_ui, *ui = &aligned_ui;
+    struct ip			aligned_ip, *ip = &aligned_ip;
+
+    if (pkt.input)
+	kdp_panic("kdp_poll");
+
+    pkt.off = 0;
+    kdp_en_recv_pkt(pkt.data, &pkt.len, 3/* ms */);
+
+    if (pkt.len == 0)
+	return;
+
+    if (pkt.len < (sizeof (struct ether_header) + sizeof (struct udpiphdr)))
+	return;
+
+    eh = (struct ether_header *)&pkt.data[pkt.off];
+    pkt.off += sizeof (struct ether_header);
+    if (ntohs(eh->ether_type) != ETHERTYPE_IP)
+	return;
+
+    bcopy(&pkt.data[pkt.off], ui, sizeof(*ui));
+    bcopy(&pkt.data[pkt.off], ip, sizeof(*ip));
+    pkt.off += sizeof (struct udpiphdr);
+
+    if (ui->ui_pr != IPPROTO_UDP)
+	return;
+
+    if (ip->ip_hl > (sizeof (struct ip) >> 2))
+	return;
+
+    if (ntohs(ui->ui_dport) != KDP_REMOTE_PORT)
+	return;
+
+    if (!kdp.is_conn) {
+	enaddr_copy(eh->ether_dhost, &adr.loc.ea);
+	adr.loc.in = ui->ui_dst;
+	enaddr_copy(eh->ether_shost, &adr.rmt.ea);
+	adr.rmt.in = ui->ui_src;
+    }
+
+    pkt.len = ntohs((u_short)ui->ui_ulen) - sizeof (struct udphdr);
+    pkt.input = TRUE;
+}
+
+/*
+ * Serve requests while the debugger keeps the machine halted.
+ */
+static inline void
+kdp_handler(
+    void			*saved_state
+)
+{
+    unsigned short		reply_port;
+    kdp_hdr_t			aligned_hdr, *hdr = &aligned_hdr;
+
+    kdp.saved_state = saved_state;
+
+    do {
+	while (!pkt.input)
+	    kdp_poll();
+
+	bcopy(&pkt.data[pkt.off], hdr, sizeof(*hdr));
+
+	/* replies are not expected here */
+	if (hdr->is_reply)
+	    goto again;
+
+	if (hdr->seq == (exception_seq - 1)) {
+	    /* the debugger lost our reply: send it again */
+	    kdp_en_send_pkt(&saved_reply.data[saved_reply.off],
+		saved_reply.len);
+	    goto again;
+	}
+	else if (hdr->seq != exception_seq) {
+	    safe_prf("kdp: bad sequence %d (want %d)\n",
+		hdr->seq, exception_seq);
+	    goto again;
+	}
+
+	if (kdp_packet(&pkt.data[pkt.off], &pkt.len, &reply_port))
+	    kdp_reply(reply_port);
+
+again:
+	pkt.input = FALSE;
+    } while (kdp.is_halted);
+}
+
+/*
+ * Wait for a debugger to connect, or for 'c' or 'r' on the console.
+ */
+static inline void
+kdp_connection_wait(
+    void
+)
+{
+    unsigned short	reply_port;
+
+    safe_prf("Waiting for remote debugger connection.\n");
+    safe_prf("(Type 'c' to continue or 'r' to reboot)\n");
+
+    exception_seq = 0;
+
+    do {
+	kdp_hdr_t aligned_hdr, *hdr = &aligned_hdr;
+
+	while (!pkt.input) {
+	    int c;
+
+	    c = kmtrygetc();
+	    switch (c) {
+		case 'c':
+		    safe_prf("Continuing...\n");
+		    return;
+		case 'r':
+		    safe_prf("Rebooting...\n");
+		    kdp_reboot();
+		    break;
+		default:
+		    break;
+	    }
+	    kdp_poll();
+	}
+
+	/* only a connect request with sequence number 0 */
+	bcopy(&pkt.data[pkt.off], hdr, sizeof(*hdr));
+	if ((hdr->request == KDP_CONNECT) &&
+		!hdr->is_reply && (hdr->seq == exception_seq)) {
+	    if (kdp_packet(&pkt.data[pkt.off], &pkt.len, &reply_port))
+		kdp_reply(reply_port);
+	}
+
+	pkt.input = FALSE;
+    } while (!kdp.is_conn);
+
+    safe_prf("Connected to remote debugger.\n");
+}
+
+/*
+ * Report an exception to the connected debugger until it answers.
+ */
+static inline void
+kdp_send_exception(
+    unsigned int		exception,
+    unsigned int		code,
+    unsigned int		subcode
+)
+{
+    unsigned short		remote_port;
+    unsigned int		timeout_count;
+
+    timeout_count = 300;	/* about 30 seconds */
+    do {
+	pkt.off = sizeof (struct ether_header) + sizeof (struct udpiphdr);
+	kdp_exception(&pkt.data[pkt.off], &pkt.len, &remote_port,
+			exception, code, subcode);
+
+	kdp_send(remote_port);
+
+	kdp_poll();
+
+	if (pkt.input)
+	    kdp_exception_ack(&pkt.data[pkt.off], pkt.len);
+
+	pkt.input = FALSE;
+	if (kdp.exception_ack_needed)
+	    kdp_us_spin(100000);
+    } while (kdp.exception_ack_needed && timeout_count--);
+
+    if (kdp.exception_ack_needed) {
+	/* no answer: drop the connection */
+	safe_prf("kdp: exception ack timeout\n");
+	kdp_reset();
+    }
+}
+
+void
+kdp_raise_exception(
+    unsigned int		exception,
+    unsigned int		code,
+    unsigned int		subcode,
+    void			*saved_state
+)
+{
+    int			s = kdp_intr_disbl();
+    int			index;
+
+    if (saved_state == 0)
+	safe_prf("kdp_raise_exception with NULL state\n");
+
+    index = exception;
+    if (exception != EXC_BREAKPOINT) {
+	if (exception > EXC_BREAKPOINT || exception < EXC_BAD_ACCESS)
+	    index = 0;
+	safe_prf("%s exception (%x,%x,%x)\n",
+		exception_message[index],
+		exception, code, subcode);
+    }
+
+    kdp_flush_cache();
+
+    kdp.saved_state = saved_state;
+
+    if (pkt.input)
+	kdp_panic("kdp_raise_exception");
+
+    if (!kdp.is_conn)
+	kdp_connection_wait();
+    else
+	kdp_send_exception(exception, code, subcode);
+
+    if (kdp.is_conn) {
+	kdp.is_halted = TRUE;
+
+	kdp_handler(saved_state);
+
+	if (!kdp.is_conn)
+	    safe_prf("Remote debugger disconnected.\n");
+    }
+
+    kdp_flush_cache();
+    kdp_intr_enbl(s);
+}
+
+void
+kdp_reset(void)
+{
+    kdp.reply_port = kdp.exception_port = 0;
+    kdp.is_halted = kdp.is_conn = FALSE;
+    kdp.exception_seq = kdp.conn_seq = 0;
+}

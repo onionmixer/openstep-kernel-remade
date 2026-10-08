@@ -1,0 +1,8 @@
+# x86 `src/driverkit/libDriver/Kernel/generalFuncsPrivate.m` (plan 299 (S5-P289), 2026-10-04)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 299 (S5-P289). Final run `s5p289-it1`; 07 file SHA-256 `d5516f7782cf07f4da1947577ca37920a18110912e2683ea2e465cae37574a6e`; diff `x86-generalFuncsPrivate.diff`.
+
+- Object [0x1a90b8, 0x1a9404) 844 B, 19 functions (_IOInitGeneralFuncs, _IOForkThread, (static ioThreadStart), _IOSetThreadPriority, _IOSetThreadPolicy, _IOSuspendThread, _IOResumeThread, _IOExitThread, _IOVmTaskSelf, _IOVmTaskCurrent, _IOSetUNIXError, _IOTaskGetPort, _IOGetKernPort, _IOConvertPort, _IOVmTaskForBuf, _IOHostPrivSelf, _IOPhysicalFromVirtual, _IOMapPhysicalIntoIOTask, _IOUnmapPhysicalFromIOTask). Front `ec 5d c3 00`, back `55 89 e5 53`, next symbol 0x1a9ad4.
+- Final L1 `09_validation/reconstruction/s5p289-it1-l1-generalFuncsPrivate-F-20261002.json`: __text/__const 0 byte differences; __DATA,__bss reference-inferred. Grade **P**.
+
+Module "Kernel/generalFuncsPrivate.m" (objc.json 0x2090fc, no classes or categories): __module_info and __symbols placed by ObjC metadata with 0 differences. __text [0x1a90b8, 0x1a9404) 844 B, 18 global functions + static ioThreadStart; next ObjC method 0x1a9404 (IOBufDevice.m). Scratch: s5p288-gfq-1 (Darwin text, 3 size differences), s5p288-gfr-1 (edits, __text 0 differences). l1_compare no longer reports method correspondence for a method-less ObjC object (plan 299; tests test_objc_nomethod.py 5/5, test_objc_compare.py 13/13). Codex review of plans 298/299 verified (sys/buf.h already via kernelDriver.h, so only sys/proc.h added). s5p289-it1 from 07 with kr_run RUNIN: __text 0 differences (16 MATCH + 3 MATCH_UNVERIFIED for __bss references), relcheck 0.

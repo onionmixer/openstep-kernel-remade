@@ -40,6 +40,7 @@
 #import <vm/vm_kern.h>
 
 #import "PCprivate.h"
+#import <bsd/dev/i386/PCKeymap.c>	/* plan 397, D058: unreferenced second keymap copy (original __TEXT,__const 0x1d58e4, 882 B) */
 
 kern_return_t
 PCcreate(

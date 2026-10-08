@@ -1,0 +1,339 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_fork.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_fork.c	2026-10-08 19:40:46.880931307 +0900
+@@ -43,6 +43,34 @@
+  *	@(#)kern_fork.c	7.1 (Berkeley) 6/5/86
+  */
+ 
++/*
++ * The u_thread_zone part of the line marked "plan 400 (Darwin)" is the
++ * same as Darwin 0.1 kernel/bsd/kern/kern_fork.c:346 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #import <machine/reg.h>
+ #import <machine/psl.h>
+ 
+@@ -60,6 +88,9 @@
+ #import <machine/spl.h>
+ 
+ thread_t	newproc(), procdup();
++#if	POSIX_KERN
++extern struct posix_proc *alloc_posix_proc();	/* plan 202 */
++#endif	POSIX_KERN
+ /*
+  * fork system call.
+  */
+@@ -80,6 +111,11 @@
+ 	register struct proc *p1, *p2;
+ 	register a;
+ 	thread_t	th;
++#if	POSIX_KERN
++	struct posix_proc *pp;
++
++	pp = alloc_posix_proc();	/* plan 202 (authored; original 0x106841) */
++#endif	POSIX_KERN
+ 
+ 	a = 0;
+ 	if (u.u_uid != 0) {
+@@ -113,20 +149,31 @@
+ 		tablefull("proc");
+ 	if (p2==NULL || (u.u_uid!=0 && (p2->p_nxt == NULL || a>MAXUPRC))) {
+ #endif	NeXT
++#if	POSIX_KERN
++		free_posix_proc(pp);	/* plan 202 (original 0x1068eb) */
++#endif	POSIX_KERN
+ 		u.u_error = EAGAIN;
+ 		goto out;
+ 	}
+ 	p1 = u.u_procp;
++#if	POSIX_KERN
++	th = cloneproc(p1, isvfork, pp);	/* plan 202 (original 0x10690c) */
++#else	POSIX_KERN
+ 	th = newproc(isvfork);
++#endif	POSIX_KERN
+ 	thread_dup(current_thread(), th);
+-	th->u_address.uthread->uu_r.r_val1 = p1->p_pid;
+-	th->u_address.uthread->uu_r.r_val2 = 1;	/* child */
+ #if	NeXT
+-	microtime(&th->u_address.utask->uu_start);
++	/* plan 202: uthread/utask of this kern/thread.h and kern/task.h */
++	th->_uthread->uu_r.r_val1 = p1->p_pid;
++	th->_uthread->uu_r.r_val2 = 1;	/* child */
++	microtime(&th->task->u_address->uu_start);
++	th->task->u_address->uu_acflag = AFORK;
+ #else	NeXT
++	th->u_address.uthread->uu_r.r_val1 = p1->p_pid;
++	th->u_address.uthread->uu_r.r_val2 = 1;	/* child */
+ 	th->u_address.utask->uu_start = time;
+-#endif	NeXT
+ 	th->u_address.utask->uu_acflag = AFORK;
++#endif	NeXT
+ 	u.u_r.r_val1 = p2->p_pid;
+ 
+ 	(void) thread_resume(th);
+@@ -145,16 +192,27 @@
+ thread_t newproc(isvfork)
+ 	int isvfork;
+ {
++#if	POSIX_KERN
++	return (cloneproc(u.u_procp, isvfork, alloc_posix_proc()));	/* plan 202 */
++#else	POSIX_KERN
+ 	return (cloneproc(u.u_procp, isvfork));
++#endif	POSIX_KERN
+ }
+ 
+ /*
+  * Create a new process from a specified process.
+  */
+ thread_t
++#if	POSIX_KERN
++cloneproc(rip, isvfork, pp)	/* plan 202: posix_proc of the child */
++	register struct proc *rip;
++	int isvfork;
++	struct posix_proc *pp;
++#else	POSIX_KERN
+ cloneproc(rip, isvfork)
+ 	register struct proc *rip;
+ 	int isvfork;
++#endif	POSIX_KERN
+ {
+ 	register struct proc *rpp;
+ 	register struct utask *utask = rip->task->u_address;
+@@ -162,6 +220,9 @@
+ 	register struct file *fp;
+ 	static int pidchecked = 0;
+ 	thread_t	th;
++#if	POSIX_KERN
++	struct posix_proc *px;
++#endif	POSIX_KERN
+ 
+ 	/*
+ 	 * First, just locate a slot for a process
+@@ -169,6 +230,7 @@
+ 	 * The panic "cannot happen" because fork has already
+ 	 * checked for the existence of a slot.
+ 	 */
++newpid:
+ 	mpid++;
+ retry:
+ 	if (mpid >= 30000) {
+@@ -203,6 +265,11 @@
+ 			goto again;
+ 		}
+ 	}
++#if	POSIX_KERN
++	/* plan 202 (authored; original 0x106a84-0x106a99) */
++	if (!insert_posix_proc(pp, mpid))
++		goto newpid;
++#endif	POSIX_KERN
+ #if	NeXT
+ 	if ((rpp = freeproc) == NULL) {
+ 		rpp = getproc();
+@@ -225,9 +292,26 @@
+ 	timerclear(&rpp->p_realtimer.it_value);
+ 	rpp->p_flag = SLOAD | (rip->p_flag & (SPAGI|SOUSIG|SXONLY));
+ 	rpp->p_uid = rip->p_uid;
++#if	POSIX_KERN
++	/* plan 202 (authored, D024; original 0x106b00-0x106b5f) */
++	rpp->p_flag |= rip->p_flag & SCTTY;
++	rpp->p_posix = rip->p_posix;
++	px = get_posix_proc(rip->p_pid);
++	pp->p_ruid = px->p_ruid;
++	pp->p_svuid = px->p_svuid;
++	pp->p_svgid = px->p_svgid;
++	pp->p_posix_pgrp = px->p_posix_pgrp;
++	pp->p_posix_utime = 0;
++	pp->p_posix_noctty = 0;
++	pp->p_lockf_chan = 0;
++#endif	POSIX_KERN
+ 	rpp->p_pgrp = rip->p_pgrp;
+ 	rpp->p_nice = rip->p_nice;
++#if	POSIX_KERN
++	rpp->p_pid = pp->p_pid;
++#else	POSIX_KERN
+ 	rpp->p_pid = mpid;
++#endif	POSIX_KERN
+ 	rpp->p_ppid = rip->p_pid;
+ 	rpp->p_pptr = rip;
+ 	rpp->p_osptr = rip->p_cptr;
+@@ -245,6 +329,13 @@
+ 	rpp->p_tptr = 0;
+ 	rpp->p_aptr = 0;
+ #if	NeXT
++	/* plan 202 (authored; original 0x106bd8-0x106be9) */
++	rpp->p_xstat = 0;
++	rpp->p_sig = 0;
++	rpp->p_cursig = 0;
++	rpp->p_debugger = 0;
++#endif	NeXT
++#if	NeXT
+ 	pidhash_enter(rpp);
+ #else	NeXT
+ 	n = PIDHASH(rpp->p_pid);
+@@ -255,18 +346,25 @@
+ 	/*
+ 	 * Increase reference counts on shared objects.
+ 	 */
++#if	NeXT
++	/* plan 202: open files are counted on the child after procdup */
++#else	NeXT
+ 	for (n = 0; n <= utask->uu_lastfile; n++) {
+ 		fp = utask->uu_ofile[n];
+ 		if (fp == NULL)
+ 			continue;
+ 		fp->f_count++;
+ 	}
++#endif	NeXT
+ 	if (utask->uu_cdir)
+ 		VN_HOLD(utask->uu_cdir);
+ 	if (utask->uu_rdir)
+ 		VN_HOLD(utask->uu_rdir);
+ 	crhold(utask->uu_cred);
++#if	NeXT
++#else	NeXT
+ 	u_cred_lock_init(&utask->uu_cred_lock);
++#endif	NeXT
+ 
+ 	/*
+ 	 * This begins the section where we must prevent the parent
+@@ -277,7 +375,28 @@
+ 	rpp->sigwait = FALSE;
+ 	rpp->exit_thread = THREAD_NULL;
+ 	th = procdup(rpp, rip);	/* child, parent */
++#if	NeXT
++	/*
++	 * plan 202 (authored, D024; original 0x106c47-0x106ca5): count the
++	 * child's open files (0xffff0000 marks a slot to drop; name not
++	 * recovered) and initialize the child's credential lock.
++	 */
++	for (n = 0; n <= rpp->task->u_address->uu_lastfile; n++) {
++		fp = rpp->task->u_address->uu_ofile[n];
++		if (fp == NULL)
++			continue;
++		if (fp == (struct file *)0xffff0000)
++			rpp->task->u_address->uu_ofile[n] = NULL;
++		else
++			fp->f_count++;
++	}
++	u_cred_lock_init(&rpp->task->u_address->uu_cred_lock);
++#endif	NeXT
+ 	uarea_init(th);		/* this shouldn't be necessary here XXX */
++#if	POSIX_KERN
++	pp->p_pgrpnxt = px->p_pgrpnxt;	/* plan 202 (original 0x106caa) */
++	px->p_pgrpnxt = rpp;
++#endif	POSIX_KERN
+ 	/*
+ 	 *	It is now safe to link onto allproc
+ 	 */
+@@ -306,6 +425,24 @@
+ 
+ #import <kern/mach_param.h>
+ 
++#if	NeXT
++/* plan 202 (authored, D024; original 0x106cfc): separate utask and uthread zones */
++struct zone *u_task_zone, *u_thread_zone;	/* plan 400 (Darwin): u_thread_zone as Darwin 0.1 kern_fork.c:346; u_task_zone D059 (was extern) */
++struct _u_address active_u[NCPUS];	/* plan 400 (D059; D024, no evidence for the place) */
++
++uzone_init()
++{
++
++	u_task_zone = zinit(sizeof(struct utask),
++			TASK_MAX * sizeof(struct utask),
++			64 * sizeof(struct utask),
++			FALSE, "utasks");
++	u_thread_zone = zinit(sizeof(struct uthread),
++			THREAD_MAX * sizeof(struct uthread),
++			64 * sizeof(struct uthread),
++			FALSE, "uthreads");
++}
++#else	NeXT
+ extern struct zone *u_zone;
+ 
+ uzone_init()
+@@ -316,6 +453,7 @@
+ 			8 * sizeof(struct utask),
+ 			FALSE, "u-areas");
+ }
++#endif	NeXT
+ 
+ utask_free(utask)
+ 	struct utask	*utask;
+@@ -327,19 +465,40 @@
+ 		kfree(utask->uu_pofile, cnt * sizeof(char));
+ 		utask->uu_ofile_cnt = 0;
+ 	}
++#if	NeXT
++	zfree(u_task_zone, (vm_offset_t) utask);	/* plan 202 */
++#else	NeXT
+ 	zfree(u_zone, (vm_offset_t) utask);
++#endif	NeXT
++}
++
++#if	NeXT
++/* plan 202 (authored; original 0x106d9c) */
++uthread_free(uthread)
++	struct uthread	*uthread;
++{
++	zfree(u_thread_zone, (vm_offset_t) uthread);
+ }
++#endif	NeXT
+ 
+ uarea_init(th)
+ 	register thread_t	th;
+ {
++#if	NeXT
++	th->_uthread->uu_ap = th->_uthread->uu_arg;	/* plan 202 */
++#else	NeXT
+ 	th->u_address.uthread->uu_ap = th->u_address.uthread->uu_arg;
++#endif	NeXT
+ }
+ 
+ uarea_zero(th)
+ 	thread_t	th;
+ {
++#if	NeXT
++	bzero((caddr_t) th->_uthread, sizeof(struct uthread));	/* plan 202 */
++#else	NeXT
+ 	bzero((caddr_t) th->u_address.uthread, sizeof(struct uthread));
++#endif	NeXT
+ }
+ 
+ utask_zero(ta)
+@@ -349,5 +508,15 @@
+ 	ta->proc = (struct proc *)0;
+ }
+ 
++#if	NeXT
++/* plan 202 (authored, D024; original 0x106e0c): make th the current u area */
++switch_unix_context(th)
++	thread_t	th;
++{
++	active_u[0].uthread = th->_uthread;
++	active_u[0].utask = th->task->u_address;
++}
++#endif	NeXT
++
+ 
+ 

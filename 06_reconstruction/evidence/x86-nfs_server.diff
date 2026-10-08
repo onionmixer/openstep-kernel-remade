@@ -1,0 +1,438 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_server.c	2026-09-11 10:02:49.607218787 +0900
++++ 07_kernel/src/bsd/nfs/nfs_server.c	2026-10-04 04:40:54.571895918 +0900
+@@ -90,11 +90,22 @@
+ 					svc_getcaller((req)->rq_xprt), \
+ 					&(exi)->exi_export.ex_writeaddrs)))
+ 
+-struct vnode	*fhtovp();
++/*
++ * plan 279: every function but nfs_svc is static (the original has no
++ * symbols for them).  The order of the declarations below gives the
++ * original order of the deferred static functions in the object.
++ */
++static struct vnode	*fhtovp();
+ struct file	*getsock();
+ void		svcerr_progvers();
+-void		rfs_dispatch();
++static void	rfs_dispatch();
+ static int	mbuf_to_iov();
++static		sattr_to_vattr(), hostinlist(), checkauth(), eqaddr(), rfsput();
++static caddr_t	rfsget();
++static int	rfs_getattr(), rfs_link(), rfs_lookup(), rfs_mkdir(), rfs_setattr(), rfs_read(), rfs_readlink(), rfs_remove(), rfs_rename(), rfs_rmdir();
++static		rfs_statfs(), rfs_symlink(), rfs_error(), rfs_null();
++static int	nullfree();
++static		rfs_rddirfree(), rfs_rdfree(), rfs_rlfree();
+ 
+ #ifdef NFSDEBUG
+ extern int nfsdebug;
+@@ -106,6 +117,16 @@
+ 	int	reqs[32];	/* count for each request */
+ } svstat;
+ 
++/* plan 279: moved up (the original __data starts with rfsfreesp, rfssize) */
++struct rfsspace {
++	struct rfsspace *rs_next;
++	caddr_t		rs_dummy;
++};
++
++struct rfsspace *rfsfreesp = NULL;
++
++int rfssize = 0;
++
+ int	nfs_chars = 50000;
+ int	nfsd_count = 0;
+ 
+@@ -182,7 +203,7 @@
+  * Get file attributes.
+  * Returns the current attributes of the file with the given fhandle.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_getattr(fhp, ns, exi)
+ 	fhandle_t *fhp;
+ 	register struct nfsattrstat *ns;
+@@ -217,7 +238,7 @@
+  * Sets the attributes of the file with the given fhandle.  Returns
+  * the new attributes.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_setattr(args, ns, exi, req)
+ 	struct nfssaargs *args;
+ 	register struct nfsattrstat *ns;
+@@ -282,8 +303,10 @@
+ 		 */
+ 		if (vp->v_type == VREG && va.va_size != (u_long)-1) {
+ 			struct vattr tva;
+-			struct iovec iov;
++#if	!MACH
++			struct iovec iov;	/* plan 279: only the non-MACH path uses these */
+ 			struct uio uio;
++#endif	!MACH
+ 			char zero = 0;
+ 
+ 			/* get current attributes */
+@@ -298,9 +321,7 @@
+ 				 * XXX - Guarantee that the inode information
+ 				 * is on the disk.
+ 				 */
+-				ILOCK(ip);
+-				iupdat(ip, TRUE);
+-				IUNLOCK(ip);
++				(void) VOP_FSYNC(vp, u.u_cred);	/* plan 279: was ILOCK/iupdat/IUNLOCK */
+ #else	MACH
+ 				iov.iov_base = &zero;
+ 				iov.iov_len = 1;
+@@ -335,7 +356,7 @@
+  * Directory lookup.
+  * Returns an fhandle and file attributes for file name in a directory.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_lookup(da, dr, exi)
+ 	struct nfsdiropargs *da;
+ 	register struct  nfsdiropres *dr;
+@@ -393,7 +414,7 @@
+  * Read symbolic link.
+  * Returns the string in the symbolic link at the given fhandle.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_readlink(fhp, rl, exi)
+ 	fhandle_t *fhp;
+ 	register struct nfsrdlnres *rl;
+@@ -468,7 +489,7 @@
+ /*
+  * Free data allocated by rfs_readlink
+  */
+-rfs_rlfree(rl)
++static rfs_rlfree(rl)	/* plan 279: static */
+ 	struct nfsrdlnres *rl;
+ {
+ 	if (rl->rl_data) {
+@@ -486,7 +507,7 @@
+  * Read data.
+  * Returns some data read from the file at the given fhandle.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_read(ra, rr, exi)
+ 	struct nfsreadargs *ra;
+ 	register struct nfsrdresult *rr;
+@@ -649,7 +670,7 @@
+ /*
+  * Free data allocated by rfs_read.
+  */
+-rfs_rdfree(rr)
++static rfs_rdfree(rr)	/* plan 279: static */
+ 	struct nfsrdresult *rr;
+ {
+ 	if (rr->rr_bp == 0 && rr->rr_data) {
+@@ -666,7 +687,7 @@
+  * Write data to file.
+  * Returns attributes of a file after writing some data to it.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_write(wa, ns, exi, req)
+ 	struct nfswriteargs *wa;
+ 	struct nfsattrstat *ns;
+@@ -814,9 +835,7 @@
+ #endif	MACH
+ 			}
+ #if	MACH
+-			ILOCK(ip);
+-			iupdat(ip, TRUE);
+-			IUNLOCK(ip);
++			(void) VOP_FSYNC(vp, u.u_cred);	/* plan 279: was ILOCK/iupdat/IUNLOCK */
+ #endif	MACH
+ 		}
+ 	}
+@@ -856,7 +875,7 @@
+  * Creates a file with given attributes and returns those attributes
+  * and an fhandle for the new file.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_create(args, dr, exi, req)
+ 	struct nfscreatargs *args;
+ 	struct  nfsdiropres *dr;
+@@ -962,7 +981,7 @@
+  * Remove a file.
+  * Remove named file from parent directory.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_remove(da, status, exi, req)
+ 	struct nfsdiropargs *da;
+ 	enum nfsstat *status;
+@@ -1017,7 +1036,7 @@
+  * rename a file
+  * Give a file (from) a new name (to).
+  */
+-int
++static int		/* plan 279: static */
+ rfs_rename(args, status, exi, req)
+ 	struct nfsrnmargs *args;
+ 	enum nfsstat *status;
+@@ -1085,7 +1104,7 @@
+  * Link to a file.
+  * Create a file (to) which is a hard link to the given file (from).
+  */
+-int
++static int		/* plan 279: static */
+ rfs_link(args, status, exi, req)
+ 	struct nfslinkargs *args;
+ 	enum nfsstat *status;
+@@ -1152,7 +1171,7 @@
+  * Create a file (to) with the given attributes which is a symbolic link
+  * to the given path name (to).
+  */
+-int
++static int		/* plan 279: static */
+ rfs_symlink(args, status, exi, req)
+ 	struct nfsslargs *args;
+ 	enum nfsstat *status;
+@@ -1215,7 +1234,7 @@
+  * Create a directory with the given name, parent directory, and attributes.
+  * Returns a file handle and attributes for the new directory.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_mkdir(args, dr, exi, req)
+ 	struct nfscreatargs *args;
+ 	struct  nfsdiropres *dr;
+@@ -1288,7 +1307,7 @@
+  * Remove a directory.
+  * Remove the given directory name from the given parent directory.
+  */
+-int
++static int		/* plan 279: static */
+ rfs_rmdir(da, status, exi, req)
+ 	struct nfsdiropargs *da;
+ 	enum nfsstat *status;
+@@ -1338,7 +1357,7 @@
+ #endif
+ }
+ 
+-int
++static int		/* plan 279: static */
+ rfs_readdir(rda, rd, exi)
+ 	struct nfsrddirargs *rda;
+ 	register struct nfsrddirres  *rd;
+@@ -1504,7 +1523,7 @@
+ #endif
+ }
+ 
+-rfs_rddirfree(rd)
++static rfs_rddirfree(rd)	/* plan 279: static */
+ 	struct nfsrddirres *rd;
+ {
+ 	if (rd->rd_entries != NULL)
+@@ -1523,7 +1542,7 @@
+ #endif	MACH
+ }
+ 
+-rfs_statfs(fh, fs, exi)
++static rfs_statfs(fh, fs, exi)	/* plan 279: static */
+ 	fhandle_t *fh;
+ 	register struct nfsstatfs *fs;
+ 	struct exportinfo *exi;
+@@ -1557,7 +1576,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-rfs_null(argp, resp)
++static rfs_null(argp, resp)	/* plan 279: static */
+ 	caddr_t *argp;
+ 	caddr_t *resp;
+ {
+@@ -1566,14 +1585,14 @@
+ }
+ 
+ /*ARGSUSED*/
+-rfs_error(argp, resp)
++static rfs_error(argp, resp)	/* plan 279: static */
+ 	caddr_t *argp;
+ 	caddr_t *resp;
+ {
+ 	return (EOPNOTSUPP);
+ }
+ 
+-int
++static int		/* plan 279: static */
+ nullfree()
+ {
+ }
+@@ -1653,16 +1672,8 @@
+ 	}
+ };
+ 
+-struct rfsspace {
+-	struct rfsspace *rs_next;
+-	caddr_t		rs_dummy;
+-};
+-
+-struct rfsspace *rfsfreesp = NULL;
+ 
+-int rfssize = 0;
+-
+-caddr_t
++static caddr_t		/* plan 279: static */
+ rfsget()
+ {
+ 	int i;
+@@ -1702,7 +1713,7 @@
+ 	return (ret);
+ }
+ 
+-rfsput(rs)
++static rfsput(rs)	/* plan 279: static */
+ 	struct rfsspace *rs;
+ {
+ 	rs->rs_next = rfsfreesp;
+@@ -1717,7 +1728,7 @@
+ int nfs_portmon = 0;
+ 
+ 
+-void
++static void		/* plan 279: static */
+ rfs_dispatch(req, xprt)
+ 	struct svc_req *req;
+ 	register SVCXPRT *xprt;
+@@ -1727,10 +1738,10 @@
+ 	caddr_t	*args = NULL;
+ 	caddr_t	*res = NULL;
+ 	register struct rfsdisp *disp = NULL;
+-	struct ucred *tmpcr;
++	struct ucred *tmpcr = NULL;		/* plan 279 */
+ 	struct ucred *newcr = NULL;
+ 	int error;
+-	struct exportinfo *exi;
++	struct exportinfo *exi = NULL;		/* plan 279 */
+ 
+ 	svstat.ncalls++;
+ 	error = 0;
+@@ -1742,7 +1753,8 @@
+ #endif
+ 		svcerr_noproc(req->rq_xprt);
+ 		error++;
+-		printf("nfs_server: bad proc number\n");
++		printf("nfs_server: bad proc number from %s\n",	/* plan 279 */
++		    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 		goto done;
+ 	}
+ 	vers = req->rq_vers;
+@@ -1755,7 +1767,8 @@
+ 		svcerr_progvers(req->rq_xprt, (u_long)VERSIONMIN,
+ 		    (u_long)VERSIONMAX);
+ 		error++;
+-		printf("nfs_server: bad version number\n");
++		printf("nfs_server: bad version number from %s\n",	/* plan 279 */
++		    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 		goto done;
+ 	}
+ 	vers -= VERSIONMIN;
+@@ -1774,7 +1787,8 @@
+ 	if ( ! SVC_GETARGS(xprt, disp->dis_xdrargs, args)) {
+ 		svcerr_decode(xprt);
+ 		error++;
+-		printf("nfs_server: bad getargs\n");
++		printf("nfs_server: bad getargs from %s\n",	/* plan 279 */
++		    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 		goto done;
+ 	}
+ 
+@@ -1803,7 +1817,7 @@
+ 			error++;
+ 			printf(
+ "nfs_server: weak authentication, source IP address=%s\n",
+-			inet_ntoa(req->rq_xprt->xp_raddr.sin_addr));
++			inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));	/* plan 279: address */
+ 			goto done;
+ 		}
+ 	}
+@@ -1830,7 +1844,8 @@
+ 		 * Free arguments struct
+ 		 */
+ 		if (!SVC_FREEARGS(xprt, disp->dis_xdrargs, args) ) {
+-			printf("nfs_server: bad freeargs\n");
++			printf("nfs_server: bad freeargs from %s\n",	/* plan 279 */
++			    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 			error++;
+ 		}
+ 	}
+@@ -1843,7 +1858,8 @@
+ 	 */
+ 	if (!error) {
+ 		if (!svc_sendreply(xprt, disp->dis_xdrres, (caddr_t)res)) {
+-			printf("nfs_server: bad sendreply\n");
++			printf("nfs_server: bad sendreply from %s\n",	/* plan 279 */
++			    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 			error++;
+ 		}
+ 	}
+@@ -1870,7 +1886,7 @@
+ #endif	NNFSMEAS
+ }
+ 
+-sattr_to_vattr(sa, vap)
++static sattr_to_vattr(sa, vap)	/* plan 279: static */
+ 	register struct nfssattr *sa;
+ 	register struct vattr *vap;
+ {
+@@ -1892,7 +1908,7 @@
+  * WARNING: users of this routine must do a VN_RELE on the vnode when they
+  * are done with it.
+  */
+-struct vnode *
++static struct vnode *		/* plan 279: static */
+ fhtovp(fh, exi)
+ 	fhandle_t *fh;
+ 	struct exportinfo *exi;
+@@ -1922,7 +1938,7 @@
+  * Determine if two addresses are equal
+  * Only AF_INET supported for now
+  */
+-eqaddr(addr1, addr2)
++static eqaddr(addr1, addr2)	/* plan 279: static */
+ 	struct sockaddr *addr1;
+ 	struct sockaddr *addr2;
+ {
+@@ -1941,7 +1957,7 @@
+ 	return (0);
+ }
+ 
+-hostinlist(sa, addrs)
++static hostinlist(sa, addrs)	/* plan 279: static */
+ 	struct sockaddr *sa;
+ 	struct exaddrlist *addrs;
+ {
+@@ -1960,7 +1976,7 @@
+  * root user of the exported filesystem.
+  */
+ #if	SECURE_NFS
+-rootname(ex, netname)
++static rootname(ex, netname)	/* plan 279: static */
+ 	struct export *ex;
+ 	char *netname;
+ {
+@@ -1977,7 +1993,7 @@
+ }
+ #endif	SECURE_NFS
+ 
+-checkauth(exi, req, cred)
++static checkauth(exi, req, cred)	/* plan 279: static */
+ 	struct exportinfo *exi;
+ 	struct svc_req *req;
+ 	struct ucred *cred;
+@@ -1996,7 +2012,8 @@
+ 	 */
+ 	if (nfs_portmon &&
+ 	    ntohs(req->rq_xprt->xp_raddr.sin_port) >= IPPORT_RESERVED) {
+-		printf("NFS request from unprivileged port.\n");
++		printf("NFS request from unprivileged port from %s\n",	/* plan 279 */
++		    inet_ntoa(&req->rq_xprt->xp_raddr.sin_addr));
+ 		return (0);
+ 	}
+ 

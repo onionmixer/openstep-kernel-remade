@@ -1,0 +1,243 @@
+--- 01_resources/upstream/nextmach/mk-108.1/kernserv/kern_server.c	2026-09-11 10:02:49.553218123 +0900
++++ 07_kernel/src/kernserv/kern_server.c	2026-10-07 08:19:18.972371265 +0900
+@@ -38,19 +38,20 @@
+  * are deallocated from the message as well.
+  */
+ 
+-#import <sys/mig_errors.h>
++#import <mach/mig_errors.h>	/* plan 352: 4.2 header names */
+ #import <sys/callout.h>
+ #import <sys/printf.h>
+-#import <sys/notify.h>
++#import <mach/notify.h>	/* plan 352 */
+ #import <kern/kern_port.h>
+ #import <kern/sched_prim.h>
+-#import <kern/ipc_ptraps.h>
+-#import <kern/mach_traps.h>
++#import <mach/mach_traps.h>	/* plan 352: for kern/ipc_ptraps.h and kern/mach_traps.h */
+ #import <kern/kalloc.h>
+-#import <kern/ipc_notify.h>
+-#import <vm/vm_param.h>
++#import <kernserv/kern_notify.h>	/* plan 352 */
++#import <mach/vm_param.h>	/* plan 352 */
++#import "kernobjc.h"	/* plan 352: KERNOBJC */
+ 
+-#import <next/spl.h>
++#import <machine/spl.h>	/* plan 352 */
++#import <kern/xpr.h>	/* plan 352: struct xprbuf for log_entry_t (the SDK kern_server_reply_types.h does not import it) */
+ 
+ #import <kernserv/kern_server_handler.h>
+ #import <kernserv/kern_server_reply.h>
+@@ -58,7 +59,7 @@
+ #define panic(s) (curipl() == 0 ? kern_serv_panic(ksp->bootstrap_port, s) \
+ 				: printf("can't panic: %s\n", s))
+ 
+-static port_t kernel_port;
++/* plan 352: the kernel task port is kept per server (ksp->kernel_port) */
+ 
+ /*
+  * Use internal version of thread_terminate.
+@@ -94,7 +95,8 @@
+ 	kern_serv_log_level,
+ 	kern_serv_get_log,
+ 	kern_serv_port_serv,
+-	kern_serv_version};
++	kern_serv_version,	/* plan 352 */
++	kern_serv_load_objc};	/* plan 352 */
+ 
+ /*
+  * Prototypes for kernel functions not yet prototyped.
+@@ -102,6 +104,7 @@
+ int bcopy(void *to, void *from, int size);
+ int curipl(void);
+ void softint_sched(int level, int (*proc)(), void *arg);
++void calloutDispatchUnique(void *func, void *arg);	/* plan 352: kern/callout.c */
+ kern_return_t vm_map_pageable(
+ 	vm_map_t	map,
+ 	vm_offset_t	start,
+@@ -168,9 +171,7 @@
+ 
+ 	if (current_task() != kernel_task) {
+ 		current_task()->kernel_vm_space = TRUE;
+-		current_task()->kernel_ipc_space = FALSE;
+-	}
+-	current_thread()->ipc_kernel = TRUE;
++	}	/* plan 352: no kernel_ipc_space/ipc_kernel */
+ 
+ 	bzero((char *)ksp, sizeof(*ksp));
+ 	ksp->version = -1;
+@@ -235,8 +236,8 @@
+ 	/*
+ 	 * Forget the reply_port we were using so that it isn't
+ 	 * cached anymore.
++	 * plan 352: the original does not clear the thread's reply_port here.
+ 	 */
+-	current_thread()->reply_port = PORT_NULL;
+ 
+ 	/*
+ 	 * Allocate the basic set of ports we need for communication
+@@ -285,17 +286,15 @@
+ 	/*
+ 	 * The kernel's task port.
+ 	 */
+-	object_copyout(current_task(), kernel_task->task_tself,
+-		MSG_TYPE_PORT, &kernel_port);
+-	obj_reference((kern_obj_t)kernel_task->task_tself);
++	ksp->kernel_port = kern_serv_kernel_task_port();	/* plan 352 */
+ 
+ 	/*
+ 	 *	Service loop... receive messages and process them.
+ 	 */
+ 
+-	in_msg = (msg_header_t *)kalloc(KERN_SERV_INMSG_SIZE);
++	in_msg = (msg_header_t *)kalloc(kern_servMaxRequestSize);	/* plan 352 */
+ 	ksp->msg = in_msg;
+-	ksp->msg_size = KERN_SERV_INMSG_SIZE;
++	ksp->msg_size = kern_servMaxRequestSize;	/* plan 352 */
+ 	for (;;) {
+ 		/*
+ 		 * Look for things to do that need to be done
+@@ -341,9 +340,7 @@
+ 		 * If our receive was interrupted, go back to it.
+ 		 */
+ 		switch (r) {
+-		case RCV_INTERRUPTED:
+-			if (thread_should_halt(current_thread()))
+-				thread_halt_self();
++		case RCV_INTERRUPTED:	/* plan 352: no thread_should_halt check */
+ 			break;
+ 		case RCV_TIMED_OUT:
+ 			continue;
+@@ -351,16 +348,19 @@
+ 			/*
+ 			 * We need to allocate a larger message to return.
+ 			 */
++		{	/* plan 352: read the new size before freeing the message */
++			vm_size_t	new_msg_size = ksp->msg->msg_size;	/* plan 352 */
+ 			kfree(ksp->msg, ksp->msg_size);
+-			ksp->msg_size = ksp->msg->msg_size;
++			ksp->msg_size = new_msg_size;	/* plan 352 */
+ 			ksp->msg = (void *)kalloc(ksp->msg_size);
+ 			in_msg = ksp->msg;
+ 			goto receive;
++		}
+ 
+ 		case KERN_SUCCESS:
+ 			break;
+ 		default:
+-			kern_serv_panic(bootstrap_port,
++			kern_serv_panic(ksp->bootstrap_port,	/* plan 352 */
+ 				"kern_server_main: received return bad return"
+ 				" from msg_receive");
+ 			break;
+@@ -389,7 +389,7 @@
+ 				kern_serv_port_gone(&ksp, n->notify_port);
+ 				break;
+ 			default:
+-				if (ksp->pn_proc == 0)
++				if (ksp->pn_proc)	/* plan 352 */
+ 					(*ksp->pn_proc)(n->notify_port,
+ 				    			in_msg->msg_id);
+ 				break;
+@@ -590,6 +590,24 @@
+ 	return KERN_SUCCESS;
+ }
+ 
++/*
++ * plan 352 (authored, D024; original 0x16c96c): remember the server's
++ * mach header and register its Objective-C module.
++ */
++kern_return_t kern_serv_load_objc(
++	void		*arg,
++	vm_address_t	header)
++{
++	kern_server_t ksp = *((kern_server_t *)arg);
++	int		error;
++
++#if	KERNOBJC
++	ksp->mach_header = (struct mach_header *) header;
++	error = objc_registerModule (ksp->mach_header, 0);
++#endif	KERNOBJC
++	return KERN_SUCCESS;
++}
++
+ kern_return_t kern_serv_boot_port (	// how to talk to loader
+ 	void		*arg,
+ 	port_t		boot_port)
+@@ -813,6 +831,11 @@
+ 
+ 	ks_log(("kern_serv_shutdown\n"));
+ 
++#if	KERNOBJC	/* plan 352 (authored): unregister the Objective-C module */
++	if (ksp->mach_header)
++		objc_unregisterModule (ksp->mach_header, 0);
++#endif	KERNOBJC
++
+ 	/*
+ 	 * Stop logging and free the data
+ 	 * if we were logging.
+@@ -906,7 +929,7 @@
+ 
+ 		ASSERT(    (void *)ksp->log.base
+ 			== (void *)round_page(ksp->log.base));
+-		r = vm_read((vm_task_t)kernel_port,
++		r = vm_read((vm_task_t)ksp->kernel_port,	/* plan 352 */
+ 			(vm_address_t)ksp->log.base, size, &ldata,
+ 			&ldata_count);
+ 		ASSERT(r == KERN_SUCCESS);
+@@ -997,7 +1020,7 @@
+ 		return;
+ 
+ 	ASSERT((void *)ksp->log.base == (void *)round_page(ksp->log.base));
+-	r = vm_read((vm_task_t)kernel_port, (vm_address_t)ksp->log.base,
++	r = vm_read((vm_task_t)ksp->kernel_port,	/* plan 352 */ (vm_address_t)ksp->log.base,
+ 		size, &ldata, &ldata_count);
+ 	ASSERT(r == KERN_SUCCESS);
+ 	kern_serv_log_data(log_port, (log_entry_t *)ldata,
+@@ -1083,19 +1106,16 @@
+ 	/*
+ 	 * Interrupt the server thread to that it'll look at this sucker.
+ 	 */
+-	softint_sched(CALLOUT_PRI_THREAD,
+-		(int (*)())kern_serv_interrupt_server,
+-		(caddr_t)ksp->server_thread);
++	calloutDispatchUnique((void *)kern_serv_interrupt_server,	/* plan 352 */
++		(void *)ksp->server_thread);	/* plan 352 */
+ 
+ 	return KERN_SUCCESS;
+ }
+ 
+ static void kern_serv_interrupt_server(thread_t thread)
+ {
+-	int s;
+-
+-	thread_dowait(thread, TRUE);	// wait for the guy to stop.
+-	clear_wait(thread, THREAD_INTERRUPTED, TRUE);
++	/* plan 352 (authored, D024): wake the server with a notification message */
++	send_notification(thread->task, NOTIFY_MSG_ACCEPTED, PORT_NULL);
+ }
+ 
+ /*
+@@ -1120,3 +1140,22 @@
+ {
+ 	return (*ksp)->port_set;
+ }
++
++/*
++ * plan 352 (authored, D024; original 0x16d1bc): a send right to the
++ * kernel task port, named in the current task.
++ */
++port_t kern_serv_kernel_task_port(void)
++{
++	extern task_t kernel_task;	// global kernel variable.
++	port_t my_kernel_port;
++
++	task_reference(kernel_task);
++	my_kernel_port = convert_task_to_port(kernel_task);
++	if (my_kernel_port == PORT_NULL)
++		return PORT_NULL;
++
++	object_copyout(current_task(), my_kernel_port, MSG_TYPE_PORT,
++		&my_kernel_port);
++	return my_kernel_port;
++}

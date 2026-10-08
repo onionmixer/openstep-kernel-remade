@@ -1,0 +1,150 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_syscalls.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_syscalls.c	2026-10-03 10:07:40.834883591 +0900
+@@ -47,6 +47,7 @@
+ #import <sys/dirent.h>
+ #import <sys/pathname.h>
+ #import <sys/vnode.h>
++#import <sys/proc.h>		/* plan 179: posix_proc, p_posix */
+ #import <ufs/inode.h>
+ #import <ufs/fsdir.h>
+ 
+@@ -167,8 +168,17 @@
+ 		int fmode;
+ 		int cmode;
+ 	} *uap = (struct a *)u.u_ap;
++#if	POSIX_KERN
++	/* plan 179 (authored, D024; original 0x11cced-0x11cd32) */
++	struct posix_proc *px = get_posix_proc(u.u_procp->p_pid);
++
++	px->p_posix_noctty = (uap->fmode & O_NOCTTY) ? 1 : 0;	/* plan 179.1 (variant o2) */
++#endif	/* POSIX_KERN */
+ 
+ 	u.u_error = copen(uap->fnamep, uap->fmode - FOPEN, uap->cmode);
++#if	POSIX_KERN
++	px->p_posix_noctty = 0;
++#endif	/* POSIX_KERN */
+ }
+ 
+ /*
+@@ -229,6 +239,11 @@
+ #else	NeXT
+ 		fp->f_flag = filemode & FMASK;
+ #endif	NeXT
++#if	POSIX_KERN
++		/* plan 179 (authored; original 0x11ce07-0x11ce23) */
++		if (u.u_procp->p_posix && vp->v_type == VREG)
++			fp->f_flag |= O_NO_MFS|FNOSPC;
++#endif	/* POSIX_KERN */
+ 		fp->f_type = DTYPE_VNODE;
+ 		fp->f_data = (caddr_t)vp;
+ 		fp->f_ops = &vnodefops;
+@@ -239,6 +254,7 @@
+ 		 */
+ 		if (vp->v_type == VFIFO)
+ 			fp->f_flag |= (filemode & FNDELAY);
++		u.u_ofile[i] = fp;	/* plan 179 (authored; original 0x11ce4a-0x11ce58) */
+ 	}
+ 	return(error);
+ }
+@@ -626,6 +642,13 @@
+ 	switch (uap->sbase) {
+ 
+ 	case L_INCR:
++#if	POSIX_KERN
++		/* plan 179 (authored; original 0x11d5d0) */
++		if (u.u_procp->p_posix && (long)(fp->f_offset + uap->off) < 0) {
++			u.u_error = EINVAL;
++			return;
++		}
++#endif	/* POSIX_KERN */
+ 		fp->f_offset += uap->off;
+ 		break;
+ 
+@@ -636,11 +659,25 @@
+ 		    VOP_GETATTR((struct vnode *)fp->f_data, &vattr, u.u_cred);
+ 		if (u.u_error)
+ 			return;
++#if	POSIX_KERN
++		/* plan 179 (authored; original 0x11d620) */
++		if (u.u_procp->p_posix && (long)(uap->off + vattr.va_size) < 0) {
++			u.u_error = EINVAL;
++			return;
++		}
++#endif	/* POSIX_KERN */
+ 		fp->f_offset = uap->off + vattr.va_size;
+ 		break;
+ 	}
+ 
+ 	case L_SET:
++#if	POSIX_KERN
++		/* plan 179 (authored; original 0x11d644) */
++		if (u.u_procp->p_posix && (long)uap->off < 0) {
++			u.u_error = EINVAL;
++			return;
++		}
++#endif	/* POSIX_KERN */
+ 		fp->f_offset = uap->off;
+ 		break;
+ 
+@@ -879,6 +916,46 @@
+ 	u.u_error = namesetattr(uap->fname, FOLLOW_LINK, &vattr);
+ }
+ 
++#if	POSIX_KERN
++/*
++ * plan 179 (authored, D024; original __utime 0x11da80-0x11db6a):
++ * POSIX utime(); a null time pointer means "now".
++ */
++_utime()
++{
++	register struct a {
++		char	*fname;
++		time_t	*tptr;
++	} *uap = (struct a *)u.u_ap;
++	struct posix_proc *px = get_posix_proc(u.u_procp->p_pid);
++	struct vattr vattr;
++	struct timeval tv;
++	time_t times[2];
++	int error;
++
++	getthetime(&tv);
++	vattr_null(&vattr);
++	if (u.u_procp->p_posix && uap->tptr == 0) {
++		/* plan 179.1 (variant u1): field-wise, as at 0x11dacc */
++		vattr.va_atime.tv_sec = vattr.va_mtime.tv_sec = tv.tv_sec;
++		vattr.va_atime.tv_usec = vattr.va_mtime.tv_usec = tv.tv_usec;
++		px->p_posix_utime = 1;
++	} else {
++		u.u_error = copyin((caddr_t)uap->tptr, (caddr_t)times,
++		    sizeof (times));
++		if (u.u_error)
++			return;
++		vattr.va_atime.tv_sec = times[0];
++		vattr.va_mtime.tv_sec = times[1];
++		vattr.va_atime.tv_usec = vattr.va_mtime.tv_usec = 0;
++	}
++	error = namesetattr(uap->fname, FOLLOW_LINK, &vattr);
++	px->p_posix_utime = 0;
++	u.u_error = (u.u_procp->p_posix && error == EPERM && uap->tptr == 0) ?
++	    EACCES : error;
++}
++#endif	/* POSIX_KERN */
++
+ /*
+  * Truncate a file given its path name.
+  */
+@@ -1081,6 +1158,7 @@
+ 	return(0);
+ }
+ 
++#ifdef	notdef	/* plan 179: getdents is not in the original (sysent slot 174 is nosys) */
+ #if	NeXT
+ getdents()
+ {
+@@ -1260,5 +1338,4 @@
+ 	fp->f_offset = auio.uio_offset;
+ }
+ #endif	NeXT
+-
+-
++#endif	/* notdef */

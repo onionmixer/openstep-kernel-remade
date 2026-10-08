@@ -47,6 +47,11 @@
                 keep the 07_kernel -> Darwin rule.  Since plan 135 the adopted SDK copies
                 live in 07_kernel/nextdev/ only; without --mach-set those names fall back to
                 Darwin and no longer describe the reconstructed source.
+  --public-sdk NAME   (with --mach-set; plan 293; repeatable) for the SDK path NAME
+                (e.g. kernserv/queue.h) skip the authored 07_kernel/nextdev_private copy
+                and read the SDK text itself (07_kernel/nextdev/NAME first with
+                --prefer-07); for objects built against the plain SDK headers (libDriver).
+                NAME must have an authored private copy and be on the real-machine list.
 
   --source-override LOGICAL=KIND:PATH   (diagnosis, plan 137; repeatable) read the
                 source LOGICAL (src/<dir>/<name>.c) from mach4:<repo path> (Mach4
@@ -64,7 +69,7 @@ names first in the including file's directory:
   -Isrc/src/bsd                darwin01/kernel/bsd
   -Isrc/src/bsd/include        darwin01/kernel/bsd/include
   -Isrc/src/machdep            darwin01/kernel/machdep
-  -Isrc/components             darwin01            (architecture/...)
+  -Isrc/components             darwin01            (architecture/..., driverkit-1/...; only these, plan 357)
   -Isrc/components/architecture darwin01/architecture
   -Isrc/components/driverkit-1 darwin01/driverkit-1   (driverkit/... private headers, plan 81.1)
 
@@ -92,6 +97,25 @@ NEXTDEV = os.path.join(REPO, '01_resources', 'local_mirrors', 'headers', 'NextDe
 NEXTDEV_ROOTS = [NEXTDEV, os.path.join(NEXTDEV, 'bsd'), os.path.join(NEXTDEV, 'ansi')]
 NEXTDEV_LIST = os.path.join(REPO, '09_validation', 'reconstruction', 's4c-nextdev-headers-20261002.json')
 TARGET_HEADERS = '/NextDeveloper/Headers'
+# plan 342 (D042): real-machine headers outside /NextDeveloper/Headers adopted verbatim in 07_kernel/nextdev
+EXTRA_LIST = os.path.join(REPO, '09_validation', 'reconstruction', 's5p342-soundkit-headers-20261006.json')
+
+
+def extra_real(lg, f):
+    """Manifest note for an EXTRA_LIST name (logical nextdev/<name>), or None for other names.
+    The file must be the 07_kernel/nextdev copy (no symbolic link) with the listed SHA-256."""
+    if not lg.startswith('nextdev' + os.sep):
+        return None
+    rel = lg[len('nextdev') + 1:]
+    rows = {x['name']: x for x in json.load(open(EXTRA_LIST))['files']} if os.path.isfile(EXTRA_LIST) else {}
+    x = rows.get(rel)
+    if x is None:
+        return None
+    k = os.path.join(K07, 'nextdev', rel)
+    _no_symlink(os.path.join(K07, 'nextdev'), rel)
+    if os.path.normpath(f) != os.path.normpath(k) or sha(f) != x['sha256']:
+        raise SystemExit('stage_headers: %s is not the real-machine file %s (sha256 %s)' % (f, x['path'], x['sha256']))
+    return 'real machine %s sha256 %s; license TBD (D017); D042' % (x['path'], x['sha256'])
 NEXTMACH_REPO = os.path.join(UP, 'nextmach')
 NEXTMACH = os.path.join(NEXTMACH_REPO, 'mk-108.1')
 NEXTMACH_URL = 'https://github.com/johnsonjh/NeXTMach.git'
@@ -102,6 +126,9 @@ MACH4_COMMIT = '69fa77870f20d854c875135e116ebc80b118e7ff'
 OVERRIDE = {}   # logical source -> dict(file, note), --source-override (plan 137)
 NEXTMACH_DIRS = ('sys', 'net', 'netinet', 'nfs', 'ufs', 'specfs', 'rpc', 'rpcsvc', 'nextif', 'netns',
                  'netimp', 'krpc')
+# plan 335 (D039): BSD names whose NeXTMach file lives under another directory -> NeXTMach rel
+NEXTMACH_RENAME = {os.path.join('dev', 'busvar.h'): os.path.join('nextdev', 'busvar.h'),
+                   os.path.join('dev', 'i386', 'ohlfs12.h'): os.path.join('nextdev', 'ohlfs12.h')}   # plan 338
 
 
 K07 = os.path.join(REPO, '07_kernel')
@@ -119,8 +146,17 @@ def logical_of(path):
     raise SystemExit('stage_headers: %s is outside the staged trees' % path)
 
 
+# plan 357: the build's -Isrc/components covers only these Darwin 0.1 component trees; other darwin01
+# directories (objc-1 of D046, Libc) are reference copies, never staged as components/...
+COMPONENT_DIRS = ('architecture', 'driverkit-1')
+
+
 def darwin_of(logical):
     """Darwin (or generated) path of a logical stage path, or None."""
+    if logical.startswith('components' + os.sep):   # plan 357: judged on the normalized path (no escape with ..)
+        n = os.path.normpath(logical).split(os.sep)
+        if len(n) < 2 or n[0] != 'components' or n[1] not in COMPONENT_DIRS:
+            return None
     for pre, base in (('generated', GEN), (os.path.join('components', 'architecture'), ARCH), ('src', KERNEL),
                       ('components', D01), ('nextdev', NEXTDEV)):
         if logical == pre or logical.startswith(pre + os.sep):
@@ -128,9 +164,33 @@ def darwin_of(logical):
     return None
 
 
-KERNEL_STRIPPED = ('sys/ux_exception.h', 'sys/callout.h', 'sys/kernel.h')   # SDK copy lacks the kernel part (plan 83.1)
+KERNEL_STRIPPED = ('sys/ux_exception.h', 'sys/callout.h', 'sys/kernel.h',   # SDK copy lacks the kernel part (plan 83.1)
+                   'rpc/pmap_prot.h',   # no KERNEL struct portmap in the SDK copy (plan 190)
+                   'rpc/svc.h')   # SDK copy has int xp_sock, not the KERNEL struct socket * (plan 192)
 BSDSET = {'on': False}
+# plan 395: kernel-private data files (not headers) #imported from BSD sources; under
+# --bsd-set the authored copy 07_kernel/nextdev_private/bsd/<name> is read instead of
+# Darwin, unless --prefer-07 finds the same logical file in 07_kernel/src.  Explicit list.
+PRIVATE_DATA = ('dev/i386/PCKeymap.c',)
+
+
+def private_data(logical, prefer07):
+    """the authored private data file for a logical src/bsd/<name> on PRIVATE_DATA, or None"""
+    bsdpre = os.path.join('src', 'bsd') + os.sep
+    if not (BSDSET['on'] and logical.startswith(bsdpre)):
+        return None
+    rel = logical[len(bsdpre):]
+    if rel not in PRIVATE_DATA:
+        return None
+    if prefer07 and os.path.isfile(os.path.join(K07, logical)):
+        return None
+    f = os.path.join(PRIVATE, 'bsd', rel)
+    if not os.path.isfile(f):
+        return None
+    _no_symlink(PRIVATE, os.path.join('bsd', rel))
+    return f
 MACHSET = {'on': False}
+PUBLIC_SDK = set()   # --public-sdk names (plan 293)
 # SDK copies that are the public form (kernel-private branch removed; plan 134.2-134.5): not taken by --mach-set
 MACH_KERNEL_STRIPPED = ('mach/mach_types.h', 'mach/std_types.h', 'mach/mach_traps.h', 'kernserv/lock.h',
                         'kernserv/clock_timer.h', 'kernserv/ns_timer.h', 'kernserv/prototypes.h')
@@ -185,7 +245,31 @@ def bsd_pick(rel, prefer07=False):
         f = os.path.join(NEXTMACH, rel)
         if os.path.isfile(f) and not os.path.islink(f):
             return f, 'nextmach', rel
+    nrel = NEXTMACH_RENAME.get(rel)   # plan 335 (D039)
+    if nrel:
+        f = os.path.join(K07, 'nextmach', nrel)
+        if prefer07 and os.path.isfile(f):
+            return f, 'nextmach07', nrel
+        f = os.path.join(NEXTMACH, nrel)
+        if os.path.isfile(f) and not os.path.islink(f):
+            return f, 'nextmach', nrel
     return None
+
+
+def symlink_alias(tp, listing):
+    """plan 303a: the regular-file listing path a real-machine symlink tp stands for, or None.
+    Only an exact target_symlinks entry whose target is a plain name or relative path inside
+    Headers, resolving to a listed regular file that is not itself a symlink (no chains)."""
+    links = {x['path']: x['target'] for x in listing.get('target_symlinks', [])}
+    tgt = links.get(tp)
+    if not tgt or tgt.startswith('/') or '..' in tgt.split('/'):
+        return None
+    tp2 = os.path.normpath(os.path.join(os.path.dirname(tp), tgt))
+    if not tp2.startswith(TARGET_HEADERS + '/') or tp2 in links:
+        return None
+    if tp2 not in {x['path'] for x in listing['target_files']}:
+        return None
+    return tp2, tgt
 
 
 def mach_pick(logical, prefer07=False):
@@ -197,7 +281,7 @@ def mach_pick(logical, prefer07=False):
         if logical.startswith(lp):
             name = sp + logical[len(lp):]
             f = os.path.join(PRIVATE, name)
-            if os.path.isfile(f):
+            if os.path.isfile(f) and name not in PUBLIC_SDK:   # plan 293: --public-sdk
                 _no_symlink(PRIVATE, name)
                 return f, 'authored', name
             if name in MACH_KERNEL_STRIPPED:
@@ -220,6 +304,9 @@ def select(logical, prefer07, subst=None):
         return OVERRIDE[logical]['file']
     if subst and logical in subst:
         return subst[logical]['file']
+    pd = private_data(logical, prefer07)   # plan 395
+    if pd:
+        return pd
     bsdpre = os.path.join('src', 'bsd') + os.sep
     if BSDSET['on'] and logical.startswith(bsdpre) and logical.endswith('.h'):   # headers only; BSD sources stay
         hit = bsd_pick(logical[len(bsdpre):], prefer07)
@@ -436,6 +523,20 @@ def main():
         if not nextdev:
             raise SystemExit('stage_headers: --mach-set needs --nextdev')
         MACHSET['on'] = True
+    while '--public-sdk' in args:   # plan 293
+        i = args.index('--public-sdk')
+        name = args[i + 1]
+        del args[i:i + 2]
+        if not MACHSET['on']:
+            raise SystemExit('stage_headers: --public-sdk needs --mach-set sdk')
+        if not os.path.isfile(os.path.join(PRIVATE, name)):
+            raise SystemExit('stage_headers: --public-sdk %s has no authored private copy' % name)
+        if name in MACH_KERNEL_STRIPPED:
+            raise SystemExit('stage_headers: --public-sdk %s is a public-form SDK name' % name)
+        tp = TARGET_HEADERS + '/' + name
+        if tp not in {x['path'] for x in json.load(open(NEXTDEV_LIST))['target_files']}:
+            raise SystemExit('stage_headers: --public-sdk %s is not on the real-machine list' % name)
+        PUBLIC_SDK.add(name)
     if '--subst' in args:
         i = args.index('--subst')
         subst_path = args[i + 1]
@@ -473,6 +574,13 @@ def main():
             row.append('source-override: ' + OVERRIDE[lg]['note'])
             manifest.append(row)
             continue
+        pd = private_data(lg, prefer07)   # plan 395
+        if pd and os.path.normpath(pd) == os.path.normpath(f):
+            row.append('bsd-set: authored private data file 07_kernel/nextdev_private/bsd/%s (plan 395; evidence: 07_kernel/PROVENANCE.tsv)' % lg[len(os.path.join('src', 'bsd')) + 1:])
+            if d and os.path.isfile(d) and sha(d) != sha(f):
+                row.append('replaces %s sha256 %s' % (origin(d), sha(d)))
+            manifest.append(row)
+            continue
         if BSDSET['on'] and lg.startswith(os.path.join('src', 'bsd') + os.sep) and lg.endswith('.h'):
             hit = bsd_pick(lg[len(os.path.join('src', 'bsd')) + 1:], prefer07)
             assert hit and os.path.normpath(hit[0]) == os.path.normpath(f)
@@ -504,6 +612,8 @@ def main():
                 raise SystemExit('stage_headers: %s does not match the real-machine list (%s)' % (f, tp))
             else:
                 row.append('mach-set: real machine %s sha256 %s; license TBD (D017)' % (tp, nxsha_all[tp]))
+                if mhit[2] in PUBLIC_SDK:
+                    row.append('public-sdk: authored private copy not used (plan 293)')
             for old in (os.path.join(K07, lg), d):
                 if old and os.path.isfile(old):
                     row.append('replaces %s sha256 %s' % (origin(old), sha(old)))
@@ -521,12 +631,26 @@ def main():
             continue
         if prefer07 and d and os.path.isfile(d) and sha(d) != sha(f):
             row.append('differs from %s sha256 %s' % (origin(d), sha(d)))
+        xnote = extra_real(lg, f)   # plan 342 (D042)
+        if xnote:
+            row.append(xnote)
+            manifest.append(row)
+            continue
         if lg.startswith('nextdev' + os.sep):
             tp = TARGET_HEADERS + lg[len('nextdev'):]
-            if d == os.path.normpath(f) and nxsha.get(tp) != sha(f):
+            expected, alias = nxsha.get(tp), None
+            if expected is None:   # plan 303a: a listed real-machine symlink stands for its listed target
+                al = symlink_alias(tp, json.load(open(NEXTDEV_LIST)))
+                if al:
+                    alias = al[0]; expected = nxsha.get(alias)
+                    if d == os.path.normpath(f) and not (os.path.islink(f) and os.readlink(f) == al[1]):
+                        raise SystemExit('stage_headers: %s is not the same symlink as the real machine (%s -> %s)' % (f, tp, al[1]))
+            if d == os.path.normpath(f) and expected != sha(f):
                 raise SystemExit('stage_headers: %s does not match the real-machine list (%s)' % (f, tp))
-            row.append('real machine %s sha256 %s; license TBD (D017)' % (tp, nxsha.get(tp)))
-            if nxsha.get(tp) != sha(f):
+            row.append('real machine %s sha256 %s; license TBD (D017)' % (tp, expected))
+            if alias:
+                row.append('real-machine symlink to %s' % alias + ('' if d == os.path.normpath(f) else '; materialized copy of the real-machine symlink'))
+            if expected != sha(f):
                 row.append('differs from the real machine (07_kernel copy)')
         manifest.append(row)
     rep = dict(sources=sources, files=manifest, unresolved=unres)
@@ -540,6 +664,8 @@ def main():
             rep['bsd_not_adopted'] = not_adopted
     if OVERRIDE:
         rep['source_override'] = {k: v['note'] for k, v in OVERRIDE.items()}
+    if PUBLIC_SDK:
+        rep['public_sdk'] = sorted(PUBLIC_SDK)   # plan 293
     if MACHSET['on']:
         rep['mach_set'] = 'sdk'
         rep['mach_replaced_07'] = mach_replaced_07

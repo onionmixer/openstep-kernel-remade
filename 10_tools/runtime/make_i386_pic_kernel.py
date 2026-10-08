@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Make the PIC-fixed copy of the i386 analysis-baseline kernel for QEMU.
 
-usage: make_i386_pic_kernel.py OUT
+usage: make_i386_pic_kernel.py [--in INPUT] OUT
 
-Input: 03_original/x86/binaries/mach_kernel (mk-183.34.4), never modified.
+Input: 03_original/x86/binaries/mach_kernel (mk-183.34.4), never modified, or
+with --in (plan 405) another file that must have the same SHA-256 (e.g. the
+kernel linked from 07_kernel, run s6p402-ln1/s6p404-ln1).  OUT may not be the
+input or the baseline file (also through symbolic or hard links).
 The baseline's _intr_handler (0x18c85c) returns from a spurious IRQ15 without an
 EOI, so the master PIC's IRQ2 in-service bit stays set and QEMU's IDE
 interrupts lock up (seen: 02_plan/EMULATION_PLATFORM_PLAN.md, "첫 부팅 결과").
@@ -42,9 +45,18 @@ def text_segment(d):
 
 
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    src = SRC
+    if len(args) == 3 and args[0] == '--in':
+        src, args = args[1], args[2:]
+    if len(args) != 1:
         sys.exit(__doc__)
-    d = open(SRC, 'rb').read()
+    out_path = args[0]
+    for p in {src, SRC}:   # plan 405: never write over the input or the baseline
+        if os.path.realpath(out_path) == os.path.realpath(p) or \
+                (os.path.exists(out_path) and os.path.samefile(out_path, p)):
+            sys.exit('STOP: OUT is the input or the baseline file')
+    d = open(src, 'rb').read()
     if hashlib.sha256(d).hexdigest() != SRC_SHA256:
         sys.exit('STOP: baseline hash differs')
     vmaddr, vmsize, fileoff = text_segment(d)
@@ -60,9 +72,9 @@ def main():
     h = hashlib.sha256(out).hexdigest()
     if changed != 12 or h != OUT_SHA256:
         sys.exit('STOP: result differs (changed %d, sha256 %s)' % (changed, h))
-    with open(sys.argv[1], 'wb') as o:
+    with open(out_path, 'wb') as o:
         o.write(out)
-    print('%s  %d bytes, 12 bytes changed, sha256 %s' % (sys.argv[1], len(out), h))
+    print('%s  %d bytes, 12 bytes changed, sha256 %s (input %s)' % (out_path, len(out), h, src))
 
 
 if __name__ == '__main__':

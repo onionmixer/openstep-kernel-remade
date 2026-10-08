@@ -1,0 +1,118 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/tty_subr.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/tty_subr.c	2026-10-03 10:40:17.095332385 +0900
+@@ -39,7 +39,11 @@
+ 		p->c_cc = 0;
+ 		p->c_cf = p->c_cl = NULL;
+ 	} else {
+-		c = *p->c_cf++ & 0377;
++		c = *p->c_cf & 0377;
++		/* plan 183 (authored, D024; original 0x112de8-0x112e23): quote bits */
++		if (isset(((struct cblock *)((int)p->c_cf & ~CROUND))->c_quote, (int)p->c_cf & CROUND))
++			c |= TTY_QUOTE;
++		p->c_cf++;
+ 		if (--p->c_cc<=0) {
+ 			bp = (struct cblock *)(p->c_cf-1);
+ 			bp = (struct cblock *)((int)bp & ~CROUND);
+@@ -245,6 +249,7 @@
+ 		cfreelist = bp->c_next;
+ 		cfreecount -= CBSIZE;
+ 		bp->c_next = NULL;
++		bzero(bp->c_quote, CBQSIZE);	/* plan 183 (0x1131ad) */
+ 		p->c_cf = cp = bp->c_info;
+ 	} else if (((int)cp & CROUND) == 0) {
+ 		bp = (struct cblock *)cp - 1;
+@@ -258,6 +263,8 @@
+ 		bp->c_next = NULL;
+ 		cp = bp->c_info;
+ 	}
++	if (c & TTY_QUOTE)		/* plan 183 (0x113202) */
++		setbit(((struct cblock *)((int)cp & ~CROUND))->c_quote, (int)cp & CROUND);
+ 	*cp++ = c;
+ 	p->c_cc++;
+ 	p->c_cl = cp;
+@@ -288,6 +295,7 @@
+ 			goto out;
+ 		cfreelist = bp->c_next;
+ 		cfreecount -= CBSIZE;
++		bzero(bp->c_quote, CBQSIZE);	/* plan 183 (0x1132af) */
+ 		bp->c_next = NULL;
+ 		q->c_cf = cq = bp->c_info;
+ 	}
+@@ -300,6 +308,7 @@
+ 			bp = bp->c_next;
+ 			cfreelist = bp->c_next;
+ 			cfreecount -= CBSIZE;
++			bzero(bp->c_quote, CBQSIZE);	/* plan 183 (0x1132f5) */
+ 			bp->c_next = NULL;
+ 			cq = bp->c_info;
+ 		}
+@@ -339,6 +348,28 @@
+ }
+ 
+ /*
++ * plan 183 (authored, D024; original _nextc3 0x113390): like nextc, but
++ * also return the character (with TTY_QUOTE) through c.
++ */
++char *
++nextc3(p, cp, c)
++	register struct clist *p;
++	register char *cp;
++	register int *c;
++{
++
++	if (p->c_cc && ++cp != p->c_cl) {
++		if (((int)cp & CROUND) == 0)
++			cp = ((struct cblock *)cp)[-1].c_next->c_info;
++		*c = *cp;
++		if (isset(((struct cblock *)((int)cp & ~CROUND))->c_quote, (int)cp & CROUND))
++			*c |= TTY_QUOTE;
++		return (cp);
++	}
++	return (0);
++}
++
++/*
+  * Remove the last character in the list and return it.
+  */
+ unputc(p)
+@@ -353,6 +384,9 @@
+ 		c = -1;
+ 	else {
+ 		c = *--p->c_cl;
++		/* plan 183 (authored; original 0x113437-0x11345e) */
++		if (isset(((struct cblock *)((int)p->c_cl & ~CROUND))->c_quote, (int)p->c_cl & CROUND))
++			c |= TTY_QUOTE;
+ 		if (--p->c_cc <= 0) {
+ 			bp = (struct cblock *)p->c_cl;
+ 			bp = (struct cblock *)((int)bp & ~CROUND);
+@@ -360,7 +394,8 @@
+ 			bp->c_next = cfreelist;
+ 			cfreelist = bp;
+ 			cfreecount += CBSIZE;
+-		} else if (((int)p->c_cl & CROUND) == sizeof(bp->c_next)) {
++		} else if (p->c_cl ==
++		    ((struct cblock *)((int)p->c_cl & ~CROUND))->c_info) {	/* plan 183 (0x11349c) */
+ 			p->c_cl = (char *)((int)p->c_cl & ~CROUND);
+ 			bp = (struct cblock *)p->c_cf;
+ 			bp = (struct cblock *)((int)bp & ~CROUND);
+@@ -386,7 +421,6 @@
+ catq(from, to)
+ 	struct clist *from, *to;
+ {
+-	char bbuf[CBSIZE*4];
+ 	register s, c;
+ 
+ 	s = spltty();
+@@ -399,9 +433,8 @@
+ 		return;
+ 	}
+ 	splx(s);
+-	while (from->c_cc > 0) {
+-		c = q_to_b(from, bbuf, sizeof bbuf);
+-		(void) b_to_q(bbuf, c, to);
+-	}
++	/* plan 183 (authored; original 0x113551-0x113734): keep the quote bits */
++	while ((c = getc(from)) >= 0)
++		(void) putc(c, to);
+ }
+ 

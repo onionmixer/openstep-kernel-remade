@@ -1,0 +1,162 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_inode.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_inode.c	2026-10-03 15:48:33.993378448 +0900
+@@ -81,6 +81,7 @@
+ #import <sys/kernel.h>
+ #import <sys/proc.h>
+ #import <sys/dnlc.h>
++#import <architecture/byte_order.h>	/* plan 215: big-endian indirect blocks */
+ 
+ #define	INOHSZ	512
+ #if	((INOHSZ&(INOHSZ-1)) == 0)
+@@ -136,6 +137,45 @@
+ 	inode_list = ip;
+ 	return(ip);
+ }
++
++/*
++ * plan 215 (authored, D024; original _inode_cache_clear 0x140664):
++ * release the free inodes back to their zones.
++ */
++inode_cache_clear()		/* plan 215.1: variant g1 (s5p191-v1, v2) */
++{
++	register struct inode *ip, *iq, *prev;
++
++	while ((ip = ifreeh) != NULL) {
++		if (iq = ip->i_freef)
++			iq->i_freeb = &ifreeh;
++		ifreeh = iq;
++		ip->i_freef = NULL;
++		ip->i_freeb = NULL;
++		mfs_uncache(ITOV(ip));
++		ip->i_flag = IRELEASE_TO_ZONE;
++		ILOCK(ip);
++		if (ITOV(ip)->v_count != 0)
++			panic("free inode isn't");
++		remque(ip);
++	}
++	prev = ip = inode_list;
++	while (ip != NULL) {
++		if (ip->i_flag & IRELEASE_TO_ZONE) {
++			if (prev == ip)
++				prev = inode_list = ip->inode_list;
++			else
++				prev->inode_list = ip->inode_list;
++			iq = ip->inode_list;
++			zfree(vm_info_zone, ip->i_vnode.vm_info);
++			zfree(inode_zone, ip);
++		} else {
++			iq = ip->inode_list;
++			prev = ip;
++		}
++		ip = iq;
++	}
++}
+ #endif	MACH
+ 
+ /*
+@@ -428,7 +468,7 @@
+ 	}
+ 	dp = bp->b_un.b_dino;
+ 	dp += itoo(fs, ino);
+-	ip->i_ic = dp->di_ic;			/* structure assignment */
++	byte_swap_inode_in(dp, ip);	/* plan 215 (original 0x140b29) */
+ 	VN_INIT(ITOV(ip), mp->m_vfsp, IFTOVT(ip->i_mode), ip->i_rdev);
+ 	if (ino == (ino_t)ROOTINO) {
+ 		ITOV(ip)->v_flag |= VROOT;
+@@ -603,14 +643,15 @@
+ 			|| ((dp->di_gen + 1 == ip->i_gen)
+ 			&& (ip->i_flag & IFREE)));
+ 		ip->i_flag &= ~IFREE;
+-		dp->di_ic = ip->i_ic;		/* structure assignment */
++		byte_swap_inode_out(ip, dp);	/* plan 215 (original 0x140fc7) */
+ 		/*
+ 		 * If this is a user mounted filesystem, we need to
+ 		 * restore the real uid and gid before updating the inode.
+ 		 */
+ 		 if (ITOV(ip)->v_vfsp->vfs_uid) {
+-			 dp->di_uid = ip->i_ruid;
+-			 dp->di_gid = ip->i_rgid;
++			 /* plan 215 (original 0x140fdc): 32-bit swap stored in 16 bits */
++			 dp->di_uid = NXSwapHostLongToBig(ip->i_ruid);
++			 dp->di_gid = NXSwapHostLongToBig(ip->i_rgid);
+ 		 }
+ #else
+ 		dp->di_ic = ip->i_ic;		/* structure assignment */
+@@ -656,6 +697,11 @@
+ 	extern struct cmap *mfind();
+ #endif	MACH
+ 
++#if	MACH_NBC	/* plan 215.1: before the fast link check (original 0x141034) */
++	IUNLOCK(oip);	/* ARGH!!! */
++	mfsActivity = mfs_trunc(ITOV(oip), length);
++	ILOCK(oip);
++#endif	MACH_NBC
+ #if	defined(NeXT) || defined(multimax)
+ 	/*
+ 	 * Don't try to truncate fast symbolic link inodes since they
+@@ -671,11 +717,6 @@
+ 		return (0);
+ 	}
+ #endif	defined(NeXT) || defined(multimax)
+-#if	MACH_NBC
+-	IUNLOCK(oip);	/* ARGH!!! */
+-	mfsActivity = mfs_trunc(ITOV(oip), length);
+-	ILOCK(oip);
+-#endif	MACH_NBC
+ #if	NeXT
+ 	if (length == oip->i_size)  {
+ 		oip->i_flag |= IUPD|ICHG;
+@@ -724,7 +765,7 @@
+ 	lastiblock[SINGLE] = lastblock - NDADDR;
+ 	lastiblock[DOUBLE] = lastiblock[SINGLE] - NINDIR(fs);
+ 	lastiblock[TRIPLE] = lastiblock[DOUBLE] - NINDIR(fs) * NINDIR(fs);
+-	nblocks = btodb(fs->fs_bsize);
++	nblocks = btodb(fs->fs_bsize, VOP_DEVBLOCKSIZE(ITOV(oip)));	/* plan 215 */
+ 	/*
+ 	 * Update the size of the file. If the file is not being
+ 	 * truncated to a block boundry, the contents of the
+@@ -820,7 +861,7 @@
+ 		ip->i_db[i] = 0;
+ 		bsize = (off_t)blksize(fs, ip, i);
+ 		free_block(ip, bn, bsize);
+-		blocksreleased += btodb(bsize);
++		blocksreleased += btodb(bsize, VOP_DEVBLOCKSIZE(ITOV(oip)));	/* plan 215 */
+ 	}
+ 	if (lastblock < 0)
+ 		goto done;
+@@ -850,7 +891,7 @@
+ 			 */
+ 			bn += numfrags(fs, newspace);
+ 			free_block(ip, bn, oldspace - newspace);
+-			blocksreleased += btodb(oldspace - newspace);
++			blocksreleased += btodb(oldspace - newspace, VOP_DEVBLOCKSIZE(ITOV(oip)));	/* plan 215 */
+ 		}
+ 	}
+ done:
+@@ -909,7 +950,7 @@
+ 	last = lastbn;
+ 	if (lastbn > 0)
+ 		last /= factor;
+-	nblocks = btodb(fs->fs_bsize);
++	nblocks = btodb(fs->fs_bsize, VOP_DEVBLOCKSIZE(ITOV(ip)));	/* plan 215 */
+ 	/*
+ 	 * Get buffer of block pointers, zero those 
+ 	 * entries corresponding to blocks to be free'd,
+@@ -936,7 +977,7 @@
+ 	 * Recursively free totally unused blocks.
+ 	 */
+ 	for (i = NINDIR(fs) - 1; i > last; i--) {
+-		nb = bap[i];
++		nb = NXSwapBigLongToHost(bap[i]);	/* plan 215 */
+ 		if (nb == 0)
+ 			continue;
+ 		if (level > SINGLE)
+@@ -951,7 +992,7 @@
+ 	 */
+ 	if (level > SINGLE && lastbn >= 0) {
+ 		last = lastbn % factor;
+-		nb = bap[i];
++		nb = NXSwapBigLongToHost(bap[i]);	/* plan 215 */
+ 		if (nb != 0)
+ 			blocksreleased += indirtrunc(ip, nb, last, level - 1);
+ 	}

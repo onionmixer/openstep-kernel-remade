@@ -1,0 +1,233 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/if_ether.c	2026-09-11 10:02:49.570218332 +0900
++++ 07_kernel/src/bsd/netinet/if_ether.c	2026-10-08 19:40:46.880931307 +0900
+@@ -67,6 +67,34 @@
+  **********************************************************************
+  */
+  
++/*
++ * The line marked "plan 401 (Darwin)" follows Darwin 0.1
++ * kernel/bsd/netinet/if_ether.c:85 (kernel-1; #include there), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #ifdef	vax
+ #import <en.h>
+ #else	vax
+@@ -98,6 +126,7 @@
+ #import <netinet/in_systm.h>
+ #import <netinet/ip.h>
+ #import <netinet/if_ether.h>
++#import <netinet/in_var.h>	/* plan 401 (Darwin): as Darwin 0.1 if_ether.c:85 (#include there); tentative in_ifaddr, ipintrq (original __common order) */
+ #if	NEN > 0
+ #import <vaxif/if_en.h>
+ #endif	NEN
+@@ -179,6 +208,11 @@
+ #endif	NEN > 0
+ 
+ u_char	etherbroadcastaddr[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
++#ifdef	MULTICAST
++/* plan 173 (authored, D024; original data 0x1db986 and 0x1db98c) */
++u_char	ether_ipmulticast_min[6] = { 0x01, 0x00, 0x5e, 0x00, 0x00, 0x00 };
++u_char	ether_ipmulticast_max[6] = { 0x01, 0x00, 0x5e, 0x7f, 0xff, 0xff };
++#endif	MULTICAST
+ #if	NeXT
+ #else	NeXT
+ extern struct ifnet loif;
+@@ -265,7 +299,9 @@
+ 	 *  socket address is interpreted by the output routine and not passed
+ 	 *  directly to the hardware so this doesn't matter.
+ 	 */
+-	*((u_short *)&sa.sa_data[2*eat->arp_hln]) = sa.sa_family;
++	/* plan 173 (authored): a 2-byte bcopy in the original (0x122165) */
++	bcopy((caddr_t)&sa.sa_family, (caddr_t)&sa.sa_data[2*eat->arp_hln],
++	      sizeof(sa.sa_family));
+ 	bcopy((caddr_t)&eat->arp_sha[eat->arp_hln+eat->arp_pln],
+ 	      (caddr_t)sa.sa_data, eat->arp_hln);
+ 	/* reate pointer to beginning of ARP packet. */
+@@ -315,6 +351,7 @@
+ 	     ea->arp_pro = htons(ea->arp_pro);
+ 	     ea->arp_op  = htons(ea->arp_op);
+ 	}
++#if	NEN > 0		/* plan 173.1 (authored, variant v1): no 3Mb body in the original */
+         else
+ 	/*
+ 	 *  3Mb ethernet - word oriented
+@@ -328,6 +365,7 @@
+ 	    for (i=2*(eat->arp_pln+eat->arp_hln); i; i-=2)
+ 	        *((u_short *)&ea->arp_sha[i-2]) = htons(*((u_short *)&ea->arp_sha[i-2]));
+ 	}
++#endif	NEN > 0
+ 	sa.sa_family = AF_UNSPEC;
+ #if	NeXT
+ 	if_output_mbuf(ifp, m, &sa);
+@@ -382,6 +420,13 @@
+ 
+ 	*usetrailers = 0;
+ 
++#ifdef	MULTICAST
++	/* plan 173 (authored, D024; original 0x122262-0x1222ab) */
++	if (IN_MULTICAST(ntohl(destip->s_addr))) {
++		ETHER_MAP_IP_MULTICAST(destip, desten);
++		return (1);
++	}
++#endif	MULTICAST
+ 	if (in_broadcast(*destip)) {	/* broadcast address */
+ 		register struct ether_arp *eat;
+ 
+@@ -526,6 +571,7 @@
+ 	register struct ether_arp *eat;
+ 	short hrd;
+ 	short pro;
++	struct arphdr arh;	/* plan 173 (authored): aligned copy (0x1226e8) */
+ 
+ #if	NeXT
+ 	if (ifp->if_flags & IFF_NOARP)
+@@ -537,7 +583,9 @@
+ #endif	NeXT
+ 	if (m->m_len < sizeof(struct arphdr))
+ 		goto out;
+-	ar = mtod(m, struct arphdr *);
++	/* plan 173 (authored; original 0x1226e8-0x1226f4) */
++	bcopy(mtod(m, caddr_t), (caddr_t)&arh, sizeof (arh));
++	ar = &arh;
+ #if	NEN > 0
+ #if	NeXT
+ 	if (arpisen(ifp))
+@@ -622,6 +670,7 @@
+ 	register struct ether_arp *eat;
+ 	register struct arptab *at;  /* same as "merge" flag */
+ 	struct mbuf *mcopy = 0;
++	struct ether_arp eab;	/* plan 173 (authored): aligned copy (0x122774) */
+ 	struct sockaddr_in sin;
+ 	struct sockaddr sa;
+ #if	NeXT
+@@ -635,7 +684,9 @@
+ #else	NeXT
+ 	myaddr = ac->ac_ipaddr;
+ #endif	NeXT
+-	ea = mtod(m, struct ether_arp *);
++	/* plan 173 (authored; original 0x122774-0x122786) */
++	bcopy(mtod(m, caddr_t), (caddr_t)&eab, sizeof (eab));
++	ea = &eab;
+ #if	NEN > 0
+ 	if (arpisen(ac))
+ 	{
+@@ -660,8 +711,11 @@
+ 	if (ea->arp_hln != eat->arp_hln ||
+ 	    ea->arp_pln != eat->arp_pln)
+ 		goto out;
+-	isaddr.s_addr = ((struct in_addr *)&ea->arp_sha[eat->arp_hln])->s_addr;
+-	itaddr.s_addr = ((struct in_addr *)&ea->arp_sha[eat->arp_hln*2+eat->arp_pln])->s_addr;
++	/* plan 173 (authored; original 0x1227c1-0x1227f3) */
++	bcopy((caddr_t)&ea->arp_sha[eat->arp_hln], (caddr_t)&isaddr,
++	      sizeof (isaddr));
++	bcopy((caddr_t)&ea->arp_sha[eat->arp_hln*2+eat->arp_pln],
++	      (caddr_t)&itaddr, sizeof (itaddr));
+ #if	NeXT
+ 	if (!bcmp((caddr_t)ea->arp_sha, (caddr_t)my_enaddr,
+ 		  eat->arp_hln))
+@@ -683,8 +737,10 @@
+ 			"duplicate IP address!! sent from ethernet address",
+ 			ether_sprintf(ea->arp_sha));
+ 		itaddr = myaddr;
+-		if (op == ARPOP_REQUEST)
++		if (op == ARPOP_REQUEST) {
++			at = 0;		/* plan 173 (authored; original 0x12287b) */
+ 			goto reply;
++		}
+ 		goto out;
+ 	}
+ 	s = splimp();
+@@ -785,15 +841,10 @@
+ 		bcopy((caddr_t)&ea->arp_sha[0],
+ 		      (caddr_t)&ea->arp_sha[eat->arp_hln+eat->arp_pln],
+ 		      eat->arp_hln);
+-#if	NeXT
+-		bcopy((caddr_t)&my_enaddr[0],
++		/* plan 173 (authored; original 0x122a98): the entry's address */
++		bcopy((caddr_t)&at->at_enaddr[0],
+ 		      (caddr_t)&ea->arp_sha[0],
+ 		      eat->arp_hln);
+-#else	NeXT
+-		bcopy((caddr_t)&ac->ac_enaddr[0],
+-		      (caddr_t)&ea->arp_sha[0],
+-		      eat->arp_hln);
+-#endif	NeXT
+ 	}
+ 	bcopy((caddr_t)&ea->arp_sha[eat->arp_hln],
+ 	      (caddr_t)&ea->arp_sha[eat->arp_hln*2+eat->arp_pln],
+@@ -805,7 +856,9 @@
+ 	bcopy((caddr_t)&ea->arp_sha[eat->arp_hln+eat->arp_pln],
+ 	      (caddr_t)sa.sa_data,
+ 	      eat->arp_hln);
+-	*((u_short *)&sa.sa_data[2*eat->arp_hln]) = sa.sa_family;
++	/* plan 173 (authored): a 2-byte bcopy in the original (0x122b0c) */
++	bcopy((caddr_t)&sa.sa_family, (caddr_t)&sa.sa_data[2*eat->arp_hln],
++	      sizeof(sa.sa_family));
+ 	/*
+ 	 * If incoming packet was an IP reply,
+ 	 * we are sending a reply for type IPTRAILERS.
+@@ -836,6 +889,7 @@
+ 	     /* protocol remains as originally supplied */
+ 	     ea->arp_op  = htons(ea->arp_op);
+ 	}
++#if	NEN > 0		/* plan 173 (authored): no 3Mb body in the original (0x122b6b) */
+         else
+ 	/*
+ 	 *  3Mb ethernet - word oriented
+@@ -849,6 +903,9 @@
+ 	    for (i=2*(eat->arp_pln+eat->arp_hln); i; i-=2)
+ 	        *((u_short *)&ea->arp_sha[i-2]) = htons(*((u_short *)&ea->arp_sha[i-2]));
+ 	}
++#endif	NEN > 0
++	/* plan 173 (authored; original 0x122b79-0x122b83) */
++	bcopy((caddr_t)ea, mtod(m, caddr_t), sizeof (*ea));
+ 	sa.sa_family = AF_UNSPEC;
+ #if	NeXT
+ 	if_output_mbuf(ifp, m, &sa);
+@@ -856,12 +913,13 @@
+ 	(*ac->ac_if.if_output)(&ac->ac_if, m, &sa);
+ #endif	NeXT
+ 	if (mcopy) {
+-		ea = mtod(mcopy, struct ether_arp *);
+ #if	NEN > 0
+ 		ea->arp_pro = (eat == &arpethertempl)?htons(ETHERTYPE_IPTRAILERS):ENTYPE_IPTRAILERS;
+ #else	NEN > 0
+ 		ea->arp_pro = htons(ETHERTYPE_IPTRAILERS);
+ #endif	NEN > 0
++		/* plan 173 (authored; original 0x122ba8-0x122bbf): the local copy */
++		bcopy((caddr_t)ea, mtod(mcopy, caddr_t), sizeof (*ea));
+ #if	NeXT
+ 		if_output_mbuf(ifp, mcopy, &sa);
+ #else 	NeXT
+@@ -946,7 +1004,7 @@
+ 	register struct arptab *at;
+ 	register struct sockaddr_in *sin;
+ 	int s;
+-	struct ifaddr *ifa;
++	struct ifaddr *ifa = 0;	/* plan 173 (authored; original 0x122d2b) */
+ 
+ 	if (ar->arp_pa.sa_family != AF_INET ||
+ 	    ar->arp_ha.sa_family != AF_UNSPEC)

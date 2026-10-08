@@ -1,0 +1,61 @@
+--- 01_resources/upstream/nextmach/mk-108.1/specfs/spec_subr.c	2026-09-11 10:02:49.620218947 +0900
++++ 07_kernel/src/bsd/specfs/spec_subr.c	2026-10-03 17:16:24.328496062 +0900
+@@ -57,6 +57,31 @@
+ }
+ 
+ /*
++ * plan 224 (authored, D024; original _set_blocksize 0x1395f0): record the
++ * block size the block device reports (d_psize) in the snode, and in the
++ * shared block-device snode if it has none yet.
++ */
++set_blocksize(sp, dev)
++	register struct snode *sp;
++	dev_t dev;
++{
++	int (*size)();
++	long rsize;
++
++	if ((major(dev) < nblkdev) &&
++	    (size = bdevsw[major(dev)].d_psize)) {
++		rsize = (*size)(dev);
++		if (rsize != -1) {
++			sp->s_size = rsize;
++			if (sp->s_bdevvp && VTOS(sp->s_bdevvp)->s_size == 0)
++				VTOS(sp->s_bdevvp)->s_size = rsize;
++			return;
++		}
++	}
++	sp->s_size = 0;
++}
++
++/*
+  * Return a shadow special vnode for the given dev.
+  * If no snode exists for this dev create one and put it
+  * in a table hashed by dev,realvp.  If the snode for
+@@ -115,25 +140,13 @@
+ 			}
+ 		} else {
+ 			/* must be a `real' block device */
+-			int (*size)();
+-			long rsize;
+-
+ 			STOV(sp)->v_type = VBLK;
+ 			STOV(sp)->v_vfsp = NULL;
+ 			sp->s_bdevvp = STOV(sp);
+-			if ((major(dev) < nblkdev) &&
+-			    (size = bdevsw[major(dev)].d_psize)) {
+-				rsize = (*size)(dev);
+-				if (rsize == -1)        /* did size fail? */
+-					sp->s_size = 0;	
+-				else
+-					sp->s_size = dbtob(rsize);
+-			} else {
+-				sp->s_size = 0;
+-			}
+ 		}
+ 		ssave(sp);
+ 	}
++	set_blocksize(sp, dev);		/* plan 224 (original 0x139759) */
+ 	return (STOV(sp));
+ }
+ 

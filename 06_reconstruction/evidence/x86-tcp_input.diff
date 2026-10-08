@@ -1,0 +1,206 @@
+--- 01_resources/upstream/net2/sys/netinet/tcp_input.c	2026-10-07 12:32:32.138305357 +0900
++++ 07_kernel/src/bsd/netinet/tcp_input.c	2026-10-07 15:42:06.256426422 +0900
+@@ -33,30 +33,45 @@
+  *	@(#)tcp_input.c	7.25 (Berkeley) 6/30/90
+  */
+ 
+-#include "param.h"
+-#include "systm.h"
+-#include "malloc.h"
+-#include "mbuf.h"
+-#include "protosw.h"
+-#include "socket.h"
+-#include "socketvar.h"
+-#include "errno.h"
+-
+-#include "../net/if.h"
+-#include "../net/route.h"
+-
+-#include "in.h"
+-#include "in_systm.h"
+-#include "ip.h"
+-#include "in_pcb.h"
+-#include "ip_var.h"
+-#include "tcp.h"
+-#include "tcp_fsm.h"
+-#include "tcp_seq.h"
+-#include "tcp_timer.h"
+-#include "tcp_var.h"
+-#include "tcpip.h"
+-#include "tcp_debug.h"
++/*
++ * Parts marked "plan 368 (NeXTMach)" follow NeXTMach mk-108.1
++ * netinet/tcp_input.c (https://github.com/johnsonjh/NeXTMach.git
++ * f6bdb9c3268f0eadc545d41bcc0564453b17001e), whose notices are the Berkeley
++ * notice above (4.3BSD revision 7.15.1.2) and:
++ */
++/* 
++ * Mach Operating System
++ * Copyright (c) 1987 Carnegie-Mellon University
++ * All rights reserved.  The CMU software License Agreement specifies
++ * the terms and conditions for use and redistribution.
++ */
++
++/* plan 368 (NeXTMach): OPENSTEP 4.2 header names, as NeXTMach :22-46 */
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <sys/mbuf.h>
++#import <sys/protosw.h>
++#import <sys/socket.h>
++#import <sys/socketvar.h>
++#import <sys/errno.h>
++
++#import <kern/queue.h>
++
++#import <net/if.h>
++#import <net/route.h>
++
++#import <netinet/in.h>
++#import <netinet/in_pcb.h>
++#import <netinet/in_systm.h>
++#import <netinet/ip.h>
++#import <netinet/ip_var.h>
++#import <netinet/tcp.h>
++#import <netinet/tcp_fsm.h>
++#import <netinet/tcp_seq.h>
++#import <netinet/tcp_timer.h>
++#import <netinet/tcp_var.h>
++#import <netinet/tcpip.h>
++#import <netinet/tcp_debug.h>
+ 
+ int	tcprexmtthresh = 3;
+ int	tcppredack;	/* XXX debugging: times hdr predict ok for acks */
+@@ -224,8 +239,9 @@
+ 	 * Note: IP leaves IP header in first mbuf.
+ 	 */
+ 	ti = mtod(m, struct tcpiphdr *);
+-	if (iphlen > sizeof (struct ip))
+-		ip_stripoptions(m, (struct mbuf *)0);
++	/* plan 368 (NeXTMach): 4.3-Reno form, as NeXTMach :210-211 */
++	if (((struct ip *)ti)->ip_hl > (sizeof (struct ip) >> 2))
++		ip_stripoptions((struct ip *)ti, (struct mbuf *)0);
+ 	if (m->m_len < sizeof (struct tcpiphdr)) {
+ 		if ((m = m_pullup(m, sizeof (struct tcpiphdr))) == 0) {
+ 			tcpstat.tcps_rcvshort++;
+@@ -273,8 +289,7 @@
+ 		om->m_len = off - sizeof (struct tcphdr);
+ 		{ caddr_t op = mtod(m, caddr_t) + sizeof (struct tcpiphdr);
+ 		  bcopy(op, mtod(om, caddr_t), (unsigned)om->m_len);
+-		  m->m_len -= om->m_len;
+-		  m->m_pkthdr.len -= om->m_len;
++		  m->m_len -= om->m_len;	/* plan 368: no m_pkthdr in the 4.2 mbuf */
+ 		  bcopy(op+om->m_len, op,
+ 		   (unsigned)(m->m_len-sizeof (struct tcpiphdr)));
+ 		}
+@@ -416,7 +431,7 @@
+ 				else if (tp->t_timer[TCPT_PERSIST] == 0)
+ 					tp->t_timer[TCPT_REXMT] = tp->t_rxtcur;
+ 
+-				if (so->so_snd.sb_flags & SB_NOTIFY)
++				if ((so->so_snd.sb_flags & SB_WAIT) || so->so_snd.sb_sel)	/* plan 368: 4.2 sockbuf, no SB_NOTIFY */
+ 					sowwakeup(so);
+ 				if (so->so_snd.sb_cc)
+ 					(void) tcp_output(tp);
+@@ -438,7 +453,7 @@
+ 			 * Drop TCP and IP headers then add data
+ 			 * to socket buffer
+ 			 */
+-			m->m_data += sizeof(struct tcpiphdr);
++			m->m_off += sizeof(struct tcpiphdr);	/* plan 368: 4.2 mbuf */
+ 			m->m_len -= sizeof(struct tcpiphdr);
+ 			sbappend(&so->so_rcv, m);
+ 			sorwakeup(so);
+@@ -450,7 +465,7 @@
+ 	/*
+ 	 * Drop TCP and IP headers; TCP options were dropped above.
+ 	 */
+-	m->m_data += sizeof(struct tcpiphdr);
++	m->m_off += sizeof(struct tcpiphdr);	/* plan 368: 4.2 mbuf */
+ 	m->m_len -= sizeof(struct tcpiphdr);
+ 
+ 	/*
+@@ -464,7 +479,7 @@
+ 	win = sbspace(&so->so_rcv);
+ 	if (win < 0)
+ 		win = 0;
+-	tp->rcv_wnd = max(win, (int)(tp->rcv_adv - tp->rcv_nxt));
++	tp->rcv_wnd = MAX(win, (int)(tp->rcv_adv - tp->rcv_nxt));	/* plan 368 (NeXTMach): as NeXTMach :365 */
+ 	}
+ 
+ 	switch (tp->t_state) {
+@@ -492,15 +507,14 @@
+ 			goto dropwithreset;
+ 		if ((tiflags & TH_SYN) == 0)
+ 			goto drop;
+-		if (m->m_flags & M_BCAST)
++		if (in_broadcast(ti->ti_dst))	/* plan 368: no M_BCAST in the 4.2 mbuf */
+ 			goto drop;
+ 		am = m_get(M_DONTWAIT, MT_SONAME);	/* XXX */
+ 		if (am == NULL)
+ 			goto drop;
+ 		am->m_len = sizeof (struct sockaddr_in);
+ 		sin = mtod(am, struct sockaddr_in *);
+-		sin->sin_family = AF_INET;
+-		sin->sin_len = sizeof(*sin);
++		sin->sin_family = AF_INET;	/* plan 368: no sin_len in 4.2 */
+ 		sin->sin_addr = ti->ti_src;
+ 		sin->sin_port = ti->ti_sport;
+ 		laddr = inp->inp_laddr;
+@@ -551,6 +565,7 @@
+ 	 *	continue processing rest of data/controls, beginning with URG
+ 	 */
+ 	case TCPS_SYN_SENT:
++	case TCPS_SYN_RECEIVED:		/* plan 368: original 0x128ce9-0x128cf9 */
+ 		if ((tiflags & TH_ACK) &&
+ 		    (SEQ_LEQ(ti->ti_ack, tp->iss) ||
+ 		     SEQ_GT(ti->ti_ack, tp->snd_max)))
+@@ -560,6 +575,8 @@
+ 				tp = tcp_drop(tp, ECONNREFUSED);
+ 			goto drop;
+ 		}
++		if (tp->t_state == TCPS_SYN_RECEIVED)	/* plan 368: original 0x128ec3 */
++			break;
+ 		if ((tiflags & TH_SYN) == 0)
+ 			goto drop;
+ 		if (tiflags & TH_ACK) {
+@@ -921,7 +938,7 @@
+ 			tp->snd_wnd -= acked;
+ 			ourfinisacked = 0;
+ 		}
+-		if (so->so_snd.sb_flags & SB_NOTIFY)
++		if ((so->so_snd.sb_flags & SB_WAIT) || so->so_snd.sb_sel)	/* plan 368: 4.2 sockbuf, no SB_NOTIFY */
+ 			sowwakeup(so);
+ 		tp->snd_una = ti->ti_ack;
+ 		if (SEQ_LT(tp->snd_nxt, tp->snd_una))
+@@ -1175,7 +1192,7 @@
+ 	 * Make ACK acceptable to originator of segment.
+ 	 * Don't bother to respond if destination was broadcast.
+ 	 */
+-	if ((tiflags & TH_RST) || m->m_flags & M_BCAST)
++	if ((tiflags & TH_RST) || in_broadcast(ti->ti_dst))	/* plan 368: no M_BCAST */
+ 		goto drop;
+ 	if (tiflags & TH_ACK)
+ 		tcp_respond(tp, ti, m, (tcp_seq)0, ti->ti_ack, TH_RST);
+@@ -1385,8 +1402,7 @@
+ 	if ((rt = ro->ro_rt) == (struct rtentry *)0) {
+ 		/* No route yet, so try to acquire one */
+ 		if (inp->inp_faddr.s_addr != INADDR_ANY) {
+-			ro->ro_dst.sa_family = AF_INET;
+-			ro->ro_dst.sa_len = sizeof(ro->ro_dst);
++			ro->ro_dst.sa_family = AF_INET;	/* plan 368: no sa_len in 4.2 */
+ 			((struct sockaddr_in *) &ro->ro_dst)->sin_addr =
+ 				inp->inp_faddr;
+ 			rtalloc(ro);
+@@ -1445,9 +1461,9 @@
+ 	 * unless we received an offer at least that large from peer.
+ 	 * However, do not accept offers under 32 bytes.
+ 	 */
+-	if (offer)
+-		mss = min(mss, offer);
+-	mss = max(mss, 32);		/* sanity */
++	if (offer && mss > offer)	/* plan 368: original 0x129cec-0x129d04 */
++		mss = offer;
++	mss = MAX(mss, 32);		/* sanity */
+ 	if (mss < tp->t_maxseg || offer != 0) {
+ 		/*
+ 		 * If there's a pipesize, change the socket buffer

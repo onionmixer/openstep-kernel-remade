@@ -1,0 +1,60 @@
+--- 01_resources/upstream/mach4/i386/kernel/i386at/kdasm.S	2026-09-11 10:02:48.308202818 +0900
++++ 07_kernel/src/machdep/i386/kdasm.s	2026-10-04 04:25:50.494600854 +0900
+@@ -59,7 +59,7 @@
+ /* $ Header: $ */
+ 
+  
+-#include <mach/machine/asm.h>
++/* plan 278: mach/machine/asm.h not used; ENTRY() written out as .globl/.align 2 */
+ 
+ /*
+  * Function:	kd_slmwd()
+@@ -73,7 +73,9 @@
+ #define count 0x0c(%ebp)
+ #define value 0x10(%ebp)
+ 
+-ENTRY(kd_slmwd)
++	.globl	_kd_slmwd		/* plan 278: was ENTRY(kd_slmwd) */
++	.align	2
++_kd_slmwd:
+ 	pushl	%ebp
+ 	movl	%esp, %ebp
+ 	pushl	%edi
+@@ -81,7 +83,6 @@
+ 	movl	start, %edi
+ 	movl	count, %ecx
+ 	movw	value, %ax
+-	cld
+ 	rep
+ 	stosw
+ 
+@@ -99,7 +100,9 @@
+ #define from  0x08(%ebp)
+ #define to    0x0c(%ebp)
+ #define count 0x10(%ebp)
+-ENTRY(kd_slmscu)
++	.globl	_kd_slmscu		/* plan 278: was ENTRY(kd_slmscu) */
++	.align	2
++_kd_slmscu:
+ 	pushl	%ebp
+ 	movl	%esp, %ebp
+ 	pushl	%esi
+@@ -109,7 +112,6 @@
+ 	movl	to, %edi
+ 	movl	count, %ecx
+ 	cmpl	%edi, %esi
+-	cld
+ 	rep
+ 	movsw
+ 
+@@ -121,7 +123,9 @@
+ /*
+  * "slam down"
+  */
+-ENTRY(kd_slmscd)
++	.globl	_kd_slmscd		/* plan 278: was ENTRY(kd_slmscd) */
++	.align	2
++_kd_slmscd:
+ 	pushl	%ebp
+ 	movl	%esp, %ebp
+ 	pushl	%esi

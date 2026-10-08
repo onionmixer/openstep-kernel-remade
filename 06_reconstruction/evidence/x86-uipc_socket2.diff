@@ -1,0 +1,81 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/uipc_socket2.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/uipc_socket2.c	2026-10-03 11:13:17.704768451 +0900
+@@ -187,16 +187,26 @@
+ 	register struct socket *head, *so;
+ 	int q;
+ {
++	register struct socket *prev;
+ 
++	/*
++	 * plan 187.1 (authored, D024; original 0x1162f8-0x116351):
++	 * insert at the tail of the circular queue.
++	 */
++	prev = head;
+ 	so->so_head = head;
+ 	if (q == 0) {
+ 		head->so_q0len++;
+-		so->so_q0 = head->so_q0;
+-		head->so_q0 = so;
++		while (prev->so_q0 != head)
++			prev = prev->so_q0;
++		so->so_q0 = prev->so_q0;
++		prev->so_q0 = so;
+ 	} else {
+ 		head->so_qlen++;
+-		so->so_q = head->so_q;
+-		head->so_q = so;
++		while (prev->so_q != head)
++			prev = prev->so_q;
++		so->so_q = prev->so_q;
++		prev->so_q = so;
+ 	}
+ }
+ 
+@@ -264,11 +274,9 @@
+ sbselqueue(sb)
+ 	struct sockbuf *sb;
+ {
+-	if (sb->sb_sel &&
+-			((thread_t)(sb->sb_sel))->wait_event == (int)&selwait)
++	/* plan 187 (authored, D024; original 0x1163f8) */
++	if (selthreadcache(&sb->sb_sel))
+ 		sb->sb_flags |= SB_COLL;
+-	else
+-		sb->sb_sel = (struct proc *) current_thread();
+ }
+ 
+ /*
+@@ -288,12 +296,16 @@
+ sbwakeup(sb)
+ 	register struct sockbuf *sb;
+ {
++	int s;
+ 
++	/* plan 187 (authored, D024; original 0x116438-0x116469) */
++	s = splimp();
+ 	if (sb->sb_sel) {
+ 		selwakeup(sb->sb_sel, sb->sb_flags & SB_COLL);
+-		sb->sb_sel = 0;
++		selthreadclear(&sb->sb_sel);
+ 		sb->sb_flags &= ~SB_COLL;
+ 	}
++	splx(s);
+ 	if (sb->sb_flags & SB_WAIT) {
+ 		sb->sb_flags &= ~SB_WAIT;
+ 		if (nfs_wakeup_one_nfsd == 1)   {
+@@ -403,8 +415,15 @@
+ 	struct sockbuf *sb;
+ {
+ 
++	int s;
++
+ 	sbflush(sb);
+ 	sb->sb_hiwat = sb->sb_mbmax = 0;
++	/* plan 187 (authored; original 0x1165e6-0x116603) */
++	s = splimp();
++	if (sb->sb_sel)
++		selthreadclear(&sb->sb_sel);
++	splx(s);
+ }
+ 
+ /*

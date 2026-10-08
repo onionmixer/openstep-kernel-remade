@@ -1,0 +1,428 @@
+--- 01_resources/upstream/mach4/kernel/kern/mach_clock.c	2026-09-11 10:02:48.336203162 +0900
++++ 07_kernel/src/kern/mach_clock.c	2026-10-03 18:59:57.060392262 +0900
+@@ -58,17 +58,13 @@
+ #include <machine/mach_param.h>	/* HZ */
+ #include <machine/machspl.h>
+ 
+-#if MACH_PCSAMPLE
+-#include <kern/pc_sample.h>
+-#endif
+ 
+ 
+-void softclock();		/* forward */
++unsigned long long	time_of_boot;	/* plan 235: adjusted with timedelta */
+ 
+ int		hz = HZ;		/* number of ticks per second */
+ int		tick = (1000000 / HZ);	/* number of usec per tick */
+ time_value_t	time = { 0, 0 };	/* time since bootup (uncorrected) */
+-unsigned long	elapsed_ticks = 0;	/* ticks elapsed since bootup */
+ 
+ int		timedelta = 0;
+ int		tickdelta = 0;
+@@ -103,9 +99,7 @@
+ 	}							\
+ MACRO_END
+ 
+-decl_simple_lock_data(,	timer_lock)	/* lock for ... */
+-timer_elt_data_t	timer_head;	/* ordered list of timeouts */
+-					/* (doubles as end-of-list) */
++decl_simple_lock_data(static,	timer_lock)	/* plan 235: static */
+ 
+ /*
+  *	Handle clock interrupts.
+@@ -117,6 +111,9 @@
+  *	last clock tick.  It may be constant or computed, depending on
+  *	the accuracy of the hardware clock.
+  *
++ *	plan 235 (D024): no timeout queue here (the callouts run the
++ *	timeouts); the time of boot follows clock adjustments
++ *	(original 0x15bc30-0x15bda7).
+  */
+ void clock_interrupt(usec, usermode, basepri)
+ 	register int	usec;		/* microseconds per tick */
+@@ -126,10 +123,6 @@
+ 	register int		my_cpu = cpu_number();
+ 	register thread_t	thread = current_thread();
+ 
+-	counter(c_clock_ticks++);
+-	counter(c_threads_total += c_threads_current);
+-	counter(c_stacks_total += c_stacks_current);
+-
+ #if	STAT_TIME
+ 	/*
+ 	 *	Increment the thread time, if using
+@@ -164,53 +157,16 @@
+ 	     *	quantum expiration.
+ 	     */
+ 
+-	    thread_quantum_update(my_cpu, thread, 1, state);
++	    if (!(thread->state & TH_IDLE))	/* plan 235 (0x15bcb6) */
++		thread_quantum_update(my_cpu, thread, 1, state);
+ 	}
+ 
+-#if 	MACH_SAMPLE
+ 	/*
+-	 * Take a sample of pc for the user if required.
+-	 * This had better be MP safe.  It might be interesting
+-	 * to keep track of cpu in the sample.
+-	 */
+-	if (usermode) {
+-		take_pc_sample_macro(thread, SAMPLED_PC_PERIODIC);
+-	}
+-#endif /* MACH_PCSAMPLE */
+-
+-	/*
+-	 *	Time-of-day and time-out list are updated only
++	 *	Time-of-day is updated only
+ 	 *	on the master CPU.
+ 	 */
+ 	if (my_cpu == master_cpu) {
+ 
+-	    register spl_t s;
+-	    register timer_elt_t	telt;
+-	    boolean_t	needsoft = FALSE;
+-
+-#if	TS_FORMAT == 1
+-	    /*
+-	     *	Increment the tick count for the timestamping routine.
+-	     */
+-	    ts_tick_count++;
+-#endif	TS_FORMAT == 1
+-
+-	    /*
+-	     *	Update the tick count since bootup, and handle
+-	     *	timeouts.
+-	     */
+-
+-	    s = splsched();
+-	    simple_lock(&timer_lock);
+-
+-	    elapsed_ticks++;
+-
+-	    telt = (timer_elt_t)queue_first(&timer_head.chain);
+-	    if (telt->ticks <= elapsed_ticks)
+-		needsoft = TRUE;
+-	    simple_unlock(&timer_lock);
+-	    splx(s);
+-
+ 	    /*
+ 	     *	Increment the time-of-day clock.
+ 	     */
+@@ -223,82 +179,35 @@
+ 		if (timedelta < 0) {
+ 		    delta = usec - tickdelta;
+ 		    timedelta += tickdelta;
++		    time_of_boot -= tickdelta * 1000;	/* plan 235 */
+ 		}
+ 		else {
+ 		    delta = usec + tickdelta;
+ 		    timedelta -= tickdelta;
++		    time_of_boot += tickdelta * 1000;	/* plan 235 */
+ 		}
+ 		time_value_add_usec(&time, delta);
+ 	    }
+ 	    update_mapped_time(&time);
+-
+-	    /*
+-	     *	Schedule soft-interupt for timeout if needed
+-	     */
+-	    if (needsoft) {
+-		if (basepri) {
+-		    (void) splsoftclock();
+-		    softclock();
+-		}
+-		else {
+-		    setsoftclock();
+-		}
+-	    }
+ 	}
+ }
+ 
+ /*
+- *	There is a nasty race between softclock and reset_timeout.
+- *	For example, scheduling code looks at timer_set and calls
+- *	reset_timeout, thinking the timer is set.  However, softclock
+- *	has already removed the timer but hasn't called thread_timeout
+- *	yet.
+- *
+- *	Interim solution:  We initialize timers after pulling
+- *	them out of the queue, so a race with reset_timeout won't
+- *	hurt.  The timeout functions (eg, thread_timeout,
+- *	thread_depress_timeout) check timer_set/depress_priority
+- *	to see if the timer has been cancelled and if so do nothing.
+- *
+- *	This still isn't correct.  For example, softclock pulls a
+- *	timer off the queue, then thread_go resets timer_set (but
+- *	reset_timeout does nothing), then thread_set_timeout puts the
+- *	timer back on the queue and sets timer_set, then
+- *	thread_timeout finally runs and clears timer_set, then
+- *	thread_set_timeout tries to put the timer on the queue again
+- *	and corrupts it.
++ * plan 235 (authored, D024; original 0x15c0ac, no symbol): callout
++ * handler of a timer element.
+  */
++static void service_timer();
+ 
+-void softclock()
+-{
+-	/*
+-	 *	Handle timeouts.
+-	 */
+-	spl_t	s;
++/*
++ * plan 235 (authored, D024; original _init_timeout_element 0x15bda8):
++ * make the element's callout call service_timer with the element.
++ */
++void init_timeout_element(telt)
+ 	register timer_elt_t	telt;
+-	register int	(*fcn)();
+-	register char	*param;
+-
+-	while (TRUE) {
+-	    s = splsched();
+-	    simple_lock(&timer_lock);
+-	    telt = (timer_elt_t) queue_first(&timer_head.chain);
+-	    if (telt->ticks > elapsed_ticks) {
+-		simple_unlock(&timer_lock);
+-		splx(s);
+-		break;
+-	    }
+-	    fcn = telt->fcn;
+-	    param = telt->param;
+-
+-	    remqueue(&timer_head.chain, (queue_entry_t)telt);
+-	    telt->set = TELT_UNSET;
+-	    simple_unlock(&timer_lock);
+-	    splx(s);
+-
+-	    assert(fcn != 0);
+-	    (*fcn)(param);
+-	}
++{
++	telt->call.func = (thread_call_func_t)service_timer;
++	telt->call.spec_proto = telt;
++	telt->call.status = IDLE;
+ }
+ 
+ /*
+@@ -313,26 +222,14 @@
+ 	register unsigned int	interval;
+ {
+ 	spl_t			s;
+-	register timer_elt_t	next;
++	extern unsigned long long	ticks_to_ns_time();
++	extern unsigned long long	calloutDeadlineFromInterval();
+ 
+ 	s = splsched();
+ 	simple_lock(&timer_lock);
+-
+-	interval += elapsed_ticks;
+-
+-	for (next = (timer_elt_t)queue_first(&timer_head.chain);
+-	     ;
+-	     next = (timer_elt_t)queue_next((queue_entry_t)next)) {
+-
+-	    if (next->ticks > interval)
+-		break;
+-	}
+-	telt->ticks = interval;
+-	/*
+-	 * Insert new timer element before 'next'
+-	 * (after 'next'->prev)
+-	 */
+-	insque((queue_entry_t) telt, ((queue_entry_t)next)->prev);
++	/* plan 235 (original 0x15bdf0-0x15be03) */
++	calloutEntryDispatchDelayed(&telt->call,
++		calloutDeadlineFromInterval(ticks_to_ns_time(interval)));
+ 	telt->set = TELT_SET;
+ 	simple_unlock(&timer_lock);
+ 	splx(s);
+@@ -346,7 +243,7 @@
+ 	s = splsched();
+ 	simple_lock(&timer_lock);
+ 	if (telt->set) {
+-	    remqueue(&timer_head.chain, (queue_entry_t)telt);
++	    calloutEntryRemove(&telt->call);	/* plan 235 */
+ 	    telt->set = TELT_UNSET;
+ 	    simple_unlock(&timer_lock);
+ 	    splx(s);
+@@ -362,10 +259,6 @@
+ void init_timeout()
+ {
+ 	simple_lock_init(&timer_lock);
+-	queue_init(&timer_head.chain);
+-	timer_head.ticks = ~0;	/* MAXUINT - sentinel */
+-
+-	elapsed_ticks = 0;
+ }
+ 
+ /*
+@@ -400,28 +293,12 @@
+ 	if (host == HOST_NULL)
+ 		return(KERN_INVALID_HOST);
+ 
+-#if	NCPUS > 1
+-	/*
+-	 * Switch to the master CPU to synchronize correctly.
+-	 */
+-	thread_bind(current_thread(), master_processor);
+-	if (current_processor() != master_processor)
+-	    thread_block((void (*)) 0);
+-#endif	NCPUS > 1
+-
+ 	s = splhigh();
+ 	time = new_time;
+ 	update_mapped_time(&time);
+-	resettodr();
++	set_calendar_time_value(&time);	/* plan 235 (was resettodr) */
+ 	splx(s);
+ 
+-#if	NCPUS > 1
+-	/*
+-	 * Switch off the master CPU.
+-	 */
+-	thread_bind(current_thread(), PROCESSOR_NULL);
+-#endif	NCPUS > 1
+-
+ 	return (KERN_SUCCESS);
+ }
+ 
+@@ -444,13 +321,7 @@
+ 	ndelta = new_adjustment.seconds * 1000000
+ 		+ new_adjustment.microseconds;
+ 
+-#if	NCPUS > 1
+-	thread_bind(current_thread(), master_processor);
+-	if (current_processor() != master_processor)
+-	    thread_block((void (*)) 0);
+-#endif	NCPUS > 1
+-
+-	s = splclock();
++	s = splhigh();			/* plan 235 (was splclock) */
+ 
+ 	oadj.seconds = timedelta / 1000000;
+ 	oadj.microseconds = timedelta % 1000000;
+@@ -467,103 +338,44 @@
+ 	timedelta = ndelta;
+ 
+ 	splx(s);
+-#if	NCPUS > 1
+-	thread_bind(current_thread(), PROCESSOR_NULL);
+-#endif	NCPUS > 1
+ 
+ 	*old_adjustment = oadj;
+ 
+ 	return (KERN_SUCCESS);
+ }
+ 
+-void mapable_time_init()
+-{
+-	if (kmem_alloc_wired(kernel_map, (vm_offset_t *) &mtime, PAGE_SIZE)
+-						!= KERN_SUCCESS)
+-		panic("mapable_time_init");
+-	bzero((char *)mtime, PAGE_SIZE);
+-	update_mapped_time(&time);
+-}
+-
+-int timeopen()
+-{
+-	return(0);
+-}
+-int timeclose()
+-{
+-	return(0);
+-}
+-
+ /*
+- *	Compatibility for device drivers.
+- *	New code should use set_timeout/reset_timeout and private timers.
+- *	These code can't use a zone to allocate timers, because
+- *	it can be called from interrupt handlers.
++ * plan 235 (D024; original _mach_clock_bootstrap 0x15c024): the Mach4
++ * mapable_time_init with the calendar time read at start-up.
+  */
+-
+-#define NTIMERS		20
+-
+-timer_elt_data_t timeout_timers[NTIMERS];
+-
+-/*
+- *	Set timeout.
+- *
+- *	fcn:		function to call
+- *	param:		parameter to pass to function
+- *	interval:	timeout interval, in hz.
+- */
+-void timeout(fcn, param, interval)
+-	int	(*fcn)(/* char * param */);
+-	char *	param;
+-	int	interval;
++void mach_clock_bootstrap()
+ {
+ 	spl_t	s;
+-	register timer_elt_t elt;
+ 
+-	s = splsched();
+-	simple_lock(&timer_lock);
+-	for (elt = &timeout_timers[0]; elt < &timeout_timers[NTIMERS]; elt++)
+-	    if (elt->set == TELT_UNSET)
+-		break;
+-	if (elt == &timeout_timers[NTIMERS])
+-	    panic("timeout");
+-	elt->fcn = fcn;
+-	elt->param = param;
+-	elt->set = TELT_ALLOC;
+-	simple_unlock(&timer_lock);
++	if (kmem_alloc_wired(kernel_map, (vm_offset_t *) &mtime, page_size)
++						!= KERN_SUCCESS)
++		panic("mappable_time_init");	/* plan 235 (0x1dee54) */
++	bzero((char *)mtime, page_size);
++	s = splhigh();
++	get_calendar_time_value(&time);
++	update_mapped_time(&time);
+ 	splx(s);
+-
+-	set_timeout(elt, (unsigned int)interval);
+ }
+ 
+-/*
+- * Returns a boolean indicating whether the timeout element was found
+- * and removed.
+- */
+-boolean_t untimeout(fcn, param)
+-	register int	(*fcn)();
+-	register char *	param;
++static void
++service_timer(telt)
++	timer_elt_t	telt;
+ {
+-	spl_t	s;
+-	register timer_elt_t elt;
++	spl_t		s;
++	int		(*fcn)();
++	char		*param;
+ 
+ 	s = splsched();
+ 	simple_lock(&timer_lock);
+-	queue_iterate(&timer_head.chain, elt, timer_elt_t, chain) {
+-
+-	    if ((fcn == elt->fcn) && (param == elt->param)) {
+-		/*
+-		 *	Found it.
+-		 */
+-		remqueue(&timer_head.chain, (queue_entry_t)elt);
+-		elt->set = TELT_UNSET;
+-
+-		simple_unlock(&timer_lock);
+-		splx(s);
+-		return (TRUE);
+-	    }
+-	}
++	fcn = telt->fcn;
++	param = telt->param;
++	telt->set = TELT_UNSET;
+ 	simple_unlock(&timer_lock);
+ 	splx(s);
+-	return (FALSE);
++	(*fcn)(param);
+ }

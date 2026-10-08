@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/Kernel/AudioCommand.m` (plan 342 (S5-P331), 2026-10-06)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "Kernel/AudioCommand.m" (objc.json module 0x20927c). Final run `s5p342-cm1`; 07 file SHA-256 `065afed3dd641dc5ebfdbe4141bbdda6113d23a37b252fa260c606a76d0ca212`; diff `x86-AudioCommand.diff`.
+
+- `__text` [0x1bab5c, 0x1bad2f) 467 B, 5 functions (5 methods) (-[AudioCommand initPort:], -[AudioCommand free], -[AudioCommand command], -[AudioCommand done:], -[AudioCommand send:]). Front `c3 00 00 00`, back `00 55 89 e5`, next function 0x1bad30.
+- Sections: __TEXT,__text 467 B given by objc metadata; __TEXT,__const 24 B inferred, verified by L1d; __OBJC,__message_refs 32 B literal (references checked by content); __OBJC,__cls_refs 4 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 68 B given by objc metadata; __OBJC,__class_names 58 B literal (references checked by content); __OBJC,__meth_var_types 56 B literal (references checked by content); __OBJC,__meth_var_names 123 B literal (references checked by content); __OBJC,__instance_vars 52 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 16 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p342-cm1-l1-AudioCommand-F-20261002.json`). Grade **A**.
+
+Module "Kernel/AudioCommand.m": __text [0x1bab5c, 0x1bad2f). Diagnostics s5p343-*q1 (scratchpad bodies with header overrides) gave the same verdict. Codex review of plan 342 (gpt-6.1-sol) verified (07_kernel placement simulated before coding; 7 SDK headers adopted). s5p342-cm1 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

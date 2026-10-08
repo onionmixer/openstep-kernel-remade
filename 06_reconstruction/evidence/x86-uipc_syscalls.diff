@@ -1,0 +1,88 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/uipc_syscalls.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/uipc_syscalls.c	2026-10-03 10:14:59.182034598 +0900
+@@ -58,6 +58,7 @@
+ 	if (u.u_error)
+ 		goto bad;
+ 	fp->f_data = (caddr_t)so;
++	u.u_ofile[u.u_r.r_val1] = fp;	/* plan 180 (authored) */
+ 	return;
+ bad:
+ 	u.u_ofile[u.u_r.r_val1] = 0;
+@@ -150,10 +151,7 @@
+ 		splx(s);
+ 		return;
+ 	}
+-	if (ufalloc(0) < 0) {
+-		splx(s);
+-		return;
+-	}
++	/* plan 180 (authored): no ufalloc(0) check in the original (0x11701c) */
+ 	fp = falloc();
+ 	if (fp == 0) {
+ 		u.u_ofile[u.u_r.r_val1] = 0;
+@@ -169,6 +167,7 @@
+ 	fp->f_flag = FREAD|FWRITE;
+ 	fp->f_ops = &socketops;
+ 	fp->f_data = (caddr_t)so;
++	u.u_ofile[u.u_r.r_val1] = fp;	/* plan 180 (authored) */
+ 	nam = m_get(M_WAIT, MT_SONAME);
+ 	(void) soaccept(so, nam);
+ 	if (uap->name) {
+@@ -264,6 +263,7 @@
+ 	fp1->f_type = DTYPE_SOCKET;
+ 	fp1->f_ops = &socketops;
+ 	fp1->f_data = (caddr_t)so1;
++	u.u_ofile[u.u_r.r_val1] = fp1;	/* plan 180 (authored) */
+ 	fp2 = falloc();
+ 	if (fp2 == NULL)
+ 		goto free3;
+@@ -271,6 +271,7 @@
+ 	fp2->f_type = DTYPE_SOCKET;
+ 	fp2->f_ops = &socketops;
+ 	fp2->f_data = (caddr_t)so2;
++	u.u_ofile[u.u_r.r_val1] = fp2;	/* plan 180 (authored) */
+ 	sv[1] = u.u_r.r_val1;
+ 	u.u_error = soconnect2(so1, so2);
+ 	if (u.u_error)
+@@ -445,8 +446,12 @@
+ 	struct iovec aiov;
+ 	int len;
+ 
+-	u.u_error = copyin((caddr_t)uap->fromlenaddr, (caddr_t)&len,
+-	   sizeof (len));
++	/* plan 180 (authored; original 0x11772b-0x117750) */
++	if (uap->fromlenaddr)
++		u.u_error = copyin((caddr_t)uap->fromlenaddr, (caddr_t)&len,
++		   sizeof (len));
++	else
++		msg.msg_namelen = 0;
+ 	if (u.u_error)
+ 		return;
+ 	msg.msg_name = uap->from;
+@@ -695,16 +700,26 @@
+ 		goto free2;
+ 	r = u.u_r.r_val1;
+ 	rf->f_flag = FREAD;
++#if	POSIX_KERN
++	if (u.u_procp->p_posix)		/* plan 180 (authored; original 0x117d2c) */
++		rf->f_flag = FREAD|FPOSIX_PIPE;
++#endif	/* POSIX_KERN */
+ 	rf->f_type = DTYPE_SOCKET;
+ 	rf->f_ops = &socketops;
+ 	rf->f_data = (caddr_t)rso;
++	u.u_ofile[u.u_r.r_val1] = rf;	/* plan 180 (authored) */
+ 	wf = falloc();
+ 	if (wf == NULL)
+ 		goto free3;
+ 	wf->f_flag = FWRITE;
++#if	POSIX_KERN
++	if (u.u_procp->p_posix)		/* plan 180 (authored; original 0x117d80) */
++		wf->f_flag = FWRITE|FPOSIX_PIPE;
++#endif	/* POSIX_KERN */
+ 	wf->f_type = DTYPE_SOCKET;
+ 	wf->f_ops = &socketops;
+ 	wf->f_data = (caddr_t)wso;
++	u.u_ofile[u.u_r.r_val1] = wf;	/* plan 180 (authored) */
+ 	u.u_r.r_val2 = u.u_r.r_val1;
+ 	u.u_r.r_val1 = r;
+ 	if (u.u_error = unp_connect2(wso, rso))

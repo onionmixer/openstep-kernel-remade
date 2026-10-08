@@ -1,0 +1,263 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_vnodeops.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_vnodeops.c	2026-10-03 16:16:29.004704871 +0900
+@@ -59,7 +59,7 @@
+ #import <ufs/inode.h>
+ #import <ufs/mount.h>
+ #import <ufs/fsdir.h>
+-#ifdef QUOTA
++#if	QUOTA	/* plan 217: QUOTA is 0 */
+ #import <ufs/quota.h>
+ #endif
+ #if	NeXT
+@@ -117,6 +117,7 @@
+ static pager_return_t ufs_pagein();
+ static pager_return_t ufs_pageout();
+ extern int ufs_nlinks();
++static int ufs_devblocksize();	/* plan 217 */
+ #endif	MACH
+ 
+ struct vnodeops ufs_vnodeops = {
+@@ -154,9 +155,21 @@
+ 	ufs_pageout,
+ 	ufs_nlinks,
+ #endif	MACH
++	ufs_devblocksize,	/* plan 217: vn_devblocksize (original table entry 32) */
+ };
+ 
+-int ufsDirectRead,ufsBufferRead;
++/* plan 217.1: ufsDirectRead, ufsBufferRead are not in the original (no symbols) */
++
++/*
++ * plan 217 (authored, D024; original 0x143c80, no symbol): the device
++ * block size of the device the file system is mounted from.
++ */
++static int
++ufs_devblocksize(vp)
++	struct vnode *vp;
++{
++	return (VOP_DEVBLOCKSIZE(((struct mount *)vp->v_vfsp->vfs_data)->m_devvp));
++}
+ 
+ /*ARGSUSED*/
+ static int
+@@ -272,6 +285,7 @@
+ 	int error = 0;
+ 	int iupdat_flag = 0;
+ 	u_short execmask = (IEXEC | (IEXEC >> 3) | (IEXEC >> 6));
++	int resid = uio->uio_resid;	/* plan 217 (original 0x143e41) */
+ 
+ 	if (rw != UIO_READ && rw != UIO_WRITE)
+ 		panic("rwip");
+@@ -317,6 +331,14 @@
+ 		bn = fsbtodb(fs,
+ 		    bmap(ip, lbn, rw == UIO_WRITE ? B_WRITE: B_READ,
+ 		      (int)(on+n), (ioflag & IO_SYNC ? &iupdat_flag : 0) ));
++#if	POSIX_KERN
++		/* plan 217 (original 0x143fa7): POSIX partial write on ENOSPC */
++		if (u.u_error == ENOSPC && rw == UIO_WRITE &&
++		    resid - uio->uio_resid > 0 && u.u_procp->p_posix) {
++			u.u_error = 0;
++			break;
++		}
++#endif	POSIX_KERN
+ 		if (u.u_error || rw == UIO_WRITE && (long)bn<0) {
+ 			error = u.u_error;
+ 			goto out;
+@@ -374,7 +396,11 @@
+ 			brelse(bp);
+ 			goto out;
+ 		}
++		if ((ip->i_mode & IFMT) == IFDIR)	/* plan 217 (original 0x144138) */
++			byte_swap_dir_block_in(bp->b_un.b_addr, bp->b_bcount);
+ 		u.u_error = uiomove(bp->b_un.b_addr+on, n, rw, uio);
++		if ((ip->i_mode & IFMT) == IFDIR)	/* plan 217 (original 0x144173) */
++			byte_swap_dir_block_out(bp);
+ 		if ((ioflag & IO_SYNC) && (ip->i_mode & ISVTX) && stickyhack
+ 		  && (ip->i_mode & execmask) == 0)
+ 		      bp->b_flags |= B_NOCACHE;
+@@ -469,13 +495,13 @@
+ 	vap->va_ctime.tv_sec = ip->i_ctime;
+ 	vap->va_ctime.tv_usec = 0;
+ 	vap->va_rdev = ip->i_rdev;
+-	vap->va_blocks = btosb(dbtob(ip->i_blocks));
++	vap->va_blocks = btosb(dbtob(ip->i_blocks, VOP_DEVBLOCKSIZE(vp)));	/* plan 217 */
+ 
+ 	switch(ip->i_mode & IFMT) {
+ #define OLDCODE
+ #ifdef OLDCODE
+ 	case IFBLK:
+-		vap->va_blocksize = BLKDEV_IOSIZE;
++		vap->va_blocksize = VOP_DEVBLOCKSIZE(vp);	/* plan 217 (original 0x1443a6) */
+ 		break;
+ 
+ 	case IFCHR:
+@@ -504,6 +530,10 @@
+ 	register struct inode *ip;
+ 	int chtime = 0;
+ 	int error = 0;
++#if	POSIX_KERN
++	struct posix_proc *px = get_posix_proc(u.u_procp->p_pid);	/* plan 217 */
++#endif	POSIX_KERN
++	struct timeval tv;	/* plan 217: getthetime */
+ 
+ 	VFS_RECORD(vp->v_vfsp, VS_SETATTR, VS_CALL);
+ 
+@@ -578,20 +608,41 @@
+ 	 */
+ 	if (vap->va_atime.tv_sec != -1) {
+ 		error = OWNER(cred, ip);
+-		if (error)
++		if (error) {
++#if	POSIX_KERN
++			/* plan 217 (original 0x144592): POSIX utime by a writer */
++			if (!px->p_posix_utime)
++				goto out;
++			if ((error = iaccess(ip, IWRITE)) != 0)
++				goto out;
++			u.u_error = 0;
++#else	POSIX_KERN
+ 			goto out;
++#endif	POSIX_KERN
++		}
+ 		ip->i_atime = vap->va_atime.tv_sec;
+ 		chtime++;
+ 	}
+ 	if (vap->va_mtime.tv_sec != -1) {
+ 		error = OWNER(cred, ip);
+-		if (error)
++		if (error) {
++#if	POSIX_KERN
++			/* plan 217 (original 0x144592): POSIX utime by a writer */
++			if (!px->p_posix_utime)
++				goto out;
++			if ((error = iaccess(ip, IWRITE)) != 0)
++				goto out;
++			u.u_error = 0;
++#else	POSIX_KERN
+ 			goto out;
++#endif	POSIX_KERN
++		}
+ 		ip->i_mtime = vap->va_mtime.tv_sec;
+ 		chtime++;
+ 	}
+ 	if (chtime) {
+-		ip->i_ctime = time.tv_sec;
++		getthetime(&tv);	/* plan 217 */
++		ip->i_ctime = tv.tv_sec;
+ 		ip->i_flag |= IMOD;
+ 	}
+ out:
+@@ -610,7 +661,7 @@
+ 	register uid_t uid;
+ 	register gid_t gid;
+ {
+-#ifdef QUOTA
++#if	QUOTA	/* plan 217: QUOTA is 0 */
+ 	register long change;
+ #endif
+ 
+@@ -633,7 +684,7 @@
+ 	    !suser())
+ 		return (EPERM);
+ 
+-#ifdef QUOTA
++#if	QUOTA	/* plan 217: QUOTA is 0 */
+ 	if (ip->i_uid == uid)		/* this just speeds things a little */
+ 		change = 0;
+ 	else
+@@ -647,7 +698,7 @@
+ 	ip->i_flag |= ICHG;
+ 	if (u.u_uid != 0)
+ 		ip->i_mode &= ~(ISUID|ISGID);
+-#ifdef QUOTA
++#if	QUOTA	/* plan 217: QUOTA is 0 */
+ 	ip->i_dquot = getinoquota(ip);
+ 	(void) chkdq(ip, change, 1);
+ 	(void) chkiq(VFSTOM(ip->i_vnode.v_vfsp), (struct inode *)NULL, uid, 1);
+@@ -896,6 +947,10 @@
+ 	VFS_RECORD(vp->v_vfsp, VS_LINK, VS_CALL);
+ 
+ 	sip = VTOI(vp);
++#if	POSIX_KERN
++	if (u.u_procp->p_posix && (sip->i_mode & IFMT) == IFDIR)	/* plan 217 (original 0x144c09) */
++		return (EPERM);
++#endif	POSIX_KERN
+ 	if (((sip->i_mode & IFMT) == IFDIR) && !suser()) {
+ 		return (EPERM);
+ 	}
+@@ -1399,9 +1454,9 @@
+ 	panic("ufs_badop");
+ }
+ 
+-#if	SUN_LOCK
+ /*
+- * Record-locking requests are passed to the local Lock-Manager daemon.
++ * plan 217 (authored, D024; original 0x14558c): record locks are handled
++ * by lf_lockctl.
+  */
+ static int
+ ufs_lockctl(vp, ld, cmd, cred, clid)
+@@ -1411,34 +1466,8 @@
+ 	struct ucred *cred;
+ 	int clid;
+ {
+-	lockhandle_t lh;
+-	struct fid *fidp;
+-
+-	VFS_RECORD(vp->v_vfsp, VS_LOCKCTL, VS_CALL);
+-
+-	/* Convert vnode into lockhandle-id. This is awfully like makefh(). */
+-	if (VOP_FID(vp, &fidp) || fidp == NULL) {
+-		return (EINVAL);
+-	}
+-	bzero((caddr_t)&lh.lh_id, sizeof (lh.lh_id));	/* clear extra bytes */
+-	lh.lh_fsid.val[0] = vp->v_vfsp->vfs_fsid.val[0];
+-	lh.lh_fsid.val[1] = vp->v_vfsp->vfs_fsid.val[1];
+-	lh.lh_fid.fid_len = fidp->fid_len;
+-	bcopy(fidp->fid_data, lh.lh_fid.fid_data, fidp->fid_len);
+-	freefid(fidp);
+-
+-	/* Add in vnode and server and call to common code */
+-	lh.lh_vp = vp;
+-	lh.lh_servername = hostname;
+-	return (klm_lockctl(&lh, ld, cmd, cred, clid));
+-}
+-#else	SUN_LOCK
+-int
+-ufs_lockctl()
+-{
+-    return(EINVAL);
++	return (lf_lockctl(vp, ld, cmd));
+ }
+-#endif	SUN_LOCK
+ 
+ static int
+ ufs_fid(vp, fidpp)
+@@ -1467,16 +1496,17 @@
+ 	register struct buf *bp;
+ {
+ 	int resid;
++	int devbsize = VOP_DEVBLOCKSIZE(bp->b_vp);	/* plan 217 (original 0x1455f8) */
+ 
+ 	VFS_RECORD(bp->b_vp->v_vfsp, VFS_STRATEGY, VS_CALL);
+ 
+ 	if ((bp->b_flags & B_READ) == B_READ) {
+ 		bp->b_error = rdwri(UIO_READ, VTOI(bp->b_vp), bp->b_un.b_addr,
+-			(int) bp->b_bcount, (off_t) bp->b_blkno * DEV_BSIZE,
++			(int) bp->b_bcount, (off_t) bp->b_blkno * devbsize,
+ 			UIO_SYSSPACE, &resid);
+ 	} else {
+ 		bp->b_error = rdwri(UIO_WRITE, VTOI(bp->b_vp), bp->b_un.b_addr,
+-			(int)bp->b_bcount, (off_t) bp->b_blkno * DEV_BSIZE,
++			(int)bp->b_bcount, (off_t) bp->b_blkno * devbsize,
+ 			UIO_SYSSPACE, &resid);
+ 	}
+ 	bp->b_resid = resid;
+@@ -1757,6 +1787,7 @@
+ 		else
+ 			bdwrite(bp);
+ 		ip->i_flag |= (IUPD|ICHG);
++		ip->i_mode &= ~(ISUID|ISGID);	/* plan 217 (original 0x145da9) */
+ 		IMARK(ip);
+ 	} while (csize != 0 && n != 0);
+ 

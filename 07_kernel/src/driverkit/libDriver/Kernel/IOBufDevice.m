@@ -1,0 +1,115 @@
+/*
+ * IOBufDevice.m (plan 301).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "Kernel/IOBufDevice.m", methods 0x1a9404-0x1a95c6).
+ * The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/IOBufDevice.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+#import <driverkit/IOBufDevice.h>
+
+#import	<sys/errno.h>
+
+@interface IOBufDevice (ProxyForSubclass)
+- (IOReturn)initializeUnit			: (unsigned) unitNumber;
+- (IOReturn)shutdownUnit			: (unsigned) unitNumber;
+@end
+
+@implementation IOBufDevice
+
+- init
+{
+	unsigned unit;
+	UnitInfo *unitInfoP;
+
+	for (unit = 0; unit < MAX_IOBUFDEVICE_UNITS; unit += 1) {
+		unitInfoP = &unitInfo[unit];
+		unitInfoP->callbackId = nil;
+		unitInfoP->deviceTag = 0;
+		unitInfoP->ownerName[0] = '\0';
+	}
+	return self;
+}
+
+- (IOReturn)acquireUnit				: (unsigned) unit
+				for		: (OwnerName) newName
+				callbackId	: (id) newId
+				deviceTag	: (Tag) newTag;
+{
+	UnitInfo *unitInfoP = &unitInfo[unit];
+
+	if (unitInfoP->callbackId != NULL) {
+		return /* FIXME */ IO_R_BUSY;
+	}
+	strncpy(unitInfoP->ownerName, newName, sizeof(unitInfoP->ownerName));
+	unitInfoP->callbackId = newId;
+	unitInfoP->deviceTag = newTag;
+	[self initializeUnit:unit];
+	return IO_R_SUCCESS;
+}
+
+
+- (IOReturn)releaseUnit				: (unsigned) unit
+{
+	UnitInfo *unitInfoP = &unitInfo[unit];
+
+	if (unitInfoP->callbackId == NULL) {
+		return /* FIXME */ IO_R_NOT_OWNER;
+	}
+	[self shutdownUnit:unit];
+	unitInfoP->callbackId = NULL;
+	unitInfoP->ownerName[0] = '\0';
+	return IO_R_SUCCESS;
+}
+
+- (IOReturn)ownerForUnit		: (unsigned) unit
+			isNamed		: (OwnerName) currentName
+{
+	UnitInfo *unitInfoP = &unitInfo[unit];
+
+	strncpy(currentName, unitInfoP->ownerName, sizeof(currentName));
+	return IO_R_SUCCESS;
+}
+
+/*
+ * Convert an IOReturn to text. Subclasses which add additional
+ * IOReturn's should override this method and call [super ioReturnText] if
+ * the desired value is not found.
+ */
+- (const char *)stringFromReturn	: (IOReturn) rtn
+{
+	switch (rtn) {
+	case IO_R_FLUSHED:
+		return "Buffer Flushed";
+	case IO_R_NOT_OWNER:
+		return "Not Owner";
+	}
+	return [super stringFromReturn:rtn];
+}
+
+/*
+ * Convert an IOReturn to a Unix errno.
+ */
+- (int)errnoFromReturn 			: (IOReturn) rtn
+{
+	switch (rtn) {
+	case IO_R_FLUSHED:
+		return ESHUTDOWN;
+	case IO_R_NOT_OWNER:
+		return EPERM;
+	}
+	return [super errnoFromReturn:rtn];
+}
+@end
+
+@implementation IOBufDevice (ProxyForSubclass)
+- (IOReturn)initializeUnit			: (unsigned) unitNumber
+{
+}
+
+- (IOReturn)shutdownUnit			: (unsigned) unitNumber
+{
+}
+@end

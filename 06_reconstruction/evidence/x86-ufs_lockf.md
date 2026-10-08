@@ -1,0 +1,8 @@
+# x86 `src/bsd/ufs/ufs_lockf.c` (plan 372 (S5-P354), 2026-10-07)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 372 (S5-P354). Final run `s5p372-it2`; 07 file SHA-256 `1f5346c1becf7cb753fd5a92ac102f3db0f792404bd84c84a125927dc80d9e1c`; diff `x86-ufs_lockf.diff`.
+
+- Object [0x142008, 0x142884) 2172 B, 13 functions (_lf_lockctl, (static lf_get_svnode), (static lf_free_svnode), (static lf_setlock), (static lf_clearlock), (static lf_getlock), (static lf_getblock), (static lf_findoverlap), (static lf_addblock), (static lf_rmblock), (static lf_split), (static lf_wakelock), (static lf_free)). Front `89 ec 5d c3`, back `55 89 e5 83`, next symbol 0x142884.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p372-it2-l1-ufs_lockf-F-20261002.json`). Grade **A**.
+
+POSIX byte-range locks (fcntl F_SETLK etc.) for UFS vnodes. __text [0x142008, 0x142884) 2172 B, 13 functions (lf_lockctl global, 12 static); __DATA,__data 78 B (strings) verified by L1; commons _lf_svnode_hash (256 B) and _file_list (8 B, from a header) found by name in the original. Net/2 base sha256 7800ec42ced0ea246434dad108dbdc6cc6a2476b2c08f841bb64b594912b2369. Diagnostics: s5p367-lfg1 (plan 295 draft, 11 of 13), s5p372-lfiw (lf_wakelock int), s5p372-lflo (Net/2 lock = overlap kept, OBJECT_MATCH), s5p372-lfcand2/lffin2 (marked file, OBJECT_MATCH); s5p372-it1 used the SDK lockf.h from outside 07, which plan 372 then copied to 07_kernel/nextdev/bsd/ufs/lockf.h (D017). Codex review of plan 372 (gpt-6.1-sol) verified (markers, counts, Net/2 line of lf_getblock corrected to 394). Final s5p372-it2 from 07: OBJECT_MATCH (13 MATCH), relcheck 0.

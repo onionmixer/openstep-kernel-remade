@@ -23,6 +23,9 @@ symbol inside the range; no overlap with ranges in KNOWN.json
 ([[lo, hi, label], ...], half-open).  A negative check repeats the inference
 with one image field changed by +4 and must fail.
 
+Decision D025 (plan 225.1): for a scattered record the range check uses its target
+r_value (base_offset), not the field; the field's addend is listed in scattered_addends.
+
 Decision D019 (plan 84, 84.1): when everything passes except the negative check,
 and the only reason is that there is a single reference (one record, neither
 scattered nor pc-relative, so its field target is range-checked), the
@@ -117,6 +120,7 @@ def main():
     ap.add_argument('--symbols', required=True)
     ap.add_argument('--known')
     ap.add_argument('--out', required=True)
+    ap.add_argument('--place-from-l1')   # plan 302: referring-section placements verified by l1_compare
     a = ap.parse_args()
     seg, sect = a.section.split(',')
     ob = open(a.obj, 'rb').read()
@@ -130,16 +134,47 @@ def main():
         sys.exit('section %s is not a single zero-fill section of the object' % a.section)
     z = zs[0]
     deltas = source_deltas(obj, imgsyms)
+    delta_source = {k: 'symbol' for k, v in deltas.items() if v is not None}
+    l1problems = []
+    if a.place_from_l1:   # plan 302
+        l1 = json.load(open(a.place_from_l1))
+        inp = l1.get('inputs') or {}
+        if inp.get(a.image) != sha(a.image) or inp.get(a.obj) != sha(a.obj):
+            sys.exit('--place-from-l1: L1 inputs do not match --image/--obj by SHA-256')
+        for s in obj['sections']:
+            k = '%s,%s' % (s['segname'], s['sectname'])
+            e = l1['sections'].get(k)
+            if not e or not s['size'] or (s['flags'] & 0xff) in (S_ZEROFILL, 2, 5):   # zero-fill, cstring and literal-pointer sections are never used
+                continue
+            usable = (e.get('index') == s['index'] and e.get('size') == s['size'] and e.get('address') is not None
+                      and e.get('placement') in ('given by objc metadata', 'given by symbol', 'inferred, verified by L1d')   # plan 339 (D041): L1d-inferred too
+                      and e.get('byte_differences') == 0 and e.get('refs_differ') == 0 and e.get('refs_unverified') == 0)
+            if not usable:
+                continue
+            dl = e['address'] - s['addr']
+            if deltas.get(s['index']) is not None:
+                if deltas[s['index']] != dl:
+                    l1problems.append('section %s: symbol Delta %#x differs from L1 Delta %#x' % (k, deltas[s['index']], dl))
+                continue
+            deltas[s['index']] = dl
+            delta_source[s['index']] = 'l1-inferred' if e.get('placement') == 'inferred, verified by L1d' else 'l1'   # plan 339
     rd = lambda va, w: int.from_bytes(img.read(va, w), 'little')
     recs, problems = infer(obj, ob, z['index'], deltas, rd)
+    problems = l1problems + problems
     ds = sorted({r['delta'] for r in recs})
     res = dict(tool='zerofill_check.py', tool_sha256=sha(os.path.abspath(__file__)),
-               command=' '.join(sys.argv), inputs={p: sha(p) for p in (a.image, a.obj, a.symbols) + ((a.known,) if a.known else ())},
+               command=' '.join(sys.argv), inputs={p: sha(p) for p in (a.image, a.obj, a.symbols) + ((a.known,) if a.known else ()) + ((a.place_from_l1,) if a.place_from_l1 else ())},
                section=dict(name=a.section, index=z['index'], object_addr=z['addr'], size=z['size'], align=1 << z['align']),
                source_section_deltas={str(k): v for k, v in deltas.items()},
+               delta_source={str(k): v for k, v in delta_source.items()},
                references=len(recs), distinct_deltas=[hex(d) for d in ds],
                base_offsets=sorted({r['base_offset'] for r in recs if r['base_offset'] is not None}),
-               field_target_offsets=sorted({r['object_field'] - z['addr'] for r in recs if not r['pcrel']}),
+               # D025: a scattered record's target is its r_value (base_offset); the field may
+               # carry an addend outside the section (e.g. array index arithmetic)
+               field_target_offsets=sorted({(r['base_offset'] if r['scattered'] else r['object_field'] - z['addr'])
+                                            for r in recs if not r['pcrel']}),
+               scattered_addends=sorted({r['object_field'] - (z['addr'] + r['base_offset'])
+                                         for r in recs if r['scattered'] and not r['pcrel']}),
                problems=problems, checks={}, records=recs)
     ok = not problems and len(ds) == 1 and recs
     ok_before_negative = False

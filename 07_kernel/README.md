@@ -2,6 +2,7 @@
 
 여기에서만 실제 복원 코드를 편집한다. 채택된 목적 파일과 그 등급은 `06_reconstruction/objects_confirmed.tsv`·
 `objects_partial.tsv`, 함수 대응은 `06_reconstruction/functions.tsv` 가 기준이다.
+도구 체인 라이브러리에서 링크되는 구성원(libgcc, `-lcc`)은 07 에 소스를 두지 않고 `06_reconstruction/objects_toolchain.tsv`(등급 L, D051)에 기록한다.
 최종 코드·헤더·생성 코드는 GCC 2.7에서 컴파일되어야 한다.
 C89 스타일을 기본으로 [호환 규약](../08_build/GCC27_COMPATIBILITY.md)을 따른다.
 `src/common/`, `src/arch/x86/`, `src/arch/sparc/`, `src/arch/future_arch/`,

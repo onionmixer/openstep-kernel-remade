@@ -1,0 +1,114 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/machdep/i386/mem.c	2026-10-03 21:55:19.859782174 +0900
+@@ -0,0 +1,111 @@
++/*
++ * i386 memory special files /dev/mem, /dev/kmem and /dev/null
++ * (plan 246).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes
++ * (D024); Darwin 0.1 bsd/dev/i386/mem.c was consulted for
++ * structure only.
++ */
++
++#import <sys/param.h>
++#import <sys/dir.h>
++#import <sys/buf.h>
++#import <sys/systm.h>
++#import <sys/uio.h>
++#import <sys/errno.h>
++
++#import <vm/vm_map.h>
++#import <vm/vm_kern.h>
++#import <mach/vm_param.h>
++
++extern vm_size_t	mem_size;
++
++mmread(dev, uio)
++	dev_t dev;
++	struct uio *uio;
++{
++
++	return (mmrw(dev, uio, UIO_READ));
++}
++
++mmwrite(dev, uio)
++	dev_t dev;
++	struct uio *uio;
++{
++
++	return (mmrw(dev, uio, UIO_WRITE));
++}
++
++mmrw(dev, uio, rw)
++	dev_t dev;
++	struct uio *uio;
++	enum uio_rw rw;
++{
++	register int o;
++	register u_int c, v;
++	register struct iovec *iov;
++	int error = 0;
++	vm_offset_t	where;
++	int		spl;
++
++	while (uio->uio_resid > 0 && error == 0) {
++		iov = uio->uio_iov;
++		if (iov->iov_len == 0) {
++			uio->uio_iov++;
++			uio->uio_iovcnt--;
++			if (uio->uio_iovcnt < 0)
++				panic("mmrw");
++			continue;
++		}
++		switch (minor(dev)) {
++
++		/* physical memory, mapped a page at a time */
++		case 0:
++			v = trunc_page(uio->uio_offset);
++			if (uio->uio_offset >= mem_size)
++				goto fault;
++
++			spl = splvm();
++			where = vm_map_min(kernel_map);
++			if (vm_map_find(kernel_map, VM_OBJECT_NULL,
++			    (vm_offset_t) 0, &where, PAGE_SIZE, TRUE)
++			    != KERN_SUCCESS) {
++				splx(spl);
++				goto fault;
++			}
++			pmap_enter(vm_map_pmap(kernel_map), where, v,
++			    VM_PROT_READ|VM_PROT_WRITE, TRUE);
++			o = uio->uio_offset - v;
++			c = min(PAGE_SIZE - o, (u_int)iov->iov_len);
++			error = uiomove((caddr_t)(where + o), c, rw, uio);
++			vm_map_remove(kernel_map, where, where + PAGE_SIZE);
++			splx(spl);
++			continue;
++
++		/* kernel virtual memory */
++		case 1:
++			c = iov->iov_len;
++			if (!kernacc((caddr_t)uio->uio_offset, c,
++			    rw == UIO_READ ? B_READ : B_WRITE))
++				goto fault;
++			error = uiomove((caddr_t)uio->uio_offset, (int)c, rw, uio);
++			continue;
++
++		/* null */
++		case 2:
++			if (rw == UIO_READ)
++				return (0);
++			c = iov->iov_len;
++			break;
++		}
++		if (error)
++			break;
++		iov->iov_base += c;
++		iov->iov_len -= c;
++		uio->uio_offset += c;
++		uio->uio_resid -= c;
++	}
++	return (error);
++fault:
++	return (EFAULT);
++}

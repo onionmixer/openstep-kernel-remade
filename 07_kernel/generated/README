@@ -8,3 +8,52 @@ memory_object_default.h) generated on the OPENSTEP 4.2 build host with
 /usr/bin/mig -newipc from the real-machine SDK .defs files (run
 08_build/runs/s5p61-mig-1, plan 87, 90); inputs, command and tool hashes
 are in 07_kernel/PROVENANCE.tsv.  Do not edit them by hand.
+audioReply.h is MIG output for the libDriver audio modules (plan 342):
+/usr/bin/mig -arch i386 (Darwin libDriver Makefile form) on
+src/driverkit/libDriver/Kernel/audioReply.defs with the real-machine SDK
+.defs closure (run 08_build/runs/s5p342-mig1); see 07_kernel/PROVENANCE.tsv.
+Do not edit it by hand.
+The MIG C files 07_kernel/src/driverkit/libDriver/EventServer.c, audioServer.c
+and audioReplyUser.c (plan 343) are kept beside the libDriver sources so the
+build stages them as sources: run 08_build/runs/s5p343-mig2 (EventServer.c,
+audioServer.c) and s5p343-mig3 (audioReplyUser.c, default header name
+audioReply.h), then 08_build/runs/tools/s5p343-sed-audioReplyUser.py applies
+the two sed lines of Darwin 0.1 libDriver/Makefile to audioReplyUser.c.
+Do not edit them by hand.
+07_kernel/src/driverkit/driverServerServer.c (plan 344) is MIG output of run
+08_build/runs/s5p344-mig1 (/usr/bin/mig -typed -newipc -arch i386
+-Isrc/generated -Isrc/nextdev -DKERNEL -DKERNEL_SERVER -DMACH_IPC_FLAVOR) on
+07_kernel/src/driverkit/driverServer.defs.  Do not edit it by hand.
+07_kernel/src/mach/{exc,mach_host,mach_port,mach}_server.c (plan 348) are MIG
+output of run 08_build/runs/s5p348-mig2 from the 4.2 SDK mach/*.defs:
+exc_server.c with /usr/bin/mig -arch i386 -DKERNEL (Darwin rule); the others
+with -typed -newipc -arch i386 -DKERNEL -DKERNEL_SERVER.  Do not edit them by hand.
+07_kernel/src/mach_debug/mach_debug_server.c (plan 349) is MIG output of run
+08_build/runs/s5p349-mig1 (/usr/bin/mig -typed -newipc -arch i386 -DKERNEL
+-DKERNEL_SERVER) on 07_kernel/src/mach_debug/mach_debug.defs.  Do not edit it by hand.
+07_kernel/src/kernserv/kern_server_handler.c, kern_server_handler.h and
+kern_server_reply_user.c (plan 351) are MIG output of run 08_build/runs/s5p351-mig1
+from the 4.2 SDK kernserv/kern_server.defs and kern_server_reply.defs with
+/usr/bin/mig -arch i386 -DKERNEL (Darwin 0.1 kernel conf/Makefile.template rule:
+-header kern_server.h -sheader kern_server_handler.h -handler kern_server_handler.c,
+run inside the kernserv directory so the handler includes the header by its bare
+name; -header kern_server_reply.h -user kern_server_reply_user.c).  The generated
+kern_server.h and kern_server_reply.h equal the SDK files and are not kept here.
+Do not edit them by hand.
+07_kernel/src/mach/{port_allocate,port_deallocate,port_set_add,port_set_allocate,
+port_set_deallocate,port_set_backlog,task_set_special_port,thread_get_special_port,
+thread_set_special_port,vm_allocate,vm_deallocate,vm_protect,vm_read,vm_write}.c
+(plan 361) are MIG output of run 08_build/runs/s5p361-mig3 from the 4.2 SDK
+mach/mach.defs with /usr/bin/mig -arch i386 -DKERNEL -header mach_interface.h -i
+-server /dev/null (Darwin 0.1 kernel conf/Makefile.template MACH_FILES rule, run in
+stage/migi); 14 of the 55 per-routine files, the ones whose _EXTERNAL stubs are in
+the original.  They are compiled with -DMACH_USER_API -D<routine>=<routine>_EXTERNAL.
+The generated mach_interface.h equals the SDK file and is not kept here.
+Do not edit them by hand.
+Plan 398: confdep.h (MAXUSERS) is generated like the other headers here (row maxusers of
+06_reconstruction/config_options.tsv).  Four build-generated C files are kept beside the
+sources instead: src/conf/ioconf.c (config pseudo_inits), src/conf/vers.c (newvers),
+src/objc-runtime/objc_vers.c (vers_string -c objc + sed) and src/driverkit/libDriver/vers.c
+(vers_string -l libDriver).  Unlike the MIG files above they were not produced by running
+the generator: they are reconstructed generator-output forms written from the original
+bytes (D024); see 07_kernel/PROVENANCE.tsv.

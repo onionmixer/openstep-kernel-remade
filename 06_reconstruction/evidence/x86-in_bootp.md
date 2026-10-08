@@ -1,0 +1,8 @@
+# x86 `src/bsd/netinet/in_bootp.c` (plan 366 (S5-P351), 2026-10-07)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 366 (S5-P351). Final run `s5p366-r1bp`; 07 file SHA-256 `5d87a7d1b1285ab00f5d01e6f7c8763de1a53166bef2ad85a02be2656b40d238`; diff `x86-in_bootp.diff`.
+
+- Object [0x124154, 0x124e0e) 3258 B, 13 functions (_in_bootp, (static in_bootp_initnet), (static in_bootp_buildpacket), _in_bootp_bptombuf, (static in_bootp_sendrequest), (static in_bootp_openconsole), (static in_bootp_closeconsole), (static in_bootp_processreply), (static in_bootp_setaddress), (static in_bootp_makeifreq), (static kmgets), (static in_bootp_timeout), (static in_bootp_promisctimeout)). Front `5d c3 00 00`, back `00 00 55 89`, next symbol 0x124e10.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p366-r1bp-l1-in_bootp-F-20261002.json`). Grade **A**.
+
+BOOTP client (4.2 sits between NeXTMach mk-108.1 and the 1997 4.4Lite Darwin port: Darwin structure for the entry point, console alert and kmgets; NeXTMach 4.3BSD API). __text [0x124154, 0x124e0e) 3258 B + 00 x 2 (_in_pcballoc 0x124e10); 13 functions, getpacket inlined into sendrequest. __data [0x1dbaac, 0x1dbb5e) 178 B: flag 0, "NeXT", "mget", the Control-C message, "Network responded!\n", "%L", "Configuring Network", "%s", "\n" (inferred, verified by L1d). Diagnostics s5p366-dbp1 (NeXTMach as is: headers), dbp2 (Darwin: 4.4 headers), dbp3, dbp4 (order/sizes, buildpacket -4 B), dbp5 (ip_id htons: 12/13), dbp6 OBJECT_MATCH, dbp7/dbp8 marked copies. Codex review of plan 366 (gpt-6.1-sol) verified (header name sys/boolean.h, ror cx, Darwin textual equality -> D053). Final s5p366-r1bp from 07: OBJECT_MATCH, relcheck 0.

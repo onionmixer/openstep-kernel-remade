@@ -1,0 +1,1794 @@
+--- 01_resources/upstream/mach4/kernel/kern/zalloc.c	2026-09-11 10:02:48.338203186 +0900
++++ 07_kernel/src/kern/zalloc.c	2026-10-07 07:48:11.561312021 +0900
+@@ -33,6 +33,14 @@
+  *	Zone-based memory allocator.  A zone is a collection of fixed size
+  *	data blocks for which quick allocation/deallocation is possible.
+  */
++/*
++ * plan 350 (D044): Mach4 kernel/kern/zalloc.c is the base text.  The
++ * OPENSTEP 4.2 zone allocator takes zone memory from free-space pools
++ * (zone_free_space_*) instead of the Mach4 zone page table, and keeps
++ * each zone free list sorted by address.  Every line marked "plan 350"
++ * was changed or authored from the original kernel bytes (D024); the
++ * structure of the authored parts follows Darwin 0.1 kernel/kern/zalloc.c.
++ */
+ 
+ #include <kern/macro_help.h>
+ #include <kern/sched.h>
+@@ -43,6 +51,7 @@
+ #include <machine/machspl.h>
+ 
+ #include <mach_debug.h>
++#include <mach_old_vm_copy.h>	/* plan 350 */
+ #if	MACH_DEBUG
+ #include <mach/kern_return.h>
+ #include <mach/machine/vm_types.h>
+@@ -53,46 +62,40 @@
+ #include <vm/vm_kern.h>
+ #endif
+ 
++/*
++ * plan 350 (authored): the free list is kept in ascending address
++ * order; last_insert remembers the last element put back so that a
++ * run of frees in increasing order does not rescan the list.
++ */
+ #define ADD_TO_ZONE(zone, element)					\
+ MACRO_BEGIN								\
+-		*((vm_offset_t *)(element)) = (zone)->free_elements;	\
+-		(zone)->free_elements = (vm_offset_t) (element);	\
+-		zone_count_down(zone);					\
++	vm_offset_t	cur, *last;					\
++		if (		(zone)->last_insert != 0 	&&	\
++				(element) > (zone)->last_insert	)	\
++			(vm_offset_t)last = (zone)->last_insert;	\
++		else							\
++			last = &(zone)->free_elements;			\
++		while (		(cur = *last) != 0	&&		\
++				(element) > cur		)		\
++			(vm_offset_t)last = cur;			\
++		*(vm_offset_t *)(element) = cur;			\
++		*last = (element);					\
++		(zone)->last_insert = (element);			\
++		(zone)->count--;					\
+ MACRO_END
+ 
+ #define REMOVE_FROM_ZONE(zone, ret, type)				\
+ MACRO_BEGIN								\
+ 	(ret) = (type) (zone)->free_elements;				\
+ 	if ((ret) != (type) 0) {					\
+-		zone_count_up(zone);					\
++		(zone)->count++;	/* plan 350 */			\
+ 		(zone)->free_elements = *((vm_offset_t *)(ret));	\
++		if ((zone)->last_insert == (vm_offset_t)(ret))	/* plan 350 */	\
++			(zone)->last_insert = 0;	/* plan 350 */	\
+ 	}								\
+ MACRO_END
+ 
+-/*
+- * Support for garbage collection of unused zone pages:
+- */
+-
+-struct zone_page_table_entry {
+-	struct	zone_page_table_entry	*next;
+-	short 	in_free_list;
+-	short	alloc_count;
+-};
+-
+-extern struct zone_page_table_entry * zone_page_table;
+-extern vm_offset_t zone_map_min_address;
+-
+-#define lock_zone_page_table() simple_lock(&zone_page_table_lock)
+-#define unlock_zone_page_table() simple_unlock(&zone_page_table_lock)
+-
+-#define	zone_page(addr) \
+-    (&(zone_page_table[(atop(((vm_offset_t)addr) - zone_map_min_address))]))
+-
+-
+-extern void		zone_page_alloc();
+-extern void		zone_page_dealloc();
+-extern void		zone_page_in_use();
+-extern void		zone_page_free();
++/* plan 350: no zone page table (Mach4 garbage collection support removed) */
+ 
+ zone_t		zone_zone;	/* this is the zone containing other zones */
+ 
+@@ -100,6 +103,7 @@
+ 
+ vm_map_t	zone_map = VM_MAP_NULL;
+ vm_size_t	zone_map_size = 12 * 1024 * 1024;
++vm_offset_t	zone_min, zone_max;	/* plan 350: bounds of zone_map */
+ 
+ /*
+  *	The VM system gives us an initial chunk of memory.
+@@ -116,54 +120,363 @@
+ vm_offset_t	zdata;
+ vm_size_t	zdata_size = 420 * 1024;
+ 
++/*
++ * plan 350: a pageable zone uses its complex lock; any other zone takes
++ * its simple lock at splhigh and keeps the old level in lock_ipl.
++ */
+ #define zone_lock(zone)					\
+ MACRO_BEGIN						\
+-	if (zone->type & ZONE_PAGEABLE) {		\
+-		lock_write(&zone->complex_lock);	\
++	if ((zone)->pageable) {				\
++		lock_write(&(zone)->complex_lock);	\
+ 	} else {					\
+-		simple_lock(&zone->lock);		\
++		spl_t s = splhigh();			\
++		simple_lock(&(zone)->lock);		\
++		(zone)->lock_ipl = s;			\
+ 	}						\
+ MACRO_END
+ 
+ #define zone_unlock(zone)				\
+ MACRO_BEGIN						\
+-	if (zone->type & ZONE_PAGEABLE) {		\
+-		lock_done(&zone->complex_lock);		\
++	if ((zone)->pageable) {				\
++		lock_done(&(zone)->complex_lock);	\
+ 	} else {					\
+-		simple_unlock(&zone->lock);		\
++		spl_t s = (zone)->lock_ipl;		\
++		simple_unlock(&(zone)->lock);		\
++		splx(s);				\
+ 	}						\
+ MACRO_END
+ 
+ #define zone_lock_init(zone)				\
+ MACRO_BEGIN						\
+-	if (zone->type & ZONE_PAGEABLE) {		\
+-		lock_init(&zone->complex_lock, TRUE);	\
++	if ((zone)->pageable) {				\
++		lock_init(&(zone)->complex_lock, TRUE);	\
+ 	} else {					\
+-		simple_lock_init(&zone->lock);		\
++		simple_lock_init(&(zone)->lock);	\
+ 	}						\
+ MACRO_END
+ 
+-static vm_offset_t zget_space();
++vm_offset_t zget_space(	/* plan 350: global, takes a pool and canblock */
++	struct zone_free_space	*free_space,
++	vm_size_t		size,
++	boolean_t		canblock);
+ 
+ decl_simple_lock_data(,zget_space_lock)
+-vm_offset_t zalloc_next_space;
+-vm_offset_t zalloc_end_of_space;
+-vm_size_t zalloc_wasted_space;
+ 
+ /*
+- *	Garbage collection map information
++ * plan 350 (authored): free-space pools.
++ *
++ * A free region starts with a zone_free_space_entry.  Entries are
++ * doubly linked in ascending address order; pred points at the link
++ * that points at the entry.
++ */
++struct zone_free_space_entry {
++	struct zone_free_space_entry	*next;
++	vm_size_t			length;
++	struct zone_free_space_entry	**pred;
++	int				_pad[1];
++};
++#define ZONE_MIN_ALLOC		16	/* a power of two, and no smaller
++					   than a zone_free_space_entry */
++
++/*
++ * One hint per size class: the lowest addressed entry of that size.
++ * The last hint holds the lowest addressed entry of at least alloc_max.
++ */
++struct zone_free_space_hint {
++	struct zone_free_space_entry	*entry;
++	int				_pad[3];
++};
++
++/*
++ * A pool: requests are rounded to alloc_unit (a power of two) and
++ * should not exceed alloc_max; hash_shift is log2(alloc_unit) and
++ * num_hints is alloc_max >> hash_shift.
++ */
++struct zone_free_space {
++	vm_size_t			alloc_unit;
++	vm_size_t			alloc_max;
++	struct zone_free_space_entry	*entries;
++	integer_t			num_entries;
++	integer_t			hash_shift;
++	struct zone_free_space_hint	*hints;
++	integer_t			num_hints;
++};
++
++struct zone_free_space		*zone_free_space[8];
++integer_t			zone_free_space_count;
++
++/*
++ * Pool 0 is the default pool: static, one hint, never reclaimed.  It
++ * serves zones that are not collectable and bootstrap allocations.
++ */
++struct zone_free_space_hint	_zone_default_space_hint;
++struct zone_free_space		_zone_default_space;
++#define	zone_default_space	(&_zone_default_space)
++
++static void zone_free_space_select(zone_t	zone);
++
++#define zone_collectable(z)	((z)->free_space != 0 && \
++					(z)->free_space != zone_default_space)
++
++/*
++ * Size class of a request; anything past the last class goes to it.
++ */
++static __inline__
++integer_t
++zone_free_space_hash(
++	struct zone_free_space		*freespace,
++	vm_size_t			size
++)
++{
++	integer_t		hash;
++
++	if ((hash = size >> freespace->hash_shift) >
++					freespace->num_hints)
++		return (freespace->num_hints);
++	else
++		return (hash);
++}
++#define	zone_free_space_hint_from_hash(freespace, hash)	\
++					((freespace)->hints + (hash) - 1)
++
++static __inline__
++struct zone_free_space_hint *
++zone_free_space_hint(
++	struct zone_free_space		*freespace,
++	vm_size_t			size
++)
++{
++	return zone_free_space_hint_from_hash(freespace,
++					zone_free_space_hash(freespace, size));
++}
++
++/*
++ * Make the entry the hint of its class if it is the lowest addressed.
++ */
++static __inline__
++void
++zone_free_space_hint_insert(
++	struct zone_free_space		*freespace,
++	struct zone_free_space_entry	*entry
++)
++{
++	struct zone_free_space_hint	*hint;
++
++	hint = zone_free_space_hint(freespace, entry->length);
++	if (hint->entry == 0 || entry < hint->entry)
++		hint->entry = entry;
++}
++
++/*
++ * If the entry is the hint of its class, move the hint forward to the
++ * next entry of the same class.
++ */
++static
++void
++zone_free_space_hint_delete(
++	struct zone_free_space		*freespace,
++	struct zone_free_space_entry	*entry
++)
++{
++	integer_t			hash;
++	struct zone_free_space_hint	*hint;
++
++	hash = zone_free_space_hash(freespace, entry->length);
++	hint = zone_free_space_hint_from_hash(freespace, hash);
++
++	if (entry == hint->entry) {
++		if (hash < freespace->num_hints) {
++			struct zone_free_space_entry
++					*cur, **last = &entry->next;
++
++			while ((cur = *last) != 0 &&
++					cur->length != entry->length)
++				last = &cur->next;
++
++			hint->entry = cur;
++		}
++		else {
++			struct zone_free_space_entry
++					*cur, **last = &entry->next;
++
++			while ((cur = *last) != 0 &&
++					cur->length < freespace->alloc_max)
++				last = &cur->next;
++
++			hint->entry = cur;
++		}
++	}
++}
++
++/*
++ * The entry grew at its front: its header moved from old_entry, and
++ * its length was old_length.
++ */
++static
++void
++zone_free_space_hint_prepend(
++	struct zone_free_space		*freespace,
++	struct zone_free_space_entry	*entry,
++	vm_size_t			old_length,
++	void				*old_entry
++)
++{
++	integer_t			old_hash, new_hash;
++	struct zone_free_space_hint	*hint;
++
++	new_hash = zone_free_space_hash(freespace, entry->length);
++	old_hash = zone_free_space_hash(freespace, old_length);
++	hint = zone_free_space_hint_from_hash(freespace, old_hash);
++
++	if (old_hash != new_hash) {
++		if (old_entry == hint->entry) {
++			if (old_hash < freespace->num_hints) {
++				struct zone_free_space_entry
++						*cur, **last = &entry->next;
++
++				while ((cur = *last) != 0 &&
++						cur->length != old_length)
++					last = &cur->next;
++
++				hint->entry = cur;
++			}
++			else {
++				struct zone_free_space_entry
++						*cur, **last = &entry->next;
++
++				while ((cur = *last) != 0 &&
++						cur->length < 
++							freespace->alloc_max)
++					last = &cur->next;
++
++				hint->entry = cur;
++			}
++		}
++
++		hint = zone_free_space_hint_from_hash(freespace, new_hash);
++		if (hint->entry == 0 || entry < hint->entry)
++			hint->entry = entry;
++	}
++	else if (old_entry == hint->entry)
++		hint->entry = entry;
++}
++
++/*
++ * The entry grew at its end; its length was old_length.
+  */
+-decl_simple_lock_data(,zone_page_table_lock)
+-struct zone_page_table_entry *	zone_page_table;
+-vm_offset_t			zone_map_min_address;
+-vm_offset_t			zone_map_max_address;
+-int				zone_pages;
++static
++void
++zone_free_space_hint_append(
++	struct zone_free_space		*freespace,
++	struct zone_free_space_entry	*entry,
++	vm_size_t			old_length
++)
++{
++	integer_t			old_hash, new_hash;
++	struct zone_free_space_hint	*hint;
++
++	new_hash = zone_free_space_hash(freespace, entry->length);
++	old_hash = zone_free_space_hash(freespace, old_length);
+ 
+-extern void zone_page_init();
++	if (old_hash != new_hash) {
++		hint = zone_free_space_hint_from_hash(freespace, old_hash);
++		if (entry == hint->entry) {
++			if (old_hash < freespace->num_hints) {
++				struct zone_free_space_entry
++						*cur, **last = &entry->next;
++
++				while ((cur = *last) != 0 &&
++						cur->length != old_length)
++					last = &cur->next;
+ 
+-#define	ZONE_PAGE_USED  0
+-#define ZONE_PAGE_UNUSED -1
++				hint->entry = cur;
++			}
++			else {
++				struct zone_free_space_entry
++						*cur, **last = &entry->next;
++
++				while ((cur = *last) != 0 &&
++						cur->length < 
++							freespace->alloc_max)
++					last = &cur->next;
+ 
++				hint->entry = cur;
++			}
++		}
++
++		hint = zone_free_space_hint_from_hash(freespace, new_hash);
++		if (hint->entry == 0 || entry < hint->entry)
++			hint->entry = entry;
++	}
++}
++
++/*
++ * Find an entry of at least size bytes.  The entry leaves the hint
++ * table (whose hint moves on) but stays on the free list.
++ * (original 0x16a360)
++ */
++static
++struct zone_free_space_entry *
++zone_free_space_lookup(
++	struct zone_free_space		*freespace,
++	vm_size_t			size
++)
++{
++	integer_t			hash;
++	struct zone_free_space_hint	*hint;
++	struct zone_free_space_entry	*entry;
++
++	if ((entry = freespace->entries) == 0)
++		return (entry);
++	else if (entry->length >= size) {
++		zone_free_space_hint_delete(freespace, entry);
++		
++		return (entry);
++	}
++
++	hash = zone_free_space_hash(freespace, size); 
++	hint = zone_free_space_hint_from_hash(freespace, hash);
++
++	/* exact size classes, from the request upwards */
++	while (hash < freespace->num_hints) {
++		if ((entry = hint->entry) != 0) {
++			struct zone_free_space_entry
++					*cur, **last = &entry->next;
++
++			while ((cur = *last) != 0 &&
++					cur->length != entry->length)
++				last = &cur->next;
++
++			hint->entry = cur;
++			
++			return (entry);
++		}
++		
++		hash++; hint++;
++	}
++
++	/* the last class: its hint may still be too small */
++	if ((entry = hint->entry) != 0) {
++		struct zone_free_space_entry
++				*cur, **last = &entry->next;
++
++		if (entry->length < size) {
++			while ((cur = *last) != 0 &&
++					cur->length < size)
++				last = &cur->next;
++				
++			return (cur);
++		}
++
++		while ((cur = *last) != 0 &&
++				cur->length < freespace->alloc_max)
++			last = &cur->next;
++
++		hint->entry = cur;
++	}
++	
++	return (entry);
++}
+ 
+ /*
+  *	Protects first_zone, last_zone, num_zones,
+@@ -179,17 +492,18 @@
+  *	are stored in a zone, which is initially a static structure that
+  *	is initialized by zone_init.
+  */
+-zone_t zinit(size, max, alloc, memtype, name)
++zone_t zinit(size, max, alloc, pageable, name)	/* plan 350: pageable */
+ 	vm_size_t	size;		/* the size of an element */
+ 	vm_size_t	max;		/* maximum memory to use */
+ 	vm_size_t	alloc;		/* allocation size */
+-	unsigned int	memtype;	/* flags specifying type of memory */
++	boolean_t	pageable;	/* plan 350: is this zone pageable? */
+ 	char		*name;		/* a name for the zone */
+ {
+ 	register zone_t		z;
+ 
+ 	if (zone_zone == ZONE_NULL)
+-		z = (zone_t) zget_space(sizeof(struct zone));
++		z = (zone_t) zget_space(zone_default_space,	/* plan 350 */
++					sizeof(struct zone), FALSE);	/* plan 350 */
+ 	else
+ 		z = (zone_t) zalloc(zone_zone);
+ 	if (z == ZONE_NULL)
+@@ -200,6 +514,7 @@
+ 
+ 	if (size == 0)
+ 		size = sizeof(z->free_elements);
++	size = ((size + (ZONE_MIN_ALLOC - 1)) & ~(ZONE_MIN_ALLOC - 1));	/* plan 350 */
+ 	/*
+ 	 *	Round off all the parameters appropriately.
+ 	 */
+@@ -207,20 +522,20 @@
+ 	if ((max = round_page(max)) < (alloc = round_page(alloc)))
+ 		max = alloc;
+ 
+-	z->free_elements = 0;
++	z->last_insert = z->free_elements = 0;	/* plan 350 */
+ 	z->cur_size = 0;
+ 	z->max_size = max;
+-	z->elem_size = ((size-1) + sizeof(z->free_elements)) -
+-			((size-1) % sizeof(z->free_elements));
++	z->elem_size = size;	/* plan 350 */
+ 
+ 	z->alloc_size = alloc;
+-	z->type = memtype;
++	z->pageable = pageable;	/* plan 350 */
+ 	z->zone_name = name;
+-#ifdef ZONE_COUNT
+-	z->count = 0;
+-#endif
++	z->count = 0;	/* plan 350 */
+ 	z->doing_alloc = FALSE;
++	z->exhaustible = z->sleepable = FALSE;	/* plan 350 */
++	z->expandable  = TRUE;	/* plan 350 */
+ 	zone_lock_init(z);
++	zone_free_space_select(z);	/* plan 350 */
+ 
+ 	/*
+ 	 *	Add the zone to the all-zones list.
+@@ -251,8 +566,7 @@
+ 	zone_lock(zone);
+ 	while (size >= elem_size) {
+ 		ADD_TO_ZONE(zone, newmem);
+-		zone_page_alloc(newmem, elem_size);
+-		zone_count_up(zone);	/* compensate for ADD_TO_ZONE */
++		zone->count++;	/* compensate for ADD_TO_ZONE */	/* plan 350 */
+ 		size -= elem_size;
+ 		newmem += elem_size;
+ 		zone->cur_size += elem_size;
+@@ -261,25 +575,309 @@
+ }
+ 
+ /*
++ * plan 350 (authored): carve an element of size bytes from the front of
++ * a new region [new_space, new_space + space_to_add) and put the rest
++ * on the pool's free list, merging with an entry that ends at
++ * new_space.  Returns the element.  (original 0x16a694)
++ */
++vm_offset_t zone_free_space_add(freespace, size, new_space, space_to_add)
++	struct zone_free_space *freespace;
++	vm_size_t size;
++	vm_offset_t new_space;
++	vm_size_t space_to_add;
++{
++	struct zone_free_space_entry	*cur, **last;
++
++	if (freespace == 0)
++		freespace = zone_default_space;
++
++	last = &freespace->entries;
++	while ((cur = *last) != 0 &&
++			(vm_offset_t)cur < new_space &&
++			((vm_offset_t)cur + cur->length) != new_space)
++		last = &cur->next;
++			
++	if (cur == 0 || ((vm_offset_t)cur + cur->length) < new_space) {
++		/* nothing to merge with: link the remainder as a new entry */
++		if ((space_to_add - size) >= ZONE_MIN_ALLOC) {
++			if (cur != 0)
++				last = &cur->next;
++			(vm_offset_t)cur = new_space + size;
++			cur->length = space_to_add - size;
++			if (cur->next = *last)
++				cur->next->pred = &cur->next;
++			cur->pred = last;
++			*last = cur;
++			freespace->num_entries++;
++
++			zone_free_space_hint_insert(freespace, cur);
++		}
++	}
++	else
++	if (((vm_offset_t)cur + cur->length) == new_space) {
++		struct zone_free_space_entry	*new;
++
++		/* merge: the element comes from the front of cur */
++		zone_free_space_hint_delete(freespace, cur);
++
++		new_space = (vm_offset_t)cur;
++		(vm_offset_t)new = (vm_offset_t)cur + size;
++		new->length = cur->length + space_to_add - size;
++		if (new->next = cur->next)
++			new->next->pred = &new->next;
++		new->pred = last;
++		*last = new;
++
++		zone_free_space_hint_insert(freespace, new);
++	}
++	
++	return (new_space);
++}
++
++/*
++ * plan 350 (authored): give the free elements of a collectable zone
++ * back to its pool, merging with neighbouring entries.  The caller
++ * holds zget_space_lock and the zone lock.  (original 0x16a7f4)
++ */
++void zone_collect(zone)
++	struct zone	*zone;
++{
++	struct zone_free_space_entry	*cur, **last, *new;
++	vm_offset_t			*free, *elem, next;
++	vm_size_t			elem_size = zone->elem_size;
++	struct zone_free_space		*freespace = zone->free_space;
++
++	if (!zone_collectable(zone))
++		return;
++
++	last = &freespace->entries;
++
++	free = &zone->free_elements;
++	while (((vm_offset_t)elem = *free) != 0) {
++		zone->cur_size -= elem_size;
++		next = *elem;
++		
++		while ((cur = *last) != 0 &&
++				((vm_offset_t)cur +
++					cur->length) < (vm_offset_t)elem)
++			last = &cur->next;
++
++		if (cur == 0 || ((vm_offset_t)elem + elem_size) <
++							(vm_offset_t)cur) {
++			/* a new entry before cur (or at the end) */
++			(vm_offset_t)new = (vm_offset_t)elem;
++			new->length = elem_size;
++			if (new->next = cur)
++				cur->pred = &new->next;
++			new->pred = last;
++			*last = new;
++			freespace->num_entries++;
++
++			zone_free_space_hint_insert(freespace, new);
++		}
++		else
++		if (((vm_offset_t)elem + elem_size) == (vm_offset_t)cur) {
++			/* the element ends where cur starts */
++			vm_size_t		old_length = cur->length;
++
++			(vm_offset_t)new = (vm_offset_t)elem;
++			new->length = cur->length + elem_size;
++			if (new->next = cur->next)
++				new->next->pred = &new->next;
++			new->pred = last;
++			*last = new;
++
++			zone_free_space_hint_prepend(freespace,
++							new, old_length, cur);
++		}
++		else
++		if (((vm_offset_t)cur + cur->length) == (vm_offset_t)elem) {
++			/* the element starts where cur ends */
++			vm_size_t		old_length = cur->length;
++
++			cur->length += elem_size;
++			if (((vm_offset_t)cur + cur->length) ==
++						(vm_offset_t)cur->next) {
++				/* and fills the gap to the next entry */
++				zone_free_space_hint_delete(
++							freespace, cur->next);
++
++				cur->length += cur->next->length;
++				if (cur->next = cur->next->next)
++					cur->next->pred = &cur->next;
++				freespace->num_entries--;
++			}
++
++			zone_free_space_hint_append(freespace,
++							cur, old_length);
++		}
++		
++		*free = next;
++	}
++	
++	zone->last_insert = 0;
++}
++
++/*
++ * plan 350 (authored): take every whole page inside zone_map out of the
++ * collectable pools (pool 0 is skipped), then drop zget_space_lock,
++ * which the caller took, and free the pages.  (original 0x16ab34)
++ */
++void
++zone_free_space_reclaim(void)
++{
++	struct zone_free_space_entry	**last, *cur, *pages = 0;
++	struct zone_free_space		**f = &zone_free_space[0];
++	int				i;
++
++	for (i = 1; i < zone_free_space_count; i++) {
++		last = &(*++f)->entries;
++		while ((cur = *last) != 0) {
++			if (cur->length >= PAGE_SIZE) {
++			    vm_offset_t		start, end;
++		    
++			    start = round_page((vm_offset_t)cur);
++			    end = trunc_page(
++				    (vm_offset_t)cur + cur->length);
++			    if (start < end &&
++					start >= zone_min &&
++					end <= zone_max) {
++				struct zone_free_space_entry	*tmp;
++
++				zone_free_space_hint_delete(*f, cur);
++
++				if (((vm_offset_t)cur + cur->length) != end) {
++					/* keep the tail after end */
++					(vm_offset_t)tmp = end;
++					tmp->length = (vm_offset_t)cur +
++						    	cur->length - end;
++					if (tmp->next = cur->next)
++						tmp->next->pred = &tmp->next;
++
++					if ((vm_offset_t)cur == start) {
++						*last = tmp;
++						tmp->pred = last;
++					}
++					else {
++						/* and the head before start */
++						cur->length = start -
++					    		(vm_offset_t)cur;
++					    	cur->next = tmp;
++					    	tmp->pred = &cur->next;
++					    	(*f)->num_entries++;
++
++					    	zone_free_space_hint_insert(
++								*f, cur);
++					}
++
++					zone_free_space_hint_insert(*f, tmp);
++				}
++				else if ((vm_offset_t)cur != start) {
++					/* keep the head before start */
++					cur->length = start - (vm_offset_t)cur;
++
++					zone_free_space_hint_insert(*f, cur);
++				}
++				else {
++					if (*last = cur->next)
++						cur->next->pred = last;
++					(*f)->num_entries--;
++				}
++
++				/* queue [start, end) for freeing */
++				(vm_offset_t)tmp = start;
++				tmp->length = end - start;
++				tmp->next = pages;
++				pages = tmp;
++				continue;
++			    }
++			}
++
++			last = &cur->next;
++		}
++	}
++
++	simple_unlock(&zget_space_lock);
++
++	while ((cur = pages) != 0) {
++		pages = cur->next;
++		kmem_free(zone_map, (vm_offset_t)cur, cur->length);
++	}
++}
++
++/*
+  * Contiguous space allocator for non-paged zones. Allocates "size" amount
+  * of memory from zone_map.
++ * plan 350: from the given pool (0 = default pool); falls back to the
++ * end of zdata, then to new zone_map memory.  (original 0x16ada4)
+  */
+ 
+-static vm_offset_t zget_space(vm_offset_t size)
++vm_offset_t zget_space(freespace, size, canblock)	/* plan 350 */
++	struct zone_free_space *freespace;	/* plan 350 */
++	vm_size_t size;
++	boolean_t canblock;	/* plan 350 */
+ {
+ 	vm_offset_t	new_space = 0;
+ 	vm_offset_t	result;
+-	vm_size_t	space_to_add = 0; /*'=0' to quiet gcc warnings */
++	vm_size_t	space_to_add;	/* plan 350: no '= 0' (the original has no store) */
++	struct zone_free_space_entry	/* plan 350 */
++			*cur, **last;	/* plan 350 */
++
++	/* plan 350 (authored) */
++	if (freespace == 0)
++		freespace = zone_default_space;
++
++	if (size > ZONE_MIN_ALLOC)
++		size = ((size + (ZONE_MIN_ALLOC - 1)) & ~(ZONE_MIN_ALLOC - 1));
++	else
++		size = ZONE_MIN_ALLOC;
+ 
+ 	simple_lock(&zget_space_lock);
+-	while ((zalloc_next_space + size) > zalloc_end_of_space) {
++	for (;;) {	/* plan 350 */
++		/* plan 350 (authored): an existing free entry */
++		if ((cur = zone_free_space_lookup(freespace, size)) != 0) {
++			last = cur->pred;
++
++			if ((cur->length - size) < ZONE_MIN_ALLOC) {
++				/* use all of it */
++				if (*last = cur->next)
++					cur->next->pred = last;
++				freespace->num_entries--;
++			}
++			else {
++				struct zone_free_space_entry	*new;
++
++				/* the rest stays in its place on the list */
++				(vm_offset_t)new = (vm_offset_t)cur + size;
++				new->length = cur->length - size;
++				if (new->next = cur->next)
++					new->next->pred = &new->next;
++				new->pred = last;
++				*last = new;
++
++				zone_free_space_hint_insert(freespace, new);
++			}
++			result = (vm_offset_t)cur;
++			break;
++		}
++		else if (new_space == 0) {	/* plan 350 */
+ 		/*
+ 		 *	Add at least one page to allocation area.
+ 		 */
+ 
+ 		space_to_add = round_page(size);
+ 
+-		if (new_space == 0) {
++		/* plan 350 (authored): take it from the end of zdata */
++		if (zdata_size >= space_to_add) {
++			zdata_size -= space_to_add;
++			result = zone_free_space_add(
++						freespace,
++						size,
++						zdata + zdata_size,
++						space_to_add);
++			break;
++		}
++
+ 			/*
+ 			 *	Memory cannot be wired down while holding
+ 			 *	any locks that the pageout daemon might
+@@ -295,40 +893,29 @@
+ 
+ 			simple_unlock(&zget_space_lock);
+ 
+-			if (kmem_alloc_wired(zone_map,
+-					     &new_space, space_to_add)
++			if (kmem_alloc_zone(zone_map,	/* plan 350 */
++					     &new_space, space_to_add,
++					     canblock)	/* plan 350 */
+ 							!= KERN_SUCCESS)
+ 				return(0);
+-			zone_page_init(new_space, space_to_add,
+-							ZONE_PAGE_USED);
+ 			simple_lock(&zget_space_lock);
+ 			continue;
+ 		}
+-
+-		
++		else {	/* plan 350 */
+ 		/*
+ 	  	 *	Memory was allocated in a previous iteration.
+-		 *
+-		 *	Check whether the new region is contiguous
+-		 *	with the old one.
++		 *	plan 350: carve the element from it.
+ 		 */
+ 
+-		if (new_space != zalloc_end_of_space) {
+-			/*
+-			 *	Throw away the remainder of the
+-			 *	old space, and start a new one.
+-			 */
+-			zalloc_wasted_space +=
+-				zalloc_end_of_space - zalloc_next_space;
+-			zalloc_next_space = new_space;
++			result = zone_free_space_add(	/* plan 350 */
++						freespace,
++						size,
++						new_space,
++						space_to_add);
++			new_space = 0;
++			break;	/* plan 350 */
+ 		}
+-
+-		zalloc_end_of_space = new_space + space_to_add;
+-
+-		new_space = 0;
+ 	}
+-	result = zalloc_next_space;
+-	zalloc_next_space += size;		
+ 	simple_unlock(&zget_space_lock);
+ 
+ 	if (new_space != 0)
+@@ -337,6 +924,83 @@
+ 	return(result);
+ }
+ 
++/*
++ * plan 350 (authored): make a pool with the given unit and maximum,
++ * its header and hint table taken from the default pool.
++ */
++static
++struct zone_free_space *
++zone_free_space_alloc(alloc_unit, alloc_max)
++	vm_size_t	alloc_unit;
++	vm_size_t	alloc_max;
++{
++	struct zone_free_space	*freespace, **f;
++	
++	if (zone_free_space_count >=
++			(sizeof (zone_free_space) / sizeof (freespace)))
++		return (0);
++	
++	f = &zone_free_space[zone_free_space_count++];
++
++	(vm_offset_t)freespace = zget_space(
++					zone_default_space,
++					sizeof (struct zone_free_space), 
++					FALSE);
++	freespace->alloc_unit = alloc_unit;
++	freespace->alloc_max = alloc_max;
++
++	freespace->entries = 0;
++	freespace->num_entries = 0;
++	
++	freespace->hash_shift = 0;
++	while (!(alloc_unit & 01)) {
++		freespace->hash_shift++; alloc_unit >>= 1;
++	}
++
++	freespace->num_hints = freespace->alloc_max >> freespace->hash_shift;
++	(vm_offset_t)freespace->hints =
++			zget_space(
++				zone_default_space,
++				freespace->num_hints *
++					sizeof (struct zone_free_space_hint),
++				FALSE);
++	bzero(freespace->hints, freespace->num_hints *
++					sizeof (struct zone_free_space_hint));
++
++	*f = freespace;
++	
++	return (freespace);
++}
++
++/*
++ * plan 350 (authored): an empty zone goes to the first collectable pool
++ * whose maximum holds its element size rounded to the pool unit.
++ * (original 0x16af6c)
++ */
++static
++void
++zone_free_space_select(zone)
++	zone_t		zone;
++{
++	struct zone_free_space	**f = &zone_free_space[1];
++	vm_size_t	elem_size;
++	int		i;
++	
++	if (zone->cur_size > 0)
++		return;
++	
++	for (i = 1; i < zone_free_space_count; i++) {
++		elem_size = ((zone->elem_size + ((*f)->alloc_unit - 1))
++				& ~((*f)->alloc_unit - 1));
++		if (elem_size <= (*f)->alloc_max) {
++			zone->elem_size = elem_size;				
++			zone->free_space = *f;
++			break;
++		}
++		
++		f++;
++	}
++}
+ 
+ /*
+  *	Initialize the "zone of zones" which uses fixed memory allocated
+@@ -350,55 +1014,52 @@
+ 	last_zone = &first_zone;
+ 	num_zones = 0;
+ 
++	/* plan 350 (authored) */
++	if (sizeof (struct zone_free_space_entry) > ZONE_MIN_ALLOC)
++		panic("zone_bootstrap");
++
+ 	simple_lock_init(&zget_space_lock);
+-	zalloc_next_space = zdata;
+-	zalloc_end_of_space = zdata + zdata_size;
+-	zalloc_wasted_space = 0;
++
++	/* plan 350 (authored): the default pool */
++	_zone_default_space.hints = &_zone_default_space_hint;
++	_zone_default_space.num_hints = 1;
++	
++	zone_free_space[0] = &_zone_default_space;
++	zone_free_space_count = 1;
+ 
+ 	zone_zone = ZONE_NULL;
+ 	zone_zone = zinit(sizeof(struct zone), 128 * sizeof(struct zone),
+-			  sizeof(struct zone), 0, "zones");
++			  sizeof(struct zone), FALSE, "zones");	/* plan 350 */
++
++	/* plan 350 (authored): the collectable pools */
++	zone_free_space_alloc(16,	96);
++	zone_free_space_alloc(128,	768);
++	zone_free_space_alloc(1024,	PAGE_SIZE);
+ }
+ 
+ void zone_init()
+ {
+-	vm_offset_t	zone_min;
+-	vm_offset_t	zone_max;
+-
+-	vm_size_t	zone_table_size;
+-
++	/* plan 350: zone_min/zone_max are globals; no page table */
+ 	zone_map = kmem_suballoc(kernel_map, &zone_min, &zone_max,
+ 				 zone_map_size, FALSE);
+-
+-	/*
+-	 * Setup garbage collection information:
+-	 */
+-
+- 	zone_table_size = atop(zone_max - zone_min) * 
+-				sizeof(struct zone_page_table_entry);
+-	if (kmem_alloc_wired(zone_map, (vm_offset_t *) &zone_page_table,
+-			     zone_table_size) != KERN_SUCCESS)
+-		panic("zone_init");
+-	zone_min = (vm_offset_t)zone_page_table + round_page(zone_table_size);
+-	zone_pages = atop(zone_max - zone_min);
+-	zone_map_min_address = zone_min;
+-	zone_map_max_address = zone_max;
+-	simple_lock_init(&zone_page_table_lock);
+-	zone_page_init(zone_min, zone_max - zone_min, ZONE_PAGE_UNUSED);
+ }
+ 
+ 
+ /*
+  *	zalloc returns an element from the specified zone.
++ *	plan 350: zalloc_canblock with zalloc/zalloc_noblock wrappers;
++ *	without canblock it returns 0 instead of waiting or panicking.
++ *	(original 0x16b364)
+  */
+-vm_offset_t zalloc(zone_t zone)
++static	/* plan 350 */
++vm_offset_t zalloc_canblock(zone_t zone, boolean_t canblock)	/* plan 350 */
+ {
+ 	vm_offset_t	addr;
+ 
+ 	if (zone == ZONE_NULL)
+ 		panic ("zalloc: null zone");
+ 
+-	check_simple_locks();
++	/* plan 350: no check_simple_locks() (none in the original) */
+ 
+ 	zone_lock(zone);
+ 	REMOVE_FROM_ZONE(zone, addr, vm_offset_t);
+@@ -411,17 +1072,21 @@
+ 			 *	Someone is allocating memory for this zone.
+ 			 *	Wait for it to show up, then try again.
+ 			 */
++			if (!canblock) {	/* plan 350 */
++				zone_unlock(zone);	/* plan 350 */
++				return(0);	/* plan 350 */
++			}
+ 			assert_wait((event_t)&zone->doing_alloc, TRUE);
+ 			/* XXX say wakeup needed */
+ 			zone_unlock(zone);
+-			thread_block((void (*)()) 0);
++			thread_block_with_continuation((void (*)()) 0);	/* plan 350 */
+ 			zone_lock(zone);
+ 		}
+ 		else {
+-			if ((zone->cur_size + (zone->type & ZONE_PAGEABLE ?
++			if ((zone->cur_size + (zone->pageable ?	/* plan 350 */
+ 				zone->alloc_size : zone->elem_size)) >
+ 			    zone->max_size) {
+-				if (zone->type & ZONE_EXHAUSTIBLE)
++				if (zone->exhaustible)	/* plan 350 */
+ 					break;
+ 				/*
+ 				 * Printf calls logwakeup, which calls
+@@ -434,7 +1099,7 @@
+ 				 * cleanliness, we just unlock all
+ 				 * zones before this.
+ 				 */
+-				if (!(zone->type & ZONE_FIXED)) {
++				if (zone->expandable) {	/* plan 350 */
+ 					/*
+ 					 * We're willing to overflow certain
+ 					 * zones, but not without complaining.
+@@ -448,17 +1113,19 @@
+ 					zone->max_size += (zone->max_size >> 1);
+ 				} else if (!zone_ignore_overflow) {
+ 					zone_unlock(zone);
++					if (!canblock)	/* plan 350 */
++						return(0);	/* plan 350 */
+ 					printf("zone \"%s\" empty.\n",
+ 						zone->zone_name);
+ 					panic("zalloc");
+ 				}
+ 			}
+ 
+-			if (zone->type & ZONE_PAGEABLE)
++			if (zone->pageable)	/* plan 350 */
+ 				zone->doing_alloc = TRUE;
+ 			zone_unlock(zone);
+ 
+-			if (zone->type & ZONE_PAGEABLE) {
++			if (zone->pageable) {	/* plan 350 */
+ 				if (kmem_alloc_pageable(zone_map, &addr,
+ 							zone->alloc_size)
+ 							!= KERN_SUCCESS)
+@@ -470,26 +1137,19 @@
+ 				thread_wakeup((event_t)&zone->doing_alloc);
+ 
+ 				REMOVE_FROM_ZONE(zone, addr, vm_offset_t);
+-			} else  if (zone->type & ZONE_COLLECTABLE) {
+-				if (kmem_alloc_wired(zone_map,
+-						     &addr, zone->alloc_size)
+-							!= KERN_SUCCESS)
+-					panic("zalloc");
+-				zone_page_init(addr, zone->alloc_size,
+-							ZONE_PAGE_USED);
+-				zcram(zone, addr, zone->alloc_size);
+-				zone_lock(zone);
+-				REMOVE_FROM_ZONE(zone, addr, vm_offset_t);
+-			} else {
+-				addr = zget_space(zone->elem_size);
+-				if (addr == 0)
++			} else {	/* plan 350: no zone page table */
++				addr = zget_space(zone->free_space,	/* plan 350 */
++						  zone->elem_size, canblock);	/* plan 350 */
++				if (addr == 0) {	/* plan 350 */
++					if (!canblock)	/* plan 350 */
++						return(0);	/* plan 350 */
+ 					panic("zalloc");
++				}	/* plan 350 */
+ 
+ 				zone_lock(zone);
+-				zone_count_up(zone);
++				zone->count++;	/* plan 350 */
+ 				zone->cur_size += zone->elem_size;
+ 				zone_unlock(zone);
+-				zone_page_alloc(addr, zone->elem_size);
+ 				return(addr);
+ 			}
+ 		}
+@@ -499,6 +1159,19 @@
+ 	return(addr);
+ }
+ 
++/* plan 350 (authored): original 0x16b790, 0x16b7a4 */
++vm_offset_t zalloc(zone)
++	register zone_t zone;
++{
++	return (zalloc_canblock(zone, TRUE));
++}
++
++vm_offset_t zalloc_noblock(zone)
++	register zone_t zone;
++{
++	return (zalloc_canblock(zone, FALSE));
++}
++
+ 
+ /*
+  *	zget returns an element from the specified zone
+@@ -542,270 +1215,64 @@
+ }
+ 
+ /*
+- *  Zone garbage collection subroutines
+- *
+- *  These routines have in common the modification of entries in the
+- *  zone_page_table.  The latter contains one entry for every page
+- *  in the zone_map.  
+- *
+- *  For each page table entry in the given range:
+- *
+- *	zone_page_in_use        - decrements in_free_list
+- *	zone_page_free          - increments in_free_list
+- *	zone_page_init          - initializes in_free_list and alloc_count
+- *	zone_page_alloc         - increments alloc_count
+- *	zone_page_dealloc       - decrements alloc_count
+- *	zone_add_free_page_list - adds the page to the free list
+- *   
+- *  Two counts are maintained for each page, the in_free_list count and
+- *  alloc_count.  The alloc_count is how many zone elements have been
+- *  allocated from a page.  (Note that the page could contain elements
+- *  that span page boundaries.  The count includes these elements so
+- *  one element may be counted in two pages.) In_free_list is a count
+- *  of how many zone elements are currently free.  If in_free_list is
+- *  equal to alloc_count then the page is eligible for garbage
+- *  collection.
+- *
+- *  Alloc_count and in_free_list are initialized to the correct values
+- *  for a particular zone when a page is zcram'ed into a zone.  Subsequent
+- *  gets and frees of zone elements will call zone_page_in_use and 
+- *  zone_page_free which modify the in_free_list count.  When the zones
+- *  garbage collector runs it will walk through a zones free element list,
+- *  remove the elements that reside on collectable pages, and use 
+- *  zone_add_free_page_list to create a list of pages to be collected.
+- */
+-
+-void zone_page_in_use(addr, size)
+-vm_offset_t	addr;
+-vm_size_t	size;
+-{
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		zone_page_table[i].in_free_list--;
+-	}
+-	unlock_zone_page_table();
+-}
+-
+-void zone_page_free(addr, size)
+-vm_offset_t	addr;
+-vm_size_t	size;
+-{
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		/* Set in_free_list to (ZONE_PAGE_USED + 1) if
+-		 * it was previously set to ZONE_PAGE_UNUSED.
+-		 */
+-		if (zone_page_table[i].in_free_list == ZONE_PAGE_UNUSED) {
+-			zone_page_table[i].in_free_list = 1;
+-		} else {
+-			zone_page_table[i].in_free_list++;
+-		}
+-	}
+-	unlock_zone_page_table();
+-}
+-
+-void zone_page_init(addr, size, value)
+-
+-vm_offset_t	addr;
+-vm_size_t	size;
+-int		value;
+-{
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		zone_page_table[i].alloc_count = value;
+-		zone_page_table[i].in_free_list = 0;
+-	}
+-	unlock_zone_page_table();
+-}
+-
+-void zone_page_alloc(addr, size)
+-vm_offset_t	addr;
+-vm_size_t	size;
+-{
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		/* Set alloc_count to (ZONE_PAGE_USED + 1) if
+-		 * it was previously set to ZONE_PAGE_UNUSED.
+-		 */
+-		if (zone_page_table[i].alloc_count == ZONE_PAGE_UNUSED) {
+-			zone_page_table[i].alloc_count = 1;
+-		} else {
+-			zone_page_table[i].alloc_count++;
+-		}
+-	}
+-	unlock_zone_page_table();
+-}
+-
+-void zone_page_dealloc(addr, size)
+-vm_offset_t	addr;
+-vm_size_t	size;
++ * plan 350 (authored): zones start collectable (zinit picks a pool);
++ * zcollectable does nothing, and zchange can only take collectability
++ * away by moving the zone to the default pool.  (original 0x16b904,
++ * 0x16b90c)
++ */
++void zcollectable(zone) 
++	zone_t		zone;
+ {
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		zone_page_table[i].alloc_count--;
+-	}
+-	unlock_zone_page_table();
+ }
+ 
+-void
+-zone_add_free_page_list(free_list, addr, size)
+-	struct zone_page_table_entry	**free_list;
+-	vm_offset_t	addr;
+-	vm_size_t	size;
++void zchange(zone, pageable, sleepable, exhaustible, collectable)
++	zone_t		zone;
++	boolean_t	pageable;
++	boolean_t	sleepable;
++	boolean_t	exhaustible;
++	boolean_t	collectable;
+ {
+-	int i, j;
+-	if ((addr < zone_map_min_address) ||
+-	    (addr+size > zone_map_max_address)) return;
+-	i = atop(addr-zone_map_min_address);
+-	j = atop((addr+size-1) - zone_map_min_address);
+-	lock_zone_page_table();
+-	for (; i <= j; i++) {
+-		if (zone_page_table[i].alloc_count == 0) {
+-			zone_page_table[i].next = *free_list;
+-			*free_list = &zone_page_table[i];
+-			zone_page_table[i].alloc_count  = ZONE_PAGE_UNUSED;
+-			zone_page_table[i].in_free_list = 0;
+-		}
+-	}
+-	unlock_zone_page_table();
++	zone->pageable = pageable;
++	zone->sleepable = sleepable;
++	zone->exhaustible = exhaustible;
++	if (!collectable)
++		zone->free_space = zone_default_space;
++	zone_lock_init(zone);
+ }
+ 
+-
+-/* This is used for walking through a zone's free element list.
+- */
+-struct zone_free_entry {
+-	struct zone_free_entry * next;
+-};
+-
+-
+ /*	Zone garbage collection
+  *
+- *	zone_gc will walk through all the free elements in all the
+- *	zones that are marked collectable looking for reclaimable
+- *	pages.  zone_gc is called by consider_zone_gc when the system
+- *	begins to run out of memory.
++ *	plan 350: zone_gc returns the free elements of every collectable,
++ *	non-pageable zone to its pool and then reclaims whole pages from
++ *	the pools (zone_free_space_reclaim drops zget_space_lock).
++ *	Global in the original (0x16b970).
+  */
+-static void zone_gc() 
++void zone_gc()	/* plan 350 */
+ {
+ 	int		max_zones;
+ 	zone_t		z;
+ 	int		i;
+-	register spl_t	s;
+-	struct zone_page_table_entry	*freep;
+-	struct zone_page_table_entry	*zone_free_page_list;
+ 
+ 	simple_lock(&all_zones_lock);
+ 	max_zones = num_zones;
+ 	z = first_zone;
+ 	simple_unlock(&all_zones_lock);
+ 
+-	zone_free_page_list = (struct zone_page_table_entry *) 0;
++	simple_lock(&zget_space_lock);	/* plan 350 */
+ 
+ 	for (i = 0; i < max_zones; i++) {
+-		struct zone_free_entry * last;
+-		struct zone_free_entry * elt;
+-		assert(z != ZONE_NULL);
+-	/* run this at splhigh so that interupt routines that use zones
+-	   can not interupt while their zone is locked */
+-		s=splhigh();
+ 		zone_lock(z);
+ 
+-		if ((z->type & (ZONE_PAGEABLE|ZONE_COLLECTABLE)) == ZONE_COLLECTABLE) {
+-
+-		    /* Count the free elements in each page.  This loop
+-		     * requires that all in_free_list entries are zero.
+-		     */
+-		    elt = (struct zone_free_entry *)(z->free_elements);
+-		    while ((elt != (struct zone_free_entry *)0)) {
+-			   zone_page_free((vm_offset_t)elt, z->elem_size);
+-			   elt = elt->next;
+-		    }
+-
+-		    /* Now determine which elements should be removed
+-		     * from the free list and, after all the elements
+-		     * on a page have been removed, add the element's
+-		     * page to a list of pages to be freed.
+-		     */
+-		    elt = (struct zone_free_entry *)(z->free_elements);
+-		    last = elt;
+-		    while ((elt != (struct zone_free_entry *)0)) {
+-			if (((vm_offset_t)elt>=zone_map_min_address)&&
+-			    ((vm_offset_t)elt<=zone_map_max_address)&&
+-			    (zone_page(elt)->in_free_list ==
+-			     zone_page(elt)->alloc_count)) {
+-
+-			    z->cur_size -= z->elem_size;
+-			    zone_page_in_use((vm_offset_t)elt, z->elem_size);
+-			    zone_page_dealloc((vm_offset_t)elt, z->elem_size);
+-			    if (zone_page(elt)->alloc_count == 0 ||
+-			      zone_page(elt+(z->elem_size-1))->alloc_count==0) {
+-				    zone_add_free_page_list(
+-					    &zone_free_page_list, 
+-					    (vm_offset_t)elt, z->elem_size);
+-			    }
+-
++		if (!z->pageable && zone_collectable(z))	/* plan 350 */
++		    zone_collect(z);	/* plan 350 */
+ 
+-			    if (elt == last) {
+-				elt = elt->next;
+-				z->free_elements =(vm_offset_t)elt;
+-				last = elt;
+-			    } else {
+-				last->next = elt->next;
+-				elt = elt->next;
+-			    }
+-			} else {
+-			    /* This element is not eligible for collection
+-			     * so clear in_free_list in preparation for a
+-			     * subsequent garbage collection pass.
+-			     */
+-			    if (((vm_offset_t)elt>=zone_map_min_address)&&
+-				((vm_offset_t)elt<=zone_map_max_address)) {
+-				zone_page(elt)->in_free_list = 0;
+-			    }
+-			    last = elt;
+-			    elt = elt->next;
+-			}
+-		    }
+-		}
+ 		zone_unlock(z);		
+-		splx(s);
+ 		simple_lock(&all_zones_lock);
+ 		z = z->next_zone;
+ 		simple_unlock(&all_zones_lock);
+ 	}
+ 
+-	for (freep = zone_free_page_list; freep != 0; freep = freep->next) {
+-		vm_offset_t	free_addr;
+-
+-		free_addr = zone_map_min_address + 
+-			PAGE_SIZE * (freep - zone_page_table);
+-		kmem_free(zone_map, free_addr, PAGE_SIZE);
+-	}
++	zone_free_space_reclaim();	/* plan 350 */
+ }
+ 
+ boolean_t zone_gc_allowed = TRUE;
+@@ -836,6 +1303,17 @@
+ 	}
+ }
+ 
++/*
++ * plan 350 (authored): reclaim pool pages without collecting the zones.
++ * (original 0x16bad0)
++ */
++void
++zone_reclaim()
++{
++	simple_lock(&zget_space_lock);
++	zone_free_space_reclaim();
++}
++
+ #if	MACH_DEBUG
+ kern_return_t host_zone_info(host, namesp, namesCntp, infop, infoCntp)
+ 	host_t		host;
+@@ -918,54 +1396,270 @@
+ 		(void) strncpy(zn->zn_name, zcopy.zone_name,
+ 			       sizeof zn->zn_name);
+ 
+-#ifdef ZONE_COUNT
+-		zi->zi_count = zcopy.count;
+-#else
+-		zi->zi_count = 0;
+-#endif
++		zi->zi_count = zcopy.count;	/* plan 350 */
+ 		zi->zi_cur_size = zcopy.cur_size;
+ 		zi->zi_max_size = zcopy.max_size;
+ 		zi->zi_elem_size = zcopy.elem_size;
+ 		zi->zi_alloc_size = zcopy.alloc_size;
+-		zi->zi_pageable = (zcopy.type & ZONE_PAGEABLE) != 0;
+-		zi->zi_exhaustible = (zcopy.type & ZONE_EXHAUSTIBLE) != 0;
+-		zi->zi_collectable = (zcopy.type & ZONE_COLLECTABLE) != 0;
++		zi->zi_pageable = zcopy.pageable;	/* plan 350 */
++		zi->zi_sleepable = zcopy.sleepable;	/* plan 350 */
++		zi->zi_exhaustible = zcopy.exhaustible;	/* plan 350 */
++		zi->zi_collectable = zone_collectable(&zcopy);	/* plan 350 */
+ 	}
+ 
+ 	if (names != *namesp) {
+ 		vm_size_t used;
++#if	MACH_OLD_VM_COPY	/* plan 350 */
++#else	/* plan 350 */
+ 		vm_map_copy_t copy;
++#endif	/* plan 350 */
+ 
+ 		used = max_zones * sizeof *names;
+ 
+ 		if (used != names_size)
+ 			bzero((char *) (names_addr + used), names_size - used);
+ 
++#if	MACH_OLD_VM_COPY	/* plan 350 (authored) */
++		kr = vm_move(ipc_kernel_map, names_addr,
++			     ipc_soft_map, names_size, TRUE, &names_addr);
++		assert(kr == KERN_SUCCESS);
++
++		*namesp = (zone_name_t *) names_addr;
++#else	/* plan 350 */
+ 		kr = vm_map_copyin(ipc_kernel_map, names_addr, names_size,
+ 				   TRUE, &copy);
+ 		assert(kr == KERN_SUCCESS);
+ 
+ 		*namesp = (zone_name_t *) copy;
++#endif	/* plan 350 */
+ 	}
+ 	*namesCntp = max_zones;
+ 
+ 	if (info != *infop) {
+ 		vm_size_t used;
++#if	MACH_OLD_VM_COPY	/* plan 350 */
++#else	/* plan 350 */
+ 		vm_map_copy_t copy;
++#endif	/* plan 350 */
+ 
+ 		used = max_zones * sizeof *info;
+ 
+ 		if (used != info_size)
+ 			bzero((char *) (info_addr + used), info_size - used);
+ 
++#if	MACH_OLD_VM_COPY	/* plan 350 (authored) */
++		kr = vm_move(ipc_kernel_map, info_addr,
++			     ipc_soft_map, info_size, TRUE, &info_addr);
++		assert(kr == KERN_SUCCESS);
++
++		*infop = (zone_info_t *) info_addr;
++#else	/* plan 350 */
+ 		kr = vm_map_copyin(ipc_kernel_map, info_addr, info_size,
+ 				   TRUE, &copy);
+ 		assert(kr == KERN_SUCCESS);
+ 
+ 		*infop = (zone_info_t *) copy;
++#endif	/* plan 350 */
+ 	}
+ 	*infoCntp = max_zones;
+ 
+ 	return KERN_SUCCESS;
+ }
++
++/*
++ * plan 350 (authored): report the pools and their free entries.  The
++ * buffers are sized with zget_space_lock released and the counts are
++ * taken again until they fit.  As in the original, a new info buffer
++ * is made when *infoCnt is larger than the pool count.  The 4.2 build
++ * has MACH_OLD_VM_COPY set; the results go out with vm_move.
++ * (original 0x16be1c)
++ */
++kern_return_t host_zone_free_space_info(
++				host,
++				infop, infoCnt,
++				chunksp, chunksCnt)
++	host_t				host;
++	zone_free_space_info_array_t	*infop;
++	mach_msg_type_number_t		*infoCnt;
++	zone_free_space_chunk_array_t	*chunksp;
++	mach_msg_type_number_t		*chunksCnt;
++{
++	kern_return_t	kr;
++	vm_size_t	size1, size2;
++	vm_offset_t	addr1, addr2;
++	vm_offset_t	memory1, memory2;
++	mach_msg_type_number_t
++			actual1, actual2;
++	zone_free_space_info_t
++			*info;
++	zone_free_space_chunk_t
++			*chunk;
++	struct zone_free_space_entry
++			**last, *cur;
++	struct zone_free_space
++			*freespace;
++	int		i;
++
++	if (host == HOST_NULL)
++		return KERN_INVALID_HOST;
++
++	size1 = size2 = 0;
++
++	for (;;) {
++		vm_size_t	size1_needed, size2_needed;
++
++		size1_needed = size2_needed = 0;
++
++		simple_lock(&zget_space_lock);
++
++		actual1 = actual2 = 0;
++		
++		for (actual1 = 0; actual1 < zone_free_space_count; actual1++)
++			actual2 += zone_free_space[actual1]->num_entries;
++		
++		if (actual1 < *infoCnt)
++			size1_needed = round_page(
++				actual1 * sizeof (**infop));
++		
++		if (actual2 > *chunksCnt)
++			size2_needed = round_page(
++				actual2 * sizeof (**chunksp));
++
++		if (size1_needed <= size1 &&
++				size2_needed <= size2)
++			break;
++
++		simple_unlock(&zget_space_lock);
++
++		if (size1 < size1_needed) {
++			if (size1 != 0)
++				kmem_free(ipc_kernel_map, addr1, size1);
++			size1 = size1_needed;
++
++			kr = kmem_alloc_pageable(
++						ipc_kernel_map, &addr1, size1);
++			if (kr != KERN_SUCCESS) {
++				if (size2 != 0)
++					kmem_free(
++						ipc_kernel_map, addr2, size2);
++				return KERN_RESOURCE_SHORTAGE;
++			}
++			kr = vm_map_pageable(
++				ipc_kernel_map, addr1, addr1 + size1, FALSE);
++			assert(kr == KERN_SUCCESS);
++		}
++
++		if (size2 < size2_needed) {
++			if (size2 != 0)
++				kmem_free(ipc_kernel_map, addr2, size2);
++			size2 = size2_needed;
++
++			kr = kmem_alloc_pageable(
++						ipc_kernel_map, &addr2, size2);
++			if (kr != KERN_SUCCESS) {
++				if (size1 != 0)
++					kmem_free(
++						ipc_kernel_map, addr1, size1);
++				return KERN_RESOURCE_SHORTAGE;
++			}
++			kr = vm_map_pageable(
++				ipc_kernel_map, addr2, addr2 + size2, FALSE);
++			assert(kr == KERN_SUCCESS);
++		}
++	}
++
++	if (size1 != 0)
++		info = (zone_free_space_info_t *)addr1;
++	else
++		info = *infop;
++
++	if (size2 != 0)
++		chunk = (zone_free_space_chunk_t *)addr2;
++	else
++		chunk = *chunksp;
++
++	for (i = 0; i < actual1; i++) {
++		freespace = zone_free_space[i];
++
++		info->zf_alloc_unit = freespace->alloc_unit;
++		info->zf_alloc_max = freespace->alloc_max;
++		info->zf_num_chunks = freespace->num_entries;
++		info++;
++
++		last = &freespace->entries;
++		while ((cur = *last) != 0) {
++			chunk->zf_address = (vm_offset_t)cur;
++			chunk->zf_length = cur->length;
++			chunk++;
++			
++			last = &cur->next;
++		}
++	}
++
++	simple_unlock(&zget_space_lock);
++
++	if (actual1 != 0 && size1 != 0) {
++		vm_size_t	size_used;
++		
++		size_used = round_page(actual1 * sizeof (**infop));
++
++		kr = vm_map_pageable(
++			ipc_kernel_map, addr1, addr1 + size_used, TRUE);
++		assert(kr == KERN_SUCCESS);
++
++		kr = vm_move(
++			ipc_kernel_map, addr1,
++			ipc_soft_map, size_used,
++			TRUE, &memory1);
++		assert(kr == KERN_SUCCESS);
++	
++		if (size_used != size1)
++			kmem_free(
++				ipc_kernel_map,
++				addr1 + size_used, size1 - size_used);
++
++		*infop = (zone_free_space_info_t *)memory1;
++	}
++	else if (actual1 == 0) {
++		*infop = (zone_free_space_info_t *)0;
++
++		if (size1 != 0)
++			kmem_free(ipc_kernel_map, addr1, size1);
++	}
++	
++	*infoCnt = actual1;
++
++	if (actual2 != 0 && size2 != 0) {
++		vm_size_t	size_used;
++
++		size_used = round_page(actual2 * sizeof (**chunksp));
++
++		kr = vm_map_pageable(
++			ipc_kernel_map, addr2, addr2 + size_used, TRUE);
++		assert(kr == KERN_SUCCESS);
++
++		kr = vm_move(
++			ipc_kernel_map, addr2,
++			ipc_soft_map, size_used,
++			TRUE, &memory2);
++		assert(kr == KERN_SUCCESS);
++
++		if (size_used != size2)
++			kmem_free(
++				ipc_kernel_map,
++				addr2 + size_used, size2 - size_used);
++
++		*chunksp = (zone_free_space_chunk_t *)memory2;
++	}
++	else if (actual2 == 0) {
++		*chunksp = (zone_free_space_chunk_t *)0;
++
++		if (size2 != 0)
++			kmem_free(ipc_kernel_map, addr2, size2);
++	}
++
++	*chunksCnt = actual2;
++
++	return KERN_SUCCESS;
++}
+ #endif	MACH_DEBUG

@@ -1,0 +1,179 @@
+--- 01_resources/upstream/nextmach/mk-108.1/specfs/spec_vnodeops.c	2026-09-11 10:02:49.620218947 +0900
++++ 07_kernel/src/bsd/specfs/spec_vnodeops.c	2026-10-07 16:05:58.000104298 +0900
+@@ -38,6 +38,7 @@
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <sys/user.h>
++#import <sys/proc.h>	/* plan 354: struct posix_proc */
+ #import <sys/buf.h>
+ #import <sys/kernel.h>
+ #import <sys/vfs.h>
+@@ -65,11 +66,12 @@
+ static int spec_noop();
+ static int spec_dump();
+ static int spec_cmp();
++static int spec_devblocksize();	/* plan 354 */
++static int spec_getattr();	/* plan 354: static in the original (no symbol) */
+ /*
+  * Used directly in fifo_vnodeops
+  */
+ int spec_setattr();
+-int spec_getattr();
+ int spec_access();
+ int spec_link();
+ #if	SUN_LOCK
+@@ -123,8 +125,11 @@
+ 	spec_badop,	/* pageout */
+ 	spec_badop,	/* nlinks */
+ #endif	MACH
++	spec_devblocksize,	/* plan 354: vn_devblocksize (original table 0x1dd6d0 entry 32) */
+ };
+ 
++void set_blocksize();	/* plan 370: returns no value (original keeps error in %eax across the call 0x139cf8) */
++
+ /*
+  * open a special file (device)
+  * Some weird stuff here having to do with clone and indirect devices:
+@@ -235,8 +240,11 @@
+ 		 */
+ 		if ((u_int)major(dev) >= nblkdev)
+ 			error = ENXIO;
+-		else
++		else {
+ 			error = (*bdevsw[major(dev)].d_open)(dev, flag);
++			if (error == 0)				/* plan 354 */
++				set_blocksize(sp, dev);		/* plan 354 (original call 0x139cf8) */
++		}
+ 		break;
+ 
+ 	default:
+@@ -348,11 +356,7 @@
+ 		panic("spec_rdwr");
+ 	if (rw == UIO_READ && uiop->uio_resid == 0)
+ 		return (0);
+-	if ((uiop->uio_offset < 0 ||
+-	    (uiop->uio_offset + uiop->uio_resid) < 0) &&
+-	    !(vp->v_type == VCHR && mem_no == major(dev))) {
+-		return (EINVAL);
+-	}
++	/* plan 354: no negative-offset check (none in the original) */
+ 
+ 	if (rw == UIO_READ)
+ 		smark(sp, SACC);
+@@ -390,8 +394,8 @@
+ 		lbn = uiop->uio_offset / bdevsize;
+ 		on = uiop->uio_offset % bdevsize;
+ 		n = MIN((MAXBSIZE - on), uiop->uio_resid);
+-		bn = lbn * (bdevsize/DEV_BSIZE);
+-		rablock = bn + (bdevsize/DEV_BSIZE);
++		bn = lbn * (bdevsize/sp->s_size);	/* plan 354: device block size */
++		rablock = bn + (bdevsize/sp->s_size);	/* plan 354 */
+ 		rasize = size = bdevsize;
+ 		if (rw == UIO_READ) {
+ 			if ((long)bn<0) {
+@@ -492,7 +496,9 @@
+ 	struct ucred *cred;
+ {
+ 	struct snode *sp;
++	struct posix_proc *px = get_posix_proc(u.u_procp->p_pid);	/* plan 354 */
+ 
++	px->p_posix_utime = 1;	/* plan 354 (original 0x13a14c) */
+ 	sp = VTOS(vp);
+         /* must sunsave() first to prevent a race when spec_fsync() sleeps */
+ 	sunsave(sp);
+@@ -508,6 +514,7 @@
+ 			VN_RELE(sp->s_bdevvp);
+ 	}
+ 
++	px->p_posix_utime = 0;	/* plan 354 */
+ #if	MACH
+ 	kfree((caddr_t)sp, sizeof (*sp));
+ #else	MACH
+@@ -526,6 +533,7 @@
+ 	register struct snode *sp;
+ 	register struct vnode *realvp;
+ 	enum vtype type;
++	struct timeval now;	/* plan 354 */
+ 
+ 	sp = VTOS(vp);
+ 	if ((realvp = sp->s_realvp) == NULL) {
+@@ -535,11 +543,12 @@
+ 		 * Set times to the present.
+ 		 * Set blocksize based on type in the unreal vnode.
+ 		 */
+-		bzero((caddr_t)vap, sizeof (*vap));
+-		vap->va_size = sp->s_size;
+-		vap->va_atime = time;
+-		vap->va_mtime = time;
+-		vap->va_ctime = time;
++		getthetime(&now);	/* plan 354: not the global time */
++		bzero((caddr_t)vap, sizeof (*vap));	/* plan 354 */
++		vap->va_size = sp->s_size;	/* plan 354 */
++		vap->va_atime = now;	/* plan 354 */
++		vap->va_mtime = now;	/* plan 354 */
++		vap->va_ctime = now;	/* plan 354 */
+ 		type = vp->v_type;
+ 	} else {
+ 		error = VOP_GETATTR(realvp, vap, cred);
+@@ -557,7 +566,7 @@
+ #define OLDCODE
+ #ifdef OLDCODE
+ 	case VBLK:
+-		vap->va_blocksize = BLKDEV_IOSIZE;
++		vap->va_blocksize = VOP_DEVBLOCKSIZE(vp);	/* plan 354 */
+ 		break;
+ 
+ 	case VCHR:
+@@ -588,6 +597,7 @@
+ 	register struct vnode *realvp;
+ 	int error;
+ 	register int chtime = 0;
++	struct timeval now;	/* plan 354 */
+ 
+ 	sp = VTOS(vp);
+ 	if ((realvp = sp->s_realvp) == NULL)
+@@ -612,8 +622,10 @@
+ 			sp->s_atime = vap->va_atime;
+ 			chtime++;
+ 		}
+-		if (chtime)
+-			sp->s_ctime = time;
++		if (chtime) {
++			getthetime(&now);	/* plan 354 */
++			sp->s_ctime = now;	/* plan 354 */
++		}
+ 	}
+ 	return (error);
+ }
+@@ -652,6 +664,17 @@
+  * make sure the times written out are never earlier than the times
+  * already set in the vnode.
+  */
++/*
++ * plan 354 (authored, D024; original 0x13a374, reached through the
++ * vn_devblocksize slot): the device block size kept in the snode.
++ */
++static int
++spec_devblocksize(vp)
++	struct vnode *vp;
++{
++	return (VTOS(vp)->s_size);
++}
++
+ int
+ spec_fsync(vp, cred)
+ 	struct vnode *vp;
+@@ -741,12 +764,7 @@
+ 	struct ucred *cred;
+ 	int clid;
+ {
+-	register struct vnode *realvp;
+-
+-	if ((realvp = VTOS(vp)->s_realvp) != NULL)
+-		return (VOP_LOCKCTL(realvp, ld, cmd, cred, clid));
+-	else
+-		return (EINVAL);	/* can't lock this, it doesn't exist */
++	return (EINVAL);	/* plan 354: the original only returns EINVAL (0x13a4c4) */
+ }
+ #endif	SUN_LOCK
+ 

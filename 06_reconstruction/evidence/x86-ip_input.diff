@@ -1,0 +1,100 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/ip_input.c	2026-09-11 10:02:49.571218344 +0900
++++ 07_kernel/src/bsd/netinet/ip_input.c	2026-10-03 17:25:20.711364627 +0900
+@@ -71,7 +71,7 @@
+ #import <netinet/if_ether.h>
+ #import <netinet/udp.h>
+ #import <netinet/udp_var.h>
+-#import <mon/bootp.h>
++#import <netinet/bootp.h>	/* plan 225: IPPORT_BOOTPC (was mon/bootp.h) */
+ #endif	NeXT
+ 
+ #import <kern/queue.h>
+@@ -100,6 +100,7 @@
+  */
+ ip_init()
+ {
++	struct timeval tv;		/* plan 225 */
+ 	register struct protosw *pr;
+ 	register int i;
+ 
+@@ -114,7 +115,8 @@
+ 		    pr->pr_protocol && pr->pr_protocol != IPPROTO_RAW)
+ 			ip_protox[pr->pr_protocol] = pr - inetsw;
+ 	ipq.next = ipq.prev = &ipq;
+-	ip_id = time.tv_sec & 0xffff;
++	getthetime(&tv);		/* plan 225 (original 0x12602d) */
++	ip_id = tv.tv_sec & 0xffff;
+ 	ipintrq.ifq_maxlen = ipqmaxlen;
+ }
+ 
+@@ -136,7 +138,7 @@
+ 	register int i;
+ 	register struct ipq *fp;
+ 	register struct in_ifaddr *ia;
+-	struct ifnet *ifp;
++	struct ifnet *ifp = 0;		/* plan 225 (original 0x126061) */
+ 	int hlen, s;
+ 
+ next:
+@@ -246,7 +248,7 @@
+ 		    || (m = m_pullup(m, sizeof (struct udpiphdr))) != 0) {
+ 			ui = mtod(m, struct udpiphdr *);
+ 			if (ui->ui_pr == IPPROTO_UDP &&
+-			    ui->ui_dport == IPPORT_BOOTPC)
++			    ui->ui_dport == htons(IPPORT_BOOTPC))	/* plan 225 (original 0x12630b) */
+ 				goto ours;
+ 		}
+ 	}
+@@ -283,6 +285,34 @@
+ 				goto ours;
+ 		}
+ 	}
++#if	MULTICAST
++	/*
++	 * plan 225 (authored, D024; original 0x12636d-0x126404): multicast
++	 * datagrams go to the multicast router, then to the groups joined on
++	 * the receiving interface.
++	 */
++	if (IN_MULTICAST(ntohl(ip->ip_dst.s_addr))) {
++		struct in_multi *inm;
++		extern struct socket *ip_mrouter;
++
++		if (ip_mrouter) {
++			ip->ip_id = htons(ip->ip_id);
++			if (ip_mforward(ip, ifp) != 0) {
++				m_freem(dtom(ip));
++				goto next;
++			}
++			ip->ip_id = ntohs(ip->ip_id);
++			if (ip->ip_p == IPPROTO_IGMP)
++				goto ours;
++		}
++		IN_LOOKUP_MULTI(ip->ip_dst, ifp, inm);
++		if (inm == NULL) {
++			m_freem(dtom(ip));
++			goto next;
++		}
++		goto ours;
++	}
++#endif	MULTICAST
+ 	if (ip->ip_dst.s_addr == (u_long)INADDR_BROADCAST)
+ 		goto ours;
+ 	if (ip->ip_dst.s_addr == INADDR_ANY)
+@@ -753,7 +783,7 @@
+ 	}
+ 	return (0);
+ bad:
+-	icmp_error(ip, type, code, ifp);
++	icmp_error(ip, type, code, ifp, (struct in_addr *)0);	/* plan 225: 5th argument (original 0x126c76) */
+ 	return (1);
+ }
+ 
+@@ -1056,7 +1086,7 @@
+ 		break;
+ 	}
+ sendicmp:
+-	icmp_error(ip, type, code, ifp, dest);
++	icmp_error(ip, type, code, ifp, &dest);	/* plan 225.1: a pointer (original 0x127261 lea) */
+ }
+ 
+ 

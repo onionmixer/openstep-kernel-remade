@@ -19,3 +19,8 @@ Plan 64, 64.1, 64.2. Run IDs `s5p39-*`.
   `bsd/i386/signal.h`, `bsd/sys/errno.h` (also carries a University of California notice),
   `machdep/i386/pc_support/PCmiscInline.h`, `PCprivate.h`, `PCpublic.h`. Their bytes equal the staged copies used
   by the build, so no other object is affected.
+
+## plan 397·398 고침(2026-10-08)
+- 마지막 #import 뒤에 `#import <bsd/dev/i386/PCKeymap.c>` 를 넣었습니다(D058). 원본 `__TEXT,__const` 0x1d58e4 의 참조 없는 키맵 둘째 사본 882 B 가 이 객체의 const 가 됩니다(kbd_entries.m 도 바이트로는 같아 사용자가 골랐고, PCPointer.m 은 ObjC 클래스 이름 절이 바뀌어 맞지 않음). Darwin 원문 그대로였던 파일이 이번에 처음 고쳐졌습니다.
+- 진단(07 손대지 않음): s6p397-kp1·kp2·kp3. 최종: 07 에서 재빌드 s6l1-g1a(행 53, 06_reconstruction/l2_build_forms-s6p398.tsv), L1 `09_validation/reconstruction/s6l1-g1a-l1-053.json` OBJECT_MATCH (`--place __TEXT,__const=0x1d58e4`), `cc -M` 의존 모두 07. 07 파일 SHA-256 `73455f42e79d5d6b00e1c58a1e41f825252427f4e12468b3588194ce715bdc01`.
+- diff `06_reconstruction/evidence/x86-PCinit.diff` 를 다시 만들었습니다.

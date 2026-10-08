@@ -1,0 +1,634 @@
+/*
+ * IOEthernet.m (plan 322).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "Kernel/IOEthernet.m", functions and methods
+ * 0x1a9f1c-0x1aacdf), following the OPENSTEP 4.2 SDK headers
+ * driverkit/IOEthernet.h, bsd/net/etherdefs.h and bsd/net/netif.h.  The
+ * parts common to both versions are nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/IOEthernet.m; Darwin's struct ifnet / mbuf
+ * code is not used.  Kept as project-authored under D027/D030, without
+ * Darwin's notices (license judgement: D017).
+ */
+
+#define MACH_USER_API	1
+
+#import <mach/mach_types.h>
+#import <mach/message.h>
+
+#import <machkit/NXLock.h>
+
+#import <driverkit/generalFuncs.h>
+#import <driverkit/interruptMsg.h>
+
+#import <sys/errno.h>
+
+#import <driverkit/IOEthernet.h>
+#import <driverkit/IOEthernetPrivate.h>
+
+static void
+IOEthernetTimeout(IOEthernet	*device);
+
+static char	IOEthernetDeviceName[] = "en",
+		IOEthernetDeviceType[] = "Ethernet";
+static int	IOEthernetDeviceCount;	/* plan 322: no initializer -- in __bss in the original */
+
+/*
+ * Interface control commands handled by performCommand:data:
+ * (local copies, in the original's __TEXT,__const).
+ */
+static const char IOEthernetAddMulticast[] = "add-multicast";
+static const char IOEthernetPromiscOn[] = "promiscuous-on";
+static const char IOEthernetRmvMulticast[] = "rmv-multicast";
+static const char IOEthernetPromiscOff[] = "promiscuous-off";
+
+@interface DriverCmd:Object
+{
+@private
+    port_t		_driverPort_kern;
+    id			_interLock;
+#define DONE		1
+#define BUSY		2
+#define IDLE		3
+    int			_oper;
+#define RESET_ON		1
+#define RESET_OFF		2
+#define TERMINATE		4
+#define PROMISC_ENABLE		5
+#define	PROMISC_DISABLE 	6
+#define	MULTICAST_ENABLE 	7 
+#define	MULTICAST_DISABLE	8 
+    int			_ret;
+}
+@end
+
+@implementation DriverCmd
+
+- initPort:(port_t)port
+{
+    [super init];
+
+    _interLock = [[NXConditionLock alloc] initWith:IDLE];
+    
+    _driverPort_kern = IOGetKernPort(port);
+    
+    return self;
+}
+
+- free
+{
+    [_interLock free];
+    
+    port_release(_driverPort_kern);
+    
+    return [super free];
+}
+
+- (int)oper
+{
+    return (_oper);
+}
+
+- (void)done:(int)ret
+{
+    if ([_interLock condition] == BUSY) {
+	[_interLock lock];
+	_ret = ret;
+	[_interLock unlockWith:DONE];
+    }
+}
+
+- (int)send:(int)oper
+{
+    msg_header_t	msg = { 0 };
+    int			result;
+    
+    [_interLock lockWhen:IDLE];
+        
+    _oper = oper;
+    
+    msg.msg_size = sizeof (msg);
+    msg.msg_remote_port = _driverPort_kern;
+    msg.msg_id =  IO_COMMAND_MSG;
+    
+    [_interLock unlockWith:BUSY];
+    
+    result = msg_send_from_kernel(&msg, MSG_OPTION_NONE, 0);
+    if (result == SEND_SUCCESS) {
+	[_interLock lockWhen:DONE];
+	result = _ret;
+    }
+    else
+    	[_interLock lock];
+    
+    [_interLock unlockWith:IDLE];
+    
+    return (result);
+}
+
+@end
+
+@implementation IOEthernet
+
+- initFromDeviceDescription:(IODeviceDescription *)devDesc
+{
+    char	devName[8];
+    int		unit;
+    
+    if ([super initFromDeviceDescription:devDesc] == nil)
+    	return nil;
+	
+    if ([self startIOThread] != IO_R_SUCCESS) {
+    	[self free]; 
+	return nil;
+    }
+
+    _driverCmd = [[DriverCmd alloc] initPort:[self interruptPort]];
+
+    _multiLock = [NXLock new];
+    queue_init(&_multicastQueue);
+
+    unit = IOEthernetDeviceCount++;
+    
+    sprintf(devName, "%s%d", IOEthernetDeviceName,unit);
+    [self setName:devName];
+    [self setDeviceKind:IOEthernetDeviceType];
+    [self setUnit:unit];
+    
+    [self registerDevice];
+    
+    return self;
+}
+
+- free
+{
+    enetMulti_t		*multiAddr;
+
+    [self clearTimeout];
+    if (_driverCmd) {
+	[_driverCmd send:TERMINATE];   
+	[_driverCmd free];
+    }
+    if (_netif)
+    	[_netif free];
+
+    if (_multiLock) {
+	[_multiLock lock];
+	while (!queue_empty(&_multicastQueue)) {
+	    multiAddr = (enetMulti_t *)queue_first(&_multicastQueue);
+	    queue_remove(&_multicastQueue, multiAddr, enetMulti_t *, link);
+	    IOFree(multiAddr, sizeof(*multiAddr));
+	}
+	[_multiLock unlock];
+	[_multiLock free];
+    }
+
+    return [super free];
+}
+
+- (BOOL)isRunning
+{
+    return (_isRunning);
+}
+
+- (void)setRunning:(BOOL)running
+{
+    _isRunning = running;
+}
+
+/*
+ * Implement driver timeouts.
+ */
+- (unsigned int)relativeTimeout
+{
+    ns_time_t			timestamp;
+
+    if (_absTimeout == 0)	
+    	return (0);
+    
+    IOGetTimestamp(&timestamp);
+    
+    if (_absTimeout <= timestamp) {
+	_absTimeout = 0; return (0);
+    }
+	
+    return ((unsigned int) ((_absTimeout - timestamp) / (1000 * 1000)));
+}
+
+- (void)setRelativeTimeout:(unsigned int)timeout
+{
+    if (_absTimeout > 0)
+    	(void)ns_untimeout((func)IOEthernetTimeout, self);
+
+    IOGetTimestamp(&_absTimeout);
+    
+    _absTimeout += ((ns_time_t)timeout * (1000 * 1000));
+    
+    ns_abstimeout(
+	(func)IOEthernetTimeout, self, _absTimeout, CALLOUT_PRI_THREAD);
+}
+
+- (void)clearTimeout
+{
+    if (_absTimeout > 0) {
+	(void)ns_untimeout((func)IOEthernetTimeout, self);
+	_absTimeout = 0;
+    }
+}
+
+//
+// Multicast Methods
+//
+
+/*
+ * Determine if specified packet passes thru multicast filter. Returns
+ * YES if packet should be dropped (because it is an unregistered multicast
+ * packet), else returns NO.
+ */
+- (BOOL)isUnwantedMulticastPacket:(ether_header_t *)header
+{
+	int i;
+	enetMulti_t *multi;
+	BOOL	isBroadcastPacket = YES;
+
+    if ((header->ether_dhost[EA_GROUP_BYTE] & EA_GROUP_BIT) &&
+	    !_promiscEnabled) {
+		
+	for (i = 0 ; i < NUM_EN_ADDR_BYTES ; ++i) {
+		if (header->ether_dhost[i] != 0xff) {
+			isBroadcastPacket = NO;
+			break;
+		}
+	}
+
+  	/*
+  	 * Always accept the all-ones broadcast.
+  	 */
+	if (isBroadcastPacket)  
+  	    return NO;
+			
+	/*
+	 * Is this address registered as a multicast address?
+	 */
+	[_multiLock lock];
+	multi = [self searchMulti:(enet_addr_t *)&header->ether_dhost];
+	[_multiLock unlock];
+	if (multi == NULL) {
+	    /*
+	     * We don't want this.
+	     */
+	    return YES;
+	} 
+    }     	 
+    
+    /*
+     * Not a group packet (or is a registered multicast pckt),
+     * must be for us.
+     */
+    return NO;
+}
+
+/* 
+ * Determine if the outgoing packet should be received by the current 
+ * interface (either because it's a broadcast packet or a multicast 
+ * packet for which we are enabled); if so, send a copy of the packet 
+ * up the pipe.
+ */
+- (void)performLoopback : (netbuf_t)pkt
+{
+    ether_header_t	*header = (ether_header_t *)nb_map(pkt);
+    int			length = nb_size(pkt);
+    netbuf_t		nb;
+
+    if ((header->ether_dhost[EA_GROUP_BYTE] & EA_GROUP_BIT) &&
+	![self isUnwantedMulticastPacket:header]) {
+	length += sizeof(ether_header_t);
+	nb = [self allocateNetbuf];
+	if (nb) {
+	    nb_write(nb, 0, length, nb_map(pkt));
+	    [_netif handleInputPacket:nb extra:0];
+	}
+    }
+}
+
+//
+// Implement the IONetworkDeviceMethods protocol.
+//
+
+- (int)finishInitialization
+{
+    return [_driverCmd send:RESET_ON];
+}
+
+- (int)outputPacket:(netbuf_t)pkt address:(void *)addrs
+{
+    ether_header_t	*header;
+    enet_addr_t		*ea;
+    int			length;
+
+    if (!_isRunning) {
+    	nb_free(pkt);
+	return 0;
+    }
+    
+    /*
+     * Setup the Ethernet header
+     */
+    header = (ether_header_t *)nb_map(pkt);
+
+    /*
+     * Insert the destination address
+     */
+    ea = (enet_addr_t *)header->ether_dhost;
+    *ea = *(enet_addr_t *)addrs;
+
+    /*
+     * Insert our source address
+     */  
+    ea = (enet_addr_t *)header->ether_shost;
+    *ea = _ethernetAddress;
+
+    /*
+     * Insure that the packet meets minimum length requirements	
+     */
+    length = nb_size(pkt);
+    if (length < (ETHERMINPACKET - ETHERCRC))
+    	nb_grow_bot(pkt, ETHERMINPACKET - ETHERCRC - length);
+	
+    [self transmit:pkt];
+    
+    return (0);
+}
+
+- (netbuf_t)allocateNetbuf
+{
+    return (nb_alloc(ETHERMAXPACKET));
+}
+
+- (int)performCommand:(const char *)command data:(void *)data
+{
+    int	rtn = 0;
+
+    if (strcmp(command, IFCONTROL_SETFLAGS) == 0)
+	;
+    else if (strcmp(command, IFCONTROL_GETADDR) == 0)
+	bcopy((void *)&_ethernetAddress, data, sizeof(_ethernetAddress));
+    else if (strcmp(command, IOEthernetPromiscOn) == 0)
+	[_driverCmd send:PROMISC_ENABLE];
+    else if (strcmp(command, IOEthernetPromiscOff) == 0)
+	[_driverCmd send:PROMISC_DISABLE];
+    else if (strcmp(command, IOEthernetAddMulticast) == 0)
+	[self enableMulticast:(enet_addr_t *)data];
+    else if (strcmp(command, IOEthernetRmvMulticast) == 0)
+	[self disableMulticast:(enet_addr_t *)data];
+    else
+	rtn = EINVAL;
+
+    return (rtn);
+}
+
+- (BOOL)resetAndEnable:(BOOL)enable
+{
+    return YES;
+}
+
+- (IONetwork *)attachToNetworkWithAddress:(enet_addr_t)addrs
+{
+    _ethernetAddress = addrs;
+ 
+    _netif = [[IONetwork alloc] initForNetworkDevice:self
+		    name:IOEthernetDeviceName unit:[self unit]
+		    type:IFTYPE_ETHERNET
+		    maxTransferUnit:ETHERMTU
+		    flags:0];
+		    
+    [self registerAsDebuggerDevice];
+        
+    IOLog("%s: Ethernet address %02x:%02x:%02x:%02x:%02x:%02x\n",
+    	[self name],
+	_ethernetAddress.ether_addr_octet[0],
+	_ethernetAddress.ether_addr_octet[1],
+	_ethernetAddress.ether_addr_octet[2],
+	_ethernetAddress.ether_addr_octet[3],
+	_ethernetAddress.ether_addr_octet[4],
+	_ethernetAddress.ether_addr_octet[5]);
+    
+    return _netif;
+}
+
+- (void)transmit:(netbuf_t)pkt
+{
+    nb_free(pkt);
+}
+
+- (void)receivePacket:(void *)pkt
+		length:(unsigned int *)pkt_len
+		timeout:(unsigned int)timeout
+{
+    *pkt_len = 0;
+}
+		
+- (void)sendPacket:(void *)pkt
+		length:(unsigned int)pkt_len
+{
+}
+
+- (BOOL)enablePromiscuousMode
+{
+    return YES;
+}
+
+- (void)disablePromiscuousMode
+{
+}
+
+- (void)addMulticastAddress:(enet_addr_t *)addr
+{
+}
+
+- (void)removeMulticastAddress:(enet_addr_t *)addr
+{
+
+}
+
+- (BOOL)enableMulticastMode
+{
+    return YES;
+}
+- (void)disableMulticastMode
+{
+}
+
+@end
+
+@implementation IOEthernet(PrivateMethods)
+
+//
+// Used to handle a synchronous
+// command sent by another thread
+// to the driver thread.
+//
+- (void)commandRequestOccurred
+{
+    int		oper = [_driverCmd oper];
+    int		result = 0;
+
+    switch (oper) {
+    
+    case RESET_ON:
+    	if (!_isRunning) {
+	    if (![self resetAndEnable:TRUE])
+		result = EIO;
+	}
+	[_driverCmd done:result];
+	break;
+	
+    case RESET_OFF:
+    	[self resetAndEnable:FALSE];
+	[_driverCmd done:result];
+	break;
+    
+    case TERMINATE:
+    	[_driverCmd done:result];
+	IOExitThread();
+	break;
+   
+    case PROMISC_ENABLE:
+	if ([self enablePromiscuousMode]) 
+	    _promiscEnabled = TRUE;
+	else {
+	    _promiscEnabled = FALSE;
+	    result = 1;
+	}
+    	[_driverCmd done:result];
+	break;
+    
+    case PROMISC_DISABLE:
+	[self disablePromiscuousMode];
+	_promiscEnabled = FALSE;
+   	[_driverCmd done:result];
+	break;
+
+    case MULTICAST_ENABLE:
+	[self addMulticastAddress:&_multiAddr];
+	[self enableMulticastMode];
+   	[_driverCmd done:result];
+	break;
+
+    case MULTICAST_DISABLE:
+	[self removeMulticastAddress:&_multiAddr];
+	if (queue_empty(&_multicastQueue)) {
+	    [self disableMulticastMode];
+	}
+   	[_driverCmd done:result];
+	break;
+    }
+
+}
+
+- (queue_head_t *)multicastQueue
+{
+    return &_multicastQueue;
+}
+
+/*
+ * Add a multicast address and pass it to the command thread.
+ */
+- (void)enableMulticast:(enet_addr_t *)addrs
+{
+    enetMulti_t *multi;
+
+    /*
+     * Paranoia check to make sure group bit is on.
+     */
+    if (!(addrs->ether_addr_octet[EA_GROUP_BYTE] & EA_GROUP_BIT)) {
+	return;
+    }
+
+    [_multiLock lock];
+    multi = [self searchMulti:addrs];
+    if (multi) {
+    	/*
+	 * Just bump the reference count since the hardware should
+	 * already be configured.
+    	 */
+	if (++multi->refCount < 0)
+	    multi->refCount--;
+	[_multiLock unlock];
+	return;
+    }
+    
+    /*
+     * New entry, so queue it
+     */
+    multi = IOMalloc(sizeof(*multi));
+    multi->address = *addrs;	
+    multi->refCount = 1;
+    queue_enter(&_multicastQueue, multi, enetMulti_t *, link);
+    _multiAddr = *addrs;
+    [_driverCmd send:MULTICAST_ENABLE];
+    [_multiLock unlock];
+}
+
+/*
+ * Disable a multicast address.
+ */
+- (void)disableMulticast:(enet_addr_t *)addrs
+{
+    enetMulti_t *multi;
+
+    [_multiLock lock];
+    multi = [self searchMulti:addrs];
+    if (multi) {
+	/*
+	 * Found it, now remove it if there are no remaining
+	 * references.
+	 */
+	if (multi->refCount > 0)
+	    multi->refCount--;
+	if (multi->refCount <= 0) {
+	    queue_remove(&_multicastQueue, multi, enetMulti_t *, link);
+	    IOFree(multi, sizeof(*multi));
+	    _multiAddr = *addrs;
+	    [_driverCmd send:MULTICAST_DISABLE];
+	}
+    }
+    [_multiLock unlock];
+}
+
+/*
+ * See if a given enet_addr_t is present in _multicastQueue. If so, return
+ * the enetMulti_t of the entry in _multicastQueue; else return NULL.
+ */
+- (enetMulti_t *)searchMulti : (enet_addr_t *)addrs
+{
+    enetMulti_t *multi;
+
+    queue_iterate(&_multicastQueue,multi,enetMulti_t *,link) {
+
+	if (memcmp(&multi->address.ether_addr_octet[0], 
+			&addrs->ether_addr_octet[0], NUM_EN_ADDR_BYTES) == 0)
+			return multi;
+	}
+
+    return NULL;
+}
+
+@end
+
+static void
+IOEthernetTimeout(IOEthernet *device)
+{
+    msg_header_t	msg = { 0 };
+    
+    if (device->_absTimeout > 0) {	
+	device->_absTimeout = 0;
+	
+    
+	msg.msg_size = sizeof (msg);
+	msg.msg_remote_port = IOGetKernPort([device interruptPort]);
+	msg.msg_id =  IO_TIMEOUT_MSG;
+	
+	msg_send_from_kernel(&msg, MSG_OPTION_NONE, 0);
+    }
+}

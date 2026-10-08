@@ -1,0 +1,155 @@
+/*
+ * PCPointer.m (plan 331).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "/BinarySourceCache_Mario1A/mk/mk-183.34.4/bsd/dev/i386/PCPointer.m", methods).
+ * The text is nearly the same as Darwin 0.1
+ * kernel/bsd/dev/i386/PCPointer.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+// TO DO:
+//
+// Notes:
+// * To find things that need to be fixed, search for FIX, to find questions
+//   to be resolved, search for ASK, to find stuff that still needs to be
+//   done, search for TO DO.
+//
+
+/*
+ * plan 331: Darwin's "#undef KERNEL_BUILD" is left out (build only): without
+ * KERNEL_BUILD, mach/features.h wants machdep/i386/features.h, which is in
+ * no reference tree (that build fails, s5p332-a1); without the #undef the
+ * object matches the original bytes (s5p332-b1).
+ */
+#undef _KERNEL_PRIVATE
+#define MACH_USER_API	1
+
+#import	<objc/Object.h>
+#import <driverkit/driverServer.h>
+#import <driverkit/generalFuncs.h>
+#import <bsd/dev/i386/PCPointer.h>
+#import <bsd/dev/i386/PCPointerDefs.h>
+#import <bsd/dev/i386/EventSrcPCPointer.h>
+
+static id activePointerDevice;
+
+@implementation PCPointer
+
+- (int)getResolution
+{
+    // Subclasses must implement this method for proper operation
+    return 50;	// This is a standard sort of value.
+}
+
+- (BOOL)setEventTarget:eventTarget
+{
+    if ( [eventTarget conformsTo:@protocol(PCPointerTarget)] )
+    {
+	target = eventTarget;
+	return TRUE;
+    }
+    else
+    {
+	IOLog( "PCPointer setEventTarget: new target [%s] does not "
+	    "implement PCPointerTarget protocol.\n",
+	    object_getClassName(eventTarget) );
+	return FALSE;
+    }
+}
+
+PCPatoi(char *p)
+{
+	int n = 0;
+	int f = 0;
+
+	for(;;p++) {
+		switch(*p) {
+		case ' ':
+		case '\t':
+			continue;
+		case '-':
+			f++;
+		case '+':
+			p++;
+		}
+		break;
+	}
+	while(*p >= '0' && *p <= '9')
+		n = n*10 + *p++ - '0';
+	return(f? -n: n);
+}
+
+- (BOOL)mouseInit:deviceDescription
+{
+    return NO;
+}
+
++ (id) activePointerDevice
+{
+    return activePointerDevice;
+}
+
++ (BOOL)probe:deviceDescription
+{
+    PCPointer *inst;
+    //char nameBuf[20];
+    static IOObjectNumber nextUnit;	// Initial value is 0
+
+    inst = [[self alloc] initFromDeviceDescription:deviceDescription];
+    inst->target = nil;	// No one is the target of mouse events yet
+
+    // Initialize the specific rodent in question.
+    if ([inst mouseInit:deviceDescription] == NO) {
+	IOLog("PCPointer probe: mouseInit failure\n");
+	[inst free];
+	return NO;
+    }
+    else {
+	//sprintf(nameBuf, "PCPointer%d", nextUnit);
+	[inst setUnit:nextUnit++];
+	//[inst setName:nameBuf];
+	// [self setDeviceKind:"SpecificType"]; was done by the subclass
+	[inst registerDevice];
+	activePointerDevice = inst;
+    }
+    
+    return YES;
+}
+
+- (IOReturn)getIntValues:(unsigned *)parameterArray
+    forParameter:(IOParameterName)parameterName count:(unsigned *)count
+{
+    if (strcmp(parameterName, RESOLUTION) == 0) {
+        parameterArray[0] = resolution;
+        return IO_R_SUCCESS;
+    } else if (strcmp(parameterName, INVERTED) == 0) {
+	parameterArray[0] = inverted;
+	return IO_R_SUCCESS;
+    } else {
+	return IO_R_UNSUPPORTED;
+    }
+}
+
+- (IOReturn)setIntValues:(unsigned *)parameterArray
+    forParameter:(IOParameterName)parameterName count:(unsigned)count
+{
+    if (strcmp(parameterName, RESOLUTION) == 0) {
+	resolution = parameterArray[0];
+	[target setResolution:[self getResolution]];
+	return IO_R_SUCCESS;
+    } else if (strcmp(parameterName, INVERTED) == 0) {
+	inverted = parameterArray[0];
+	[target setInverted:inverted];
+	return IO_R_SUCCESS;
+    } else {
+	return IO_R_UNSUPPORTED;
+    }
+}
+
+- (BOOL) getInverted
+{
+    return inverted;
+}
+ 
+@end

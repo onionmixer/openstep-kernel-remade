@@ -1,0 +1,312 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/machdep/i386/machdep.c	2026-10-08 19:40:46.879931294 +0900
+@@ -0,0 +1,309 @@
++/*
++ * machdep/i386/machdep.c -- i386 shutdown, restart and mini-monitor
++ * entry, profiling tick.
++ *
++ * plan 241 (authored, D024): written from the original OPENSTEP 4.2
++ * x86 kernel object [0x18cc28, 0x18d208) and its data; addupc follows
++ * NeXTMach next/machdep.c:1545-1568.  No other reference function text
++ * was copied.
++ */
++/* 
++ * addupc:
++ * Copyright (c) 1987, 1988, 1989 NeXT, Inc.
++ */
++
++/*
++ * The line marked "plan 400 (Darwin)" is the same as Darwin 0.1
++ * kernel/machdep/i386/machdep.c:110-111 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
++#import <mach/mach_types.h>
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <sys/reboot.h>
++#import <sys/user.h>
++#import <sys/tty.h>
++#import <kern/power.h>
++#import <kern/task.h>
++#import <kern/cpu_number.h>
++#import <mach/machine.h>
++#import <machdep/i386/io_inline.h>
++
++#define	RB_POWERDOWN	0x10000		/* turn the power off */
++#define	RB_BOOTNEXT	0x400000	/* next boot: NEXTSTEP */
++#define	RB_BOOTDOS	0x800000	/* next boot: DOS */
++
++extern struct tty	cons;
++extern struct tty	*constty;
++extern int		glLanguage;
++extern char		*kmLocalizeString();
++extern unsigned int	us_spin_us_const;
++
++int	reboot_how;
++short	prettyShutdown;
++int	nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg, nmi_stay,
++	nmi_reboot, nmi_big;	/* plan 400 (Darwin): Darwin 0.1 machdep/i386/machdep.c:110-111 (was nmi_stay only) */
++int	rebootflag;
++
++static void prettyPrint(char *);
++
++void
++halt_thread()
++{
++	boot(RB_BOOT, reboot_how);
++}
++
++void
++reboot_mach(how)
++	int how;
++{
++	if (kernel_task) {
++		reboot_how = how;
++		calloutDispatch(halt_thread, 0);
++	} else
++		boot(RB_BOOT, how | RB_NOSYNC);
++}
++
++void
++led_msg(msg)
++	char *msg;
++{
++	register int	i;
++
++	for (i = 0; i < 4; i++)
++		outb(0xcaf - i, msg[i]);
++}
++
++void
++mini_mon(prompt, title, locr0)
++	char *prompt, *title;
++	void *locr0;
++{
++	char *restartMsg = "Restart or halt?  Type r to restart,\n"
++			   "or type h to halt.  Type n to cancel.\n";
++	register int	saved = 0, s, restart, c, panic;
++
++	s = splhigh();
++	restart = strcmp(prompt, "restart") == 0;
++	panic = strcmp(prompt, "panic") == 0;
++	if (panic)
++		asm("movl %%ebp, %0" : "=m" (locr0));
++	if (constty != &cons || TRUE) {
++		saved = 1;
++		if (restart) {
++			DoAlert(title, restartMsg);
++			restart = 1;
++		} else
++			DoAlert(title, "");
++		if (panic)
++			kmdumplog();
++	} else {
++		DoAlert(title, "");
++	}
++	if (restart) {
++		for (;;) {
++			c = kmtrygetc();
++			if (c == 'r')
++				reboot_mach(RB_AUTOBOOT);
++			if (c == 'h')
++				reboot_mach(RB_HALT);
++			if (c != -1)
++				break;
++		}
++		goto out;
++	}
++	do {
++		miniMonLoop(prompt, panic, locr0);
++	} while (panic);
++out:
++	if (saved && !nmi_stay)
++		DoRestore();
++	nmi_stay = 0;
++	splx(s);
++}
++
++/* keep nmi messages out of the message log */
++int
++nmi_prf(fmt, x1)
++	char *fmt;
++	unsigned x1;
++{
++	return (prf(fmt, &x1, 1, 0));
++}
++
++/*
++ * Charge a profiling tick to the profiling buffer that covers pc
++ * (the first of the chained buffers that does).  A copyin failure
++ * turns off the first buffer's profiling (original 0x18ce65).
++ */
++addupc(pc, pr, ticks)
++	register int pc;
++	register struct uuprof *pr;
++{
++	register struct uuprof *p;
++	register short *cell;
++	short count;
++	long off;
++
++	for (p = pr; p; p = p->pr_next) {
++		off = (((pc - p->pr_off)&0xffff0000) >> 16)*p->pr_scale +
++			((((pc - p->pr_off)&0xffff)*p->pr_scale)>>16);
++		cell = p->pr_base + off / (sizeof *cell);
++		if (cell >= p->pr_base &&
++		    cell < (short*) (p->pr_size + (int) p->pr_base)) {
++			if (copyin (cell, (caddr_t) &count, sizeof(count))) {
++				pr->pr_scale = 0;
++			} else {
++				count += ticks;
++				copyout((caddr_t) &count, cell, sizeof(count));
++			}
++			return;
++		}
++	}
++}
++
++void
++halt_cpu(int howto)
++{
++	switch (glLanguage) {
++	case 0:			/* English */
++	default:
++		prettyPrint("It's safe to turn off the computer.\n");
++		break;
++	case 1:			/* French */
++		prettyPrint("Vous pouvez maintenant eteindre\n"
++			    "votre ordinateur en toute securite.\n");
++		break;
++	case 2:			/* German */
++		prettyPrint("Jetzt koennen Sie Ihren Computer\n"
++			    "sicher ausschalten.\n");
++		break;
++	case 3:			/* Spanish */
++		prettyPrint("Ahora es seguro apagar el ordenador.\n");
++		break;
++	case 4:			/* Italian */
++		prettyPrint("Ora puoi spegnere il computer.\n");
++		break;
++	case 5:			/* Swedish */
++		prettyPrint("Nu ar det sakert att stanga av datorn.\n");
++		break;
++	}
++	kmDisableAnimation();
++	led_msg("Hltd");
++	(void) intr_disbl();
++	machine_slot[cpu_number()].running = FALSE;
++	if (howto & RB_POWERDOWN)
++		PMSetPowerState(PM_SYSTEM_DEVICE, PM_OFF);
++	for (;;)
++		asm volatile("hlt");
++}
++
++static void
++prettyPrint(char *str)
++{
++	printf(str);
++	if (prettyShutdown)
++		kmGraphicPanelString(str);
++}
++
++void
++md_prepare_for_shutdown(paniced, howto, command)
++	int	paniced, howto;
++	char	*command;
++{
++	if (howto & RB_HALT)
++		prettyPrint(kmLocalizeString("Please wait until it's safe\n"
++					     "to turn off the computer.\n"));
++}
++
++void
++md_shutdown_devices(paniced, howto, command)
++	int	paniced, howto;
++	char	*command;
++{
++	_io_setDriverPowerState(PM_OFF);
++}
++
++/* OR val into CMOS byte 6 (read by the booter) */
++static void
++valToCMOS(int val)
++{
++	int	oldval;
++
++	outb(0x70, 6);
++	oldval = inb(0x71);
++	val |= oldval;
++	outb(0x70, 6);
++	outb(0x71, val);
++}
++
++void
++md_do_shutdown(paniced, howto, command)
++	int	paniced, howto;
++	char	*command;
++{
++	rebootflag = 1;
++	if (howto & RB_HALT)
++		halt_cpu(howto);
++	if (paniced == RB_PANIC)
++		halt_cpu(howto);
++	if (howto & RB_BOOTNEXT)
++		valToCMOS(0x10);
++	else if (howto & RB_BOOTDOS)
++		valToCMOS(0x20);
++	(void) intr_disbl();
++	keyboard_reboot();
++	for (;;)
++		asm volatile("hlt");
++}
++
++int
++machine_table_setokay(int id)
++{
++	return (-1);
++}
++
++int
++machine_table(int id, int index, caddr_t addr, int nel, u_int lel, int set)
++{
++	return (0);
++}
++
++/*
++ * Spin for us units of us_spin_us_const iterations (plan 241.1:
++ * unsigned counts tested with > 0, variant s5p226-v3 x1).
++ */
++void
++us_spin(unsigned int us)
++{
++	unsigned int	i;
++
++	while (us-- > 0) {
++		i = us_spin_us_const;
++		while (i-- > 0)
++			;
++	}
++}

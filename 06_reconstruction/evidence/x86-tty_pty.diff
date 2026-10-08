@@ -1,0 +1,522 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/tty_pty.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/tty_pty.c	2026-10-03 11:41:31.472584585 +0900
+@@ -64,6 +64,8 @@
+ #import <sys/kernel.h>
+ 
+ #import <machine/spl.h>
++#import <kern/lock.h>		/* plan 189 */
++#import <kern/kalloc.h>		/* plan 189 */
+ 
+ #if NPTY == 1
+ #undef NPTY
+@@ -76,21 +78,28 @@
+  * pts == /dev/tty[pqrs]?
+  * ptc == /dev/pty[pqrs]?
+  */
+-struct	tty pt_tty[NPTY];
++/*
++ * plan 189 (authored, D024; original __bss 0x1e56c8, 16 bytes x NPTY):
++ * no fixed pt_tty/pt_ioctl arrays and no npty; the tty and pt_ioctl of
++ * a pty are allocated on first open (pty_alloc).
++ */
+ struct	pt_ioctl {
+ 	int	pt_flags;
+-	struct	proc *pt_selr, *pt_selw;
++	struct	thread *pt_selr, *pt_selw;	/* plan 189: selector threads */
+ 	u_char	pt_send;
+ 	u_char	pt_ucntl;
+-} pt_ioctl[NPTY];
+-int	npty = NPTY;		/* for pstat -t */
++};
+ 
+ static struct pt_soft {
+ 	dev_t	ps_slavedev;
+ 	int	ps_flags;
+ #define	PS_OPEN		0x01
++	struct	tty *ps_tty;		/* plan 189 (authored; name not recovered) */
++	struct	pt_ioctl *ps_ioctl;	/* plan 189 (authored; name not recovered) */
+ } pt_soft[NPTY];
+ 
++lock_data_t	pty_alloc_lock;		/* plan 189 (original __common 0x1e98c0) */
++
+ #define	PF_RCOLL	0x01
+ #define	PF_WCOLL	0x02
+ #define	PF_NBIO		0x04
+@@ -100,6 +109,32 @@
+ #define	PF_NOSTOP	0x40
+ #define PF_UCNTL	0x80		/* user control mode */
+ 
++/* plan 189 (authored, D024; original 0x111c00) */
++pty_init()
++{
++	lock_init(&pty_alloc_lock, TRUE);
++}
++
++/* plan 189 (authored, D024; original 0x111c14) */
++struct pt_soft *
++pty_alloc(dev)
++	dev_t dev;
++{
++	register struct pt_soft *psp = &pt_soft[minor(dev)];
++
++	if (psp->ps_tty)
++		return (psp);
++	lock_write(&pty_alloc_lock);
++	if (psp->ps_tty == 0) {
++		psp->ps_tty = (struct tty *)kalloc(sizeof (struct tty));
++		bzero((caddr_t)psp->ps_tty, sizeof (struct tty));
++		psp->ps_ioctl = (struct pt_ioctl *)kalloc(sizeof (struct pt_ioctl));
++		bzero((caddr_t)psp->ps_ioctl, sizeof (struct pt_ioctl));
++	}
++	lock_done(&pty_alloc_lock);
++	return (psp);
++}
++
+ /*ARGSUSED*/
+ ptsopen(dev, flag)
+ 	dev_t dev;
+@@ -108,13 +143,10 @@
+ 	struct pt_soft *psp;
+ 	int error;
+ 
+-#ifdef lint
+-	npty = npty;
+-#endif
+ 	if (minor(dev) >= NPTY)
+ 		return (ENXIO);
+-	tp = &pt_tty[minor(dev)];
+-	psp = &pt_soft[minor(dev)];
++	psp = pty_alloc(dev);		/* plan 189 */
++	tp = psp->ps_tty;
+ 	psp->ps_slavedev = dev;
+ 	if ((tp->t_state & TS_ISOPEN) == 0) {
+ 		ttychars(tp);		/* Set up default chars */
+@@ -144,8 +176,8 @@
+ 	register struct tty *tp;
+ 	struct pt_soft *psp;
+ 
+-	tp = &pt_tty[minor(dev)];
+-	psp = &pt_soft[minor(dev)];
++	psp = &pt_soft[minor(dev)];	/* plan 189 */
++	tp = psp->ps_tty;
+ 	if (psp->ps_flags & PS_OPEN) {
+ 		(*linesw[tp->t_line].l_close)(tp);
+ 		ttyclose(tp);
+@@ -158,23 +190,41 @@
+ 	dev_t dev;
+ 	struct uio *uio;
+ {
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	register struct pt_ioctl *pti = &pt_ioctl[minor(dev)];
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;		/* plan 189 */
++	register struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;
+ 	int error = 0;
+ 
+ again:
+ 	if (pti->pt_flags & PF_REMOTE) {
+ 		while (tp == u.u_ttyp && u.u_procp->p_pgrp != tp->t_pgrp) {
+-			if ((u.u_procp->p_sigignore & sigmask(SIGTTIN)) ||
+-			    (u.u_procp->p_sigmask & sigmask(SIGTTIN)) ||
+-			    u.u_procp->p_flag&SVFORK)
++			register struct proc *p = u.u_procp;
++#if	POSIX_KERN
++			/* plan 189 (authored, D024; original 0x111e40-0x111e7c) */
++			if (p->p_posix) {
++				struct posix_proc *px = get_posix_proc(p->p_pid);
++
++				if ((p->p_sigignore & sigmask(SIGTTIN)) ||
++				    (p->p_sigmask & sigmask(SIGTTIN)) ||
++				    px->p_posix_pgrp->pg_jobc == 0)
++					return (EIO);
++			} else
++#endif	POSIX_KERN
++			if ((p->p_sigignore & sigmask(SIGTTIN)) ||
++			    (p->p_sigmask & sigmask(SIGTTIN)) ||
++			    p->p_flag&SVFORK)
+ 				return (EIO);
+ 			gsignal(u.u_procp->p_pgrp, SIGTTIN);
+ 			sleep((caddr_t)&lbolt, TTIPRI);
+ 		}
+ 		if (tp->t_canq.c_cc == 0) {
+-			if (tp->t_state & TS_NBIO)
++			if (tp->t_state & TS_NBIO) {
++#if	POSIX_KERN
++				/* plan 189 (authored; original 0x111ec8) */
++				if (u.u_procp->p_posix)
++					return (EAGAIN);
++#endif	POSIX_KERN
+ 				return (EWOULDBLOCK);
++			}
+ 			sleep((caddr_t)&tp->t_canq, TTIPRI);
+ 			goto again;
+ 		}
+@@ -205,7 +255,7 @@
+ {
+ 	register struct tty *tp;
+ 
+-	tp = &pt_tty[minor(dev)];
++	tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
+ 	if (tp->t_oproc == 0)
+ 		return (EIO);
+ 	return ((*linesw[tp->t_line].l_write)(tp, uio));
+@@ -217,7 +267,7 @@
+ {
+ 	register struct tty *tp;
+ 
+-	tp = &pt_tty[minor(dev)];
++	tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
+ 	return ((*linesw[tp->t_line].l_select)(tp, rw));
+ }
+ 
+@@ -228,8 +278,10 @@
+ ptsstart(tp)
+ 	struct tty *tp;
+ {
+-	register struct pt_ioctl *pti = &pt_ioctl[minor(tp->t_dev)];
++	register struct pt_ioctl *pti = pt_soft[minor(tp->t_dev)].ps_ioctl;	/* plan 189 */
+ 
++	if (tp->t_dev == 0)		/* plan 189 (authored; original 0x112013) */
++		return;
+ 	if (tp->t_state & TS_TTSTOP)
+ 		return;
+ 	if (pti->pt_flags & PF_STOPPED) {
+@@ -242,22 +294,31 @@
+ ptcwakeup(tp, flag)
+ 	struct tty *tp;
+ {
+-	struct pt_ioctl *pti = &pt_ioctl[minor(tp->t_dev)];
++	struct pt_ioctl *pti = pt_soft[minor(tp->t_dev)].ps_ioctl;	/* plan 189 */
+ 
++	if (tp->t_dev == 0)		/* plan 189 (authored; original 0x112055) */
++		return;
++	/* plan 189 (authored, D024; original 0x112061-0x1120dc) */
+ 	if (flag & FREAD) {
++		int s = spltty();
++
+ 		if (pti->pt_selr) {
+ 			selwakeup(pti->pt_selr, pti->pt_flags & PF_RCOLL);
+-			pti->pt_selr = 0;
++			selthreadclear(&pti->pt_selr);
+ 			pti->pt_flags &= ~PF_RCOLL;
+ 		}
++		splx(s);
+ 		wakeup((caddr_t)&tp->t_outq.c_cf);
+ 	}
+ 	if (flag & FWRITE) {
++		int s = spltty();
++
+ 		if (pti->pt_selw) {
+ 			selwakeup(pti->pt_selw, pti->pt_flags & PF_WCOLL);
+-			pti->pt_selw = 0;
++			selthreadclear(&pti->pt_selw);
+ 			pti->pt_flags &= ~PF_WCOLL;
+ 		}
++		splx(s);
+ 		wakeup((caddr_t)&tp->t_rawq.c_cf);
+ 	}
+ }
+@@ -272,17 +333,19 @@
+ 
+ 	if (minor(dev) >= NPTY)
+ 		return (ENXIO);
+-	tp = &pt_tty[minor(dev)];
++	tp = pty_alloc(dev)->ps_tty;	/* plan 189 */
+ 	if (tp->t_oproc)
+ 		return (EIO);
+ 	tp->t_oproc = ptsstart;
+ 	(void)(*linesw[tp->t_line].l_modem)(tp, 1);
+ 	tp->t_state &= ~TS_EXTPROC;
+ 	tp->t_state |= TS_CARR_ON;
+-	pti = &pt_ioctl[minor(dev)];
++	pti = pt_soft[minor(dev)].ps_ioctl;	/* plan 189 */
+ 	pti->pt_flags = 0;
+ 	pti->pt_send = 0;
+ 	pti->pt_ucntl = 0;
++	pti->pt_selw = 0;		/* plan 189 (authored; original 0x1121bd) */
++	pti->pt_selr = 0;
+ 	return (0);
+ }
+ 
+@@ -291,23 +354,35 @@
+ {
+ 	register struct tty *tp;
+ 	struct pt_soft *psp;
++	struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;	/* plan 189 */
++	int s;
+ 
+-	tp = &pt_tty[minor(dev)];
+-	psp = &pt_soft[minor(dev)];
++	psp = &pt_soft[minor(dev)];	/* plan 189 */
++	tp = psp->ps_tty;
+ 	(void)(*linesw[tp->t_line].l_modem)(tp, 0);
+ 	if (psp->ps_flags & PS_OPEN) {
+ 		forceclose(psp->ps_slavedev);
+ 		ptsclose(psp->ps_slavedev);
+ 	}
++	/* plan 189 (authored, D024; original 0x112279-0x1122ba) */
++	s = spltty();
++	if (pti->pt_selr)
++		selthreadclear(&pti->pt_selr);
++	if (pti->pt_selw)
++		selthreadclear(&pti->pt_selw);
++	splx(s);
+ 	tp->t_oproc = 0;		/* mark closed */
++#if	POSIX_KERN
++	ttynty(tp)->t_session = 0;
++#endif	POSIX_KERN
+ }
+ 
+ ptcread(dev, uio)
+ 	dev_t dev;
+ 	struct uio *uio;
+ {
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	struct pt_ioctl *pti = &pt_ioctl[minor(dev)];
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
++	struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;
+ 	char buf[BUFSIZ];
+ 	int error = 0, cc;
+ 
+@@ -360,8 +435,14 @@
+ 		}
+ 		if ((tp->t_state&TS_CARR_ON) == 0)
+ 			return (EIO);
+-		if (pti->pt_flags&PF_NBIO)
++		if (pti->pt_flags&PF_NBIO) {
++#if	POSIX_KERN
++			/* plan 189 (authored; original 0x112409) */
++			if (u.u_procp->p_posix)
++				return (EAGAIN);
++#endif	POSIX_KERN
+ 			return (EWOULDBLOCK);
++		}
+ 		sleep((caddr_t)&tp->t_outq.c_cf, TTIPRI);
+ 	}
+ 	if (pti->pt_flags & (PF_PKT|PF_UCNTL))
+@@ -379,6 +460,7 @@
+ 		}
+ 		if (tp->t_wsel) {
+ 			selwakeup(tp->t_wsel, tp->t_state & TS_WCOLL);
++			thread_deallocate(tp->t_wsel);	/* plan 189 (0x1124e9) */
+ 			tp->t_wsel = 0;
+ 			tp->t_state &= ~TS_WCOLL;
+ 		}
+@@ -390,9 +472,11 @@
+ 	register struct tty *tp;
+ 	int flush;
+ {
+-	struct pt_ioctl *pti = &pt_ioctl[minor(tp->t_dev)];
++	struct pt_ioctl *pti = pt_soft[minor(tp->t_dev)].ps_ioctl;	/* plan 189 */
+ 	int flag;
+ 
++	if (tp->t_dev == 0)		/* plan 189 (authored; original 0x11252b) */
++		return;
+ 	/* note: FLUSHREAD and FLUSHWRITE already ok */
+ 	if (flush == 0) {
+ 		flush = TIOCPKT_STOP;
+@@ -413,8 +497,8 @@
+ 	dev_t dev;
+ 	int rw;
+ {
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	struct pt_ioctl *pti = &pt_ioctl[minor(dev)];
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
++	struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;
+ 	int s;
+ 
+ 	if ((tp->t_state&TS_CARR_ON) == 0)
+@@ -439,12 +523,9 @@
+ 		    (pti->pt_flags&PF_PKT && pti->pt_send ||
+ 		     pti->pt_flags&PF_UCNTL && pti->pt_ucntl))
+ 			return (1);
+-		if (pti->pt_selr &&
+-			((thread_t)(pti->pt_selr))->wait_event
+-				== (int)&selwait)
++		/* plan 189 (authored, D024; original 0x1126a5) */
++		if (selthreadcache(&pti->pt_selr))
+ 			pti->pt_flags |= PF_RCOLL;
+-		else
+-			pti->pt_selr = (struct proc *) current_thread();
+ 		break;
+ 
+ 
+@@ -461,12 +542,9 @@
+ 				    return (1);
+ 			}
+ 		}
+-		if (pti->pt_selw &&
+-			((thread_t)(pti->pt_selw))->wait_event
+-				== (int)&selwait)
++		/* plan 189 (authored, D024; original 0x1126e8) */
++		if (selthreadcache(&pti->pt_selw))
+ 			pti->pt_flags |= PF_WCOLL;
+-		else
+-			pti->pt_selw = (struct proc *) current_thread();
+ 		break;
+ 
+ 	}
+@@ -477,13 +555,13 @@
+ 	dev_t dev;
+ 	register struct uio *uio;
+ {
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	register struct iovec *iov;
+-	register char *cp;
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
++	register struct iovec *iov = uio->uio_iov;	/* plan 189 (original 0x11271d) */
++	register u_char *cp = NULL;	/* plan 189 (original 0x112725, 0x112897) */
+ 	register int cc = 0;
+-	char locbuf[BUFSIZ];
++	u_char locbuf[BUFSIZ];		/* plan 189 */
+ 	int cnt = 0;
+-	struct pt_ioctl *pti = &pt_ioctl[minor(dev)];
++	struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;
+ 	int error = 0;
+ 
+ again:
+@@ -562,8 +640,14 @@
+ 		iov->iov_len += cc;
+ 		uio->uio_resid += cc;
+ 		uio->uio_offset -= cc;
+-		if (cnt == 0)
++		if (cnt == 0) {
++#if	POSIX_KERN
++			/* plan 189 (authored; original 0x1128f3) */
++			if (u.u_procp->p_posix)
++				return (EAGAIN);
++#endif	POSIX_KERN
+ 			return (EWOULDBLOCK);
++		}
+ 		return (0);
+ 	}
+ 	sleep((caddr_t)&tp->t_rawq.c_cf, TTOPRI);
+@@ -575,8 +659,8 @@
+ 	caddr_t data;
+ 	dev_t dev;
+ {
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	register struct pt_ioctl *pti = &pt_ioctl[minor(dev)];
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;	/* plan 189 */
++	register struct pt_ioctl *pti = pt_soft[minor(dev)].ps_ioctl;
+ 	int stop, error;
+ 	extern ttyinput();
+ 
+@@ -645,6 +729,9 @@
+ 		case TIOCSETP:
+ 		case TIOCSETN:
+ 		case TIOCSETD:
++		case TIOCSETA:		/* plan 189 (authored; original 0x112a1c) */
++		case TIOCSETAW:
++		case TIOCSETAF:
+ 			while (getc(&tp->t_outq) >= 0)
+ 				;
+ 			break;
+@@ -701,12 +788,16 @@
+ 		case TIOCLBIS:
+ 		case TIOCLBIC:
+ 		case TIOCLSET:
++		case TIOCSETA:		/* plan 189 (authored; original 0x112c90) */
++		case TIOCSETAW:
++		case TIOCSETAF:
+ 			pti->pt_send |= TIOCPKT_IOCTL;
+ 		default:
+ 			break;
+ 		}
+ 	}
+ 	stop = (tp->t_flags & RAW) == 0 &&
++	    (ttynty(tp)->t_pflags & TP_IXON) &&	/* plan 189 (authored; original 0x112cb1) */
+ #ifdef	__STDC__
+ 	    tp->t_stopc == CTRL('s') && tp->t_startc == CTRL('q');
+ #else	__STDC__
+@@ -730,89 +821,8 @@
+ 	return (error);
+ }
+ 
+-#if	NeXT
+-/*
+- * Process queued entries to ptsputc via software interrupt.
+- */
+-static char ptsputcbuf[256], *ptsputcp = ptsputcbuf;
+-static void pts_process_putc(tp)
+-	struct tty *tp;
+-{
+-	register char *optr;
+-	register int s, n;
+-
+-    again:
+-	optr = ptsputcp;
+-	if (b_to_q(ptsputcbuf, optr - ptsputcbuf, &tp->t_outq) == 0)
+-		ptsstart(tp);
+-
+-	/*
+-	 * To guard against re-entrency we took a snapshot of ptsputcp
+-	 * above.  If it's not the same, copy the newly added stuff to
+-	 * the beginning of the buffer and try again.
+-	 */
+-	s = splhigh();
+-	if (n = ptsputcp - optr) {
+-		bcopy(optr, ptsputcbuf, n);
+-		ptsputcp = ptsputcbuf + n;
+-		splx(s);
+-		goto again;
+-	}
+-	ptsputcp = ptsputcbuf + n;
+-	splx(s);
+-}
+-#endif	NeXT
+-
+ /*
+- * Put and Get routines for ptys.  Used for kernel access to the
+- * pty slave queues.
++ * plan 189: pts_process_putc, ptsputc and ptsputcbuf are not in the
++ * original object (no symbols or code in [0x111c00, 0x112db0)).
+  */
+-ptsputc (dev, c)
+-	dev_t dev;
+-	register int c;
+-{
+-	register struct tty *tp = &pt_tty[minor(dev)];
+-	char buf[2];
+-
+-	buf[0] = c;
+-	c = 1;
+-	if (buf[0] == '\n') {
+-		buf[1] = '\r';
+-		c++;
+-	}
+-
+-#if	NeXT
+-	/*
+-	 * We can't add to the queue if at ipl >= spltty().  Buffer
+-	 * the data and flag a software interrupt if there's not already
+-	 * data buffered.  The software interrupt can then cleanup
+-	 * the stuff.
+-	 */
+-	if (curipl() >= IPLTTY) {
+-		int s = splhigh();
+-		switch (ptsputcp-ptsputcbuf) {
+-		case 0:
+-			/*
+-			 * Start up the software interrupt on first character
+-			 * posted to buffer.
+-			 */
+-			softint_sched(0, pts_process_putc, (int)tp);
+-			break;
+-		case sizeof(ptsputcbuf):
+-			/*
+-			 * The thing's already full, tough luck.
+-			 */
+-			splx(s);
+-			return;
+-		}
+-		*ptsputcp++ = buf[0];
+-		if (c == 2 && ptsputcp != &ptsputcbuf[sizeof(ptsputcbuf)])
+-			*ptsputcp++ = buf[1];
+-		splx(s);
+-		return;
+-	}
+-#endif	NeXT
+-	if (b_to_q(buf, c, &tp->t_outq) == 0)
+-		ptsstart(tp);
+-}
+ #endif

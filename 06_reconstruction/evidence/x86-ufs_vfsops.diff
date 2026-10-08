@@ -1,0 +1,128 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_vfsops.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_vfsops.c	2026-10-03 16:07:05.382064126 +0900
+@@ -58,7 +58,7 @@
+ #import <ufs/inode.h>
+ #import <sys/mount.h>
+ #import <sys/reboot.h>
+-#import <nextdev/voldev.h>
++/* plan 216: nextdev/voldev.h is not in this tree (vol_notify_cancel is called undeclared) */
+ 
+ #if	MACH
+ #import <vm/vm_kern.h>
+@@ -204,6 +204,7 @@
+ 	char *path;
+ 	struct vfs *vfsp;
+ {
++	char unused[64];	/* plan 216.1: frame is 0x40 larger in the original (0x143187); name and place inferred */
+ 	register struct fs *fsp;
+ 	register struct mount *mp = 0;
+ 	register struct buf *bp = 0;
+@@ -216,6 +217,7 @@
+ 	u_int len;
+ 	static int initdone = 0;
+ 	int needclose = 0;
++	u_int devbsize;		/* plan 216 */
+ 
+ 	if (!initdone) {
+ 		ihinit();
+@@ -230,10 +232,18 @@
+ 	if (error)
+ 		return (error);
+ 	needclose = 1;
++	/* plan 216 (authored, D024; original 0x143203-0x14325e) */
++	devbsize = VOP_DEVBLOCKSIZE(*devvpp);
++	if (devbsize == 0) {
++		(void) VOP_CLOSE(*devvpp, (vfsp->vfs_flag & VFS_RDONLY) ?
++		    FREAD : FREAD|FWRITE, 1, u.u_cred);
++		binval(*devvpp);
++		return (ENOTBLK);
++	}
+ 	/*
+ 	 * read in superblock
+ 	 */
+-	tp = bread(*devvpp, SBLOCK, SBSIZE);
++	tp = bread(*devvpp, SBLOCK / devbsize, SBSIZE);	/* plan 216 */
+ 	if (tp->b_flags & B_ERROR) {
+ 		goto out;
+ 	}
+@@ -244,6 +254,8 @@
+ 		if (mp->m_bufp != 0 && (*devvpp)->v_rdev == mp->m_dev) {
+ 			if (vfsp->vfs_flag & VFS_REMOUNT) {
+ 				bp = mp->m_bufp;
++				fsp = tp->b_un.b_fs;	/* plan 216 (original 0x1433d4) */
++				byte_swap_superblock(fsp);
+ 				goto modify_now;
+ 			} else {
+ 				mp = 0;
+@@ -293,6 +305,7 @@
+ 	mp->m_dev = NODEV;
+ 	mp->m_devvp = *devvpp;
+ 	fsp = tp->b_un.b_fs;
++	byte_swap_superblock(fsp);	/* plan 216 (original 0x1433a0) */
+ 	if (fsp->fs_magic != FS_MAGIC || fsp->fs_bsize > MAXBSIZE ||
+ 	    fsp->fs_bsize < sizeof (struct fs)) {
+ 		error = EINVAL;	/* also needs translation */
+@@ -313,6 +326,7 @@
+ 	 */
+ 	if ((vfsp->vfs_flag & VFS_RDONLY) == 0) {
+ 		u.u_error = 0;		/* XXX */
++		byte_swap_superblock(fsp);	/* plan 216 (original 0x143427) */
+ 		bwrite(tp);
+ 		if (u.u_error == EROFS) {
+ 			u.u_error = 0;
+@@ -320,6 +334,7 @@
+ 				panic("Root device is physically write protected.  It must be writeable.");
+ 			vfsp->vfs_flag |= VFS_RDONLY;
+ 		}
++		byte_swap_superblock(fsp);	/* plan 216 (original 0x143469) */
+ 	} else
+ 		brelse(tp);
+ #else	NeXT
+@@ -398,6 +413,7 @@
+ 			goto out;
+ 		}
+ 		bcopy((caddr_t)tp->b_un.b_addr, space, (u_int)size);
++		byte_swap_ints(space, size / sizeof (int));	/* plan 216 (original 0x1435d7) */
+ 		fsp->fs_csp[fragstoblks(fsp, i)] = (struct csum *)space;
+ 		space += size;
+ 		brelse(tp);
+@@ -515,7 +531,7 @@
+ 
+ 	mp = (struct mount *)vfsp->vfs_data;
+ 	dev = mp->m_dev;
+-#ifdef QUOTA
++#if	QUOTA	/* plan 216: QUOTA is 0 (original 0x1437c7) */
+ 	if ((stillopen = iflush(dev, mp->m_qinod)) < 0 && !forcibly)
+ #else
+ 	if ((stillopen = iflush(dev)) < 0 && !forcibly)
+@@ -523,7 +539,7 @@
+ 		return (EBUSY);
+ 	if (stillopen < 0)
+ 		return (EBUSY);			/* XXX */
+-#ifdef QUOTA
++#if	QUOTA	/* plan 216: QUOTA is 0 (original 0x1437c7) */
+ 	(void) closedq(mp);
+ 	/*
+ 	 * Here we have to iflush again to get rid of the quota inode.
+@@ -667,8 +683,12 @@
+ 	caddr_t space;
+ 	int i, size;
+ 
+-	bp = getblk(mp->m_devvp, SBLOCK, (int)fs->fs_sbsize);
++	/* plan 216 (authored, D024; original 0x143a0d-0x143a6e); plan 216.1: size holds the device block size (variant m1, s5p194-v3) */
++	if ((size = VOP_DEVBLOCKSIZE(mp->m_devvp)) < 0)
++		return;
++	bp = getblk(mp->m_devvp, SBLOCK / size, (int)fs->fs_sbsize);
+ 	bcopy((caddr_t)fs, bp->b_un.b_addr, (u_int)fs->fs_sbsize);
++	byte_swap_superblock(bp->b_un.b_fs);
+ /* BEGIN CS_RPAUSE */
+ 	/*
+ 	 *  These fields are supposed to be zero in 4.2 super-blocks and are
+@@ -692,6 +712,7 @@
+ 		bp = getblk(mp->m_devvp, (daddr_t)fsbtodb(fs, fs->fs_csaddr+i),
+ 		    size);
+ 		bcopy(space, bp->b_un.b_addr, (u_int)size);
++		byte_swap_ints(bp->b_un.b_addr, size / sizeof (int));	/* plan 216 (original 0x143b3a) */
+ 		space += size;
+ 		bwrite(bp);
+ 	}

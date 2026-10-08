@@ -1,0 +1,8 @@
+# x86 `src/kern/kdp_udp.c` (plan 257 (S5-P242), 2026-10-03)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 257 (S5-P242). Final run `s5p242-it5`; 07 file SHA-256 `1d34869a602188e50395d79623337e197e542006d182548eba619923bbbfc402`; diff `x86-kdp_udp.diff`.
+
+- Object [0x1624a8, 0x162d7e) 2262 B, 5 functions ((static kdp_reply), (static kdp_send), (static kdp_poll), _kdp_raise_exception, _kdp_reset). Front `89 ec 5d c3`, back `00 00 55 89`, next symbol 0x162d80.
+- Final L1 `09_validation/reconstruction/s5p242-it5-l1-kdp_udp-F-20261002.json`: __text/__const 0 byte differences; __DATA,__bss reference-inferred. Grade **P**.
+
+Object extent [0x1624a8, 0x162d80) 2264 B (2262 B text + 00 00; front joins kdp; back before wait_queue_init): static kdp_reply, kdp_send, kdp_poll, kdp_raise_exception (handler, connection wait and exception send inlined), kdp_reset. __DATA,__data [0x1df358, 0x1df51d) 453 B (exception_message table with its strings in reverse order, panic and console messages) -- placement inferred, verified by L1d. The codex review of plan 257 found no wrong claim about the bytes and added the UDP port (1139, not the header's 41139), the 301-send bound of the exception loop and the exact strings (verified). The plan assumed one object; a one-file build (s5p242-it2/it3) inlined kdp_packet into kdp_raise_exception, and a dead-code probe (s5p242-v2) showed the original kdp_packet was not inlinable there; the seam at 0x1624a8 has no padding and __data restarts aligned at 0x1df358, so the original has two objects (kdp.o, kdp_udp.o), which the split build confirms. it5 (s5p242-it5): __text 0 and __data 0 differences, relcheck 0, __bss reference-inferred.

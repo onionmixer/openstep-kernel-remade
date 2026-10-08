@@ -1,0 +1,573 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_sig.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_sig.c	2026-10-03 18:24:59.007008190 +0900
+@@ -91,17 +91,27 @@
+ #import <machine/spl.h>
+ 
+ #import <kern/sched.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 231: NeXTMach vm/vm_param.h */
+ #import <kern/thread.h>
+ #import <kern/parallel.h>
+ #import <machine/cpu.h>
+ #import <kern/sched_prim.h>
+ #import <kern/task.h>
+-#import <sys/loader.h>
++#import <sys/syslog.h>		/* plan 231: log() in psig */
+ #import <vm/vm_kern.h>
+ 
+ 
++#if	POSIX_KERN
++/*
++ * plan 231 (authored, D024): a POSIX process may block SIGCONT
++ * (original 0x1092a6, 0x109411, 0x109469, 0x1094cc).
++ */
++#define	cantmask	(u.u_procp->p_posix ? \
++			 (sigmask(SIGKILL)|sigmask(SIGSTOP)) : \
++			 (sigmask(SIGKILL)|sigmask(SIGCONT)|sigmask(SIGSTOP)))
++#else	/* POSIX_KERN */
+ #define	cantmask	(sigmask(SIGKILL)|sigmask(SIGCONT)|sigmask(SIGSTOP))
++#endif	/* POSIX_KERN */
+ #define	stopsigmask	(sigmask(SIGSTOP)|sigmask(SIGTSTP)| \
+ 			sigmask(SIGTTIN)|sigmask(SIGTTOU))
+ 
+@@ -135,7 +145,7 @@
+ 	int bit;
+ 
+ 	sig = uap->signo;
+-	if (sig <= 0 || sig > NSIG || sig == SIGKILL || sig == SIGSTOP) {
++	if (sig <= 0 || sig >= NSIG || sig == SIGKILL || sig == SIGSTOP) {	/* plan 231 (0x109141) */
+ 		u.u_error = EINVAL;
+ 		return;
+ 	}
+@@ -159,15 +169,19 @@
+ 		    copyin((caddr_t)uap->nsv, (caddr_t)sv, sizeof (vec));
+ 		if (u.u_error)
+ 			return;
+-		if (sig == SIGCONT && sv->sv_handler == SIG_IGN) {
++		if (sig == SIGCONT && sv->sv_handler == SIG_IGN
++#if	POSIX_KERN
++		    && !u.u_procp->p_posix	/* plan 231 (0x109213) */
++#endif
++		    ) {
+ 			u.u_error = EINVAL;
+ 			return;
+ 		}
+-		if ((sig == SIGMSG) || (sig == SIGEMSG)) {
+-			task_t		me = current_task();
+-			me->ipc_intr_msg = TRUE;
+-		}
+ 		setsigvec(sig, sv);
++#ifdef	i386
++		/* plan 231 (authored; original 0x109227-0x109237) */
++		u.u_sigreturn = (int (*)())u.u_ar0[EDX];
++#endif	i386
+ 	}
+ }
+ 
+@@ -195,7 +209,12 @@
+ 		u.u_sigonstack |= bit;
+ 	else
+ 		u.u_sigonstack &= ~bit;
+-	if (sv->sv_handler == SIG_IGN) {
++	if (sv->sv_handler == SIG_IGN
++#if	POSIX_KERN
++	    /* plan 231 (authored; original 0x10931c-0x109334) */
++	    || (p->p_posix && sv->sv_handler == SIG_DFL && sig == SIGCHLD)
++#endif
++	    ) {
+ 		p->p_sig &= ~bit;		/* never to be seen again */
+ 		/*
+ 		 *	If this is a thread signal, clean out the
+@@ -209,7 +228,7 @@
+ 			task_lock(p->task);
+ 			thread = (thread_t) queue_first(list);
+ 			while (!queue_end(list, (queue_entry_t) thread)) {
+-				thread->u_address.uthread->uu_sig &= ~bit;
++				thread->_uthread->uu_sig &= ~bit;
+ 				thread = (thread_t)
+ 					queue_next(&thread->thread_list);
+ 			}
+@@ -219,8 +238,13 @@
+ 		p->p_sigcatch &= ~bit;
+ 	} else {
+ 		p->p_sigignore &= ~bit;
+-		if (sv->sv_handler == SIG_DFL)
++		if (sv->sv_handler == SIG_DFL) {
++#if	POSIX_KERN
++			if (p->p_posix)	/* plan 231 (0x1093ab-0x1093b9) */
++				u.u_signal[sig] = SIG_DFL;
++#endif
+ 			p->p_sigcatch &= ~bit;
++		}
+ 		else
+ 			p->p_sigcatch |= bit;
+ 	}
+@@ -254,6 +278,15 @@
+ 	(void) spl0();
+ }
+ 
++/*
++ * plan 231 (authored, D024; original _sigcont 0x109490): continuation
++ * of sigpause.
++ */
++sigcont()
++{
++	unix_syscall_return(EINTR);
++}
++
+ sigpause()
+ {
+ 	struct a {
+@@ -271,8 +304,7 @@
+ 	u.u_oldmask = p->p_sigmask;
+ 	p->p_flag |= SOMASK;
+ 	p->p_sigmask = uap->mask &~ cantmask;
+-	for (;;)
+-		sleep((caddr_t)&u, PSLEP);
++	sleep_with_continuation((caddr_t)&u, PSLEP, sigcont);	/* plan 231 (0x1094f2) */
+ 	/*NOTREACHED*/
+ }
+ #undef cantmask
+@@ -318,6 +350,31 @@
+ 			u.u_error = ESRCH;
+ 			return;
+ 		}
++#if	POSIX_KERN
++		/*
++		 * plan 231 (authored, D024; original 0x1095d8-0x109692):
++		 * POSIX permission check.  plan 231.1: this branch signals
++		 * and returns itself (register allocation, variants s5p215-kv6).
++		 */
++		if (u.u_procp->p_posix) {
++			struct posix_proc *pp = get_posix_proc(p->p_pid);
++
++			if (suser() ||
++			    u.u_uid == pp->p_ruid || u.u_uid == pp->p_svuid ||
++			    u.u_ruid == pp->p_ruid || u.u_ruid == pp->p_svuid ||
++			    (uap->signo == SIGCONT &&
++			     get_posix_proc(p->p_pid)->p_session ==
++			     get_posix_proc(u.u_procp->p_pid)->p_session))
++				u.u_error = 0;
++			else {
++				u.u_error = EPERM;
++				return;
++			}
++			if (uap->signo)
++				psignal(p, uap->signo);
++			return;
++		}
++#endif	/* POSIX_KERN */
+ 		if (u.u_uid && u.u_uid != p->p_uid)
+ 			u.u_error = EPERM;
+ 		else if (uap->signo)
+@@ -390,6 +447,35 @@
+  * all processes with 'pgrp' as
+  * process group.
+  */
++#if	POSIX_KERN
++gsignal(pgid, sig)
++	register int pgid;
++{
++	struct pgrp *pgrp;
++
++	/* plan 231 (authored, D024; original 0x1097f8) */
++	if (pgid && (pgrp = pgfind(pgid)))
++		pgsignal(pgrp, sig, 0);
++}
++
++/*
++ * plan 231 (authored, D024; original _pgsignal 0x109820):
++ * send sig to every member of pgrp; with checkctty only to members
++ * that have a controlling terminal.
++ */
++pgsignal(pgrp, sig, checkctty)
++	struct pgrp *pgrp;
++	int sig, checkctty;
++{
++	register struct proc *p;
++
++	if (pgrp)
++		for (p = pgrp->pg_mem; p != NULL;
++		     p = get_posix_proc(p->p_pid)->p_pgrpnxt)
++			if (checkctty == 0 || p->p_flag & SCTTY)
++				psignal(p, sig);
++}
++#else	/* POSIX_KERN */
+ gsignal(pgrp, sig)
+ 	register int pgrp;
+ {
+@@ -402,6 +488,8 @@
+ 			psignal(p, sig);
+ }
+ 
++#endif	/* POSIX_KERN */
++
+ /*
+  * Send the specified signal to
+  * the specified process.
+@@ -438,9 +526,18 @@
+ 		 * If the signal is being ignored,
+ 		 * then we forget about it immediately.
+ 		 */
++#if	POSIX_KERN
++		/* plan 231 (0x1098bc-0x1098e4): POSIX SIGCONT is never ignored or held */
++		if ((!p->p_posix || mask != sigmask(SIGCONT)) &&
++		    (p->p_sigignore & mask))
++			return;
++		if ((!p->p_posix || mask != sigmask(SIGCONT)) &&
++		    (p->p_sigmask & mask))
++#else	/* POSIX_KERN */
+ 		if (p->p_sigignore & mask)
+ 			return;
+ 		if (p->p_sigmask & mask)
++#endif	/* POSIX_KERN */
+ 			action = SIG_HOLD;
+ 		else if (p->p_sigcatch & mask)
+ 			action = SIG_CATCH;
+@@ -467,19 +564,6 @@
+ 		case SIGTTOU:
+ 			p->p_sig &= ~sigmask(SIGCONT);
+ 			break;
+-		case SIGMSG:
+-		case SIGEMSG:
+-			/*
+-			 *	Don't post these signals unless
+-			 *	they'll be handled, regardless of
+-			 *	the state of the recipient.  Always send
+-			 *	them to a traced process.
+-			 */
+-			if ((action == SIG_DFL) && !(p->p_flag & STRC)){
+-				p->p_sig &= ~mask;
+-				return;
+-			}
+-			break;
+ 		}
+ 	}
+ 	/*
+@@ -619,7 +703,7 @@
+ 			}
+ 			else {
+ 				if ((p == u.u_procp) && (p->p_stat != SZOMB))
+-					aston();
++					ast_on(cpu_number(), AST_UNIX);	/* plan 231: 07 kern/ast.h */
+ 				goto out;
+ 			}
+ 
+@@ -627,8 +711,6 @@
+ 		case SIGURG:
+ 		case SIGCHLD:
+ 		case SIGWINCH:
+-		case SIGMSG:
+-		case SIGEMSG:
+ 			/*
+ 			 * These signals do not get propagated.  If the
+ 			 * process isn't interested, forget it.
+@@ -679,7 +761,7 @@
+ 			 */
+ 			splx(s);
+ 			if (sig_thread != cur_thread) {
+-				thread_exception_abort(sig_thread);
++				mach_msg_abort_rpc(sig_thread);	/* plan 231.1: new IPC (original call 0x1584d4) */
+ 				thread_deallocate(sig_thread);
+ 			}
+ 			return;
+@@ -730,7 +812,8 @@
+  * a flag that asks the process to
+  * do something to itself.
+  */
+-issig()
++issig(catch)
++	int catch;		/* plan 231: ISSIG_CATCH passes 1 (SDK sys/param.h) */
+ {
+ 	register struct proc *p;
+ 	register int sig;
+@@ -768,6 +851,10 @@
+ 			sigbits &= ~stopsigmask;
+ 		if (sigbits == 0)
+ 			break;
++		if (catch && (p->p_flag&STRC)) {	/* plan 231 (0x109cd8) */
++			sig_unlock(p);
++			return (TRUE);
++		}
+ 		sig = ffs((long)sigbits);
+ 		mask = sigmask(sig);
+ 		if (mask & threadmask) {
+@@ -794,10 +881,7 @@
+ 			 *	debugger.
+ 			 */
+ 			p->thread = current_thread();
+-#ifdef	i386
+-#else	i386
+-			pcb_synch(p->thread);
+-#endif	i386
++			pcb_synch(p->thread);	/* plan 231: also on i386 (0x109d53) */
+ 			/*
+ 			 *	XXX Have to really stop for debuggers;
+ 			 *	XXX stop() doesn't do the right thing.
+@@ -908,6 +992,7 @@
+ 			 */
+ 			if (p->p_ppid == 0) {
+ 				u.u_cursig = 0;
++				u.u_sig &= ~mask;	/* plan 231 (0x109f38) */
+ 				break;
+ 			}
+ 			switch (sig) {
+@@ -951,8 +1036,6 @@
+ 			case SIGURG:
+ 			case SIGIO:
+ 			case SIGWINCH:
+-			case SIGMSG:
+-			case SIGEMSG:
+ 				/*
+ 				 * These signals are normally not
+ 				 * sent if the action is the default.
+@@ -1071,7 +1154,7 @@
+ 	action = u.u_signal[sig];
+ 	if (action != SIG_DFL) {
+ 		if (action == SIG_IGN || (p->p_sigmask & mask))
+-			panic("psig action");
++			log(LOG_WARNING, "psig: processing masked or ignored signal\n");	/* plan 231 (0x10a19c) */
+ 		u.u_error = 0;
+ 		/*
+ 		 * Set the new mask value and also defer further
+@@ -1150,231 +1233,14 @@
+ }
+ 
+ /*
+- * Create a core image on the file "core"
+- * If you are looking for protection glitches,
+- * there are probably a wealth of them here
+- * when this occurs to a suid command.
+- *
+- * It writes UPAGES block of the
+- * user.h area followed by the entire
+- * data+stack segments.
++ * plan 231 (authored, D024; original _sigpending 0x10a354).
+  */
+-core()
++sigpending()
+ {
+-	struct vnode	*vp;
+-	struct vattr	vattr;
+-	vm_map_t	map;
+-	int		thread_count, segment_count;
+-	int		command_size, header_size;
+-	int		hoffset, foffset, vmoffset;
+-	vm_offset_t	header;
+-	struct machine_slot	*ms;
+-	struct mach_header	*mh;
+-	struct segment_command	*sc;
+-	struct thread_command	*tc;
+-	vm_size_t	size;
+-	vm_prot_t	prot;
+-	vm_prot_t	maxprot;
+-	vm_inherit_t	inherit;
+-	boolean_t	is_shared;
+-	port_t		name;
+-	vm_offset_t	offset;
+-	int		error;
+-	task_t		task;
+-	thread_t	thread;
+-	char		core_name[20];
+-
+-	if (u.u_procp->p_flag&SXONLY)
+-		return (0);
+-	u.u_uid = u.u_ruid;
+-	u.u_procp->p_uid = u.u_ruid;
+-	u.u_gid = u.u_rgid;
+-
+-	/*
+-	 *	Don't want to resource-pause while core-dumping.
+-	 */
+-	u.u_rpause = 0;
+-
+-	task = current_task();
+-	map = task->map;
+-	if (map->size >= u.u_rlimit[RLIMIT_CORE].rlim_cur)
+-		return (0);
+-	(void) task_halt(task);	/* stop this task, except for current thread */
+-	/*
+-	 *	Make sure all registers, etc. are in pcb so they get
+-	 *	into core file.
+-	 */
+-	pcb_synch(current_thread());
+-	u.u_error = 0;
+-	vattr_null(&vattr);
+-	vattr.va_type = VREG;
+-	vattr.va_mode = 0644;
+-	sprintf(core_name, "/cores/core.%d", u.u_procp->p_pid);
+-	u.u_error =
+-	    vn_create(core_name, UIO_SYSSPACE, &vattr, NONEXCL, VWRITE, &vp,
+-		      u.u_cred);
+-	if (u.u_error) {
+-		u.u_error = 0;
+-		vattr_null(&vattr);
+-		vattr.va_type = VREG;
+-		vattr.va_mode = 0644;
+-		u.u_error =
+-		    vn_create("core", UIO_SYSSPACE, &vattr, NONEXCL,
+-		    	VWRITE, &vp, u.u_cred);
+-		if (u.u_error)
+-			return (0);
+-	}
+-	if (vattr.va_nlink != 1) {
+-		u.u_error = EFAULT;
+-		goto out;
+-	}
+-	vattr_null(&vattr);
+-	vattr.va_size = 0;
+-	(void) VOP_SETATTR(vp, &vattr, u.u_cred);
+-	u.u_acflag |= ACORE;
+-
+-	/*
+-	 *	If the task is modified while dumping the file
+-	 *	(e.g., changes in threads or VM, the resulting
+-	 *	file will not necessarily be correct.
+-	 */
+-
+-	thread_count = task->thread_count;
+-	segment_count = map->nentries;
+-
+-	command_size = segment_count*sizeof(struct segment_command) +
+-		thread_count*sizeof(struct thread_command);
+-	command_size += (6*sizeof(unsigned long)
+-		+ sizeof(struct NeXT_thread_state_regs)
+-		+ sizeof(struct NeXT_thread_state_68882)
+-		+ sizeof(struct NeXT_thread_state_user_reg))*thread_count;
+-
+-	header_size = command_size + sizeof(struct mach_header);
+-
+-	header = kmem_alloc(kernel_map, header_size);
+-
+-	/*
+-	 *	Set up Mach-O header.
+-	 */
+-	mh = (struct mach_header *) header;
+-	ms = &machine_slot[cpu_number()];
+-	mh->magic = MH_MAGIC;
+-	mh->cputype = ms->cpu_type;
+-	mh->cpusubtype = ms->cpu_subtype;
+-	mh->filetype = MH_CORE;
+-	mh->ncmds = segment_count + thread_count;
+-	mh->sizeofcmds = command_size;
+-
+-	hoffset = sizeof(struct mach_header);	/* offset into header */
+-	foffset = round_page(header_size);	/* offset into file */
+-	vmoffset = VM_MIN_ADDRESS;		/* offset into VM */
+-	error = 0;
+-	while ((segment_count > 0) && (error == 0)) {
+-		/*
+-		 *	Get region information for next region.
+-		 */
+-		if (vm_region(map, &vmoffset, &size, &prot, &maxprot,
+-			  &inherit, &is_shared, &name, &offset)
+-					== KERN_NO_SPACE)
+-			break;
+-
+-		/*
+-		 *	Fill in segment command structure.
+-		 */
+-		sc = (struct segment_command *) (header + hoffset);
+-		sc->cmd = LC_SEGMENT;
+-		sc->cmdsize = sizeof(struct segment_command);
+-		/* segment name is zerod by kmem_alloc */
+-		sc->vmaddr = vmoffset;
+-		sc->vmsize = size;
+-		sc->fileoff = foffset;
+-		sc->filesize = size;
+-		sc->maxprot = maxprot;
+-		sc->initprot = prot;
+-		sc->nsects = 0;
+-
+-		/*
+-		 *	Write segment out.  Try as hard as possible to
+-		 *	get read access to the data.
+-		 */
+-		if ((prot & VM_PROT_READ) == 0) {
+-			vm_protect(map, vmoffset, size, FALSE,
+-				   prot|VM_PROT_READ);
+-		}
+-		/*
+-		 *	Only actually perform write if we can read.
+-		 *	Note: if we can't read, then we end up with
+-		 *	a hole in the file.
+-		 */
+-		if ((maxprot & VM_PROT_READ) == VM_PROT_READ) {
+-			error = vn_rdwr(UIO_WRITE, vp, vmoffset, size, foffset,
+-				UIO_USERSPACE, IO_UNIT, (int *) 0);
+-		}
+-
+-		hoffset += sizeof(struct segment_command);
+-		foffset += size;
+-		vmoffset += size;
+-		segment_count--;
+-	}
+-	task_lock(task);
+-	thread = (thread_t) queue_first(&task->thread_list);
+-	while (thread_count > 0) {
+-		/*
+-		 *	Fill in thread command structure.
+-		 */
+-		tc = (struct thread_command *) (header + hoffset);
+-		tc->cmd = LC_THREAD;
+-		tc->cmdsize = sizeof(struct thread_command)
+-				+ 6*sizeof(unsigned long) +
+-				+ sizeof(struct NeXT_thread_state_regs)
+-				+ sizeof(struct NeXT_thread_state_68882)
+-				+ sizeof(struct NeXT_thread_state_user_reg);
+-		hoffset += sizeof(struct thread_command);
+-
+-		size = NeXT_THREAD_STATE_REGS_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_REGS;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_REGS,
+-				 (struct NeXT_thread_state_regs *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
+-		size = NeXT_THREAD_STATE_68882_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_68882;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_68882,
+-				 (struct NeXT_thread_state_68882 *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
+-		size = NeXT_THREAD_STATE_USER_REG_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_USER_REG;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_USER_REG,
+-				 (struct NeXT_thread_state_user_reg *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
+-		thread = (thread_t) queue_next(&thread->thread_list);
+-		thread_count--;
+-	}
+-	task_unlock(task);
++	struct a {
++		int	*set;
++	} *uap = (struct a *)u.u_ap;
+ 
+-	/*
+-	 *	Write out the Mach header at the beginning of the
+-	 *	file.
+-	 */
+-	error = vn_rdwr(UIO_WRITE, vp, header, header_size, (off_t)0,
+-			UIO_SYSSPACE, IO_UNIT, (int *) 0);
+-	kmem_free(kernel_map, header, header_size);
+-out:
+-	VN_RELE(vp);
+-	u.u_error = error;
+-	return(error == 0);
+-}
+\ 파일 끝 개행 문자 없음
++	u.u_error = copyout((caddr_t)&u.u_procp->p_sig, (caddr_t)uap->set,
++	    sizeof (int));
++}

@@ -1,0 +1,152 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/udp_usrreq.c	2026-09-11 10:02:49.576218406 +0900
++++ 07_kernel/src/bsd/netinet/udp_usrreq.c	2026-10-03 08:20:27.417729096 +0900
+@@ -139,6 +139,55 @@
+ 	/*
+ 	 * Locate pcb for datagram.
+ 	 */
++#ifdef	MULTICAST
++	/* plan 169 (authored; original 0x12b3bc-0x12b4fe, MULTICAST 1.0 form):
++	 * deliver a multicast or broadcast datagram to every matching socket */
++	if (IN_MULTICAST(ntohl(ui->ui_dst.s_addr)) ||
++	    in_broadcast(ui->ui_dst)) {
++		struct socket *last;
++		struct mbuf *n;
++
++		udp_in.sin_port = ui->ui_sport;
++		udp_in.sin_addr = ui->ui_src;
++		m->m_len -= sizeof (struct udpiphdr);
++		m->m_off += sizeof (struct udpiphdr);
++		last = NULL;
++		for (inp = udb.inp_next; inp != &udb; inp = inp->inp_next) {
++			if (inp->inp_lport != ui->ui_dport)
++				continue;
++			if (inp->inp_laddr.s_addr != INADDR_ANY) {
++				if (inp->inp_laddr.s_addr != ui->ui_dst.s_addr)
++					continue;
++			}
++			if (inp->inp_faddr.s_addr != INADDR_ANY) {
++				if (inp->inp_faddr.s_addr != ui->ui_src.s_addr ||
++				    inp->inp_fport != ui->ui_sport)
++					continue;
++			}
++			if (last != NULL) {
++				if ((n = m_copy(m, 0, M_COPYALL)) != NULL) {
++					if (sbappendaddr(&last->so_rcv,
++					    (struct sockaddr *)&udp_in, n,
++					    (struct mbuf *)0) == 0)
++						m_freem(n);
++					else
++						sorwakeup(last);
++				}
++			}
++			last = inp->inp_socket;
++			if ((last->so_options & SO_REUSEADDR) == 0)
++				break;
++		}
++		if (last == NULL)
++			goto bad;
++		if (sbappendaddr(&last->so_rcv, (struct sockaddr *)&udp_in,
++		    m, (struct mbuf *)0) == 0)
++			goto bad;
++		sorwakeup(last);
++		return;
++	}
++#endif	MULTICAST
++
+ 	inp = in_pcblookup(&udb,
+ 	    ui->ui_src, ui->ui_sport, ui->ui_dst, ui->ui_dport,
+ 		INPLOOKUP_WILDCARD);
+@@ -182,7 +231,7 @@
+ 			goto bad;
+ 		*(struct ip *)ui = ip;
+ 		icmp_error((struct ip *)ui, ICMP_UNREACH, ICMP_UNREACH_PORT,
+-		    ifp);
++		    ifp, (struct in_addr *)0);	/* plan 169 (authored): 5th argument */
+ 		return;
+ 	}
+ 
+@@ -215,41 +264,24 @@
+ 	sowwakeup(inp->inp_socket);
+ }
+ 
+-udp_ctlinput(cmd, sa)
++udp_ctlinput(cmd, sa, ip)	/* plan 169 (authored, 4.3-Reno form; original 0x12b664) */
+ 	int cmd;
+ 	struct sockaddr *sa;
++	register struct ip *ip;
+ {
++	register struct udphdr *uh;
++	extern struct in_addr zeroin_addr;
+ 	extern u_char inetctlerrmap[];
+-	struct sockaddr_in *sin;
+-	int in_rtchange();
+ 
+-	if ((unsigned)cmd > PRC_NCMDS)
+-		return;
+-	if (sa->sa_family != AF_INET && sa->sa_family != AF_IMPLINK)
++	if (cmd != PRC_ROUTEDEAD &&
++	    ((unsigned)cmd > PRC_NCMDS || inetctlerrmap[cmd] == 0))
+ 		return;
+-	sin = (struct sockaddr_in *)sa;
+-	if (sin->sin_addr.s_addr == INADDR_ANY)
+-		return;
+-
+-	switch (cmd) {
+-
+-	case PRC_QUENCH:
+-		break;
+-
+-	case PRC_ROUTEDEAD:
+-	case PRC_REDIRECT_NET:
+-	case PRC_REDIRECT_HOST:
+-	case PRC_REDIRECT_TOSNET:
+-	case PRC_REDIRECT_TOSHOST:
+-		in_pcbnotify(&udb, &sin->sin_addr, 0, in_rtchange);
+-		break;
+-
+-	default:
+-		if (inetctlerrmap[cmd] == 0)
+-			return;		/* XXX */
+-		in_pcbnotify(&udb, &sin->sin_addr, (int)inetctlerrmap[cmd],
+-			udp_notify);
+-	}
++	if (ip) {
++		uh = (struct udphdr *)((caddr_t)ip + (ip->ip_hl << 2));
++		in_pcbnotify(&udb, sa, uh->uh_dport, ip->ip_src, uh->uh_sport,
++			cmd, udp_notify);
++	} else
++		in_pcbnotify(&udb, sa, 0, zeroin_addr, 0, cmd, udp_notify);
+ }
+ 
+ udp_output(inp, m0)
+@@ -304,8 +336,14 @@
+ #else	TTLCONTROL
+ 	((struct ip *)ui)->ip_ttl = udp_ttl;
+ #endif	TTLCONTROL
++#ifdef	MULTICAST
++	return (ip_output(m, inp->inp_options, &inp->inp_route,	/* plan 169 (authored) */
++	    (inp->inp_socket->so_options & (SO_DONTROUTE | SO_BROADCAST)) |
++	    IP_MULTICASTOPTS, inp->inp_moptions));
++#else	MULTICAST
+ 	return (ip_output(m, inp->inp_options, &inp->inp_route,
+ 	    inp->inp_socket->so_options & (SO_DONTROUTE | SO_BROADCAST)));
++#endif	MULTICAST
+ }
+ 
+ #if	SUN_RPC
+@@ -337,6 +375,7 @@
+ 		return (in_control(so, (int)m, (caddr_t)nam,
+ 			(struct ifnet *)rights));
+ 
++        s = splnet();	/* plan 169 (authored): before the checks that go to release */
+ 	if (rights && rights->m_len) {
+ 		error = EINVAL;
+ 		goto release;
+@@ -345,7 +384,6 @@
+ 		error = EINVAL;
+ 		goto release;
+ 	}
+-        s = splnet();
+ 	switch (req) {
+ 
+ 	case PRU_ATTACH:

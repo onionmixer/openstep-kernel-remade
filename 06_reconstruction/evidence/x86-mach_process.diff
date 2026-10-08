@@ -1,0 +1,43 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/mach_process.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/mach_process.c	2026-10-03 12:45:29.060159638 +0900
+@@ -59,8 +59,8 @@
+ #import <kern/sched_prim.h>
+ 
+ #import <vm/vm_map.h>
+-#import <vm/vm_param.h>
+-#import <vm/vm_prot.h>
++#import <mach/vm_param.h>	/* plan 197: NeXTMach vm/vm_param.h (as plans 162/164) */
++#import <mach/vm_prot.h>	/* plan 197: NeXTMach vm/vm_prot.h */
+ #import <vm/vm_kern.h>
+ 
+ /*
+@@ -161,17 +161,29 @@
+ 	case PT_STEP:			/* single step the child */
+ 	case PT_CONTINUE:		/* continue the child */
+ 		thread = (thread_t) queue_first(&task->thread_list);
++#if	NeXT
++		locr0 = thread->_uthread->uu_ar0;	/* plan 197 */
++#else	NeXT
+ 		locr0 = thread->u_address.uthread->uu_ar0;
++#endif	NeXT
+ 		if ((int)uap->addr != 1)
+ 			locr0[PC] = (int)uap->addr;
+ 		if ((unsigned)uap->data > NSIG)
+ 			goto error;
+ 
+ 		if (sigmask(p->p_cursig) & threadmask)
++#if	NeXT
++		   thread->_uthread->uu_cursig = 0;	/* plan 197 */
++#else	NeXT
+ 		   thread->u_address.uthread->uu_cursig = 0;
++#endif	NeXT
+ 		p->p_cursig = uap->data;	/* see issig */
+ 		if (sigmask(uap->data) & threadmask)
++#if	NeXT
++		    thread->_uthread->uu_cursig = uap->data;	/* plan 197 */
++#else	NeXT
+ 		    thread->u_address.uthread->uu_cursig = uap->data;
++#endif	NeXT
+ 
+ 		if (uap->req == PT_STEP) 
+ 			locr0[PS] |= PSL_T;

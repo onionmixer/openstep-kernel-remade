@@ -1,0 +1,295 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/bsd/netinet/igmp.c	2026-10-03 22:33:23.296107701 +0900
+@@ -0,0 +1,292 @@
++/*
++ * Internet Group Management Protocol (IGMP), host side (plan 251).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024).
++ * Darwin 0.1 bsd/netinet/igmp.c was consulted for structure only; the
++ * original kernel has the older form with the 4.3BSD mbuf interface
++ * (m_off, MGET), raw_input with a protocol and two addresses, and the
++ * multicast options passed to ip_output in an mbuf.
++ */
++
++#import <sys/param.h>
++#import <sys/mbuf.h>
++#import <sys/socket.h>
++#import <sys/protosw.h>
++
++#import <machine/spl.h>
++
++#import <net/if.h>
++#import <net/route.h>
++
++#import <netinet/in.h>
++#import <netinet/in_var.h>
++#import <netinet/in_systm.h>
++#import <netinet/ip.h>
++#import <netinet/ip_var.h>
++
++/*
++ * IGMP message and statistics (no igmp.h/igmp_var.h in the SDK).
++ */
++struct igmp {
++	u_char		igmp_type;	/* message type */
++	u_char		igmp_code;	/* 0 */
++	u_short		igmp_cksum;	/* checksum */
++	struct in_addr	igmp_group;	/* group */
++};
++
++#define IGMP_MINLEN			8
++#define IGMP_HOST_MEMBERSHIP_QUERY	0x11
++#define IGMP_HOST_MEMBERSHIP_REPORT	0x12
++#define IGMP_MAX_HOST_REPORT_DELAY	10	/* seconds */
++
++struct igmpstat {
++	u_int	igps_rcv_total;		/* messages in */
++	u_int	igps_rcv_tooshort;	/* shorter than IGMP_MINLEN */
++	u_int	igps_rcv_badsum;	/* checksum error */
++	u_int	igps_rcv_queries;	/* queries in */
++	u_int	igps_rcv_badqueries;	/* queries not to all-hosts */
++	u_int	igps_rcv_reports;	/* reports in */
++	u_int	igps_rcv_badreports;	/* reports with a bad group */
++	u_int	igps_rcv_ourreports;	/* reports for groups we joined */
++	u_int	igps_snd_reports;	/* reports out */
++};
++
++/* fast timeouts per second (pr_fasttimo) */
++#define	PR_FASTHZ	5
++
++#define IGMP_RANDOM_DELAY(multiaddr) \
++	((ntohl(IA_SIN(in_ifaddr)->sin_addr.s_addr) + \
++	  ipstat.ips_total + ntohl((multiaddr).s_addr)) % \
++	 (IGMP_MAX_HOST_REPORT_DELAY * PR_FASTHZ) + 1)
++
++extern struct ifnet	*loifp;
++extern struct socket	*ip_mrouter;
++
++struct igmpstat	igmpstat;
++
++static struct sockproto		igmproto = { PF_INET, IPPROTO_IGMP };
++static struct sockaddr_in	igmpsrc = { AF_INET };
++static struct sockaddr_in	igmpdst = { AF_INET };
++
++static int	igmp_timers_are_running = 0;
++static u_long	igmp_all_hosts_group;
++
++igmp_init()
++{
++	/* kept in network order for the comparisons below */
++	igmp_all_hosts_group = htonl(INADDR_ALLHOSTS_GROUP);
++}
++
++igmp_input(m, ifp)
++	register struct mbuf *m;
++	register struct ifnet *ifp;
++{
++	register struct igmp *igmp;
++	register struct ip *ip;
++	register int igmplen;
++	register int iphlen;
++	register int minlen;
++	register struct in_multi *inm;
++	register struct in_ifaddr *ia;
++	struct in_multistep step;
++
++	++igmpstat.igps_rcv_total;
++
++	ip = mtod(m, struct ip *);
++	iphlen = ip->ip_hl << 2;
++	igmplen = ip->ip_len;
++
++	/* length checks */
++	if (igmplen < IGMP_MINLEN) {
++		++igmpstat.igps_rcv_tooshort;
++		m_freem(m);
++		return;
++	}
++	minlen = iphlen + IGMP_MINLEN;
++	if ((m->m_off > MMAXOFF || m->m_len < minlen) &&
++	    (m = m_pullup(m, minlen)) == 0) {
++		++igmpstat.igps_rcv_tooshort;
++		return;
++	}
++
++	/* checksum over the IGMP part only */
++	m->m_off += iphlen;
++	m->m_len -= iphlen;
++	igmp = mtod(m, struct igmp *);
++	if (in_cksum(m, igmplen)) {
++		++igmpstat.igps_rcv_badsum;
++		m_freem(m);
++		return;
++	}
++	m->m_off -= iphlen;
++	m->m_len += iphlen;
++	ip = mtod(m, struct ip *);
++
++	switch (igmp->igmp_type) {
++
++	case IGMP_HOST_MEMBERSHIP_QUERY:
++		++igmpstat.igps_rcv_queries;
++
++		if (ifp == loifp)
++			break;
++
++		if (ip->ip_dst.s_addr != igmp_all_hosts_group) {
++			++igmpstat.igps_rcv_badqueries;
++			m_freem(m);
++			return;
++		}
++
++		/* schedule a report for each idle group of this interface */
++		IN_FIRST_MULTI(step, inm, in_ifaddr);
++		while (inm != NULL) {
++			if (inm->inm_ifp == ifp && inm->inm_timer == 0 &&
++			    inm->inm_addr.s_addr != igmp_all_hosts_group) {
++				inm->inm_timer =
++				    IGMP_RANDOM_DELAY(inm->inm_addr);
++				igmp_timers_are_running = 1;
++			}
++			IN_NEXT_MULTI(step, inm);
++		}
++
++		break;
++
++	case IGMP_HOST_MEMBERSHIP_REPORT:
++		++igmpstat.igps_rcv_reports;
++
++		if (ifp == loifp)
++			break;
++
++		if (!IN_MULTICAST(ntohl(igmp->igmp_group.s_addr)) ||
++		    igmp->igmp_group.s_addr != ip->ip_dst.s_addr) {
++			++igmpstat.igps_rcv_badreports;
++			m_freem(m);
++			return;
++		}
++
++		/*
++		 * A report from a host with no subnet number yet: give it
++		 * the subnet of the interface, for a routing daemon.
++		 */
++		if ((ntohl(ip->ip_src.s_addr) & IN_CLASSA_NET) == 0) {
++			IFP_TO_IA(ifp, ia);
++			if (ia) ip->ip_src.s_addr = htonl(ia->ia_subnet);
++		}
++
++		/* someone else reported a group of ours: ours is not needed */
++		IN_LOOKUP_MULTI(igmp->igmp_group, ifp, inm);
++		if (inm != NULL) {
++			inm->inm_timer = 0;
++			++igmpstat.igps_rcv_ourreports;
++		}
++
++		break;
++	}
++
++	/* hand the message to raw IGMP sockets */
++	igmpsrc.sin_addr = ip->ip_src;
++	igmpdst.sin_addr = ip->ip_dst;
++	raw_input(m, &igmproto, (struct sockaddr *)&igmpsrc,
++	    (struct sockaddr *)&igmpdst);
++}
++
++igmp_joingroup(inm)
++	struct in_multi *inm;
++{
++	register int s = splnet();
++
++	if (inm->inm_addr.s_addr == igmp_all_hosts_group ||
++	    inm->inm_ifp == loifp)
++		inm->inm_timer = 0;
++	else {
++		igmp_sendreport(inm);
++		inm->inm_timer = IGMP_RANDOM_DELAY(inm->inm_addr);
++		igmp_timers_are_running = 1;
++	}
++	splx(s);
++}
++
++igmp_leavegroup(inm)
++	struct in_multi *inm;
++{
++	/* nothing is sent when a group is left */
++}
++
++igmp_fasttimo()
++{
++	register struct in_multi *inm;
++	register int s;
++	struct in_multistep step;
++
++	/* nothing scheduled: return at once */
++	if (!igmp_timers_are_running)
++		return;
++
++	(void) &step;	/* plan 251: the original keeps step in memory */
++	s = splnet();
++	igmp_timers_are_running = 0;
++	IN_FIRST_MULTI(step, inm, in_ifaddr);
++	while (inm != NULL) {
++		if (inm->inm_timer == 0) {
++			/* do nothing */
++		} else if (--inm->inm_timer == 0) {
++			igmp_sendreport(inm);
++		} else {
++			igmp_timers_are_running = 1;
++		}
++		IN_NEXT_MULTI(step, inm);
++	}
++	splx(s);
++}
++
++igmp_sendreport(inm)
++	register struct in_multi *inm;
++{
++	register struct mbuf *m, *mopts;
++	register struct igmp *igmp;
++	register struct ip *ip;
++	register struct ip_moptions *imo;
++
++	MGET(m, M_DONTWAIT, MT_HEADER);
++	if (m == NULL)
++		return;
++	MGET(mopts, M_DONTWAIT, MT_IPMOPTS);
++	if (mopts == NULL) {
++		m_free(m);
++		return;
++	}
++
++	/*
++	 * The IGMP message at the end of the mbuf, the IP header
++	 * in front of it.
++	 */
++	m->m_off = MMAXOFF - IGMP_MINLEN;
++	m->m_len = IGMP_MINLEN;
++	igmp = mtod(m, struct igmp *);
++	igmp->igmp_type = IGMP_HOST_MEMBERSHIP_REPORT;
++	igmp->igmp_code = 0;
++	igmp->igmp_group = inm->inm_addr;
++	igmp->igmp_cksum = 0;
++	igmp->igmp_cksum = in_cksum(m, IGMP_MINLEN);
++
++	m->m_off -= sizeof(struct ip);
++	m->m_len += sizeof(struct ip);
++	ip = mtod(m, struct ip *);
++	ip->ip_tos = 0;
++	ip->ip_len = sizeof(struct ip) + IGMP_MINLEN;
++	ip->ip_off = 0;
++	ip->ip_p = IPPROTO_IGMP;
++	ip->ip_src.s_addr = INADDR_ANY;
++	ip->ip_dst = igmp->igmp_group;
++
++	imo = mtod(mopts, struct ip_moptions *);
++	imo->imo_multicast_ifp = inm->inm_ifp;
++	imo->imo_multicast_ttl = 1;
++	/* loop the report back when a routing daemon is running */
++	imo->imo_multicast_loop = (ip_mrouter != NULL);
++
++	ip_output(m, (struct mbuf *)0, (struct route *)0,
++	    IP_MULTICASTOPTS, mopts);
++
++	m_free(mopts);
++	++igmpstat.igps_snd_reports;
++}

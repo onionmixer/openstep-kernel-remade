@@ -1,0 +1,131 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/driverkit/libDriver/Kernel/IODisplay.m	2026-10-05 06:34:01.414256409 +0900
+@@ -0,0 +1,128 @@
++/*
++ * IODisplay.m (plan 303).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * original module "Kernel/IODisplay.m", methods 0x1af058-0x1af23e).
++ * The text is nearly the same as Darwin 0.1
++ * driverkit-1/libDriver/Kernel/IODisplay.m; kept as project-authored
++ * under D027/D030, without Darwin's notices (license judgement: D017).
++ */
++
++#define DRIVER_PRIVATE 1
++#define KERNEL 1
++
++#import <driverkit/driverTypes.h>
++#import <driverkit/driverTypesPrivate.h>
++#import <driverkit/kernelDriver.h>
++#import	<driverkit/IODisplay.h>
++#import <driverkit/IODisplayPrivate.h>
++
++@implementation IODisplay
++
++/* Allocate a console support info structure based on this display. This
++ * structure, and the functions in it, are used to display alert and
++ * console windows.
++ */
++- (IOConsoleInfo *)allocateConsoleInfo;
++{
++    return (IOConsoleInfo *)0;
++}
++
++- (port_t)devicePort
++{
++    return [[self deviceDescription] devicePort];
++}
++
++
++- hideCursor: (int)token;
++{
++    return self;
++}
++
++- moveCursor:(Point*)cursorLoc frame:(int)frame token:(int)t;
++{
++    return self;
++}
++
++- showCursor:(Point*)cursorLoc frame:(int)frame token:(int)t;
++{
++    return self;
++}
++
++- setBrightness:(int)level token:(int)t;
++{
++    return self;
++}
++
++/* Return a pointer to an IODisplayInfo describing the display.
++ */
++- (IODisplayInfo *)displayInfo;
++{
++    return &_display;
++}
++
++/* Return the registration token for this display.
++ */
++- (int)token;
++{
++    return _token;
++}
++
++/* Set the token for this display.
++ */
++- (void)setToken:(int)token;
++{
++    _token = token;
++}
++
++- (IOReturn)getIntValues:(unsigned int *)parameterArray
++		forParameter:(IOParameterName)parameterName
++		count:(unsigned int *)count
++{
++    unsigned maxCount;
++
++    maxCount = *count;
++    if (strcmp(parameterName, IO_GET_DISPLAY_PORT) == 0
++	|| strcmp(parameterName, "IO_Display_GetPort") == 0) {
++
++        port_t kernPort, userPort;
++
++	if (maxCount < IO_GET_DISPLAY_PORT_SIZE)
++	    return IO_R_INVALID_ARG;
++	kernPort = [self devicePort];
++	userPort = IOConvertPort(kernPort, IO_KernelIOTask, IO_CurrentTask);
++	parameterArray[0] = (unsigned)userPort;
++	*count = 1;
++	return IO_R_SUCCESS;
++    } else {
++	return [super getIntValues:parameterArray 
++	    forParameter:parameterName
++	    count:count];
++    }
++}
++
++- (IOReturn)getCharValues:(unsigned char *)parameterArray
++	forParameter:(IOParameterName)parameterName
++	count:(unsigned int *)count
++{
++    IOConfigTable *configTable;
++    const char *value;
++    unsigned int length;
++
++    configTable = [[self deviceDescription] configTable];
++    if (configTable != nil) {
++	value = [configTable valueForStringKey:parameterName];
++	if (value != 0) {
++	    length = strlen(value) + 1;
++	    if (length <= *count) {
++		strcpy(parameterArray, value);
++		*count = length;
++		return IO_R_SUCCESS;
++	    }
++	}
++    }
++    return [super getCharValues:parameterArray 
++	forParameter:parameterName
++	count:count];
++}
++@end

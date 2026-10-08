@@ -298,16 +298,14 @@ extern void ipc_kmsg_free(
 /* Allocate a kernel message buffer and copy a user message to the buffer */
 extern mach_msg_return_t ipc_kmsg_get(
 	mach_msg_header_t	*msg,
-	mach_msg_option_t	option,
-	mach_msg_size_t		size,
+	mach_msg_size_t		size,	/* plan 268: four arguments, as in the original */
 	integer_t		delta,
 	ipc_kmsg_t		*kmsgp);
 
 /* Allocate a kernel message buffer and copy a kernel message to the buffer */
 extern mach_msg_return_t ipc_kmsg_get_from_kernel(
 	mach_msg_header_t	*msg,
-	mach_msg_option_t	option,
-	mach_msg_size_t		size,
+	mach_msg_size_t		size,	/* plan 265: four arguments, as in the original */
 	integer_t		delta,
 	ipc_kmsg_t		*kmsgp);
 
@@ -358,23 +356,21 @@ extern mach_msg_return_t ipc_kmsg_copyout(
 	ipc_kmsg_t		kmsg,
 	ipc_space_t		space,
 	vm_map_t		map,
-	mach_port_t		notify,
-	ipc_kmsg_t		list);
+	mach_port_t		notify);	/* plan 265: four arguments, as in the original */
 
 /* Copyout port rights and out-of-line memory from the body of a message */
 extern mach_msg_return_t ipc_kmsg_copyout_body(
-    	ipc_kmsg_t		kmsg,
+	vm_offset_t		saddr,	/* plan 269: Mach4 form, as in the original */
+	vm_offset_t		eaddr,
 	ipc_space_t		space,
-	vm_map_t		map,
-	ipc_kmsg_t		list);
+	vm_map_t		map);
 
 /* Copyout port rights and out-of-line memory to a user message,
    not reversing the ports in the header */
 extern mach_msg_return_t ipc_kmsg_copyout_pseudo(
 	ipc_kmsg_t		kmsg,
 	ipc_space_t		space,
-	vm_map_t		map,
-	ipc_kmsg_t		list);
+	vm_map_t		map);	/* plan 268: three arguments, as in the original */
 
 /* Copyout the destination port in the message */
 extern void ipc_kmsg_copyout_dest( 

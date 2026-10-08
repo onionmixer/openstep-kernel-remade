@@ -1,0 +1,238 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_dir.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_dir.c	2026-10-07 16:05:58.000104298 +0900
+@@ -42,7 +42,7 @@
+ #import <ufs/fs.h>
+ #import <ufs/mount.h>
+ #import <ufs/fsdir.h>
+-#ifdef QUOTA
++#if QUOTA	/* plan 370: QUOTA is defined 0 (generated quota.h), not undefined */
+ #import <ufs/quota.h>
+ #endif
+ 
+@@ -71,6 +71,25 @@
+ 
+ struct buf *blkatoff();
+ 
++/* plan 370: these return no value (original keeps bp in %eax across the call 0x13f7a3) */
++void byte_swap_dir_block_in();
++void byte_swap_dir_block_out();
++
++/*
++ * plan 355 (authored, D024; original 0x13de14): blkatoff swaps a
++ * directory block to host byte order after reading it; swap it back to
++ * the disk byte order before releasing the buffer.
++ */
++void
++brelse_and_swap(bp)
++	struct buf *bp;
++{
++	if (bp) {
++		byte_swap_dir_block_out(bp);
++		brelse(bp);
++	}
++}
++
+ int dirchk = 0;
+ 
+ /*
+@@ -86,7 +105,7 @@
+ 	register struct direct *ep;	/* the current directory entry */
+ 	register struct inode *ip;
+ 	struct vnode *vp, *dnlc_lookup();
+-	int entryoffsetinblock;		/* offset of ep in addr's buffer */
++	int entryoffsetinblock = 0;	/* offset of ep in addr's buffer */	/* plan 355: initialized (original 0x13de47) */
+ 	int numdirpasses;		/* strategy for directory search */
+ 	off_t endsearch;		/* offset to end directory search */
+ 	int namlen = strlen(namep);	/* length of name */
+@@ -147,7 +166,7 @@
+ 		 */
+ 		if (blkoff(dp->i_fs, offset) == 0) {
+ 			if (bp != NULL)
+-				brelse(bp);
++				brelse_and_swap(bp);	/* plan 355 */
+ 			bp = blkatoff(dp, offset, (char **)0);
+ 			if (bp == 0) {
+ 				err = u.u_error;	/* XXX */
+@@ -204,6 +223,7 @@
+ 			 * XXX - is this still needed?
+ 			 */
+ 			ep_ino = ep->d_ino;
++			byte_swap_dir_block_out(bp);	/* plan 355 */
+ 			brelse(bp);
+ 			bp = (struct buf *)0;
+ 			dp->i_diroff = offset;
+@@ -247,7 +267,7 @@
+ 	IUNLOCK(dp);
+ bad2:
+ 	if (bp)
+-		brelse(bp);
++		brelse_and_swap(bp);	/* plan 355 */
+ 	return (err);
+ }
+ 
+@@ -468,7 +488,7 @@
+ 
+ out:
+ 	if (slot.bp)
+-		brelse(slot.bp);
++		brelse_and_swap(slot.bp);	/* plan 355 */
+ 	if (err && (op != DE_CREATE)) {
+ 		/*
+ 		 * Undo bumped link count
+@@ -504,6 +524,7 @@
+ 	int i;				/* length of mangled entry */
+ 	int needed;
+ 
++	slotfreespace = 0;	/* plan 355 (original 0x13e5d1) */
+ 	bp = NULL;
+ 	entryoffsetinblk = 0;
+ 	needed = LDIRSIZ(namlen);
+@@ -520,7 +541,7 @@
+ 		 */
+ 		if (blkoff(tdp->i_fs, offset) == 0) {
+ 			if (bp != NULL)
+-				brelse(bp);
++				brelse_and_swap(bp);	/* plan 355 */
+ 			bp = blkatoff(tdp, offset, (char **)0);
+ 			if (bp == 0) {
+ 				return (u.u_error);
+@@ -586,15 +607,16 @@
+ 		    *namep == *ep->d_name &&	/* fast chk 1st char */
+ 		    bcmp(namep, ep->d_name, namlen) == 0) {
+ 			tdp->i_diroff = offset;
+-			if (tdp->i_number == ep->d_ino) {
+-				*ipp = tdp;	/* we want ourself, ie "." */
+-				VN_HOLD(ITOV(tdp));
+-			} else {
++			if (tdp->i_number != ep->d_ino) {	/* plan 355: branch order as the original */
+ 				*ipp = iget(tdp->i_dev, tdp->i_fs, ep->d_ino);
+ 				if (*ipp == NULL) {
++					byte_swap_dir_block_out(bp);	/* plan 355 */
+ 					brelse(bp);
+ 					return (u.u_error);
+ 				}
++			} else {
++				*ipp = tdp;	/* we want ourself, ie "." */
++				VN_HOLD(ITOV(tdp));
+ 			}
+ 			slotp->status = EXIST;
+ 			slotp->offset = offset;
+@@ -608,7 +630,7 @@
+ 		entryoffsetinblk += ep->d_reclen;
+ 	}
+ 	if (bp) {
+-		brelse(bp);
++		brelse_and_swap(bp);	/* plan 355 */
+ 	}
+ 	/*
+ 	 * If we didn't find a slot, return an indication of where the new
+@@ -676,7 +698,7 @@
+ 	doingdirectory = ((sip->i_mode & IFMT) == IFDIR);
+ 	if ((tip->i_mode & IFMT) == IFDIR) {
+ 		if (!doingdirectory) {
+-			return (ENOTDIR);
++			return (EISDIR);	/* plan 355 (original 0x13e8ee) */
+ 		}
+ 		if (!dirempty(tip, tdp->i_number) || (tip->i_nlink > 2))
+ 			return (ENOTEMPTY);
+@@ -693,6 +715,7 @@
+ 	dnlc_remove(ITOV(tdp), namep);
+ 	slotp->ep->d_ino = sip->i_number;
+ 	dnlc_enter(ITOV(tdp), namep, ITOV(sip), NOCRED);
++	byte_swap_dir_block_out(slotp->bp);	/* plan 355 */
+ 	bwrite(slotp->bp);
+ 	slotp->bp = NULL;
+ 	if (u.u_error)
+@@ -789,6 +812,7 @@
+ 	dnlc_remove(ITOV(dp), "..");
+ 	dirp->dotdot_ino = npdp->i_number;
+ 	dnlc_enter(ITOV(dp), "..", ITOV(npdp), NOCRED);
++	byte_swap_dir_block_out(bp);	/* plan 355 */
+ 	bwrite(bp);
+ 	bp = NULL;
+ 	if (u.u_error) {
+@@ -830,7 +854,7 @@
+ 	return (0);
+ bad:
+ 	if (bp)
+-		brelse(bp);
++		brelse_and_swap(bp);	/* plan 355 */
+ 	IUNLOCK(dp);
+ 	return (err);
+ }
+@@ -888,6 +912,7 @@
+ 	/*
+ 	 * Write out the directory entry.
+ 	 */
++	byte_swap_dir_block_out(slotp->bp);	/* plan 355 */
+ 	bwrite(slotp->bp);
+ 	slotp->bp = NULL;
+ 	if (u.u_error)
+@@ -1059,7 +1084,7 @@
+ 	if (ip == NULL) {
+ 		return (u.u_error);
+ 	}
+-#ifdef QUOTA
++#if QUOTA	/* plan 370: QUOTA is defined 0 (generated quota.h), not undefined */
+ 	if (ip->i_dquot != NULL)
+ 		panic("direnter: dquot");
+ #endif
+@@ -1098,7 +1123,7 @@
+ 	if ((ip->i_mode & ISGID) && !groupmember(ip->i_gid)) {
+ 		ip->i_mode &= ~ISGID;
+ 	}
+-#ifdef QUOTA
++#if QUOTA	/* plan 370: QUOTA is defined 0 (generated quota.h), not undefined */
+ 	ip->i_dquot = getinoquota(ip);
+ #endif
+ 	/*
+@@ -1167,6 +1192,7 @@
+ 	*dirp = mastertemplate;			/* structure assignment */
+ 	dirp->dot_ino = ip->i_number;
+ 	dirp->dotdot_ino = dp->i_number;
++	byte_swap_dir_block_out(bp);	/* plan 355 */
+ 	bwrite(bp);
+ 	return (u.u_error);
+ }
+@@ -1292,6 +1318,7 @@
+ 		pep = (struct direct *)((char *)ep - slot.size);
+ 		pep->d_reclen += ep->d_reclen;
+ 	}
++	byte_swap_dir_block_out(slot.bp);	/* plan 355 */
+ 	bwrite(slot.bp);
+ 	slot.bp = NULL;
+ 	dp->i_flag |= IUPD|ICHG;
+@@ -1337,7 +1364,7 @@
+ 		iput(ip);
+ #endif	MACH
+ 	if (slot.bp)
+-		brelse(slot.bp);
++		brelse_and_swap(slot.bp);	/* plan 355 */
+ 	IUNLOCK(dp);
+ 	return (err);
+ }
+@@ -1376,6 +1403,7 @@
+ 		brelse(bp);
+ 		return (0);
+ 	}
++	byte_swap_dir_block_in(bp->b_un.b_addr, bp->b_bcount);	/* plan 355 (original 0x13f504) */
+ 	if (res)
+ 		*res = bp->b_un.b_addr + blkoff(fs, offset);
+ 	return (bp);
+@@ -1556,6 +1584,7 @@
+ 			break;
+ 		}
+ 		if (bp) {
++			byte_swap_dir_block_out(bp);	/* plan 370 (original 0x13f814-0x13f820) */
+ 			brelse(bp);
+ 			bp = NULL;
+ 		}
+@@ -1575,7 +1604,7 @@
+ 		}
+ 	}
+ 	if (bp)
+-		brelse(bp);
++		brelse_and_swap(bp);	/* plan 355 */
+ out:
+ 	/*
+ 	 * unserialize before relocking target to avoid a race

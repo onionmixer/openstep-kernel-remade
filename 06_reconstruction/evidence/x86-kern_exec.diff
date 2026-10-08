@@ -1,0 +1,297 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_exec.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_exec.c	2026-10-04 10:09:20.650592957 +0900
+@@ -46,13 +46,13 @@
+ #import <sys/uio.h>
+ #import <sys/acct.h>
+ #import <sys/vfs.h>		/* SUN_VFS */
+-#import <sys/exception.h>
++#import <mach/exception.h>	/* plan 210/291: was sys/exception.h */
+ 
+ #import <sys/signal.h>
+ #import <kern/task.h>
+ #import <kern/thread.h>
+ 
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 210/291: was vm/vm_param.h */
+ #import <vm/vm_map.h>
+ #import <vm/vm_object.h>
+ #import <vm/vnode_pager.h>
+@@ -62,7 +62,40 @@
+ 
+ #import <kern/parallel.h>
+ 
+-#import <sys/loader.h>
++#import <mach-o/loader.h>	/* plan 210/291: SDK, was sys/loader.h */
++#import <mach-o/fat.h>		/* plan 291 */
++#import <kern/mfs.h>		/* plan 291: struct vm_info (vnode_size) */
++#import <kernserv/c_utils.h>	/* plan 291: ROUND_PTR */
++
++/*
++ * plan 291 (authored, D024): load_machfile results, as in
++ * 07_kernel/src/kern/mach_loader.c (values as in Darwin 0.1
++ * kern/mach_loader.h).
++ */
++typedef int	load_return_t;
++
++typedef struct _load_result {
++	vm_offset_t	mach_header;
++	vm_offset_t	entry_point;
++	vm_offset_t	user_stack;
++	int		thread_count;
++	unsigned int
++	/* boolean_t */	unixproc	:1,
++			dynlinker	:1,
++					:0;
++} load_result_t;
++
++#define LOAD_SUCCESS		0
++#define LOAD_BADARCH		1
++#define LOAD_BADMACHO		2
++#define LOAD_SHLIB		3
++#define LOAD_FAILURE		4
++#define LOAD_NOSPACE		5
++#define LOAD_PROTECT		6
++#define LOAD_RESOURCE		7
++
++extern load_return_t	load_machfile(), fatfile_getarch();
++static int		load_return_to_errno();
+ 
+ #import <machine/vmparam.h>
+ 
+@@ -97,13 +130,18 @@
+ 	struct pathname pn;
+ #define	SHSIZE	32
+ 	char cfarg[SHSIZE];
+-	struct mach_header	*header;
+-	kern_return_t		ret;
+-	boolean_t		needargs;
++	boolean_t		is_fat;			/* plan 291 */
++	struct mach_header	*mach_header;
++	struct fat_header	*fat_header;
++	struct fat_arch		fat_arch;
++	load_return_t		lret;
++	load_result_t		load_result;
+ 	struct utask		*utask;
++	struct posix_proc	*px;			/* plan 291 */
+ 	union {
+ 		char	ex_shell[SHSIZE];  /* #! and name of interpreter */
+-		struct mach_header	header;
++		struct mach_header	mach_header;
++		struct fat_header	fat_header;	/* plan 291 */
+ 	} exdata;
+ 
+ 	int resid, error;
+@@ -183,14 +221,25 @@
+ 	if (error)
+ 		goto bad;
+ #ifndef lint
+-	if (resid > sizeof(exdata) - sizeof(exdata.header) &&
++	/* plan 291: fat binaries (original 0x104e51-0x104ed1) */
++	if (resid > sizeof(exdata) - MIN(sizeof(exdata.mach_header),
++					 sizeof(exdata.fat_header)) &&
+ 	    exdata.ex_shell[0] != '#') {
+ 		error = ENOEXEC;
+ 		goto bad;
+ 	}
+ #endif lint
+-	header = (struct mach_header *) &exdata;
+-	if (header->magic != MH_MAGIC) {
++	mach_header = &exdata.mach_header;
++	fat_header = &exdata.fat_header;
++	if (mach_header->magic == MH_MAGIC)
++		is_fat = FALSE;
++	else if (fat_header->magic == FAT_MAGIC ||
++		 fat_header->magic == FAT_CIGAM)
++		is_fat = TRUE;
++	else if (mach_header->magic == MH_CIGAM) {
++		error = EBADARCH;
++		goto bad;
++	} else {
+ 		if (exdata.ex_shell[0] != '#' ||
+ 		    exdata.ex_shell[1] != '!' ||
+ 		    indir) {
+@@ -302,22 +351,54 @@
+ 	}
+ 	nc = (nc + NBPW-1) & ~(NBPW-1);
+ 
+-	ret = load_machfile(vp, header, &needargs);
+-	if (ret != KERN_SUCCESS) {
+-		error = EBADEXEC;
++	/* plan 291: fat binaries and the new load_machfile (0x105251-0x10533e) */
++	if (is_fat) {
++		lret = fatfile_getarch(vp, (vm_offset_t)fat_header, &fat_arch);
++		if (lret != LOAD_SUCCESS) {
++			error = load_return_to_errno(lret);
++			goto bad;
++		}
++		error = vn_rdwr(UIO_READ, vp, (caddr_t)&exdata,
++		    sizeof (struct mach_header), fat_arch.offset,
++		    UIO_SYSSPACE, IO_UNIT, &resid);
++		if (error)
++			goto bad;
++		if (resid) {
++			error = EBADEXEC;
++			goto bad;
++		}
++		if (mach_header->magic != MH_MAGIC) {
++			error = ENOEXEC;
++			goto bad;
++		}
++		lret = load_machfile(vp, mach_header, fat_arch.offset,
++		    fat_arch.size, &load_result);
++	} else {
++		lret = load_machfile(vp, mach_header, 0,
++		    vp->vm_info->vnode_size, &load_result);
++	}
++	if (lret != LOAD_SUCCESS) {
++		error = load_return_to_errno(lret);
+ 		goto bad;
+ 	}
+ 	/*
+ 	 * set SUID/SGID protections, if no tracing
+ 	 */
+ 	if ((utask->uu_procp->p_flag&STRC)==0) {
++		/* plan 291: credentials under the lock, POSIX saved ids (0x105356-0x1053f9) */
++		px = get_posix_proc(utask->uu_procp->p_pid);
++		u_cred_lock();
+ 		if (uid != utask->uu_uid || gid != utask->uu_gid)
+ 			utask->uu_cred = crcopy(utask->uu_cred);
+ 		utask->uu_uid = uid;
+ 		utask->uu_procp->p_uid = uid;
+ 		utask->uu_gid = gid;
++		u_cred_unlock();
++		px->p_svgid = gid;
++		px->p_ruid = utask->uu_ruid;
++		px->p_svuid = uid;
+ 	} else
+-		thread_doexception(current_thread(), EXC_BREAKPOINT, 0, 0);
++		exception_from_kernel(EXC_BREAKPOINT, 0, 0);	/* plan 291 */
+ 
+ 	/*
+ 	 *	Temp hack until ld changes... allocate page 0 if its not
+@@ -347,11 +428,19 @@
+ 	VN_RELE(vp);
+ 	vp = NULL;
+ 
++	/* plan 291: the Unix stack is made here (0x10548b-0x1054c3) */
++	if (load_result.unixproc &&
++	    create_unix_stack(current_task()->map, load_result.user_stack)
++							!= KERN_SUCCESS) {
++		error = load_return_to_errno(LOAD_NOSPACE);
++		goto bad;
++	}
++
+ 	/*
+ 	 * Copy back arglist if necessary.
+ 	 */
+-	ucp = USRSTACK;
+-	if (needargs) {
++	ucp = utask->uu_procp->user_stack;	/* plan 210/291 */
++	if (load_result.unixproc) {
+ 		ucp = ucp - nc - NBPW;
+ 		ap = ucp - na*NBPW - 3*NBPW;
+ 		u.u_ar0[SP] = ap;
+@@ -383,6 +472,14 @@
+ 		}
+ 		(void) suword((caddr_t)ap, 0);
+ 	}
++	if (load_result.dynlinker) {		/* plan 291 (0x1055e3-0x105609) */
++		int	sp;
++
++		sp = u.u_ar0[SP] - NBPW;
++		u.u_ar0[SP] = sp;
++		(void) suword((caddr_t)sp, load_result.mach_header);
++	}
++	u.u_ar0[PC] = load_result.entry_point;	/* plan 291 */
+ 
+ 	/*
+ 	 * Reset caught signals.  Held signals
+@@ -400,6 +497,7 @@
+ 	utask->uu_onstack = 0;
+ 	utask->uu_sigsp = 0;
+ 	utask->uu_sigonstack = 0;
++	utask->uu_sigintr = 0;		/* plan 291 (0x105681) */
+ 
+ 	for (nc = utask->uu_lastfile; nc >= 0; --nc) {
+ 		if (utask->uu_pofile[nc] & UF_EXCLOSE) {
+@@ -431,6 +529,7 @@
+ 		pn.pn_pathlen = MAXCOMLEN;
+ 	bcopy((caddr_t)pn.pn_buf, (caddr_t)utask->uu_comm,
+ 	      (unsigned)(pn.pn_pathlen + 1));
++	utask->uu_procp->p_flag |= SEXEC;	/* plan 291 (0x105785) */
+ bad:
+ 	pn_free(&pn);
+ 	if (exec_args != 0)
+@@ -443,14 +542,16 @@
+ 
+ #define	unix_stack_size	(u.u_rlimit[RLIMIT_STACK].rlim_cur)
+ 
+-kern_return_t create_unix_stack(map)
++kern_return_t create_unix_stack(map, user_stack)	/* plan 210/291: user_stack argument */
+ 	vm_map_t	map;
++	vm_offset_t	user_stack;
+ {
+ 	vm_size_t	size;
+ 	vm_offset_t	addr;
+ 
++	u.u_procp->user_stack = user_stack;	/* plan 210/291 (original 0x1057f0) */
+ 	size = round_page(unix_stack_size);
+-	addr = trunc_page((vm_offset_t)USRSTACK - size);
++	addr = trunc_page((vm_offset_t)user_stack - size);	/* plan 210/291 */
+ /*	(void) vm_map_remove(map, addr, addr + size);*/
+ 	return(vm_map_find(map, VM_OBJECT_NULL, (vm_offset_t) 0,
+ 			&addr, size, FALSE));
+@@ -518,8 +619,8 @@
+ 				(unsigned) sizeof(init_program_name)+1);
+ 
+ 		argv[0] = (char *) init_addr;
+-		init_addr += ((sizeof(init_program_name)+1)*sizeof(long))/
+-				sizeof(long);
++		init_addr += sizeof(init_program_name);		/* plan 291 */
++		init_addr = (vm_offset_t)ROUND_PTR(char, init_addr);	/* plan 291 */
+ 
+ 		/*
+ 		 *	Put out first (and only) argument, similarly.
+@@ -532,8 +633,8 @@
+ 				(unsigned) sizeof(init_args));
+ 
+ 		argv[1] = (char *) init_addr;
+-		init_addr += ((sizeof(init_args)+1)*sizeof(long))/
+-				sizeof(long);
++		init_addr += sizeof(init_args);			/* plan 291 */
++		init_addr = (vm_offset_t)ROUND_PTR(char, init_addr);	/* plan 291 */
+ 
+ 		/*
+ 		 *	Null-end the argument list
+@@ -592,3 +693,31 @@
+ 	}
+ 	return(0);
+ }
++
++/*
++ * plan 291 (authored, D024; original static function 0x105a3c): map a
++ * load_machfile result to an errno (Darwin 0.1 has the same function).
++ */
++static int
++load_return_to_errno(lrtn)
++	load_return_t	lrtn;
++{
++	switch (lrtn) {
++	case LOAD_SUCCESS:
++		return 0;
++	case LOAD_BADARCH:
++		return EBADARCH;
++	case LOAD_BADMACHO:
++		return EBADMACHO;
++	case LOAD_SHLIB:
++		return ESHLIBVERS;
++	case LOAD_NOSPACE:
++		return ENOMEM;
++	case LOAD_PROTECT:
++		return EACCES;
++	case LOAD_RESOURCE:
++	case LOAD_FAILURE:
++	default:
++		return EBADEXEC;
++	}
++}

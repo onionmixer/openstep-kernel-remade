@@ -1,6 +1,6 @@
 --- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_time.c	2026-09-11 10:02:49.485217287 +0900
-+++ 07_kernel/src/bsd/kern/kern_time.c	2026-10-02 16:03:41.397107522 +0900
-@@ -46,6 +46,10 @@
++++ 07_kernel/src/bsd/kern/kern_time.c	2026-10-08 18:59:33.997794339 +0900
+@@ -46,6 +46,12 @@
  
  #import <machine/reg.h>
  #import <machine/cpu.h>
@@ -8,10 +8,12 @@
 +#import <kern/host.h>			/* plan 145 (authored) */
 +
 +extern volatile mapped_time_value_t *mtime;	/* plan 145 (authored) */
++
++struct	timeval boottime;	/* plan 401 (D060; D024, no evidence for the place) */
  /* 
   * Time of day and interval timer support.
   *
-@@ -111,19 +115,38 @@
+@@ -111,19 +117,38 @@
  setthetime(tv)
  	struct timeval *tv;
  {
@@ -58,7 +60,7 @@
  
  adjtime()
  {
-@@ -132,8 +155,7 @@
+@@ -132,8 +157,7 @@
  		struct timeval *olddelta;
  	} *uap = (struct a *)u.u_ap;
  	struct timeval atv, oatv;
@@ -68,7 +70,7 @@
  
  	if (!suser()) 
  		return;
-@@ -141,26 +163,62 @@
+@@ -141,26 +165,62 @@
  		sizeof (struct timeval));
  	if (u.u_error)
  		return;
@@ -148,7 +150,7 @@
  }
  
  /*
-@@ -192,6 +250,7 @@
+@@ -192,6 +252,7 @@
  	} *uap = (struct a *)u.u_ap;
  	struct itimerval aitv;
  	int s;
@@ -156,7 +158,7 @@
  
  	if (uap->which > 2) {
  		u.u_error = EINVAL;
-@@ -199,6 +258,7 @@
+@@ -199,6 +260,7 @@
  	}
  	s = splclock();
  	if (uap->which == ITIMER_REAL) {
@@ -164,7 +166,7 @@
  		/*
  		 * Convert from absoulte to relative time in .it_value
  		 * part of real time timer.  If time for real time timer
-@@ -207,10 +267,10 @@
+@@ -207,10 +269,10 @@
  		 */
  		aitv = u.u_procp->p_realtimer;
  		if (timerisset(&aitv.it_value))
@@ -177,7 +179,7 @@
  	} else
  		aitv = u.u_timer[uap->which];
  	splx(s);
-@@ -227,6 +287,7 @@
+@@ -227,6 +289,7 @@
  	struct itimerval aitv, *aitvp;
  	int s;
  	register struct proc *p = u.u_procp;
@@ -185,7 +187,7 @@
  
  	if (uap->which > 2) {
  		u.u_error = EINVAL;
-@@ -249,9 +310,10 @@
+@@ -249,9 +312,10 @@
  	}
  	s = splclock();
  	if (uap->which == ITIMER_REAL) {
@@ -197,7 +199,7 @@
  			timeout(realitexpire, (caddr_t)p, hzto(&aitv.it_value));
  		}
  		p->p_realtimer = aitv;
-@@ -272,6 +334,7 @@
+@@ -272,6 +336,7 @@
  	register struct proc *p;
  {
  	int s;
@@ -205,7 +207,7 @@
  
  	psignal(p, SIGALRM);
  	if (!timerisset(&p->p_realtimer.it_interval)) {
-@@ -283,9 +346,10 @@
+@@ -283,9 +348,10 @@
  	 * If the time's way off, don't try to compensate by getting
  	 * there incrementally.
  	 */
@@ -218,7 +220,7 @@
  		timeout(realitexpire, (caddr_t)p,
  			hzto(&p->p_realtimer.it_value));
  		splx(s);
-@@ -298,7 +362,7 @@
+@@ -298,7 +364,7 @@
  		s = splclock();
  		timevaladd(&p->p_realtimer.it_value,
  		    &p->p_realtimer.it_interval);

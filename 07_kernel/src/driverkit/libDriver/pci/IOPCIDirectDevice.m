@@ -1,0 +1,194 @@
+/*
+ * IOPCIDirectDevice.m (plan 345).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "pci/IOPCIDirectDevice.m", 0x1c1748-0x1c1b85).
+ * The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/pci/IOPCIDirectDevice.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+#import <driverkit/i386/PCI.h>
+/* plan 345: no driverkit/i386/PCIKernBus.h (in no reference tree); build adaptation verified against the original */
+#import <driverkit/KernBus.h>
+#import <driverkit/i386/IOPCIDirectDevice.h>
+#import <driverkit/i386/IOPCIDeviceDescription.h>
+#import <driverkit/IODeviceDescription.h>
+/* plan 345: declarations reconstructed from the original bytes (byte arguments: movzx) */
+@interface Object(PCIBusDecl)
+- (IOReturn)getRegister:(unsigned char)address device:(unsigned char)dev function:(unsigned char)func bus:(unsigned char)bus data:(unsigned long *)data;
+- (IOReturn)setRegister:(unsigned char)address device:(unsigned char)dev function:(unsigned char)func bus:(unsigned char)bus data:(unsigned long)data;
+@end
+
+static inline id
+getThePCIBus(void)
+{
+    return [KernBus lookupBusInstanceWithName:"PCI" busId:0];
+}
+
+@implementation IODirectDevice(IOPCIDirectDevice)
+
+/*
+ * Determine whether or not the associated device is connected to a PCI 
+ * bus. Returns YES if so, else returns NO.
+ */
++ (BOOL)isPCIPresent
+{
+	id	thePCIBus = getThePCIBus();
+	
+	if (thePCIBus == nil) return NO;
+	return [thePCIBus isPCIPresent];
+}
+
+- (BOOL)isPCIPresent
+{
+	id	thePCIBus = getThePCIBus();
+
+	if (thePCIBus == nil) return NO;
+	return [thePCIBus isPCIPresent];
+}
+
+
+/*
+ * Reads the device's entire configuration space.  Returns IO_R_SUCCESS if
+ * successful.  If this method fails, the driver should make no assumptions
+ * about the state of the data returned in the IOPCIConfigSpace struct.
+ */
++ (IOReturn)getPCIConfigSpace: (IOPCIConfigSpace *) configSpace
+	withDeviceDescription: descr
+{
+	unsigned char	devNum, funNum, busNum;
+	unsigned long	*ptr;
+	int		address;
+	IOReturn	ret;
+	id	thePCIBus = getThePCIBus();
+
+	if (![self isPCIPresent]) return IO_R_NO_DEVICE;
+
+	ret = [descr getPCIdevice: &devNum function: &funNum bus: &busNum];
+	if (ret != IO_R_SUCCESS) return ret;
+
+	ptr = (unsigned long *)configSpace;
+	for (address=0x00; address<0x100; address+=0x04) {
+		ret = [thePCIBus getRegister: address
+				      device: devNum
+				    function: funNum
+					 bus: busNum
+					data: ptr++];
+		if (ret != IO_R_SUCCESS) return ret;
+	}
+	return IO_R_SUCCESS;	
+}
+
+- (IOReturn)getPCIConfigSpace: (IOPCIConfigSpace *) configSpace
+{
+	return [[self class] getPCIConfigSpace: configSpace
+			withDeviceDescription:[self deviceDescription]];
+}
+
+
+/*
+ * Writes the device's entire configuration space.  Returns IO_R_SUCCESS if
+ * successful.  If this method fails, the driver should make no assumptions
+ * about the state of the device's configuration space.
+ */
++ (IOReturn)setPCIConfigSpace: (IOPCIConfigSpace *) configSpace
+	withDeviceDescription: descr
+{
+	unsigned char	devNum, funNum, busNum;
+	unsigned long	*ptr;
+	int		address;
+	IOReturn	ret;
+	id	thePCIBus = getThePCIBus();
+
+	if (![self isPCIPresent]) return IO_R_NO_DEVICE;
+
+	ret = [descr getPCIdevice: &devNum function: &funNum bus: &busNum];
+	if (ret != IO_R_SUCCESS) return ret;
+
+	ptr = (unsigned long *)configSpace;
+	for (address=0x00; address<0x100; address+=0x04) {
+		ret = [thePCIBus setRegister: address
+				      device: devNum
+				    function: funNum
+					 bus: busNum
+					data: *ptr++];
+		if (ret != IO_R_SUCCESS) return ret;
+	}
+	return IO_R_SUCCESS;	
+}
+
+- (IOReturn)setPCIConfigSpace: (IOPCIConfigSpace *) configSpace
+{
+	return [[self class] setPCIConfigSpace: configSpace
+			withDeviceDescription:[self deviceDescription]];
+}
+
+
+/*
+ * Reads from the device's configuration space.  All access are 32 bits wide
+ * and the address must be aligned as such.
+ */
++ (IOReturn)getPCIConfigData: (unsigned long *) data
+		  atRegister: (unsigned char) address
+       withDeviceDescription: descr
+{
+	unsigned char devNum, funNum, busNum;
+	IOReturn      ret;
+	id	thePCIBus = getThePCIBus();
+
+	if (![self isPCIPresent]) return IO_R_NO_DEVICE;
+
+	ret = [descr getPCIdevice: &devNum function: &funNum bus: &busNum];
+	if (ret != IO_R_SUCCESS) return ret;
+
+	return [thePCIBus getRegister: address
+			       device: devNum
+			     function: funNum
+				  bus: busNum
+				 data: data];
+}
+
+- (IOReturn)getPCIConfigData: (unsigned long *) data
+		  atRegister: (unsigned char) address
+{
+	return [[self class] getPCIConfigData: data atRegister: address
+			withDeviceDescription:[self deviceDescription]];
+}
+
+
+/*
+ * Writes to the device's configuration space.  All access are 32 bits wide
+ * and the address must be aligned as such.  This method reads the register
+ * back after setting it, and returns that value.  If this method fails, it
+ * will return PCI_DEFAULT_DATA
+ */
++ (IOReturn)setPCIConfigData: (unsigned long) data
+		  atRegister: (unsigned char) address
+       withDeviceDescription: descr
+{
+	unsigned char devNum, funNum, busNum;
+	IOReturn      ret;
+	id	thePCIBus = getThePCIBus();
+
+	if (![self isPCIPresent]) return IO_R_NO_DEVICE;
+
+	ret = [descr getPCIdevice: &devNum function: &funNum bus: &busNum];
+	if (ret != IO_R_SUCCESS) return ret;
+
+	return [thePCIBus setRegister: address
+			       device: devNum
+			     function: funNum
+				  bus: busNum
+				 data: data];
+}
+
+- (IOReturn)setPCIConfigData: (unsigned long) data
+		  atRegister: (unsigned char) address
+{
+	return [[self class] setPCIConfigData: data atRegister: address
+			withDeviceDescription:[self deviceDescription]];
+}
+
+@end
+

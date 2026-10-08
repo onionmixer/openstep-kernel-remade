@@ -1,0 +1,545 @@
+--- 01_resources/upstream/mach4/kernel/ipc/mach_msg.c	2026-09-11 10:02:48.334203137 +0900
++++ 07_kernel/src/ipc/mach_msg.c	2026-10-04 01:24:10.069921795 +0900
+@@ -39,6 +39,8 @@
+ #include <mach_ipc_compat.h>
+ #include <norma_ipc.h>
+ 
++#define	CONTINUATIONS	/* plan 268: Mach4 i386/kernel/Makerules:34 passes -DCONTINUATIONS */
++
+ #include <mach/kern_return.h>
+ #include <mach/port.h>
+ #include <mach/message.h>
+@@ -107,7 +109,7 @@
+ 	ipc_kmsg_t kmsg;
+ 	mach_msg_return_t mr;
+ 
+-	mr = ipc_kmsg_get(msg, send_size, &kmsg);
++	mr = ipc_kmsg_get(msg, send_size, 0, &kmsg);	/* plan 268 */
+ 	if (mr != MACH_MSG_SUCCESS)
+ 		return mr;
+ 
+@@ -126,7 +128,8 @@
+ 	if (option & MACH_SEND_NOTIFY) {
+ 		mr = ipc_mqueue_send(kmsg, MACH_SEND_TIMEOUT,
+ 				     ((option & MACH_SEND_TIMEOUT) ?
+-				      time_out : MACH_MSG_TIMEOUT_NONE));
++				      time_out : MACH_MSG_TIMEOUT_NONE),
++				     IMQ_NULL_CONTINUE);
+ 		if (mr == MACH_SEND_TIMED_OUT) {
+ 			ipc_port_t dest = (ipc_port_t)
+ 				kmsg->ikm_header.msgh_remote_port;
+@@ -143,13 +146,14 @@
+ 		}
+ 	} else
+ 		mr = ipc_mqueue_send(kmsg, option & MACH_SEND_TIMEOUT,
+-				     time_out);
++				     time_out,
++				     IMQ_NULL_CONTINUE);
+ 
+ 	if (mr != MACH_MSG_SUCCESS) {
+ 		mr |= ipc_kmsg_copyout_pseudo(kmsg, space, map);
+ 
+ 		assert(kmsg->ikm_marequest == IMAR_NULL);
+-		(void) ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size);
++		(void) ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 	}
+ 
+ 	return mr;
+@@ -267,7 +271,7 @@
+ 	if (mr != MACH_MSG_SUCCESS) {
+ 		if ((mr &~ MACH_MSG_MASK) == MACH_RCV_BODY_ERROR) {
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					    kmsg->ikm_header.msgh_size);
++					    kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 		} else {
+ 			ipc_kmsg_copyout_dest(kmsg, space);
+ 			(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -276,7 +280,7 @@
+ 		return mr;
+ 	}
+ 
+-	return ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size);
++	return ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ }
+ 
+ #ifdef CONTINUATIONS
+@@ -363,7 +367,7 @@
+ 	if (mr != MACH_MSG_SUCCESS) {
+ 		if ((mr &~ MACH_MSG_MASK) == MACH_RCV_BODY_ERROR) {
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					    kmsg->ikm_header.msgh_size);
++					    kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 		} else {
+ 			ipc_kmsg_copyout_dest(kmsg, space);
+ 			(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -373,7 +377,7 @@
+ 		/*NOTREACHED*/
+ 	}
+ 
+-	mr = ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size);
++	mr = ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 	thread_syscall_return(mr);
+ 	/*NOTREACHED*/
+ }
+@@ -476,6 +480,7 @@
+ 			goto slow_get;
+ 		}
+ 
++		kmsg->ikm_delta = 0;	/* plan 268 */
+ 		kmsg->ikm_header.msgh_size = send_size;
+ 
+ 	    fast_copyin:
+@@ -1059,7 +1064,7 @@
+ 		assert((ipc_port_t) kmsg->ikm_header.msgh_remote_port
+ 						== dest_port);
+ 
+-		reply_size = kmsg->ikm_header.msgh_size;
++		reply_size = kmsg->ikm_header.msgh_size + kmsg->ikm_delta;	/* plan 268 */
+ 		if (rcv_size < reply_size)
+ 			goto slow_copyout;
+ 
+@@ -1250,7 +1255,7 @@
+ 
+ 			if (mr != MACH_MSG_SUCCESS) {
+ 				(void) ipc_kmsg_put(msg, kmsg,
+-					kmsg->ikm_header.msgh_size);
++					kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 				return mr | MACH_RCV_BODY_ERROR;
+ 			}
+ 			goto fast_put;
+@@ -1300,7 +1305,7 @@
+ 		 *	receive reply, etc.
+ 		 */
+ 
+-		mr = ipc_kmsg_get(msg, send_size, &temp_kmsg);
++		mr = ipc_kmsg_get(msg, send_size, 0, &temp_kmsg);	/* plan 268 */
+ 		if (mr != MACH_MSG_SUCCESS) {
+ 			thread_syscall_return(mr);
+ 			/*NOTREACHED*/
+@@ -1394,7 +1399,7 @@
+ 
+ 			assert(kmsg->ikm_marequest == IMAR_NULL);
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					    kmsg->ikm_header.msgh_size);
++					    kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 			thread_syscall_return(mr);
+ 			/*NOTREACHED*/
+ 		}
+@@ -1503,14 +1508,15 @@
+ 		 */
+ 
+ 		mr = ipc_mqueue_send(kmsg, MACH_MSG_OPTION_NONE,
+-				     MACH_MSG_TIMEOUT_NONE);
++				     MACH_MSG_TIMEOUT_NONE,
++				     IMQ_NULL_CONTINUE);
+ 		if (mr != MACH_MSG_SUCCESS) {
+ 			mr |= ipc_kmsg_copyout_pseudo(kmsg, space,
+ 						      current_map());
+ 
+ 			assert(kmsg->ikm_marequest == IMAR_NULL);
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					    kmsg->ikm_header.msgh_size);
++					    kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 			thread_syscall_return(mr);
+ 			/*NOTREACHED*/
+ 		}
+@@ -1572,7 +1578,7 @@
+ 		 *	ipc_kmsg_copyout/ipc_kmsg_put.
+ 		 */
+ 
+-		reply_size = kmsg->ikm_header.msgh_size;
++		reply_size = kmsg->ikm_header.msgh_size + kmsg->ikm_delta;	/* plan 268 */
+ 		if (rcv_size < reply_size) {
+ 			ipc_kmsg_copyout_dest(kmsg, space);
+ 			(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -1585,7 +1591,7 @@
+ 		if (mr != MACH_MSG_SUCCESS) {
+ 			if ((mr &~ MACH_MSG_MASK) == MACH_RCV_BODY_ERROR) {
+ 				(void) ipc_kmsg_put(msg, kmsg,
+-						kmsg->ikm_header.msgh_size);
++						kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 			} else {
+ 				ipc_kmsg_copyout_dest(kmsg, space);
+ 				(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -1609,7 +1615,7 @@
+ 		vm_map_t map = current_map();
+ 		ipc_kmsg_t kmsg;
+ 
+-		mr = ipc_kmsg_get(msg, send_size, &kmsg);
++		mr = ipc_kmsg_get(msg, send_size, 0, &kmsg);	/* plan 268 */
+ 		if (mr != MACH_MSG_SUCCESS)
+ 			return mr;
+ 
+@@ -1620,13 +1626,14 @@
+ 		}
+ 
+ 		mr = ipc_mqueue_send(kmsg, MACH_MSG_OPTION_NONE,
+-				     MACH_MSG_TIMEOUT_NONE);
++				     MACH_MSG_TIMEOUT_NONE,
++				     IMQ_NULL_CONTINUE);
+ 		if (mr != MACH_MSG_SUCCESS) {
+ 			mr |= ipc_kmsg_copyout_pseudo(kmsg, space, map);
+ 
+ 			assert(kmsg->ikm_marequest == IMAR_NULL);
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					    kmsg->ikm_header.msgh_size);
++					    kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 		}
+ 
+ 		return mr;
+@@ -1677,7 +1684,7 @@
+ 		if (mr != MACH_MSG_SUCCESS) {
+ 			if ((mr &~ MACH_MSG_MASK) == MACH_RCV_BODY_ERROR) {
+ 				(void) ipc_kmsg_put(msg, kmsg,
+-						kmsg->ikm_header.msgh_size);
++						kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 			} else {
+ 				ipc_kmsg_copyout_dest(kmsg, space);
+ 				(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -1686,7 +1693,7 @@
+ 			return mr;
+ 		}
+ 
+-		return ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size);
++		return ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 	} else if (option == MACH_MSG_OPTION_NONE) {
+ 		/*
+ 		 *	We can measure the "null mach_msg_trap"
+@@ -1764,7 +1771,7 @@
+ 	if (mr != MACH_MSG_SUCCESS) {
+ 		if ((mr &~ MACH_MSG_MASK) == MACH_RCV_BODY_ERROR) {
+ 			(void) ipc_kmsg_put(msg, kmsg,
+-					kmsg->ikm_header.msgh_size);
++					kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 		} else {
+ 			ipc_kmsg_copyout_dest(kmsg, space);
+ 			(void) ipc_kmsg_put(msg, kmsg, sizeof *msg);
+@@ -1774,7 +1781,7 @@
+ 		/*NOTREACHED*/
+ 	}
+ 
+-	mr = ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size);
++	mr = ipc_kmsg_put(msg, kmsg, kmsg->ikm_header.msgh_size + kmsg->ikm_delta);	/* plan 268 */
+ 	thread_syscall_return(mr);
+ 	/*NOTREACHED*/
+ }
+@@ -1911,16 +1918,18 @@
+ 	ipc_space_t space = current_space();
+ 	vm_map_t map = current_map();
+ 	ipc_kmsg_t kmsg;
++	integer_t send_delta = send_size;	/* plan 268 */
+ 	mach_msg_return_t mr;
+ 
+ 	send_size = (send_size + 3) & ~3; /* round up */
++	send_delta -= send_size;		/* plan 268 */
+ 
+ 	if (send_size > MSG_SIZE_MAX)
+ 		return SEND_MSG_TOO_LARGE;
+ 
+ 	mr = ipc_kmsg_get((mach_msg_header_t *) msg,
+ 			  (mach_msg_size_t) send_size,
+-			  &kmsg);
++			  send_delta, &kmsg);	/* plan 268 */
+ 	if (mr != MACH_MSG_SUCCESS)
+ 		return msg_return_translate(mr);
+ 
+@@ -1931,10 +1940,13 @@
+ 	}
+ 
+ 	if (option & SEND_NOTIFY) {
+-		mr = ipc_mqueue_send(kmsg, MACH_SEND_TIMEOUT,
++		mr = ipc_mqueue_send(kmsg, MACH_SEND_TIMEOUT |
++				     ((option & SEND_SWITCH) ?
++				      MACH_SEND_SWITCH : 0),	/* plan 268 */
+ 				     ((option & SEND_TIMEOUT) ?
+ 				      (mach_msg_timeout_t) time_out :
+-				      MACH_MSG_TIMEOUT_NONE));
++				      MACH_MSG_TIMEOUT_NONE),
++				     IMQ_NULL_CONTINUE);
+ 		if (mr == MACH_SEND_TIMED_OUT) {
+ 			ipc_port_t dest = (ipc_port_t)
+ 				kmsg->ikm_header.msgh_remote_port;
+@@ -1946,12 +1958,20 @@
+ 				return SEND_WILL_NOTIFY;
+ 			}
+ 		}
+-	} else
++	} else if (option & SEND_SWITCH)	/* plan 268: handoff to the receiver */
++		mr = ipc_mqueue_send(kmsg,
++				     ((option & SEND_TIMEOUT) ?
++				      MACH_SEND_TIMEOUT :
++				      MACH_MSG_OPTION_NONE) | MACH_SEND_SWITCH,
++				     (mach_msg_timeout_t) time_out,
++				     msg_send_switch_continue);
++	else
+ 		mr = ipc_mqueue_send(kmsg,
+ 				     ((option & SEND_TIMEOUT) ?
+ 				      MACH_SEND_TIMEOUT :
+ 				      MACH_MSG_OPTION_NONE),
+-				     (mach_msg_timeout_t) time_out);
++				     (mach_msg_timeout_t) time_out,
++				     IMQ_NULL_CONTINUE);
+ 
+ 	if (mr != MACH_MSG_SUCCESS)
+ 		ipc_kmsg_destroy(kmsg);
+@@ -1960,6 +1980,18 @@
+ }
+ 
+ /*
++ *	plan 268: continuation for a msg_send_trap that handed off
++ *	to its receiver; written from the original bytes (D024).
++ */
++
++void
++msg_send_switch_continue()
++{
++	thread_syscall_return(SEND_SUCCESS);
++	/*NOTREACHED*/
++}
++
++/*
+  *	Routine:	msg_receive_trap [mach trap]
+  *	Purpose:
+  *		Receive a message.
+@@ -2010,7 +2042,8 @@
+ 	mr = ipc_mqueue_receive(mqueue,
+ 				(option & RCV_TIMEOUT) ?
+ 				MACH_RCV_TIMEOUT : MACH_MSG_OPTION_NONE,
+-				(mach_msg_size_t) rcv_size,
++				(option & RCV_LARGE) ?	/* plan 268 */
++				(mach_msg_size_t) rcv_size : MACH_MSG_SIZE_MAX,
+ 				(mach_msg_timeout_t) time_out,
+ 				FALSE, msg_receive_continue,
+ 				&kmsg, &seqno);
+@@ -2021,8 +2054,6 @@
+ 			msg_size_t real_size =
+ 				(msg_size_t) (mach_msg_size_t) kmsg;
+ 
+-			assert(real_size > rcv_size);
+-
+ 			(void) copyout((vm_offset_t) &real_size,
+ 				       (vm_offset_t) &msg->msg_size,
+ 				       sizeof(msg_size_t));
+@@ -2031,11 +2062,15 @@
+ 		return msg_return_translate(mr);
+ 	}
+ 
+-	assert(kmsg->ikm_header.msgh_size <= (mach_msg_size_t) rcv_size);
++	if (kmsg->ikm_header.msgh_size > (mach_msg_size_t) rcv_size) {
++		/* plan 268: too large for an old-style receive */
++		ipc_kmsg_destroy(kmsg);
++		return RCV_TOO_LARGE;
++	}
+ 
+ 	mr = ipc_kmsg_copyout_compat(kmsg, space, map);
+-	assert(mr == MACH_MSG_SUCCESS);
+ 
++	kmsg->ikm_header.msgh_size += kmsg->ikm_delta;	/* plan 268 */
+ 	mr = ipc_kmsg_put((mach_msg_header_t *) msg, kmsg,
+ 			  kmsg->ikm_header.msgh_size);
+ 	return msg_return_translate(mr);
+@@ -2066,6 +2101,7 @@
+ 	ipc_pset_t pset;
+ 	ipc_mqueue_t mqueue;
+ 	ipc_kmsg_t kmsg;
++	integer_t send_delta = send_size;	/* plan 268 */
+ 	mach_port_seqno_t seqno;
+ 	mach_msg_return_t mr;
+ 
+@@ -2081,13 +2117,14 @@
+ 	 */
+ 
+ 	send_size = (send_size + 3) & ~3; /* round up */
++	send_delta -= send_size;		/* plan 268 */
+ 
+ 	if (send_size > MSG_SIZE_MAX)
+ 		return SEND_MSG_TOO_LARGE;
+ 
+ 	mr = ipc_kmsg_get((mach_msg_header_t *) msg,
+ 			  (mach_msg_size_t) send_size,
+-			  &kmsg);
++			  send_delta, &kmsg);	/* plan 268 */
+ 	if (mr != MACH_MSG_SUCCESS)
+ 		return msg_return_translate(mr);
+ 
+@@ -2098,14 +2135,70 @@
+ 	}
+ 
+ 	reply = (ipc_port_t) kmsg->ikm_header.msgh_local_port;
+-	if (IP_VALID(reply))
++	if (IP_VALID(reply)) {
++		/*
++		 *	plan 266/268: requests for kernel objects are
++		 *	served here, and the reply is handed straight
++		 *	back when nothing else is queued on the reply port
++		 *	(written from the original bytes, D024).
++		 */
++		ipc_port_t dest = (ipc_port_t) kmsg->ikm_header.msgh_remote_port;
++
+ 		ipc_port_reference(reply);
++		ip_lock(dest);
++
++		if (dest->ip_receiver == ipc_space_kernel) {
++			ip_unlock(dest);
++
++			kmsg = ipc_kobject_server(kmsg);
++			if (kmsg == IKM_NULL)
++				goto receive_reply;
++
++			ip_lock(reply);
++
++			if (!ip_active(reply) ||
++			    (reply->ip_receiver != space) ||
++			    (reply->ip_pset != IPS_NULL) ||
++			    (rcv_size < kmsg->ikm_header.msgh_size +
++					kmsg->ikm_delta)) {
++				ip_unlock(reply);
++				ipc_mqueue_send_always(kmsg);
++				goto receive_reply;
++			}
++
++			mqueue = &reply->ip_messages;
++			imq_lock(mqueue);
++
++			if ((ipc_thread_queue_first(&mqueue->imq_threads)
++							!= ITH_NULL) ||
++			    (ipc_kmsg_queue_first(&mqueue->imq_messages)
++							!= IKM_NULL)) {
++				imq_unlock(mqueue);
++				ip_unlock(reply);
++				ipc_mqueue_send_always(kmsg);
++				goto receive_reply;
++			}
++
++			reply->ip_seqno++;
++			imq_unlock(mqueue);
++
++			ip_release(reply);
++			ip_unlock(reply);
++
++			goto copyout_reply;
++		}
++
++		ip_unlock(dest);
++	}
+ 
+ 	if (option & SEND_NOTIFY) {
+-		mr = ipc_mqueue_send(kmsg, MACH_SEND_TIMEOUT,
++		mr = ipc_mqueue_send(kmsg, MACH_SEND_TIMEOUT |
++				     ((option & SEND_SWITCH) ?
++				      MACH_SEND_SWITCH : 0),	/* plan 268 */
+ 				     ((option & SEND_TIMEOUT) ?
+ 				      (mach_msg_timeout_t) send_timeout :
+-				      MACH_MSG_TIMEOUT_NONE));
++				      MACH_MSG_TIMEOUT_NONE),
++				     IMQ_NULL_CONTINUE);
+ 		if (mr == MACH_SEND_TIMED_OUT) {
+ 			ipc_port_t dest = (ipc_port_t)
+ 				kmsg->ikm_header.msgh_remote_port;
+@@ -2119,12 +2212,20 @@
+ 				return SEND_WILL_NOTIFY;
+ 			}
+ 		}
+-	} else
++	} else if (option & SEND_SWITCH)	/* plan 268: handoff to the receiver */
++		mr = ipc_mqueue_send(kmsg,
++				     ((option & SEND_TIMEOUT) ?
++				      MACH_SEND_TIMEOUT :
++				      MACH_MSG_OPTION_NONE) | MACH_SEND_SWITCH,
++				     (mach_msg_timeout_t) send_timeout,
++				     IMQ_NULL_CONTINUE);
++	else
+ 		mr = ipc_mqueue_send(kmsg,
+ 				     ((option & SEND_TIMEOUT) ?
+ 				      MACH_SEND_TIMEOUT :
+ 				      MACH_MSG_OPTION_NONE),
+-				     (mach_msg_timeout_t) send_timeout);
++				     (mach_msg_timeout_t) send_timeout,
++				     IMQ_NULL_CONTINUE);
+ 
+ 	if (mr != MACH_MSG_SUCCESS) {
+ 		ipc_kmsg_destroy(kmsg);
+@@ -2133,6 +2234,7 @@
+ 		return msg_return_translate(mr);
+ 	}
+ 
++    receive_reply:	/* plan 268 */
+ 	if (!IP_VALID(reply))
+ 		return RCV_INVALID_PORT;
+ 
+@@ -2183,7 +2285,8 @@
+ 	mr = ipc_mqueue_receive(mqueue,
+ 				(option & RCV_TIMEOUT) ?
+ 				MACH_RCV_TIMEOUT : MACH_MSG_OPTION_NONE,
+-				(mach_msg_size_t) rcv_size,
++				(option & RCV_LARGE) ?	/* plan 268 */
++				(mach_msg_size_t) rcv_size : MACH_MSG_SIZE_MAX,
+ 				(mach_msg_timeout_t) rcv_timeout,
+ 				FALSE, msg_receive_continue,
+ 				&kmsg, &seqno);
+@@ -2194,8 +2297,6 @@
+ 			msg_size_t real_size =
+ 				(msg_size_t) (mach_msg_size_t) kmsg;
+ 
+-			assert(real_size > rcv_size);
+-
+ 			(void) copyout((vm_offset_t) &real_size,
+ 				       (vm_offset_t) &msg->msg_size,
+ 				       sizeof(msg_size_t));
+@@ -2204,11 +2305,16 @@
+ 		return msg_return_translate(mr);
+ 	}
+ 
+-	assert(kmsg->ikm_header.msgh_size <= (mach_msg_size_t) rcv_size);
++	if (kmsg->ikm_header.msgh_size > (mach_msg_size_t) rcv_size) {
++		/* plan 268: too large for an old-style receive */
++		ipc_kmsg_destroy(kmsg);
++		return RCV_TOO_LARGE;
++	}
+ 
++    copyout_reply:	/* plan 268 */
+ 	mr = ipc_kmsg_copyout_compat(kmsg, space, map);
+-	assert(mr == MACH_MSG_SUCCESS);
+ 
++	kmsg->ikm_header.msgh_size += kmsg->ikm_delta;	/* plan 268 */
+ 	mr = ipc_kmsg_put((mach_msg_header_t *) msg,
+ 			  kmsg, kmsg->ikm_header.msgh_size);
+ 	return msg_return_translate(mr);
+@@ -2242,7 +2348,8 @@
+ 	mr = ipc_mqueue_receive(mqueue,
+ 				(option & RCV_TIMEOUT) ?
+ 				MACH_RCV_TIMEOUT : MACH_MSG_OPTION_NONE,
+-				(mach_msg_size_t) rcv_size,
++				(option & RCV_LARGE) ?	/* plan 268 */
++				(mach_msg_size_t) rcv_size : MACH_MSG_SIZE_MAX,
+ 				(mach_msg_timeout_t) time_out,
+ 				TRUE, msg_receive_continue,
+ 				&kmsg, &seqno);
+@@ -2253,8 +2360,6 @@
+ 			msg_size_t real_size =
+ 				(msg_size_t) (mach_msg_size_t) kmsg;
+ 
+-			assert(real_size > rcv_size);
+-
+ 			(void) copyout((vm_offset_t) &real_size,
+ 				       (vm_offset_t) &msg->msg_size,
+ 				       sizeof(msg_size_t));
+@@ -2264,11 +2369,16 @@
+ 		/*NOTREACHED*/
+ 	}
+ 
+-	assert(kmsg->ikm_header.msgh_size <= (mach_msg_size_t) rcv_size);
++	if (kmsg->ikm_header.msgh_size > (mach_msg_size_t) rcv_size) {
++		/* plan 268: too large for an old-style receive */
++		ipc_kmsg_destroy(kmsg);
++		thread_syscall_return(RCV_TOO_LARGE);
++		/*NOTREACHED*/
++	}
+ 
+ 	mr = ipc_kmsg_copyout_compat(kmsg, current_space(), current_map());
+-	assert(mr == MACH_MSG_SUCCESS);
+ 
++	kmsg->ikm_header.msgh_size += kmsg->ikm_delta;	/* plan 268 */
+ 	mr = ipc_kmsg_put((mach_msg_header_t *) msg, kmsg,
+ 			  kmsg->ikm_header.msgh_size);
+ 	thread_syscall_return(msg_return_translate(mr));

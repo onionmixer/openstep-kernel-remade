@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/pcmcia/IOPCMCIADeviceDescription.m` (plan 345 (S5-P334), 2026-10-06)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "pcmcia/IOPCMCIADeviceDescription.m" (objc.json module 0x20930c). Final run `s5p345-pm1`; 07 file SHA-256 `ac798d9e72107a762e60a52eb69509a4351a8c1916ac950861af49f9b9960c5a`; diff `x86-IOPCMCIADeviceDescription.diff`.
+
+- `__text` [0x1c2084, 0x1c2233) 431 B, 4 functions (4 methods) (-[IOPCMCIADeviceDescription(Private) _initWithDelegate:], -[IOPCMCIADeviceDescription free], -[IOPCMCIADeviceDescription numTuples], -[IOPCMCIADeviceDescription tupleList]). Front `c3 00 00 00`, back `00 55 89 e5`, next function 0x1c2234.
+- Sections: __TEXT,__text 431 B given by objc metadata; __TEXT,__cstring 42 B literal (references checked by content); __OBJC,__cat_inst_meth 20 B given by objc metadata; __OBJC,__message_refs 36 B literal (references checked by content); __OBJC,__cls_refs 4 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 44 B given by objc metadata; __OBJC,__class_names 114 B literal (references checked by content); __OBJC,__meth_var_types 40 B literal (references checked by content); __OBJC,__meth_var_names 128 B literal (references checked by content); __OBJC,__category 20 B given by objc metadata; __OBJC,__instance_vars 16 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 20 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p345-pm1-l1-IOPCMCIADeviceDescription-F-20261002.json`). Grade **A**.
+
+Module "pcmcia/IOPCMCIADeviceDescription.m": __text [0x1c2084, 0x1c2233). Diagnostics s5p347-* (scratchpad bodies) gave the same verdict. Codex review of plan 345 (gpt-6.1-sol) verified. s5p345-pm1 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

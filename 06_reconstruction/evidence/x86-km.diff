@@ -1,0 +1,278 @@
+--- 01_resources/upstream/darwin01/kernel/bsd/dev/i386/km.m	1999-03-17 01:49:46.000000000 +0900
++++ 07_kernel/src/bsd/dev/i386/km.m	2026-10-06 00:16:26.521793064 +0900
+@@ -31,6 +31,10 @@
+  *	Created i386 version based on m88k version.
+  */
+  
++/*
++ * Parts marked plan 326 follow NeXTMach mk-108.1 nextdev/km.c, whose notice is:
++ *	@(#)km.c	1.0	10/12/87	(c) 1987 NeXT
++ */
+ #import <driverkit/IODevice.h>
+ #import <driverkit/generalFuncs.h>
+ #import <bsd/sys/param.h>
+@@ -48,7 +52,16 @@
+ #import <bsd/dev/i386/kmDevice.h>
+ #import <bsd/dev/i386/km.h>
+ #import <bsd/dev/i386/BasicConsole.h>
+-#include <machdep/i386/kernBootStruct.h>
++/*
++ * plan 326 (D035): no i386 <machdep/i386/kernBootStruct.h> in any reference
++ * tree.  The boot loader's parameter block at physical 0x11000; only the
++ * field used here, at the original's offset.
++ */
++typedef struct {
++	char	_reserved0[0x14c];
++	int	graphicsMode;		/* +0x14c: booted in graphics mode */
++} KERNBOOTSTRUCT;
++#define	KERNSTRUCT_ADDR	((KERNBOOTSTRUCT *) 0x11000)
+ 
+ #import <kern/assert.h>
+ 
+@@ -56,7 +69,7 @@
+  * 'Global' variables, shared only by this file and conf.c.
+  */
+ extern struct tty	cons;
+-struct tty *km_tty[1] = { &cons };
++/* plan 326: no km_tty[] in the original */
+ 
+ /*
+  * 'Global' variables, shared only by this file and kmDevice.m.
+@@ -71,7 +84,8 @@
+  * Static functions.
+  */
+ static int kmoutput(struct tty *tp);
+-static void kmstart(struct tty *tp);
++extern void calloutDispatchUnique(void *func, void *arg);	/* plan 326: kern/callout.c */
++static int kmstart(struct tty *tp);	/* plan 326: returns 0, as in the original */
+ 
+ void kminit();
+ 
+@@ -112,22 +126,20 @@
+ 	 * This code lifted from 68k km.c.
+ 	 */
+ 	tp = (struct tty *)&cons;
++	/* plan 326: the 4.2 (pre-termios) tty set-up, as in the original -- from NeXTMach https://github.com/johnsonjh/NeXTMach.git f6bdb9c3 mk-108.1/nextdev/km.c:262-273, with t_state = TS_CARR_ON only (D013, D037) */
++	tp->t_addr = 0;
+ 	tp->t_oproc = kmstart;
+-	tp->t_param = NULL;
+-	tp->t_dev = dev;
+-	
++	tp->t_line = NTTYDISC;
+ 	if ((tp->t_state & TS_ISOPEN) == 0) {
+-		tp->t_iflag = TTYDEF_IFLAG;
+-		tp->t_oflag = TTYDEF_OFLAG;
+-		tp->t_cflag = (CREAD | CS8 | CLOCAL);
+-		tp->t_lflag = TTYDEF_LFLAG;
+-		tp->t_ispeed = tp->t_ospeed = TTYDEF_SPEED;
+-		termioschars(&tp->t_termios);
+-		ttsetwater(tp);
+-	} else if ((tp->t_state & TS_XCLUDE) && pp->p_ucred->cr_uid != 0)
++		ttychars(tp);
++		tp->t_flags = EVENP | ODDP | ECHO | CRMOD |
++			CRTBS | CTLECH | CRTERA | CRTKIL | PRTERA;
++		tp->t_chars.tc_erase = (char) 0x7f;
++		tp->t_ispeed = tp->t_ospeed = B9600;
++		tp->t_state = TS_CARR_ON;
++	} else if ((tp->t_state & TS_XCLUDE) && u.u_uid != 0)
+ 		return EBUSY;
+ 
+-	tp->t_state |= TS_CARR_ON; /* lie and say carrier exists and is on. */
+ 	ret = ((*linesw[tp->t_line].l_open)(dev, tp));
+ 
+ 	if (ret == 0) {
+@@ -157,7 +169,7 @@
+ 	struct tty *tp;
+ 
+ 	tp = &cons;
+-	(*linesw[tp->t_line].l_close)(tp,flag);
++	(*linesw[tp->t_line].l_close)(tp);	/* plan 326: 4.2 line-discipline interface */
+ 	ttyclose(tp);
+ 	return (0);
+ }
+@@ -171,7 +183,7 @@
+ 	register struct tty *tp;
+  
+ 	tp = &cons;
+-	return ((*linesw[tp->t_line].l_read)(tp, uio, ioflag));
++	return ((*linesw[tp->t_line].l_read)(tp, uio));	/* plan 326 */
+ }
+ 
+ int 
+@@ -183,7 +195,7 @@
+ 	register struct tty *tp;
+  
+ 	tp = &cons;
+-	return ((*linesw[tp->t_line].l_write)(tp, uio, ioflag));
++	return ((*linesw[tp->t_line].l_write)(tp, uio));	/* plan 326 */
+ }
+ 
+ int 
+@@ -237,20 +249,13 @@
+ 		 */
+ 		return EINVAL;
+ 
+-	    /* Bodge in the CLOCAL flag as the km device is always local */
+-	    case TIOCSETA:
+-	    case TIOCSETAW:
+-	    case TIOCSETAF: {
+-		register struct termios *t = (struct termios *)data;
+-		t->c_cflag |= CLOCAL;
+-		/* No Break */
+-	    }
++	    /* plan 326: no termios cases in the original */
+ 	    default:		
+-		error = (*linesw[tp->t_line].l_ioctl)(tp, cmd, data, flag, p);
++		error = (*linesw[tp->t_line].l_ioctl)(tp, cmd, data, flag);
+ 		if (error >= 0) {
+ 			return error;
+ 		}
+-		error = ttioctl (tp, cmd, data, flag, p);
++		error = ttioctl (tp, cmd, data, flag);
+ 		if (error >= 0) {
+ 			return error;
+ 		}
+@@ -260,6 +265,18 @@
+ 	}
+ }
+ 
++/* plan 326: kmselect is in the original (0x197024) -- from NeXTMach https://github.com/johnsonjh/NeXTMach.git f6bdb9c3 mk-108.1/nextdev/km.c:310-318 (D013, D037) */
++int
++kmselect(
++	dev_t dev,
++	int rw)
++{
++	struct tty *tp;
++
++	tp = &cons;
++	return ((*linesw[tp->t_line].l_select)(tp, rw));
++}
++
+ /*
+  * this works early on, after console_init() but before autoconf (and thus
+  * before we have a kmDevice).
+@@ -295,7 +312,7 @@
+ 	dev_t dev)
+ {
+ 	/* found in bsd/dev/i386/cons.c */
+-	extern int cnputc(char c);
++	extern int cnputc();	/* plan 326: no prototype -- the original passes an int */
+ 	int c;
+ 	
+ 	if(kmId == nil) {
+@@ -331,20 +348,20 @@
+  
+ #define KM_LOWAT_DELAY	((ns_time_t)1000)
+ 
+-static void 
++static int	/* plan 326 */
+ kmstart(struct tty *tp)
+ {
++	/* plan 326: the 4.2 start routine, as in the original -- from NeXTMach https://github.com/johnsonjh/NeXTMach.git f6bdb9c3 mk-108.1/nextdev/km.c:320-348 (D013, D037) */
+ 	if (tp->t_state & (TS_TIMEOUT | TS_BUSY | TS_TTSTOP))
+ 		goto out;
+ 	if (tp->t_outq.c_cc == 0)
+ 		goto out;
+ 	tp->t_state |= TS_BUSY;
+-	if (tp->t_outq.c_cc > tp->t_lowat) {
++	if (tp->t_outq.c_cc > TTLOWAT(tp)) {
+ 		/*
+ 		 * Start immediately.
+ 		 */
+-		thread_call_func(
+-			(thread_call_func_t) kmoutput, tp, TRUE);
++		calloutDispatchUnique((void *) kmoutput, tp);
+ 	}
+ 	else {
+ 		/*
+@@ -353,37 +370,68 @@
+ 		ns_timeout((func) kmoutput, tp, KM_LOWAT_DELAY,
+ 				CALLOUT_PRI_THREAD);
+ 	}
++	return 0;
+ out:
+-	ttwwakeup(tp);
++	if (tp->t_outq.c_cc <= TTLOWAT(tp)) {
++		if (tp->t_state & TS_ASLEEP) {
++			tp->t_state &= ~TS_ASLEEP;
++			wakeup((caddr_t) &tp->t_outq);
++		}
++		if (tp->t_wsel) {
++			selwakeup(tp->t_wsel, tp->t_state & TS_WCOLL);
++			selthreadclear(&tp->t_wsel);
++			tp->t_state &= ~TS_WCOLL;
++		}
++	}
++	return 0;
+ }
+ 
+ static int 
+ kmoutput(
+ 	struct tty *tp)
+ {
+-	/*
+-	 * FIXME - to be grokked...copied from m68k km.c.
+-	 */
++	/* plan 326: the 4.2 output routine, as in the original -- from NeXTMach https://github.com/johnsonjh/NeXTMach.git f6bdb9c3 mk-108.1/nextdev/km.c:350-388 (D013, D037) */
++	struct nty	*np = ttynty(tp);
+ 	char 		buf[80];
+ 	char 		*cp;
+ 	int 		cc = -1;
++	extern int	ttrstrt();
++	extern unsigned long long ticks_to_ns_time();
+ 
+ 	while (tp->t_outq.c_cc > 0) {
+-		cc = ndqb(&tp->t_outq, 0);
++		if ((tp->t_flags & (RAW|LITOUT|PASS8OUT)) ||
++		    (np->t_pflags & TP_OPOST) == 0 ||
++		    (np->t_pflags & TP_CSIZE) == TP_CS8)
++			cc = ndqb(&tp->t_outq, 0);
++		else
++			cc = ndqb(&tp->t_outq, 0200);
+ 		if (cc == 0)
+ 			break;
+-		cc = min(cc, sizeof buf);
++		cc = MIN(cc, sizeof buf);	/* plan 326: macro, as in the original */
+ 		(void) q_to_b(&tp->t_outq, buf, cc);
+ 		for (cp = buf; cp < &buf[cc]; cp++) {
+ 			[kmId kmPutc:(*cp & 0x7f)];
+ 		}
+ 	}
+-        if (tp->t_outq.c_cc > 0) {
+-		thread_call_func(
+-			(thread_call_func_t)kmoutput, tp, TRUE);
+-	}
++	if (cc == 0) {
++		cc = getc(&tp->t_outq);
++		ns_timeout((func) ttrstrt, tp, ticks_to_ns_time(cc & 0x7f),
++				CALLOUT_PRI_THREAD);
++		tp->t_state |= TS_TIMEOUT;
++	} else if (tp->t_outq.c_cc > 0)
++		calloutDispatchUnique((void *) kmoutput, tp);
+ 	tp->t_state &= ~TS_BUSY;
+-	ttwwakeup(tp);
++	if (tp->t_outq.c_cc <= TTLOWAT(tp)) {
++		if (tp->t_state & TS_ASLEEP) {
++			tp->t_state &= ~TS_ASLEEP;
++			wakeup((caddr_t) &tp->t_outq);
++		}
++		if (tp->t_wsel) {
++			selwakeup(tp->t_wsel, tp->t_state & TS_WCOLL);
++			selthreadclear(&tp->t_wsel);
++			tp->t_state &= ~TS_WCOLL;
++		}
++	}
+ 	return 0;
+ }
+ 
+@@ -497,7 +545,9 @@
+ 
+     initialized = TRUE;
+ 
+-    basicConsole = BasicAllocateConsole();
++    basicConsole = FBAllocateVBEConsole();	/* plan 326: VBE console first, as in the original */
++    if (basicConsole == NULL)
++	basicConsole = BasicAllocateConsole();
+     if (kernbootstruct->graphicsMode) {
+ 	basicConsoleMode = SCM_GRAPHIC;
+ 	(*basicConsole->Init)(

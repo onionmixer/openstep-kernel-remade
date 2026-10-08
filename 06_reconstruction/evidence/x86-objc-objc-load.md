@@ -1,0 +1,9 @@
+# x86 `src/objc-runtime/objc-load.m` (plan 356 (S5-P342), 2026-10-07)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "objc-load.m" (objc.json module 0x2093bc). Final run `s5p356-r2load`; 07 file SHA-256 `87eeadd3a1ca59cdd1bbe103173ffdd5f59eee3cefc669a11ab406f33173ccef`; diff `x86-objc-objc-load.diff`.
+
+- `__text` [0x1cdf30, 0x1ce951) 2593 B, 8 functions (0 methods) ((static get_base_method_list), (static send_load_message_to_class), (static send_load_message_to_category), (static send_unload_message_to_class), (static send_unload_message_to_category), (static _objc_fixup_string_objects_from_header), _objc_registerModule, _objc_unregisterModule). Front `89 ec 5d c3`, back `00 00 00 00`, next function 0x1ce960.
+- Sections: __TEXT,__text 2593 B given by symbol; __TEXT,__cstring 194 B literal (references checked by content); __OBJC,__message_refs 12 B literal (references checked by content); __OBJC,__cls_refs 4 B literal (references checked by content); __OBJC,__class_names 21 B literal (references checked by content); __OBJC,__meth_var_names 50 B literal (references checked by content); __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 12 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p356-r2load-l1-objc_load-F-20261002.json`). Grade **A**.
+
+Kernel ObjC runtime module (D045, D046, D047). Diagnostics s5p356-m1/m2/m3 (optimization level), h0/h1/p* (_POSIX_SOURCE), bexcept/hexcept/jexcept (POSIX_KERN), u* (unified flags); real-machine cc -M trace s5p356-dep3 (objc-1 headers read: 15; SDK headers adopted: mach-o/ldsyms.h, mach-o/rld.h, ansi/ctype.h, bsd/syslog.h; cthreads and dyld are textual-closure rows the compile does not read). Codex reviews of plan 356 (two rounds) and plan 357 (stage_headers components fix) verified. Final s5p356-r2load from 07 after plan 357.

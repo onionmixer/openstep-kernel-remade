@@ -1,0 +1,181 @@
+--- 01_resources/upstream/nextmach/mk-108.1/vm/vm_unix.c	2026-09-11 10:02:49.655219377 +0900
++++ 07_kernel/src/vm/vm_unix.c	2026-10-03 16:59:12.899140305 +0900
+@@ -161,8 +161,8 @@
+ 
+ #import <kern/task.h>
+ #import <kern/thread.h>
+-#import <sys/time_value.h>
+-#import <vm/vm_param.h>
++/* plan 221: time_value_t comes from mach/time_value.h */
++#import <mach/vm_param.h>	/* plan 221: NeXTMach vm/vm_param.h (as plans 162/164) */
+ #import <vm/vm_map.h>
+ #import <vm/vm_page.h>
+ #import <kern/parallel.h>
+@@ -181,8 +181,7 @@
+ #import <sys/kernel.h>
+ 
+ #import <kern/kalloc.h>
+-#import <sys/port.h>
+-#import <kern/ipc_globals.h>
++#import <mach/port.h>	/* plan 221 (was sys/port.h; kern/ipc_globals.h dropped) */
+ 
+ #import <machine/spl.h>
+ 
+@@ -233,7 +232,7 @@
+ 				round_page(addr+len), TRUE);
+ }
+ 
+-#if	defined(sun) || BALANCE
++#if	defined(sun) || BALANCE || defined(i386)	/* plan 221: i386 has these in machdep (0x18a184-) */
+ #else	defined(sun) || BALANCE
+ subyte(addr, byte)
+ 	caddr_t addr;
+@@ -316,11 +315,15 @@
+ 	thread_t	thread;
+ 	task_t		task;
+  	kern_return_t	result;
++	boolean_t	inherit = TRUE;	/* plan 221.1: variant l1 (s5p199-v2) */
+ 
+-	result = task_create(parent->task, TRUE, &task);
++	if (parent->task == kernel_task)	/* plan 221 (original 0x17be58) */
++		inherit = FALSE;
++	result = task_create(parent->task, inherit, &task);
+ 	if(result != KERN_SUCCESS)
+ 	    printf("fork/procdup: task_create failed. Code: 0x%x\n", result);
+ 	child->task = task;
++	task_deallocate(task);		/* plan 221 (original 0x17be8f) */
+ 
+ 	/* XXX Cheat to get proc pointer into task structure */
+ 	task->proc = child;
+@@ -328,6 +331,7 @@
+ 	result = thread_create(task, &thread);
+ 	if(result != KERN_SUCCESS)
+ 	    printf("fork/procdup: thread_create failed. Code: 0x%x\n", result);
++	thread_deallocate(thread);	/* plan 221 (original 0x17bebd) */
+ 
+ #if	!NeXT
+ 	thread->priority = current_thread()->priority;
+@@ -336,25 +340,28 @@
+ 	 *	Don't need to lock thread here because it can't
+ 	 *	possibly execute and no one else knows about it.
+ 	 */
+-	compute_priority(thread);
++	compute_priority(thread, FALSE);	/* plan 221: two arguments */
+ 
+ 	bcopy((caddr_t) parent->task->u_address,
+ 	      (caddr_t) task->u_address,
+ 	      (unsigned) sizeof(struct utask));
+ #if	NeXT
++	bzero((caddr_t) &task->u_address->uu_prof,	/* plan 221 (original 0x17bef3) */
++	      sizeof (task->u_address->uu_prof));
+ 	task->u_address->uu_ofile_cnt = 0;
+-	expand_fdlist(task->u_address, parent->task->u_address->uu_lastfile);
++	/* plan 221 (original 0x17bf0b): the child's (copied) uu_lastfile */
++	expand_fdlist(task->u_address, task->u_address->uu_lastfile);
+ 	bcopy(parent->task->u_address->uu_ofile, task->u_address->uu_ofile,
+-		(parent->task->u_address->uu_lastfile + 1) * sizeof(struct file *));
++		(task->u_address->uu_lastfile + 1) * sizeof(struct file *));
+ 	bcopy(parent->task->u_address->uu_pofile, task->u_address->uu_pofile,
+-		(parent->task->u_address->uu_lastfile + 1) * sizeof(char));
++		(task->u_address->uu_lastfile + 1) * sizeof(char));
+ #endif	NeXT
+-	thread->u_address.utask->uu_procp = child;
+-	bzero((caddr_t) &thread->u_address.utask->uu_ru,
++	thread->task->u_address->uu_procp = child;	/* plan 221 */
++	bzero((caddr_t) &thread->task->u_address->uu_ru,
+ 			sizeof(struct rusage));
+-	bzero((caddr_t) &thread->u_address.utask->uu_cru,
++	bzero((caddr_t) &thread->task->u_address->uu_cru,
+ 			sizeof(struct rusage));
+-	thread->u_address.utask->uu_outime = 0;
++	thread->task->u_address->uu_outime = 0;
+ 	return(thread);
+ }
+ 
+@@ -417,7 +424,12 @@
+ 		    || suser())
+ 		&& (p->p_stat != SZOMB)
+ 		) {
++			if (p->task)		/* plan 221 (original 0x17c072) */
++				task_reference(p->task);
+ 			*t = p->task;
++			/* plan 221 (original 0x17c087): mark a privileged caller as a debugger */
++			if (suser() && current_task()->proc)
++				current_task()->proc->p_debugger = 1;
+ 			unix_release();
+ 			return(KERN_SUCCESS);
+ 	}
+@@ -441,7 +453,7 @@
+ 	if (task_by_unix_pid(self, pid, &result_task) == KERN_SUCCESS) {
+ 		t = convert_task_to_port(result_task);
+ 		if (t != PORT_NULL)
+-			object_copyout(self, (kern_obj_t) t,
++			object_copyout(self, t,		/* plan 221: no kern_obj_t */
+ 				       MSG_TYPE_PORT, &t);
+ 	}
+ 
+@@ -631,15 +643,9 @@
+ 	time_value_t	sys_time, user_time;
+ 	register int	s;
+ 
+-	utask = thread->u_address.utask;
+-	uthread = thread->u_address.uthread;
+-#undef	u_pcb
+-	up->u_pcb = *(thread->pcb);
+-#ifdef	vax
+-	/*	HACK HACK HACK	- keep adb happy	*/
+-	up->u_pcb.pcb_ksp = (up->u_pcb.pcb_ksp & 0x0FFFFFFF) | 0x70000000;
+-	/*	HACK HACK HACK	- keep adb happy	*/
+-#endif	vax
++	utask = thread->task->u_address;	/* plan 221 */
++	uthread = thread->_uthread;
++	/* plan 221: no u_pcb copy (original 0x17c2c4) */
+ #undef	u_comm
+ 	bcopy(utask->uu_comm, up->u_comm, sizeof(up->u_comm));
+ #undef	u_arg
+@@ -674,3 +680,45 @@
+ 	up->u_cru = utask->uu_cru;
+ }
+ 
++/*
++ * plan 221 (authored, D024; original _gc_init 0x17c40c, _gc_control
++ * 0x17c428): flush the kernel caches and collect the zones on request
++ * of the super-user.
++ */
++decl_simple_lock_data(,	gc_lock)
++boolean_t	gc_active;
++
++gc_init()
++{
++	simple_lock_init(&gc_lock);
++	gc_active = FALSE;
++}
++
++gc_control()
++{
++	register struct a {
++		int	flags;
++	} *uap = (struct a *)u.u_ap;
++
++	if (!suser())
++		return;
++	simple_lock(&gc_lock);
++	if (!gc_active) {
++		gc_active = TRUE;
++		simple_unlock(&gc_lock);
++		if (uap->flags & 1) {
++			mfs_cache_clear();
++			vm_object_cache_clear();
++			inode_cache_clear();
++			rnode_cache_clear();
++			proc_cache_clear();
++		}
++		if (uap->flags & 2)
++			zone_gc();
++		if (uap->flags & 4)
++			zone_reclaim();
++		simple_lock(&gc_lock);
++		gc_active = FALSE;
++	}
++	simple_unlock(&gc_lock);
++}

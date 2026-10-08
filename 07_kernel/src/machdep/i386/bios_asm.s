@@ -1,0 +1,109 @@
+/*
+ * _bios32(biosBuf_t *bb): far call into a 32-bit BIOS entry point
+ * (plan 255).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024).
+ * Darwin 0.1 machdep/i386/bios_asm.s was consulted for structure only;
+ * the instruction sequence follows the original bytes and so is close
+ * to Darwin's (D027).  Unlike Darwin, the kernel data selector is
+ * loaded into DS without losing EAX.
+ */
+
+/*
+ * Offsets in biosBuf_t (machdep/i386/bios.h), written as numbers so the
+ * file does not depend on the preprocessor: eax 4, ebx 8, ecx 12,
+ * edx 16, edi 20, esi 24, ebp 28, cs 32, ds 34, es 36, flags 40,
+ * addr 44.  0x10 is the kernel data selector.
+ */
+
+	.data
+	.align	2
+save_es:
+	.long	0
+save_eax:
+	.long	0
+save_edx:
+	.long	0
+save_flag:
+	.long	0
+new_eax:
+	.long	0
+new_edx:
+	.long	0
+
+	.text
+	.align	2, 0x90
+	.globl	__bios32
+__bios32:
+	enter	$0, $0
+	pushal
+	push	%es
+	push	%fs
+	push	%gs
+	pushf
+
+	movl	8(%ebp), %edx		/* the request */
+
+	movw	32(%edx), %ax		/* patch the far call below */
+	movw	%ax, Lcall_seg
+	movl	44(%edx), %eax
+	movl	%eax, Lcall_off
+	movl	8(%edx), %ebx
+	movl	12(%edx), %ecx
+	movl	20(%edx), %edi
+	movl	24(%edx), %esi
+	movl	28(%edx), %ebp
+	movl	%edx, save_edx
+	movl	4(%edx), %eax
+	movl	%eax, new_eax
+	movl	16(%edx), %eax
+	movl	%eax, new_edx
+	movw	34(%edx), %ax
+	pushw	%ax
+
+	movl	new_eax, %eax
+	movl	new_edx, %edx
+	popw	%ds
+
+	cli
+	.byte	0x9a			/* lcall Lcall_seg:Lcall_off */
+Lcall_off:
+	.long	0
+Lcall_seg:
+	.word	0
+
+	pushf
+	pushw	%ax			/* plan 255: keep EAX */
+	movw	$0x10, %ax
+	movw	%ax, %ds
+	popw	%ax
+
+	movl	%eax, save_eax
+	popl	%eax
+	movw	%ax, save_flag
+	movw	%es, %ax
+	movw	%ax, save_es
+
+	movl	%edx, new_edx
+	movl	save_edx, %edx
+	movl	new_edx, %eax
+	movl	%eax, 16(%edx)
+	movl	save_eax, %eax
+	movl	%eax, 4(%edx)
+	movw	save_es, %ax
+	movw	%ax, 36(%edx)
+	movw	save_flag, %ax
+	movw	%ax, 40(%edx)
+	movl	%ebx, 8(%edx)
+	movl	%ecx, 12(%edx)
+	movl	%edi, 20(%edx)
+	movl	%esi, 24(%edx)
+	movl	%ebp, 28(%edx)
+
+	popf
+	pop	%gs
+	pop	%fs
+	pop	%es
+	popal
+	leave
+	ret

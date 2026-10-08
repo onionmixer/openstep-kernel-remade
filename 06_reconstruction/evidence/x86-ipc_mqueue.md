@@ -1,0 +1,8 @@
+# x86 `src/ipc/ipc_mqueue.c` (plan 266 (S5-P252), 2026-10-04)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 266 (S5-P252). Final run `s5p252-it1`; 07 file SHA-256 `fb3a4a8c5e4c8ca3e1bf057521096bf954268a5af1bee94eeda6e776ea149bf0`; diff `x86-ipc_mqueue.diff`.
+
+- Object [0x14a634, 0x14af42) 2318 B, 7 functions (_ipc_mqueue_init, _ipc_mqueue_move, _ipc_mqueue_changed, _ipc_mqueue_send, _ipc_mqueue_send_interrupt, _ipc_mqueue_copyin, _ipc_mqueue_receive). Front `c3 00 00 00`, back `00 00 55 89`, next symbol 0x14af44.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p252-it1-l1-ipc_mqueue-F-20261002.json`). Grade **A**.
+
+Object extent [0x14a634, 0x14af44) 2320 B (2318 B text + 00 00; front 00 00 00 after ipc_marequest): ipc_mqueue_init, _move, _changed, _send, _send_interrupt, _copyin, _receive; next ipc_notify_init_port_deleted. __DATA,__data [0x1de72e, 0x1de754) 38 B ("ipc_mqueue_receive: strange ith_state") -- verified by L1d. References by file name: Mach4 ipc/ipc_mqueue.c (base, D022), Darwin 0.1 ipc/ipc_mqueue.c (structure), NeXTMach mk-108.1 has no ipc/ directory or file of that name. Original bytes: MACH_SEND_SWITCH 0x20000 test and thread_go_and_switch (0x14aa18, 0x14a919), thread_block_with_continuation (0x14a872, 0x14ade2), wait results 1 / 2-3 / other (0x14a8aa, 0x14ae71), send_interrupt returns 0x800 / 0x10000003 (0x14aa51, 0x14aa66, 0x14aa9b), outer receive panic (0x14aea4). Scratch builds s5p252-w1..w5 (07 untouched), w5 OBJECT_MATCH. The codex review of plan 266 confirmed the extent, changes and data and corrected my description of Darwin's send_interrupt (no scatter check there; verified). it1 (s5p252-it1) from 07 OBJECT_MATCH, relcheck 0 mismatches.

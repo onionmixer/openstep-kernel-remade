@@ -1,0 +1,203 @@
+--- 01_resources/upstream/nextmach/mk-108.1/kern/ast.c	2026-09-11 10:02:49.498217447 +0900
++++ 07_kernel/src/kern/ast.c	2026-10-03 12:57:22.731801068 +0900
+@@ -53,11 +53,10 @@
+  */
+ 
+ #import <cpus.h>
+-#import <hw_ast.h>
+ #import <mach_fixpri.h>
+ 
++/* plan 198: hw_ast.h and machine/pcb.h of NeXTMach are not in this tree (MACHINE_AST in kern/ast.h; no pcb use) */
+ #import <machine/cpu.h>
+-#import <machine/pcb.h>
+ #import <kern/ast.h>
+ #import <sys/param.h>
+ #import <sys/proc.h>
+@@ -69,31 +68,36 @@
+ #import <kern/processor.h>
+ 
+ #if	MACH_FIXPRI
+-#import <sys/policy.h>
++#import <mach/policy.h>		/* plan 198: NeXTMach sys/policy.h */
+ #endif	MACH_FIXPRI
+ 
+-#if	!HW_AST
+-int	need_ast[NCPUS];
+-#endif	!HW_AST
++#ifndef	MACHINE_AST
++volatile ast_t	need_ast[NCPUS];	/* plan 198: as declared by kern/ast.h */
++#endif	MACHINE_AST
+ 
+ ast_init()
+ {
+-#if	!HW_AST
++#ifndef	MACHINE_AST
+ 	register int i;
+ 
+ 	for (i=0; i<NCPUS; i++)
+ 		need_ast[i] = 0;
+-#endif	!HW_AST
++#endif	MACHINE_AST
+ }
+ 
++/*
++ * plan 198 (authored, D024; original _ast_check 0x1566b0): reasons are
++ * posted with ast_on(); the whole check runs at splsched; the signal
++ * check comes first.
++ */
+ ast_check()
+ {
+ 	register struct proc	*p;
+-	register struct uthread	*uthreadp;
+ 	register int		mycpu = cpu_number();
+ 	register processor_t	myprocessor;
+ 	register thread_t	thread = current_thread();
+ 	register run_queue_t	rq;
++	spl_t			s = splsched();
+ 
+ 	/*
+ 	 *	Check processor state for ast conditions.
+@@ -111,18 +115,21 @@
+ #if	NCPUS > 1
+ 	    case PROCESSOR_ASSIGN:
+ 	    case PROCESSOR_SHUTDOWN:
+-	        /*
+-		 * 	Need ast to force action thread onto processor.
+-		 *
+-		 * XXX  Should check if action thread is already there.
+-		 */
+-		aston();
++		ast_on(mycpu, AST_BLOCK);
+ 		break;
+ #endif	NCPUS > 1
+ 
+ 	    case PROCESSOR_RUNNING:
+ 
+ 		/*
++		 *	Check for signals.
++		 */
++		p = u.u_procp;
++		if (p && (p->p_cursig ||
++		    (thread && SHOULDissig(p, thread->_uthread))))
++			ast_on(mycpu, AST_UNIX);
++
++		/*
+ 		 *	Propagate thread ast to processor.  If we already
+ 		 *	need an ast, don't look for more reasons.
+ 		 */
+@@ -131,23 +138,17 @@
+ 			break;
+ 
+ 		/*
+-		 *	Context switch check.  The csw_needed macro isn't
+-		 *	used here because the rq->low hint may be wrong,
+-		 *	and fixing it here avoids an extra ast.
+-		 *	First check the easy cases.
++		 *	Context switch check.  First check the easy cases.
+ 		 */
+ 		if (thread->state & TH_SUSP || myprocessor->runq.count > 0) {
+-			aston();
++			ast_on(mycpu, AST_BLOCK);
+ 			break;
+ 		}
+ 
+-		/*
+-		 *	Update lazy evaluated runq->low if only timesharing.
+-		 */
+ #if	MACH_FIXPRI
+ 		if (myprocessor->processor_set->policies & POLICY_FIXEDPRI) {
+ 		    if (csw_needed(thread,myprocessor)) {
+-			aston();
++			ast_on(mycpu, AST_BLOCK);
+ 			break;
+ 		    }
+ 		    else {
+@@ -160,77 +161,45 @@
+ 		    }
+ 		}
+ 		else {
+-#endif	MACH_FIXPRI			
++#endif	MACH_FIXPRI
+ 		rq = &(myprocessor->processor_set->runq);
+ 		if (!(myprocessor->first_quantum) && (rq->count > 0)) {
+ 		    register queue_t 	q;
++
+ 		    /*
+-		     *	This is not the first quantum, and there may
+-		     *	be something in the processor_set runq.
+-		     *	Check whether low hint is accurate.
++		     *	Not the first quantum, and there may be something
++		     *	in the processor_set runq: check the high hint.
+ 		     */
+-#if	NeXT
+-		    q = rq->runq + rq->high;
+-#else	NeXT
+-		    q = rq->runq + rq->low;
+-#endif	NeXT
++		    q = rq->runq + *(volatile int *)&rq->high;	/* plan 198.2 */
+ 		    if (queue_empty(q)) {
+-			register int i,s;
++			register int i;
+ 
+-			/*
+-			 *	Need to recheck and possibly update hint.
+-			 */
+-			s = splsched();
+ 			simple_lock(&rq->lock);
+-#if	NeXT
+ 			q = rq->runq + rq->high;
+ 			if (rq->count > 0) {
+ 			    for (i = rq->high; i >= 0; i--) {
+-				if(!(queue_empty(q)))
++				if (!(queue_empty(q)))
+ 				    break;
+ 				q--;
+ 			    }
+ 			    rq->high = i;
+ 			}
+-#else	NeXT
+-			q = rq->runq + rq->low;
+-			if (rq->count > 0) {
+-			    for (i = rq->low; i < NRQS; i++) {
+-				if(!(queue_empty(q)))
+-				    break;
+-				q++;
+-			    }
+-			    rq->low = i;
+-			}
+-#endif	NeXT
+ 			simple_unlock(&rq->lock);
+-			(void) splx(s);
+ 		    }
+ 
+-#if	NeXT
+ 		    if (rq->high >= thread->sched_pri) {
+-#else	NeXT
+-		    if (rq->low <= thread->sched_pri) {
+-#endif	NeXT
+-			aston();
++			ast_on(mycpu, AST_BLOCK);
+ 			break;
+ 		    }
+ 		}
+ #if	MACH_FIXPRI
+ 		}
+ #endif	MACH_FIXPRI
+-
+-		/*
+-		 *	XXX Else check for signals.
+-		 */
+-		p = u.u_procp;
+-		uthreadp = current_thread()->u_address.uthread;
+-		if (p->p_cursig || SHOULDissig(p,uthreadp))
+-			aston();
+ 		break;
+ 
+ 	    default:
+-	        panic("ast_check: Bad processor state");
++		panic("ast_check: Bad processor state");
+ 	}
+-}
+ 
++	(void) splx(s);
++}

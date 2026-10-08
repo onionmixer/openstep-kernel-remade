@@ -1,0 +1,8 @@
+# x86 `src/bsd/dev/vol.c` (plan 334 (S5-P324), 2026-10-06)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 334 (S5-P324). Final run `s5p334-it1`; 07 file SHA-256 `657799a7b4e70ed8f549163c270f7fae71b3625ec0b911c186fd038312ea5814`; diff `x86-vol.diff`.
+
+- Object [0x184bb8, 0x185a8c) 3796 B, 16 functions (_volopen, _volclose, _volioctl, _vol_notify_dev, (static vol_notify_com), _vol_notify_cancel, _vol_panel_request, _vol_panel_remove, _vol_panel_disk_num, _vol_panel_disk_label, (static vol_panel_get_entry), (static vol_port_death), _vol_start_thread, _vol_check_manual_poll, _vol_check_set_poll, (static vol_thread)). Front `5d c3 00 00`, back `55 89 e5 57`, next symbol 0x185a8c.
+- Final L1 `09_validation/reconstruction/s5p334-it1-l1-vol-F-20261002.json`: __text/__const 0 byte differences; __DATA,__bss reference-inferred. Grade **P**.
+
+Object extent [0x184bb8, 0x185a8c) 3796 B (00 x 2 before, after the IOCopyString ret at 0x184bb5; the object ends with a 90 at 0x185a8b; next _kdp_getstate 0x185a8c): 16 functions volopen .. vol_thread; __data [0x1e13ec, 0x1e1716) 810 B verified; __bss 24 B reference-inferred at [0x1e7588, 0x1e75a0) (28 references, one Delta 0x1e6388; zerofill_check --place-from-l1, plan 302; known placements zerofill-known-s5p331-20261006.json, extended in zerofill-known-s5p334-20261006.json). Diagnostics s5p336-a .. d7 (NeXTMach body s5p336-b fails to compile). User decision D038. Codex review of plans 334 and 335 (gpt-6.1-sol) verified (one run ID corrected). s5p334-it1 from 07: __text 0 differences (5 MATCH + 11 MATCH_UNVERIFIED for the __bss references), relcheck 0.

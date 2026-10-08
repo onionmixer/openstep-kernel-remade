@@ -35,6 +35,34 @@
  *	Created.
  */
 
+/*
+ * Lines marked "plan 397 (Darwin)" are the same as Darwin 0.1
+ * kernel/kern/mapfs.c:132 and :1081 (kernel-1), whose notice is:
+ */
+/*
+ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ * 
+ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
+ * Reserved.  This file contains Original Code and/or Modifications of
+ * Original Code as defined in and that are subject to the Apple Public
+ * Source License Version 1.0 (the 'License').  You may not use this file
+ * except in compliance with the License.  Please obtain a copy of the
+ * License at http://www.apple.com/publicsource and read it before using
+ * this file.
+ * 
+ * The Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
+ * License for the specific language governing rights and limitations
+ * under the License."
+ * 
+ * @APPLE_LICENSE_HEADER_END@
+ */
+
 #import <mach_nbc.h>
 
 #import <kern/lock.h>
@@ -67,6 +95,7 @@ int			vm_info_version = 0;	/* version number */
 #define	vm_info_unlock()	simple_unlock(&vm_info_lock_data)
 
 #if	MACH_NBC
+lock_data_t		mfsbuf_lock;		/* lock for active_mfsbufs */	/* plan 397 (Darwin): Darwin 0.1 kern/mapfs.c:132 */
 lock_data_t		mfs_alloc_lock_data;
 boolean_t		mfs_alloc_wanted;
 long			mfs_alloc_blocks = 0;
@@ -801,6 +830,7 @@ vnode_size(vp)
 #import <sys/uio.h>
 #import <sys/vfs.h>
 
+int active_mfsbufs = 0;		/* global record of buf count in use by mfs */	/* plan 397 (Darwin): Darwin 0.1 kern/mapfs.c:1081 */
 extern int	nmfsbuf;	/* plan 139: original _nmfsbuf (defined elsewhere) */
 
 boolean_t mfs_io(vp, uio, rw, ioflag, cred)

@@ -1,0 +1,422 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/bsd/net/if_vtrip.c	2026-10-08 14:51:59.637659430 +0900
+@@ -0,0 +1,419 @@
++/*
++ * if_vtrip.c - IP and IEEE 802.2 null SAP over token ring (plans 377, 381; D054).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * __text [0x11fb84, 0x1209ea), __const [0x1d11d8, 0x1d1209),
++ * __data [0x1db870, 0x1db91b)).  No reference tree has this file; the name is
++ * inferred from the link order (after net/if_venip.c, before
++ * net/netbuf.c) and the "if_vtrXX modules" comment of <net/tokensr.h>.
++ */
++
++#import <sys/types.h>
++#import <sys/param.h>
++#import <sys/socket.h>
++#import <sys/errno.h>
++#import <net/netif.h>
++#import <net/if.h>
++#import <net/netbuf.h>
++#import <netinet/in.h>
++#import <net/etherdefs.h>
++#import <net/tokensr.h>
++
++#define IP_SRCROUTING	0x1		/* enable IP source routing */
++#define SRLIMIT		500		/* source route table size */
++#define LLC_SNAP_LEN	8
++
++
++typedef struct vtrip_private {
++	int		vp_flags;
++	NXHashTable	*vp_srtable;
++	token_addr_t	vp_traddr;
++	struct in_addr	vp_ipaddr;
++	netif_t		rifp;
++	u_char		vp_ac;
++} vtrip_private_t;
++
++static inline vtrip_private_t *
++VTRIP_PRIVATE(netif_t ifp)
++{
++	return ((vtrip_private_t *)if_private(ifp));
++}
++
++static inline token_addr_t *
++VTRIP_TRADDRP(netif_t ifp)
++{
++	return (&VTRIP_PRIVATE(ifp)->vp_traddr);
++}
++
++static inline struct in_addr
++VTRIP_IPADDR(netif_t ifp)
++{
++	return (VTRIP_PRIVATE(ifp)->vp_ipaddr);
++}
++
++static inline netif_t
++VTRIP_RIF(netif_t ifp)
++{
++	return (VTRIP_PRIVATE(ifp)->rifp);
++}
++
++static int vtrip_control();
++static netbuf_t vtrip_getbuf();
++static int llc_reply();
++static int llc_send();
++int nullsap_input();
++
++static struct {
++	u_char		dsap;
++	u_char		ssap;
++	u_char		ctl;
++	u_char		org[3];
++	u_short		type;
++} llc_snap = { 0xaa, 0xaa, 0x03, { 0, 0, 0 }, 0 };
++static u_char arphrd_ether[2] = { 0, 1 };
++static u_char arphrd_ieee802[2] = { 0, 6 };
++static int vtrip_mtu = 8100;
++
++unsigned
++SRHash(const void *info, const void *data)
++{
++	return (NXPtrHash(info, (void *)*(unsigned long *)data) ^
++	    NXPtrHash(info, (void *)(unsigned)*(unsigned short *)
++	    ((char *)data + 4)));
++}
++
++int
++SRIsEqual(const void *info, const void *data1, const void *data2)
++{
++	return (*(unsigned long *)data1 == *(unsigned long *)data2 &&
++	    *(unsigned short *)((char *)data1 + 4) ==
++	    *(unsigned short *)((char *)data2 + 4));
++}
++
++const NXHashTablePrototype SRTablePrototype = {
++	SRHash, SRIsEqual, NXNoEffectFree, 0
++};
++
++/* plan 381: after SRTablePrototype, the original __const order */
++static const char IFTYPE_IP[] = "Internet Protocol";
++static const char IFTYPE_NULLSAP[] = "802.2 Null Sap";
++
++static int
++vtrip_output(
++	     netif_t ifp,
++	     netbuf_t nb,
++	     void *addr
++	     )
++{
++	struct sockaddr *dst = (struct sockaddr *)addr;
++	struct ether_header *eh = (struct ether_header *)dst->sa_data;
++	netif_t rifp = VTRIP_RIF(ifp);
++	tokenHeader_t th;
++	struct in_addr idst;
++	int usetrailers;
++	int error;
++
++	switch (dst->sa_family) {
++	case AF_UNSPEC:
++		bcopy(eh->ether_dhost, th.da, sizeof (th.da));
++		llc_snap.type = htons(eh->ether_type);
++		if (llc_snap.type == htons(ETHERTYPE_ARP)) {
++			nb_write(nb, 0, sizeof (arphrd_ieee802), arphrd_ieee802);
++			if (VTRIP_PRIVATE(ifp)->vp_flags & IP_SRCROUTING)
++				make_sr_bcast(&th, SRB_AR);
++			else
++				make_sr_bcast(&th, SRB_OFF);
++		}
++		break;
++	case AF_INET:
++		idst = ((struct sockaddr_in *)dst)->sin_addr;
++		if (!arpresolve(ifp, VTRIP_TRADDRP(ifp),
++				VTRIP_IPADDR(ifp), nb, &idst,
++				th.da, &usetrailers)) {
++			return (0);
++		}
++		if (VTRIP_PRIVATE(ifp)->vp_flags & IP_SRCROUTING) {
++			if (check_mac_bcast(&th))
++				make_sr_bcast(&th, SRB_SR);
++			else
++				get_src_route(VTRIP_PRIVATE(ifp)->vp_srtable,
++				    th.da, &th);
++		} else
++			make_sr_bcast(&th, SRB_OFF);
++		llc_snap.type = htons(ETHERTYPE_IP);
++		break;
++	default:
++		nb_free(nb);
++		return (EAFNOSUPPORT);
++	}
++	nb_grow_top(nb, LLC_SNAP_LEN);
++	nb_write(nb, 0, LLC_SNAP_LEN, (void *)&llc_snap);
++	th.ac = VTRIP_PRIVATE(ifp)->vp_ac;
++	th.fc = TR_FC_DATA;
++	error = if_output(rifp, nb, (void *)&th);
++	if (error) {
++		if_oerrors_set(ifp, if_oerrors(ifp) + 1);
++	} else {
++		if_opackets_set(ifp, if_opackets(ifp) + 1);
++	}
++	return (error);
++}
++
++static int
++vtrip_input(
++	    netif_t ifp,
++	    netif_t rifp,
++	    netbuf_t nb,
++	    tokenHeader_t *th
++	    )
++{
++	short etype;	/* plan 381: signed, so the switch compares 16 bits as the original */
++
++	if (VTRIP_RIF(ifp) != rifp) {
++		return (EAFNOSUPPORT);
++	}
++	if (nb_size(nb) <= LLC_SNAP_LEN ||
++	    (th->fc & TR_FC_MASK) != TR_FC_DATA ||
++	    bcmp(nb_map(nb), &llc_snap, 6)) {
++		return (nullsap_input(ifp, rifp, nb, th));
++	}
++	nb_read(nb, 6, sizeof (etype), &etype);
++	nb_shrink_top(nb, LLC_SNAP_LEN);
++	etype = htons(etype);
++	if (etype >= ETHERTYPE_TRAIL &&
++	    etype < ETHERTYPE_TRAIL + ETHERTYPE_NTRAILER) {
++		return (nullsap_input(ifp, rifp, nb, th));
++	}
++	switch (etype) {
++	case ETHERTYPE_IP:
++		if_ipackets_set(ifp, if_ipackets(ifp) + 1);
++		if (!(if_flags(ifp) & IFF_AUTOCONF) &&
++		    (VTRIP_PRIVATE(ifp)->vp_flags & IP_SRCROUTING)) {
++			save_src_route(ifp, VTRIP_PRIVATE(ifp)->vp_srtable,
++			    0, th, SRLIMIT);
++		}
++		inet_queue(ifp, nb);
++		break;
++	case ETHERTYPE_ARP: {
++		tokenHeader_t arpth;
++		unsigned long arpaddr;
++
++		if_ipackets_set(ifp, if_ipackets(ifp) + 1);
++		if (!(if_flags(ifp) & IFF_AUTOCONF)) {
++			if (VTRIP_PRIVATE(ifp)->vp_flags & IP_SRCROUTING) {
++				bcopy(th, &arpth, sizeof (arpth));
++				arpaddr = *(unsigned long *)
++				    ((char *)nb_map(nb) + 14);
++			}
++			nb_write(nb, 0, sizeof (arphrd_ether), arphrd_ether);
++			arpinput(ifp, VTRIP_TRADDRP(ifp),
++				 VTRIP_IPADDR(ifp), nb);
++			if (VTRIP_PRIVATE(ifp)->vp_flags & IP_SRCROUTING) {
++				save_src_route(ifp,
++				    VTRIP_PRIVATE(ifp)->vp_srtable,
++				    arpaddr, &arpth, SRLIMIT);
++			}
++		} else {
++			nb_free(nb);
++		}
++		break;
++	}
++	default:
++		return (nullsap_input(ifp, rifp, nb, th));
++	}
++	return (0);
++}
++
++static void
++vtrip_attach(
++	     void *private,
++	     netif_t rifp
++	     )
++{
++	const char *name;
++	vparms_t *vp = (vparms_t *)private;
++	netif_t ifp;
++	int unit;
++	int mtu, vmtu;
++	u_char pri;
++
++	if (strcmp(if_type(rifp), IFTYPE_TOKENRING) != 0) {
++		return;
++	}
++	unit = if_unit(rifp);
++	if (vp->vunit != unit) {
++		return;
++	}
++	name = if_name(rifp);
++	mtu = if_mtu(rifp) - LLC_SNAP_LEN;
++	vmtu = vp->vmtu ? vp->vmtu : vtrip_mtu;
++	mtu = MIN(vmtu, mtu);
++	ifp = if_attach(NULL, vtrip_input, vtrip_output, vtrip_getbuf,
++			vtrip_control, name, unit, IFTYPE_IP, mtu,
++			IFF_BROADCAST, NETIFCLASS_VIRTUAL,
++			(void *)(kalloc(32) & ~3));
++	VTRIP_PRIVATE(ifp)->vp_flags = 0;
++	if (vp->vflags & IP_SRCROUTING) {
++		VTRIP_PRIVATE(ifp)->vp_flags |= IP_SRCROUTING;
++		init_src_routing(&VTRIP_PRIVATE(ifp)->vp_srtable);
++	} else
++		VTRIP_PRIVATE(ifp)->vp_flags &= ~IP_SRCROUTING;
++	if (vp->vtokpri > 7)
++		VTRIP_PRIVATE(ifp)->vp_ac = 0x10;
++	else {
++		pri = vp->vtokpri;
++		if (pri > 6)
++			pri = 6;
++		VTRIP_PRIVATE(ifp)->vp_ac = (pri << 5) | 0x10;
++	}
++	VTRIP_PRIVATE(ifp)->rifp = rifp;
++	if_control(rifp, IFCONTROL_GETADDR, VTRIP_TRADDRP(ifp));
++	printf("IP protocol enabled for interface %s%d\n", name, unit);
++	printf("IEEE 802.2 Null Sap protocol enabled for interface %s%d\n",
++	    name, unit);
++}
++
++void
++vtrip_config(int unit, int flags, int mtu, int tokpri)
++{
++	vparms_t vp;
++
++	vp.vunit = unit;
++	vp.vflags = flags;
++	vp.vmtu = mtu;
++	vp.vtokpri = tokpri;
++	if_registervirtual(vtrip_attach, &vp);
++}
++
++static int
++vtrip_control(
++	      netif_t ifp,
++	      const char *command,
++	      void *data
++	      )
++{
++	netif_t rifp = VTRIP_RIF(ifp);
++	struct sockaddr_in *sin = (struct sockaddr_in *)data;
++
++	if (strcmp(command, IFCONTROL_AUTOADDR) == 0) {
++		if (sin->sin_family != AF_INET) {
++			return (EAFNOSUPPORT);
++		}
++		return (in_bootp(ifp, sin, VTRIP_TRADDRP(ifp)));
++	} else if (strcmp(command, IFCONTROL_SETADDR) == 0) {
++		if (sin->sin_family != AF_INET) {
++			return (EAFNOSUPPORT);
++		}
++		if_flags_set(ifp, if_flags(ifp) | IFF_UP | IFF_AUTODONE);
++		if (if_init(rifp) == 0)
++			if_flags_set(ifp, if_flags(ifp) | IFF_RUNNING);
++		VTRIP_PRIVATE(ifp)->vp_ipaddr = sin->sin_addr;
++		if (!(if_flags(ifp) & IFF_AUTOCONF)) {
++			arpwhohas(ifp, VTRIP_TRADDRP(ifp),
++				  VTRIP_IPADDR(ifp),
++				  &sin->sin_addr);
++		}
++	} else {
++		return (if_control(rifp, command, data));
++	}
++	return (0);
++}
++
++static netbuf_t
++vtrip_getbuf(
++	     netif_t ifp
++	     )
++{
++	netif_t rifp = VTRIP_RIF(ifp);
++	unsigned mtu = if_mtu(ifp);
++	netbuf_t nb;
++
++	nb = if_getbuf(rifp);
++	if (nb == NULL) {
++		return (NULL);
++	}
++	nb_shrink_top(nb, LLC_SNAP_LEN);
++	if (nb_size(nb) > mtu)
++		nb_shrink_bot(nb, nb_size(nb) - mtu);
++	return (nb);
++}
++
++int
++nullsap_input(
++	      netif_t ifp,
++	      netif_t rifp,
++	      netbuf_t nb,
++	      void *extra
++	      )
++{
++	tokenHeader_t *th = (tokenHeader_t *)extra;
++	u_char *llc = (u_char *)nb_map(nb);
++	u_char ctl;
++
++	if (nb_size(nb) > 2 && llc[0] == 0 &&
++	    (th->fc & TR_FC_MASK) == TR_FC_DATA) {
++		ctl = llc[2] & ~0x10;
++		if (ctl == 0xaf && !(llc[1] & 1)) {
++			if_ipackets_set(ifp, if_ipackets(ifp) + 1);
++			make_mac_reply(th);
++			llc_reply(llc);
++			if (llc[3] == 0x81 && nb_size(nb) > 5) {
++				llc[4] = 1;
++				llc[5] = 0;
++			}
++			if (llc_send(rifp, nb, th))
++				if_oerrors_set(ifp, if_oerrors(ifp) + 1);
++			else
++				if_opackets_set(ifp, if_opackets(ifp) + 1);
++			return (0);
++		}
++		if (ctl == 0xe3 && !(llc[1] & 1)) {
++			if_ipackets_set(ifp, if_ipackets(ifp) + 1);
++			make_mac_reply(th);
++			llc_reply(llc);
++			if (llc_send(rifp, nb, th))
++				if_oerrors_set(ifp, if_oerrors(ifp) + 1);
++			else
++				if_opackets_set(ifp, if_opackets(ifp) + 1);
++			return (0);
++		}
++	}
++	return (EAFNOSUPPORT);
++}
++
++static int
++llc_reply(u_char *llc)
++{
++	llc[0] = llc[1];
++	llc[1] = 1;
++	return (0);
++}
++
++static int
++llc_send(netif_t rifp, netbuf_t nb, tokenHeader_t *th)
++{
++	netbuf_t rnb;
++
++	rnb = if_getbuf(rifp);
++	if (rnb == NULL) {
++		nb_free(nb);
++		return (1);
++	}
++	bcopy(nb_map(nb), nb_map(rnb), nb_size(nb));
++	nb_shrink_bot(rnb, nb_size(rnb) - nb_size(nb));
++	nb_free(nb);
++	return (if_output(rifp, rnb, th));
++}
++
++/*
++ * plan 397 (D058, D024; no evidence for this text): the original __data of
++ * this object ends with a second, unreferenced copy of the add_sr overflow
++ * message (0x1db91b, 37 B).  GCC 2.7 keeps the string of an uncalled static
++ * inline function (plan 397 B2-3), so an uncalled copy of that message is
++ * placed here.  Its name and form are not known.
++ */
++static __inline__ void
++vtrip_sr_overflow_message()
++{
++	printf("add_sr: source route table overflow\n");
++}

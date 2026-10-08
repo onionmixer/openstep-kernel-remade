@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/Kernel/IONetbufQueue.m` (plan 300 (S5-P290), 2026-10-05)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "Kernel/IONetbufQueue.m" (objc.json module 0x20912c). Final run `s5p292-it3`; 07 file SHA-256 `43bac88b289d56cff8cdcb12002ef12eed9ba2824acf67ecc56619ece00bc64c`; diff `x86-IONetbufQueue.diff`.
+
+- `__text` [0x1a9968, 0x1a9ad3) 363 B, 7 methods (-[IONetbufQueue init], -[IONetbufQueue initWithMaxCount:], -[IONetbufQueue free], -[IONetbufQueue count], -[IONetbufQueue maxCount], -[IONetbufQueue enqueue:], -[IONetbufQueue dequeue]). Front `c3 00 00 00`, back `00 55 89 e5`, next function 0x1a9ad4.
+- Sections: __TEXT,__text 363 B given by objc metadata; __OBJC,__message_refs 16 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 92 B given by objc metadata; __OBJC,__class_names 44 B literal (references checked by content); __OBJC,__meth_var_types 81 B literal (references checked by content); __OBJC,__meth_var_names 104 B literal (references checked by content); __OBJC,__instance_vars 52 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 16 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p292-it3-l1-IONetbufQueue-F-20261002.json`). Grade **A**.
+
+Module "Kernel/IONetbufQueue.m": __text [0x1a9968, 0x1a9ad3) 363 B, 7 methods; next 0x1a9ad4 after 00 x 1. Scratch s5p290-10-3 (Darwin body + diagnostic #line) OBJECT_MATCH. Codex review of plan 300 verified (counts, recording steps). Run IDs s5p292-it1/it2 were burnt (launch refused: build LOCK held by a triage run) and not reused. s5p292-it3 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

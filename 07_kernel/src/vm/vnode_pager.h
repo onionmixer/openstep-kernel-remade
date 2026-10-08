@@ -128,7 +128,7 @@ pager_return_t	vnode_pagein();
 pager_return_t	vnode_pageout();
 void		vnode_dealloc();
 vm_pager_t	vnode_alloc();
-int		vnode_uncache();
+void		vnode_uncache();	/* plan 242: void as in NeXTMach and the original */
 
 #endif	/* KERNEL */
 

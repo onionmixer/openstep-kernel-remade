@@ -1,0 +1,165 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_synch.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_synch.c	2026-10-03 13:53:40.178960271 +0900
+@@ -76,7 +76,7 @@
+ #import <kern/thread.h>
+ #import <kern/sched.h>
+ #import <kern/sched_prim.h>
+-#import <sys/machine.h>
++/* plan 205: NeXTMach sys/machine.h duplicates the SDK mach/machine.h */
+ #import <kern/parallel.h>
+ #import <kern/processor.h>
+ 
+@@ -89,7 +89,7 @@
+ #endif
+ 
+ #import <kern/task.h>
+-#import <sys/time_value.h>
++/* plan 205: NeXTMach sys/time_value.h duplicates the SDK mach/time_value.h */
+ 
+ #if	!NeXT
+ /*
+@@ -137,6 +137,97 @@
+  * sleeping has gone away.
+  */
+ 
++#if	NeXT
++/*
++ * plan 205 (authored, D024; original _sleep 0x10a588,
++ * _sleep_with_continuation 0x10a708 and
++ * _sleep_with_continuation_and_deadline 0x10a898): one body, inlined into
++ * the three entry points (name of the helper not recovered).
++ */
++static inline int
++sleep_common(chan, pri, continuation, deadline)
++	caddr_t chan;
++	int pri;
++	void (*continuation)();
++	struct timeval *deadline;
++{
++	register struct proc *rp;
++	register s;
++
++	rp = u.u_procp;
++	s = splhigh();
++	/* allow to continue after panics so we can try to shut down. */
++	if (rp)
++		rp->p_pri = pri & PMASK;
++	assert_wait((int) chan, pri > PZERO);
++	if (pri > PZERO) {
++		/*
++		 * If wakeup occurs while in issig, thread_block()
++		 * below is a no-op.  If ISSIG finds a signal, clear
++		 * sleep condition before going to process it.
++		 */
++		if (rp && ISSIG_CATCH(rp)) {
++			clear_wait(current_thread(), THREAD_INTERRUPTED,
++					TRUE);
++			(void) spl0();
++			goto psig;
++		}
++		if (deadline)
++			thread_set_timeout(hzto(deadline));
++		(void) spl0();
++		u.u_ru.ru_nvcsw++;
++		if (cpu_number() != master_cpu) {
++			printf("unix sleep: on slave?\n");
++		}
++		thread_block_with_continuation(continuation);
++		if (rp && ISSIG_CATCH(rp))
++			goto psig;
++	} else {
++		if (deadline)
++			thread_set_timeout(hzto(deadline));
++		(void) spl0();
++		u.u_ru.ru_nvcsw++;
++		if (cpu_number() != master_cpu) {
++			printf("unix sleep: on slave?\n");
++		}
++		thread_block_with_continuation(continuation);
++	}
++	spln(s);
++	return(0);
++
++psig:
++	if (continuation)
++		call_continuation(continuation);
++	if (pri & PCATCH)
++		return(1);
++	longjmp(&u.u_qsave);
++	/*NOTREACHED*/
++}
++
++int sleep(chan, pri)
++	caddr_t chan;
++	int pri;
++{
++	return (sleep_common(chan, pri, (void (*)())0, (struct timeval *)0));
++}
++
++int sleep_with_continuation(chan, pri, continuation)
++	caddr_t chan;
++	int pri;
++	void (*continuation)();
++{
++	return (sleep_common(chan, pri, continuation, (struct timeval *)0));
++}
++
++int sleep_with_continuation_and_deadline(chan, pri, continuation, deadline)
++	caddr_t chan;
++	int pri;
++	void (*continuation)();
++	struct timeval *deadline;
++{
++	return (sleep_common(chan, pri, continuation, deadline));
++}
++#else	NeXT
+ int sleep(chan, pri)
+ 	caddr_t chan;
+ 	int pri;
+@@ -213,6 +304,8 @@
+ 	/*NOTREACHED*/
+ }
+ 
++#endif	NeXT
++
+ /* 
+  *  rpsleep - perform a resource pause sleep
+  *
+@@ -292,6 +385,7 @@
+  *		TS_SIG if asynchronous signal occurred
+  */
+ 
++#if	!NeXT	/* plan 205: tsleep is not in the original kernel */
+ tsleep(chan, pri, seconds)
+ 	caddr_t	chan;
+ {
+@@ -330,6 +424,8 @@
+ }
+ 
+ 
++#endif	!NeXT
++
+ /*
+  * Wake up all processes sleeping on chan.
+  */
+@@ -369,9 +465,14 @@
+ 
+ 	for (i = 0; i < NQS; i++)
+ 		qs[i].ph_link = qs[i].ph_rlink = (struct proc *)&qs[i];
++#if	NeXT
++	/* plan 205: no callout lock (callout entries, plan 181) */
++#else	NeXT
+ 	simple_lock_init(&callout_lock);
++#endif	NeXT
+ }
+ 
++#if	!NeXT	/* plan 205: slave_start is not in the original kernel */
+ slave_start()
+ {
+ 	register struct thread	*th;
+@@ -409,4 +510,5 @@
+ 	load_context(th);
+ 	/*NOTREACHED*/
+ }
++#endif	!NeXT
+ 

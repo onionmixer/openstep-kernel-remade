@@ -1,0 +1,52 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_bmap.c	2026-09-11 10:02:49.643219229 +0900
++++ 07_kernel/src/bsd/ufs/ufs_bmap.c	2026-10-03 09:55:21.778662714 +0900
+@@ -50,6 +50,7 @@
+ #import <sys/proc.h>
+ #import <ufs/inode.h>
+ #import <ufs/fs.h>
++#import <architecture/byte_order.h>	/* plan 178: big-endian indirect blocks */
+ 
+ daddr_t	rablock;		/* block to be read ahead */
+ int	rasize;			/* size of block in rablock */
+@@ -71,12 +72,12 @@
+ 	u_long size;	/* supplied only when rwflg == B_WRITE */
+ 	int *sync;	/* supplied only when rwflg == B_WRITE */
+ {
+-	register int i;
++	register int i = 0;	/* plan 178 (authored; original 0x13d83c) */
+ 	u_long osize, nsize;
+ 	struct buf *bp, *nbp;
+ 	struct fs *fs;
+ 	int j, sh;
+-	daddr_t nb, lbn, *bap, pref, blkpref();
++	daddr_t nb, lbn, *bap = 0, pref, blkpref();	/* plan 178 (0x13d843) */
+ #if	MACH_NBC
+ 	int	flush;
+ #endif	MACH_NBC
+@@ -247,7 +248,7 @@
+ 		bap = bp->b_un.b_daddr;
+ 		sh /= NINDIR(fs);
+ 		i = (bn / sh) % NINDIR(fs);
+-		nb = bap[i];
++		nb = NXSwapBigLongToHost(bap[i]);	/* plan 178 (0x13dce6) */
+ 		if (nb == 0) {
+ 			if (rwflg==B_READ) {
+ 				brelse(bp);
+@@ -274,7 +275,7 @@
+ 				bwrite(nbp);
+ 			else
+ 				bdwrite(nbp);
+-			bap[i] = nb;
++			bap[i] = NXSwapHostLongToBig(nb);	/* plan 178 (0x13dd9a) */
+ 			if (sync)
+ 				bwrite(bp);
+ 			else
+@@ -292,7 +293,7 @@
+ 	 * calculate read-ahead.
+ 	 */
+ 	if (i < NINDIR(fs) - 1) {
+-		rablock = fsbtodb(fs, bap[i+1]);
++		rablock = fsbtodb(fs, NXSwapBigLongToHost(bap[i+1]));	/* plan 178 (0x13dde5) */
+ 		rasize = fs->fs_bsize;
+ 	}
+ 	return (nb);

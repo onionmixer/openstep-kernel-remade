@@ -1,0 +1,43 @@
+/*
+ * libDriver/Kernel/audioReply.defs - MIG interface (plan 342, D030).
+ *
+ * Needed by the MIG run that makes generated/audioReply.h for the libDriver audio modules (Kernel/*.m), whose objects
+ * match the original kernel bytes.  The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/audioReply.defs; kept as project-authored under D030,
+ * without Darwin's notices (license judgement: D017).
+ */
+
+subsystem audioReply 1700;
+
+#include <mach/std_types.defs>
+
+type u_int = MSG_TYPE_INTEGER_32;
+type dealloc_ptr = ^array [] of (MSG_TYPE_BYTE,8,dealloc);
+
+import <bsd/dev/audioTypes.h>;
+
+serverprefix _NXAudioReply;
+userprefix _NXAudioReply;
+
+/*
+ * Stream status.
+ */
+simpleroutine StreamStatus (
+	port		: port_t;
+	streamPort	: port_t;
+	streamReply	: port_t;
+	streamId	: int;
+	tag		: int;
+	status		: int);
+
+/*
+ * Recorded data.
+ */
+simpleroutine RecordedData (
+	port		: port_t;
+	streamPort	: port_t;
+	streamReply	: port_t;
+	streamId	: int;
+	tag		: int;
+	data		: dealloc_ptr
+	/* dataCnt	: int */);	/* invisible mig arg */

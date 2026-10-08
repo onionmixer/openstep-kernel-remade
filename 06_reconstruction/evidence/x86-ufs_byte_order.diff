@@ -1,0 +1,304 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/bsd/ufs/ufs_byte_order.c	2026-10-04 02:03:23.074879225 +0900
+@@ -0,0 +1,301 @@
++/*
++ * ufs_byte_order.c -- convert big-endian (68k/NeXT) on-disk UFS and disk
++ * label structures to and from the host byte order.
++ *
++ * plan 271: written from the original OPENSTEP 4.2 kernel bytes (D024).
++ * No reference tree in 01_resources holds this NeXT 4.x version (Darwin
++ * 0.1 bsd/ufs/ufs/ufs_byte_order.c has several functions of the same
++ * names with other layouts and code, consulted for structure only, D027).  Structure layouts are those of the
++ * OPENSTEP 4.2 SDK headers.
++ */
++
++#import <sys/param.h>
++#import <sys/time.h>
++#import <sys/vnode.h>
++#import <sys/buf.h>
++#import <ufs/fs.h>
++#import <ufs/inode.h>
++#import <ufs/fsdir.h>
++#import <bsd/dev/disk_label.h>
++#import <architecture/byte_order.h>
++
++#define	swap_long(thing)	((thing) = NXSwapBigLongToHost(thing))
++#define	swap_short(thing)	((thing) = NXSwapBigShortToHost(thing))
++
++void	byte_swap_partition(struct partition *pp);
++
++void
++byte_swap_ints(int *array, int count)
++{
++	int i;
++
++	for (i = 0; i < count; i++)
++		swap_long(array[i]);
++}
++
++void
++byte_swap_shorts(short *array, int count)
++{
++	int i;
++
++	for (i = 0; i < count; i++)
++		swap_short(array[i]);
++}
++
++void
++byte_swap_superblock(struct fs *fs)
++{
++	byte_swap_ints((int *) &fs->fs_sblkno, 50);	/* fs_sblkno .. fs_cstotal */
++	swap_long(fs->fs_cgrotor);
++	swap_long(fs->fs_cpc);
++	byte_swap_shorts((short *) fs->fs_postbl, MAXCPG * NRPOS);
++	swap_long(fs->fs_magic);
++}
++
++/*
++ * On disk the label is packed: the partition array starts two bytes
++ * early (dl+0xbe rather than dl+0xc0) and each partition_t is two bytes
++ * shorter, so dl_un and dl_checksum sit 2 * (NPART + 1) bytes below
++ * their place in memory.
++ */
++#define	DL_PACK		(2 * (NPART + 1))
++#define	DL_TAIL		(sizeof (dl_un_t) + sizeof (unsigned short))
++
++void	byte_swap_disktab_in(struct disktab *dt);
++void	byte_swap_disktab_out(struct disktab *dt);
++
++void
++byte_swap_disklabel_in(struct disk_label *dl)
++{
++	int i;
++
++	for (i = DL_TAIL - 1; i >= 0; i--)
++		((char *) &dl->dl_un)[i] = ((char *) &dl->dl_un)[i - DL_PACK];
++
++	swap_long(dl->dl_version);
++	swap_long(dl->dl_label_blkno);
++	swap_long(dl->dl_size);
++	swap_long(dl->dl_flags);
++	swap_long(dl->dl_tag);
++	swap_short(dl->dl_checksum);
++	byte_swap_disktab_in(&dl->dl_dt);
++	if (dl->dl_version > DL_V2)
++		swap_short(dl->dl_v3_checksum);
++	else
++		byte_swap_ints(dl->dl_bad, NBAD);
++}
++
++void
++byte_swap_disklabel_out(struct disk_label *dl)
++{
++	unsigned i;
++
++	if (dl->dl_version > DL_V2)
++		swap_short(dl->dl_v3_checksum);
++	else
++		byte_swap_ints(dl->dl_bad, NBAD);
++	swap_long(dl->dl_version);
++	swap_long(dl->dl_label_blkno);
++	swap_long(dl->dl_size);
++	swap_long(dl->dl_flags);
++	swap_long(dl->dl_tag);
++	swap_short(dl->dl_checksum);
++	byte_swap_disktab_out(&dl->dl_dt);
++
++	for (i = 0; i < DL_TAIL; i++)
++		((char *) &dl->dl_un)[i - DL_PACK] = ((char *) &dl->dl_un)[i];
++}
++
++static void
++byte_swap_disktab(struct disktab *dt)
++{
++	unsigned int i;
++
++	swap_long(dt->d_secsize);
++	swap_long(dt->d_ntracks);
++	swap_long(dt->d_nsectors);
++	swap_long(dt->d_ncylinders);
++	swap_long(dt->d_rpm);
++	swap_short(dt->d_front);
++	swap_short(dt->d_back);
++	swap_short(dt->d_ngroups);
++	swap_short(dt->d_ag_size);
++	swap_short(dt->d_ag_alts);
++	swap_short(dt->d_ag_off);
++	byte_swap_ints(dt->d_boot0_blkno, NBOOTS);
++	for (i = 0; i < NPART; i++)
++		byte_swap_partition(&dt->d_partitions[i]);
++}
++
++void
++byte_swap_disktab_in(struct disktab *dt)
++{
++	int i;
++
++	/* spread the packed partitions out, last first */
++	for (i = NPART - 1; i >= 0; i--) {
++		struct partition *pp = &dt->d_partitions[i];
++		struct partition tmp;
++
++		tmp = *(struct partition *) ((char *) pp - 2 * (i + 1));
++		*pp = tmp;
++	}
++	byte_swap_disktab(dt);
++}
++
++void
++byte_swap_disktab_out(struct disktab *dt)
++{
++	int i;
++
++	byte_swap_disktab(dt);
++	/* pack the partitions, first first */
++	for (i = 0; i < NPART; i++) {
++		struct partition *pp = &dt->d_partitions[i];
++		struct partition tmp;
++
++		tmp = *pp;
++		*(struct partition *) ((char *) pp - 2 * (i + 1)) = tmp;
++	}
++}
++
++void
++byte_swap_partition(struct partition *pp)
++{
++	swap_long(pp->p_base);
++	swap_long(pp->p_size);
++	swap_short(pp->p_bsize);
++	swap_short(pp->p_fsize);
++	swap_short(pp->p_cpg);
++	swap_short(pp->p_density);
++}
++
++void
++byte_swap_csum(struct csum *cs)
++{
++	int *ip = (int *) cs;
++	int end = (int) (cs + 1);
++
++	do
++		swap_long(*ip);
++	while ((int) ++ip < end);
++}
++
++void
++byte_swap_cylgroup(struct cg *cg)
++{
++	swap_long(cg->cg_time);
++	swap_long(cg->cg_cgx);
++	swap_short(cg->cg_ncyl);
++	swap_short(cg->cg_niblk);
++	swap_long(cg->cg_ndblk);
++	byte_swap_ints((int *) &cg->cg_cs, 4);
++	swap_long(cg->cg_rotor);
++	swap_long(cg->cg_frotor);
++	swap_long(cg->cg_irotor);
++	byte_swap_ints((int *) cg->cg_frsum, MAXFRAG);
++	byte_swap_ints((int *) cg->cg_btot, MAXCPG);
++	byte_swap_shorts((short *) cg->cg_b, MAXCPG * NRPOS);
++	swap_long(cg->cg_magic);
++}
++
++void
++byte_swap_inode_in(struct dinode *di, struct inode *ip)
++{
++	struct icommon *dc = &di->di_un.di_icom;
++	struct icommon *ic = &ip->i_ic;
++	int i;
++
++	ic->ic_mode = NXSwapShort(dc->ic_mode);
++	ic->ic_nlink = NXSwapShort(dc->ic_nlink);
++	ic->ic_uid = NXSwapShort(dc->ic_uid);
++	ic->ic_gid = NXSwapShort(dc->ic_gid);
++	ic->ic_size.val[0] = NXSwapLong(dc->ic_size.val[1]);
++	ic->ic_size.val[1] = NXSwapLong(dc->ic_size.val[0]);
++	ic->ic_atime = NXSwapLong(dc->ic_atime);
++	ic->ic_mtime = NXSwapLong(dc->ic_mtime);
++	ic->ic_ctime = NXSwapLong(dc->ic_ctime);
++	ic->ic_atspare = NXSwapLong(dc->ic_atspare);
++	ic->ic_mtspare = NXSwapLong(dc->ic_mtspare);
++	ic->ic_ctspare = NXSwapLong(dc->ic_ctspare);
++	ic->ic_flags = NXSwapLong(dc->ic_flags);
++	if ((ic->ic_flags & IC_FASTLINK) == 0) {
++		for (i = 0; i < NDADDR; i++)
++			ic->ic_db[i] = NXSwapLong(dc->ic_db[i]);
++		for (i = 0; i < NIADDR; i++)
++			ic->ic_ib[i] = NXSwapLong(dc->ic_ib[i]);
++	} else
++		bcopy(dc->ic_symlink, ic->ic_symlink, MAX_FASTLINK_SIZE);
++	ic->ic_blocks = NXSwapLong(dc->ic_blocks);
++	ic->ic_gen = NXSwapLong(dc->ic_gen);
++	for (i = 0; i < sizeof (ic->ic_spare) / sizeof (ic->ic_spare[0]); i++)
++		ic->ic_spare[i] = NXSwapLong(dc->ic_spare[i]);
++}
++
++void
++byte_swap_inode_out(struct inode *ip, struct dinode *di)
++{
++	struct icommon *dc = &di->di_un.di_icom;
++	struct icommon *ic = &ip->i_ic;
++	int i;
++
++	dc->ic_mode = NXSwapShort(ic->ic_mode);
++	dc->ic_nlink = NXSwapShort(ic->ic_nlink);
++	dc->ic_uid = NXSwapShort(ic->ic_uid);
++	dc->ic_gid = NXSwapShort(ic->ic_gid);
++	dc->ic_size.val[0] = NXSwapLong(ic->ic_size.val[1]);
++	dc->ic_size.val[1] = NXSwapLong(ic->ic_size.val[0]);
++	dc->ic_atime = NXSwapLong(ic->ic_atime);
++	dc->ic_mtime = NXSwapLong(ic->ic_mtime);
++	dc->ic_ctime = NXSwapLong(ic->ic_ctime);
++	dc->ic_atspare = NXSwapLong(ic->ic_atspare);
++	dc->ic_mtspare = NXSwapLong(ic->ic_mtspare);
++	dc->ic_ctspare = NXSwapLong(ic->ic_ctspare);
++	dc->ic_flags = NXSwapLong(ic->ic_flags);
++	if ((ic->ic_flags & IC_FASTLINK) == 0) {
++		for (i = 0; i < NDADDR; i++)
++			dc->ic_db[i] = NXSwapLong(ic->ic_db[i]);
++		for (i = 0; i < NIADDR; i++)
++			dc->ic_ib[i] = NXSwapLong(ic->ic_ib[i]);
++	} else
++		bcopy(ic->ic_symlink, dc->ic_symlink, MAX_FASTLINK_SIZE);
++	dc->ic_blocks = NXSwapLong(ic->ic_blocks);
++	dc->ic_gen = NXSwapLong(ic->ic_gen);
++	for (i = 0; i < sizeof (dc->ic_spare) / sizeof (dc->ic_spare[0]); i++)
++		dc->ic_spare[i] = NXSwapLong(ic->ic_spare[i]);
++}
++
++void
++byte_swap_dir_block_out(struct buf *bp)
++{
++	struct direct *dp;
++	int off, reclen;
++
++	for (off = 0; off < bp->b_bcount; ) {
++		dp = (struct direct *) (bp->b_un.b_addr + off);
++		reclen = dp->d_reclen;
++		off += reclen;
++		swap_long(dp->d_ino);
++		swap_short(dp->d_reclen);
++		swap_short(dp->d_namlen);
++		if (reclen < 12)
++			break;
++	}
++}
++
++void
++byte_swap_dir_block_in(char *addr, int count)
++{
++	struct direct *dp;
++	int off;
++
++	for (off = 0; off < count; ) {
++		dp = (struct direct *) (addr + off);
++		swap_long(dp->d_ino);
++		swap_short(dp->d_reclen);
++		swap_short(dp->d_namlen);
++		off += dp->d_reclen;
++		if (dp->d_reclen < 12)
++			break;
++	}
++}

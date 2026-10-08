@@ -1,0 +1,9 @@
+# x86 `src/objc-runtime/Protocol.m` (plan 358 (S5-P344), 2026-10-07)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "Protocol.m" (objc.json module 0x20938c). Final run `s5p358-r1proto`; 07 file SHA-256 `3aec0f602dd730fed0b33be47f4d170d2d092842bdf00f95ac70df5d360f3132`; diff `x86-objc-Protocol.diff`.
+
+- `__text` [0x1ca6dc, 0x1ca960) 644 B, 8 functions (5 methods) (+[Protocol _fixup:numElements:], -[Protocol conformsTo:], -[Protocol descriptionForInstanceMethod:], -[Protocol descriptionForClassMethod:], -[Protocol name], (static lookup_method), (static lookup_instance_method), (static lookup_class_method)). Front `c3 00 00 00`, back `55 89 e5 53`, next function 0x1ca960.
+- Sections: __TEXT,__text 644 B given by objc metadata; __TEXT,__cstring 73 B literal (references checked by content); __OBJC,__message_refs 4 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__cls_meth 20 B given by objc metadata; __OBJC,__inst_meth 56 B given by objc metadata; __OBJC,__class_names 27 B literal (references checked by content); __OBJC,__meth_var_types 132 B literal (references checked by content); __OBJC,__meth_var_names 153 B literal (references checked by content); __OBJC,__instance_vars 52 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 16 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p358-r1proto-l1-Protocol-F-20261002.json`). Grade **A**.
+
+Kernel ObjC runtime class module (D045, D046, D047), plan 358 (same form as plan 356). Diagnostic s5p358-dprotocol OBJECT_MATCH; real-machine cc -M s5p358-depproto; codex review of plan 358 verified. Final s5p358-r1proto from 07.

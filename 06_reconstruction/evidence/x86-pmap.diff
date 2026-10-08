@@ -1,0 +1,133 @@
+--- 01_resources/upstream/darwin01/kernel/machdep/i386/pmap.c	1999-03-17 01:55:29.000000000 +0900
++++ 07_kernel/src/machdep/i386/pmap.c	2026-10-07 16:44:47.206754043 +0900
+@@ -342,6 +342,24 @@
+ }
+ 
+ /*
++ * plan 373 (D035): the fields of the boot loader's parameter block at
++ * physical 0x11000 that pmap_bootstrap uses (no i386 kernBootStruct.h in
++ * any reference tree).  The offsets are the original's (0x18f16c-0x18f1b4);
++ * the names are ours.
++ */
++typedef struct {
++	char		_reserved0[0x1854];
++	vm_offset_t	vbeFrameBuffer;		/* +0x1854: kernel address of the frame buffer */
++	char		_reserved1[0x185c - 0x1858];
++	unsigned short	vbeWidth;		/* +0x185c: 0 when no VESA mode is set */
++	unsigned short	vbeHeight;		/* +0x185e */
++	unsigned short	vbeRowBytes;		/* +0x1860 */
++	char		_reserved2[0x186c - 0x1862];
++	vm_offset_t	vbePhysBase;		/* +0x186c: physical address of the frame buffer */
++} KERNBOOTSTRUCT;
++#define	KERNSTRUCT_ADDR	((KERNBOOTSTRUCT *) 0x11000)
++
++/*
+  */
+ void
+ pmap_bootstrap(
+@@ -408,10 +426,24 @@
+     *virt_avail = va;
+      va = pmap_map(va,
+      		   0,
+-		   64*1024*1024	+	/* base size */
+-		   zone_map_sizer() +	/* zone allocator */
+-		   buffer_map_sizer(),	/* buffer cache */
++		   64*1024*1024,	/* base size; plan 373: no zone/buffer sizers */
+ 		   VM_PROT_NONE);
++
++    /*
++     * plan 373: map the VESA frame buffer the boot loader set up and
++     * leave its kernel address in the parameter block (written from
++     * the original bytes 0x18f16c-0x18f29a, D024).
++     */
++    if (KERNSTRUCT_ADDR->vbeWidth) {
++	vm_offset_t	phys = KERNSTRUCT_ADDR->vbePhysBase;
++	vm_size_t	size = KERNSTRUCT_ADDR->vbeRowBytes *
++				KERNSTRUCT_ADDR->vbeHeight;
++	vm_offset_t	start = trunc_page(phys);
++	vm_offset_t	end = round_page(size + 2 * phys - start);
++
++	KERNSTRUCT_ADDR->vbeFrameBuffer = va + phys - start;
++	va = pmap_map(va, start, end, VM_PROT_READ | VM_PROT_WRITE);
++    }
+ 		   
+     *virt_end = va;
+ 
+@@ -1840,6 +1872,33 @@
+ }
+ 
+ /*
++ * plan 373: compressed paging helpers of the original (0x191490,
++ * 0x1914a8; written from the original bytes, D024).
++ */
++int
++compress_data_from_phys(
++    vm_offset_t		src,
++    vm_offset_t		dst,
++    vm_size_t		count
++)
++{
++    return (compress_data(pmap_phys_to_kern(src), dst, count));
++}
++
++int
++uncompress_data_to_phys(
++    vm_offset_t		src,
++    vm_offset_t		dst,
++    vm_size_t		count,
++    vm_size_t		dstcount,
++    int			*result
++)
++{
++    return (uncompress_data(src, pmap_phys_to_kern(dst), count,
++			    dstcount, result));
++}
++
++/*
+  * Make the specified pages (by pmap, offset)
+  * pageable (or not) as requested.
+  *
+@@ -1870,42 +1929,7 @@
+     vm_machine_attribute_val_t	*value
+ )
+ {
+-	kern_return_t ret;
+-
+-	if (attribute != MATTR_CACHE)
+-		return KERN_INVALID_ARGUMENT;
+-
+-	/*
+-	** We can't get the caching attribute for more than one page
+-	** at a time
+-	*/
+-	if ((*value == MATTR_VAL_GET) &&
+-	    (trunc_page(address) != trunc_page(address+size-1)))
+-		return KERN_INVALID_ARGUMENT;
+-
+-	if (pmap == PMAP_NULL)
+-		return KERN_SUCCESS;
+-
+-	ret = KERN_SUCCESS;
+-
+-        simple_lock(&pmap->lock);
+-
+-	switch (*value) {
+-	case MATTR_VAL_CACHE_FLUSH:     /* flush from all caches */
+-	case MATTR_VAL_DCACHE_FLUSH:    /* flush from data cache(s) */
+-	case MATTR_VAL_ICACHE_FLUSH:    /* flush from instr cache(s) */
+-		break;
+-
+-	case MATTR_VAL_GET:             /* return current value */
+-	case MATTR_VAL_OFF:             /* turn attribute off */
+-	case MATTR_VAL_ON:              /* turn attribute on */
+-	default:
+-		ret = KERN_INVALID_ARGUMENT;
+-		break;
+-	}
+-	simple_unlock(&pmap->lock);
+-
+-	return ret;
++	return (KERN_INVALID_ARGUMENT);	/* plan 373: as the original (0x1914d0) */
+ 
+ }
+ 

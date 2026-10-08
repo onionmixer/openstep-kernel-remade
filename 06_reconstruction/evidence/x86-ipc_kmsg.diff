@@ -1,0 +1,490 @@
+--- 01_resources/upstream/mach4/kernel/ipc/ipc_kmsg.c	2026-09-11 10:02:48.332203113 +0900
++++ 07_kernel/src/ipc/ipc_kmsg.c	2026-10-04 01:36:41.026155426 +0900
+@@ -37,6 +37,7 @@
+ #include <cpus.h>
+ #include <mach_ipc_compat.h>
+ #include <norma_ipc.h>
++#include <mach_old_vm_copy.h>	/* plan 269 */
+ #include <norma_vm.h>
+ 
+ #include <mach/boolean.h>
+@@ -135,9 +136,7 @@
+ 		next->ikm_prev = prev;
+ 		prev->ikm_next = next;
+ 	}
+-	/* XXX Temporary debug logic */
+-	kmsg->ikm_next = IKM_BOGUS;
+-	kmsg->ikm_prev = IKM_BOGUS;
++	/* plan 269: no IKM_BOGUS stores in the original */
+ }
+ 
+ /*
+@@ -296,7 +295,11 @@
+ 			else if (is_port)
+ 				kfree(data, length);
+ 			else
++#if	MACH_OLD_VM_COPY	/* plan 269: out-of-line data lives in ipc_soft_map */
++				(void) vm_deallocate(ipc_soft_map, data, length);
++#else	/* MACH_OLD_VM_COPY */
+ 				vm_map_copy_discard((vm_map_copy_t) data);
++#endif	/* MACH_OLD_VM_COPY */
+ 
+ 			saddr += sizeof(vm_offset_t);
+ 		}
+@@ -448,7 +451,11 @@
+ 			else if (is_port)
+ 				kfree(data, length);
+ 			else
++#if	MACH_OLD_VM_COPY	/* plan 269: out-of-line data lives in ipc_soft_map */
++				(void) vm_deallocate(ipc_soft_map, data, length);
++#else	/* MACH_OLD_VM_COPY */
+ 				vm_map_copy_discard((vm_map_copy_t) data);
++#endif	/* MACH_OLD_VM_COPY */
+ 		}
+ 	}
+ }
+@@ -476,10 +483,21 @@
+ #endif	NORMA_IPC
+ 
+ 	    case IKM_SIZE_NETWORK:
+-		/* return it to the network code */
+-		net_kmsg_put(kmsg);
++		/* plan 269: nothing to do (no net_kmsg_put call in the original) */
+ 		break;
+ 
++#if	DRIVERKIT	/* plan 269: written from the original bytes (D024) */
++	    case IKM_SIZE_DEVICE:
++		KernDeviceInterruptMsgRelease(kmsg);
++		break;
++#endif	/* DRIVERKIT */
++
++#if	MACH_NET	/* plan 269 */
++	    case IKM_SIZE_NETIPC:
++		netipc_msg_release(kmsg);
++		break;
++#endif	/* MACH_NET */
++
+ 	    default:
+ 		kfree((vm_offset_t) kmsg, size);
+ 		break;
+@@ -502,14 +520,16 @@
+  */
+ 
+ mach_msg_return_t
+-ipc_kmsg_get(msg, size, kmsgp)
++ipc_kmsg_get(msg, size, delta, kmsgp)
+ 	mach_msg_header_t *msg;
+ 	mach_msg_size_t size;
++	integer_t delta;	/* plan 269: bytes short of size in the user message (<= 0) */
+ 	ipc_kmsg_t *kmsgp;
+ {
+ 	ipc_kmsg_t kmsg;
+ 
+-	if ((size < sizeof(mach_msg_header_t)) || (size & 3))
++	if ((size < sizeof(mach_msg_header_t)) || (size & 3) ||
++	    (delta > 0))	/* plan 269 */
+ 		return MACH_SEND_MSG_TOO_SMALL;
+ 
+ 	if (size <= IKM_SAVED_MSG_SIZE) {
+@@ -530,11 +550,13 @@
+ 		ikm_init(kmsg, size);
+ 	}
+ 
+-	if (copyinmsg((char *) msg, (char *) &kmsg->ikm_header, size)) {
++	if (copyinmsg((char *) msg, (char *) &kmsg->ikm_header,
++		      size + delta)) {	/* plan 269 */
+ 		ikm_free(kmsg);
+ 		return MACH_SEND_INVALID_DATA;
+ 	}
+ 
++	kmsg->ikm_delta = delta;	/* plan 269 */
+ 	kmsg->ikm_header.msgh_size = size;
+ 	*kmsgp = kmsg;
+ 	return MACH_MSG_SUCCESS;
+@@ -554,9 +576,10 @@
+  */
+ 
+ extern mach_msg_return_t
+-ipc_kmsg_get_from_kernel(msg, size, kmsgp)
++ipc_kmsg_get_from_kernel(msg, size, delta, kmsgp)
+ 	mach_msg_header_t *msg;
+ 	mach_msg_size_t size;
++	integer_t delta;	/* plan 269 */
+ 	ipc_kmsg_t *kmsgp;
+ {
+ 	ipc_kmsg_t kmsg;
+@@ -569,8 +592,9 @@
+ 		return MACH_SEND_NO_BUFFER;
+ 	ikm_init(kmsg, size);
+ 
+-	bcopy((char *) msg, (char *) &kmsg->ikm_header, size);
++	bcopy((char *) msg, (char *) &kmsg->ikm_header, size + delta);	/* plan 269 */
+ 
++	kmsg->ikm_delta = delta;	/* plan 269 */
+ 	kmsg->ikm_header.msgh_size = size;
+ 	*kmsgp = kmsg;
+ 	return MACH_MSG_SUCCESS;
+@@ -630,11 +654,7 @@
+ 	ipc_kmsg_t		kmsg,
+ 	mach_msg_size_t		size)
+ {
+-#if	DIPC
+-	assert(!KMSG_IN_DIPC(kmsg));
+-#endif	/* DIPC */
+-
+-	(void) memcpy((void *) msg, (const void *) &kmsg->ikm_header, size);
++	bcopy((char *) &kmsg->ikm_header, (char *) msg, size);	/* plan 269: bcopy, as in the original */
+ 
+ 	ikm_free(kmsg);
+ }
+@@ -1376,22 +1396,62 @@
+ 	return MACH_SEND_INVALID_REPLY;
+ }
+ 
++
++/*
++ *	Routine:	ipc_kmsg_copyin
++ *	Purpose:
++ *		"Copy-in" port rights and out-of-line memory
++ *		in the message.
++ *
++ *		In all failure cases, the message is left holding
++ *		no rights or memory.  However, the message buffer
++ *		is not deallocated.  If successful, the message
++ *		contains a valid destination port.
++ *	Conditions:
++ *		Nothing locked.
++ *	Returns:
++ *		MACH_MSG_SUCCESS	Successful copyin.
++ *		MACH_SEND_INVALID_HEADER
++ *			Illegal value in the message header bits.
++ *		MACH_SEND_INVALID_NOTIFY	Bad notify port.
++ *		MACH_SEND_INVALID_DEST	Can't copyin destination port.
++ *		MACH_SEND_INVALID_REPLY	Can't copyin reply port.
++ *		MACH_SEND_INVALID_MEMORY	Can't grab out-of-line memory.
++ *		MACH_SEND_INVALID_RIGHT	Can't copyin port right in body.
++ *		MACH_SEND_INVALID_TYPE	Bad type specification.
++ *		MACH_SEND_MSG_TOO_SMALL	Body is too small for types/data.
++ */
++
+ mach_msg_return_t
+-ipc_kmsg_copyin_body(kmsg, space, map)
++ipc_kmsg_copyin(kmsg, space, map, notify)
+ 	ipc_kmsg_t kmsg;
+ 	ipc_space_t space;
+ 	vm_map_t map;
++	mach_port_t notify;
+ {
+ 	ipc_object_t dest;
+ 	vm_offset_t saddr, eaddr;
+ 	boolean_t complex;
+-	mach_msg_return_t mr;
++#if	!MACH_OLD_VM_COPY	/* plan 269 */
+ 	boolean_t use_page_lists, steal_pages;
++#endif
++
++	mach_msg_return_t mr;
+ 
++	mr = ipc_kmsg_copyin_header(&kmsg->ikm_header, space, notify);
++	if (mr != MACH_MSG_SUCCESS)
++		return mr;
++
++	if ((kmsg->ikm_header.msgh_bits & MACH_MSGH_BITS_COMPLEX) == 0)
++		return MACH_MSG_SUCCESS;
++
++	/* plan 269: body copyin done here (no ipc_kmsg_copyin_body in the original) */
+ 	dest = (ipc_object_t) kmsg->ikm_header.msgh_remote_port;
+ 	complex = FALSE;
++#if	!MACH_OLD_VM_COPY	/* plan 269 */
+ 	use_page_lists = ipc_kobject_vm_page_list(ip_kotype((ipc_port_t)dest));
+ 	steal_pages = ipc_kobject_vm_page_steal(ip_kotype((ipc_port_t)dest));
++#endif
+ 
+ #if	NORMA_IPC
+ 	if (IP_NORMA_IS_PROXY((ipc_port_t) dest)) {
+@@ -1510,6 +1570,10 @@
+ 			} else {
+ 				vm_map_copy_t copy;
+ 
++#if	MACH_OLD_VM_COPY	/* plan 269: move the data into ipc_soft_map (NeXTMach kern/ipc_copyin.c:708 form) */
++				kr = vm_move(map, addr, ipc_soft_map, length,
++					     dealloc, (vm_offset_t *) &copy);
++#else	/* MACH_OLD_VM_COPY */
+ 		      		if (use_page_lists) {
+ 					kr = vm_map_copyin_page_list(map,
+ 				        	addr, length, dealloc,
+@@ -1518,6 +1582,7 @@
+ 					kr = vm_map_copyin(map, addr, length,
+ 							   dealloc, &copy);
+ 				}
++#endif	/* MACH_OLD_VM_COPY */
+ 				if (kr != KERN_SUCCESS) {
+ 				    invalid_memory:
+ 					ipc_kmsg_clean_partial(kmsg, taddr,
+@@ -1580,50 +1645,6 @@
+ }
+ 
+ /*
+- *	Routine:	ipc_kmsg_copyin
+- *	Purpose:
+- *		"Copy-in" port rights and out-of-line memory
+- *		in the message.
+- *
+- *		In all failure cases, the message is left holding
+- *		no rights or memory.  However, the message buffer
+- *		is not deallocated.  If successful, the message
+- *		contains a valid destination port.
+- *	Conditions:
+- *		Nothing locked.
+- *	Returns:
+- *		MACH_MSG_SUCCESS	Successful copyin.
+- *		MACH_SEND_INVALID_HEADER
+- *			Illegal value in the message header bits.
+- *		MACH_SEND_INVALID_NOTIFY	Bad notify port.
+- *		MACH_SEND_INVALID_DEST	Can't copyin destination port.
+- *		MACH_SEND_INVALID_REPLY	Can't copyin reply port.
+- *		MACH_SEND_INVALID_MEMORY	Can't grab out-of-line memory.
+- *		MACH_SEND_INVALID_RIGHT	Can't copyin port right in body.
+- *		MACH_SEND_INVALID_TYPE	Bad type specification.
+- *		MACH_SEND_MSG_TOO_SMALL	Body is too small for types/data.
+- */
+-
+-mach_msg_return_t
+-ipc_kmsg_copyin(kmsg, space, map, notify)
+-	ipc_kmsg_t kmsg;
+-	ipc_space_t space;
+-	vm_map_t map;
+-	mach_port_t notify;
+-{
+-	mach_msg_return_t mr;
+-
+-	mr = ipc_kmsg_copyin_header(&kmsg->ikm_header, space, notify);
+-	if (mr != MACH_MSG_SUCCESS)
+-		return mr;
+-
+-	if ((kmsg->ikm_header.msgh_bits & MACH_MSGH_BITS_COMPLEX) == 0)
+-		return MACH_MSG_SUCCESS;
+-
+-	return ipc_kmsg_copyin_body(kmsg, space, map);
+-}
+-
+-/*
+  *	Routine:	ipc_kmsg_copyin_from_kernel
+  *	Purpose:
+  *		"Copy-in" port rights and out-of-line memory
+@@ -2513,11 +2534,18 @@
+ 						  (char *) addr, length);
+ 				kfree(data, length);
+ 			} else {
++#if	MACH_OLD_VM_COPY	/* plan 269: move the data out of ipc_soft_map */
++				kr = vm_move(ipc_soft_map, data, map, length,
++					     FALSE, &addr);
++				(void) vm_deallocate(ipc_soft_map, data, length);
++				if (kr != KERN_SUCCESS) {
++#else	/* MACH_OLD_VM_COPY */
+ 				vm_map_copy_t copy = (vm_map_copy_t) data;
+ 
+ 				kr = vm_map_copyout(map, &addr, copy);
+ 				if (kr != KERN_SUCCESS) {
+ 					vm_map_copy_discard(copy);
++#endif	/* MACH_OLD_VM_COPY */
+ 
+ 				    vm_copyout_failure:
+ 
+@@ -2786,7 +2814,9 @@
+ 	vm_offset_t saddr, eaddr;
+ 	boolean_t complex;
+ 	kern_return_t kr;
++#if	!MACH_OLD_VM_COPY	/* plan 269 */
+ 	boolean_t use_page_lists, steal_pages;
++#endif
+ 
+ 	msg = * (msg_header_t *) &kmsg->ikm_header;
+ 	dest_name = (mach_port_t) msg.msg_remote_port;
+@@ -2821,8 +2851,10 @@
+ 		return MACH_MSG_SUCCESS;
+ 
+ 	complex = FALSE;
++#if	!MACH_OLD_VM_COPY	/* plan 269 */
+ 	use_page_lists = ipc_kobject_vm_page_list(ip_kotype((ipc_port_t)dest));
+ 	steal_pages = ipc_kobject_vm_page_steal(ip_kotype((ipc_port_t)dest));
++#endif
+ 
+ #if	NORMA_IPC
+ 	if (IP_NORMA_IS_PROXY((ipc_port_t) dest)) {
+@@ -2945,6 +2977,10 @@
+ 			} else {
+ 				vm_map_copy_t copy;
+ 
++#if	MACH_OLD_VM_COPY	/* plan 269: move the data into ipc_soft_map */
++				kr = vm_move(map, addr, ipc_soft_map, length,
++					     dealloc, (vm_offset_t *) &copy);
++#else	/* MACH_OLD_VM_COPY */
+ 		      		if (use_page_lists) {
+ 					kr = vm_map_copyin_page_list(map,
+ 				        	addr, length, dealloc,
+@@ -2954,6 +2990,7 @@
+ 							   dealloc,
+ 							   &copy);
+ 				}
++#endif	/* MACH_OLD_VM_COPY */
+ 				if (kr != KERN_SUCCESS) {
+ 				    invalid_memory:
+ 					ipc_kmsg_clean_partial(kmsg, taddr,
+@@ -3016,6 +3053,137 @@
+ }
+ 
+ /*
++ *	Routine:	ipc_kmsg_copyin_compat_from_kernel
++ *	Purpose:
++ *		plan 269: written from the original bytes (D024).
++ *		"Copy-in" port rights in an old-format message sent
++ *		from the kernel.  The destination is copied in as a
++ *		send right and the reply port, if any, as a made send
++ *		right.  As in ipc_kmsg_copyin_from_kernel, the message
++ *		is assumed to be well formed; type descriptors are
++ *		cleaned of fields the old format leaves undefined.
++ *	Conditions:
++ *		Nothing locked.
++ */
++
++void
++ipc_kmsg_copyin_compat_from_kernel(kmsg)
++	ipc_kmsg_t kmsg;
++{
++	msg_header_t msg;
++	ipc_object_t dest, reply;
++	vm_offset_t saddr, eaddr;
++	boolean_t complex;
++
++	msg = * (msg_header_t *) &kmsg->ikm_header;
++	dest = (ipc_object_t) msg.msg_remote_port;
++	reply = (ipc_object_t) msg.msg_local_port;
++
++	ipc_object_copyin_from_kernel(dest, MACH_MSG_TYPE_COPY_SEND);
++	if (IO_VALID(reply))
++		ipc_object_copyin_from_kernel(reply, MACH_MSG_TYPE_MAKE_SEND);
++
++	kmsg->ikm_header.msgh_bits = MACH_MSGH_BITS(
++			ipc_object_copyin_type(MACH_MSG_TYPE_COPY_SEND),
++			ipc_object_copyin_type(MACH_MSG_TYPE_MAKE_SEND));
++	kmsg->ikm_header.msgh_size = (mach_msg_size_t) msg.msg_size;
++	kmsg->ikm_header.msgh_remote_port = (mach_port_t) dest;
++	kmsg->ikm_header.msgh_local_port = (mach_port_t) reply;
++	kmsg->ikm_header.msgh_seqno = (mach_msg_kind_t) msg.msg_type;
++	kmsg->ikm_header.msgh_id = (mach_msg_id_t) msg.msg_id;
++
++	if (msg.msg_simple)
++		return;
++
++	complex = FALSE;
++
++	saddr = (vm_offset_t) (&kmsg->ikm_header + 1);
++	eaddr = (vm_offset_t) &kmsg->ikm_header + kmsg->ikm_header.msgh_size;
++
++	while (saddr < eaddr) {
++		mach_msg_type_long_t *type;
++		mach_msg_type_name_t name;
++		mach_msg_type_size_t size;
++		mach_msg_type_number_t number;
++		boolean_t is_inline, longform, is_port;
++		vm_offset_t data;
++		vm_size_t length;
++
++		type = (mach_msg_type_long_t *) saddr;
++		is_inline = ((mach_msg_type_t*)type)->msgt_inline;
++		longform = ((mach_msg_type_t*)type)->msgt_longform;
++		if (longform) {
++			name = type->msgtl_name;
++			size = type->msgtl_size;
++			number = type->msgtl_number;
++			saddr += sizeof(mach_msg_type_long_t);
++		} else {
++			name = ((mach_msg_type_t*)type)->msgt_name;
++			size = ((mach_msg_type_t*)type)->msgt_size;
++			number = ((mach_msg_type_t*)type)->msgt_number;
++			saddr += sizeof(mach_msg_type_t);
++		}
++
++		is_port = MSG_TYPE_PORT_ANY(name);
++
++		((mach_msg_type_t*)type)->msgt_unused = 0;
++		if (longform) {
++			type->msgtl_header.msgt_name = 0;
++			type->msgtl_header.msgt_size = 0;
++			type->msgtl_header.msgt_number = 0;
++		}
++
++		/* calculate length of data in bytes, rounding up */
++
++		length = ((number * size) + 7) >> 3;
++
++		if (is_inline) {
++			/* inline data sizes round up to int boundaries */
++
++			data = saddr;
++			saddr += (length + 3) &~ 3;
++		} else {
++			data = * (vm_offset_t *) saddr;
++			saddr += sizeof(vm_offset_t);
++			complex = TRUE;
++		}
++
++		if (is_port) {
++			mach_msg_type_name_t newname =
++					ipc_object_copyin_type(name);
++			ipc_object_t *objects = (ipc_object_t *) data;
++			mach_msg_type_number_t i;
++
++			if (longform)
++				type->msgtl_name = newname;
++			else
++				((mach_msg_type_t*)type)->msgt_name = newname;
++
++			for (i = 0; i < number; i++) {
++				ipc_object_t object = objects[i];
++
++				if (!IO_VALID(object))
++					continue;
++
++				ipc_object_copyin_from_kernel(object, name);
++
++				if ((newname == MACH_MSG_TYPE_PORT_RECEIVE) &&
++				    ipc_port_check_circularity(
++							(ipc_port_t) object,
++							(ipc_port_t) dest))
++					kmsg->ikm_header.msgh_bits |=
++						MACH_MSGH_BITS_CIRCULAR;
++			}
++
++			complex = TRUE;
++		}
++	}
++
++	if (complex)
++		kmsg->ikm_header.msgh_bits |= MACH_MSGH_BITS_COMPLEX;
++}
++
++/*
+  *	Routine:	ipc_kmsg_copyout_compat
+  *	Purpose:
+  *		"Copy-out" port rights and out-of-line memory
+@@ -3191,11 +3359,18 @@
+ 						  (char *) addr, length);
+ 				kfree(data, length);
+ 			} else {
++#if	MACH_OLD_VM_COPY	/* plan 269: move the data out of ipc_soft_map */
++				kr = vm_move(ipc_soft_map, data, map, length,
++					     FALSE, &addr);
++				(void) vm_deallocate(ipc_soft_map, data, length);
++				if (kr != KERN_SUCCESS) {
++#else	/* MACH_OLD_VM_COPY */
+ 				vm_map_copy_t copy = (vm_map_copy_t) data;
+ 
+ 				kr = vm_map_copyout(map, &addr, copy);
+ 				if (kr != KERN_SUCCESS) {
+ 					vm_map_copy_discard(copy);
++#endif	/* MACH_OLD_VM_COPY */
+ 
+ 				    vm_copyout_failure:
+ 

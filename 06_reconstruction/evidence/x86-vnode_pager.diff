@@ -1,0 +1,901 @@
+--- 01_resources/upstream/nextmach/mk-108.1/vm/vnode_pager.c	2026-09-11 10:02:49.655219377 +0900
++++ 07_kernel/src/vm/vnode_pager.c	2026-10-03 19:59:56.936105046 +0900
+@@ -78,9 +78,10 @@
+  *	Created.
+  */
+ 
++
+ #import <mach_nbc.h>
+ 
+-#import <sys/boolean.h>
++#import <mach/boolean.h>	/* plan 242: was sys/boolean.h */
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <sys/dir.h>
+@@ -90,7 +91,6 @@
+ #import <sys/uio.h>
+ #import <sys/vnode.h>
+ #import <sys/vfs.h>
+-#import <kern/mach_swapon.h>
+ #import <sys/pathname.h>
+ #import <ufs/fs.h>
+ #import <ufs/inode.h>
+@@ -107,7 +107,7 @@
+ #import <nfs/nfs_clnt.h>
+ #import <nfs/rnode.h>
+ 
+-#import <kern/mach_types.h>
++#import <mach/mach_types.h>	/* plan 242: was kern/mach_types.h */
+ #import <vm/vm_page.h>
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+@@ -118,15 +118,9 @@
+ #import <vm/vnode_pager.h>
+ #import <kern/mfs.h>
+ 
+-#import <sys/proc.h>			/* PMON */
+-#import <kern/task.h>			/* PMON */
+-#import <next/kernel_pmon.h>		/* PMON */
+-
+-#if	NeXT
+-#import <next/event_meter.h>
+-#endif	NeXT
+-
+-#import <kern/xpr.h>
++/* plan 242: PMON and event meter instrumentation removed (not in the
++   original); MS_PREFER from NeXTMach kern/mach_swapon.h */
++#define	MS_PREFER	0x1	/* This device/file is preferred */
+ 
+ extern struct vnodeops nfs_vnodeops;
+ extern struct vnodeops spec_vnodeops;
+@@ -159,13 +153,15 @@
+  *	This must be fixed!!!  FIXME - XXX.
+  */
+ 
+-#define kget	kalloc
+-#define zget	zalloc
++#define kget(size)	kalloc_noblock(size)	/* plan 242 */
++#define zget(zone)	zalloc_noblock(zone)	/* plan 242 */
+ 
+ #if	MACH_NBC
+ extern int	nbc_debug;
+ #endif	MACH_NBC
+ 
++extern int	swapfs_enabled;		/* plan 242 */
++
+ /*
+  *	Basic vnode pager data structures
+  */
+@@ -173,9 +169,12 @@
+ zone_t			vstruct_zone;
+ simple_lock_data_t	vstruct_lock;
+ 
+-queue_head_t		pager_files;
+-int			pager_file_count;
+-pager_file_t		pager_file_index[MAXPAGERFILES];
++static queue_head_t	pager_files;			/* plan 242: static */
++static int		pager_file_count;		/* plan 242: static */
++static pager_file_t	pager_file_list[MAXPAGERFILES];	/* plan 242 */
++
++static pf_entry		seen_files[MAXPAGERFILES];	/* plan 242 */
++static int		seen_files_max = 0;		/* plan 242 */
+ 
+ 
+ /*
+@@ -234,7 +233,8 @@
+ 		return(-1);
+ 	}
+ 
+-	for (bp = 0; bp < howmany(pf->pf_npgs, NBBY); bp++) {
++	i = 0;					/* plan 242 */
++	for (bp = pf->pf_hint / NBBY; bp < howmany(pf->pf_npgs, NBBY); bp++) {
+ 		if (*(pf->pf_bmap + bp) != BYTEMASK) {
+ 			for (i = 0; i < NBBY; i++) {
+ 				if (isclr((pf->pf_bmap + bp), i))
+@@ -251,8 +251,8 @@
+ 		pf->pf_hipage = page;
+ 	}
+ 	setbit(pf->pf_bmap,page);
+-	if (--pf->pf_pfree == 0)
+-		printf("vnode_pager: %s is full.\n", pf->pf_name);
++	--pf->pf_pfree;				/* plan 242 */
++	pf->pf_hint = page;			/* plan 242 */
+ 
+ 	lock_done(&pf->pf_lock);
+ 	return(page);
+@@ -265,97 +265,59 @@
+  * do.  Return the designated page and file in mapEntry.
+  */
+ kern_return_t
+-vnode_pager_findpage(struct pager_file *preferPf, pfMapEntry *mapEntry)
++vnode_pager_findpage(struct pager_file *preferPf, pf_entry *mapEntry)
+ {
+ 	daddr_t result;
+ 	pager_file_t pf;
+-	
+-	if (preferPf == PAGER_FILE_NULL)
++
++	if (preferPf == PAGER_FILE_NULL) {			/* plan 242 */
++		if (queue_empty(&pager_files))
++			return KERN_FAILURE;
+ 		preferPf = (pager_file_t) queue_first(&pager_files);
+-	
+-	if (preferPf == PAGER_FILE_NULL)
+-		return KERN_FAILURE;
+-		
+-	pf = preferPf;		     
++	}
++
++	pf = preferPf;
+ 	do {
+ 		result = vnode_pager_allocpage(pf);
+ 		if (result != -1) {
+-			mapEntry->pagerFileIndex = pf->pf_index;
+-			mapEntry->pageOffset = result;
++			mapEntry->index = pf->pf_index;
++			mapEntry->offset = result;
+ 			return KERN_SUCCESS;
+ 		}
+-		
++
+ 		if (queue_end(&pager_files, &pf->pf_chain))
+ 			pf = (pager_file_t) queue_first(&pager_files);
+ 		else
+ 			pf = (pager_file_t) queue_next(&pf->pf_chain);
+-			
++
+ 	} while (preferPf != pf);
+-	
++
+ 	return KERN_FAILURE;
+ }
+ 
+ 
+-vnode_pager_deallocpage(mapEntry)
+-	pfMapEntry *mapEntry;
++static void
++vnode_pager_deallocpage(mapEntry)		/* plan 242: by value */
++	pf_entry mapEntry;
+ {
+ 	register struct pager_file *pf;
+ 	daddr_t		page;
+-	int		i;
+-	struct vnode	*vp;
+-	struct vattr	vattr;
+-	int		error;
+-	struct ucred	*tcred;
+-	long		truncpage;
+ 
+-	assert(mapEntry->pagerFileIndex <= pager_file_count);
+-	
+-	pf = pager_file_index[mapEntry->pagerFileIndex];
+-	vp = pf->pf_vp;
+-	page = mapEntry->pageOffset;
+-	
++	if (mapEntry.index == INDEX_NULL)	/* plan 242 */
++		return;
++
++	pf = pager_file_list[mapEntry.index];
++	page = mapEntry.offset;
++
+ 	lock_write(&pf->pf_lock);
+ 
+ 	if (page >= (daddr_t) pf->pf_npgs)
+ 		panic("vnode_pager_deallocpage");
++	if (page < pf->pf_hint)			/* plan 242 */
++		pf->pf_hint = page;
+ 	clrbit(pf->pf_bmap, page);
+-	if (++pf->pf_pfree == 1) {
+-		printf("vnode_pager: %s is available again.\n", pf->pf_name);
+-	}
+-	if (page == pf->pf_hipage) {
+-		/*
+-		 * Find a new high page
+-		 */
+-		for (i = page - 1; i >= 0; i--) {
+-			if (isset(pf->pf_bmap, i)) {
+-				pf->pf_hipage = i;
+-				break;
+-			}
+-		}
+-		truncpage = pf->pf_hipage + 1;
++	++pf->pf_pfree;
+ 
+-		/*
+-		 * If we are higher than the low water mark, truncate
+-		 * the file.
+- 		 */
+-		if (pf->pf_lowat &&
+-		    truncpage >= pf->pf_lowat &&
+-		    vp->vm_info->vnode_size > ptoa(truncpage)) {
+-			vattr_null(&vattr);
+-			vattr.va_size = ptoa(truncpage);
+-			ASSERT( (int) vattr.va_size >= 0 );
+-			/*
+-			 * ufs uses u.u_cred for a lot of credentials checking.
+-			 */
+-			tcred = u.u_cred;
+-			u.u_cred = vp->vm_info->cred;
+-			if (error = VOP_SETATTR(vp, &vattr, vp->vm_info->cred)) {
+-				printf("vnode_deallocpage: error truncating %s,"
+-					" error = %d\n", pf->pf_name, error);
+-			}
+-			u.u_cred = tcred;
+-		}
+-	}
+ 	lock_done(&pf->pf_lock);
+ }
+ 
+@@ -387,18 +349,18 @@
+ 		return(vs);
+ 
+ 	vs->vs_size = atop(round_page(size));
+-	
++
+ 	if (vs->vs_size == 0)
+-		vs->vs_pmap = (pfMapEntry **) 0;
++		vs->vs_pmap = (pf_entry **) 0;
+ 	else {
+ 		if (INDIRECT_PAGEMAP(vs->vs_size)) {
+-			vs->vs_pmap = (pfMapEntry **)
++			vs->vs_pmap = (pf_entry **)
+ 				kget(INDIRECT_PAGEMAP_SIZE(vs->vs_size));
+ 		} else {
+-			vs->vs_pmap = (pfMapEntry **)
++			vs->vs_pmap = (pf_entry **)
+ 				kget(PAGEMAP_SIZE(vs->vs_size));
+ 		}
+-		if (vs->vs_pmap == (pfMapEntry **) 0) {
++		if (vs->vs_pmap == (pf_entry **) 0) {
+ 			/*
+ 			 * We can't sleep here, so if there are no free pages, then
+ 			 * just return nothing.
+@@ -406,17 +368,17 @@
+ 			zfree(vstruct_zone, (vm_offset_t) vs);
+ 			return(VNODE_PAGER_NULL);
+ 		}
+-	
++
+ 		if (INDIRECT_PAGEMAP(vs->vs_size)) {
+ 			bzero((caddr_t)vs->vs_pmap,
+ 				INDIRECT_PAGEMAP_SIZE(vs->vs_size));
+ 		} else {
+ 			for (i = 0; i < vs->vs_size; i++)
+-				((pfMapEntry *) &vs->vs_pmap[i])->pagerFileIndex =
+-								(int) PAGER_FILE_NULL;
++				((pf_entry *) &vs->vs_pmap[i])->index =
++								INDEX_NULL;
+ 		}
+ 	}
+-	
++
+ 	vs->is_device = FALSE;
+ 	vs->vs_count = 1;
+ 	vs->vs_vp = pf->pf_vp;
+@@ -430,6 +392,36 @@
+ }
+ 
+ /*
++ *	pagerfile_lookup (plan 242)
++ *
++ *	Look for the map entry at f_offset; TRUE and *mapEntry if present.
++ */
++static boolean_t
++pagerfile_lookup(struct vstruct *vs, vm_offset_t f_offset, pf_entry *mapEntry)
++{
++	vm_offset_t	f_page = atop(f_offset);
++	int		indirBlock;
++	int		blockOffset;
++
++	if (f_page >= vs->vs_size)
++		return FALSE;
++
++	if (INDIRECT_PAGEMAP(vs->vs_size)) {
++		indirBlock = f_page / PAGEMAP_ENTRIES;
++		blockOffset = f_page % PAGEMAP_ENTRIES;
++		if (vs->vs_pmap[indirBlock] == NULL ||
++		    vs->vs_pmap[indirBlock][blockOffset].index == INDEX_NULL)
++			return FALSE;
++		*mapEntry = vs->vs_pmap[indirBlock][blockOffset];
++	} else {
++		if (((pf_entry *) &vs->vs_pmap[f_page])->index == INDEX_NULL)
++			return FALSE;
++		*mapEntry = *((pf_entry *) &vs->vs_pmap[f_page]);
++	}
++	return TRUE;
++}
++
++/*
+  *	pagerfile_bmap
+  *
+  *	Fill in the map entry (pager file, offset) for a given f_offset into an
+@@ -437,30 +429,40 @@
+  *
+  *	Returns: KERN_FAILURE if page not in map or no room left
+  */
+-kern_return_t
++static kern_return_t
+ pagerfile_bmap(vs, f_offset, flag, mapEntry)
+ 	struct vstruct *vs;
+ 	vm_offset_t f_offset;
+ 	int flag;
+-	pfMapEntry *mapEntry;
++	pf_entry *mapEntry;
+ {
+     vm_offset_t f_page;
+     register int i;
+-    vm_offset_t newpage;
+-    int result;
++    boolean_t found;
+ 
+     f_page = atop(f_offset);
+ 
++    /* plan 242: look up first; a write reallocates only below the hint */
++    found = pagerfile_lookup(vs, f_offset, mapEntry);
++    if (flag == B_READ)
++	return found ? KERN_SUCCESS : KERN_FAILURE;
++    else if (found) {
++	if (pager_file_list[mapEntry->index]->pf_hint < mapEntry->offset)
++	    vnode_pager_deallocpage(*mapEntry);
++	else
++	    return KERN_SUCCESS;
++    }
++
+     /*
+      * If the object has grown, expand the page map.
+      */
+     if (f_page + 1 > vs->vs_size) {
+-	pfMapEntry	**new_pmap;
++	pf_entry	**new_pmap;
+ 	int		new_size;
+ 
+ 	new_size = f_page + 1;
+ 	assert(new_size > 0);
+-	
++
+ 	if (INDIRECT_PAGEMAP(new_size)) {	/* new map is indirect */
+ 
+ 	    if (vs->vs_size == 0) {
+@@ -468,20 +470,20 @@
+ 		 * Nothing to copy, just get a new
+ 		 * map and zero it.
+ 		 */
+-		new_pmap = (pfMapEntry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
++		new_pmap = (pf_entry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
+ 		if (new_pmap == NULL)
+ 			return (KERN_FAILURE);
+-		bzero((caddr_t)new_pmap, INDIRECT_PAGEMAP_SIZE(new_size));	    	
++		bzero((caddr_t)new_pmap, INDIRECT_PAGEMAP_SIZE(new_size));
+ 	    }
+ 	    else if (INDIRECT_PAGEMAP(vs->vs_size)) {
+-	    
+-		if (INDIRECT_PAGEMAP_SIZE(new_size) == 
++
++		if (INDIRECT_PAGEMAP_SIZE(new_size) ==
+ 		    INDIRECT_PAGEMAP_SIZE(vs->vs_size)) {
+ 			goto leavemapalone;
+ 		}
+-		
++
+ 		/* Get a new indirect map */
+-		new_pmap = (pfMapEntry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
++		new_pmap = (pf_entry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
+ 		if (new_pmap == NULL)
+ 			return KERN_FAILURE;
+ 
+@@ -490,14 +492,14 @@
+ 		/* Old map is indirect, copy the entries */
+ 		for (i = 0; i < INDIRECT_PAGEMAP_ENTRIES(vs->vs_size); i++)
+ 			new_pmap[i] = vs->vs_pmap[i];
+-			
++
+ 		/* And free the old map */
+ 		kfree(vs->vs_pmap, INDIRECT_PAGEMAP_SIZE(vs->vs_size));
+-				
++
+ 	    } else {		/* old map was direct, new map is indirect */
+-	    
++
+ 		/* Get a new indirect map */
+-		new_pmap = (pfMapEntry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
++		new_pmap = (pf_entry **) kget(INDIRECT_PAGEMAP_SIZE(new_size));
+ 		if (new_pmap == NULL)
+ 			return KERN_FAILURE;
+ 
+@@ -506,25 +508,25 @@
+ 		/*
+ 		 * Old map is direct, move it to the first indirect block.
+ 		 */
+-		new_pmap[0] = (pfMapEntry *) kget(PAGEMAP_THRESHOLD);
++		new_pmap[0] = (pf_entry *) kget(PAGEMAP_THRESHOLD);
+ 		if (new_pmap[0] == NULL) {
+ 			kfree(new_pmap, INDIRECT_PAGEMAP_SIZE(new_size));
+ 			return KERN_FAILURE;
+ 		}
+ 		for (i = 0; i < vs->vs_size; i++)
+-			new_pmap[0][i] = *((pfMapEntry *) &vs->vs_pmap[i]);
+-			
++			new_pmap[0][i] = *((pf_entry *) &vs->vs_pmap[i]);
++
+ 		/* Initialize the remainder of the block */
+ 		for (i = vs->vs_size; i < PAGEMAP_ENTRIES; i++)
+-			new_pmap[0][i].pagerFileIndex = (int) PAGER_FILE_NULL;
+-		    
++			new_pmap[0][i].index = INDEX_NULL;
++
+ 		/* And free the old map */
+ 		kfree(vs->vs_pmap, PAGEMAP_SIZE(vs->vs_size));
+ 	    }
+-	    
++
+ 	} else {	/* The new map is a direct one */
+-	
+-	    new_pmap = (pfMapEntry **) kget(PAGEMAP_SIZE(new_size));
++
++	    new_pmap = (pf_entry **) kget(PAGEMAP_SIZE(new_size));
+ 	    if (new_pmap == NULL)
+ 		    return KERN_FAILURE;
+ 
+@@ -534,70 +536,46 @@
+ 
+ 	    /* Initialize the rest of the new map */
+ 	    for (i = vs->vs_size; i < new_size; i++)
+-		    ((pfMapEntry *) &new_pmap[i])->pagerFileIndex =
+-		    					(int) PAGER_FILE_NULL;
+-		    
++		    ((pf_entry *) &new_pmap[i])->index = INDEX_NULL;
++
+ 	    if (vs->vs_size > 0)
+ 	    	kfree(vs->vs_pmap, PAGEMAP_SIZE(vs->vs_size));
+ 	}
+-	
++
+ 	vs->vs_pmap = new_pmap;
+ leavemapalone:
+ 	vs->vs_size = new_size;
+     }
+ 
+     /*
+-     * Now look for the entry in the map.
++     * Now allocate the spot for the new page (plan 242).
+      */
+     if (INDIRECT_PAGEMAP(vs->vs_size)) {
+-    
++
+     	    int indirBlock = f_page / PAGEMAP_ENTRIES;	/* the indirect block */
+ 	    int blockOffset = f_page % PAGEMAP_ENTRIES;	/* offset into dir block */
+-	    
++
+ 	    if (vs->vs_pmap[indirBlock] == NULL) {
+-		    if (flag == B_READ)
+-			    return KERN_FAILURE;
++		    vs->vs_pmap[indirBlock]=(pf_entry *) kget(PAGEMAP_THRESHOLD);
+ 
+-		    vs->vs_pmap[indirBlock]=(pfMapEntry *) kget(PAGEMAP_THRESHOLD);
+-				
+ 		    if (vs->vs_pmap[indirBlock] == NULL)
+ 			    return KERN_FAILURE;
+ 
+ 		    for (i = 0; i < PAGEMAP_ENTRIES; i++)
+-			vs->vs_pmap[indirBlock][i].pagerFileIndex =
+-							(int) PAGER_FILE_NULL;
++			vs->vs_pmap[indirBlock][i].index = INDEX_NULL;
+ 	    }
+-	   
+-	    if (vs->vs_pmap[indirBlock][blockOffset].pagerFileIndex ==
+-	    	(int) PAGER_FILE_NULL) {
+-		
+-		    if (flag == B_READ)
+-			    return KERN_FAILURE;
+ 
+-		    result = vnode_pager_findpage(vs->vs_pf,
+-		    			&vs->vs_pmap[indirBlock][blockOffset]);
+-		    if (result == KERN_FAILURE)
+-			    return KERN_FAILURE;
+-	    }
+-	    
+-	    *mapEntry = vs->vs_pmap[indirBlock][blockOffset];
+-	    
++	    if (vnode_pager_findpage(vs->vs_pf, mapEntry) == KERN_FAILURE)
++		    return KERN_FAILURE;
++	    vs->vs_pmap[indirBlock][blockOffset] = *mapEntry;
++
+     } else {	/* direct map */
+-    
+-	    if (((pfMapEntry *) &vs->vs_pmap[f_page])->pagerFileIndex ==
+-	    	(int) PAGER_FILE_NULL) {
+-	    
+-		    if (flag == B_READ)		/* not present in map */
+-			    return KERN_FAILURE;
+-			    
+-		    result = vnode_pager_findpage(vs->vs_pf, (pfMapEntry *) &vs->vs_pmap[f_page]);
+-		    if (result == KERN_FAILURE)
+-			    return KERN_FAILURE;
+-	    }
+-	    
+-	    *mapEntry = * ((pfMapEntry *) &vs->vs_pmap[f_page]);
++
++	    if (vnode_pager_findpage(vs->vs_pf, mapEntry) == KERN_FAILURE)
++		    return KERN_FAILURE;
++	    *(pf_entry *) &vs->vs_pmap[f_page] = *mapEntry;
+     }
+-    
++
+     return KERN_SUCCESS;
+ }
+ 
+@@ -625,6 +603,8 @@
+ 	if (vs == VNODE_PAGER_NULL)
+ 		return(vs);
+ 
++	bzero((caddr_t)vs, sizeof(struct vstruct));	/* plan 242 */
++
+ 	vs->is_device = FALSE;
+ 	vs->vs_count = 1;
+ 	vp->vm_info->pager = (vm_pager_t) vs;
+@@ -669,8 +649,9 @@
+ 		}
+ 		(void) vnode_pager_create(vp);
+ 		if (can_cache)
+-			pager_cache(vm_object_lookup(vp->vm_info->pager), TRUE);
+-	} 
++			vm_object_cache_object(		/* plan 242 */
++				vm_object_lookup(vp->vm_info->pager), TRUE);
++	}
+ 
+ 	unix_release();
+ 	/*
+@@ -681,16 +662,16 @@
+ 	return(vp->vm_info->pager);
+ }
+ 
+-boolean_t
+-vnode_pagein(m)
++pager_return_t
++vnode_pagein(m, errorp)			/* plan 242: error out */
+ 	vm_page_t	m;		/* page to read */
+-
++	int		*errorp;
+ {
+ 	register struct vnode	*vp;
+ 	vnode_pager_t	vs;
+ 	pager_return_t	ret = 0;
+ 	vm_offset_t	f_offset;
+-	pfMapEntry	mapEntry;
++	pf_entry	mapEntry;
+ 
+ 	/*
+ 	 *	Get the vnode and the offset within it to read from.
+@@ -698,46 +679,30 @@
+ 	 */
+ 	unix_master();
+ 
+-#if	NeXT
+-	event_meter (EM_PAGER);
+-#endif	NeXT
+-
+ 	vs = (vnode_pager_t) m->object->pager;
+ 	vp = vnode_pager_vget(vs);
+ 	f_offset = m->offset + m->object->paging_offset;
+ 
+-	XPR(XPR_VNODE_PAGER, ("pagein(S): vp = 0x%x, offset = 0x%x\n", vp, f_offset));
+-
+ 	if (vs->vs_swapfile)
+ 	    if (pagerfile_bmap(vs, f_offset, B_READ, &mapEntry) == KERN_FAILURE)
+ 		ret = PAGER_ABSENT;
+ 	    else {
+-		f_offset = ptoa(mapEntry.pageOffset);
+-		vp = pager_file_index[mapEntry.pagerFileIndex]->pf_vp;
+-		pmon_log_event(PMON_SOURCE_VM, KP_VM_SWAP_PAGEIN,
+-				f_offset, ((task_t)current_task())->proc->p_pid,
+-				vp->v_op == &ufs_vnodeops ?
+-					((struct inode *) vp->v_data)->i_number :
+-					0);
++		f_offset = ptoa(mapEntry.offset);
++		vp = pager_file_list[mapEntry.index]->pf_vp;
+ 	    }
+-	else
+-		pmon_log_event(PMON_SOURCE_VM, KP_VM_VNODE_PAGEIN,
+-				f_offset, ((task_t)current_task())->proc->p_pid,
+-				vp->v_op == &ufs_vnodeops ?
+-					((struct inode *) vp->v_data)->i_number :
+-					0);
+ 
+-	if (ret != PAGER_ABSENT)
++	if (ret != PAGER_ABSENT) {
+ 		ret = VOP_PAGEIN(vp, m, f_offset);
+-
+-	XPR(XPR_VNODE_PAGER, ("pagein(E): vp = 0x%x, offset = 0x%x\n", vp, f_offset));
++		if (errorp)			/* plan 242 */
++			*errorp = vp->vm_info->error;
++	}
+ 
+ 	vnode_pager_vput(vs);
+ 	unix_release();
+ 	return(ret);
+ }
+ 
+-boolean_t
++pager_return_t
+ vnode_pageout(m)
+ 	vm_page_t	m;
+ {
+@@ -746,13 +711,9 @@
+ 	vnode_pager_t	vs;
+ 	vm_offset_t	f_offset;
+ 	pager_return_t	ret;
+-	pfMapEntry mapEntry;
+-	
+-	unix_master();
++	pf_entry mapEntry;
+ 
+-#if	NeXT
+-	event_meter (EM_PAGER);
+-#endif	NeXT
++	unix_master();
+ 
+ 	vs = (vnode_pager_t) m->object->pager;
+ 	vp = vnode_pager_vget(vs);
+@@ -777,8 +738,6 @@
+ 	}
+ #endif	MACH_NBC
+ 
+-	XPR(XPR_VNODE_PAGER, ("pageout(S): vp = 0x%x, offset = 0x%x\n", vp, f_offset));
+-
+ 	if (vs->vs_swapfile) {
+ 	    if (pagerfile_bmap(vs, f_offset, B_WRITE, &mapEntry) == KERN_FAILURE) {
+ 		    vnode_pager_vput(vs);
+@@ -790,19 +749,13 @@
+ 	     *	pagerfile, update the information in the vm_info
+ 	     *	structure
+ 	     */
+-	    f_offset = ptoa(mapEntry.pageOffset);
+-	    vp = pager_file_index[mapEntry.pagerFileIndex]->pf_vp;
++	    f_offset = ptoa(mapEntry.offset);
++	    vp = pager_file_list[mapEntry.index]->pf_vp;
+ 	    if (f_offset + size > vp->vm_info->vnode_size) {
+ 		    vp->vm_info->vnode_size = f_offset + size;
+ 	    }
+ 	}
+ 	if (size) {
+-		pmon_log_event(PMON_SOURCE_VM, KP_VM_PAGEOUT,
+-				f_offset, ((task_t)current_task())->proc->p_pid,
+-				vp->v_op == &ufs_vnodeops ?
+-					((struct inode *) vp->v_data)->i_number :
+-					0);
+-
+ 		ret = VOP_PAGEOUT(vp, VM_PAGE_TO_PHYS(m), size, f_offset);
+ 	}
+ 	else {
+@@ -816,8 +769,6 @@
+ 		printf("vnode_pageout: failed!\n");
+ 	}
+ 
+-	XPR(XPR_VNODE_PAGER, ("pageout(E): vp = 0x%x, offset = 0x%x\n", vp, f_offset));
+-
+ 	vnode_pager_vput(vs);
+ 	unix_release();
+ 	return(ret);
+@@ -842,7 +793,7 @@
+ 	vm_offset_t	offset;
+ {
+ 	vnode_pager_t	vs = (vnode_pager_t) pager;
+-	pfMapEntry	mapEntry;
++	pf_entry	mapEntry;
+ 
+ 	/*
+ 	 * For now, we do all inode hacking on the master cpu.
+@@ -901,7 +852,7 @@
+ 	if (vp->vm_info->mapped) {
+ 		return(EBUSY);
+ 	}
+-	
++
+ 	/*
+ 	 * Clean up the file blocks on a pager file by
+ 	 * truncating to length "lowat".
+@@ -929,6 +880,7 @@
+ 	crhold(cred);
+ 	vp->vm_info->cred = cred;
+ 	pf->pf_count = 0;
++	pf->pf_hint = 0;			/* plan 242 */
+ 	pf->pf_lowat = atop(round_page(lowat));
+ 	/*
+ 	 * If no maximum space is specified, then we should make a map that
+@@ -958,7 +910,7 @@
+ 	queue_enter(&pager_files, pf, pager_file_t, pf_chain);
+ 	pager_file_count++;
+ 	pf->pf_index = pager_file_count;
+-	pager_file_index[pager_file_count] = pf;
++	pager_file_list[pager_file_count] = pf;
+ 	*pfp = pf;
+ 	return (0);
+ }
+@@ -1000,6 +952,7 @@
+ 		return(EACCES);
+ 
+ 	unix_master();
++	u.u_error = 0;				/* plan 242 */
+ 
+ 	/*
+ 	 * Get a vnode for the paging area.
+@@ -1066,7 +1019,7 @@
+  *		Allocate a place for paging out a kernel-created
+  *		memory object.
+  *
+- *	Implementation: 
++ *	Implementation:
+  *		Looks through the paging files for the one with the
+  *		most free space.  First, only "preferred" paging files
+  *		are considered, then local paging files, and then
+@@ -1098,10 +1051,8 @@
+ 				vfsp = pf->pf_vp->v_vfsp;
+ 				if ((pass < 2) && !pf->pf_prefer)
+ 					continue;
+-				if (((pass & 1) &&
+-				     (pf->pf_vp->v_op != &nfs_vnodeops)) ||
+-				    (!(pass &1) &&
+-				     (pf->pf_vp->v_op != &ufs_vnodeops)))
++				if (!(pass &1) &&		/* plan 242 */
++				    (pf->pf_vp->v_op != &ufs_vnodeops))
+ 					continue;
+ 
+ 				if (pf->pf_pfree > mostspace) {
+@@ -1152,12 +1103,95 @@
+ 	return((vm_pager_t) vs);
+ }
+ 
+-boolean_t
++/*
++ *	vnode_pager_truncate (plan 242)
++ *
++ *	Shrink the paging file when its last page has been freed.
++ */
++void
++vnode_pager_truncate(mapEntry)
++	pf_entry mapEntry;
++{
++	register struct pager_file *pf = pager_file_list[mapEntry.index];
++	struct vnode	*vp = pf->pf_vp;
++	struct vattr	vattr;
++	int		error;
++	struct ucred	*tcred;
++	long		truncpage;
++	int		i;
++
++	if (mapEntry.offset < pf->pf_hipage || swapfs_enabled)
++		return;
++
++	lock_write(&pf->pf_lock);
++
++	/*
++	 * Find a new high page
++	 */
++	for (i = mapEntry.offset - 1; i >= 0; i--) {
++		if (isset(pf->pf_bmap, i)) {
++			pf->pf_hipage = i;
++			break;
++		}
++	}
++	truncpage = pf->pf_hipage + 1;
++
++	/*
++	 * If we are higher than the low water mark, truncate
++	 * the file.
++	 */
++	if (pf->pf_lowat == 0 || truncpage <= pf->pf_lowat ||
++	    vp->vm_info->vnode_size < ptoa(truncpage)) {
++		lock_done(&pf->pf_lock);
++		return;
++	}
++
++	vattr_null(&vattr);
++	vattr.va_size = ptoa(truncpage);
++	ASSERT( (int) vattr.va_size >= 0 );
++	/*
++	 * ufs uses u.u_cred for a lot of credentials checking.
++	 */
++	tcred = u.u_cred;
++	u.u_cred = vp->vm_info->cred;
++	if (error = VOP_SETATTR(vp, &vattr, vp->vm_info->cred)) {
++		printf("vnode_deallocpage: error truncating %s,"
++			" error = %d\n", pf->pf_name, error);
++	}
++	u.u_cred = tcred;
++
++	lock_done(&pf->pf_lock);
++}
++
++/*
++ *	visit_file (plan 242): remember the highest page freed per file.
++ */
++static void
++visit_file(mapEntry)
++	pf_entry mapEntry;
++{
++	int	i;
++
++	if (mapEntry.index == INDEX_NULL)
++		return;
++
++	for (i = 0; i < seen_files_max; i++)
++		if (seen_files[i].index == mapEntry.index) {
++			seen_files[i].offset =
++			    MAX(seen_files[i].offset, mapEntry.offset);
++			return;
++		}
++
++	seen_files[seen_files_max++] = mapEntry;
++}
++
++void
+ vnode_dealloc(pager)
+ 	vm_pager_t	pager;
+ {
+ 	register struct vnode	*vp;
+ 	vnode_pager_t	vs = (vnode_pager_t) pager;
++	int		i;
+ 
+ 	unix_master();
+ 
+@@ -1165,6 +1199,7 @@
+ 
+ 	ASSERT(vs->vs_count == 1);
+ 
++	seen_files_max = 0;			/* plan 242 */
+ 	if (vs->vs_swapfile) {
+ 	    pager_file_t	pf;
+ 	    int		i,j;
+@@ -1176,8 +1211,8 @@
+ 		for (i = 0; i < INDIRECT_PAGEMAP_ENTRIES(vs->vs_size); i++) {
+ 		    if (vs->vs_pmap[i] != NULL) {
+ 			for(j = 0; j < PAGEMAP_ENTRIES; j++) {
+-			    if (vs->vs_pmap[i][j].pagerFileIndex != (int) PAGER_FILE_NULL)
+-				    vnode_pager_deallocpage(&vs->vs_pmap[i][j]);
++			    vnode_pager_deallocpage(vs->vs_pmap[i][j]);
++			    visit_file(vs->vs_pmap[i][j]);
+ 			}
+ 			kfree(vs->vs_pmap[i], PAGEMAP_THRESHOLD);
+ 		    }
+@@ -1185,9 +1220,8 @@
+ 		kfree(vs->vs_pmap, INDIRECT_PAGEMAP_SIZE(vs->vs_size));
+ 	    } else {
+ 		for (i = 0; i < vs->vs_size; i++) {
+-		    if (((pfMapEntry *) &vs->vs_pmap[i])->pagerFileIndex !=
+-		    					(int) PAGER_FILE_NULL)
+-			vnode_pager_deallocpage((pfMapEntry *)&vs->vs_pmap[i]);
++		    vnode_pager_deallocpage(*(pf_entry *)&vs->vs_pmap[i]);
++		    visit_file(*(pf_entry *)&vs->vs_pmap[i]);
+ 		}
+ 		if (vs->vs_size > 0)
+ 			kfree(vs->vs_pmap, PAGEMAP_SIZE(vs->vs_size));
+@@ -1196,10 +1230,12 @@
+ 	} else {
+ 	    vp->v_flag &= ~VTEXT;
+ 	    vp->vm_info->pager = vm_pager_null; /* so VN_RELE will free */
+-    
++
+ 	    VN_RELE(vp);
+ 	}
+ 
++	for (i = 0; i < seen_files_max; i++)	/* plan 242 */
++		vnode_pager_truncate(seen_files[i]);
+ 	zfree(vstruct_zone, (vm_offset_t) vs);
+ 	unix_release();
+ }
+@@ -1213,7 +1249,8 @@
+ {
+ 	register boolean_t	was_locked;
+ 
+-	if (vp->vm_info->pager == vm_pager_null)
++	if (vp->vm_info == 0 ||			/* plan 242 */
++	    vp->vm_info->pager == vm_pager_null)
+ 		return;
+ 	unix_master();
+ 
+@@ -1285,5 +1322,4 @@
+ 			FALSE, "vnode pager structures");
+ 	simple_lock_init(&vstruct_lock);
+ 	queue_init(&pager_files);
+-	pager_file_count = 1;
+ }

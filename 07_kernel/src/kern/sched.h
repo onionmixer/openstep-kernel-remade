@@ -100,6 +100,75 @@ struct run_queue {
 typedef struct run_queue	*run_queue_t;
 #define RUN_QUEUE_NULL	((run_queue_t) 0)
 
+#if	NeXT
+/*
+ * plan 198: NeXT policy-sensitive csw_needed, text of NeXTMach mk-108.1
+ * kern/sched.h:141-200 (https://github.com/johnsonjh/NeXTMach.git
+ * f6bdb9c3268f0eadc545d41bcc0564453b17001e); original ast_check 0x15679e-0x1567f6.
+ */
+#include <mach/policy.h>
+
+#define csw_needed(thread, processor) \
+	_csw_needed( \
+		((thread)->state & TH_SUSP), \
+		(processor)->runq.count, \
+		(processor)->processor_set->runq.count, \
+		(processor)->processor_set->runq.high, \
+		(processor)->first_quantum, \
+		(thread)->sched_pri, \
+		(thread)->policy)
+
+static inline boolean_t _csw_needed(
+	int susp,
+	int p_rq_count,
+	int ps_rq_count,
+	int rq_high,
+	int first_quantum,
+	int sched_pri,
+	int policy)
+{
+	/*
+	 * I think this is still broken.  We should also check
+	 * priority or to see if this thread is also bound before
+	 * checking for runnable bound processes (p_rq_count > 0).
+	 */
+	if (susp || p_rq_count > 0)
+		return TRUE;
+
+	switch (policy) {
+	case POLICY_FIXEDPRI:
+	case POLICY_INTERACTIVE:
+	default:
+		/*
+		 * Don't preempt if we're not doing anything to preempt,
+		 * or the interrupting thread is of lower priority.
+		 */
+		if (ps_rq_count == 0 || rq_high < sched_pri)
+			break;
+		/*
+		 * Preempt if the new thread is of strictly higher priority
+		 * or (of equal priority) and the running thread's used
+		 * up its first quantum allowance.
+		 */
+		if (rq_high > sched_pri || first_quantum == FALSE)
+			return TRUE;
+		break;
+	case POLICY_TIMESHARE:
+		/*
+		 * Always let the running thread use it's first quantum up
+		 * if the preempting thread is timesharing, otherwise
+		 * preempt the running thread if this thread's of equal
+		 * or greater priority.
+		 */
+		if (   first_quantum == FALSE
+		    && ps_rq_count > 0
+		    && rq_high >= sched_pri)
+		    	return TRUE;
+		break;
+	}
+	return FALSE;
+}
+#else	NeXT
 #define csw_needed(thread, processor) (					  \
 	((thread)->state & TH_SUSP) ||					  \
 	((processor)->runq.count > 0) ||				  \
@@ -107,6 +176,7 @@ typedef struct run_queue	*run_queue_t;
 	 ((processor)->first_quantum?					  \
 	  (processor)->processor_set->runq.high > (thread)->sched_pri :	  \
 	  (processor)->processor_set->runq.high >= (thread)->sched_pri)))
+#endif	NeXT
 
 /*
  *	Scheduler routines.

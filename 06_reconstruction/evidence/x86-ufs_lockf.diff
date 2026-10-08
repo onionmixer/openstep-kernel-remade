@@ -1,0 +1,727 @@
+--- 01_resources/upstream/net2/sys/ufs/ufs_lockf.c	2026-10-07 15:17:41.134935476 +0900
++++ 07_kernel/src/bsd/ufs/ufs_lockf.c	2026-10-07 16:22:52.534960791 +0900
+@@ -36,127 +36,201 @@
+  *	@(#)ufs_lockf.c	7.7 (Berkeley) 7/2/91
+  */
+ 
+-#include "param.h"
+-#include "systm.h"
+-#include "kernel.h"
+-#include "file.h"
+-#include "proc.h"
+-#include "vnode.h"
+-#include "malloc.h"
+-#include "fcntl.h"
+-
+-#include "lockf.h"
+-#include "quota.h"
+-#include "inode.h"
+-
+-/*
+- * This variable controls the maximum number of processes that will
+- * be checked in doing deadlock detection.
+- */
+-int maxlockdepth = MAXDEPTH;
+-
+-#ifdef LOCKF_DEBUG
+-int	lockf_debug = 0;
+-#endif /* LOCKF_DEBUG */
++/*
++ * plan 372 (D052, D024): the OPENSTEP 4.2 ufs_lockf.c.  The functions
++ * lf_setlock, lf_clearlock, lf_getlock, lf_getblock, lf_findoverlap,
++ * lf_addblock, lf_split and lf_wakelock follow the 4.3BSD-Net/2
++ * ufs_lockf.c above (lines that differ for the NeXT lock structures of the
++ * 4.2 SDK <ufs/lockf.h> are marked plan 372); lf_lockctl, lf_get_svnode,
++ * lf_free_svnode, lf_rmblock and lf_free are written from the original
++ * bytes (0x142008-0x142883; D024).  lf_wakelock returns int, as the Net/2
++ * K&R definition does, and the Net/2 "lock = overlap" assignments in
++ * lf_setlock are kept: with these two the diagnostic build reproduces the
++ * original register use (plan 367.1, 372); the bytes do not prove that
++ * each is what the original source had.
++ */
++
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <sys/user.h>
++#import <sys/proc.h>
++#import <sys/vnode.h>
++#import <sys/file.h>
++#import <sys/fcntl.h>
++#import <sys/errno.h>
++#import <ufs/lockf.h>
++#import <kern/kalloc.h>
+ 
+ #define NOLOCKF (struct lockf *)0
+ #define SELF	0x1
+ #define OTHERS	0x2
+ 
++struct lf_svnode *lf_svnode_hash[LF_SVNODE_HSZ];
++
++static struct lf_svnode *lf_get_svnode();	/* plan 372 */
++static void lf_free_svnode();	/* plan 372 */
++static int lf_setlock();	/* plan 372 */
++static int lf_clearlock();	/* plan 372 */
++static int lf_getlock();	/* plan 372 */
++static struct lockf *lf_getblock();	/* plan 372 */
++static int lf_findoverlap();	/* plan 372 */
++static void lf_addblock();	/* plan 372 */
++static int lf_rmblock();	/* plan 372 */
++static void lf_split();	/* plan 372 */
++static int lf_wakelock();	/* plan 372 */
++static void lf_free();	/* plan 372 */
++
++/*
++ * Advisory record locking on a vnode (called from the file system
++ * lockctl operations).
++ */
++int
++lf_lockctl(vp, fl, cmd)
++	struct vnode *vp;
++	register struct flock *fl;
++	int cmd;
++{
++	register struct lockf *lock;
++	register struct lf_svnode *svp;
++	int error;
++
++	svp = lf_get_svnode(vp);
++	lock = (struct lockf *)kalloc(sizeof (struct lockf));
++	lock->lf_type = fl->l_type;
++	lock->lf_start = fl->l_start;
++	lock->lf_end = fl->l_len ? fl->l_start + fl->l_len - 1 : -1;
++	lock->lf_posix_procp = get_posix_proc(u.u_procp->p_pid);
++	lock->lf_svnodep = svp;
++	svp->lf_refcnt++;
++	lock->lf_next = NOLOCKF;
++	lock->lf_block = NOLOCKF;
++
++	if (cmd == F_GETLK) {
++		error = lf_getlock(lock, fl);
++		lf_free(lock);
++	} else if (fl->l_type == F_UNLCK) {
++		error = lf_clearlock(lock);
++		lf_free(lock);
++	} else {
++		if (cmd == F_SETLK)
++			lock->lf_flags = LF_NOWAIT;
++		else
++			lock->lf_flags = LF_WAIT;
++		return (lf_setlock(lock));
++	}
++	lf_free_svnode(svp);
++	return (error);
++}
++
++/*
++ * Find (or make) the shadow vnode of vp and move it to the front of
++ * its hash chain.
++ */
++static struct lf_svnode *
++lf_get_svnode(vp)
++	register struct vnode *vp;
++{
++	register struct lf_svnode **hp, **svpp, *svp;
++
++	hp = &lf_svnode_hash[LF_SVNODE_HASH((int)vp)];
++	for (svpp = hp; *svpp; svpp = &svp->lf_next) {
++		svp = *svpp;
++		if (svp->lf_vnodep == vp) {
++			if (svpp == hp)
++				goto out;
++			*svpp = svp->lf_next;	/* move it to the front */
++			goto link;
++		}
++	}
++	svp = (struct lf_svnode *)kalloc(sizeof (struct lf_svnode));
++	svp->lf_vnodep = vp;
++	svp->lf_lockfp = NOLOCKF;
++	svp->lf_refcnt = 0;
++	vp->v_count++;
++link:
++	svp->lf_next = *hp;
++	*hp = svp;
++out:
++	return (*hp);
++}
++
++/*
++ * Free a shadow vnode that no lock refers to any more.
++ */
++static void
++lf_free_svnode(svp)
++	register struct lf_svnode *svp;
++{
++	register struct lf_svnode **svpp, *p;
++
++	if (svp->lf_refcnt > 0)
++		return;
++	for (svpp = &lf_svnode_hash[LF_SVNODE_HASH((int)svp->lf_vnodep)];
++	    *svpp; svpp = &p->lf_next) {
++		p = *svpp;
++		if (p == svp) {
++			vn_rele(p->lf_vnodep);
++			*svpp = p->lf_next;
++			kfree((vm_offset_t)p, sizeof (struct lf_svnode));
++			return;
++		}
++	}
++	panic("lf_free_svnode: cannot find shadow vnode in hash list");
++}
++
+ /*
+  * Set a byte-range lock.
+  */
++static int	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_setlock(lock)
+ 	register struct lockf *lock;
+ {
+ 	register struct lockf *block;
+-	struct inode *ip = lock->lf_inode;
+ 	struct lockf **prev, *overlap, *ltmp;
+-	static char lockstr[] = "lockf";
+ 	int ovcase, priority, needtolink, error;
+ 
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 1)
+-		lf_print("lf_setlock", lock);
+-#endif /* LOCKF_DEBUG */
+-
+-	/*
+-	 * Set the priority
+-	 */
+ 	priority = PLOCK;
+ 	if (lock->lf_type == F_WRLCK)
+-		priority += 4;
+-	priority |= PCATCH;
++		priority += 5;	/* plan 372 */
+ 	/*
+ 	 * Scan lock list for this file looking for locks that would block us.
+ 	 */
+ 	while (block = lf_getblock(lock)) {
++		register struct posix_proc *pp;	/* plan 372 */
++		int i = 0;
++
+ 		/*
+ 		 * Free the structure and return if nonblocking.
+ 		 */
+-		if ((lock->lf_flags & F_WAIT) == 0) {
+-			FREE(lock, M_LOCKF);
++		if (lock->lf_flags & LF_NOWAIT) {	/* plan 372 */
++			lf_free(lock);	/* plan 372 */
+ 			return (EAGAIN);
+ 		}
+ 		/*
+-		 * We are blocked. Since flock style locks cover
+-		 * the whole file, there is no chance for deadlock.
+-		 * For byte-range locks we must check for deadlock.
+-		 *
+-		 * Deadlock detection is done by looking through the
+-		 * wait channels to see if there are any cycles that
+-		 * involve us. MAXDEPTH is set just to make sure we
+-		 * do not go off into neverland.
++		 * Deadlock detection: follow the chain of processes sleeping (plan 372)
++		 * on locks, at most LF_MAXDEPTH deep. (plan 372)
+ 		 */
+-		if ((lock->lf_flags & F_POSIX) &&
+-		    (block->lf_flags & F_POSIX)) {
+-			register struct proc *wproc;
+-			register struct lockf *waitblock;
+-			int i = 0;
+-
+-			/* The block is waiting on something */
+-			wproc = (struct proc *)block->lf_id;
+-			while (wproc->p_wchan &&
+-			       (wproc->p_wmesg == lockstr) &&
+-			       (i++ < maxlockdepth)) {
+-				waitblock = (struct lockf *)wproc->p_wchan;
+-				/* Get the owner of the blocking lock */
+-				waitblock = waitblock->lf_next;
+-				if ((waitblock->lf_flags & F_POSIX) == 0)
+-					break;
+-				wproc = (struct proc *)waitblock->lf_id;
+-				if (wproc == (struct proc *)lock->lf_id) {
+-					free(lock, M_LOCKF);
+-					return (EDEADLK);
+-				}
++		pp = block->lf_posix_procp;	/* plan 372 */
++		while (pp->p_lockf_chan && i++ < LF_MAXDEPTH) {	/* plan 372 */
++			pp = pp->p_lockf_chan->lf_next->lf_posix_procp;	/* plan 372 */
++			if (pp == lock->lf_posix_procp) {	/* plan 372 */
++				lf_free(lock);	/* plan 372 */
++				return (EDEADLK);
+ 			}
+ 		}
+ 		/*
+-		 * For flock type locks, we must first remove
+-		 * any shared locks that we hold before we sleep
+-		 * waiting for an exclusive lock.
+-		 */
+-		if ((lock->lf_flags & F_FLOCK) &&
+-		    lock->lf_type == F_WRLCK) {
+-			lock->lf_type = F_UNLCK;
+-			(void) lf_clearlock(lock);
+-			lock->lf_type = F_WRLCK;
+-		}
+-		/*
+ 		 * Add our lock to the blocked list and sleep until we're free.
+-		 * Remember who blocked us (for deadlock detection).
+ 		 */
+ 		lock->lf_next = block;
+ 		lf_addblock(block, lock);
+-#ifdef LOCKF_DEBUG
+-		if (lockf_debug & 1) {
+-			lf_print("lf_setlock: blocking on", block);
+-			lf_printlist("lf_setlock", block);
+-		}
+-#endif /* LOCKF_DEBUG */
+-		if (error = tsleep((caddr_t)lock, priority, lockstr, 0)) {
+-			free(lock, M_LOCKF);
+-			return (error);
++		lock->lf_posix_procp->p_lockf_chan = lock;	/* plan 372 */
++		error = sleep((caddr_t)lock, priority | PCATCH);	/* plan 372 */
++		lock->lf_posix_procp->p_lockf_chan = NOLOCKF;	/* plan 372 */
++		if (error) {	/* plan 372 */
++			/* Don't leave a dangling pointer in block list (plan 372) */
++			lf_rmblock(block, lock);	/* plan 372 */
++			lf_free(lock);	/* plan 372 */
++			return (EINTR);	/* plan 372 */
+ 		}
+ 	}
+ 	/*
+@@ -167,8 +241,8 @@
+ 	 * Skip over locks owned by other processes.
+ 	 * Handle any locks that overlap and are owned by ourselves.
+ 	 */
+-	prev = &ip->i_lockf;
+-	block = ip->i_lockf;
++	prev = &lock->lf_svnodep->lf_lockfp;	/* plan 372 */
++	block = lock->lf_svnodep->lf_lockfp;	/* plan 372 */
+ 	needtolink = 1;
+ 	for (;;) {
+ 		if (ovcase = lf_findoverlap(block, lock, SELF, &prev, &overlap))
+@@ -199,7 +273,7 @@
+ 			    overlap->lf_type == F_WRLCK)
+ 				lf_wakelock(overlap);
+ 			overlap->lf_type = lock->lf_type;
+-			FREE(lock, M_LOCKF);
++			lf_free(lock);	/* plan 372 */
+ 			lock = overlap; /* for debug output below */
+ 			break;
+ 
+@@ -208,7 +282,7 @@
+ 			 * Check for common starting point and different types.
+ 			 */
+ 			if (overlap->lf_type == lock->lf_type) {
+-				free(lock, M_LOCKF);
++				lf_free(lock);	/* plan 372 */
+ 				lock = overlap; /* for debug output below */
+ 				break;
+ 			}
+@@ -244,7 +318,7 @@
+ 				needtolink = 0;
+ 			} else
+ 				*prev = overlap->lf_next;
+-			free(overlap, M_LOCKF);
++			lf_free(overlap);	/* plan 372 */
+ 			continue;
+ 
+ 		case 4: /* overlap starts before lock */
+@@ -273,38 +347,26 @@
+ 		}
+ 		break;
+ 	}
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 1) {
+-		lf_print("lf_setlock: got the lock", lock);
+-		lf_printlist("lf_setlock", lock);
+-	}
+-#endif /* LOCKF_DEBUG */
+ 	return (0);
+ }
+ 
+ /*
+- * Remove a byte-range lock on an inode.
++ * Remove a byte-range lock on a vnode. (plan 372)
+  *
+  * Generally, find the lock (or an overlap to that lock)
+  * and remove it (or shrink it), then wakeup anyone we can.
+  */
++static int	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_clearlock(unlock)
+ 	register struct lockf *unlock;
+ {
+-	struct inode *ip = unlock->lf_inode;
+-	register struct lockf *lf = ip->i_lockf;
++	register struct lockf *lf = unlock->lf_svnodep->lf_lockfp;	/* plan 372 */
+ 	struct lockf *overlap, **prev;
+ 	int ovcase;
+ 
+ 	if (lf == NOLOCKF)
+ 		return (0);
+-#ifdef LOCKF_DEBUG
+-	if (unlock->lf_type != F_UNLCK)
+-		panic("lf_clearlock: bad type");
+-	if (lockf_debug & 1)
+-		lf_print("lf_clearlock", unlock);
+-#endif /* LOCKF_DEBUG */
+-	prev = &ip->i_lockf;
++	prev = &unlock->lf_svnodep->lf_lockfp;	/* plan 372 */
+ 	while (ovcase = lf_findoverlap(lf, unlock, SELF, &prev, &overlap)) {
+ 		/*
+ 		 * Wakeup the list of locks to be retried.
+@@ -315,7 +377,7 @@
+ 
+ 		case 1: /* overlap == lock */
+ 			*prev = overlap->lf_next;
+-			FREE(overlap, M_LOCKF);
++			lf_free(overlap);	/* plan 372 */
+ 			break;
+ 
+ 		case 2: /* overlap contains lock: split it */
+@@ -330,7 +392,7 @@
+ 		case 3: /* lock contains overlap */
+ 			*prev = overlap->lf_next;
+ 			lf = overlap->lf_next;
+-			free(overlap, M_LOCKF);
++			lf_free(overlap);	/* plan 372 */
+ 			continue;
+ 
+ 		case 4: /* overlap starts before lock */
+@@ -345,10 +407,6 @@
+ 		}
+ 		break;
+ 	}
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 1)
+-		lf_printlist("lf_clearlock", unlock);
+-#endif /* LOCKF_DEBUG */
+ 	return (0);
+ }
+ 
+@@ -356,30 +414,22 @@
+  * Check whether there is a blocking lock,
+  * and if so return its process identifier.
+  */
++static int	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_getlock(lock, fl)
+ 	register struct lockf *lock;
+ 	register struct flock *fl;
+ {
+ 	register struct lockf *block;
+-	off_t start, end;
+-
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 1)
+-		lf_print("lf_getlock", lock);
+-#endif /* LOCKF_DEBUG */
+ 
+ 	if (block = lf_getblock(lock)) {
+ 		fl->l_type = block->lf_type;
+-		fl->l_whence = SEEK_SET;
++		fl->l_whence = L_SET;	/* plan 372 */
+ 		fl->l_start = block->lf_start;
+ 		if (block->lf_end == -1)
+ 			fl->l_len = 0;
+ 		else
+ 			fl->l_len = block->lf_end - block->lf_start + 1;
+-		if (block->lf_flags & F_POSIX)
+-			fl->l_pid = ((struct proc *)(block->lf_id))->p_pid;
+-		else
+-			fl->l_pid = -1;
++		fl->l_pid = block->lf_posix_procp->p_pid;	/* plan 372 */
+ 	} else {
+ 		fl->l_type = F_UNLCK;
+ 	}
+@@ -387,18 +437,17 @@
+ }
+ 
+ /*
+- * Walk the list of locks for an inode and
++ * Walk the list of locks for a vnode and (plan 372)
+  * return the first blocking lock.
+  */
+-struct lockf *
++static struct lockf *	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_getblock(lock)
+ 	register struct lockf *lock;
+ {
+-	struct lockf **prev, *overlap, *lf = lock->lf_inode->i_lockf;
+-	int ovcase;
++	struct lockf **prev, *overlap, *lf = lock->lf_svnodep->lf_lockfp;	/* plan 372 */
+ 
+-	prev = &lock->lf_inode->i_lockf;
+-	while (ovcase = lf_findoverlap(lf, lock, OTHERS, &prev, &overlap)) {
++	prev = &lock->lf_svnodep->lf_lockfp;	/* plan 372 */
++	while (lf_findoverlap(lf, lock, OTHERS, &prev, &overlap)) {	/* plan 372 */
+ 		/*
+ 		 * We've found an overlap, see if it blocks us
+ 		 */
+@@ -414,12 +463,13 @@
+ }
+ 
+ /*
+- * Walk the list of locks for an inode to
++ * Walk the list of locks to (plan 372)
+  * find an overlapping lock (if any).
+  *
+  * NOTE: this returns only the FIRST overlapping lock.  There
+  *	 may be more than one.
+  */
++static int	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_findoverlap(lf, lock, type, prev, overlap)
+ 	register struct lockf *lf;
+ 	struct lockf *lock;
+@@ -432,23 +482,15 @@
+ 	*overlap = lf;
+ 	if (lf == NOLOCKF)
+ 		return (0);
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 2)
+-		lf_print("lf_findoverlap: looking for overlap in", lock);
+-#endif /* LOCKF_DEBUG */
+ 	start = lock->lf_start;
+ 	end = lock->lf_end;
+ 	while (lf != NOLOCKF) {
+-		if (((type & SELF) && lf->lf_id != lock->lf_id) ||
+-		    ((type & OTHERS) && lf->lf_id == lock->lf_id)) {
++		if (((type & SELF) && lf->lf_posix_procp != lock->lf_posix_procp) ||	/* plan 372 */
++		    ((type & OTHERS) && lf->lf_posix_procp == lock->lf_posix_procp)) {	/* plan 372 */
+ 			*prev = &lf->lf_next;
+ 			*overlap = lf = lf->lf_next;
+ 			continue;
+ 		}
+-#ifdef LOCKF_DEBUG
+-		if (lockf_debug & 2)
+-			lf_print("\tchecking", lf);
+-#endif /* LOCKF_DEBUG */
+ 		/*
+ 		 * OK, check for overlap
+ 		 *
+@@ -463,10 +505,6 @@
+ 		if ((lf->lf_end != -1 && start > lf->lf_end) ||
+ 		    (end != -1 && lf->lf_start > end)) {
+ 			/* Case 0 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("no overlap\n");
+-#endif /* LOCKF_DEBUG */
+ 			if ((type & SELF) && end != -1 && lf->lf_start > end)
+ 				return (0);
+ 			*prev = &lf->lf_next;
+@@ -475,49 +513,29 @@
+ 		}
+ 		if ((lf->lf_start == start) && (lf->lf_end == end)) {
+ 			/* Case 1 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("overlap == lock\n");
+-#endif /* LOCKF_DEBUG */
+ 			return (1);
+ 		}
+ 		if ((lf->lf_start <= start) &&
+ 		    (end != -1) &&
+ 		    ((lf->lf_end >= end) || (lf->lf_end == -1))) {
+ 			/* Case 2 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("overlap contains lock\n");
+-#endif /* LOCKF_DEBUG */
+ 			return (2);
+ 		}
+ 		if (start <= lf->lf_start &&
+ 		           (end == -1 ||
+ 			   (lf->lf_end != -1 && end >= lf->lf_end))) {
+ 			/* Case 3 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("lock contains overlap\n");
+-#endif /* LOCKF_DEBUG */
+ 			return (3);
+ 		}
+ 		if ((lf->lf_start < start) &&
+ 			((lf->lf_end >= start) || (lf->lf_end == -1))) {
+ 			/* Case 4 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("overlap starts before lock\n");
+-#endif /* LOCKF_DEBUG */
+ 			return (4);
+ 		}
+ 		if ((lf->lf_start > start) &&
+ 			(end != -1) &&
+ 			((lf->lf_end > end) || (lf->lf_end == -1))) {
+ 			/* Case 5 */
+-#ifdef LOCKF_DEBUG
+-			if (lockf_debug & 2)
+-				printf("overlap ends after lock\n");
+-#endif /* LOCKF_DEBUG */
+ 			return (5);
+ 		}
+ 		panic("lf_findoverlap: default");
+@@ -528,6 +546,7 @@
+ /*
+  * Add a lock to the end of the blocked list.
+  */
++static void	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_addblock(lock, blocked)
+ 	struct lockf *lock;
+ 	struct lockf *blocked;
+@@ -536,12 +555,6 @@
+ 
+ 	if (blocked == NOLOCKF)
+ 		return;
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 2) {
+-		lf_print("addblock: adding", blocked);
+-		lf_print("to blocked list of", lock);
+-	}
+-#endif /* LOCKF_DEBUG */
+ 	if ((lf = lock->lf_block) == NOLOCKF) {
+ 		lock->lf_block = blocked;
+ 		return;
+@@ -553,21 +566,35 @@
+ }
+ 
+ /*
++ * Take a lock off the blocked list it was put on.
++ */
++static int
++lf_rmblock(lf, lock)
++	struct lockf *lf;
++	struct lockf *lock;
++{
++	register struct lockf **lfp;
++
++	for (lfp = &lf; *lfp; lfp = &(*lfp)->lf_block) {
++		if (*lfp == lock) {
++			*lfp = (*lfp)->lf_block;
++			return (1);
++		}
++	}
++	return (0);
++}
++
++/*
+  * Split a lock and a contained region into
+  * two or three locks as necessary.
+  */
++static void	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_split(lock1, lock2)
+ 	register struct lockf *lock1;
+ 	register struct lockf *lock2;
+ {
+ 	register struct lockf *splitlock;
+ 
+-#ifdef LOCKF_DEBUG
+-	if (lockf_debug & 2) {
+-		lf_print("lf_split", lock1);
+-		lf_print("splitting from", lock2);
+-	}
+-#endif /* LOCKF_DEBUG */
+ 	/*
+ 	 * Check to see if spliting into only two pieces.
+ 	 */
+@@ -586,8 +613,9 @@
+ 	 * Make a new lock consisting of the last part of
+ 	 * the encompassing lock
+ 	 */
+-	MALLOC(splitlock, struct lockf *, sizeof *splitlock, M_LOCKF, M_WAITOK);
+-	bcopy((caddr_t)lock1, (caddr_t)splitlock, sizeof *splitlock);
++	splitlock = (struct lockf *)kalloc(sizeof (struct lockf));	/* plan 372 */
++	bcopy((caddr_t)lock1, (caddr_t)splitlock, sizeof (struct lockf));	/* plan 372 */
++	splitlock->lf_svnodep->lf_refcnt++;	/* plan 372 */
+ 	splitlock->lf_start = lock2->lf_end + 1;
+ 	splitlock->lf_block = NOLOCKF;
+ 	lock1->lf_end = lock2->lf_start - 1;
+@@ -602,79 +630,30 @@
+ /*
+  * Wakeup a blocklist
+  */
++static int	/* plan 372: static (Net/2 has an external K&R definition) */
+ lf_wakelock(listhead)
+ 	struct lockf *listhead;
+ {
+-        register struct lockf *blocklist, *wakelock;
++	register struct lockf *blocklist, *wakelock;
+ 
+ 	blocklist = listhead->lf_block;
+ 	listhead->lf_block = NOLOCKF;
+-        while (blocklist != NOLOCKF) {
+-                wakelock = blocklist;
+-                blocklist = blocklist->lf_block;
++	while (blocklist != NOLOCKF) {
++		wakelock = blocklist;
++		blocklist = blocklist->lf_block;
+ 		wakelock->lf_block = NOLOCKF;
+ 		wakelock->lf_next = NOLOCKF;
+-#ifdef LOCKF_DEBUG
+-		if (lockf_debug & 2)
+-			lf_print("lf_wakelock: awakening", wakelock);
+-#endif /* LOCKF_DEBUG */
+-                wakeup((caddr_t)wakelock);
+-        }
++		wakeup((caddr_t)wakelock);
++	}
+ }
+ 
+-#ifdef LOCKF_DEBUG
+ /*
+- * Print out a lock.
++ * Free a lock and drop its reference on the shadow vnode.
+  */
+-lf_print(tag, lock)
+-	char *tag;
++static void
++lf_free(lock)
+ 	register struct lockf *lock;
+ {
+-	
+-	printf("%s: lock 0x%lx for ", tag, lock);
+-	if (lock->lf_flags & F_POSIX)
+-		printf("proc %d", ((struct proc *)(lock->lf_id))->p_pid);
+-	else
+-		printf("id 0x%x", lock->lf_id);
+-	printf(" in ino %d on dev <%d, %d>, %s, start %d, end %d",
+-		lock->lf_inode->i_number,
+-		major(lock->lf_inode->i_dev),
+-		minor(lock->lf_inode->i_dev),
+-		lock->lf_type == F_RDLCK ? "shared" :
+-		lock->lf_type == F_WRLCK ? "exclusive" :
+-		lock->lf_type == F_UNLCK ? "unlock" :
+-		"unknown", lock->lf_start, lock->lf_end);
+-	if (lock->lf_block)
+-		printf(" block 0x%x\n", lock->lf_block);
+-	else
+-		printf("\n");
+-}
+-
+-lf_printlist(tag, lock)
+-	char *tag;
+-	struct lockf *lock;
+-{
+-	register struct lockf *lf;
+-
+-	printf("%s: Lock list for ino %d on dev <%d, %d>:\n",
+-		tag, lock->lf_inode->i_number,
+-		major(lock->lf_inode->i_dev),
+-		minor(lock->lf_inode->i_dev));
+-	for (lf = lock->lf_inode->i_lockf; lf; lf = lf->lf_next) {
+-		printf("\tlock 0x%lx for ", lf);
+-		if (lf->lf_flags & F_POSIX)
+-			printf("proc %d", ((struct proc *)(lf->lf_id))->p_pid);
+-		else
+-			printf("id 0x%x", lf->lf_id);
+-		printf(", %s, start %d, end %d",
+-			lf->lf_type == F_RDLCK ? "shared" :
+-			lf->lf_type == F_WRLCK ? "exclusive" :
+-			lf->lf_type == F_UNLCK ? "unlock" :
+-			"unknown", lf->lf_start, lf->lf_end);
+-		if (lf->lf_block)
+-			printf(" block 0x%x\n", lf->lf_block);
+-		else
+-			printf("\n");
+-	}
++	lock->lf_svnodep->lf_refcnt--;
++	kfree((vm_offset_t)lock, sizeof (struct lockf));
+ }
+-#endif /* LOCKF_DEBUG */

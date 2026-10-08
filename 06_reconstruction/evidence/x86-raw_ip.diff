@@ -1,0 +1,153 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/raw_ip.c	2026-09-11 10:02:49.571218344 +0900
++++ 07_kernel/src/bsd/netinet/raw_ip.c	2026-10-03 08:13:33.218241147 +0900
+@@ -27,6 +27,9 @@
+ #import <netinet/in_systm.h>
+ #import <netinet/ip.h>
+ #import <netinet/ip_var.h>
++#ifdef	MULTICAST
++#import <netinet/in_var.h>	/* plan 168: INADDR_TO_IFP */
++#endif	MULTICAST
+ 
+ /*
+  * Raw interface to IP protocol.
+@@ -56,29 +59,35 @@
+  * Generate IP header and pass packet to ip_output.
+  * Tack on options user may have setup with control call.
+  */
+-rip_output(m, so)
+-	register struct mbuf *m;
++rip_output(m0, so)	/* plan 168.1 (authored): parameter m0, working m (original registers) */
++	struct mbuf *m0;
+ 	struct socket *so;
+ {
+ 	register struct ip *ip;
++	register struct mbuf *m;
+ 	int error;
++	int len = 0;
+ 	struct rawcb *rp = sotorawcb(so);
+ 	struct sockaddr_in *sin;
+-	short proto = rp->rcb_proto.sp_protocol;
++#ifdef	MULTICAST
++	struct ifnet *ifp;	/* plan 168 */
++#endif	MULTICAST
+ 	/*
+ 	 * if the protocol is IPPROTO_RAW, the user handed us a 
+ 	 * complete IP packet.  Otherwise, allocate an mbuf for a
+ 	 * header and fill it in as needed.
+ 	 */
+-	if (proto != IPPROTO_RAW) {
++	if (rp->rcb_proto.sp_protocol != IPPROTO_RAW
++#ifdef	MULTICAST
++	    && rp->rcb_proto.sp_protocol != IPPROTO_IGMP	/* plan 168 (authored; original bytes) */
++#endif	MULTICAST
++	    ) {
+ 		/*
+ 		 * Calculate data length and get an mbuf
+ 		 * for IP header.
+ 		 */
+-		int len = 0;
+-		struct mbuf *m0;
+ 
+-		for (m0 = m; m; m = m->m_next)
++		for (m = m0; m; m = m->m_next)
+ 			len += m->m_len;
+ 
+ 		m = m_get(M_DONTWAIT, MT_HEADER);
+@@ -94,11 +103,46 @@
+ 		ip = mtod(m, struct ip *);
+ 		ip->ip_tos = 0;
+ 		ip->ip_off = 0;
+-		ip->ip_p = (proto ? proto : IPPROTO_RAW);
++#ifdef	MULTICAST
++		/* plan 168 (authored; original 0x1282fe-0x128339) */
++		ip->ip_p = rp->rcb_proto.sp_protocol;
+ 		ip->ip_len = sizeof(struct ip) + len;
++		if (rp->rcb_flags & RAW_LADDR) {
++			sin = (struct sockaddr_in *)&rp->rcb_laddr;
++			if (sin->sin_family != AF_INET) {
++				error = EAFNOSUPPORT;
++				goto bad;
++			}
++			ip->ip_src.s_addr = sin->sin_addr.s_addr;
++		} else
++			ip->ip_src.s_addr = 0;
++		ip->ip_dst = ((struct sockaddr_in *)&rp->rcb_faddr)->sin_addr;
+ 		ip->ip_ttl = MAXTTL;
+-	} else
++	} else {
++		/* plan 168 (authored; original 0x128340-0x12837b) */
++		m = m0;
++		ip = mtod(m, struct ip *);
++		if (ip->ip_src.s_addr) {
++			INADDR_TO_IFP(ip->ip_src, ifp);
++			if (ifp == 0) {
++				error = EADDRNOTAVAIL;
++				goto bad;
++			}
++		}
++		ip->ip_dst = ((struct sockaddr_in *)&rp->rcb_faddr)->sin_addr;
++	}
++
++	return (ip_output(m, rp->rcb_options, &rp->rcb_route,
++	   (so->so_options & SO_DONTROUTE) | IP_ALLOWBROADCAST |
++	   IP_MULTICASTOPTS, rp->rcb_moptions));
++#else	MULTICAST
++		ip->ip_p = (rp->rcb_proto.sp_protocol ? rp->rcb_proto.sp_protocol : IPPROTO_RAW);
++		ip->ip_len = sizeof(struct ip) + len;
++		ip->ip_ttl = MAXTTL;
++	} else {
++		m = m0;
+ 		ip = mtod(m, struct ip *);
++	}
+ 
+ 	if (rp->rcb_flags & RAW_LADDR) {
+ 		sin = (struct sockaddr_in *)&rp->rcb_laddr;
+@@ -114,6 +158,7 @@
+ 
+ 	return (ip_output(m, rp->rcb_options, &rp->rcb_route, 
+ 	   (so->so_options & SO_DONTROUTE) | IP_ALLOWBROADCAST));
++#endif	MULTICAST
+ bad:
+ 	m_freem(m);
+ 	return (error);
+@@ -138,9 +183,23 @@
+ 		switch (optname) {
+ 		case IP_OPTIONS:
+ 			return (ip_pcbopts(&rp->rcb_options, *m));
++#ifdef	MULTICAST
++		/* plan 168 (authored; original 0x1283fc-0x128426) */
++		case IP_MULTICAST_IF:
++		case IP_MULTICAST_TTL:
++		case IP_MULTICAST_LOOP:
++		case IP_ADD_MEMBERSHIP:
++		case IP_DROP_MEMBERSHIP:
++			error = ip_setmoptions(optname, &rp->rcb_moptions, *m);
++			break;
++		default:
++			error = ip_mrouter_cmd(optname, so, *m);
++			break;
++#else	MULTICAST
+ 		default:
+ 			error = EINVAL;
+ 			break;
++#endif	MULTICAST
+ 		}
+ 		break;
+ 
+@@ -156,6 +215,16 @@
+ 			} else
+ 				(*m)->m_len = 0;
+ 			break;
++#ifdef	MULTICAST
++		/* plan 168 (authored; original 0x128488-0x128493) */
++		case IP_MULTICAST_IF:
++		case IP_MULTICAST_TTL:
++		case IP_MULTICAST_LOOP:
++		case IP_ADD_MEMBERSHIP:
++		case IP_DROP_MEMBERSHIP:
++			error = ip_getmoptions(optname, rp->rcb_moptions, m);
++			break;
++#endif	MULTICAST
+ 		default:
+ 			error = EINVAL;
+ 			break;

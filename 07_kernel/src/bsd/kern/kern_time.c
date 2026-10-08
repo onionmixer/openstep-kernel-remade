@@ -50,6 +50,8 @@
 #import <kern/host.h>			/* plan 145 (authored) */
 
 extern volatile mapped_time_value_t *mtime;	/* plan 145 (authored) */
+
+struct	timeval boottime;	/* plan 401 (D060; D024, no evidence for the place) */
 /* 
  * Time of day and interval timer support.
  *

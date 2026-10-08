@@ -1,0 +1,80 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/driverkit/libDriver/pcmcia/IOPCMCIATuple.m	2026-10-06 12:25:19.797263858 +0900
+@@ -0,0 +1,77 @@
++/*
++ * IOPCMCIATuple.m (plan 345).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * original module "pcmcia/IOPCMCIATuple.m", 0x1c2234-0x1c2387).
++ * The text is nearly the same as Darwin 0.1
++ * driverkit-1/libDriver/pcmcia/IOPCMCIATuple.m; kept as project-authored
++ * under D027/D030, without Darwin's notices (license judgement: D017).
++ */
++
++#import <driverkit/i386/IOPCMCIATuple.h>
++#import <driverkit/i386/IOPCMCIATuplePrivate.h>
++
++@implementation IOPCMCIATuple(Private)
++
++struct _tuple_private {
++    	id		kernTuple;
++	unsigned char	code;
++	unsigned	length;
++	unsigned char	*data;
++};
++
++- initWithKernTuple:tuple
++{
++    struct _tuple_private *private;
++    
++    if (tuple == NULL)
++	return [super free];
++
++    [super init];
++    private = (struct _tuple_private *)IOMalloc(sizeof(struct _tuple_private));
++    _private = private;
++    private->kernTuple = tuple;
++    private->code = [tuple code];
++    private->length = [tuple length];
++    private->data = NULL;
++    return self;
++}
++
++@end
++
++@implementation IOPCMCIATuple
++
++- free
++{
++    struct _tuple_private *private = (struct _tuple_private *)_private;
++    if (private->data != NULL)
++	IOFree(private->data, private->length);
++    IOFree(private, sizeof(struct _tuple_private));
++    return [super free];
++}
++
++- (unsigned char) code
++{
++    struct _tuple_private *private = (struct _tuple_private *)_private;
++    return private->code;
++}
++
++- (unsigned) length
++{
++    struct _tuple_private *private = (struct _tuple_private *)_private;
++    return private->length;
++}
++
++- (unsigned char *) data;
++{
++    struct _tuple_private *private = (struct _tuple_private *)_private;
++    unsigned length;
++
++    if (private->data == NULL) {
++	private->data = IOMalloc(private->length);
++	bcopy([private->kernTuple data], private->data, private->length);
++    }
++    return private->data;
++}
++
++@end

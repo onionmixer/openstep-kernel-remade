@@ -1,0 +1,220 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_descrip.c	2026-09-11 10:02:49.484217275 +0900
++++ 07_kernel/src/bsd/kern/kern_descrip.c	2026-10-03 13:47:00.227353983 +0900
+@@ -44,6 +44,7 @@
+ #import <sys/stat.h>
+ 
+ #import <sys/ioctl.h>
++#import <kern/thread.h>	/* plan 204: kernel current_task() */
+ 
+ /*
+  * Descriptor management.
+@@ -87,6 +88,14 @@
+ 	j = ufalloc(0);
+ 	if (j < 0)
+ 		return;
++#if	NeXT
++	/* plan 204 (authored; original 0x103eb6-0x103ed9): ufalloc may block */
++	if (u.u_ofile[uap->i] != fp) {
++		u.u_ofile[j] = NULL;
++		u.u_error = EBADF;
++		return;
++	}
++#endif	NeXT
+ 	dupit(j, fp, u.u_pofile[uap->i]);
+ }
+ 
+@@ -107,6 +116,12 @@
+ 		return;
+ #if	NeXT
+ 	expand_fdlist(current_task()->u_address, uap->j);
++	/* plan 204 (authored; original 0x103f7c-0x103f8c) */
++	if (u.u_ofile[uap->i] != fp ||
++	    u.u_ofile[uap->j] == (struct file *)FPINPROGRESS) {
++		u.u_error = EBADF;
++		return;
++	}
+ #endif	NeXT
+ 	if (u.u_ofile[uap->j]) {
+ #if	SUN_LOCK
+@@ -126,6 +141,12 @@
+ 		 */
+ 		u.u_error = 0;
+ 	}
++#if	NeXT
++	if (u.u_ofile[uap->i] != fp) {	/* plan 204 (original 0x103fe9) */
++		u.u_error = EBADF;
++		return;
++	}
++#endif	NeXT
+ 	dupit(uap->j, fp, u.u_pofile[uap->i]);
+ }
+ 
+@@ -177,6 +198,14 @@
+ 		}
+ 		if ((i = ufalloc(i)) < 0)
+ 			return;
++#if	NeXT
++		/* plan 204 (authored; original 0x10413c-0x10415b) */
++		if (u.u_ofile[uap->fdes] != fp) {
++			u.u_ofile[i] = NULL;
++			u.u_error = EBADF;
++			return;
++		}
++#endif	NeXT
+ 		dupit(i, fp, *pop &~ UF_EXCLOSE);
+ 		break;
+ 
+@@ -204,6 +233,12 @@
+ 		 * object by doing the appropriate "ioctl"s.
+ 		 */
+ 		newflag = fp->f_flag;
++#if	POSIX_KERN
++		/* plan 204 (authored; original 0x104208-0x104220) */
++		if (u.u_procp->p_posix)
++			newflag &= (FCNTLCANT | _POSIX_FILE_FLAGS);
++		else
++#endif	POSIX_KERN
+ 		newflag &= FCNTLCANT;
+ 		newflag |= (uap->arg-FOPEN) &~ FCNTLCANT;
+ 		fioarg = (newflag & FNDELAY) != 0;
+@@ -246,6 +281,14 @@
+ 			u.u_error = EBADF;
+ 			return;
+ 		}
++#if	POSIX_KERN
++		/* plan 204 (authored; original 0x1042ff-0x104317): POSIX regular files only */
++		if (!u.u_procp->p_posix ||
++		    ((struct vnode *)fp->f_data)->v_type != VREG) {
++			u.u_error = EINVAL;
++			return;
++		}
++#endif	POSIX_KERN
+ 		/* get flock structure from user-land */
+ 		if (u.u_error =
+ 		    copyin((caddr_t)uap->arg, (caddr_t)&ld, sizeof (ld))) {
+@@ -315,6 +358,12 @@
+ 		 * Dispatch out to vnode layer to do the actual locking.
+ 		 * Then, translate error codes for SVID compatibility
+ 		 */
++#if	NeXT
++		/* plan 204 (authored; original 0x1043fc-0x104432): errors returned as is */
++		if (u.u_error = VOP_LOCKCTL((struct vnode *)fp->f_data,
++		    &ld, uap->cmd, fp->f_cred,u.u_procp->p_pid))
++			return;
++#else	NeXT
+ 		switch (u.u_error = VOP_LOCKCTL((struct vnode *)fp->f_data,
+ 		    &ld, uap->cmd, fp->f_cred,u.u_procp->p_pid)) {
+ 		case 0:
+@@ -325,6 +374,7 @@
+ 		default:
+ 			return;		/* some other error code */
+ 		}
++#endif	NeXT
+ 
+ 		/* if F_GETLK, return flock structure to user-land */
+ 		if (uap->cmd == F_GETLK) {
+@@ -336,8 +386,12 @@
+ 					return;
+ 				}
+ 			} else {
++#if	NeXT
++				/* plan 204: no renormalization (original 0x10444c) */
++#else	NeXT
+ 				if (u.u_error = rewhence(&ld, fp, oldwhence))
+ 					return;
++#endif	NeXT
+ 				if (u.u_error = copyout((caddr_t)&ld,
+ 				    (caddr_t)uap->arg, sizeof (ld))) {
+ 					return;
+@@ -434,6 +488,11 @@
+ 	*pf = 0;
+ 	closef(fp);
+ 	/* WHAT IF u.u_error ? */
++#if	POSIX_KERN
++	/* plan 204 (authored; original 0x10460b-0x104629) */
++	if (u.u_procp->p_posix && u.u_error == ENOSPC && (fp->f_flag & FNOSPC))
++		u.u_error = 0;
++#endif	POSIX_KERN
+ }
+ 
+ fstat()
+@@ -483,6 +542,10 @@
+ 			u.u_pofile[i] = 0;
+ 			if (i > u.u_lastfile)
+ 				u.u_lastfile = i;
++#if	NeXT
++			/* plan 204 (original 0x10475b): reserve the slot */
++			u.u_ofile[i] = (struct file *)FPINPROGRESS;
++#endif	NeXT
+ 			return (i);
+ 		}
+ #if	NeXT
+@@ -536,7 +599,11 @@
+ 		return (NULL);
+ 	fp = (struct file *) zalloc(file_zone);
+ 	queue_enter(&file_list, fp, struct file *, links);
++#if	NeXT
++	/* plan 204: the slot stays FPINPROGRESS; callers install fp */
++#else	NeXT
+ 	u.u_ofile[i] = fp;
++#endif	NeXT
+ 	fp->f_count = 1;
+ 	fp->f_data = 0;
+ 	fp->f_offset = 0;
+@@ -559,10 +626,22 @@
+ {
+ 	register struct file *fp;
+ 
++#if	NeXT
++	/* plan 204 (authored, D024; original 0x104900-0x104947) */
++	if ((unsigned)f >= u.u_ofile_cnt || (fp = u.u_ofile[f]) == NULL) {
++		u.u_error = EBADF;
++		return (NULL);
++	}
++	if (fp == (struct file *)FPINPROGRESS) {
++		u.u_error = EBADF;
++		return;
++	}
++#else	NeXT
+ 	if ((unsigned)f >= NOFILE || (fp = u.u_ofile[f]) == NULL) {
+ 		u.u_error = EBADF;
+ 		return (NULL);
+ 	}
++#endif	NeXT
+ 	return (fp);
+ }
+ 
+@@ -590,9 +669,17 @@
+ 		fp->f_count--;
+ 		return;
+ 	}
++#if	NeXT
++	if (fp->f_count != 1)		/* plan 204 (original 0x104968) */
++		panic("fp not one\n");
++#endif	NeXT
+ 	if (fp->f_ops != NULL)
+ 		(*fp->f_ops->fo_close)(fp);
+ 	crfree(fp->f_cred);
++#if	NeXT
++	if (fp->f_count != 1)		/* plan 204 (original 0x104997) */
++		panic("fp not one2\n");
++#endif	NeXT
+ 	fp->f_count = 0;
+ 	free_file(fp);
+ }
+@@ -696,6 +783,15 @@
+ 	new_cnt = n + 1;
+ 	fpp = (struct file **) kalloc(new_cnt * sizeof(struct file *));
+ 	flagsp = (char *) kalloc(new_cnt * sizeof(char));
++#if	NeXT
++	/* plan 204 (authored; original 0x104b75-0x104b99): kalloc may block */
++	if (n < utask->uu_ofile_cnt) {
++		kfree(fpp, new_cnt * sizeof(struct file *));
++		kfree(flagsp, new_cnt * sizeof(char));
++		return;
++	}
++	old_cnt = utask->uu_ofile_cnt;	/* plan 204.1 (variant b) */
++#endif	NeXT
+ 	bzero(fpp, new_cnt * sizeof(struct file *));
+ 	bzero(flagsp, new_cnt * sizeof(char));
+ 	if (old_cnt) {

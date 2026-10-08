@@ -1,0 +1,258 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_subr.c	2026-09-11 10:02:49.607218787 +0900
++++ 07_kernel/src/bsd/nfs/nfs_subr.c	2026-10-08 14:51:59.636659394 +0900
+@@ -91,7 +91,7 @@
+ static struct rnode *rfind();
+ static int rp_addhash();
+ 
+-extern int nrnode;		/* max rnodes to alloc, set in machdep.c */
++int nrnode = 0;		/* max rnodes to alloc */	/* plan 397, D058: defined here in OPENSTEP 4.2 (original __data 0x1dc2c0) */
+ 
+ /*
+  * Client side utilities
+@@ -171,7 +171,7 @@
+ #undef MAXCLIENTS
+ #endif	NeXT
+ 
+-AUTH *
++static AUTH *		/* plan 186: no symbol in the original */
+ authget(mi, cr)
+ 	struct mntinfo *mi;
+ 	struct ucred *cr;
+@@ -263,6 +263,7 @@
+ 	}
+ }
+ 
++static			/* plan 186 */
+ authfree(auth)
+ 	AUTH *auth;
+ {
+@@ -300,7 +301,7 @@
+ }
+ 
+ 
+-CLIENT *
++static CLIENT *		/* plan 186: 0x12ea98, no symbol */
+ clget(mi, cred)
+ 	struct mntinfo *mi;
+ 	struct ucred *cred;
+@@ -433,12 +434,14 @@
+ }
+ #endif
+ 
++static			/* plan 186: 0x12ee3c, no symbol */
+ clfree(cl)
+ 	CLIENT *cl;
+ {
+ 	register struct chtab *ch;
+ 
+ 	authfree(cl->cl_auth);
++	clntkudp_freecred(cl);	/* plan 186 (authored; original 0x12eeac) */
+ 	cl->cl_auth = NULL;
+ 	for (ch = chtable; ch < &chtable[MAXCLIENTS]; ch++) {
+ 		if (ch->ch_client == cl) {
+@@ -567,8 +570,10 @@
+ #if	NeXT
+ 			rpcerr.re_status = status;
+ 			rpcerr.re_errno = EINVAL;
+-#endif	NeXT
++#else	NeXT
++			/* plan 186.1 (authored; original 0x12f0ce-0x12f0db): no CLNT_GETERR */
+ 			CLNT_GETERR(client, &rpcerr);
++#endif	NeXT
+ 			printf("NFS %s failed for server %s: %s\n",
+ 				rfsnames[which], mi->mi_hostname,
+ 				clnt_sperrno(status));
+@@ -630,11 +635,22 @@
+ 	register struct nfssattr *sa;
+ {
+ 
+-	sa->sa_mode = vap->va_mode;
+ #if	NeXT
+-	sa->sa_uid = (uid_t)vap->va_uid;
+-	sa->sa_gid = (gid_t)vap->va_gid;
++	/* plan 186 (authored, D024; original 0x12f38e-0x12f3d5): -1 means "unchanged" */
++	if (vap->va_mode == (u_short)-1)
++		sa->sa_mode = (u_long)-1;
++	else
++		sa->sa_mode = vap->va_mode;
++	if (vap->va_uid == (uid_t)-1)
++		sa->sa_uid = (u_long)-1;
++	else
++		sa->sa_uid = (uid_t)vap->va_uid;
++	if (vap->va_gid == (gid_t)-1)
++		sa->sa_gid = (u_long)-1;
++	else
++		sa->sa_gid = (gid_t)vap->va_gid;
+ #else
++	sa->sa_mode = vap->va_mode;
+ 	sa->sa_uid = (int)vap->va_uid;
+ 	sa->sa_gid = (int)vap->va_gid;
+ #endif	NeXT
+@@ -699,6 +715,26 @@
+ #endif	MACH
+ 
+ /*
++ * plan 186 (authored, D024; original _rnode_cache_clear 0x12f48c):
++ * release every rnode on the free list.
++ */
++rnode_cache_clear()
++{
++	register struct rnode *rp;
++	extern zone_t vm_info_zone;
++
++	while ((rp = rpfreelist) != NULL) {
++		rpfreelist = rpfreelist->r_freef;	/* plan 186.1 (0x12f494) */
++		rm_free(rp);
++		rp_rmhash(rp);
++		rinactive(rp);
++		mfs_uncache(rtov(rp));
++		zfree(vm_info_zone, (vm_offset_t)rtov(rp)->vm_info);
++		zfree(rnode_zone, (vm_offset_t)rp);
++	}
++}
++
++/*
+  * Return a vnode for the given fhandle.
+  * If no rnode exists for this fhandle create one and put it
+  * in a table hashed by fh_fsid and fs_fid.  If the rnode for
+@@ -771,7 +807,7 @@
+ 	vp = rtov(rp);
+ 	if (attr) {
+ 		if (!newnode) {
+-			nfs_cache_check(vp, attr->na_mtime);
++			nfs_cache_check(vp, attr->na_mtime, attr->na_size, 0);	/* plan 186 (0x12f663) */
+ 		}
+ 		nfs_attrcache(vp, attr);
+ 	}
+@@ -886,6 +922,7 @@
+ /*
+  * Remove an rnode from the free list
+  */
++static			/* plan 186: 0x12f7d0, no symbol */
+ rm_free(rp)
+ 	register struct rnode *rp;
+ {
+@@ -987,45 +1024,27 @@
+ 	struct vfs *vfsp;
+ {
+ 	register struct rnode **rpp, *rp;
++	struct rnode *rpnext;
+ 	struct vnode *vp;
+ 
++	/*
++	 * plan 186 (authored, D024; original 0x12f9f0-0x12fb94): the next
++	 * pointer is saved first; an rnode that is still referenced goes
++	 * back on its hash chain.
++	 */
+ 	for (rpp = rtable; rpp < &rtable[RTABLESIZE]; rpp++) {
+-#if	NeXT
+-restart:
+-#endif	NeXT
+-		for (rp = *rpp;rp != (struct rnode *)NULL;rp = rp->r_hash) {
++		for (rp = *rpp; rp != (struct rnode *)NULL; rp = rpnext) {
++			rpnext = rp->r_hash;
+ 			vp = rtov(rp);
+-#if	NeXT
+ 			if (vp->v_vfsp == vfsp) {
+ 				rp_rmhash(rp);
+ 				VN_HOLD(vp);
+ 				binvalfree(vp);
+ 				dnlc_purge_vp(vp);
+-
+-				if (vp->v_count > 1) {
+-					/*
+-					 * optimize no rnode release case 
+-					 */
+-					VN_RELE(vp);
+-				}
+-				else {
+-					/*
+-					 * loop invariant is invalidated 
+-					 * so restart
+-					 */
+-					VN_RELE(vp);
+-					goto restart;
+-				}
+-			}
+-#else
+-			if (rtov(rp)->v_vfsp == vfsp) {
+-				rp_rmhash(rp);
+-				VN_HOLD(rtov(rp));
+-				binvalfree(rtov(rp));
+-				dnlc_purge_vp(rtov(rp));
+-				VN_RELE(rtov(rp));
++				if (vp->v_count > 1)
++					rp_addhash(rp);
++				VN_RELE(vp);
+ 			}
+-#endif	NeXT
+ 		}
+ 	}
+ }
+@@ -1078,7 +1097,10 @@
+ 		*s1++ = *s2++;
+ 	}
+ 	if (newnum == 0) {
+-		newnum = time.tv_sec & 0xffff;
++		struct timeval tv;	/* plan 186 (authored; original 0x12fc2d) */
++
++		getthetime(&tv);
++		newnum = tv.tv_sec & 0xffff;
+ 	}
+ 	id = newnum++;
+ 	while (id) {
+@@ -1103,4 +1125,54 @@
+ 	RUNLOCK(rp);
+ }
+ 
++#if	NeXT
++/*
++ * plan 280 (authored, D024): lock an rnode, giving up after secs seconds
++ * (RTIMEDOUT, nfs/rnode.h); written from the original rlock_timeout
++ * 0x12fd1c and the static wakeup routine 0x12fdd0.
++ */
++int	rlock_awaken_count;
++int	rlockretimeout;
++int	rlocktimeout;
++
++static void	rlock_awaken();
+ 
++int
++rlock_timeout(rp, secs)
++	register struct rnode *rp;
++	int secs;
++{
++	int s;
++
++	while ((rp->r_flags & RLOCKED) && rp->r_thread != current_thread()) {
++		if (rp->r_flags & RTIMEDOUT) {
++			rlockretimeout++;
++			return (1);
++		}
++		rp->r_flags |= RWANT;
++		s = splhigh();
++		timeout(rlock_awaken, (caddr_t)rp, secs * hz);
++		(void) sleep((caddr_t)rp, PINOD);
++		if (!untimeout(rlock_awaken, (caddr_t)rp)) {
++			rlocktimeout++;
++			rp->r_flags |= RTIMEDOUT;
++			splx(s);
++			return (1);
++		}
++		splx(s);
++	}
++	rp->r_thread = current_thread();
++	rp->r_count++;
++	rp->r_flags |= RLOCKED;
++	return (0);
++}
++
++static void			/* name is a reconstruction choice */
++rlock_awaken(rp)
++	struct rnode *rp;
++{
++	rlock_awaken_count++;
++	if (rp)
++		wakeup((caddr_t)rp);
++}
++#endif	NeXT

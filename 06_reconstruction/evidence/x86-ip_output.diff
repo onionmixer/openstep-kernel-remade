@@ -1,0 +1,605 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/ip_output.c	2026-09-11 10:02:49.571218344 +0900
++++ 07_kernel/src/bsd/netinet/ip_output.c	2026-10-07 22:34:23.143482401 +0900
+@@ -53,19 +53,31 @@
+  * The mbuf chain containing the packet will be freed.
+  * The mbuf opt, if present, will not be freed.
+  */
+-ip_output(m0, opt, ro, flags)
++/*
++ * plan 175 (authored, D024; original _ip_output 0x127280-0x1278b4): fifth
++ * argument mopts (multicast options in an mbuf), the MULTICAST 1.x block,
++ * and fragment headers built in a local struct ip and copied into the
++ * netbuf.
++ */
++ip_output(m0, opt, ro, flags, mopts)
+ 	struct mbuf *m0;
+ 	struct mbuf *opt;
+ 	struct route *ro;
+ 	int flags;
++	struct mbuf *mopts;
+ {
++	register int hlen = sizeof (struct ip);	/* plan 175.1: declaration order from the original stack slots */
+ 	register struct ip *ip, *mhip;
+ 	register struct ifnet *ifp;
++	register struct in_ifaddr *ia = 0;
+ 	register struct mbuf *m = m0;
+-	register int hlen = sizeof (struct ip);
+ 	int len, off, error = 0;
+ 	struct route iproute;
++	struct ip iph;
+ 	struct sockaddr_in *dst;
++#ifdef	MULTICAST
++	struct ip_moptions *imo;
++#endif	MULTICAST
+ #if	NeXT
+ 	netbuf_t nb;
+ 	char *map;
+@@ -115,8 +127,7 @@
+ 	 * short circuit routing lookup.
+ 	 */
+ 	if (flags & IP_ROUTETOIF) {
+-		struct in_ifaddr *ia;
+-
++		/* plan 175: ia is the function-scope variable (original esi) */
+ 		ia = (struct in_ifaddr *)ifa_ifwithdstaddr(dst);
+ 		if (ia == 0)
+ 			ia = in_iaonnetof(in_netof(ip->ip_dst));
+@@ -139,14 +150,85 @@
+ 		if (ro->ro_rt->rt_flags & RTF_GATEWAY)
+ 			dst = (struct sockaddr_in *)&ro->ro_rt->rt_gateway;
+ 	}
++#ifdef	MULTICAST
++	/* plan 175 (authored, D024; original 0x12742c-0x127534): MULTICAST 1.x */
++	if (IN_MULTICAST(ntohl(ip->ip_dst.s_addr))) {
++		struct in_multi *inm;
++		extern struct ifnet *loifp;
++		extern struct socket *ip_mrouter;
++
++		dst = (struct sockaddr_in *)&ro->ro_dst;
++		/*
++		 * See if the caller provided any multicast options
++		 */
++		if ((flags & IP_MULTICASTOPTS) && mopts != NULL) {
++			imo = mtod(mopts, struct ip_moptions *);
++			ip->ip_ttl = imo->imo_multicast_ttl;
++			if (imo->imo_multicast_ifp != NULL)
++				ifp = imo->imo_multicast_ifp;
++		} else {
++			imo = NULL;
++			ip->ip_ttl = IP_DEFAULT_MULTICAST_TTL;
++		}
++		/*
++		 * If source address not specified yet, use address
++		 * of outgoing interface.
++		 */
++		if (ip->ip_src.s_addr == INADDR_ANY) {
++			for (ia = in_ifaddr; ia; ia = ia->ia_next)
++				if (ia->ia_ifp == ifp) {
++					ip->ip_src = IA_SIN(ia)->sin_addr;
++					break;
++				}
++		}
++		/*
++		 * Is this host a member of the group on the outgoing
++		 * interface?  (The address found above is used; no new
++		 * interface lookup, as in the original.)
++		 */
++		if (ia == NULL)
++			inm = NULL;
++		else
++			for (inm = ia->ia_multiaddrs;
++			     inm != NULL &&
++			     inm->inm_addr.s_addr != ip->ip_dst.s_addr;
++			     inm = inm->inm_next)
++				;
++		if (inm != NULL &&
++		   (imo == NULL || imo->imo_multicast_loop)) {
++			/*
++			 * We are a member; loop back a copy of the datagram.
++			 */
++			ip_mloopback(ifp, m, dst);
++		}
++		else if (ip_mrouter && (flags & IP_FORWARDING) == 0) {
++			/*
++			 * We are a multicast router; let it forward the
++			 * datagram on the other interfaces.
++			 */
++			if (ip_mforward(ip, ifp) != 0) {
++				m_freem(m);
++				goto done;
++			}
++		}
++		/*
++		 * Multicasts with a time-to-live of zero, or sent on
++		 * the loopback interface, are not sent further.
++		 */
++		if (ip->ip_ttl == 0 || ifp == loifp) {
++			m_freem(m);
++			goto done;
++		}
++		goto sendit;
++	}
++#endif	MULTICAST
+ #ifndef notdef
+ 	/*
+ 	 * If source address not specified yet, use address
+ 	 * of outgoing interface.
+ 	 */
+ 	if (ip->ip_src.s_addr == INADDR_ANY) {
+-		register struct in_ifaddr *ia;
+-
++		/* plan 175: ia is the function-scope variable (original esi) */
+ 		for (ia = in_ifaddr; ia; ia = ia->ia_next)
+ 			if (ia->ia_ifp == ifp) {
+ 				ip->ip_src = IA_SIN(ia)->sin_addr;
+@@ -174,6 +256,9 @@
+ 			goto bad;
+ 		}
+ 	}
++#ifdef	MULTICAST
++sendit:				/* plan 175 */
++#endif	MULTICAST
+ 
+ 	/*
+ 	 * If small enough for interface, can just send directly.
+@@ -206,6 +291,11 @@
+ 	}
+ 
+ #if	NeXT	
++	/*
++	 * plan 175 (authored, D024): headers are built in iph and copied
++	 * into the netbuf, whose data need not be aligned (original
++	 * 0x127665-0x1276c8).
++	 */
+ 	nb = ifp->if_getbuf(ifp);
+ 	if (nb == 0) {
+ 		error = ENOBUFS;
+@@ -213,11 +303,14 @@
+ 	}
+ 	map = nb_map(nb);
+ 	mbuf_read(m, map, 0, hlen + len);
+-	mhip = (struct ip *)map;
+-	mhip->ip_len = htons((u_short)(hlen + len));
+-	mhip->ip_off = htons((u_short)(ip->ip_off | IP_MF));
+-	mhip->ip_sum = 0;
+-	mhip->ip_sum = in_cksum(nb, hlen);
++	iph = *ip;			/* plan 175 */
++	iph.ip_len = htons((u_short)(hlen + len));
++	iph.ip_off = htons((u_short)(ip->ip_off | IP_MF));
++	iph.ip_sum = 0;
++	bcopy((caddr_t)&iph, map, sizeof (struct ip));
++	iph.ip_sum = in_cksum(nb, hlen);
++	map[10] = ((char *)&iph.ip_sum)[0];
++	map[11] = ((char *)&iph.ip_sum)[1];
+ 	error = (*ifp->if_output)(ifp, nb, (struct sockaddr *)dst);
+ 	if (error) {
+ 		goto bad;
+@@ -236,25 +329,42 @@
+ 		}
+ 		map = nb_map(nb);
+ 		mhip = (struct ip *)map;
+-		*mhip = *ip;
++		iph = *ip;
+ 		if (hlen > sizeof (struct ip)) {
+-			mhlen = ip_optcopy(ip, mhip) + sizeof (struct ip);
+-			mhip->ip_hl = mhlen >> 2;
++			mhlen = ip_optcopy(ip, (struct ip *)map) + sizeof (struct ip);
++			iph.ip_hl = mhlen >> 2;
+ 		}
+-		mhip->ip_off = ((off - hlen) >> 3) + (ip->ip_off & ~IP_MF);
++		iph.ip_off = ((off - hlen) >> 3) + (ip->ip_off & ~IP_MF);
+ 		if (ip->ip_off & IP_MF)
+-			mhip->ip_off |= IP_MF;
++			iph.ip_off |= IP_MF;
+ 		if (off + len >= ip->ip_len) {
+ 			nb_shrink_bot(nb, off + len - ip->ip_len);
+ 			len = ip->ip_len - off;
+ 		} else {
+-			mhip->ip_off |= IP_MF;
++			iph.ip_off |= IP_MF;
+ 		}
+-		mhip->ip_len = htons((u_short)(len + mhlen));
++		iph.ip_len = htons((u_short)(len + mhlen));
+ 		mbuf_read(m, map + mhlen, off, len);
+-		mhip->ip_off = htons((u_short)mhip->ip_off);
+-		mhip->ip_sum = 0;
+-		mhip->ip_sum = in_cksum(nb, mhlen);
++		iph.ip_off = htons((u_short)iph.ip_off);
++		iph.ip_sum = 0;
++		bcopy((caddr_t)&iph, (caddr_t)mhip, sizeof (struct ip));
++		iph.ip_sum = in_cksum(nb, mhlen);
++		{
++			/*
++			 * plan 383 (authored, D024; original [0x12781a, 0x12782b)):
++			 * the checksum bytes are stored through cp and map is
++			 * reused as the source pointer, so that cse does not fold
++			 * the address back to map + 10 (original "mov eax, map;
++			 * add eax, 0xa").  The original source form is not known;
++			 * this form gives the original bytes.
++			 */
++			char *cp;
++
++			cp = map + 10;
++			map = (char *)&iph.ip_sum;
++			cp[0] = map[0];
++			cp[1] = map[1];
++		}
+ 		error = (*ifp->if_output)(ifp, nb, (struct sockaddr *)dst);
+ 		if (error) {
+ 			goto bad;
+@@ -432,6 +542,17 @@
+ 		case IP_OPTIONS:
+ 			return (ip_pcbopts(&inp->inp_options, *m));
+ 
++#ifdef	MULTICAST
++		/* plan 175 (authored; original 0x127acc-0x127af4) */
++		case IP_MULTICAST_IF:
++		case IP_MULTICAST_TTL:
++		case IP_MULTICAST_LOOP:
++		case IP_ADD_MEMBERSHIP:
++		case IP_DROP_MEMBERSHIP:
++			error = ip_setmoptions(optname, &inp->inp_moptions, *m);
++			break;
++#endif	MULTICAST
++
+ 		default:
+ 			error = EINVAL;
+ 			break;
+@@ -450,6 +571,16 @@
+ 			} else
+ 				(*m)->m_len = 0;
+ 			break;
++#ifdef	MULTICAST
++		/* plan 175 (authored; original 0x127b58-0x127b63) */
++		case IP_MULTICAST_IF:
++		case IP_MULTICAST_TTL:
++		case IP_MULTICAST_LOOP:
++		case IP_ADD_MEMBERSHIP:
++		case IP_DROP_MEMBERSHIP:
++			error = ip_getmoptions(optname, inp->inp_moptions, m);
++			break;
++#endif	MULTICAST
+ 		default:
+ 			error = EINVAL;
+ 			break;
+@@ -564,3 +695,340 @@
+ 	(void)m_free(m);
+ 	return (EINVAL);
+ }
++
++#ifdef	MULTICAST
++/*
++ * plan 175 (authored, D024; original _ip_setmoptions 0x127cc8,
++ * _ip_getmoptions 0x1280c4, _ip_freemoptions 0x128190, _ip_mloopback
++ * 0x1281d4; MULTICAST 1.x form, options kept in an mbuf).
++ *
++ * Set the IP multicast options in response to user setsockopt().
++ */
++int
++ip_setmoptions(optname, imop, m)
++	int optname;
++	struct mbuf **imop;
++	struct mbuf *m;
++{
++	register int error = 0;
++	u_char loop;
++	register int i;
++	struct in_addr addr;
++	register struct ip_mreq *mreq;
++	register struct ifnet *ifp;
++	register struct ip_moptions *imo;
++	struct route ro;
++	register struct sockaddr_in *dst;
++
++	if (*imop == NULL) {
++		/*
++		 * No multicast option buffer attached to the pcb;
++		 * allocate one and initialize to default values.
++		 */
++		MGET(*imop, M_WAIT, MT_IPMOPTS);
++		if (*imop == NULL)
++			return (ENOBUFS);
++		imo = mtod(*imop, struct ip_moptions *);
++		imo->imo_multicast_ifp = NULL;
++		imo->imo_multicast_ttl = IP_DEFAULT_MULTICAST_TTL;
++		imo->imo_multicast_loop = IP_DEFAULT_MULTICAST_LOOP;
++		imo->imo_num_memberships = 0;
++	}
++	imo = mtod(*imop, struct ip_moptions *);
++
++	switch (optname) {
++
++	case IP_MULTICAST_IF:
++		/*
++		 * Select the interface for outgoing multicast packets.
++		 */
++		if (m == NULL || m->m_len != sizeof(struct in_addr)) {
++			error = EINVAL;
++			break;
++		}
++		addr = *(mtod(m, struct in_addr *));
++		/*
++		 * INADDR_ANY is used to remove a previous selection.
++		 * When no interface is selected, a default one is
++		 * chosen every time a multicast packet is sent.
++		 */
++		if (addr.s_addr == INADDR_ANY) {
++			imo->imo_multicast_ifp = NULL;
++			break;
++		}
++		/*
++		 * The selected interface is identified by its local
++		 * IP address.  Find the interface.
++		 */
++		INADDR_TO_IFP(addr, ifp);
++		if (ifp == NULL) {
++			error = EADDRNOTAVAIL;
++			break;
++		}
++		imo->imo_multicast_ifp = ifp;
++		break;
++
++	case IP_MULTICAST_TTL:
++		/*
++		 * Set the IP time-to-live for outgoing multicast packets.
++		 */
++		if (m == NULL || m->m_len != 1) {
++			error = EINVAL;
++			break;
++		}
++		imo->imo_multicast_ttl = *(mtod(m, u_char *));
++		break;
++
++	case IP_MULTICAST_LOOP:
++		/*
++		 * Set the loopback flag for outgoing multicast packets.
++		 * Must be zero or one.
++		 */
++		if (m == NULL || m->m_len != 1 ||
++		   (loop = *(mtod(m, u_char *))) > 1) {
++			error = EINVAL;
++			break;
++		}
++		imo->imo_multicast_loop = loop;
++		break;
++
++	case IP_ADD_MEMBERSHIP:
++		/*
++		 * Add a multicast group membership.
++		 * Group must be a valid IP multicast address.
++		 */
++		if (m == NULL || m->m_len != sizeof(struct ip_mreq)) {
++			error = EINVAL;
++			break;
++		}
++		mreq = mtod(m, struct ip_mreq *);
++		if (!IN_MULTICAST(ntohl(mreq->imr_multiaddr.s_addr))) {
++			error = EINVAL;
++			break;
++		}
++		/*
++		 * If no interface address was provided, use the interface of
++		 * the route to the given multicast address.
++		 */
++		if (mreq->imr_interface.s_addr == INADDR_ANY) {
++			ro.ro_rt = NULL;
++			dst = (struct sockaddr_in *)&ro.ro_dst;
++			dst->sin_family = AF_INET;
++			dst->sin_addr = mreq->imr_multiaddr;
++			rtalloc(&ro);
++			if (ro.ro_rt == NULL) {
++				error = EADDRNOTAVAIL;
++				break;
++			}
++			ifp = ro.ro_rt->rt_ifp;
++			rtfree(ro.ro_rt);
++		}
++		else {
++			INADDR_TO_IFP(mreq->imr_interface, ifp);
++		}
++		/*
++		 * See if we found an interface.
++		 */
++		if (ifp == NULL) {
++			error = EADDRNOTAVAIL;
++			break;
++		}
++		/*
++		 * See if the membership already exists or if all the
++		 * membership slots are full.
++		 */
++		for (i = 0; i < imo->imo_num_memberships; ++i) {
++			if (imo->imo_membership[i]->inm_ifp == ifp &&
++			    imo->imo_membership[i]->inm_addr.s_addr
++						== mreq->imr_multiaddr.s_addr)
++				break;
++		}
++		if (i < imo->imo_num_memberships) {
++			error = EADDRINUSE;
++			break;
++		}
++		if (i == IP_MAX_MEMBERSHIPS) {
++			error = ETOOMANYREFS;
++			break;
++		}
++		/*
++		 * Everything looks good; add a new record to the multicast
++		 * address list for the given interface.
++		 */
++		if ((imo->imo_membership[i] =
++		    in_addmulti(mreq->imr_multiaddr, ifp)) == NULL) {
++			error = ENOBUFS;
++			break;
++		}
++		++imo->imo_num_memberships;
++		break;
++
++	case IP_DROP_MEMBERSHIP:
++		/*
++		 * Drop a multicast group membership.
++		 * Group must be a valid IP multicast address.
++		 */
++		if (m == NULL || m->m_len != sizeof(struct ip_mreq)) {
++			error = EINVAL;
++			break;
++		}
++		mreq = mtod(m, struct ip_mreq *);
++		if (!IN_MULTICAST(ntohl(mreq->imr_multiaddr.s_addr))) {
++			error = EINVAL;
++			break;
++		}
++		/*
++		 * If an interface address was specified, get a pointer
++		 * to its ifnet structure.
++		 */
++		if (mreq->imr_interface.s_addr == INADDR_ANY)
++			ifp = NULL;
++		else {
++			INADDR_TO_IFP(mreq->imr_interface, ifp);
++			if (ifp == NULL) {
++				error = EADDRNOTAVAIL;
++				break;
++			}
++		}
++		/*
++		 * Find the membership in the membership array.
++		 */
++		for (i = 0; i < imo->imo_num_memberships; ++i) {
++			if ((ifp == NULL ||
++			     imo->imo_membership[i]->inm_ifp == ifp) &&
++			     imo->imo_membership[i]->inm_addr.s_addr ==
++			     mreq->imr_multiaddr.s_addr)
++				break;
++		}
++		if (i == imo->imo_num_memberships) {
++			error = EADDRNOTAVAIL;
++			break;
++		}
++		/*
++		 * Give up the multicast address record to which the
++		 * membership points.
++		 */
++		in_delmulti(imo->imo_membership[i]);
++		/*
++		 * Remove the gap in the membership array.
++		 */
++		for (++i; i < imo->imo_num_memberships; ++i)
++			imo->imo_membership[i-1] = imo->imo_membership[i];
++		--imo->imo_num_memberships;
++		break;
++
++	default:
++		error = EOPNOTSUPP;
++		break;
++	}
++
++	/*
++	 * If all options have default values, no need to keep the mbuf.
++	 */
++	if (imo->imo_multicast_ifp == NULL &&
++	    imo->imo_multicast_ttl == IP_DEFAULT_MULTICAST_TTL &&
++	    imo->imo_multicast_loop == IP_DEFAULT_MULTICAST_LOOP &&
++	    imo->imo_num_memberships == 0) {
++		m_free(*imop);
++		*imop = NULL;
++	}
++
++	return (error);
++}
++
++/*
++ * Return the IP multicast options in response to user getsockopt().
++ */
++int
++ip_getmoptions(optname, mopts, mp)
++	int optname;
++	struct mbuf *mopts;
++	register struct mbuf **mp;
++{
++	register struct ip_moptions *imo;
++	u_char *ttl;
++	u_char *loop;
++	struct in_addr *addr;
++	struct in_ifaddr *ia;
++
++	*mp = m_get(M_WAIT, MT_IPMOPTS);
++	imo = (mopts == NULL) ? NULL : mtod(mopts, struct ip_moptions *);
++
++	switch (optname) {
++
++	case IP_MULTICAST_IF:
++		addr = mtod(*mp, struct in_addr *);
++		(*mp)->m_len = sizeof(struct in_addr);
++		if (imo == NULL || imo->imo_multicast_ifp == NULL)
++			addr->s_addr = INADDR_ANY;
++		else {
++			IFP_TO_IA(imo->imo_multicast_ifp, ia);
++			addr->s_addr = (ia == NULL) ? INADDR_ANY
++					: IA_SIN(ia)->sin_addr.s_addr;
++		}
++		return (0);
++
++	case IP_MULTICAST_TTL:
++		ttl = mtod(*mp, u_char *);
++		(*mp)->m_len = 1;
++		*ttl = (imo == NULL) ? IP_DEFAULT_MULTICAST_TTL
++				     : imo->imo_multicast_ttl;
++		return (0);
++
++	case IP_MULTICAST_LOOP:
++		loop = mtod(*mp, u_char *);
++		(*mp)->m_len = 1;
++		*loop = (imo == NULL) ? IP_DEFAULT_MULTICAST_LOOP
++				      : imo->imo_multicast_loop;
++		return (0);
++
++	default:
++		return (EOPNOTSUPP);
++	}
++}
++
++/*
++ * Discard the IP multicast options.
++ */
++void
++ip_freemoptions(mopts)
++	register struct mbuf *mopts;
++{
++	register struct ip_moptions *imo;
++	register int i;
++
++	if (mopts != NULL) {
++		imo = mtod(mopts, struct ip_moptions *);
++		for (i = 0; i < imo->imo_num_memberships; ++i)
++			in_delmulti(imo->imo_membership[i]);
++		m_free(mopts);
++	}
++}
++
++/*
++ * Routine called from ip_output() to loop back a copy of an IP multicast
++ * packet to the input queue of a specified interface.
++ */
++ip_mloopback(ifp, m, dst)
++	struct ifnet *ifp;
++	register struct mbuf *m;
++	register struct sockaddr_in *dst;
++{
++	register struct ip *ip;
++	struct mbuf *copym;
++
++	copym = m_copy(m, 0, M_COPYALL);
++	if (copym != NULL) {
++		/*
++		 * We don't bother to fragment if the IP length is greater
++		 * than the interface's MTU.  Can this possibly matter?
++		 */
++		ip = mtod(copym, struct ip *);
++		ip->ip_len = htons((u_short)ip->ip_len);
++		ip->ip_off = htons((u_short)ip->ip_off);
++		ip->ip_sum = 0;
++		ip->ip_sum = in_cksum(copym, ip->ip_hl << 2);
++		(void) looutput(ifp, copym, (struct sockaddr *)dst);
++	}
++}
++#endif	MULTICAST

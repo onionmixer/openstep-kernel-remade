@@ -1,0 +1,827 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_vnodeops.c	2026-09-11 10:02:49.608218799 +0900
++++ 07_kernel/src/bsd/nfs/nfs_vnodeops.c	2026-10-08 18:13:42.483197194 +0900
+@@ -92,7 +92,7 @@
+ struct vnode *makenfsnode();
+ struct vnode *dnlc_lookup();
+ char *newname();
+-static sync_vp(), flush_vp();
++static flush_vp();	/* plan 282: sync_vp is global */
+ int setdirgid();
+ u_int setdirmode();
+ 
+@@ -128,40 +128,41 @@
+  * cache repeatedly.
+  */
+ 
+-int nfs_open();
+-int nfs_close();
+-int nfs_rdwr();
+-int nfs_ioctl();
+-int nfs_select();
+-int nfs_getattr();
+-int nfs_setattr();
+-int nfs_access();
+-int nfs_lookup();
+-int nfs_create();
+-int nfs_remove();
+-int nfs_link();
+-int nfs_rename();
+-int nfs_mkdir();
+-int nfs_rmdir();
+-int nfs_readdir();
+-int nfs_symlink();
+-int nfs_readlink();
+-int nfs_fsync();
+-int nfs_inactive();
+-int nfs_lockctl();
+-int nfs_noop();
++static int nfs_open();	/* plan 282: static */
++static int nfs_close();	/* plan 282: static */
++static int nfs_rdwr();	/* plan 282: static */
++static int nfs_ioctl();	/* plan 282: static */
++static int nfs_select();	/* plan 282: static */
++static int nfs_getattr();	/* plan 282: static */
++static int nfs_setattr();	/* plan 282: static */
++static int nfs_access();	/* plan 282: static */
++static int nfs_lookup();	/* plan 282: static */
++static int nfs_create();	/* plan 282: static */
++static int nfs_remove();	/* plan 282: static */
++static int nfs_link();	/* plan 282: static */
++static int nfs_rename();	/* plan 282: static */
++static int nfs_mkdir();	/* plan 282: static */
++static int nfs_rmdir();	/* plan 282: static */
++static int nfs_readdir();	/* plan 282: static */
++static int nfs_symlink();	/* plan 282: static */
++static int nfs_readlink();	/* plan 282: static */
++static int nfs_fsync();	/* plan 282: static */
++static int nfs_inactive();	/* plan 282: static */
++static int nfs_lockctl();	/* plan 282: static */
++static int nfs_noop();	/* plan 282: static */
+ int nfs_badop();
+ #if	! MACH
+ int nfs_dump();
+ #endif	! MACH
+-int nfs_cmp();
+-int nfs_realvp();
+-int nfs_bmap();
+-int nfs_strategy();
+-#if	MACH
+-pager_return_t nfs_pagein();
+-pager_return_t nfs_pageout();
+-int nfs_nlinks();
++static int nfs_cmp();	/* plan 282: static */
++static int nfs_realvp();	/* plan 282: static */
++static int nfs_bmap();	/* plan 282: static */
++static int nfs_strategy();	/* plan 282: static */
++static int nfs_devblocksize();	/* plan 282 */
++#if	MACH
++static pager_return_t nfs_pagein();	/* plan 282: static */
++static pager_return_t nfs_pageout();	/* plan 282: static */
++static int nfs_nlinks();	/* plan 282: static */
+ #endif	MACH
+ 
+ struct buf *async_bufhead;
+@@ -204,16 +205,17 @@
+ 	nfs_pageout,
+ 	nfs_nlinks,
+ #endif	MACH
++	nfs_devblocksize,	/* plan 282: vn_devblocksize (original table entry 32) */
+ };
+ 
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_open(vpp, flag, cred)
+ 	register struct vnode **vpp;
+ 	int flag;
+ 	struct ucred *cred;
+ {
+-	int error;
++	int error = 0;		/* plan 282 */
+ 	struct vattr va;
+ 
+ #ifdef NFSDEBUG
+@@ -232,7 +234,7 @@
+ 		 */
+ 		error = nfs_getattr_otw(*vpp,&va,cred);
+ 		if (error == 0) {
+-			nfs_cache_check(*vpp,va.va_mtime);
++			nfs_cache_check(*vpp,va.va_mtime,va.va_size,0);	/* plan 282: 4 arguments (nfs_client.c plan 199) */
+ 			nfs_attrcache_va(*vpp,&va);
+ 		}
+ 		else
+@@ -247,7 +249,7 @@
+ 	return (error);
+ }
+ 
+-nfs_close(vp, flag, count, cred)
++static nfs_close(vp, flag, count, cred)	/* plan 282: static */
+ 	struct vnode *vp;
+ 	int flag;
+ 	int count;
+@@ -274,14 +276,14 @@
+ 	 */
+ 	if (rp->r_unldvp != NULL || rp->r_error) {
+ 		sync_vp(vp);
+-		nfs_purge_caches(vp);
++		nfs_purge_caches(vp, flag);	/* plan 282: flag (nfs_client.c plan 199) */
+ 	} else if ((flag & FWRITE) && ((nfs_cto || !vtomi(vp)->mi_nocto))) {
+ 		sync_vp(vp);
+ 	}
+ 	return (flag & FWRITE? rp->r_error : 0);
+ }
+ 
+-nfs_rdwr(vp, uiop, rw, ioflag, cred)
++static nfs_rdwr(vp, uiop, rw, ioflag, cred)	/* plan 282: static */
+ 	register struct vnode *vp;
+ 	struct uio *uiop;
+ 	enum uio_rw rw;
+@@ -349,7 +351,7 @@
+ 	return (error);
+ }
+ 
+-rwvp(vp, uio, rw, ioflag, cred)
++static rwvp(vp, uio, rw, ioflag, cred)	/* plan 282: static */
+ 	register struct vnode *vp;
+ 	register struct uio *uio;
+ 	enum uio_rw rw;
+@@ -384,7 +386,7 @@
+ 	rp = vtor(vp);
+ 	rlock(rp);
+ 	size = vtoblksz(vp);
+-	size &= ~(DEV_BSIZE - 1);
++	size &= ~(NFS_BLOCKSIZE - 1);	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
+ 	if (size <= 0) {
+ 		panic("rwvp: zero size");
+ 	}
+@@ -399,7 +401,7 @@
+ 			if (rw == UIO_READ) {
+ 				error = nfsread(vp, bp->b_un.b_addr+on,
+ 						uio->uio_offset, n,
+-						&(int)bp->b_resid, cred,&va);
++						(int *)&bp->b_resid, cred,&va);	/* plan 282 */
+ 				if (error) {
+ 					brelse(bp);
+ 					goto bad;
+@@ -416,7 +418,7 @@
+ 					 * get attributes to check whether in
+ 					 * core data is stale
+ 					 */
+-					(void) nfs_validate_caches(mapped_vp, cred);
++					(void) nfs_validate_caches(mapped_vp, cred, 0);	/* plan 282 */
+ 				}
+ 				if (rp->r_lastr + 1 == bn) {
+ 					VOP_BMAP(vp, bn + 1,
+@@ -436,8 +438,8 @@
+ 			}
+ #if	MACH
+ #else	MACH
+-			count = howmany(size, DEV_BSIZE);
+-			for (i = 0; i < count; i += CLBYTES/DEV_BSIZE)
++			count = howmany(size, NFS_BLOCKSIZE);	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
++			for (i = 0; i < count; i += CLBYTES/NFS_BLOCKSIZE)	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
+ 				if (mfind(vp, (daddr_t)(bn + i)))
+ 					munhash(vp, (daddr_t)(bn + i));
+ #endif	MACH
+@@ -480,6 +482,9 @@
+ 			 */
+ 			if (rp->r_size < uio->uio_offset) {
+ 				rp->r_size = uio->uio_offset;
++				/* plan 282: keep the mapped size in step (original 0x1316b7) */
++				if (vp->vm_info->vnode_size < rp->r_size)
++					vp->vm_info->vnode_size = rp->r_size;
+ 			}
+ 			if (vp->v_flag & VNOCACHE) {
+ 				error = nfswrite(vp, bp->b_un.b_addr+on,
+@@ -597,7 +602,7 @@
+ /*
+  * Print a file handle
+  */
+-printfhandle(fh)
++static printfhandle(fh)	/* plan 282: static */
+ 	caddr_t fh;
+ {
+ 	int i;
+@@ -612,7 +617,7 @@
+ /*
+  * Read from a file.  Reads data in largest chunks our interface can handle.
+  */
+-int
++static int		/* plan 282: static */
+ nfsread(vp, base, offset, count, residp, cred, vap)
+ 	struct vnode *vp;
+ 	caddr_t base;
+@@ -649,6 +654,12 @@
+ 			xdr_rdresult, (caddr_t)&rr, cred);
+ 		if (!error) {
+ 			error = geterrno(rr.rr_status);
++			if (error == ESTALE) {		/* plan 282 */
++				printf("NFS read error ESTALE to host %10s fh ",
++				    vtomi(vp)->mi_hostname);
++				printfhandle((caddr_t)vtofh(vp));
++				printf("\n");
++			}
+ 			PURGE_STALE_FH(error,vp);
+ 		}
+ #ifdef NFSDEBUG
+@@ -675,7 +686,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-nfs_ioctl(vp, com, data, flag, cred)
++static nfs_ioctl(vp, com, data, flag, cred)	/* plan 282: static */
+ 	struct vnode *vp;
+ 	int com;
+ 	caddr_t data;
+@@ -687,7 +698,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_select(vp, which, cred)
+ 	struct vnode *vp;
+ 	int which;
+@@ -697,7 +708,7 @@
+ 	return (EOPNOTSUPP);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_getattr(vp, vap, cred)
+ 	struct vnode *vp;
+ 	struct vattr *vap;
+@@ -716,14 +727,14 @@
+ 	(void) sync_vp(vp);
+ 	runlock(rp);
+ #endif NeXT
+-	error = nfsgetattr(vp, vap, cred);
++	error = nfsgetattr(vp, vap, cred, 0);	/* plan 282: 4 arguments */
+ #ifdef NFSDEBUG
+ 	dprint(nfsdebug, 5, "nfs_getattr: returns %d\n", error);
+ #endif
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_setattr(vp, vap, cred)
+ 	register struct vnode *vp;
+ 	register struct vattr *vap;
+@@ -785,8 +796,11 @@
+ 		 */
+ 		if ((vap->va_mtime.tv_sec != -1) &&
+ 		    (vap->va_mtime.tv_usec == -1)) {
+-			vap->va_atime = time;
+-			vap->va_mtime.tv_sec = time.tv_sec;
++			struct timeval tv;	/* plan 282: getthetime, not time */
++
++			getthetime(&tv);
++			vap->va_atime = tv;
++			vap->va_mtime.tv_sec = tv.tv_sec;
+ 			vap->va_mtime.tv_usec = 1000000;
+ 		}
+ 
+@@ -797,11 +811,15 @@
+ 		if (error == 0) {
+ 			error = geterrno(ns->ns_status);
+ 			if (error == 0) {
+-				nfs_cache_check(vp, ns->ns_attr.na_mtime);
++				nfs_cache_check(vp, ns->ns_attr.na_mtime,	/* plan 282 */
++				    ns->ns_attr.na_size, 2);
+ 				nfs_attrcache(vp, &ns->ns_attr);
+ 			} else {
++				PURGE_ATTRCACHE(vp);	/* plan 282 */
+ 				PURGE_STALE_FH(error, vp);
+ 			}
++		} else {
++			PURGE_ATTRCACHE(vp);		/* plan 282 */
+ 		}
+ 	}
+ #if	MACH
+@@ -815,7 +833,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_access(vp, mode, cred)
+ 	struct vnode *vp;
+ 	int mode;
+@@ -828,7 +846,7 @@
+ 	dprint(nfsdebug, 4, "nfs_access %s %x mode %d uid %d\n",
+ 	    vtomi(vp)->mi_hostname, vp, mode, cred->cr_uid);
+ #endif
+-	u.u_error = nfsgetattr(vp, &va, cred);
++	u.u_error = nfsgetattr(vp, &va, cred, 0);	/* plan 282: 4 arguments */
+ 	if (u.u_error) {
+ 		return (u.u_error);
+ 	}
+@@ -866,7 +884,7 @@
+ 	return (EACCES);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_readlink(vp, uiop, cred)
+ 	struct vnode *vp;
+ 	struct uio *uiop;
+@@ -910,7 +928,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_fsync(vp, cred)
+ 	struct vnode *vp;
+ 	struct ucred *cred;
+@@ -932,7 +950,7 @@
+  * (by nfs_remove) instead.  Here we remove the renamed file.
+  */
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_inactive(vp, cred)
+ 	register struct vnode *vp;
+ 	struct ucred *cred;
+@@ -940,7 +958,7 @@
+ 	register struct rnode *rp;
+ 	struct nfsdiropargs da;
+ 	enum nfsstat status;
+-	int error;
++	int error = 0;		/* plan 282 */
+ 
+ #ifdef NFSDEBUG
+ 	dprint(nfsdebug, 4, "nfs_inactive %s, %x\n",
+@@ -988,7 +1006,7 @@
+  * Remote file system operations having to do with directory manipulation.
+  */
+ /* ARGSUSED */
+-int
++static int		/* plan 282: static */
+ nfs_lookup(dvp, nm, vpp, cred, pnp, flags)
+ 	struct vnode *dvp;
+ 	char *nm;
+@@ -1008,7 +1026,7 @@
+ 	/*
+ 	 * Before checking dnlc, validate caches
+ 	 */
+-	error = nfs_validate_caches(dvp, cred);
++	error = nfs_validate_caches(dvp, cred, 0);	/* plan 282 */
+ 	if (error) {
+ 		return (error);
+ 	}
+@@ -1079,7 +1097,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_create(dvp, nm, va, exclusive, mode, vpp, cred)
+ 	struct vnode *dvp;
+ 	char *nm;
+@@ -1217,7 +1235,7 @@
+  * we rename it instead of removing it and nfs_inactive
+  * will remove the new name.
+  */
+-int
++static int		/* plan 282: static */
+ nfs_remove(dvp, nm, cred)
+ 	struct vnode *dvp;
+ 	char *nm;
+@@ -1315,7 +1333,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_link(vp, tdvp, tnm, cred)
+ 	struct vnode *vp;
+ 	struct vnode *tdvp;
+@@ -1354,7 +1372,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_rename(odvp, onm, ndvp, nnm, cred)
+ 	struct vnode *odvp;
+ 	char *onm;
+@@ -1403,7 +1421,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_mkdir(dvp, nm, va, vpp, cred)
+ 	struct vnode *dvp;
+ 	char *nm;
+@@ -1487,7 +1505,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_rmdir(dvp, nm, cred)
+ 	struct vnode *dvp;
+ 	char *nm;
+@@ -1518,7 +1536,7 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_symlink(dvp, lnm, tva, tnm, cred)
+ 	struct vnode *dvp;
+ 	char *lnm;
+@@ -1561,7 +1579,7 @@
+  * only one block's worth of entries.  Entries may be compressed on
+  * the server.
+  */
+-int
++static int		/* plan 282: static */
+ nfs_readdir(vp, uiop, cred)
+ 	struct vnode *vp;
+ 	register struct uio *uiop;
+@@ -1640,7 +1658,7 @@
+ 
+ int nfs_wakeup_one_biod = 1;
+ 
+-int
++static int		/* plan 282: static */
+ nfs_strategy(bp)
+ 	register struct buf *bp;
+ {
+@@ -1736,7 +1754,7 @@
+ async_daemon()
+ {
+ 	register struct buf *bp;
+-	struct rnode *rp;
++	/* plan 282: no unused rnode pointer (setjmp would give it a stack slot) */
+ 
+ #if	MACH
+ 	/*
+@@ -1747,7 +1765,7 @@
+ 	/*
+ 	 * Make this thread unswappable
+ 	 */
+-	thread_swappable(current_thread(), FALSE);
++	stack_privilege(current_thread());	/* plan 282: was thread_swappable(.., FALSE) */
+ #else	MACH
+ 	if((u.u_procp->p_flag & SVFORK) == 0)
+ 		vrelvm();	/* First, release resources */
+@@ -1767,8 +1785,9 @@
+ 				 * Since we are always ASYNC iodone
+ 				 * will free the buf.
+ 				 */
++				async_bufhead = bp->b_actf;	/* plan 282: unlink first */
+ 				iodone(bp);
+-				async_bufhead = bp = bp->b_actf;
++				bp = async_bufhead;
+ 			}
+ 		} else {
+ 			async_daemon_count--;
+@@ -1786,6 +1805,7 @@
+ 					 * free the bp.
+ 					 */
+ 					do_bio(bp);
++					bp = async_bufhead;	/* plan 282: next request */
+ 				}
+ 			}
+ 		}
+@@ -1815,7 +1835,7 @@
+ int nfs_cache_blown;
+ fhandle_t nfs_cache_blown_fh;
+ 
+-int
++static int		/* plan 282: static */
+ do_bio(bp)
+ 	register struct buf *bp;
+ {
+@@ -1825,13 +1845,15 @@
+ 	long count;
+ 	int error;
+ 	int read, async;
++	int devbsize;			/* plan 282 */
+ 
++	devbsize = VOP_DEVBLOCKSIZE(vp);	/* plan 282: block size from the vnode (original 0x1332f9) */
+ 	read = bp->b_flags & B_READ;
+ 	async = bp->b_flags & B_ASYNC;
+ #ifdef NFSDEBUG
+ 	dprint(nfsdebug, 4,
+     "do_bio: addr %x, blk %ld, offset %ld, size %ld, B_READ %x B_ASYNC %x\n",
+-	    bp->b_un.b_addr, bp->b_blkno, dbtob(bp->b_blkno),
++	    bp->b_un.b_addr, bp->b_blkno, dbtob(bp->b_blkno, devbsize),
+ 	    bp->b_bcount, read, async);
+ #endif
+ 
+@@ -1840,7 +1862,7 @@
+ 			     bp, bp->b_bcount));
+ 
+ 		error = bp->b_error = nfsread(vp, bp->b_un.b_addr,
+-		    (u_int)dbtob(bp->b_blkno), bp->b_bcount,
++		    (u_int)dbtob(bp->b_blkno, devbsize), bp->b_bcount,
+ 		    &bp->b_resid, rp->r_cred, &va);
+ 		if (!error) {
+ 			if (bp->b_resid) {
+@@ -1853,7 +1875,7 @@
+ 				    (u_int)bp->b_resid);
+ 			}
+                         if (bp->b_resid == bp->b_bcount &&
+-                            dbtob(bp->b_blkno) >= rp->r_size) {
++                            dbtob(bp->b_blkno, devbsize) >= rp->r_size) {
+                                 /*
+                                  * We didn't read anything at all as we are
+                                  * past EOF.  Return an error indicator back
+@@ -1870,14 +1892,14 @@
+ 		 */
+ 		if (rp->r_error == 0) {
+ 			count = MIN(bp->b_bcount, rp->r_size -
+-			    dbtob(bp->b_blkno));
++			    dbtob(bp->b_blkno, devbsize));
+ 			if (count < 0) {
+ 			panic("do_bio: write count < 0");
+ 			}
+ 			XPR(XPR_VM_OBJECT, ("do_bio: write(S), bp = %x, count = %d\n",
+ 			     bp, count));
+ 			error = bp->b_error = nfswrite(vp,
+-			    bp->b_un.b_addr, (u_int)dbtob(bp->b_blkno),
++			    bp->b_un.b_addr, (u_int)dbtob(bp->b_blkno, devbsize),
+ 			    count, rp->r_cred);
+ 			XPR(XPR_VM_OBJECT, ("do_bio: write(E), bp = %x\n",
+ 			     bp));
+@@ -1916,13 +1938,13 @@
+ 	return (error);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_noop()
+ {
+ 	return (EREMOTE);
+ }
+ 
+-#if	SUN_LOCK
++#if	SUN_LOCK && !NeXT	/* plan 282: the original nfs_lockctl returns EINVAL (guard spelling is a choice) */
+ /*
+  * Record-locking requests are passed to the local Lock-Manager daemon.
+  */
+@@ -1959,14 +1981,14 @@
+ 	return (klm_lockctl(&lh, ld, cmd, cred, clid));
+ }
+ #else	SUN_LOCK
+-int
++static int		/* plan 282: static */
+ nfs_lockctl()
+ {
+ 	return(EINVAL);
+ }
+ #endif	SUN_LOCK
+ 
+-int
++static int		/* plan 282: static */
+ nfs_cmp(vp1, vp2)
+ 	struct vnode *vp1, *vp2;
+ {
+@@ -1975,7 +1997,7 @@
+ }
+ 
+ /*ARGSUSED*/
+-int
++static int		/* plan 282: static */
+ nfs_realvp(vp, vpp)
+ 	struct vnode *vp;
+ 	struct vnode **vpp;
+@@ -2000,7 +2022,23 @@
+ 	}
+ }
+ 
+-flush_vp(vp)
++/*
++ * plan 282 (authored, D024; original 0x1337f8): sync_vp, but through
++ * mfs_fsync_invalidate (called by nfs_purge_caches, nfs_client.c).
++ */
++sync_vp_invalidate(vp, flag)
++	struct vnode *vp;
++	int flag;
++{
++#if	MACH_NBC
++	mfs_fsync_invalidate(vp, flag);
++#endif	MACH_NBC
++	if (vtor(vp)->r_flags & RDIRTY) {
++		flush_vp(vp);
++	}
++}
++
++static flush_vp(vp)	/* plan 282: static */
+ 	struct vnode *vp;
+ {
+ 	register struct rnode *rp;
+@@ -2015,7 +2053,7 @@
+ #endif	NeXT
+ 	blksize = vtoblksz(vp);
+ 	for (offset = 0; offset < rp->r_size; offset += blksize) {
+-		blkflush(vp, (daddr_t)(offset / DEV_BSIZE), (long)blksize);
++		blkflush(vp, (daddr_t)(offset / NFS_BLOCKSIZE), (long)blksize);	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
+ 	}
+ 	rp->r_flags &= ~RDIRTY;
+ }
+@@ -2023,7 +2061,7 @@
+ /*
+  * Convert from file system blocks to device blocks
+  */
+-int
++static int		/* plan 282: static */
+ nfs_bmap(vp, bn, vpp, bnp)
+ 	struct vnode *vp;	/* file's vnode */
+ 	daddr_t bn;		/* fs block number */
+@@ -2040,13 +2078,26 @@
+ 		*vpp = vp;
+ 	if (bnp) {
+ 		bsize = vtoblksz(vp);
+-		*bnp = bn * (bsize / DEV_BSIZE);
++		*bnp = bn * (bsize / NFS_BLOCKSIZE);	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
+ 	}
+ 	return (0);
+ }
+ 
+ #if	MACH
+-pager_return_t
++/*
++ * plan 282 (authored, D024): the page is marked as an NFS page-in request
++ * (vm_page nfspagereq, tested by mfs_prim.c) while nfs_pagein runs; the
++ * original sets and clears it under the object lock (0x1338d0, 0x133d53).
++ */
++#define	NFS_PAGEREQ(m, val) { \
++	vm_object_lock((m)->object); \
++	(m)->nfspagereq = (val); \
++	vm_object_unlock((m)->object); \
++}
++
++int	nfsslowlink;		/* plan 282; plan 400: defined here (D059; D024, no evidence for the place) */
++
++static pager_return_t		/* plan 282: static */
+ nfs_pagein(vp, m, f_offset)
+ 	struct vnode	*vp;
+ 	vm_page_t	m;
+@@ -2056,6 +2107,7 @@
+ 	struct rnode	*rp;
+ 	struct vnode	*mapped_vp;
+ 	daddr_t		lbn, mapped_bn, mapped_rabn;
++	daddr_t		mapped_rabn2, mapped_rabn3;	/* plan 282 */
+ 	int		size;
+ 	long		bsize;
+ 	int		csize, on, n, save_error, err;
+@@ -2072,10 +2124,11 @@
+ 
+ 	p_offset = 0;
+ 
++	NFS_PAGEREQ(m, TRUE);			/* plan 282 */
+ 	rp = vtor(vp);
+ 	rlock(rp);
+ 	size = vtoblksz(vp);
+-	size &= ~(DEV_BSIZE -1);
++	size &= ~(NFS_BLOCKSIZE -1);	/* plan 282: NFS_BLOCKSIZE (SDK nfs.h) */
+ 	csize = PAGE_SIZE;
+ 
+ 	/*
+@@ -2090,6 +2143,8 @@
+ 			cred = rp->r_cred;
+ 		} else {
+ 			printf("NFS failure on pagein: no credentials\n");
++			runlock(rp);			/* plan 282 */
++			NFS_PAGEREQ(m, FALSE);		/* plan 282 */
+ 			return(PAGER_ERROR);
+ 		}
+ 	}
+@@ -2133,6 +2188,7 @@
+ 				 * doesn't exist
+ 				 */
+ 				runlock(rp);
++				NFS_PAGEREQ(m, FALSE);	/* plan 282 */
+ 			XPR(XPR_FS,("nfs_pagein exiting ABSENT vp=0x%x\n",vp));
+ 				return(PAGER_ABSENT);
+ 			}
+@@ -2151,11 +2207,18 @@
+ 
+ 		if ((long)mapped_bn < 0) {
+ 			runlock(rp);
++			NFS_PAGEREQ(m, FALSE);		/* plan 282 */
+ 			XPR(XPR_FS,("nfs_pagein exiting ABSENT vp=0x%x\n",vp));
+ 			return(PAGER_ABSENT);
+ 		}
+ 
+ 		/*
++		 * plan 282: check the caches before either read path
++		 * (original 0x133ad8).
++		 */
++		(void) nfs_validate_caches(mapped_vp, rp->r_cred, 0);
++
++		/*
+ 		 *	Read the block through the buffer pool, trying
+ 		 *	to read directly into the physical memory if
+ 		 *	possible.
+@@ -2163,13 +2226,27 @@
+ 		error = 0;
+ 		if (size == page_size && p_offset == 0 && on == 0) {
+ 		
+-			if (rp->r_lastr + 1 == lbn)	/* should we read ahead? */
++			if (rp->r_lastr + 1 == lbn) {	/* should we read ahead? */
+ 				VOP_BMAP(vp, lbn + 1, NULL, &mapped_rabn);
+-			else
++				if (nfsslowlink) {	/* plan 282: two more blocks */
++					VOP_BMAP(vp, lbn + 2, NULL, &mapped_rabn2);
++					VOP_BMAP(vp, lbn + 3, NULL, &mapped_rabn3);
++				} else {
++					mapped_rabn2 = 0;
++					mapped_rabn3 = 0;
++				}
++			} else {
+ 				mapped_rabn = 0;
++				mapped_rabn2 = 0;
++				mapped_rabn3 = 0;
++			}
+ 				
+ 			numBytes = breadDirect(mapped_vp, m, mapped_bn, size, n,
+ 						mapped_rabn, size, &error);
++			if (mapped_rabn2)		/* plan 282 */
++				vnReadAhead(mapped_vp, mapped_rabn2, size);
++			if (mapped_rabn3)
++				vnReadAhead(mapped_vp, mapped_rabn3, size);
+ 						
+ 			if (!error) {
+ 				rp->r_lastr = lbn;
+@@ -2180,10 +2257,8 @@
+ 		
+ 			if (incore(mapped_vp,mapped_bn)) {
+ 				/*
+-				 * get attributes to check whether in
+-				 * core data is stale
++				 * plan 282: the caches were checked above.
+ 				 */
+-				(void) nfs_validate_caches(mapped_vp, rp->r_cred);
+ 			}
+ 			if ((rp->r_lastr + 1) == lbn) {
+ 				VOP_BMAP(vp, lbn + 1, NULL, &mapped_rabn);
+@@ -2219,12 +2294,13 @@
+ 			if (current_task()->proc)
+ 			    printf("%s[%d]: ", u.u_comm, u.u_procp->p_pid);
+ 
+-			if (bp->b_error == ESTALE)
++			if (error == ESTALE)		/* plan 282: error, not bp->b_error */
+ 			   printf("NFS read error on pagein: stale file handle\n");
+ 			else
+ 			    printf("NFS read error %d on pagein\n", error);
+ 		    }
+ 		    runlock(rp);
++		    NFS_PAGEREQ(m, FALSE);		/* plan 282 */
+ 		    XPR(XPR_FS,("nfs_pagein exiting ERROR vp=0x%x\n",vp));
+ 		    return(PAGER_ERROR);
+ 		}
+@@ -2240,11 +2316,12 @@
+ 	} while (csize > 0 && n != 0);
+ 
+ 	runlock(rp);
++	NFS_PAGEREQ(m, FALSE);			/* plan 282 */
+ 	XPR(XPR_FS,("nfs_pagein exiting vp=0x%x\n",vp));
+ 	return(PAGER_SUCCESS);
+ }
+ 
+-pager_return_t
++static pager_return_t		/* plan 282: static */
+ nfs_pageout(vp, addr, csize, f_offset)
+ 	struct vnode	*vp;
+ 	vm_offset_t	addr;
+@@ -2287,7 +2364,8 @@
+ 		return(PAGER_ERROR);
+ #endif	NeXT
+ 		
+-	rlock(rp);
++	if (rlock_timeout(rp, 5) == 1)		/* plan 282: give up after 5 s (nfs_subr.c plan 280) */
++		return(PAGER_ERROR);
+ 		
+ 	size = vtoblksz(vp);
+ 
+@@ -2408,7 +2486,7 @@
+ 	return(PAGER_SUCCESS);
+ }
+ 
+-int
++static int		/* plan 282: static */
+ nfs_nlinks(vp, l)
+     struct vnode	*vp;
+     int			*l;
+@@ -2427,3 +2505,13 @@
+     return (0);
+ }
+ #endif	MACH
++
++/*
++ * plan 282 (authored, D024; original 0x134120, reached only through the
++ * vn_devblocksize slot of nfs_vnodeops).
++ */
++static int		/* plan 282: static */
++nfs_devblocksize()
++{
++	return (NFS_BLOCKSIZE);
++}

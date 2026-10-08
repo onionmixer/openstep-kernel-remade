@@ -1,0 +1,49 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/if_loop.c	2026-09-11 10:02:49.560218209 +0900
++++ 07_kernel/src/bsd/net/if_loop.c	2026-10-03 17:38:55.945105696 +0900
+@@ -27,6 +27,7 @@
+ #import <sys/socket.h>
+ #import <net/netbuf.h>
+ #import <net/netif.h>
++#import <net/if.h>		/* plan 226: IFF_MULTICAST, struct ifreq */
+ 
+ static const char IFTYPE_IP[] = "Internet Protocol";
+ 
+@@ -75,13 +76,29 @@
+ 	  void *data
+ 	  )
+ {
++#if	MULTICAST
++	struct ifreq *ifr = (struct ifreq *)data;	/* plan 226.1: before error (register choice, original 0x11f4a9) */
++#endif
+ 	int error = 0;
+ 
+ 	if (strcmp(command, IFCONTROL_SETADDR) == 0) {
+-		if_flags_set(ifp, if_flags(ifp) | IFF_UP);
++		/* plan 226 (authored): IFF_RUNNING as well (original 0x11f4c9) */
++		if_flags_set(ifp, if_flags(ifp) | IFF_UP | IFF_RUNNING);
+ 		/*
+ 		 * Everything else is done at a higher level.
+ 		 */
++#if	MULTICAST
++	} else if (strcmp(command, IFCONTROL_ADDMULTICAST) == 0 ||
++		   strcmp(command, IFCONTROL_ADDMULTICAST) == 0) {
++		/*
++		 * plan 226 (authored, D024; original 0x11f4d8-0x11f505):
++		 * only IP multicast groups.  The original compares with
++		 * IFCONTROL_ADDMULTICAST twice (0x1d1255 at 0x11f4d8 and
++		 * 0x11f4ea); IFCONTROL_RMVMULTICAST is not used.
++		 */
++		if (ifr->ifr_addr.sa_family != AF_INET)
++			error = EAFNOSUPPORT;
++#endif	/* MULTICAST */
+ 	} else {
+ 		error = EINVAL;
+ 	}
+@@ -91,6 +108,6 @@
+ loattach()
+ {
+ 	loifp = if_attach(NULL, NULL, looutput, logetbuf, locontrol, "lo", 0,
+-			  IFTYPE_IP, LOMTU, IFF_LOOPBACK, 
++			  IFTYPE_IP, LOMTU, IFF_LOOPBACK | IFF_MULTICAST,	/* plan 226 (0x11f526) */
+ 			  NETIFCLASS_VIRTUAL, NULL);
+ }

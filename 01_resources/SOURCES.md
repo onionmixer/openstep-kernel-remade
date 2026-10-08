@@ -20,6 +20,32 @@ NeXTMach에서 우선 비교할 하위 경로는 `mk-108.1/`이다.
 최초 수집 commit을 기록하고, 재실행으로 기존 checkout을 자동 갱신하지 않는다.
 기존 파일의 해시가 잠금 기록과 다르면 오류로 처리한다.
 Darwin 파일은 `archives/`에 저장하며 자동으로 커널 트리에 병합하지 않는다.
+2026-10-02: 같은 Darwin-0.1 목록의 `Libc-1.tar.gz`(gzip tar, 891 항목, SHA-256
+`c90a49cb8e6b4824348fb99aafba539cdb749016a7e123c6a8cacdf2508f627c`)를 추가 수집해
+`upstream/darwin01/Libc/`에 추출했다(경로·링크 검사 후). cthreads(`threads.subproj`)·libsys 복원의
+비교 후보이며 OPENSTEP 4.2 판과 같다고 가정하지 않는다. curl 은 SourceForge 가 403 으로 거부해
+`fetch_sources.py` 와 같은 urllib 경로로 받았다.
+2026-10-07(D045·D046): 같은 Darwin 0.1 배포본의 `objc-1.tar.gz`(gzip tar, 144 항목, SHA-256
+`3809cc3df5ce6c052f5d69bd5efbf00b525cbbd2782e9076fd17403534130640`)를 archive.org `darwin_0.1` 항목에서
+받아(SourceForge 는 403) archive.org 의 md5·sha1 과 대조하고 `upstream/darwin01/objc/`에 추출했다(경로·링크 검사 후).
+그 항목의 architecture-1·Libc-1 은 앞서 SourceForge 에서 받은 파일과 바이트가 같다. 커널용 ObjC 런타임
+(`__text` 끝 구간) 복원의 비교 후보이며 OPENSTEP 4.2 판과 같다고 가정하지 않는다.
+2026-10-07(D048): 4.3BSD-Net/2 의 `sys/netinet` 34 파일(합 294765 B; tcp_input.c SHA-256 `95c9b6071302d531a31f2e9d426b8b7f532e570d16f4ad223b2402577240ea34`)을 TUHS 보관소
+(`https://minnie.tuhs.org/ftp/BSD/Net2/sys/netinet/`)에서 받아 `upstream/net2/sys/netinet/`에 두고 파일별 SHA-256 을 `manifests/net2-netinet.json` 에 적었다
+(배포처 체크섬 없음). 각 파일에 University of California 저작권·BSD 고지가 있다. tcp_input.c 의 Net/2 꼴 비교 후보이며 4.2 판과 같다고 가정하지 않는다.
+2026-10-07(D050): OPENSTEP 4.2 실기의 NeXT GCC 소스 `/NextDeveloper/Source/GNU/gcc/`(version.c "2.7.2.1")에서 libgcc2.c(61230 B, SHA-256
+`a50311150ff39e1fadf7e973979eb95f4c83b2ae9b9eeb9339f08c6166470675`) 등 18 파일(합 291501 B)을 gcds 의 `cat` 으로 `upstream/next-gcc-2.7.2/`(같은 상대 경로)에 들이고
+대상 쪽 krsha256 과 호스트 SHA-256·크기를 대조해 `manifests/next-gcc-2.7.2.json` 에 적었다: cc -M(08_build/runs/s5p362-depgcc2)으로 libgcc2.c `-DL_muldi3`·`-DL_udivdi3` 가 읽는 GCC 원문 14 개와
+COPYING·COPYING.LIB·README·version.c. 각 파일에 FSF 저작권·GPL v2 고지가 있고 libgcc2.c:22–27 에 libgcc 특별 예외 문구가 있다(COPYING.LIB 는 동반 문서일 뿐 이 파일들의 라이선스가 아님).
+커널의 `__muldi3`·`__udivdi3` 는 도구 체인 libcc.a 구성원(D051)이며 이 원문은 그 재현 근거이다.
+2026-10-07(D052): 4.3BSD-Net/2 의 `sys/ufs/ufs_lockf.c`(17229 B, SHA-256 `7800ec42ced0ea246434dad108dbdc6cc6a2476b2c08f841bb64b594912b2369`, `@(#)ufs_lockf.c 7.7 (Berkeley) 7/2/91`)와
+`lockf.h`(3098 B)를 TUHS 보관소(`https://minnie.tuhs.org/ftp/BSD/Net2/sys/ufs/`)에서 받아 `upstream/net2/sys/ufs/`에 두고 `manifests/net2-ufs-lockf.json` 에 해시를 적었다(배포처 체크섬 없음).
+University of California 저작권·BSD 고지가 있다. 커널 lf_lockctl(plan 295) 의 비교 후보이며 4.2 판과 같다고 가정하지 않는다.
+2026-10-07(D055): 파일시스템 스왑 참고를 위해 4.3BSD-Net/2 와 4.4BSD-Lite 의 `sys/vm` 에서 `swap_pager.c`·`swap_pager.h`·`vm_swap.c`·`vnode_pager.c`·`vnode_pager.h` 를
+TUHS 보관소(`https://minnie.tuhs.org/ftp/BSD/Net2/sys/vm/`, `https://minnie.tuhs.org/ftp/BSD/4.4BSD-Lite/sys/vm/`)에서 받아 각각 `upstream/net2/sys/vm/`(5 파일, 합 49828 B)과
+`upstream/bsd44lite/sys/vm/`(5 파일, 합 58746 B)에 두고 파일별 SHA-256 을 `manifests/net2-vm-swap.json`·`manifests/bsd44lite-vm-swap.json` 에 적었습니다.
+4.4BSD-Lite 파일은 `.gz` 로 받아 풀었고 다섯 파일 모두 배포처 `checksums.gz` 의 크기·cksum 과 맞습니다. Net/2 는 배포처 체크섬이 없습니다.
+각 파일에 University of California 저작권·BSD 고지가 있습니다. 커널 `bsd/swapfs/swapfs.c`(D054 ①) 의 참고 후보이며 4.2 판과 같다고 가정하지 않습니다. Linux 커널 원문은 들이지 않았습니다(D055).
 현재 수집본의 `kernel-1.tar.gz`와 `driverkit-139.1-1.tar.gz`는 이름과 달리
 압축되지 않은 tar이다. 원래 파일명과 바이트는 그대로 보존한다.
 `architecture-1.tar.gz`는 gzip tar이다. 압축 해제 시 `-z`를 강제하지 않고 실제 형식을 사용한다.

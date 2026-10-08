@@ -1,0 +1,68 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/uipc_socket.c	2026-09-11 10:02:49.491217361 +0900
++++ 07_kernel/src/bsd/kern/uipc_socket.c	2026-10-03 14:39:46.538888241 +0900
+@@ -40,7 +40,7 @@
+ 
+ #import <machine/spl.h>
+ 
+-#import <sys/exception.h>
++#import <mach/exception.h>	/* plan 209: the SDK has no bsd/sys/exception.h */
+ #import <sys/ux_exception.h>
+ #import <kern/thread.h>
+ 
+@@ -350,8 +350,16 @@
+ 			   so->so_snd.sb_cc >= MCLBYTES &&
+ 			   (so->so_state & SS_NBIO) == 0)) {
+ 				if (so->so_state & SS_NBIO) {
+-					if (first)
++					if (first) {
++#if	POSIX_KERN
++						/* plan 209 (authored; original 0x115247-0x115264; variant v3) */
++						if (u.u_procp->p_posix &&
++						    (uio->uio_fmode & FPOSIX_PIPE))
++							error = EAGAIN;
++						else
++#endif	POSIX_KERN
+ 						error = EWOULDBLOCK;
++					}
+ 					splx(s);
+ 					goto release;
+ 				}
+@@ -409,8 +417,13 @@
+ 	if (top)
+ 		m_freem(top);
+ 	if (error == EPIPE)
++#if	NeXT
++		/* plan 209 (original 0x11553b), as subr_xxx.c (plan 152) */
++		exception_from_kernel(EXC_SOFTWARE, EXC_UNIX_BAD_PIPE, 0);
++#else	NeXT
+ 		thread_doexception(current_thread(), EXC_SOFTWARE,
+ 			EXC_UNIX_BAD_PIPE, 0);
++#endif	NeXT
+ 	return (error);
+ }
+ 
+@@ -483,6 +496,12 @@
+ 		if (uio->uio_resid == 0)
+ 			goto release;
+ 		if (so->so_state & SS_NBIO) {
++#if	POSIX_KERN
++			/* plan 209 (authored; original 0x1156a7-0x1156c9; variant v3) */
++			if (u.u_procp->p_posix && (uio->uio_fmode & FPOSIX_PIPE))
++				error = EAGAIN;
++			else
++#endif	POSIX_KERN
+ 			error = EWOULDBLOCK;
+ 			goto release;
+ 		}
+@@ -817,7 +836,11 @@
+ 		psignal(p, SIGURG);
+ 	if (so->so_rcv.sb_sel) {
+ 		selwakeup(so->so_rcv.sb_sel, so->so_rcv.sb_flags & SB_COLL);
++#if	NeXT
++		selthreadclear(&so->so_rcv.sb_sel);	/* plan 209 (original 0x11610e) */
++#else	NeXT
+ 		so->so_rcv.sb_sel = 0;
++#endif	NeXT
+ 		so->so_rcv.sb_flags &= ~SB_COLL;
+ 	}
+ }

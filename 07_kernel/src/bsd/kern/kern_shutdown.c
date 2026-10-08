@@ -1,0 +1,335 @@
+/*
+ *	File:	next/shutdown.c
+ *	Author:	Avadis Tevanian, Jr.
+ *
+ *	Copyright (C) 1989, NeXT, Inc.
+ *
+ */
+
+/*
+ * The line marked "plan 401 (Darwin)" follows Darwin 0.1
+ * kernel/bsd/kern/kern_shutdown.c:62 (kernel-1; path ufs/ufs/inode.h there), whose notice is:
+ */
+/*
+ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ * 
+ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
+ * Reserved.  This file contains Original Code and/or Modifications of
+ * Original Code as defined in and that are subject to the Apple Public
+ * Source License Version 1.0 (the 'License').  You may not use this file
+ * except in compliance with the License.  Please obtain a copy of the
+ * License at http://www.apple.com/publicsource and read it before using
+ * this file.
+ * 
+ * The Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
+ * License for the specific language governing rights and limitations
+ * under the License."
+ * 
+ * @APPLE_LICENSE_HEADER_END@
+ */
+
+#import <sys/param.h>
+#import <sys/systm.h>
+#import <sys/dir.h>
+#import <sys/user.h>
+#import <sys/kernel.h>
+#import <sys/vnode.h>
+#import <sys/proc.h>
+#import <sys/file.h>
+
+#import <sun_lock.h>
+#import <sys/buf.h>
+#import <sys/reboot.h>
+#import <sys/vfs.h>
+#import <kern/task.h>
+#import <kern/thread.h>
+#import <kern/processor.h>
+#import <vm/vm_map.h>
+#import <vm/vm_kern.h>
+#import <ufs/inode.h>		/* plan 401 (Darwin): as Darwin 0.1 kern_shutdown.c:62 (path ufs/ufs/inode.h there); tentative inode_list, iuniqtime (original __common order) */
+
+/*
+ * plan 229 (D024): the original object [0x108b84, 0x109128) holds boot,
+ * unmount_all and kill_tasks (NeXTMach next/machdep.c:1208-1410, below)
+ * before proc_shutdown and fd_shutdown (this file).
+ */
+/* 
+ * Copyright (c) 1987, 1988, 1989 NeXT, Inc.
+ */
+int	waittime = -1;
+
+/*
+ * plan 229 (authored, D024; original _boot 0x108b84-0x108c9f): the
+ * machine-dependent parts are md_prepare_for_shutdown, if_down_all,
+ * us_spin, md_shutdown_devices and md_do_shutdown.
+ */
+boot(paniced, howto, command)
+	int paniced, howto;
+	char *command;
+{
+	extern struct vnode *acctp;
+
+	md_prepare_for_shutdown(paniced, howto, command);
+	if ((howto&RB_NOSYNC)==0 && waittime < 0 && bfreelist[0].b_forw) {
+		waittime = 0;
+		if (acctp) {
+			struct vnode *temp;
+
+			temp = acctp;
+			acctp = NULL;
+			VN_RELE(temp);
+		}
+		sync();
+		unmount_all();
+		if_down_all();
+		{ register struct buf *bp;
+		  int iter, nbusy;
+		  int obusy = 0;
+
+		  for (iter = 0; iter < 20; iter++) {
+			nbusy = 0;
+			for (bp = &buf[nbuf]; --bp >= buf; )
+				if ((bp->b_flags & (B_BUSY|B_DONE)) == B_BUSY)
+					nbusy++;
+			if (nbusy == 0)
+				break;
+			printf("%d ", nbusy);
+		        if (nbusy != obusy)
+				iter = 0;
+			obusy = nbusy;
+			us_spin(40000 * iter);
+		  }
+		}
+	}
+	md_shutdown_devices(paniced, howto, command);
+	md_do_shutdown(paniced, howto, command);
+}
+
+#import <sys/vfs.h>
+
+unmount_all()
+{
+	struct vfs		*vfsp, *next;
+	extern struct vfs	*rootvfs;
+	extern struct vnode	*rootdir;
+	int			error;
+
+	proc_shutdown();		/* handle live procs (deallocate their
+					   root and current directories). */
+	kill_tasks();			/* get rid of all task memory */
+	mfs_cache_clear();		/* clear the MFS cache */
+	vm_object_cache_clear();	/* clear the object cache */
+	fd_shutdown();			/* close all open file descriptors */
+
+	vm_object_shutdown();
+	vnode_pager_shutdown();		/* NO MORE PAGING - release vnodes */
+
+	vfsp = rootvfs->vfs_next;	/* skip root */
+	while (vfsp != (struct vfs *)0) {
+		printf("unmounting %s ... ", vfsp->vfs_name);	/* plan 229 (0x1da998) */
+		next = vfsp->vfs_next;
+		error = dounmount(vfsp);
+		if (error)
+			printf("FAILED\n");
+		else
+			printf("done\n");
+		vfsp = next;
+	}
+	VN_RELE(rootdir);	/* release reference from bootstrap */
+	error = dounmount(rootvfs);
+	if (error)
+		printf("Root unmount FAILED\n");
+}
+
+kill_tasks()
+{
+	processor_set_t	pset;
+	task_t		task;
+	vm_map_t	map, empty_map;
+
+	empty_map = vm_map_create(pmap_create(0), 0, 0, TRUE);
+
+	/*
+	 * Destroy all but the default processor_set.
+	 */
+	simple_lock(&all_psets_lock);
+	pset = (processor_set_t) queue_first(&all_psets);
+	while (!queue_end(&all_psets, (queue_entry_t) pset)) {
+		if (pset == &default_pset) {
+			pset = (processor_set_t) queue_next(&pset->all_psets);
+			continue;
+		}
+		simple_unlock(&all_psets_lock);
+		processor_set_destroy(pset);
+		simple_lock(&all_psets_lock);
+		pset = (processor_set_t) queue_first(&all_psets);	/* plan 229 (0x108dc7) */
+	}
+	simple_unlock(&all_psets_lock);
+
+	/*
+	 * Kill all the tasks in the default processor set.
+	 */
+	pset = &default_pset;
+	pset_lock(pset);
+	task = (task_t) queue_first(&pset->tasks);
+	while (pset->task_count) {
+		pset_remove_task(pset, task);
+		map = task->map;
+		if ((map != kernel_map) && (map != empty_map)) {
+			task->map = empty_map;
+			vm_map_reference(empty_map);
+			pset_unlock(pset);
+			vm_map_remove(map, vm_map_min(map), vm_map_max(map));
+			pset_lock(pset);
+		}
+		task = (task_t) queue_first(&pset->tasks);
+	}
+	pset_unlock(pset);
+}
+
+/*
+ *	Shutdown down proc system (release references to current and root
+ *	dirs for each process).
+ */
+
+proc_shutdown()
+{
+	struct proc	*p, *self;
+	struct vnode	**cdirp, **rdirp, *vp;
+	int		restart, i;
+	struct utask	*utask;
+
+	/*
+	 *	Kill as many procs as we can.  (Except ourself...)
+	 */
+	self = current_task()->proc;
+	
+	/*
+	 * Suspend /etc/init
+	 */
+	p = pfind(1);
+	if (p && p != self)
+		task_suspend(p->task);		/* stop init */
+
+	
+	/*
+	 * Suspend mach_init
+	 */
+	p = pfind(2);
+	if (p && p != self)
+		task_suspend(p->task);		/* stop mach_init */
+
+	printf("Killing all processes ");
+	/* SIGTERM and us_delay to allow process to clean-up */
+	for (p = allproc; p; p = p->p_nxt) {
+		if ((p->p_ppid != 0) && ((p->p_flag&SSYS) == 0) && (p != self))
+			psignal(p, SIGTERM);
+	}
+	ns_sleep(2000000000LL);		/* plan 229 (0x108f0f, 0x108f1b) */
+	ns_sleep(2000000000LL);
+	/* SIGKILL in case the TERM wasn't heard */
+	for (p = allproc; p; p = p->p_nxt) {
+		if ((p->p_ppid != 0) && ((p->p_flag&SSYS) == 0) && (p != self))
+			psignal(p, SIGKILL);
+	}
+	ns_sleep(1000000000LL);		/* plan 229 (0x108f57) */
+	/* Brute force 'em, if necessary */
+	p = allproc;
+	while (p) {
+		if ((p->p_ppid == 0) || (p->p_flag&SSYS) || (p == self)) {
+			p = p->p_nxt;
+		}
+		else {
+			/*
+			 * NOTE: following code ignores sig_lock and plays
+			 * with exit_thread correctly.  This is OK unless we
+			 * are a multiprocessor, in which case I do not
+			 * understand the sig_lock.  This needs to be fixed.
+			 * XXX
+			 */
+			if (p->exit_thread) {	/* someone already doing it */
+				thread_block();	/* give him a chance */
+			}
+			else {
+				p->exit_thread = current_thread();
+				printf(".");
+				do_exit(p, 1);
+			}
+			p = allproc;
+		}
+	}
+	printf("\n");
+	/*
+	 *	Forcibly free resources of what's left.
+	 */
+	p = allproc;
+	while (p) {
+		utask = p->task->u_address;
+		restart = 0;
+		for (i = 0; i <= utask->uu_lastfile; i++) {
+			struct file *f;
+
+			f = utask->uu_ofile[i];
+			if (f && f != FPINPROGRESS) {	/* plan 229 (0x109005) */
+#if	SUN_LOCK
+				/* Release all System-V style record locks */
+				(void) vno_lockrelease(f);
+#endif	SUN_LOCK
+				utask->uu_ofile[i] = NULL;
+				closef(f);
+				restart = 1;
+			}
+			utask->uu_pofile[i] = 0;
+		}
+		cdirp = &utask->uu_cdir;
+		vp = *cdirp;
+		if (vp) {
+			*cdirp = 0;
+			VN_RELE(vp);
+			restart = 1;
+		}
+		rdirp = &utask->uu_rdir;
+		vp = *rdirp;
+		if (vp) {
+			*rdirp = 0;
+			VN_RELE(vp);
+			restart = 1;
+		}
+		if (restart)
+			p = allproc;
+		else
+			p = p->p_nxt;
+	}
+	/* plan 229 (authored; original 0x1090b4-0x1090d3) */
+	{
+		extern queue_head_t reaper_queue;
+
+		thread_wakeup((int)&reaper_queue);
+	}
+	ns_sleep(2000000000LL);
+	printf("continuing\n");
+}
+
+/*
+ *	Close all file descriptors, called at shutdown time.
+ */
+fd_shutdown()
+{
+	register struct file *fp, *nfp;
+
+	/* plan 229 (authored; original 0x1090f8): next entry saved first */
+	for (fp = (struct file *) queue_first(&file_list);
+    	    !queue_end(&file_list, (queue_entry_t) fp);
+  	    fp = nfp) {
+		nfp = (struct file *) queue_next(&fp->links);
+		while (fp->f_count > 0)
+			closef(fp);
+	}
+}
+

@@ -1,0 +1,24 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_mman.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_mman.c	2026-10-03 13:17:38.544066447 +0900
+@@ -70,9 +70,10 @@
+ #import <sys/trace.h>
+ #import <sys/mman.h>
+ #import <sys/conf.h>
+-#import <sys/kern_return.h>
++#import <mach/kern_return.h>	/* plan 200: NeXTMach sys/kern_return.h */
+ #import <kern/task.h>
+-#import <vm/vm_param.h>
++#import <kern/thread.h>	/* plan 200: kernel current_task() */
++#import <mach/vm_param.h>	/* plan 200: NeXTMach vm/vm_param.h (as plans 162/164) */
+ #import <vm/vm_map.h>
+ #import <vm/vm_pager.h>
+ #import <vm/vnode_pager.h>
+@@ -468,7 +469,7 @@
+ 	 */
+ 	if (!vm_map_lookup_entry(map, new, &entry)) {
+ #if	MACH_OLD_VM_COPY
+-		old = entry->end;
++		old = entry->vme_end;	/* plan 200: field name of this vm/vm_map.h */
+ #else	MACH_OLD_VM_COPY
+ 		old = entry->vme_end;
+ #endif	MACH_OLD_VM_COPY

@@ -1,0 +1,75 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_xdr.c	2026-09-11 10:02:49.608218799 +0900
++++ 07_kernel/src/bsd/nfs/nfs_xdr.c	2026-10-03 10:50:07.709151518 +0900
+@@ -36,6 +36,10 @@
+ char *xdropnames[] = { "encode", "decode", "free" };
+ #endif
+ 
++/* plan 185 (authored, D024): the helper XDR routines have no symbols in the original;
++ * declaring them static here gives the original layout (0x1341f8, 0x134924, 0x134c88-) */
++static bool_t xdr_drok(), xdr_fattr(), xdr_fsok(), xdr_rrok(), xdr_sattr(), xdr_srok(), xdr_timeval();
++
+ /*
+  * These are the XDR routines used to serialize and deserialize
+  * the various structures passed as parameters accross the network
+@@ -104,7 +108,7 @@
+ /*
+  * File attributes
+  */
+-bool_t
++static bool_t
+ xdr_fattr(xdrs, na)
+ 	XDR *xdrs;
+ 	register struct nfsfattr *na;
+@@ -257,7 +261,7 @@
+ /*
+  * Status OK portion of remote read reply
+  */
+-bool_t
++static bool_t
+ xdr_rrok(xdrs, rrok)
+ 	XDR *xdrs;
+ 	struct nfsrrok *rrok;
+@@ -356,7 +360,7 @@
+ /*
+  * File attributes which can be set
+  */
+-bool_t
++static bool_t
+ xdr_sattr(xdrs, sa)
+ 	XDR *xdrs;
+ 	struct nfssattr *sa;
+@@ -415,7 +419,7 @@
+ /*
+  * NFS_OK part of read sym link reply union
+  */
+-bool_t
++static bool_t
+ xdr_srok(xdrs, srok)
+ 	XDR *xdrs;
+ 	struct nfssrok *srok;
+@@ -697,7 +701,7 @@
+ /*
+  * NFS_OK part of directory operation result
+  */
+-bool_t
++static bool_t
+ xdr_drok(xdrs, drok)
+ 	XDR *xdrs;
+ 	struct nfsdrok *drok;
+@@ -744,7 +748,7 @@
+ /*
+  * Time structure
+  */
+-bool_t
++static bool_t
+ xdr_timeval(xdrs, tv)
+ 	XDR *xdrs;
+ 	struct timeval *tv;
+@@ -863,6 +867,7 @@
+ /*
+  * NFS_OK part of statfs operation
+  */
++static
+ xdr_fsok(xdrs, fsok)
+ 	XDR *xdrs;
+ 	struct nfsstatfsok *fsok;

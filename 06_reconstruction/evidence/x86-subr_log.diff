@@ -1,0 +1,117 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/subr_log.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/subr_log.c	2026-10-08 14:51:59.636659394 +0900
+@@ -42,7 +42,7 @@
+ 
+ #import <machine/spl.h>
+ 
+-struct msgbuf *pmsgbuf;
++struct msgbuf *pmsgbuf = 0;	/* plan 397: initialized (original __data 0x1dac14) */
+ 
+ #define LOG_RDPRI	(PZERO + 1)
+ 
+@@ -52,10 +52,18 @@
+ 
+ struct logsoftc {
+ 	int	sc_state;		/* see above for possibilities */
+-	struct	proc *sc_selp;		/* process waiting on select call */
++	struct thread *sc_selp;		/* thread waiting on select call */
+ 	int	sc_pgrp;		/* process group for async I/O */
++	void	*sc_callout;		/* plan 181 (authored): wakeup callout (+0xc) */
+ } logsoftc;
+ 
++static void log_wakeup();		/* plan 181 (authored) */
++/* plan 181.1 (authored, variant p3): prototyped callout interface */
++extern void *calloutEntryAllocate(void (*)(), void *);
++extern void calloutEntryDispatch(void *);
++extern void calloutEntryRemove(void *);
++extern void calloutEntryFree(void *);
++
+ int	log_open;			/* also used in log() */
+ 
+ /*ARGSUSED*/
+@@ -65,9 +73,11 @@
+ 
+ 	if (log_open)
+ 		return (EBUSY);
+-	log_open = 1;
+ 	logsoftc.sc_selp = 0;
+ 	logsoftc.sc_pgrp = u.u_procp->p_pgrp;
++	/* plan 181 (authored, D024; original 0x10bd7a-0x10bd8b) */
++	logsoftc.sc_callout = calloutEntryAllocate(log_wakeup, 0);
++	log_open = 1;
+ 	/*
+ 	 * Potential race here with putchar() but since putchar should be
+ 	 * called by autoconf, msg_magic should be initialized by the time
+@@ -99,9 +109,23 @@
+ logclose(dev, flag)
+ 	dev_t dev;
+ {
++	/* plan 181 (authored, D024; original 0x10bdd8-0x10be30) */
++	void *ce;
++	struct thread *th;
++	int s;
++
+ 	log_open = 0;
++	ce = logsoftc.sc_callout;
++	logsoftc.sc_callout = 0;
++	calloutEntryRemove(ce);
++	calloutEntryFree(ce);
+ 	logsoftc.sc_state = 0;
++	s = splhigh();
++	th = logsoftc.sc_selp;
+ 	logsoftc.sc_selp = 0;
++	splx(s);
++	if (th)
++		thread_deallocate(th);
+ 	logsoftc.sc_pgrp = 0;
+ }
+ 
+@@ -194,7 +218,7 @@
+ 			return (1);
+ 		}
+ #endif	mips || NeXT
+-		logsoftc.sc_selp = (struct proc*) current_thread();
++		selthreadcache(&logsoftc.sc_selp);	/* plan 181 (authored; original 0x10bf54) */
+ 		break;
+ 	}
+ 	splx(s);
+@@ -202,26 +226,31 @@
+ }
+ 
+ #if	NeXT
++/* plan 181 (authored, D024; original 0x10bf74, 0x10bf90): wakeups through a callout */
+ logwakeup()
+ {
+-	int log_wakeup();
+-	extern int softint_free;
+-
+-	if (softint_free)
+-		softint_sched (1, log_wakeup, 0);
++	if (log_open)
++		calloutEntryDispatch(logsoftc.sc_callout);
+ }
+ 
++static void
+ log_wakeup()
+ #else	NeXT
+ logwakeup()
+ #endif	NeXT
+ {
++	struct thread *th;
++	int s;
+ 
+ 	if (!log_open)
+ 		return;
+-	if (logsoftc.sc_selp) {
+-		selwakeup(logsoftc.sc_selp, 0);
+-		logsoftc.sc_selp = 0;
++	s = splhigh();
++	th = logsoftc.sc_selp;
++	logsoftc.sc_selp = 0;
++	splx(s);
++	if (th) {
++		selwakeup(th, 0);
++		thread_deallocate_interrupt(th);
+ 	}
+ 	if (logsoftc.sc_state & LOG_ASYNC)
+ 		gsignal(logsoftc.sc_pgrp, SIGIO); 

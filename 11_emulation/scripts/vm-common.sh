@@ -7,15 +7,15 @@ bin_dir="$emu_dir/build/qemu-NeXT-lab"
 fw_dir="$emu_dir/firmware"
 site_conf="$emu_dir/site.conf"
 
-vm_usage() { echo "usage: $(basename "$0") $1 [--cd ISO|SITE_KEY] [--snapshot] [--gdb-wait] [--serial] [-- QEMU args]" >&2; exit 2; }
+vm_usage() { echo "usage: $(basename "$0") $1 [--cd ISO|SITE_KEY] [--disk RAW --snapshot] [--snapshot] [--gdb-wait] [--serial] [-- QEMU args]" >&2; exit 2; }
 
-# vm_parse MODES ARGS... : sets mode, snapshot, gdb_wait, serial, cd_file, extra
+# vm_parse MODES ARGS... : sets mode, snapshot, gdb_wait, serial, cd_file, disk_file, extra
 vm_parse() {
     local modes="$1"; shift
     mode="${1:-}"; [[ -n "$mode" ]] || vm_usage "$modes"
     [[ " ${modes//|/ } " == *" $mode "* ]] || vm_usage "$modes"
     shift
-    snapshot=0 gdb_wait=0 serial=0 cd_file="" extra=()
+    snapshot=0 gdb_wait=0 serial=0 cd_file="" disk_file="" extra=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --snapshot) snapshot=1; shift ;;   # keep the disk untouched (-snapshot)
@@ -23,6 +23,8 @@ vm_parse() {
             --serial)   serial=1; shift ;;
             --cd)       [[ $# -ge 2 ]] || vm_usage "$modes"   # boot mode: another CD in the same drive
                         cd_file="$2"; shift 2 ;;
+            --disk)     [[ $# -ge 2 ]] || vm_usage "$modes"   # plan 405: i386 test disk, only with --snapshot
+                        disk_file="$2"; shift 2 ;;
             --) shift; extra=("$@"); break ;;
             *) vm_usage "$modes" ;;
         esac
@@ -66,9 +68,21 @@ vm_sockets() {
     return 0
 }
 
-# vm_disk ARCH [FORMAT] : the VM's disk, 09_validation/images/ARCH/openstep42-ARCH-hdd.FORMAT (raw by default)
+# vm_disk ARCH [FORMAT] : the VM's disk, 09_validation/images/ARCH/openstep42-ARCH-hdd.FORMAT (raw by default).
+# plan 405: --disk RAW replaces that file for an i386 boot/boot-nocd run under --snapshot only
+# (a readable regular raw image; the run never writes it).
 vm_disk() {
     disk_format="${2:-raw}"
+    if [[ -n $disk_file ]]; then
+        [[ $1 == i386 && ( $mode == boot || $mode == boot-nocd ) ]] || { echo "--disk is only for i386 boot and boot-nocd" >&2; exit 2; }
+        [[ $snapshot == 1 ]] || { echo "--disk needs --snapshot (the test disk is never written)" >&2; exit 2; }
+        [[ -f $disk_file && -r $disk_file ]] || { echo "--disk: not a readable regular file: $disk_file" >&2; exit 1; }
+        python3 -c 'import os,sys; sys.exit(os.stat(sys.argv[1]).st_size % 512 != 0)' "$disk_file" || { echo "--disk: size is not a multiple of 512: $disk_file" >&2; exit 1; }
+        [[ "$(head -c 4 -- "$disk_file" | od -An -tx1 | tr -d ' \n')" != 514649fb ]] || { echo "--disk: qcow2 image, raw expected: $disk_file" >&2; exit 1; }
+        disk="$(readlink -f -- "$disk_file")"
+        snap_args=(-snapshot)
+        return 0
+    fi
     disk="$repo_dir/09_validation/images/$1/openstep42-$1-hdd.$disk_format"
     [[ -w "$disk" ]] || { echo "missing disk $disk (qemu-img create -f $disk_format ... 1G)" >&2; exit 1; }
     snap_args=(); [[ $snapshot == 1 ]] && snap_args=(-snapshot)

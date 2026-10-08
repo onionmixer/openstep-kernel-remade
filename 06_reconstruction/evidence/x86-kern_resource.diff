@@ -1,0 +1,38 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_resource.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_resource.c	2026-10-03 13:22:27.354817632 +0900
+@@ -74,9 +74,9 @@
+ #import <machine/spl.h>
+ 
+ #import <kern/thread.h>
+-#import <sys/time_value.h>
++/* plan 201: NeXTMach sys/time_value.h duplicates the SDK mach/time_value.h */
+ 
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 201: NeXTMach vm/vm_param.h */
+ #import <sys/vmparam.h>
+ 
+ /*
+@@ -288,7 +288,11 @@
+ 			/*
+ 			 * Stack size is growing, allocate VM.
+ 			 */
++#if	NeXT
++			addr = trunc_page(u.u_procp->user_stack - alim.rlim_cur);	/* plan 201 */
++#else	NeXT
+ 			addr = trunc_page(USRSTACK - alim.rlim_cur);
++#endif	NeXT
+ 			size = round_page(alim.rlim_cur);
+ 			size -= round_page(alimp->rlim_cur);
+ 			if (vm_allocate(current_task()->map, &addr, size,
+@@ -301,7 +305,11 @@
+ 			/*
+ 			 * Stack size is shrinking, free VM.
+ 			 */
++#if	NeXT
++			addr = trunc_page(u.u_procp->user_stack - alimp->rlim_cur);	/* plan 201 */
++#else	NeXT
+ 			addr = trunc_page(USRSTACK - alimp->rlim_cur);
++#endif	NeXT
+ 			size = round_page(alimp->rlim_cur);
+ 			size -= round_page(alim.rlim_cur);
+ 			if (vm_deallocate(current_task()->map, addr, size) !=

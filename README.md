@@ -1,33 +1,87 @@
-# OPENSTEP Kernel Analysis
+# OPENSTEP Kernel Remade
 
-This project aims to remake the OPENSTEP kernel. This workspace preserves and analyzes original OPENSTEP 4.2 kernel binaries as the evidence base for that future reconstruction. The current analysis-only phase uses original binary bytes and derived analysis outputs; it does not use external source code as evidence and does not yet implement, build, boot, or port a reconstructed kernel.
+This project remakes the OPENSTEP 4.2 kernel from its original binaries. The original kernels are the
+evidence base: every reconstructed object is compiled with the historical toolchain and compared byte by
+byte with the original image.
 
-## Current status
+## Current status (2026-10-08)
 
-Static evidence collection is complete for the Intel x86, Motorola m68k, and SPARC kernels. The m68k and SPARC inputs are handled independently as big-endian binaries; x86 is little-endian. The collected material includes provenance, Mach-O layout, original-byte-validated assembly, function candidates, symbols, cross-references, direct-call records, and separately stored decompiler hypotheses. Analysis is still in progress: the remaining work is to establish the evidence needed for reliable semantic conclusions before reconstruction begins.
+**x86: the kernel rebuilt from `07_kernel/` is byte-identical to the original.** All 402 objects are
+compiled from the reconstructed sources on an OPENSTEP 4.2 i386 machine with the original compiler
+(`cc-744.13`, GCC 2.7.2.1), linked with the Darwin 0.1 kernel link rules and `strip -x`. The result has the
+same SHA-256 as the original `mach_kernel` (`33469393…`, 1,117,920 bytes). The QEMU build of that kernel
+(the same bytes plus a 12-byte PIC interrupt fix needed by this emulator) boots OPENSTEP 4.2 to the
+Workspace, and `hostinfo` reports the original version string.
 
-The three architectures can be compared for input provenance, byte order, and static structural observations. They cannot establish equivalent function behavior, calling conventions, argument or return values, object layouts, or function boundaries. Those semantic conclusions remain unconfirmed in the binary-only scope.
+![OPENSTEP 4.2 running in QEMU on the reconstructed x86 kernel; hostinfo shows NeXT Mach 4.2 mk-183.34.4](docs/images/qemu-i386-reconstructed-kernel-hostinfo-20261008.png)
 
-See [the full analysis plan](02_plan/FULL_ANALYSIS.md), [the multi-architecture plan](02_plan/MULTIARCH_STATIC_ANALYSIS.md), and [the static-evidence closure audit](09_validation/reports/multiarch-input-20260921/static-only-semantic-followup-closure-20260923.json).
+| Item | Result |
+|---|---|
+| Recorded objects (with `__text`) | 385: grade A 315 (one A\*), grade P 70 (not an object match: every file-backed section except the listed unverified ones matches in bytes and references; the unverified ones are unreferenced sections or zero-fill placed only through references — `06_reconstruction/README.md`) |
+| Data-only objects | 17 (`objects_data.tsv`: syscall table, device switches, protocol tables, `param.c`, version strings, …) |
+| Toolchain library members | 2 (`__muldi3`, `__udivdi3` from `/lib/libcc.a`, linked with `-lcc`) |
+| `__text` coverage by grade | A 73.13 %, P 26.76 %, L 0.04 %; the remaining 598 bytes are alignment padding |
+| Whole-kernel link | identical to the original (`cmp`, SHA-256, symbols 3,751, commons 417) |
+| QEMU i386 boot | PIC-fixed build boots to the Workspace (the unmodified build, like the original, locks IDE interrupts in this QEMU; that control boot has not been run) |
+
+The m68k and SPARC kernels have been analysed statically (provenance, Mach-O layout, symbols,
+cross-references); their reconstruction has not started.
+
+How to build and use the kernel: [HOWTOCOMPILE.md](HOWTOCOMPILE.md), [HOWTOUSE.md](HOWTOUSE.md).
+The plan and the evidence for every step are in [02_plan/RECONSTRUCTION_PLAN.md](02_plan/RECONSTRUCTION_PLAN.md)
+and [02_plan/DECISIONS.md](02_plan/DECISIONS.md); per-object evidence is in `06_reconstruction/evidence/`.
+
+## Sources and licences
+
+The project is licensed under the BSD 2-Clause License, except for code taken from the references below,
+which keeps its own licence: see [LICENSE](LICENSE).
+
+Reference code is a candidate, not a fact: a reference text is adopted only when the compiled object
+matches the original bytes. The reconstructed sources are recorded in
+[07_kernel/PROVENANCE.tsv](07_kernel/PROVENANCE.tsv) (origin, revision, path, licence; documents, licence texts and
+most generated configuration headers have no row of their own) and changes to reference code are listed in
+[07_kernel/MODIFICATIONS.md](07_kernel/MODIFICATIONS.md).
+
+- **NeXTMach** (mk-108.1) — committed with its original notices (decision D013).
+- **Darwin 0.1** and **Mach 4** — committed with the notices their files carry (mostly APSL 1.0 for Darwin, with
+  some BSD-licensed files; CMU / Utah for Mach 4); lines taken from them inside other files are marked and the
+  notice is added (decision D061).
+- **Project-authored code** — written from the original bytes where no reference text fits (D024), or
+  nearly the same as a Darwin-only file (D030).
+- The OPENSTEP 4.2 SDK header copies (`07_kernel/nextdev/`, `07_kernel/nextdev_private/`) stay local
+  while their licence is undecided (D017).
+- Licence judgement is still open for several categories (recorded as `license TBD` or as the user's
+  judgement in `PROVENANCE.tsv`, e.g. D030 files and MIG output generated from SDK `.defs`); preserved notices
+  do not by themselves settle the licence of the whole tree.
 
 ## Tools
 
-- **IDA:** Creates architecture-specific databases, disassembly listings, function candidates, and cross-reference exports. Its output is checked against the original file-backed bytes.
-- **Ghidra and GhidraDec:** Produce separately stored decompiler hypotheses and support independent headless checks. A decompiler result is not treated as original-binary proof.
-- **Python:** Runs all explicit calculations and produces repeatable Mach-O, byte, hash, coverage, and audit reports.
-- **Git:** Tracks plans, scripts, reports, and reviewable text while excluding original binaries, analysis databases, and local temporary files.
+- **OPENSTEP 4.2 i386 machine:** builds every object and the kernel with `cc-744.13`, `ld` and `strip`;
+  runs are driven and hash-checked by `10_tools/reconstruction/kr_run.py`.
+- **Python:** runs all explicit calculations, staging (`stage_headers.py`), the object comparison against
+  the original (`l1_compare.py`), coverage, link preparation and image comparison (`l2_*.py`).
+- **QEMU (`11_emulation/`):** i386, SPARC and m68k virtual machines for boot tests.
+- **IDA, Ghidra and GhidraDec:** disassembly, function candidates, cross-references and decompiler
+  hypotheses. A decompiler result is never treated as proof; only byte comparison is.
+- **Git:** tracks plans, scripts, reconstructed sources and reports, and excludes original binaries,
+  analysis databases, SDK header copies, build runs and disk images.
 
 ## Layout
 
 ```text
-02_plan/        Analysis scope and plans
-03_original/    Original kernels, provenance, and static inventories
-04_ghidra/      Ghidra projects and exported hypotheses
-05_ida/         IDA databases, snapshots, and exports
-09_validation/  Evidence audits and validation reports
-10_tools/       Repeatable analysis and audit tools
-11_emulation/   QEMU platform for i386, SPARC and m68k (sources, builds and firmware not tracked)
-12_archive/     Imported records of retired workspaces (not tracked; not kernel-analysis evidence)
+01_resources/      Reference sources (Darwin 0.1, NeXTMach, Mach 4, net2, 4.4BSD-Lite) and their manifests (sources not tracked)
+02_plan/           Plans, decisions and reconstruction log
+03_original/       Original kernels, provenance and static inventories
+04_ghidra/         Ghidra projects and exported hypotheses
+05_ida/            IDA databases, snapshots and exports
+06_reconstruction/ Object and function records, compile forms, per-object evidence
+07_kernel/         Reconstructed kernel sources, generated headers, provenance and modification records
+08_build/          Build rules and toolchain notes (build runs and toolchain copies not tracked)
+09_validation/     Comparison results, audits and reports (disk images not tracked)
+10_tools/          Repeatable analysis, build and comparison tools
+11_emulation/      QEMU platform for i386, SPARC and m68k (sources, builds and firmware not tracked)
+12_archive/        Imported records of retired workspaces (not tracked; not kernel evidence)
+docs/images/       Images used by this README
 ```
 
 ## What is not in this repository
@@ -41,7 +95,12 @@ See [the full analysis plan](02_plan/FULL_ANALYSIS.md), [the multi-architecture 
 | `03_original/m68k/binaries/mach_kernel` | 832,196 | `dff6c51c952add68ce326d861150df799737b9476bad95e51976b36683ba5d75` | fat slice 0 of the container above, offset 68 |
 | `03_original/sparc/binaries/mach_kernel` | 1,441,656 | `287ababa091f5f64b42cad2d289f0e828d88127cba858ba8fe440f88ae65b8e1` | fat slice 2 of the container above, offset 1,949,696 |
 
-The m68k and SPARC files are byte ranges cut from the fat container at the offsets and sizes recorded in `provenance.json`; no tool beyond a byte copy is needed. Every report in `09_validation/` names the input hashes it was produced from, so a restored input can be checked against the recorded evidence.
+The m68k and SPARC files are byte ranges cut from the fat container at the offsets and sizes recorded in `provenance.json`; no tool beyond a byte copy is needed. Most reports in `09_validation/` name the input hashes they were produced from, so a restored input can be checked against the recorded evidence.
+
+**SDK header copies, build runs, toolchain records and VM disks.** `07_kernel/nextdev/` and
+`07_kernel/nextdev_private/` (OPENSTEP 4.2 SDK headers and overlays on them), `08_build/runs/` (build
+runs and their objects), `08_build/toolchains/` (tool copies and hash records) and `09_validation/images/`
+(VM disks and kernel copies) are local only. `HOWTOCOMPILE.md` lists what a build needs.
 
 **IDA databases, Ghidra projects and the IDA SDK.** `05_ida/databases/`, `05_ida/snapshots/` and `04_ghidra/projects/` are excluded because they are derived from the excluded binaries and are large. `10_tools/vendor-cache/` keeps the pinned GhidraDec bundle and the built headless plugins, but not the Hex-Rays IDA SDK bundle, which is not redistributable; its pinned commit and hash are listed in `10_tools/vendor-cache/README.md`.
 

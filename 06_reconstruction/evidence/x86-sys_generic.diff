@@ -1,0 +1,328 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/sys_generic.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/sys_generic.c	2026-10-03 10:33:21.552614714 +0900
+@@ -159,7 +159,7 @@
+ 	register struct file *fp;
+ 	register struct iovec *iov;
+ 	int i, count;
+-	register int on_master = 0;
++	volatile int on_master = 0;	/* plan 182 (variant r1): kept on the stack in the original (0x10ceb4) */
+ 	int rcount;	/* resume count */
+ 
+ 	GETF(fp, ((struct a *)u.u_ap)->fdes);
+@@ -304,77 +304,111 @@
+ 		u.u_error = copyout(data, uap->cmarg, (u_int)size);
+ }
+ 
+-int	unselect();
+ int	nselcoll;
+ 
+ /*
++ * plan 182 (authored, D024; original _select 0x10d290, _selcont 0x10d3f0,
++ * _selscan 0x10d614, _selthreadcache 0x10d740, _selthreadclear 0x10d7b0,
++ * _selwakeup 0x10d7e4): select() with a continuation; its state lives
++ * in u.u_select so that selcont() can be restarted after the sleep.
++ */
++struct uap {
++	int	nd;
++	fd_set	*in, *ou, *ex;
++	struct	timeval *tv;
++};
++
++static const struct _select select_zero = { 0 };	/* __TEXT,__const in the original (0x1d10dc) */
++
++int selcont();
++
++/*
+  * Select system call.
+  */
+ select()
+ {
+-	register struct uap  {
+-		int	nd;
+-		fd_set	*in, *ou, *ex;
+-		struct	timeval *tv;
+-	} *uap = (struct uap *)u.u_ap;
+-	register int error = 0;
+-	register struct proc *p;
+-	fd_set ibits[3], obits[3];
+-	struct timeval atv;
+-	int s, ncoll, ni;
+-	int poll;
+-	label_t lqsave;
++	register struct uap *uap = (struct uap *)u.u_ap;
++	register struct _select *sel = &u.u_select;
++	struct timeval now;
++	int ni;
+ 
+-	bzero((caddr_t)ibits, sizeof(ibits));
+-	bzero((caddr_t)obits, sizeof(obits));
++	*sel = select_zero;
+ 	if (uap->nd > NOFILE)
+ 		uap->nd = NOFILE;	/* forgiving, if slightly wrong */
+ 	ni = howmany(uap->nd, NFDBITS);
+ 
+ #define	getbits(name, x) \
+ 	if (uap->name) { \
+-		error = copyin((caddr_t)uap->name, (caddr_t)&ibits[x], \
++		sel->error = copyin((caddr_t)uap->name, (caddr_t)&sel->ibits[x], \
+ 		    (unsigned)(ni * sizeof(fd_mask))); \
+-		if (error) \
+-			goto done; \
++		if (sel->error) \
++			goto cont; \
+ 	}
+ 	getbits(in, 0);
+ 	getbits(ou, 1);
+ 	getbits(ex, 2);
+ #undef	getbits
+ 
+-	poll = 0;
+ 	if (uap->tv) {
+-		error = copyin((caddr_t)uap->tv, (caddr_t)&atv,
+-			sizeof (atv));
+-		if (error)
+-			goto done;
+-		if (itimerfix(&atv)) {
+-			error = EINVAL;
+-			goto done;
++		sel->error = copyin((caddr_t)uap->tv, (caddr_t)&sel->atv,
++			sizeof (sel->atv));
++		if (sel->error)
++			goto cont;
++		if (itimerfix(&sel->atv)) {
++			sel->error = EINVAL;
++			goto cont;
+ 		}
+-		if ((atv.tv_sec == 0) && (atv.tv_usec == 0))
+-			poll = 1;
+-		else  {
+-			s = splhigh();
+-			timevaladd(&atv, &time);
+-			splx(s);
++		if ((sel->atv.tv_sec == 0) && (sel->atv.tv_usec == 0))
++			sel->poll = 1;
++		else {
++			getthetime(&now);
++			timevaladd(&sel->atv, &now);
+ 		}
+ 	}
++cont:
++	selcont();
++}
++
++int
++selcont()
++{
++	register struct uap *uap = (struct uap *)u.u_ap;
++	register struct _select *sel = &u.u_select;
++	register struct proc *p;
++	struct timeval now;
++	int s, ncoll, ni;
++
++	if (sel->error < 0) {
++		/*
++		 * Back from the sleep: see why.
++		 */
++		register int wr = thread_wait_result();	/* plan 182.1 (variant t3) */
++
++		if (wr == THREAD_INTERRUPTED || wr == THREAD_SHOULD_TERMINATE)
++			sel->error = EINTR;
++		else
++			sel->error = 0;
++	}
++	if (sel->error > 0)
++		goto done;
+ retry:
+ 	ncoll = nselcoll;
+ 	p = u.u_procp;
+ 	p->p_flag |= SSEL;
+-	u.u_r.r_val1 = selscan(ibits, obits, uap->nd);
+-	error = u.u_error;	/* selscan may set u.u_error - UGH! */
+-	if (error || u.u_r.r_val1 || poll)
++	u.u_r.r_val1 = selscan(sel->ibits, sel->obits, uap->nd);
++	sel->error = u.u_error;	/* selscan may set u.u_error - UGH! */
++	if (sel->error || u.u_r.r_val1 || sel->poll)
+ 		goto done;
+ 	s = splhigh();
+-	/* this should be timercmp(&time, &atv, >=) */
+-	if (uap->tv && (time.tv_sec > atv.tv_sec ||
+-	    time.tv_sec == atv.tv_sec && time.tv_usec >= atv.tv_usec)) {
+-		splx(s);
+-		goto done;
++	if (uap->tv) {
++		getthetime(&now);
++		/* this should be timercmp(&now, &sel->atv, >=) */
++		if (now.tv_sec > sel->atv.tv_sec ||
++		    now.tv_sec == sel->atv.tv_sec &&
++		    now.tv_usec >= sel->atv.tv_usec) {
++			splx(s);
++			goto done;
++		}
+ 	}
+ 	if ((p->p_flag & SSEL) == 0 || nselcoll != ncoll) {
+ 		p->p_flag &= ~SSEL;
+@@ -382,46 +416,28 @@
+ 		goto retry;
+ 	}
+ 	p->p_flag &= ~SSEL;
+-	if (uap->tv) {
+-		lqsave = u.u_qsave;
+-		if (setjmp(&u.u_qsave)) {
+-			untimeout(unselect, (caddr_t)current_thread());
+-			error = EINTR;
+-			splx(s);
+-			goto done;
+-		}
+-		timeout(unselect, (caddr_t)current_thread(), hzto(&atv));
+-	}
+-	sleep((caddr_t)&selwait, PZERO+1);
+-	if (uap->tv) {
+-		u.u_qsave = lqsave;
+-		untimeout(unselect, (caddr_t)current_thread());
+-	}
+-	splx(s);
+-	goto retry;
++	sel->error = -1;	/* sleeping */
++	if (uap->tv)
++		sleep_with_continuation_and_deadline((caddr_t)&selwait,
++		    PZERO+1, selcont, &sel->atv);
++	else
++		sleep_with_continuation((caddr_t)&selwait, PZERO+1, selcont);
+ done:
++	ni = howmany(uap->nd, NFDBITS);
+ #define	putbits(name, x) \
+ 	if (uap->name) { \
+-		error = copyout((caddr_t)&obits[x], (caddr_t)uap->name, \
++		sel->error = copyout((caddr_t)&sel->obits[x], (caddr_t)uap->name, \
+ 		    (unsigned)(ni * sizeof(fd_mask))); \
+ 	}
+-	if (error == 0) {
++	if (sel->error == 0) {
+ 		putbits(in, 0);
+ 		putbits(ou, 1);
+ 		putbits(ex, 2);
+ #undef putbits
+ 	}
+-	if (error)
+-		u.u_error = error;
+-}
+-
+-unselect(p)
+-	register struct proc *p;
+-{
+-	register int s = splhigh();
+-	clear_wait((thread_t)p,		/* this is actually a thread */
+-		   THREAD_AWAKENED, TRUE);
+-	splx(s);
++	if (sel->error)
++		u.u_error = sel->error;
++	unix_syscall_return(sel->error);
+ }
+ 
+ selscan(ibits, obits, nfd)
+@@ -432,19 +448,10 @@
+ 	int flag;
+ 	struct file *fp;
+ 	int n = 0;
++	static int flags[3] = { FREAD, FWRITE, 0 };
+ 
+ 	for (which = 0; which < 3; which++) {
+-		switch (which) {
+-
+-		case 0:
+-			flag = FREAD; break;
+-
+-		case 1:
+-			flag = FWRITE; break;
+-
+-		case 2:
+-			flag = 0; break;
+-		}
++		flag = flags[which];
+ 		for (i = 0; i < nfd; i += NFDBITS) {
+ 			bits = ibits[which].fds_bits[i/NFDBITS];
+ 			if (bits == 0)
+@@ -456,6 +463,8 @@
+ 				}
+ 				if ((i + j) >= nfd)
+ 					break;
++				if ((i + j) >= u.u_ofile_cnt)
++					break;
+ 				fp = u.u_ofile[i + j];
+ 				if (fp == NULL) {
+ 					u.u_error = EBADF;
+@@ -483,8 +492,46 @@
+ 	return (1);
+ }
+ 
+-selwakeup(p, coll)
+-	register struct proc *p;
++/*
++ * Remember the current thread as the one selecting on an object; returns
++ * 1 if another thread is already waiting (a collision).
++ */
++int
++selthreadcache(threadp)
++	thread_t *threadp;
++{
++	register thread_t thread;
++	int s = splhigh();
++
++	if (thread = *threadp) {
++		if (thread->active && thread->wait_event == (event_t)&selwait) {
++			splx(s);
++			return (1);
++		}
++		*threadp = THREAD_NULL;
++		splx(s);
++		thread_deallocate(thread);
++	} else
++		splx(s);
++	thread = current_thread();
++	thread_reference(thread);
++	*threadp = thread;
++	return (0);
++}
++
++void
++selthreadclear(threadp)
++	thread_t *threadp;
++{
++	if (threadp == 0)
++		panic("selthreadclear not passed an address\n");
++	if (*threadp)
++		thread_deallocate_interrupt(*threadp);
++	*threadp = THREAD_NULL;
++}
++
++selwakeup(thread, coll)
++	register thread_t thread;
+ 	int coll;
+ {
+ 
+@@ -492,19 +539,13 @@
+ 		nselcoll++;
+ 		wakeup((caddr_t)&selwait);
+ 	}
+-	if (p) {
++	if (thread && thread->active) {
+ 		int s = splhigh();
+-		clear_wait((thread_t)p, THREAD_AWAKENED, TRUE);
+-#if	NeXT
+-		if (((thread_t)p)->task->proc)
+-			((thread_t)p)->task->proc->p_flag &= ~SSEL;
+-#else	NeXT
+-		if (((thread_t)p)->task->proc_index)
+-			proc[((thread_t)p)->task->proc_index].p_flag &= ~SSEL;
+-#endif	NeXT
++
++		if (thread->wait_event == (event_t)&selwait)
++			clear_wait(thread, THREAD_AWAKENED, TRUE);
++		if (thread->task->proc)
++			thread->task->proc->p_flag &= ~SSEL;
+ 		splx(s);
+ 	}
+ }
+-
+-
+-

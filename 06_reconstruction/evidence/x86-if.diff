@@ -1,0 +1,65 @@
+--- 01_resources/upstream/nextmach/mk-108.1/net/if.c	2026-09-11 10:02:49.559218197 +0900
++++ 07_kernel/src/bsd/net/if.c	2026-10-03 08:47:03.892961274 +0900
+@@ -243,9 +243,44 @@
+ {
+ 	register struct ifaddr *ifa;
+ 
+-	ifp->if_flags &= ~IFF_UP;
++	ifp->if_flags &= ~(IFF_UP | IFF_RUNNING);	/* plan 172 (authored; original bytes) */
+ 	for (ifa = ifp->if_addrlist; ifa; ifa = ifa->ifa_next)
+ 		pfctlinput(PRC_IFDOWN, &ifa->ifa_addr);
++	if_qflush(&ifp->if_snd);
++}
++
++/*
++ * plan 172 (authored; original _if_qflush 0x11ef3c, Reno form):
++ * flush an interface queue.
++ */
++if_qflush(ifq)
++	register struct ifqueue *ifq;
++{
++	register struct mbuf *m, *n;
++
++	n = ifq->ifq_head;
++	while (m = n) {
++		n = m->m_act;
++		m_freem(m);
++	}
++	ifq->ifq_head = 0;
++	ifq->ifq_tail = 0;
++	ifq->ifq_len = 0;
++}
++
++/*
++ * plan 172 (authored; original _if_down_all 0x11ef78, NeXT):
++ * mark every interface down.
++ */
++if_down_all()
++{
++	register struct ifnet *ifp;
++	int s;
++
++	s = splnet();
++	for (ifp = ifnet; ifp; ifp = ifp->if_next)
++		if_down(ifp);
++	splx(s);
+ }
+ 
+ #if	NeXT
+@@ -383,6 +418,16 @@
+ 		break;
+ #endif	NeXT
+ 
++#ifdef	MULTICAST
++	case SIOCADDMULTI:	/* plan 172/172.1 (authored; original 0x11f2b0-0x11f2e2, after the MTU group) */
++	case SIOCDELMULTI:
++		if (!suser())
++			return (u.u_error);
++		if (!ifp->if_control)
++			return (EOPNOTSUPP);
++		return (if_ioctl((netif_t)ifp, cmd, data));
++#endif	MULTICAST
++
+ 
+ 	default:
+ 		if (so->so_proto == 0)

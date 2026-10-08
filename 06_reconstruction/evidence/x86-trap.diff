@@ -1,0 +1,306 @@
+--- 01_resources/upstream/darwin01/kernel/machdep/i386/trap.c	1999-03-17 01:55:33.000000000 +0900
++++ 07_kernel/src/machdep/i386/trap.c	2026-10-04 03:54:12.122812733 +0900
+@@ -55,6 +55,9 @@
+ #import <sys/proc.h>
+ #import <sys/user.h>
+ #import <sys/syslog.h>
++#import <sys/param.h>		/* plan 273: CHECK_SIGNALS */
++#import <kern/ast.h>		/* plan 273 */
++#import <kern/sched.h>		/* plan 273: csw_needed */
+ 
+ #define N_BACKTRACE		4	// number of backtrace frames to print
+ 
+@@ -86,6 +89,8 @@
+ 	int			nframes
+ );
+ 
++void	unix_syscall_return(int error);	/* plan 273 */
++
+ void
+ user_trap(
+     thread_saved_state_t	*state
+@@ -104,8 +109,8 @@
+     thread = current_thread();
+     trapno = state->trapno;
+     
+-    if (p = current_proc())
+-	syst = p->p_stats->p_ru.ru_stime;
++    if (p = u.u_procp)		/* plan 273: 4.3BSD u area, as in NeXTMach next/trap.c */
++	syst = u.u_ru.ru_stime;
+     
+     switch (trapno) {
+ 
+@@ -163,11 +168,14 @@
+ 	
+     case T_PAGE_FAULT:
+     	va = cr2();
++	uerror = u.u_error;	/* plan 273: as NeXTMach next/trap.c:410 */
++	u.u_error = 0;
+ 	result = vm_fault(thread->task->map, trunc_page(va),
+ 			    frame->err.pgfault.wrtflt?
+ 				VM_PROT_READ | VM_PROT_WRITE:
+ 				VM_PROT_READ,
+ 			    FALSE, 0);
++	u.u_error = uerror;	/* plan 273 */
+ 	if (result == KERN_SUCCESS)
+ 	    goto out;
+ 
+@@ -195,14 +203,14 @@
+     /* NOTREACHED */
+ 			    
+ out:
+-    if (p && (p->p_flag & P_PROFIL)) {
++    if (p && u.u_prof.pr_scale) {	/* plan 273: u_prof, as NeXTMach next/trap.c:550 */
+ 	int		ticks;
+-	struct timeval	*tv = &p->p_stats->p_ru.ru_stime;
++	struct timeval	*tv = &u.u_ru.ru_stime;
+ 			
+ 	ticks = ((tv->tv_sec - syst.tv_sec) * 1000 +
+ 		    (tv->tv_usec - syst.tv_usec) / 1000) / (tick / 1000);
+ 	if (ticks)
+-	    addupc_task(p, frame->eip, ticks);
++	    addupc(frame->eip, &u.u_prof, ticks);
+     }
+ 
+     thread_exception_return();
+@@ -240,6 +248,11 @@
+ 	
+     case T_PAGE_FAULT:
+ 	va = cr2();
++
++	if (current_thread()) {	/* plan 273: save u.u_error, as NeXTMach next/trap.c:262 */
++	    uerror = u.u_error;
++	    u.u_error = 0;
++	}
+ 	
+ 	if (va >= KERNEL_LINEAR_BASE)
+ 	    result = kernel_pagefault(va, frame);
+@@ -250,6 +263,9 @@
+ 				    VM_PROT_READ,
+ 				FALSE, 0);
+ 
++	if (current_thread())	/* plan 273 */
++	    u.u_error = uerror;
++
+ 	if (result == KERN_SUCCESS)
+ 	    return;
+     
+@@ -318,8 +334,8 @@
+     if (kernel_try_recover(frame))
+     	return;   
+ 
+-#if	GDB
+-    DoSafeAlert("Kernel Trap", "", FALSE);
++    /* plan 273: debugger path unconditional (the original kernel has GDB 0, as if_venip shows, yet keeps this path) */
++    DoAlert("Kernel Trap", "");	/* plan 273: DoAlert in the original */
+     printf("unexpected kernel trap %x eip %x\n", trapno, frame->eip);
+     switch (trapno) {
+     
+@@ -383,10 +399,6 @@
+     kdp_raise_exception(_exception, code, subcode, state);
+     DoRestore();
+     panic("continued after kernel trap");
+-#else
+-    printf("unexpected kernel trap %x eip %x\n", trapno, frame->eip);
+-    panic("kernel trap");
+-#endif
+ }
+ 
+ static
+@@ -446,11 +458,7 @@
+     else
+     	code = EXC_I386_BREAKPOINT;
+ 
+-#if	GDB
+-    kdp_raise_exception(EXC_BREAKPOINT, code, 0, state);
+-#else
+-    panic("kernel debug trap");
+-#endif
++    kdp_raise_exception(EXC_BREAKPOINT, code, 0, state);	/* plan 273: unconditional */
+ }
+ 
+ static
+@@ -647,6 +655,11 @@
+     /* NOTREACHED */
+ }
+ 
++/*
++ * plan 273: unix_syscall and unix_syscall_return use the 4.3BSD u area
++ * (setjmp(&uu_qsave), uu_eosys, CS_RPAUSE), as NeXTMach mk-108.1
++ * next/trap.c:865-1010; argument fetch as Darwin.
++ */
+ void
+ unix_syscall(
+     thread_saved_state_t	*state
+@@ -662,15 +675,15 @@
+     int				nargs, error = 0;
+     unsigned short		code;
+     caddr_t			params;
+-	int rval[2];
+-    
++
+     check_for_trace(state);
+ 
+     uthread = thread->_uthread;
+     uthread->uu_ar0 = (int *)state;
+-    if (p = current_proc())	
+-	syst = p->p_stats->p_ru.ru_stime;
+-    
++    if (p = u.u_procp)
++	syst = u.u_ru.ru_stime;
++    u.u_error = 0;
++
+     code = regs->eax;
+     params = (caddr_t)frame->esp + sizeof (int);
+     callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
+@@ -679,7 +692,7 @@
+ 	params += sizeof (int);
+ 	callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
+     }
+-    
++
+     if ((nargs = (callp->sy_narg * sizeof (int))) &&
+ 	    (error = copyin(params, (caddr_t)uthread->uu_arg, nargs)) != 0) {
+ 	regs->eax = error;
+@@ -687,63 +700,101 @@
+ 	thread_exception_return();
+ 	/* NOTREACHED */
+     }
+-    
+-    rval[0] = 0;
+-    rval[1] = regs->edx;
+ 
+-	error = (*(callp->sy_call))(p, (caddr_t)uthread->uu_arg, rval);
+-	
+-	if (error == ERESTART) {
+-		state->frame.eip -= 7;
+-	}
+-	else if (error != EJUSTRETURN) {
+-		if (error) {
++    uthread->uu_r.r_val1 = 0;
++    uthread->uu_r.r_val2 = regs->edx;
++
++    if (setjmp(&uthread->uu_qsave)) {
++	if (uthread->uu_error == 0 && uthread->uu_eosys != RESTARTSYS)
++	    error = EINTR;
++    } else {
++	uthread->uu_eosys = NORMALRETURN;
++	uthread->uu_rpswhich = 0;	/* CS_RPAUSE */
++	uthread->uu_rpsfs = 0;		/* CS_RPAUSE */
++	(*(callp->sy_call))();
++	error = uthread->uu_error;
++    }
++
++    unix_syscall_return(error);
++}
++
++void
++unix_syscall_return(
++    int				error
++)
++{
++    thread_t			thread = current_thread();
++    thread_saved_state_t	*state = USER_REGS(thread);
++    struct uthread		*uthread = thread->_uthread;
++
++/* BEGIN CS_RPAUSE */
++    if (error) switch (error) {
++
++    case ENOSPC:
++	if (fspause(0))
++	    u.u_eosys = RESTARTSYS;
++	error = uthread->uu_error;	/* can change in fspause */
++	break;
++
++    case EAGAIN:	/* as in NeXTMach next/trap.c; these cases produce no code */
++    case ENOMEM:
++    case ENFILE:
++	break;
++    }
++/* END CS_RPAUSE */
++
++    if (uthread->uu_eosys == NORMALRETURN) {
++	if (error) {
+ 	    state->regs.eax = error;
+ 	    state->frame.eflags |= EFL_CF;	/* carry bit */
+-		} else { /* (not error) */
+-	    state->regs.eax = rval[0];
+-	    state->regs.edx = rval[1];
++	} else {
++	    state->regs.eax = uthread->uu_r.r_val1;
++	    state->regs.edx = uthread->uu_r.r_val2;
+ 	    state->frame.eflags &= ~EFL_CF;
+-		} 
+ 	}
+-	/* else  (error == EJUSTRETURN) { nothing } */
++    }
++    else if (uthread->uu_eosys == RESTARTSYS)
++	state->frame.eip -= 7;
++
++    uthread->uu_error = error;
+ 
+     thread_exception_return();
+     /* NOTREACHED */
+-	
+ }
+ 
+ 
++/*
++ * plan 273: check_for_ast uses the u area (SOWEUPC, u_prof, issig/psig,
++ * ru_nivcsw), as NeXTMach mk-108.1 next/trap.c:1101.
++ */
+ void
+ check_for_ast(
+     thread_saved_state_t	*state
+ )
+ {
+     thread_t			thread = current_thread();
+-    struct proc			*p = current_proc();
++    struct proc			*p = u.u_procp;
+ 
+     while (TRUE) {
+ 	ast_t			reasons;
+ 	int			mycpu = cpu_number();
+-	int					signum;
+ 
+-    	cli();		// disable interrupts
+-	
+-	reasons = ast_needed(mycpu);	
++	cli();		/* disable interrupts */
++
++	reasons = ast_needed(mycpu);
+ 
+-	if (p) {		    
+-	    if ((p->p_flag & P_OWEUPC) && (p->p_flag & P_PROFIL)) {
+-		addupc_task(p, state->frame.eip, 1);
+-		p->p_flag &= ~P_OWEUPC;
++	if (p) {
++	    if ((p->p_flag & SOWEUPC) && u.u_prof.pr_scale) {
++		addupc(state->frame.eip, &u.u_prof, 1);
++		p->p_flag &= ~SOWEUPC;
+ 	    }
+-	    
++
+ 	    ast_off(mycpu, AST_UNIX);
+-	    
++
+ 	    if (CHECK_SIGNALS(p, thread, thread->_uthread)) {
+-			signum = issignal(p);
+-			if (signum)
+-				postsig(signum);
+-			cli();
++		if (p->p_cursig || issig(0))
++		    psig();
++		cli();
+ 	    }
+ 	}
+ 
+@@ -754,7 +805,7 @@
+ 	else
+ 	if ((reasons & AST_BLOCK) ||
+ 		csw_needed(thread, current_processor())) {
+-		p->p_stats->p_ru.ru_nivcsw++;
++	    u.u_ru.ru_nivcsw++;
+ 	    thread_block_with_continuation(thread_exception_return);
+ 	}
+ 	else

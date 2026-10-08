@@ -1,0 +1,153 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/bsd/kern/qsort.c	2026-10-04 01:46:48.212911012 +0900
+@@ -0,0 +1,150 @@
++/*
++ * qsort.c -- kernel quicksort.
++ *
++ * plan 270: written from the original OPENSTEP 4.2 kernel bytes
++ * (D024).  No reference tree in 01_resources holds this routine; the
++ * algorithm the bytes show (static comparison routine and size,
++ * a median-of-three quicksort qst() for partitions of at least
++ * MTHRESH elements, and a sentinel insertion sort over the whole
++ * array) is the one of the 4.3BSD C library qsort (University of
++ * California, Berkeley), so the text necessarily resembles it.
++ */
++
++#define	THRESH		4		/* threshold for insertion */
++#define	MTHRESH		6		/* threshold for median */
++
++/* plan 270: initialized, so they sit in __data as in the original (0x1dac04) */
++static int	(*qcmp)() = 0;		/* the comparison routine */
++static int	qsz = 0;		/* size of each record */
++static int	thresh = 0;		/* THRESH in bytes */
++static int	mthresh = 0;		/* MTHRESH in bytes */
++
++static void	qst();
++
++void
++qsort(base, n, size, compar)
++	char	*base;
++	int	n;
++	int	size;
++	int	(*compar)();
++{
++	register char c, *i, *j, *lo, *hi;
++	char *min, *max;
++
++	if (n <= 1)
++		return;
++	qsz = size;
++	qcmp = compar;
++	thresh = qsz * THRESH;
++	mthresh = qsz * MTHRESH;
++	max = base + n * qsz;
++	if (n >= THRESH) {
++		qst(base, max);
++		hi = base + thresh;
++	} else
++		hi = max;
++
++	/* smallest of the first THRESH records goes first, as a sentinel */
++	for (j = lo = base; (lo += qsz) < hi; )
++		if ((*qcmp)(j, lo) > 0)
++			j = lo;
++	if (j != base) {
++		for (i = base, hi = base + qsz; i < hi; ) {
++			c = *j;
++			*j++ = *i;
++			*i++ = c;
++		}
++	}
++
++	/* insertion sort, shifting a byte at a time */
++	for (min = base; (hi = min += qsz) < max; ) {
++		while ((*qcmp)(hi -= qsz, min) > 0)
++			;
++		if ((hi += qsz) != min) {
++			for (lo = min + qsz; --lo >= min; ) {
++				c = *lo;
++				for (i = j = lo; (j -= qsz) >= hi; i = j)
++					*i = *j;
++				*i = c;
++			}
++		}
++	}
++}
++
++static void
++qst(base, max)
++	char *base, *max;
++{
++	register char c, *i, *j, *jj;
++	register int ii;
++	char *mid, *tmp;
++	int lo, hi;
++
++	lo = max - base;
++	do {
++		/* median of first, middle and last becomes the middle */
++		mid = i = base + qsz * ((lo / qsz) >> 1);
++		if (lo >= mthresh) {
++			j = ((*qcmp)((jj = base), i) > 0 ? jj : i);
++			if ((*qcmp)(j, (tmp = max - qsz)) > 0) {
++				j = (j == jj ? i : jj);
++				if ((*qcmp)(j, tmp) < 0)
++					j = tmp;
++			}
++			if (j != i) {
++				ii = qsz;
++				do {
++					c = *i;
++					*i++ = *j;
++					*j++ = c;
++				} while (--ii);
++			}
++		}
++
++		/* partition around mid */
++		for (i = base, j = max - qsz; ; ) {
++			while (i < mid && (*qcmp)(i, mid) <= 0)
++				i += qsz;
++			while (j > mid) {
++				if ((*qcmp)(mid, j) <= 0) {
++					j -= qsz;
++					continue;
++				}
++				tmp = i + qsz;
++				if (i == mid) {
++					mid = jj = j;
++				} else {
++					jj = j;
++					j -= qsz;
++				}
++				goto swap;
++			}
++			if (i == mid)
++				break;
++			jj = mid;
++			tmp = mid = i;
++			j -= qsz;
++		swap:
++			ii = qsz;
++			do {
++				c = *i;
++				*i++ = *jj;
++				*jj++ = c;
++			} while (--ii);
++			i = tmp;
++		}
++
++		/* recurse on the smaller part, loop on the larger */
++		i = (j = mid) + qsz;
++		if ((lo = j - base) <= (hi = max - i)) {
++			if (lo >= thresh)
++				qst(base, j);
++			base = i;
++			lo = hi;
++		} else {
++			if (hi >= thresh)
++				qst(i, max);
++			max = j;
++		}
++	} while (lo >= thresh);
++}

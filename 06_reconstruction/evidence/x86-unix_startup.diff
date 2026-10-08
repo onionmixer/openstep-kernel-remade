@@ -1,0 +1,155 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/machdep/i386/unix_startup.c	2026-10-04 00:00:24.950864618 +0900
+@@ -0,0 +1,152 @@
++/*
++ * machdep/i386/unix_startup.c -- BSD data structures and the buffer
++ * pool at boot (plan 259).
++ *
++ * Written for this project from the OPENSTEP 4.2 x86 kernel object
++ * [0x193a98, 0x193e58) (D024).  NeXTMach next/machdep.c and Darwin
++ * 0.1 machdep/i386/unix_startup.c, earlier and later forms of this
++ * code, were consulted for structure only; the sizing and allocation
++ * follow the bytes and may resemble them (D027).
++ */
++
++#import <mach/mach_types.h>
++
++#import <vm/vm_kern.h>
++#import <vm/vm_page.h>
++
++#import <sys/param.h>
++#import <sys/buf.h>
++#import <sys/clist.h>
++#import <sys/dnlc.h>
++#import <sys/mbuf.h>
++#import <sys/systm.h>
++#import <sys/tty.h>
++
++extern struct tty	cons;
++extern struct tty	*cons_tp;
++
++int		nbuf = 0;
++int		nmfsbuf = 0;
++int		bufpages = 0;
++int		show_space = 0;
++
++vm_map_t	buffer_map;
++
++#define valloc(name, type, num)						\
++    (name) = (type *)(v); (v) = (vm_offset_t)((name)+(num))
++
++#define MEG	(1024*1024)
++
++void
++startup_early(void)
++{
++    vm_offset_t		firstaddr, v;
++    mem_region_t	rp = mem_region;
++
++    v = firstaddr = rp->first_phys_addr;
++
++    valloc(cfree, struct cblock, nclist);
++    valloc(ncache, struct ncache, ncsize);
++
++    /*
++     * One buffer header for every fiftieth of memory, from 16 to 255
++     * of them, each with a full MAXBSIZE of pages.
++     */
++    if (nbuf == 0) {
++	nbuf = atop(mem_size / 50);
++	if (nbuf > 255)
++	    nbuf = 255;
++    }
++    if (nbuf < 16)
++	nbuf = 16;
++    bufpages = (MAXBSIZE / page_size) * nbuf;
++
++    valloc(buf, struct buf, nbuf);
++
++    /* mfs may take at most half of the buffers */
++    if (nmfsbuf == 0)
++	nmfsbuf = nbuf / 2;
++
++    bzero(firstaddr, v - firstaddr);
++    rp->first_phys_addr = pmap_resident_extract(kernel_pmap, v);
++}
++
++startup(
++    vm_offset_t		firstaddr
++)
++{
++    unsigned int	i;
++    vm_offset_t		v, buffer_max;
++    vm_size_t		size;
++    int			base, residual;
++    extern int		vm_page_free_count;
++
++    cons_tp = &cons;
++    cons.t_dev = makedev(12, 0);
++    kminit();
++
++    panic_init();
++    printf(version);
++
++    printf("physical memory = %d.%d%d megabytes.\n",
++	mem_size/MEG,
++	((mem_size%MEG)*10)/MEG,
++	((mem_size%(MEG/10))*100)/MEG);
++
++    /*
++     * Find room for the buffer pool, then give it back so the
++     * submap below gets the same addresses.
++     */
++    firstaddr = round_page(firstaddr);
++    (void) vm_map_find(kernel_map, vm_object_allocate(0), (vm_offset_t) 0,
++		&firstaddr, 8*1024*1024, TRUE);
++    vm_map_remove(kernel_map, firstaddr, firstaddr + 8*1024*1024);
++
++    v = firstaddr;
++    valloc(buffers, char, MAXBSIZE * nbuf);
++    base = bufpages / nbuf;
++    residual = bufpages % nbuf;
++    v = round_page(v);
++    size = v - (vm_offset_t)buffers;
++
++    buffer_map = kmem_suballoc(kernel_map, &firstaddr, &buffer_max,
++				size, TRUE);
++    (void) vm_map_find(buffer_map, vm_object_allocate(size),
++		(vm_offset_t) 0, &firstaddr, size, FALSE);
++
++    /*
++     * The first residual buffers get base + 1 pages, the others base;
++     * the rest of each buffer is virtual space only.
++     */
++    for (i = 0; i < nbuf; i++) {
++	vm_size_t	thisbsize;
++	vm_offset_t	curbuf;
++
++	thisbsize = page_size * (i < residual ? base + 1 : base);
++	curbuf = (vm_offset_t)buffers + i * MAXBSIZE;
++	vm_map_pageable(buffer_map, curbuf, curbuf + thisbsize, FALSE);
++    }
++
++    {
++	register int	nbytes;
++
++	nbytes = ptoa(bufpages);
++	printf("using %d buffers containing %d.%d%d megabytes of memory\n",
++		nbuf,
++		nbytes/MEG,
++		((nbytes%MEG)*10)/MEG,
++		((nbytes%(MEG/10))*100)/MEG);
++	nbytes = ptoa(vm_page_free_count);
++	printf("available memory = %d.%d%d megabytes. vm_page_free_count = %x\n",
++		nbytes/MEG,
++		((nbytes%MEG)*10)/MEG,
++		((nbytes%(MEG/10))*100)/MEG,
++		vm_page_free_count);
++    }
++
++    mb_map = kmem_suballoc(kernel_map,
++		(vm_offset_t *) &mbutl,
++		(vm_offset_t *) &embutl,
++		(vm_size_t) (nmbclusters * MCLBYTES),
++		FALSE);
++}

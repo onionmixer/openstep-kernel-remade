@@ -1,0 +1,80 @@
+--- 01_resources/upstream/mach4/kernel/ipc/ipc_init.c	2026-09-11 10:02:48.332203113 +0900
++++ 07_kernel/src/ipc/ipc_init.c	2026-10-04 01:10:21.463022722 +0900
+@@ -34,6 +34,8 @@
+  *	Functions to initialize the IPC system.
+  */
+ 
++#include <mach_old_vm_copy.h>	/* plan 267 */
++
+ #include <mach/kern_return.h>
+ #include <kern/mach_param.h>
+ #include <kern/ipc_host.h>
+@@ -49,9 +51,13 @@
+ #include <ipc/ipc_kmsg.h>
+ #include <ipc/ipc_hash.h>
+ #include <ipc/ipc_init.h>
++#include <kern/task.h>	/* plan 267: task_create for ipc_soft_task */
+ 
+ 
+-
++#if	MACH_OLD_VM_COPY	/* plan 267 */
++task_t ipc_soft_task;
++vm_map_t ipc_soft_map;
++#endif	/* MACH_OLD_VM_COPY */
+ vm_map_t ipc_kernel_map;
+ vm_size_t ipc_kernel_map_size = 1024 * 1024;
+ 
+@@ -80,25 +86,29 @@
+ 	ipc_space_zone = zinit(sizeof(struct ipc_space),
+ 			       ipc_space_max * sizeof(struct ipc_space),
+ 			       sizeof(struct ipc_space),
+-			       IPC_ZONE_TYPE, "ipc spaces");
++			       FALSE, "ipc spaces");
++	zchange(ipc_space_zone, FALSE, FALSE, TRUE, FALSE);	/* plan 267: exhaustible */
+ 
+ 	ipc_tree_entry_zone =
+ 		zinit(sizeof(struct ipc_tree_entry),
+ 			ipc_tree_entry_max * sizeof(struct ipc_tree_entry),
+ 			sizeof(struct ipc_tree_entry),
+-			IPC_ZONE_TYPE, "ipc tree entries");
++			FALSE, "ipc tree entries");
++	zchange(ipc_tree_entry_zone, FALSE, FALSE, TRUE, FALSE);	/* plan 267: exhaustible */
+ 
+ 	ipc_object_zones[IOT_PORT] =
+ 		zinit(sizeof(struct ipc_port),
+ 		      ipc_port_max * sizeof(struct ipc_port),
+ 		      sizeof(struct ipc_port),
+-		      ZONE_EXHAUSTIBLE, "ipc ports");
++		      FALSE, "ipc ports");
++	zchange(ipc_object_zones[IOT_PORT], FALSE, FALSE, TRUE, FALSE);	/* plan 267: exhaustible */
+ 
+ 	ipc_object_zones[IOT_PORT_SET] =
+ 		zinit(sizeof(struct ipc_pset),
+ 		      ipc_pset_max * sizeof(struct ipc_pset),
+ 		      sizeof(struct ipc_pset),
+-		      IPC_ZONE_TYPE, "ipc port sets");
++		      FALSE, "ipc port sets");
++	zchange(ipc_object_zones[IOT_PORT_SET], FALSE, FALSE, TRUE, FALSE);	/* plan 267: exhaustible */
+ 
+ 	/* create special spaces */
+ 
+@@ -132,6 +142,19 @@
+ {
+ 	vm_offset_t min, max;
+ 
++	/*
++	 *	plan 267: soft task as in NeXTMach mk-108.1
++	 *	kern/ipc_globals.c:475-483 (without its pmap line,
++	 *	absent from the original).
++	 */
++	if (task_create(TASK_NULL /* kernel_task */, FALSE, &ipc_soft_task)
++					!= KERN_SUCCESS)
++		panic("ipc_init");
++
++#if	MACH_OLD_VM_COPY
++	ipc_soft_map = ipc_soft_task->map;
++#endif	/* MACH_OLD_VM_COPY */
++
+ 	ipc_kernel_map = kmem_suballoc(kernel_map, &min, &max,
+ 				       ipc_kernel_map_size, TRUE);
+ 

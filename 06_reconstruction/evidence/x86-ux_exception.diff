@@ -1,0 +1,299 @@
+--- 01_resources/upstream/nextmach/mk-108.1/uxkern/ux_exception.c	2026-09-11 10:02:49.649219303 +0900
++++ 07_kernel/src/uxkern/ux_exception.c	2026-10-03 16:43:28.446620174 +0900
+@@ -64,69 +64,60 @@
+  **********************************************************************
+  */
+ 
++/*
++ * plan 219 (authored, D024; original 0x171cb4-0x172037): the NeXTMach
++ * file above used the Mach 2.5 IPC (kern_obj_t, kern/ipc_pobj.h); this
++ * body is written from the original bytes and uses the Mach 3 kernel's
++ * compatibility port calls (kern/mach_user_internal.h maps them to the
++ * _EXTERNAL entry points).
++ */
++
+ #import <sys/param.h>
+ 
+-#import <sys/boolean.h>
+-#import <sys/exception.h>
+-#import <sys/kern_return.h>
+-#import <sys/message.h>
+-#import <sys/port.h>
++#import <mach/boolean.h>
++#import <mach/exception.h>
++#import <mach/kern_return.h>
++#import <mach/message.h>
++#import <mach/port.h>
+ #import <kern/task.h>
+ #import <kern/thread.h>
+ #import <sys/user.h>
+ #import <sys/ux_exception.h>
+-#import <sys/mig_errors.h>
+ #import <kern/kalloc.h>
+ 
+-#import <kern/exc.h>
+ #import <kern/mach_user_internal.h>
+ 
+ #import <kern/sched_prim.h>
+ 
+-#import <kern/ipc_pobj.h>
+-#import <kern/ipc_copyin.h>
+-
+ /*
+  *	Unix exception handler.
+  */
+ 
+-void	ux_exception();
++static void	ux_exception();
+ 
+-decl_simple_lock_data(,	ux_handler_init_lock)
++decl_simple_lock_data(static,	ux_handler_init_lock)
+ port_t			ux_exception_port;
+ 
+-port_t	ux_handler_task_self;
+-task_t	ux_handler_task;
++static port_t	ux_handler_self;
+ 
+-void	ux_handler()
++static void
++ux_handler()
+ {
++	task_t			self = current_thread()->task;
+ 	register kern_return_t	r;
+-	port_name_t		ux_notify_port;
+ 	port_name_t		ux_local_port;
+ 	port_set_name_t		ux_set;
+ 	register port_name_t	rep_port;
+-	struct rep_msg {
+-		msg_header_t	h;
+-		int		d[4];
+-	} rep_msg;
+-	struct exc_msg {
+-		msg_header_t	h;
+-		int		d[16];	/* max is actually 10 */
+-	} exc_msg_data, *exc_msg = &exc_msg_data;
+-	msg_size_t exc_msg_size = sizeof(exc_msg_data);
+-
+-	ux_handler_task = current_task();
+-	ux_handler_task->kernel_vm_space = TRUE;
+-	current_thread()->ipc_kernel = TRUE;
+ 
+-	simple_lock(&ux_handler_init_lock);
++	self->kernel_vm_space = TRUE;
++	ux_handler_self = task_self();
+ 
+-	ux_handler_task_self = task_self();
++	simple_lock(&ux_handler_init_lock);
+ 
+ 	/*
+ 	 *	Allocate a port set that we will receive on.
+ 	 */
+-	r = port_set_allocate(ux_handler_task_self, &ux_set);
++	r = port_set_allocate(ux_handler_self, &ux_set);
+ 	if (r != KERN_SUCCESS)
+ 		panic("ux_handler: port_set_allocate failed");
+ 
+@@ -134,125 +125,111 @@
+ 	 *	Allocate an exception port and use object_copyin to
+ 	 *	translate it to the global name.  Put it into the set.
+ 	 */
+-	r = port_allocate(ux_handler_task_self, &ux_local_port);
++	r = port_allocate(ux_handler_self, &ux_local_port);
+ 	if (r != KERN_SUCCESS)
+ 		panic("ux_handler: port_allocate failed");
+-	r = port_set_add(ux_handler_task_self, ux_set, ux_local_port);
++	r = port_set_add(ux_handler_self, ux_set, ux_local_port);
+ 	if (r != KERN_SUCCESS)
+ 		panic("ux_handler: port_set_add failed");
+-	ux_exception_port = ux_local_port;
+-	if (!object_copyin(ux_handler_task, ux_exception_port,
++	if (!object_copyin(self, ux_local_port,
+ 			   MSG_TYPE_PORT, FALSE,
+-			   (kern_obj_t *) &ux_exception_port))
++			   (void *) &ux_exception_port))
+ 		panic("ux_handler: object_copyin(ux_exception_port) failed");
+ 
+ 	/*
+ 	 *	Release kernel to continue.
+ 	 */
+-	thread_wakeup((int) &ux_exception_port);
++	thread_wakeup((event_t) &ux_exception_port);
+ 	simple_unlock(&ux_handler_init_lock);
+ 
+-/*	bcopy("exception_hdlr",u.u_comm,15); /* XXX */
++	task_name("ux_except");
+ 
+ 	/* Message handling loop. */
+ 
+- 	for (;;) {
+-		exc_msg->h.msg_local_port = ux_set;
+-		exc_msg->h.msg_size = exc_msg_size;
+-		if ((r = msg_receive(&exc_msg->h, MSG_OPTION_NONE, 0))
++	for (;;) {
++		struct rep_msg {		/* plan 219.1: declared in the loop block (variant m1) */
++			msg_header_t	h;
++			int		d[4];
++		} rep_msg;
++		struct exc_msg {
++			msg_header_t	h;
++			int		d[16];	/* max is actually 10 */
++		} exc_msg;
++
++		exc_msg.h.msg_local_port = ux_set;
++		exc_msg.h.msg_size = sizeof (exc_msg);
++		if ((r = msg_receive(&exc_msg.h, MSG_OPTION_NONE, 0))
+ 		    == RCV_SUCCESS) {
+-			if (exc_server(&exc_msg->h, &rep_msg.h)) {
+-			    rep_port = rep_msg.h.msg_remote_port;
+-			    (void) msg_send(&rep_msg.h, MSG_OPTION_NONE, 0);
+-			    (void) port_deallocate(ux_handler_task_self,
+-						   rep_port);
+-			}
+-		} else if (r == RCV_TOO_LARGE) {
+-			if (exc_msg != &exc_msg_data)
+-				panic("exception_handler: exc_msg");
+-
+-			/*
+-			 *	Some bozo sent us a large request.
+-			 *	To receive it, we have to switch to
+-			 *	using a larger buffer.
+-			 */
+-
+-			exc_msg = (struct exc_msg *) kalloc(MSG_SIZE_MAX);
+-			exc_msg_size = MSG_SIZE_MAX;
+-		} else
++			rep_port = exc_msg.h.msg_remote_port;
++			if (exc_server(&exc_msg.h, &rep_msg.h))
++				(void) msg_send(&rep_msg.h, MSG_OPTION_NONE, 0);
++			if (rep_port)
++				(void) port_deallocate(ux_handler_self,
++						       rep_port);
++		} else if (r != RCV_TOO_LARGE)
+ 			panic("exception_handler");
+ 	}
+ }
+ 
++void
++ux_handler_init()
++{
++	task_t	handler_task;	/* plan 219.1: variant f1 */
++
++	simple_lock_init(&ux_handler_init_lock);
++	ux_exception_port = PORT_NULL;
++	handler_task = kernel_task_create(kernel_task, 0);
++	(void) kernel_thread(handler_task, ux_handler, (void *) 0);
++	simple_lock(&ux_handler_init_lock);
++	if (ux_exception_port == PORT_NULL)
++		thread_sleep((event_t) &ux_exception_port,
++			     simple_lock_addr(ux_handler_init_lock), FALSE);
++	else
++		simple_unlock(&ux_handler_init_lock);
++}
++
+ kern_return_t
+ catch_exception_raise(exception_port, thread_port, task_port,
+ 	exception, code, subcode)
+ port_t		exception_port, thread_port, task_port;
+ int		exception, code, subcode;
+ {
++    task_t	task = current_thread()->task;	/* plan 219.1: variant e1 */
+     thread_t	thread;
+-    task_t	task;
+-    int		signal = 0;
++    port_t	kport;
+     int		ret = KERN_SUCCESS;
+-
+-#ifdef	lint
+-    exception_port++;
+-#endif	lint
+-
+-    /*
+-     *	Convert local port names to structure pointers.  Have object_copyin
+-     *	deallocate our rights to the ports.  (it returns a reference).
+-     */
+-    if (!object_copyin(ux_handler_task, task_port,
+-		       MSG_TYPE_PORT, TRUE,
+-		       (kern_obj_t *) &task_port))
+-	return(KERN_INVALID_ARGUMENT);
+-
+-    if (!object_copyin(ux_handler_task, thread_port,
+-		       MSG_TYPE_PORT, TRUE,
+-		       (kern_obj_t *) &thread_port)) {
+-	port_release(task_port);
+-	return(KERN_INVALID_ARGUMENT);
+-    }
+-
+-    task = convert_port_to_task(task_port);
+-    thread = convert_port_to_thread(thread_port);
++    int		signal = 0;
+ 
+     /*
+-     *	Catch bogus ports
++     *	Convert the thread port to a thread.
+      */
+-    if (task != TASK_NULL && thread != THREAD_NULL) {
+-
++    if (!object_copyin(task, thread_port,
++		       MSG_TYPE_PORT, FALSE, (void *) &kport))
++	ret = KERN_INVALID_ARGUMENT;
++    else {
++	thread = convert_port_to_thread(kport);
++	port_release(kport);
++	if (thread != THREAD_NULL) {
+ 	    /*
+ 	     *	Convert exception to unix signal and code.
+ 	     */
+ 	    ux_exception(exception, code, subcode, &signal,
+-		&thread->u_address.uthread->uu_code);
++		&thread->_uthread->uu_code);
+ 
+ 	    /*
+ 	     *	Send signal.
+ 	     */
+ 	    if (signal != 0)
+ 		thread_psignal(thread, signal);
+-    }
+-    else {
+-	ret = KERN_INVALID_ARGUMENT;
+-    }
+ 
+-    /*
+-     *	Delete the references acquired in the convert routines.
+-     */
+-    if (task != TASK_NULL) 
+-	task_deallocate(task);
+-
+-    if (thread != THREAD_NULL)
+-	thread_deallocate(thread);
++	    thread_deallocate(thread);
++	}
++	else
++	    ret = KERN_INVALID_ARGUMENT;
++    }
+ 
+-    /*
+-     *	Delete the port references that came from port_copyin.
+-     */
+-    port_release(task_port);
+-    port_release(thread_port);
++    (void) port_deallocate(ux_handler_self, task_port);
++    (void) port_deallocate(ux_handler_self, thread_port);
+ 
+     return(ret);
+ }
+@@ -266,7 +243,8 @@
+  *	to attempt translation first.
+  */
+ 
+-void ux_exception(exception, code, subcode, ux_signal, ux_code)
++static void
++ux_exception(exception, code, subcode, ux_signal, ux_code)
+ int	exception, code, subcode;
+ int	*ux_signal, *ux_code;
+ {
+@@ -317,5 +295,3 @@
+ 		break;
+ 	}
+ }
+-
+-

@@ -1,0 +1,86 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/driverkit/memcpy.c	2026-10-04 05:29:30.070764239 +0900
+@@ -0,0 +1,83 @@
++/*
++ * memcpy.c - _IOCopyMemory for i386 (plan 284).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * original 0x1a5618-0x1a5710).  Darwin 0.1 driverkit-1/libDriver/i386/
++ * memcpy.c was consulted for structure only; following the original
++ * bytes (rep movsb/movsw/movsl) makes the code close to it (D027).
++ */
++
++#import <driverkit/driverTypes.h>
++
++#define UNS(voidp)	((unsigned int)(voidp))
++#define BYTES_PAST_ALIGNMENT(voidp, boundary) (UNS(voidp) & (boundary - 1))
++#define CHAR(voidp, offset)	(*(char *)(UNS(voidp) + (offset)))
++
++static __inline__ void
++simple_fwd_char_copy(void *dst, const void *src, int len)
++{
++	asm("rep; movsb"
++	    : /* no outputs */
++	    : "&c" (len), "D" (dst), "S" (src)
++	    : "ecx", "esi", "edi");
++}
++
++static __inline__ void
++simple_fwd_short_copy(void *dst, const void *src, int len)
++{
++	asm("rep; movsw"
++	    : /* no outputs */
++	    : "&c" (len>>1), "D" (dst), "S" (src)
++	    : "ecx", "esi", "edi");
++}
++
++static __inline__ void
++simple_fwd_int_copy(void *dst, const void *src, int len)
++{
++	asm("rep; movsl"
++	    : /* no outputs */
++	    : "&c" (len>>2), "D" (dst), "S" (src)
++	    : "ecx", "esi", "edi");
++}
++
++void
++_IOCopyMemory(char *src, char *dst, unsigned copyLen, unsigned copyUnitSize)
++{
++	int need_to_move;
++
++	if (src == NULL || dst == NULL || src == dst || copyLen == 0)
++		return;
++
++	if (copyUnitSize == 0)
++		copyUnitSize = 1;
++	if (copyUnitSize > 2)
++		copyUnitSize = 4;
++
++	if (copyUnitSize == 1) {
++		simple_fwd_char_copy(dst, src, (int)copyLen);
++		return;
++	}
++
++	if (need_to_move = BYTES_PAST_ALIGNMENT(src, copyUnitSize)) {
++		need_to_move = copyUnitSize - need_to_move;
++		simple_fwd_char_copy(dst, src, need_to_move);
++		copyLen -= need_to_move;
++		UNS(dst) += need_to_move;
++		UNS(src) += need_to_move;
++	}
++
++	if (copyUnitSize == 2)
++		simple_fwd_short_copy(dst, src, (int)copyLen);
++	else
++		simple_fwd_int_copy(dst, src, (int)copyLen);
++
++	if (need_to_move = (copyLen & (copyUnitSize - 1))) {
++		UNS(src) += (copyLen & ~(copyUnitSize - 1));
++		UNS(dst) += (copyLen & ~(copyUnitSize - 1));
++		switch (need_to_move) {
++		case 3: CHAR(dst, 2) = CHAR(src, 2);
++		case 2: CHAR(dst, 1) = CHAR(src, 1);
++		case 1: CHAR(dst, 0) = CHAR(src, 0);
++		}
++	}
++}

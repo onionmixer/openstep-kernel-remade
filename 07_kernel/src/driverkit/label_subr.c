@@ -1,0 +1,99 @@
+/*
+ * label_subr.c - disk label checksum and validation (plan 285).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original 0x1bda48-0x1bdb8a).  The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/label_subr.c (every instruction checked against
+ * the original bytes); kept as project-authored under D027/D030, without
+ * Darwin's notices (license judgement: D017).
+ */
+
+#import <bsd/sys/param.h>
+#import <bsd/dev/disk_label.h>
+#import <architecture/byte_order.h>
+#import <driverkit/diskstruct.h>	/* plan 285/286: label offsets (authored header) */
+
+
+static __inline__ unsigned int
+get_word(const void *src)
+{
+	return (NXSwapBigIntToHost(*((unsigned int *)src)));
+}
+
+static __inline__ void
+put_word(unsigned s, void *dest)
+{
+	*((unsigned int *)dest) = NXSwapHostIntToBig(s);
+}
+
+static __inline__ unsigned short
+get_short(const void *src)
+{
+	return (NXSwapBigShortToHost(*((unsigned short *)src)));
+}
+
+static __inline__ void
+put_short(unsigned short s, void *dest)
+{
+	*((unsigned short *)dest) = NXSwapHostShortToBig(s);
+}
+
+/*
+ * 16-bit ones-complement style checksum of big-endian shorts.
+ */
+unsigned short
+checksum16(unsigned short *wp, int num_shorts)
+{
+	int sum1 = 0;
+	int sum2;
+
+	while (num_shorts--) {
+		sum1 += NXSwapBigShortToHost(*wp);
+		wp++;
+	}
+	sum2 = ((sum1 & 0xffff0000) >> 16) + (sum1 & 0xffff);
+	if (sum2 > 65535)
+		sum2 -= 65535;
+	return sum2;
+}
+
+/*
+ * Check a raw (big-endian) disk label read from block block_num.
+ * Returns NULL if it is good, else a description of the problem.
+ */
+char *
+check_label(char *raw_label, int block_num)
+{
+	unsigned short	sum;
+	unsigned short	cksum;
+	unsigned short	size;
+	void		*dl_cksump;
+	int		version;
+	int		label_blkno;
+
+	version = get_word(raw_label + DISK_LABEL_DL_VERSION);
+	if (version == DL_V1 || version == DL_V2) {
+		size = SIZEOF_DISK_LABEL_T;
+		dl_cksump = raw_label + DISK_LABEL_DL_CHECKSUM;
+	} else if (version == DL_V3) {
+		size = SIZEOF_DISK_LABEL_T - SIZEOF_DL_UN_T;
+		dl_cksump = raw_label + DISK_LABEL_DL_UN;
+	} else {
+		return "Bad disk label magic number";
+	}
+	label_blkno = get_word(raw_label + DISK_LABEL_DL_LABEL_BLKNO);
+	if (label_blkno != block_num)
+		return "Label in wrong location";
+
+	/* the label's block number is 0 for the checksum */
+	put_word(0, raw_label + DISK_LABEL_DL_LABEL_BLKNO);
+	cksum = get_short(dl_cksump);
+	put_short(0, dl_cksump);
+	sum = checksum16((unsigned short *)raw_label, size >> 1);
+	if (sum != cksum)
+		return "Label checksum error";
+
+	put_word(block_num, raw_label + DISK_LABEL_DL_LABEL_BLKNO);
+	put_short(cksum, dl_cksump);
+	return NULL;
+}

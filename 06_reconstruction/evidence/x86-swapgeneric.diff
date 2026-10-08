@@ -1,0 +1,109 @@
+--- 01_resources/upstream/darwin01/kernel/machdep/i386/swapgeneric.m	1999-03-17 01:55:31.000000000 +0900
++++ 07_kernel/src/machdep/i386/swapgeneric.m	2026-10-07 16:44:47.222754181 +0900
+@@ -54,6 +54,7 @@
+ #import <sys/socket.h>
+ #import <sys/errno.h>
+ #import <sys/ioctl.h>
++#import <sys/bootconf.h>	/* plan 324: rootfs */
+ #import <net/if.h>
+ #import <netinet/in_systm.h>
+ #import <netinet/in.h>
+@@ -61,7 +62,19 @@
+ #import <netinet/ip.h>
+ #import <netinet/udp.h>
+ #import <netinet/if_ether.h>
+-#import <machdep/i386/kernBootStruct.h>
++/*
++ * plan 324 (D035): no i386 <machdep/i386/kernBootStruct.h> in any reference
++ * tree.  The boot loader's parameter block at physical 0x11000; only the
++ * fields used here, at the original's offsets.
++ */
++#define	KERNBOOTMAGIC	0xa7a7a7a7
++typedef struct {
++	char	_reserved0[0xa4];
++	int	magicCookie;		/* +0xa4: KERNBOOTMAGIC if valid */
++	int	_reserved1;
++	int	rootdev;		/* +0xac: booter's guess at rootdev */
++} KERNBOOTSTRUCT;
++#define	KERNSTRUCT_ADDR	((KERNBOOTSTRUCT *) 0x11000)
+ #import <driverkit/kernelDriver.h>
+ #import <bsd/dev/scsireg.h>
+ /*
+@@ -77,7 +90,7 @@
+ extern char	*nfsbootdevname;	/* nfs_boot.c */
+ extern int nfs_mountroot(); 	/* nfs_vfsops.c */
+ #else	/* NFSCLIENT */
+-static char	*nfsbootdevname;
++/* plan 373: no nfsbootdevname (the original __bss has only gc; 0x1e773c is pmap.c's) */
+ static int nfs_mountroot() { return ENOSYS; }
+ #endif	/* NFSCLIENT */
+ 
+@@ -89,7 +102,7 @@
+ extern int hostnamelen;
+ char rootdevice[8];
+ 
+-int	boottype = 0, boothowto = RB_DEBUG;
++int	boottype = 0, boothowto = 0;	/* plan 324: 0 in the original __data (not RB_DEBUG) */
+ 
+ /*
+  * Generic configuration;  all in one
+@@ -121,18 +134,15 @@
+ 	char *name, root_name[128];
+ 	KERNBOOTSTRUCT *kernBootStruct = (KERNBOOTSTRUCT *)KERNSTRUCT_ADDR;
+ 	char scsiName[10];
+-	int panelUp = 0;
+ 
+ 	if (kernBootStruct->magicCookie != KERNBOOTMAGIC) 
+ 		panic("invalid boot struct");
++	strcpy(rootfs.bo_fstype,"4.3");	/* plan 324: as in the original */
+ 	
+ 	if ((boothowto & RB_ASKNAME) || rootdevice[0]) {
+ retry:
+ 		if (boothowto & RB_ASKNAME) {
+-			if( 0 == panelUp) {
+-                            DoSafeAlert("Root Device?", "", TRUE);
+-			    panelUp = 1;
+-			}
++			/* plan 324: no DoSafeAlert panel in the original */
+ 			printf("root device? ");
+ 			name = root_name;
+ 			gets(name, name);
+@@ -205,12 +215,8 @@
+ 		goto retry;
+ found:
+ 	       if (gc->gc_root == NODEV) {
+-				printf("mounting nfs root\n");
+-				nfsbootdevname = rootdevice;
+-				mountroot = nfs_mountroot;
+-				rootdev = NODEV;
++				strcpy(rootfs.bo_fstype,"nfs");	/* plan 324: as in the original */
+ 	       } else {
+-				mountroot = ffs_mountroot;
+ 				gc->gc_root = makedev(major(gc->gc_root), unit*8+slice);
+ 				rootdev = gc->gc_root;
+ 	       }
+@@ -225,9 +231,7 @@
+ 		rootdev = makedev(devmajor, devminor);
+ 	}
+ 		printf("rootdev %x, howto %x\n", rootdev, boothowto);
+-
+-    if( panelUp)
+-	alert_done();
++	/* plan 324: no alert panel to close in the original */
+ }
+ 
+ gets(cp, lp)
+@@ -325,7 +329,7 @@
+     return 0;
+ }
+ 
+-#if 0
++/* plan 324: initrootnet is compiled in the original (0x191d4c) */
+ int
+ initrootnet()
+ {
+@@ -371,4 +375,3 @@
+    }
+    return(error);
+ }
+-#endif /* 0 */

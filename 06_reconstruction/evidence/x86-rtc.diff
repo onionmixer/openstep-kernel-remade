@@ -1,0 +1,133 @@
+--- 01_resources/upstream/mach4/i386/kernel/i386at/rtc.c	2026-09-11 10:02:48.308202818 +0900
++++ 07_kernel/src/machdep/i386/rtc.c	2026-10-08 14:51:59.636659394 +0900
+@@ -48,11 +48,11 @@
+ 
+ #include <sys/types.h>
+ #include <sys/time.h>
+-#include <kern/time_out.h>
+-#include <i386/machspl.h>
+-#include <i386at/rtc.h>
++/* plan 277: kern/time_out.h dropped (nothing used; this tree's version needs Mach types) */
++#include <machdep/i386/machspl.h>	/* plan 277: was i386/machspl.h */
++#include <machdep/i386/rtc.h>		/* plan 277: was i386at/rtc.h */
+ 
+-static unsigned char rtc[RTC_NREG];
++/* plan 397: no rtc[RTC_NREG] (unreferenced; no room in the original __bss) */
+ static int first_rtcopen_ever = 1;
+ 
+ rtcinit()
+@@ -81,8 +81,9 @@
+ 	return(0);
+ }	
+ 
+-rtcput(regs)
++rtcput(regs, century)			/* plan 277: century register */
+ unsigned char 	*regs;
++int		century;			/* plan 277 */
+ {
+ 	register unsigned char	x;
+ 
+@@ -95,6 +96,8 @@
+ 	outb(RTC_ADDR, RTC_B);
+ 	outb(RTC_DATA, x | RTC_SET); 	
+ 	save_rtc(regs);
++	outb(RTC_ADDR, 0x32);			/* plan 277: century (original bytes) */
++	outb(RTC_DATA, century);		/* plan 277 */
+ 	outb(RTC_ADDR, RTC_B);
+ 	outb(RTC_DATA, x & ~RTC_SET); 
+ }
+@@ -134,11 +137,7 @@
+ 	int i, days = 0;
+ 	spl_t	ospl;
+ 
+-#ifdef	MACH_KERNEL
+-	ospl = splclock();
+-#else	MACH_KERNEL
+-	ospl = spl5();
+-#endif	MACH_KERNEL
++	ospl = splusclock();			/* plan 277 */
+ 	if (rtcget(&rtclk)) {
+ 		splx(ospl);
+ 		return(-1);
+@@ -165,56 +164,43 @@
+ 		days += yeartoday(i);
+ 	n += days * 3600 * 24;
+ 
+-#ifdef	MACH_KERNEL
+-#else	MACH_KERNEL
+-	n += tz.tz_minuteswest * 60;
+-	if (tz.tz_dsttime)
+-		n -= 3600;
+-#endif	MACH_KERNEL
++	/* plan 277: no time zone correction (original bytes) */
+ 
+ 	*tp = n;
+ 
+ 	return(0);
+ }
+ 
+-writetodc()
++writetodc(tp)					/* plan 277 */
++	time_t	*tp;				/* plan 277 */
+ {
+ 	struct rtc_st rtclk;
+ 	time_t n;
+-	int diff, i, j;
++	int diff, i, j, century;		/* plan 277 */
+ 	spl_t	ospl;
+ 
+-#ifdef	MACH_KERNEL
+-	ospl = splclock();
+-#else	MACH_KERNEL
+-	ospl = spl5();
+-#endif	MACH_KERNEL
++	ospl = splusclock();			/* plan 277 */
+ 	if (rtcget(&rtclk)) {
+ 		splx(ospl);
+ 		return(-1);
+ 	}
+ 	splx(ospl);
+ 
+-#ifdef	MACH_KERNEL
+-	diff = 0;
+-#else	MACH_KERNEL
+-	diff = tz.tz_minuteswest * 60;
+-	if (tz.tz_dsttime)
+-		diff -= 3600;
+-#endif	MACH_KERNEL
+-	n = (time.tv_sec - diff) % (3600 * 24);   /* hrs+mins+secs */
++	diff = 0;				/* plan 277 */
++	n = (*tp - diff) % (3600 * 24);   /* hrs+mins+secs */
+ 	rtclk.rtc_sec = dectohexdec(n%60);
+ 	n /= 60;
+ 	rtclk.rtc_min = dectohexdec(n%60);
+ 	rtclk.rtc_hr = dectohexdec(n/60);
+ 
+-	n = (time.tv_sec - diff) / (3600 * 24);	/* days */
++	n = (*tp - diff) / (3600 * 24);	/* days */
+ 	rtclk.rtc_dow = (n + 4) % 7;  /* 1/1/70 is Thursday */
+ 
+ 	for (j = 1970, i = yeartoday(j); n >= i; j++, i = yeartoday(j))
+ 		n -= i;
+ 
+-	rtclk.rtc_yr = dectohexdec(j - 1900);
++	rtclk.rtc_yr = dectohexdec(j % 100);	/* plan 277 */
++	century = dectohexdec(j / 100);		/* plan 277 */
+ 
+ 	if (i == 366)
+ 		month[1] = 29;
+@@ -225,12 +211,8 @@
+ 
+ 	rtclk.rtc_dom = dectohexdec(++n);
+ 
+-#ifdef	MACH_KERNEL
+-	ospl = splclock();
+-#else	MACH_KERNEL
+-	ospl = spl5();
+-#endif	MACH_KERNEL
+-	rtcput(&rtclk);
++	ospl = splusclock();			/* plan 277 */
++	rtcput(&rtclk, century);		/* plan 277 */
+ 	splx(ospl);
+ 
+ 	return(0);

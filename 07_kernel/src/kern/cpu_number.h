@@ -58,7 +58,7 @@
  *	Definitions for cpu identification in multi-processors.
  */
 
-extern int	master_cpu;	/* 'master' processor - keeps time */
+int	master_cpu;	/* 'master' processor - keeps time */	/* plan 400 (Mach4): tentative definition as Mach4 kern/cpu_number.h:36 (was extern; the CMU notice above is the same as Mach4's) */
 
 #if	(NCPUS == 1)
 	/* cpu number is always 0 on a single processor system */

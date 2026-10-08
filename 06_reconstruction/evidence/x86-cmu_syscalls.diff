@@ -1,0 +1,86 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/cmu_syscalls.c	2026-09-11 10:02:49.484217275 +0900
++++ 07_kernel/src/bsd/kern/cmu_syscalls.c	2026-10-03 13:35:32.143907511 +0900
+@@ -179,7 +179,7 @@
+ #import <vm/vm_user.h>
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 203: NeXTMach vm/vm_param.h */
+ #import <kern/task.h>
+ #import <machine/vmparam.h>	/* only way to find the user stack (argblock) */
+ 
+@@ -367,6 +367,9 @@
+ 		struct tbl_netinfo	tn;
+ 
+ 		dealloc_start = (vm_offset_t) 0;
++#if	NeXT
++		dealloc_end = 0;	/* plan 203 (original 0x102236) */
++#endif	NeXT
+ 
+ 		/*
+ 		 * Give machine dependent code a chance
+@@ -440,6 +443,29 @@
+ 			 */
+ 
+ 			task = p->task;
++#if	NeXT
++		    {
++			thread_t	th;
++
++			/* plan 203 (authored, D024; original 0x102390-0x1023ed) */
++			task_lock(task);
++			if (task->thread_count <= 0) {
++				task_unlock(task);
++				u.u_error = ESRCH;
++				return;
++			}
++			th = (thread_t) task->thread_list.next;
++			thread_reference(th);
++			task_unlock(task);
++
++			fake = (struct user *)
++				kmem_alloc_wait(kernel_pageable_map,
++					round_page(sizeof(struct user)));
++
++			fake_u(fake, th);
++			thread_deallocate(th);
++		    }
++#else	NeXT
+ 			task_reference(task);
+ 
+ 			fake = (struct user *)
+@@ -450,6 +476,7 @@
+ 			fake_u(fake, (thread_t) task->thread_list.next);
+ 			task_unlock(task);
+ 			task_deallocate(task);
++#endif	NeXT
+ 
+ 			data = (caddr_t) fake;
+ 			size = (vm_size_t) sizeof(struct user);
+@@ -496,7 +523,14 @@
+ 				goto bad;
+ 			}
+ 
++#if	NeXT
++			/* plan 203 (authored; original 0x102451-0x102461) */
++			if (p->user_stack == 0)
++				goto bad;
++			arg_addr = (vm_offset_t)p->user_stack - arg_size;
++#else	NeXT
+ 			arg_addr = (vm_offset_t)USRSTACK - arg_size;
++#endif	NeXT
+ 
+ 			/*
+ 			 *	Before we can block (any VM code), make another
+@@ -645,7 +679,11 @@
+ 			tc.ci_syscall = cnt.v_syscall;
+ 			tc.ci_traps = cnt.v_trap;
+ 			tc.ci_hz = hz;
++#if	NeXT
++			tc.ci_phz = 0;		/* plan 203 (original 0x1026d3) */
++#else	NeXT
+ 			tc.ci_phz = phz;
++#endif	NeXT
+ 			bcopy(cp_time, tc.ci_cptime, sizeof(cp_time));
+ 			data = (caddr_t)&tc;
+ 			size = sizeof (tc);

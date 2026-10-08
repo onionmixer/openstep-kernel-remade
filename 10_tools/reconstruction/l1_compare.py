@@ -398,7 +398,8 @@ def compare(img, objpath, placements, ranges=None, by_symbol=(), method_info=Non
             reasons.append('%s: %s refs differ, %s unverified' % (key(s), ent.get('refs_differ'), ent.get('refs_unverified')))
     if method_info is not None:
         result['methods'] = method_info
-        if not method_info['placed'] or method_info['missing'] or method_info['ambiguous']:
+        # plan 299: an object with no method symbols has nothing to correspond (its sections are still gated above)
+        if method_info['methods'] and (not method_info['placed'] or method_info['missing'] or method_info['ambiguous']):
             reasons.append('method correspondence incomplete')
     result['object_verdict'] = 'OBJECT_MATCH' if not reasons else 'NOT_MATCH'
     result['object_reasons'] = reasons
@@ -492,6 +493,8 @@ def main():
     if a.ranges:
         ranges = {k: tuple(v) for k, v in json.load(open(a.ranges)).items()}
     r = compare(img, a.obj, pl, ranges, by_symbol - by_objc, minfo, by_objc)
+    import hashlib   # plan 302: bind the result to its inputs
+    r['inputs'] = {x: hashlib.sha256(open(x, 'rb').read()).hexdigest() for x in (a.image, a.obj)}
     text = json.dumps(r, indent=1)
     if a.out:
         open(a.out, 'w').write(text + '\n')

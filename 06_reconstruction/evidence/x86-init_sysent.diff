@@ -1,0 +1,132 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/init_sysent.c	2026-09-11 10:02:49.484217275 +0900
++++ 07_kernel/src/bsd/kern/init_sysent.c	2026-10-08 19:40:46.880931307 +0900
+@@ -23,6 +23,35 @@
+  *	Cleaned up SUN_VFS switches.
+  */
+ 
++/*
++ * Lines marked "plan 397 (Darwin)" were written from the original bytes and
++ * have the same text as Darwin 0.1 kernel/bsd/kern/init_sysent.c:457, :467
++ * and :495 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #import <cputypes.h>
+ 
+ #import <nfs_client.h>
+@@ -160,6 +189,8 @@
+ extern int machparam();
+ #endif	NeXT
+ extern int rpause();
++int	_setuid(), _setgid(), _utime(), sigpending(), setsid(), setpgid();	/* plan 397: OPENSTEP 4.2 */
++int	setprivexec(), getposix(), setposix(), gc_control(), add_profil(), waitpgrp(), uname();	/* plan 397 */
+ extern int table();
+ 
+ struct sysent sysent[] = {
+@@ -194,7 +225,7 @@
+ #else	NeXT
+ 	syss(umount, 1),		/*  22 = old umount */
+ #endif	NeXT
+-		compat(osetuid,1),	/*  23 = old setuid */
++	syss(_setuid,1),		/*  23 = setuid */	/* plan 397: OPENSTEP 4.2 */
+ 	sysp(getuid,0),			/*  24 = getuid */
+ 		compat(ostime,1),	/*  25 = old stime */
+ 	syss(ptrace,4),			/*  26 = ptrace */
+@@ -229,7 +260,7 @@
+ 	syss(nosys,0),			/*  49 = reserved for USG */
+ 	syss(nosys,0),			/*  50 = reserved for USG */
+ 	syss(sysacct,1),		/*  51 = turn acct off/on */
+-	syss(nosys,0),			/*  52 = old set phys addr */
++	syss(sigpending,1),		/*  52 = sigpending */	/* plan 397: OPENSTEP 4.2 */
+ 	syss(nosys,0),			/*  53 = old lock in core */
+ 	syss(ioctl,3),			/*  54 = ioctl */
+ 	syss(reboot,2),			/*  55 = reboot */
+@@ -318,7 +349,7 @@
+ 	syss(utimes,2),			/* 138 = utimes */
+ #if	NeXT
+ 	/* SUN binary compatibility */
+-	syss(sigreturn,0),		/* 139 = 4.2 signal cleanup */
++	syss(nosys,0),			/* 139 */	/* plan 397: OPENSTEP 4.2 */
+ #else	NeXT
+ 	syss(nosys,0),			/* 139 = used internally */
+ #endif	NeXT
+@@ -329,9 +360,9 @@
+ 	sysp(getrlimit,2),		/* 144 = getrlimit */
+ 	sysp(setrlimit,2),		/* 145 = setrlimit */
+ 	syss(killpg,2),			/* 146 = killpg */
+-	syss(nosys,0),			/* 147 = nosys */
+-	syss(oldquota, 0),/* XXX */	/* 148 = old quota */
+-	syss(oldquota, 0),/* XXX */	/* 149 = old qquota */
++	syss(setsid,0),			/* 147 = setsid */	/* plan 397 (Darwin): OPENSTEP 4.2 */
++	syss(nosys,0),			/* 148 */	/* plan 397: OPENSTEP 4.2 */
++	syss(nosys,0),			/* 149 */	/* plan 397: OPENSTEP 4.2 */
+ 	syss(getsockname,3),		/* 150 = getsockname */
+ 	/*
+ 	 * Syscalls 151-180 inclusive are reserved for vendor-specific
+@@ -339,10 +370,10 @@
+ 	 * with other Unix variants.)
+ 	 */
+ #if	NeXT
+-	syss(machparam,2),		/* 151 = machparam */
+-	syss(nosys,0),			/* 152 */
+-	syss(nosys,0),			/* 153 */
+-	syss(nosys,0),			/* 154 */
++	syss(nosys,0),			/* 151 */	/* plan 397: OPENSTEP 4.2 */
++	sysp(setprivexec,1),		/* 152 = setprivexec */	/* plan 397 (Darwin): OPENSTEP 4.2 */
++	syss(getposix,0),		/* 153 = getposix */	/* plan 397: OPENSTEP 4.2 */
++	syss(setposix,1),		/* 154 = setposix */	/* plan 397: OPENSTEP 4.2 */
+ 	syss_nfs_svc(),			/* 155 = nfs_svc */
+ 	syss(getdirentries,4),		/* 156 = getdirentries */
+ 	syss(statfs, 2),		/* 157 = statfs */
+@@ -366,13 +397,16 @@
+ 	syss(wait3, 3),			/* 171 = wait3 */
+ 	syss(rpause, 3),		/* 172 = rpause (resource pausing) */
+ 	syss(nosys,0),			/* 173 */
+-	syss(getdents,3),		/* 174 = getdents */
+-	syss(nosys,0),			/* 175 */
+-	syss(nosys,0),			/* 176 */
++	syss(nosys,0),			/* 174 */	/* plan 397: OPENSTEP 4.2 */
++	syss(gc_control,2),		/* 175 = gc_control */	/* plan 397: OPENSTEP 4.2 */
++	syss(add_profil,4),		/* 176 = add_profil */	/* plan 397 (Darwin): OPENSTEP 4.2 */
+ 	syss(nosys,0),			/* 177 */
+ 	syss(nosys,0),			/* 178 */
+-	syss(nosys,0),			/* 179 */
+-	syss(nosys,0),			/* 180 */
++	syss(waitpgrp,3),		/* 179 = waitpgrp */	/* plan 397: OPENSTEP 4.2 */
++	syss(_utime,2),			/* 180 = utime */	/* plan 397: OPENSTEP 4.2 */
++	syss(_setgid,1),		/* 181 = setgid */	/* plan 397: OPENSTEP 4.2 */
++	syss(uname,1),			/* 182 = uname */	/* plan 397: OPENSTEP 4.2 */
++	syss(setpgid,2),		/* 183 = setpgid */	/* plan 397: OPENSTEP 4.2 */
+ #endif	NeXT
+ #if	!defined(vax) && !defined(romp) && !defined(sun3) && !(BALANCE) && !(NeXT)
+ 	syss(nosys,0),			/* 151 */
+@@ -406,6 +440,6 @@
+ 	syss(nosys,0),			/* 179 */
+ 	syss(nosys,0),			/* 180 */
+ #endif	!defined(vax) && !defined(romp) && !defined(sun3) && !(BALANCE) && !(NeXT)
+-	syss(nosys,0),			/* 181 */
++	/* plan 397: OPENSTEP 4.2 ends with 183 = setpgid (no trailing 181 entry) */
+ };
+ int	nsysent = sizeof (sysent) / sizeof (sysent[0]);

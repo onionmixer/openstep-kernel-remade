@@ -1,0 +1,216 @@
+--- 01_resources/upstream/nextmach/mk-108.1/netinet/ip_icmp.c	2026-09-11 10:02:49.571218344 +0900
++++ 07_kernel/src/bsd/netinet/ip_icmp.c	2026-10-03 08:31:50.036536302 +0900
+@@ -52,7 +52,7 @@
+ 	struct ip *oip;
+ 	int type, code;
+ 	struct ifnet *ifp;
+-	struct in_addr dest;
++	struct in_addr *dest;	/* plan 170 (authored): a pointer in the original (0x125665) */
+ {
+ 	register unsigned oiplen = oip->ip_hl << 2;
+ 	register struct icmp *icp;
+@@ -78,6 +78,13 @@
+ 		icmpstat.icps_oldicmp++;
+ 		goto free;
+ 	}
++#ifdef	MULTICAST
++	/* plan 170 (authored; original 0x1255c4-0x1255e9):
++	 * don't send an error in response to a multicast or broadcast packet */
++	if (IN_MULTICAST(ntohl(oip->ip_dst.s_addr)) ||
++	    in_broadcast(oip->ip_dst))
++		goto free;
++#endif	MULTICAST
+ 
+ 	/*
+ 	 * First, formulate icmp message
+@@ -94,7 +101,7 @@
+ 	icmpstat.icps_outhist[type]++;
+ 	icp->icmp_type = type;
+ 	if (type == ICMP_REDIRECT)
+-		icp->icmp_gwaddr = dest;
++		icp->icmp_gwaddr = *dest;	/* plan 170 */
+ 	else
+ 		icp->icmp_void = 0;
+ 	if (type == ICMP_PARAMPROB) {
+@@ -145,6 +152,7 @@
+ 	register int i;
+ 	struct in_ifaddr *ia;
+ 	int (*ctlfunc)(), code;
++	u_long mask;	/* plan 170.3 (authored) */
+ 	extern u_char ip_protox[];
+ 	extern struct in_addr in_makeaddr();
+ 
+@@ -228,7 +236,8 @@
+ #endif
+ 		icmpsrc.sin_addr = icp->icmp_ip.ip_dst;
+ 		if (ctlfunc = inetsw[ip_protox[icp->icmp_ip.ip_p]].pr_ctlinput)
+-			(*ctlfunc)(code, (struct sockaddr *)&icmpsrc);
++			(*ctlfunc)(code, (struct sockaddr *)&icmpsrc,	/* plan 170: Reno 3 arguments */
++			    &icp->icmp_ip);
+ 		break;
+ 
+ 	badcode:
+@@ -258,7 +267,8 @@
+ 		goto reflect;
+ 
+ 	case ICMP_MASKREQ:
+-		if (icmplen < ICMP_MASKLEN || (ia = ifptoia(ifp)) == 0)
++		if (icmplen < ICMP_MASKLEN || (ia = ifptoia(ifp)) == 0 ||
++		    (ia->ia_flags & IFA_NETMASK_AUTH) == 0)	/* plan 170.1 */
+ 			break;
+ 		icp->icmp_type = ICMP_MASKREPLY;
+ 		icp->icmp_mask = htonl(ia->ia_subnetmask);
+@@ -321,12 +331,14 @@
+ 		 * larger than the current one, then reconfigure the
+ 		 * netmask and broadcast address.
+ 		 */
+-		if (ia = ifptoia(ifp)) {
+-
++		/* plan 170.1 (authored; original 0x125ae0-0x125b31) */
++		if ((ia = ifptoia(ifp)) &&
++		    (ia->ia_flags & IFA_AWAITING_MASK) &&
++		    (mask = ntohl(icp->icmp_mask)) != 0xffffffff &&
++		    (mask & 0xff000000) == 0xff000000) {
++			ia->ia_flags &= ~IFA_AWAITING_MASK;
+ 			if (!(ifp->if_flags & IFF_LOOPBACK) &&
+-			    (ip->ip_dst.s_addr ==
+-			     satosin(&ia->ia_addr)->sin_addr.s_addr) &&
+-			    ((ia->ia_subnetmask|icp->icmp_mask) !=
++			    ((ia->ia_subnetmask | ntohl(icp->icmp_mask)) !=
+ 			     ia->ia_subnetmask)) {
+ 				ia->ia_subnetmask = ntohl(icp->icmp_mask);
+ 				if (in_ifinit(ifp, ia, &ia->ia_addr)) {
+@@ -334,7 +346,7 @@
+ 				} else {
+ 					printf("%s%d: setting netmask to %x, received from %s\n",
+ 					       ifp->if_name, ifp->if_unit,
+-					       icp->icmp_mask,
++					       ia->ia_subnetmask,	/* plan 170.2 (original bytes) */
+ 					       inet_ntoa(&ip->ip_src.s_addr));
+ 					wakeup(&ia->ia_subnetmask);
+ 				}
+@@ -455,7 +467,12 @@
+ 	if (icmpprintfs)
+ 		printf("icmp_send dst %x src %x\n", ip->ip_dst, ip->ip_src);
+ #endif
++#ifdef	MULTICAST
++	(void) ip_output(m, opts, (struct route *)0, 0,	/* plan 170.3 (authored) */
++	    (struct ip_moptions *)0);
++#else	MULTICAST
+ 	(void) ip_output(m, opts, (struct route *)0, 0);
++#endif	MULTICAST
+ }
+ 
+ n_time
+@@ -471,13 +488,15 @@
+ 
+ #if	NeXT
+ /*
+- * Routine: in_bootp_getnetmask
+- * Function:
+- *	Use ICMP to get the netmask of the network ifp is connected to.
+- *
++ * plan 170 (authored, D024; original _icmp_sendMaskPacket 0x125d70, replaces
++ * NeXTMach icmp_maskrequest): broadcast an ICMP address mask request or reply
++ * on ifp, optionally after `delay' seconds; after a request wait one second
++ * for replies.
+  */
+-icmp_maskrequest(ifp)
++icmp_sendMaskPacket(ifp, type, delay)
+ 	struct	ifnet		*ifp;
++	u_char			type;
++	int			delay;
+ {
+ 	struct	mbuf		*m = NULL;
+ 	struct	sockaddr_in	*sin;
+@@ -497,24 +516,37 @@
+ 		return(0);
+ 	}
+ 
++	if ((ifa = ifptoia(ifp)) == NULL) {
++		error = ENETUNREACH;
++		goto errout;
++	}
++
+ 	/* Build a packet */
+ 	m = m_get(M_WAIT, MT_HEADER);
+ 	if (m == NULL) {
+ 		error = ENOBUFS;
+ 		goto errout;
+ 	}
+-	m->m_len = 12 + sizeof(struct ip);/* Size of packet we're sending */
++	m->m_len = ICMP_MASKLEN + sizeof(struct ip);/* Size of packet we're sending */
+ 	m->m_off = MMAXOFF - m->m_len;
+ 	bzero(mtod(m, caddr_t), m->m_len);
+ 	m->m_len -= sizeof(struct ip);
+ 	m->m_off += sizeof(struct ip);
+ 
+ 	icp = mtod(m, struct icmp *);
+-	icp->icmp_type = ICMP_MASKREQ;
++	if (type == ICMP_MASKREPLY) {
++		icp->icmp_type = ICMP_MASKREPLY;
++		icp->icmp_mask = htonl(ifa->ia_subnetmask);
++		if (icp->icmp_mask == 0) {
++			error = EINVAL;
++			goto errout;
++		}
++	} else
++		icp->icmp_type = ICMP_MASKREQ;
+ 	icp->icmp_code = 0;
+ 	icp->icmp_cksum = 0;
+ 	icp->icmp_void = 0;
+-	icp->icmp_cksum = in_cksum(m, 12);
++	icp->icmp_cksum = in_cksum(m, ICMP_MASKLEN);
+ 
+ 	m->m_off -= sizeof(struct ip);
+ 	m->m_len += sizeof(struct ip);
+@@ -522,36 +554,34 @@
+ 
+ 	ip->ip_v = IPVERSION;
+ 	ip->ip_hl = sizeof(struct ip) >> 2;
+-	ip->ip_id = ip_id++;
++	ip->ip_id = htons(ip_id++);
+ 	ip->ip_ttl = MAXTTL;
+ 	ip->ip_p = IPPROTO_ICMP;
+-
+-	if ((ifa = ifptoia(ifp)) == NULL) {
+-		error = ENETUNREACH;
+-		goto errout;
+-	}
+ 	sin = (struct sockaddr_in *)(&ifa->ia_addr);
+ 	ip->ip_src.s_addr = sin->sin_addr.s_addr;
+ 	ip->ip_dst.s_addr = INADDR_BROADCAST;
+-	ip->ip_len = htons(sizeof (struct ip) + 12);
++	ip->ip_len = htons(sizeof (struct ip) + ICMP_MASKLEN);
+ 	ip->ip_sum=0;
+ 	ip->ip_sum = in_cksum(m, sizeof(struct ip));
+ 	
+ 	lsin.sin_family = AF_INET;
+ 	lsin.sin_port = 0;
+ 	lsin.sin_addr.s_addr = INADDR_BROADCAST;
+-	
++
++	if (delay > 0) {
++		timeout(wakeup, (caddr_t)&ifa->ia_subnetmask, delay * hz);
++		sleep((caddr_t)&ifa->ia_subnetmask, PZERO);
++	}
++
+ 	/* Send the packet */
+-#if	NeXT
+ 	error = if_output_mbuf(ifp, m, (struct sockaddr *)&lsin);
+-#else	NeXT
+-	error = (*ifp->if_output)(ifp, m, (struct sockaddr *)&lsin);
+-#endif	NeXT
+ 	m = NULL;
+ 
+-	/* Now wait at least one second for any responses */
+-	timeout(wakeup, (caddr_t)&ifa->ia_subnetmask, 1 * hz);
+-	sleep((caddr_t)&ifa->ia_subnetmask, PZERO);
++	if (type == ICMP_MASKREQ) {
++		/* Now wait at least one second for any responses */
++		timeout(wakeup, (caddr_t)&ifa->ia_subnetmask, 1 * hz);
++		sleep((caddr_t)&ifa->ia_subnetmask, PZERO);
++	}
+ errout:	
+ 	if (m) {
+ 		m_freem(m);

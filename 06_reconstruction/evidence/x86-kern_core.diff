@@ -1,0 +1,1201 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_sig.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_core.c	2026-10-03 18:09:45.695715669 +0900
+@@ -91,1064 +91,16 @@
+ #import <machine/spl.h>
+ 
+ #import <kern/sched.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 230: NeXTMach vm/vm_param.h */
+ #import <kern/thread.h>
+ #import <kern/parallel.h>
+ #import <machine/cpu.h>
+ #import <kern/sched_prim.h>
+ #import <kern/task.h>
+-#import <sys/loader.h>
++#import <mach-o/loader.h>	/* plan 230: NeXTMach sys/loader.h */
+ #import <vm/vm_kern.h>
+ 
+ 
+-#define	cantmask	(sigmask(SIGKILL)|sigmask(SIGCONT)|sigmask(SIGSTOP))
+-#define	stopsigmask	(sigmask(SIGSTOP)|sigmask(SIGTSTP)| \
+-			sigmask(SIGTTIN)|sigmask(SIGTTOU))
+-
+-/*
+- *	XXX Some ancient code in this file contains a statement that
+- *	XXX different compilers want written differently.  Add your machine
+- *	XXX to the following #if if its compiler insists that the argument
+- *	XXX to switch and all of its cases be integers.  If your compiler
+- *	XXX doesn't mind using function pointers that happen to be small
+- *	XXX integers, then this doesn't concern you.
+- */
+-#if	defined(vax) || defined(mips) || defined(NeXT) || defined(sequent) || defined(multimax) || defined(__GNU__) || defined(i386)
+-#define SWITCH_INT	1
+-#else	
+-#define SWITCH_INT	0
+-#endif
+-
+-/*
+- * Generalized interface signal handler.
+- */
+-sigvec()
+-{
+-	register struct a {
+-		int	signo;
+-		struct	sigvec *nsv;
+-		struct	sigvec *osv;
+-	} *uap = (struct a  *)u.u_ap;
+-	struct sigvec vec;
+-	register struct sigvec *sv;
+-	register int sig;
+-	int bit;
+-
+-	sig = uap->signo;
+-	if (sig <= 0 || sig > NSIG || sig == SIGKILL || sig == SIGSTOP) {
+-		u.u_error = EINVAL;
+-		return;
+-	}
+-	sv = &vec;
+-	if (uap->osv) {
+-		sv->sv_handler = u.u_signal[sig];
+-		sv->sv_mask = u.u_sigmask[sig];
+-		bit = sigmask(sig);
+-		sv->sv_flags = 0;
+-		if ((u.u_sigonstack & bit) != 0)
+-			sv->sv_flags |= SV_ONSTACK;
+-		if ((u.u_sigintr & bit) != 0)
+-			sv->sv_flags |= SV_INTERRUPT;
+-		u.u_error =
+-		    copyout((caddr_t)sv, (caddr_t)uap->osv, sizeof (vec));
+-		if (u.u_error)
+-			return;
+-	}
+-	if (uap->nsv) {
+-		u.u_error =
+-		    copyin((caddr_t)uap->nsv, (caddr_t)sv, sizeof (vec));
+-		if (u.u_error)
+-			return;
+-		if (sig == SIGCONT && sv->sv_handler == SIG_IGN) {
+-			u.u_error = EINVAL;
+-			return;
+-		}
+-		if ((sig == SIGMSG) || (sig == SIGEMSG)) {
+-			task_t		me = current_task();
+-			me->ipc_intr_msg = TRUE;
+-		}
+-		setsigvec(sig, sv);
+-	}
+-}
+-
+-setsigvec(sig, sv)
+-	int sig;
+-	register struct sigvec *sv;
+-{
+-	register struct proc *p;
+-	register int bit;
+-
+-	bit = sigmask(sig);
+-	p = u.u_procp;
+-	/*
+-	 * Change setting atomically.
+-	 */
+-	(void) splhigh();
+-	sig_lock_simple(p);
+-	u.u_signal[sig] = sv->sv_handler;
+-	u.u_sigmask[sig] = sv->sv_mask &~ cantmask;
+-	if (sv->sv_flags & SV_INTERRUPT)
+-		u.u_sigintr |= bit;
+-	else
+-		u.u_sigintr &= ~bit;
+-	if (sv->sv_flags & SV_ONSTACK)
+-		u.u_sigonstack |= bit;
+-	else
+-		u.u_sigonstack &= ~bit;
+-	if (sv->sv_handler == SIG_IGN) {
+-		p->p_sig &= ~bit;		/* never to be seen again */
+-		/*
+-		 *	If this is a thread signal, clean out the
+-		 *	threads as well.
+-		 */
+-		if (bit & threadmask) {
+-			register	queue_head_t	*list;
+-			register	thread_t	thread;
+-
+-			list = &(p->task->thread_list);
+-			task_lock(p->task);
+-			thread = (thread_t) queue_first(list);
+-			while (!queue_end(list, (queue_entry_t) thread)) {
+-				thread->u_address.uthread->uu_sig &= ~bit;
+-				thread = (thread_t)
+-					queue_next(&thread->thread_list);
+-			}
+-			task_unlock(p->task);
+-		}
+-		p->p_sigignore |= bit;
+-		p->p_sigcatch &= ~bit;
+-	} else {
+-		p->p_sigignore &= ~bit;
+-		if (sv->sv_handler == SIG_DFL)
+-			p->p_sigcatch &= ~bit;
+-		else
+-			p->p_sigcatch |= bit;
+-	}
+-	sig_unlock(p);
+-	(void) spl0();
+-}
+-
+-sigblock()
+-{
+-	struct a {
+-		int	mask;
+-	} *uap = (struct a *)u.u_ap;
+-	register struct proc *p = u.u_procp;
+-
+-	(void) splhigh();
+-	u.u_r.r_val1 = p->p_sigmask;
+-	p->p_sigmask |= uap->mask &~ cantmask;
+-	(void) spl0();
+-}
+-
+-sigsetmask()
+-{
+-	struct a {
+-		int	mask;
+-	} *uap = (struct a *)u.u_ap;
+-	register struct proc *p = u.u_procp;
+-
+-	(void) splhigh();
+-	u.u_r.r_val1 = p->p_sigmask;
+-	p->p_sigmask = uap->mask &~ cantmask;
+-	(void) spl0();
+-}
+-
+-sigpause()
+-{
+-	struct a {
+-		int	mask;
+-	} *uap = (struct a *)u.u_ap;
+-	register struct proc *p = u.u_procp;
+-
+-	/*
+-	 * When returning from sigpause, we want
+-	 * the old mask to be restored after the
+-	 * signal handler has finished.  Thus, we
+-	 * save it here and mark the proc structure
+-	 * to indicate this (should be in u.).
+-	 */
+-	u.u_oldmask = p->p_sigmask;
+-	p->p_flag |= SOMASK;
+-	p->p_sigmask = uap->mask &~ cantmask;
+-	for (;;)
+-		sleep((caddr_t)&u, PSLEP);
+-	/*NOTREACHED*/
+-}
+-#undef cantmask
+-
+-sigstack()
+-{
+-	register struct a {
+-		struct	sigstack *nss;
+-		struct	sigstack *oss;
+-	} *uap = (struct a *)u.u_ap;
+-	struct sigstack ss;
+-
+-	if (uap->oss) {
+-		u.u_error = copyout((caddr_t)&u.u_sigstack, (caddr_t)uap->oss, 
+-		    sizeof (struct sigstack));
+-		if (u.u_error)
+-			return;
+-	}
+-	if (uap->nss) {
+-		u.u_error =
+-		    copyin((caddr_t)uap->nss, (caddr_t)&ss, sizeof (ss));
+-		if (u.u_error == 0)
+-			u.u_sigstack = ss;
+-	}
+-}
+-
+-kill()
+-{
+-	register struct a {
+-		int	pid;
+-		int	signo;
+-	} *uap = (struct a *)u.u_ap;
+-	register struct proc *p;
+-
+-	if (uap->signo < 0 || uap->signo > NSIG) {
+-		u.u_error = EINVAL;
+-		return;
+-	}
+-	if (uap->pid > 0) {
+-		/* kill single process */
+-		p = pfind(uap->pid);
+-		if (p == 0) {
+-			u.u_error = ESRCH;
+-			return;
+-		}
+-		if (u.u_uid && u.u_uid != p->p_uid)
+-			u.u_error = EPERM;
+-		else if (uap->signo)
+-			psignal(p, uap->signo);
+-		return;
+-	}
+-	switch (uap->pid) {
+-	case -1:		/* broadcast signal */
+-		u.u_error = killpg1(uap->signo, 0, 1);
+-		break;
+-	case 0:			/* signal own process group */
+-		u.u_error = killpg1(uap->signo, 0, 0);
+-		break;
+-	default:		/* negative explicit process group */
+-		u.u_error = killpg1(uap->signo, -uap->pid, 0);
+-		break;
+-	}
+-	return;
+-}
+-
+-killpg()
+-{
+-	register struct a {
+-		int	pgrp;
+-		int	signo;
+-	} *uap = (struct a *)u.u_ap;
+-
+-	if (uap->signo < 0 || uap->signo > NSIG) {
+-		u.u_error = EINVAL;
+-		return;
+-	}
+-	u.u_error = killpg1(uap->signo, uap->pgrp, 0);
+-}
+-
+-/* KILL CODE SHOULDNT KNOW ABOUT PROCESS INTERNALS !?! */
+-
+-killpg1(signo, pgrp, all)
+-	int signo, pgrp, all;
+-{
+-	register struct proc *p;
+-	int f, error = 0;
+-
+-	if (!all && pgrp == 0) {
+-		/*
+-		 * Zero process id means send to my process group.
+-		 */
+-		pgrp = u.u_procp->p_pgrp;
+-		if (pgrp == 0)
+-			return (ESRCH);
+-	}
+-	for (f = 0, p = allproc; p != NULL; p = p->p_nxt) {
+-		if ((p->p_pgrp != pgrp && !all) || p->p_ppid == 0 ||
+-		    (p->p_flag&SSYS) || (all && p == u.u_procp))
+-			continue;
+-		if (u.u_uid != 0 && u.u_uid != p->p_uid &&
+-		    (signo != SIGCONT || !inferior(p))) {
+-			if (!all)
+-				error = EPERM;
+-			continue;
+-		}
+-		f++;
+-		if (signo)
+-			psignal(p, signo);
+-	}
+-	return (error ? error : (f == 0 ? ESRCH : 0));
+-}
+-
+-/*
+- * Send the specified signal to
+- * all processes with 'pgrp' as
+- * process group.
+- */
+-gsignal(pgrp, sig)
+-	register int pgrp;
+-{
+-	register struct proc *p;
+-
+-	if (pgrp == 0)
+-		return;
+-	for (p = allproc; p != NULL; p = p->p_nxt)
+-		if (p->p_pgrp == pgrp)
+-			psignal(p, sig);
+-}
+-
+-/*
+- * Send the specified signal to
+- * the specified process.
+- */
+-psignal(p, sig)
+-	register struct proc *p;
+-	register int sig;
+-{
+-	register int s;
+-	register void (*action)();
+-	register thread_t	sig_thread;
+-	register task_t		sig_task;
+-	register thread_t	cur_thread;
+-	int mask;
+-
+-	if ((unsigned)sig > NSIG)
+-		return;
+-	mask = sigmask(sig);
+-	/*
+-	 *	We will need the task pointer later.  Grab it now to
+-	 *	check for a zombie process.  Also don't send signals
+-	 *	to kernel internal tasks.
+-	 */
+-	if (((sig_task = p->task) == TASK_NULL) || sig_task->kernel_vm_space)
+-		return;
+-
+-	/*
+-	 * If proc is traced, always give parent a chance.
+-	 */
+-	if (p->p_flag & STRC)
+-		action = SIG_DFL;
+-	else {
+-		/*
+-		 * If the signal is being ignored,
+-		 * then we forget about it immediately.
+-		 */
+-		if (p->p_sigignore & mask)
+-			return;
+-		if (p->p_sigmask & mask)
+-			action = SIG_HOLD;
+-		else if (p->p_sigcatch & mask)
+-			action = SIG_CATCH;
+-		else
+-			action = SIG_DFL;
+-	}
+-
+-	if (sig) {
+-		p->p_sig |= mask;
+-		switch (sig) {
+-
+-		case SIGTERM:
+-			if ((p->p_flag&STRC) || action != SIG_DFL)
+-				break;
+-			/* fall into ... */
+-
+-		case SIGCONT:
+-			p->p_sig &= ~stopsigmask;
+-			break;
+-
+-		case SIGSTOP:
+-		case SIGTSTP:
+-		case SIGTTIN:
+-		case SIGTTOU:
+-			p->p_sig &= ~sigmask(SIGCONT);
+-			break;
+-		case SIGMSG:
+-		case SIGEMSG:
+-			/*
+-			 *	Don't post these signals unless
+-			 *	they'll be handled, regardless of
+-			 *	the state of the recipient.  Always send
+-			 *	them to a traced process.
+-			 */
+-			if ((action == SIG_DFL) && !(p->p_flag & STRC)){
+-				p->p_sig &= ~mask;
+-				return;
+-			}
+-			break;
+-		}
+-	}
+-	/*
+-	 * Defer further processing for signals which are held.
+-	 */
+-	if (action == SIG_HOLD)
+-		return;
+-
+-	/* 
+-	 *	Pick a thread to get signal -- 	current thread
+-	 *	if possible, else first thread in the task.  We have
+-	 *	an implicit reference to the current_thread, but need
+-	 *	an explicit one otherwise.  The thread reference keeps
+-	 *	the corresponding task data structures around too.  This
+-	 *	reference is released by thread_deallocate_interrupt
+-	 *	because psignal() can be called from interrupt level).
+-	 */
+-	s = splhigh();		/* at least splsched */
+-
+-	cur_thread = current_thread();
+-	if (sig_task == cur_thread->task) {
+-		sig_thread = cur_thread;
+-	}
+-	else {
+-		/*
+-		 *	This is a mess.  The thread_list_lock is a special
+-		 *	lock that excludes insert and delete operations
+-		 *	on the task's thread list for our benefit (can't
+-		 *	grab task lock because we might be at interrupt
+-		 *	level.  Check if there are any threads in the
+-		 *	task.  If there aren't, sending it a signal
+-		 *	isn't going to work very well, so just return.
+-		 */
+-		simple_lock(&sig_task->thread_list_lock);
+-		if (queue_empty(&sig_task->thread_list)) {
+-			simple_unlock(&sig_task->thread_list_lock);
+-			(void) splx(s);
+-			return;
+-		}
+-		sig_thread = (thread_t) queue_first(&sig_task->thread_list);
+-		thread_reference(sig_thread);
+-		simple_unlock(&sig_task->thread_list_lock);
+-	}
+-
+-	/*
+-	 *	SIGKILL priority twiddling moved here from above because
+-	 *	it needs sig_thread.  Could merge it into large switch
+-	 *	below if we didn't care about priority for tracing
+-	 *	as SIGKILL's action is always SIG_DFL.
+-	 */
+-	if ((sig == SIGKILL) && (p->p_nice > NZERO)) {
+-		p->p_nice = NZERO;
+-		thread_max_priority(sig_thread, sig_thread->processor_set,
+-			BASEPRI_USER);
+-		thread_priority(sig_thread, BASEPRI_USER, FALSE);
+-	}
+-
+-	if (p->p_flag&STRC) {
+-		/*
+-		 *	Process is traced - wake it up (if not already
+-		 *	stopped) so that it can discover the signal in
+-		 *	issig() and stop for the parent.
+-		 */
+-		if (p->p_stat != SSTOP) {
+-			/*
+-			 *	Wake it up to get signal
+-			 */
+-			goto run;
+-		}
+-		goto out;
+-	}
+-	else if (action != SIG_DFL) {
+-		/*
+-		 *	User wants to catch the signal.
+-		 *	Wake up the thread, but don't un-suspend it
+-		 *	(except for SIGCONT).
+-		 */
+-		if (sig == SIGCONT) {
+-			(void) task_resume(sig_task);
+-			/*
+-			 *	Process will be running after 'run'
+-			 */
+-			p->p_stat = SRUN;
+-		}
+-		goto run;
+-	}
+-	else {
+-		/*
+-		 *	Default action - varies
+-		 */
+-
+-		switch (sig) {
+-
+-		case SIGSTOP:
+-		case SIGTSTP:
+-		case SIGTTIN:
+-		case SIGTTOU:
+-			/*
+-			 * These are the signals which by default
+-			 * stop a process.
+-			 *
+-			 * Don't clog system with children of init
+-			 * stopped from the keyboard.
+-			 */
+-#if	NeXT
+-			if (sig != SIGSTOP && p->p_pptr == init_proc) {
+-#else	NeXT
+-			if (sig != SIGSTOP && p->p_pptr == &proc[1]) {
+-#endif	NeXT
+-				psignal(p, SIGKILL);
+-				p->p_sig &= ~mask;
+-				goto out;
+-			}
+-			/*
+-			 *	Stop the task.
+-			 */
+-			if ((sig_thread->state & TH_RUN) == 0) {
+-				/*
+-				 *	If task hasn't already been stopped by
+-				 *	a signal, stop it.
+-				 */
+-				p->p_sig &= ~mask;
+-				if (sig_task->user_stop_count == 0) {
+-					/*
+-					 * p_cursig must not be set, because
+-					 * it will be psig()'d if it is not
+-					 * zero, and the signal is being
+-					 * handled here.  But save the signal
+-					 * in p_stopsig so WUNTRACED
+-					 * option to wait can find it.
+-					 */
+-					p->p_stopsig = sig;
+-					psignal(p->p_pptr, SIGCHLD);
+-					stop(p);
+-				}
+-				goto out;
+-			}
+-			else {
+-				if ((p == u.u_procp) && (p->p_stat != SZOMB))
+-					aston();
+-				goto out;
+-			}
+-
+-		case SIGIO:
+-		case SIGURG:
+-		case SIGCHLD:
+-		case SIGWINCH:
+-		case SIGMSG:
+-		case SIGEMSG:
+-			/*
+-			 * These signals do not get propagated.  If the
+-			 * process isn't interested, forget it.
+-			 */
+-			p->p_sig &= ~mask;
+-			goto out;
+-
+-		case SIGKILL:
+-			/*
+-			 * Kill signal always sets process running and
+-			 * unsuspends it.
+-			 */
+-			while (sig_task->user_stop_count > 0)
+-				(void) task_resume(sig_task);
+-			/*
+-			 *	Process will be running after 'run'
+-			 */
+-			p->p_stat = SRUN;
+-
+-			/*
+-			 * Break it out of user wait, as well.
+-			 */
+-			while (sig_thread->user_stop_count > 0)
+-				(void) thread_resume(sig_thread);
+-
+-			/*
+-			 * Clear system wait if possible.  The
+-			 * THREAD_SHOULD_TERMINATE is overkill, but
+-			 * saves us from potentially buggy code elsewhere.
+-			 */
+-			clear_wait(sig_thread, THREAD_SHOULD_TERMINATE, FALSE);
+-
+-#if	MACH_HOST
+-			/*
+-			 * Make sure it can run.
+-			 */
+-			if (sig_thread->processor_set->empty)
+-				thread_assign(sig_thread, &default_pset);
+-#endif	MACH_HOST
+-			/*
+-			 * If we're delivering the signal to some other
+-			 * thread, that thread might be stuck in an
+-			 * exception.  Break it out.  Can't call
+-			 * thread_exception_abort from high spl, but
+-			 * SIGKILL can't be sent from interrupt level, so
+-			 * it's ok to drop spl.  Can call thread_deallocate
+-			 * for same reason.
+-			 */
+-			splx(s);
+-			if (sig_thread != cur_thread) {
+-				thread_exception_abort(sig_thread);
+-				thread_deallocate(sig_thread);
+-			}
+-			return;
+-
+-		case SIGCONT:
+-			/*
+-			 * Let the process run.  If it's sleeping on an
+-			 * event, it remains so.
+-			 */
+-			(void) task_resume(sig_task);
+-			p->p_stat = SRUN;
+-			goto out;
+-
+-		default:
+-			/*
+-			 * All other signals wake up the process, but don't
+-			 * resume it.
+-			 */
+-			goto run;
+-		}
+-	}
+-	/*NOTREACHED*/
+-run:
+-	/*
+-	 *	BSD used to raise priority here.  This has been broken
+-	 *	for ages and nobody's noticed.  Code deleted. -dlb
+-	 */
+-
+-	/*
+-	 *	Wake up the thread if it is interruptible.
+-	 */
+-	clear_wait(sig_thread, THREAD_INTERRUPTED, TRUE);
+-out:
+-	splx(s);
+-	if (sig_thread != cur_thread)
+-		thread_deallocate_interrupt(sig_thread);
+-}
+-
+-/*
+- * Returns true if the current
+- * process has a signal to process.
+- * The signal to process is put in p_cursig.
+- * This is asked at least once each time a process enters the
+- * system (though this can usually be done without actually
+- * calling issig by checking the pending signal masks.)
+- * A signal does not do anything
+- * directly to a process; it sets
+- * a flag that asks the process to
+- * do something to itself.
+- */
+-issig()
+-{
+-	register struct proc *p;
+-	register int sig;
+-	int sigbits, mask;
+-
+-	p = u.u_procp;
+-	/*
+-	 *	This must be called on master cpu
+-	 */
+-	if (cpu_number() != master_cpu)
+-		panic("issig not on master");
+-
+-	/*
+-	 *	Try for the signal lock.
+-	 *	If we already have it, return FALSE: don't handle any signals.
+-	 *	If we must halt, return TRUE to clean up our state.
+-	 */
+-	sig_lock_or_return(p, return(FALSE), return(TRUE));
+-	for (;;) {
+-		/*
+-		 *	In a multi-threaded task it is possible for
+-		 *	one thread to interrupt another's issig(); psig()
+-		 *	sequence.  In this case, the thread signal may
+-		 *	be left in u.u_cursig.  We recover here
+-		 *	by getting it out and starting over.
+-		 */
+-		if(u.u_cursig != 0) {
+-		    u.u_sig |= sigmask(u.u_cursig);
+-		    u.u_cursig = 0;
+-		}
+-		sigbits = (u.u_sig | p->p_sig) &~ p->p_sigmask;
+-		if ((p->p_flag&STRC) == 0)
+-			sigbits &= ~p->p_sigignore;
+-		if (p->p_flag&SVFORK)
+-			sigbits &= ~stopsigmask;
+-		if (sigbits == 0)
+-			break;
+-		sig = ffs((long)sigbits);
+-		mask = sigmask(sig);
+-		if (mask & threadmask) {
+-			u.u_cursig = sig;
+-			u.u_sig &= ~mask;
+-		}
+-		p->p_sig &= ~mask;		/* take the signal! */
+-		p->p_cursig = sig;
+-		if (p->p_flag&STRC && (p->p_flag&SVFORK) == 0) {
+-			register int	hold;
+-			register task_t	task;
+-
+-			/*
+-			 * If traced, always stop, and stay
+-			 * stopped until released by the parent.
+-			 */
+-			psignal(p->p_pptr, SIGCHLD);
+-			/*
+-			 *	New ptrace() has no procxmt.  Only action
+-			 *	executed on behalf of parent is exit.
+-			 *	This is requested via a large p_cursig.
+-			 *	sig_lock_to_wait causes other threads
+-			 *	that try to handle signals to stop for
+-			 *	debugger.
+-			 */
+-			p->thread = current_thread();
+-#ifdef	i386
+-#else	i386
+-			pcb_synch(p->thread);
+-#endif	i386
+-			/*
+-			 *	XXX Have to really stop for debuggers;
+-			 *	XXX stop() doesn't do the right thing.
+-			 *	XXX Inline the task_suspend because we
+-			 *	XXX have to diddle Unix state in the
+-			 *	XXX middle of it.
+-			 */
+-			task = p->task;
+-			hold = FALSE;
+-			task_lock(task);
+-			if ((task->user_stop_count)++ == 0)
+-				hold = TRUE;
+-			task_unlock(task);
+-
+-			if (hold) {
+-				(void) task_hold(task);
+-				sig_lock_to_wait(p);
+-				(void) task_dowait(task, TRUE);
+-				thread_hold(current_thread());
+-			}
+-			else {
+-				sig_lock_to_wait(p);
+-			}
+-			p->p_stat = SSTOP;
+-			p->p_flag &= ~SWTED;
+-			wakeup((caddr_t)p->p_pptr);
+-			thread_block();
+-			sig_wait_to_lock(p);
+-			/*
+-			 *	We get here only if task
+-			 *	is continued or killed.  Kill condition
+-			 *	is signalled by adding NSIG to p_cursig.
+-			 *	Pass original p_cursig as exit value in
+-			 *	this case.
+-			 */
+-			if (p->p_cursig > NSIG) {
+-				label_t qsave_tmp;
+-
+-				sig = p->p_cursig - NSIG;
+-				/*
+-				 *	Wait event may still be outstanding;
+-				 *	clear it, since sig_lock_to_exit will
+-				 *	wait.
+-				 */
+-				clear_wait(current_thread(),
+-					THREAD_INTERRUPTED,
+-					FALSE);
+-				sig_lock_to_exit(p);
+-				/*
+-				 * Since this thread will be resumed
+-				 * to allow the current syscall to
+-				 * be completed, must save u_qsave
+-				 * before calling exit().  (Since exit()
+-				 * calls closef() which can trash u_qsave.)
+-				 */
+-				qsave_tmp = u.u_qsave;
+-				exit(sig);
+-				u.u_qsave = qsave_tmp;
+-			}
+-			/*
+-			 *	We may have to quit
+-			 */
+-			if (thread_should_halt(current_thread())) {
+-				sig_unlock(p);
+-				return(TRUE);
+-			}
+-			/*
+-			 * If the traced bit got turned off,
+-			 * then put the signal taken above back into p_sig
+-			 * and go back up to the top to rescan signals.
+-			 * This ensures that p_sig* and u_signal are consistent.
+-			 */
+-			if ((p->p_flag&STRC) == 0) {
+-				if (mask & threadmask)
+-					u.u_sig |= mask;
+-				else
+-					p->p_sig |= mask;
+-				continue;
+-			}
+-
+-			/*
+-			 * If parent wants us to take the signal,
+-			 * then it will leave it in p->p_cursig;
+-			 * otherwise we just look for signals again.
+-			 */
+-			sig = p->p_cursig;
+-			if (sig == 0)
+-				continue;
+-
+-			/*
+-			 * If signal is being masked put it back
+-			 * into p_sig and look for other signals.
+-			 */
+-			mask = sigmask(sig);
+-			if (p->p_sigmask & mask) {
+-				if (mask & threadmask)
+-					u.u_sig |= mask;
+-				else
+-					p->p_sig |= mask;
+-				continue;
+-			}
+-		}
+-		switch ((int)u.u_signal[sig]) {
+-
+-		case (int)SIG_DFL:
+-			/*
+-			 * Don't take default actions on system processes.
+-			 */
+-			if (p->p_ppid == 0) {
+-				u.u_cursig = 0;
+-				break;
+-			}
+-			switch (sig) {
+-
+-			case SIGTSTP:
+-			case SIGTTIN:
+-			case SIGTTOU:
+-				/*
+-				 * Children of init aren't allowed to stop
+-				 * on signals from the keyboard.
+-				 */
+-#if	NeXT
+-				if (p->p_pptr == init_proc) {
+-#else	NeXT
+-				if (p->p_pptr == &proc[1]) {
+-#endif	NeXT
+-					psignal(p, SIGKILL);
+-					continue;
+-				}
+-				/* fall into ... */
+-
+-			case SIGSTOP:
+-				if (p->p_flag&STRC)
+-					continue;
+-				psignal(p->p_pptr, SIGCHLD);
+-				stop(p);
+-				sig_lock_to_wait(p);
+-				thread_block();
+-				sig_wait_to_lock(p);
+-				/*
+-				 *	We may have to quit
+-				 */
+-				if (thread_should_halt(current_thread())) {
+-					sig_unlock(p);
+-					return(TRUE);
+-				}
+-				continue;
+-
+-			case SIGCONT:
+-			case SIGCHLD:
+-			case SIGURG:
+-			case SIGIO:
+-			case SIGWINCH:
+-			case SIGMSG:
+-			case SIGEMSG:
+-				/*
+-				 * These signals are normally not
+-				 * sent if the action is the default.
+-				 */
+-				continue;		/* == ignore */
+-
+-			default:
+-				goto send;
+-			}
+-			/*NOTREACHED*/
+-
+-		case (int)SIG_HOLD:
+-		case (int)SIG_IGN:
+-			/*
+-			 * Masking above should prevent us
+-			 * ever trying to take action on a held
+-			 * or ignored signal, unless process is traced.
+-			 */
+-			if ((p->p_flag&STRC) == 0)
+-				printf("issig\n");
+-			continue;
+-
+-		default:
+-			/*
+-			 * This signal has an action, let
+-			 * psig process it.
+-			 */
+-			goto send;
+-		}
+-		/*NOTREACHED*/
+-	}
+-	/*
+-	 * Didn't find a signal to send.
+-	 */
+-	p->p_cursig = 0;
+-	u.u_cursig = 0;
+-	sig_unlock(p);
+-	return (0);
+-
+-send:
+-	/*
+-	 * Let psig process the signal.
+-	 */
+-	sig_unlock(p);
+-	return (sig);
+-}
+-
+-/*
+- * Put the argument process into the stopped
+- * state and notify the parent via wakeup.
+- * Signals are handled elsewhere.
+- */
+-stop(p)
+-	register struct proc *p;
+-{
+-
+-	/*
+-	 *	Call special task_suspend routine,
+-	 *	because this routine is called from interrupts
+-	 *	(psignal) and cannot sleep.
+-	 */
+-	(void) task_suspend_nowait(p->task);	/*XXX*/
+-	p->p_stat = SSTOP;
+-	p->p_flag &= ~SWTED;
+-	wakeup((caddr_t)p->p_pptr);
+-}
+-
+-/*
+- * Perform the action specified by
+- * the current signal.
+- * The usual sequence is:
+- *	if (issig())
+- *		psig();
+- * The signal bit has already been cleared by issig,
+- * and the current signal number stored in p->p_cursig.
+- */
+-psig()
+-{
+-	register struct proc *p = u.u_procp;
+-	register int sig = p->p_cursig;
+-	int mask = sigmask(sig), returnmask;
+-	register void (*action)();
+-
+-	/*
+-	 *	This must be called on master cpu
+-	 */
+-	if (cpu_number() != master_cpu)
+-		panic("psig not on master");
+-
+-	/*
+-	 *	Try for the signal lock.  Don't proceed further if we
+-	 *	are already supposed to halt.
+-	 */
+-	sig_lock(p);
+-	sig = p->p_cursig;
+-	mask = sigmask(sig);
+-
+-	/*
+-	 *	If another thread got here first (sig == 0) or this is
+-	 *	a thread signal for another thread, bail out.
+-	 */
+-	if ((sig == 0) || ((mask & threadmask) && (sig != u.u_cursig))) {
+-		sig_unlock(p);
+-		return;
+-	}
+-	/*
+-	 *  A polled resource pause condition which is being retried from the
+-	 *  system call level may be interrupted on the way back out to user
+-	 *  mode to be retried with a pause diagnostic message pending.  Always
+-	 *  clear the condition here before processing an interrupting signal
+-	 *  to keep the pause/continue diagnostic messages paired.
+-	 */
+-	if (u.u_rpswhich&URPW_NOTIFY)
+-	    rpcont();
+-
+-	action = u.u_signal[sig];
+-	if (action != SIG_DFL) {
+-		if (action == SIG_IGN || (p->p_sigmask & mask))
+-			panic("psig action");
+-		u.u_error = 0;
+-		/*
+-		 * Set the new mask value and also defer further
+-		 * occurences of this signal (unless we're simulating
+-		 * the old signal facilities). 
+-		 *
+-		 * Special case: user has done a sigpause.  Here the
+-		 * current mask is not of interest, but rather the
+-		 * mask from before the sigpause is what we want restored
+-		 * after the signal processing is completed.
+-		 */
+-		(void) splhigh();
+-		if (p->p_flag & SOUSIG) {
+-			if (sig != SIGILL && sig != SIGTRAP) {
+-				u.u_signal[sig] = SIG_DFL;
+-				p->p_sigcatch &= ~mask;
+-			}
+-			mask = 0;
+-		}
+-		if (p->p_flag & SOMASK) {
+-			returnmask = u.u_oldmask;
+-			p->p_flag &= ~SOMASK;
+-		} else
+-			returnmask = p->p_sigmask;
+-		p->p_sigmask |= u.u_sigmask[sig] | mask;
+-		/*
+-		 *	Fix up the signal state and unlock before
+-		 *	we send the signal.
+-		 */
+-		p->p_cursig = 0;
+-		if (sigmask(sig) & threadmask)
+-			u.u_cursig = 0;
+-		sig_unlock(p);
+- 		(void) spl0();
+- 		u.u_ru.ru_nsignals++;
+- 		sendsig(action, sig, returnmask);
+-		return;
+-	}
+-	u.u_acflag |= AXSIG;
+-	switch (sig) {
+-	/*
+-	 *	The new signal code for multiple threads makes it possible
+-	 *	for a multi-threaded task to get here (a thread that didn't
+-	 *	originally process a "stop" signal notices that cursig is
+-	 *	set), therefore, we must handle this.
+-	 */
+-	case SIGTSTP:
+-	case SIGTTIN:
+-	case SIGTTOU:
+-	case SIGSTOP:
+-		sig_unlock(p);
+-		return;
+-
+-	case SIGILL:
+-	case SIGIOT:
+-	case SIGBUS:
+-	case SIGQUIT:
+-	case SIGTRAP:
+-	case SIGEMT:
+-	case SIGFPE:
+-	case SIGSEGV:
+-	case SIGSYS:
+-		u.u_arg[0] = sig;
+-		/*
+-		 *	Indicate that we are about to exit.
+-		 *	disables all further signal processing for p.
+-		 */
+-		sig_lock_to_exit(p);
+-		if (core())
+-			sig += 0200;
+-		break;
+-	default:
+-		sig_lock_to_exit(p);
+-	}
+-	exit(sig);
+-}
+-
+ /*
+  * Create a core image on the file "core"
+  * If you are looking for protection glitches,
+@@ -1165,7 +117,7 @@
+ 	struct vattr	vattr;
+ 	vm_map_t	map;
+ 	int		thread_count, segment_count;
+-	int		command_size, header_size;
++	int		command_size, header_size, tstate_size;	/* plan 230.1: tstate_size before hoffset (stack slots) */
+ 	int		hoffset, foffset, vmoffset;
+ 	vm_offset_t	header;
+ 	struct machine_slot	*ms;
+@@ -1182,7 +134,11 @@
+ 	int		error;
+ 	task_t		task;
+ 	thread_t	thread;
+-	char		core_name[20];
++	char		core_name[32];	/* plan 230: 32 B in the original frame */
++	/* plan 230 (authored): flavor list (original 0x103a09-0x103ab1) */
++	struct thread_state_flavor flavors[10];
++	vm_size_t	nflavors;
++	int		i;
+ 
+ 	if (u.u_procp->p_flag&SXONLY)
+ 		return (0);
+@@ -1225,7 +181,7 @@
+ 			return (0);
+ 	}
+ 	if (vattr.va_nlink != 1) {
+-		u.u_error = EFAULT;
++		error = EFAULT;			/* plan 230 (0x1039a7) */
+ 		goto out;
+ 	}
+ 	vattr_null(&vattr);
+@@ -1240,18 +196,29 @@
+ 	 */
+ 
+ 	thread_count = task->thread_count;
+-	segment_count = map->nentries;
++	segment_count = map->hdr.nentries;	/* plan 230: 07 vm_map.h (map + 0x1c, 0x103a00) */
++
++	/*
++	 * plan 230 (authored): the thread states are the flavors the
++	 * current thread reports (original 0x103a09-0x103aed).
++	 */
++	nflavors = sizeof(flavors)/sizeof(int);
++	if (thread_getstatus(current_thread(), THREAD_STATE_FLAVOR_LIST,
++			     (thread_state_t)flavors, &nflavors) != KERN_SUCCESS)
++		panic("core flavor list");
++	nflavors /= sizeof(struct thread_state_flavor)/sizeof(int);
++	tstate_size = 0;
++	for (i = 0; i < nflavors; i++)
++		tstate_size += sizeof(struct thread_state_flavor) +
++			flavors[i].count*sizeof(int);
+ 
+ 	command_size = segment_count*sizeof(struct segment_command) +
+-		thread_count*sizeof(struct thread_command);
+-	command_size += (6*sizeof(unsigned long)
+-		+ sizeof(struct NeXT_thread_state_regs)
+-		+ sizeof(struct NeXT_thread_state_68882)
+-		+ sizeof(struct NeXT_thread_state_user_reg))*thread_count;
++		thread_count*sizeof(struct thread_command) +
++		tstate_size*thread_count;
+ 
+ 	header_size = command_size + sizeof(struct mach_header);
+ 
+-	header = kmem_alloc(kernel_map, header_size);
++	(void) kmem_alloc_wired(kernel_map, &header, header_size);
+ 
+ 	/*
+ 	 *	Set up Mach-O header.
+@@ -1269,7 +236,7 @@
+ 	foffset = round_page(header_size);	/* offset into file */
+ 	vmoffset = VM_MIN_ADDRESS;		/* offset into VM */
+ 	error = 0;
+-	while ((segment_count > 0) && (error == 0)) {
++	while (segment_count > 0) {		/* plan 230 (0x103b54) */
+ 		/*
+ 		 *	Get region information for next region.
+ 		 */
+@@ -1324,43 +291,19 @@
+ 		 */
+ 		tc = (struct thread_command *) (header + hoffset);
+ 		tc->cmd = LC_THREAD;
+-		tc->cmdsize = sizeof(struct thread_command)
+-				+ 6*sizeof(unsigned long) +
+-				+ sizeof(struct NeXT_thread_state_regs)
+-				+ sizeof(struct NeXT_thread_state_68882)
+-				+ sizeof(struct NeXT_thread_state_user_reg);
++		/* plan 230 (authored; original 0x103cd0-0x103d9f) */
++		tc->cmdsize = sizeof(struct thread_command) + tstate_size;
+ 		hoffset += sizeof(struct thread_command);
+ 
+-		size = NeXT_THREAD_STATE_REGS_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_REGS;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_REGS,
+-				 (struct NeXT_thread_state_regs *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
+-		size = NeXT_THREAD_STATE_68882_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_68882;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_68882,
+-				 (struct NeXT_thread_state_68882 *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
+-		size = NeXT_THREAD_STATE_USER_REG_COUNT;
+-		*(unsigned long *)(header+hoffset) = NeXT_THREAD_STATE_USER_REG;
+-		hoffset += sizeof(unsigned long);
+-		*(unsigned long *)(header+hoffset) = size;
+-		hoffset += sizeof(unsigned long);
+-		thread_getstatus(thread, NeXT_THREAD_STATE_USER_REG,
+-				 (struct NeXT_thread_state_user_reg *)
+-					(header+hoffset),
+-				 &size);
+-		hoffset += size*sizeof(unsigned long);
++		for (i = 0; i < nflavors; i++) {
++			*(struct thread_state_flavor *)(header+hoffset) =
++				flavors[i];
++			hoffset += sizeof(struct thread_state_flavor);
++			thread_getstatus(thread, flavors[i].flavor,
++					 (thread_state_t)(header+hoffset),
++					 &flavors[i].count);
++			hoffset += flavors[i].count*sizeof(int);
++		}
+ 		thread = (thread_t) queue_next(&thread->thread_list);
+ 		thread_count--;
+ 	}

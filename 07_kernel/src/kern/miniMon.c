@@ -1,0 +1,241 @@
+/*
+ * kern/miniMon.c -- the kernel mini-monitor.
+ *
+ * plan 239 (authored, D024): written from the original OPENSTEP 4.2
+ * x86 kernel object [0x1600cc, 0x160478) and its data; the strings
+ * are the original's.  Types come from kern/miniMonPrivate.h; no
+ * reference function text was copied.
+ */
+
+#import <kern/miniMon.h>
+#import <kern/miniMonPrivate.h>
+#import <sys/param.h>
+#import <sys/systm.h>
+#import <stdarg.h>
+#import <kern/lock.h>
+
+#define	TOSTR	0x8		/* prf: output to a string */
+
+extern void	prf();
+extern void	kdp_reset();
+
+static boolean_t mm_continue(char *);
+static boolean_t mm_help(char *);
+static boolean_t mm_reset(char *);
+static boolean_t mm_gdb(char *);
+
+void		*miniMonState;
+simple_lock_t	_kernDebuggerLock;
+
+miniMonCommand_t miniMonCommands[] = {
+	{"continue",	mm_continue,	"Continue execution"},
+	{"reboot",	miniMonReboot,	"Reboot the computer, no sync"},
+	{"halt",	miniMonHalt,	"Sync and halt the computer"},
+	{"gdb",		mm_gdb,		"Break to remote debugger"},
+	{"reset",	mm_reset,	"Reset debugger state"},
+	{"help",	mm_help,	0},
+	{"?",		mm_help,	0},
+	{0,		0}
+};
+
+/*
+ * Does the command name match the start of the line?  The line's word
+ * ends at a blank, a tab, a newline or the end of the string.
+ */
+static match_t
+mm_match(char *name, char *line)
+{
+	while (*name) {
+		if (*line == ' ' || *line == '\t' || *line == '\n' ||
+		    *line == '\0')
+			return (FOUND);
+		if (*name++ != *line++)
+			return (NOT_FOUND);
+	}
+	return (FOUND);
+}
+
+/*
+ * Run the command on the line; FALSE leaves the monitor.
+ */
+static boolean_t
+mm_parse(char *line)
+{
+	miniMonCommand_t	*cmd, *found = NULL;
+
+	for (cmd = miniMonCommands; cmd->name; cmd++) {
+		if (mm_match(cmd->name, line) == FOUND) {
+			if (found != NULL) {
+				safe_prf("Ambiguous command - type '?' for help\n");
+				return (TRUE);
+			}
+			found = cmd;
+		}
+	}
+	for (cmd = miniMonMDCommands; cmd->name; cmd++) {
+		if (mm_match(cmd->name, line) == FOUND) {
+			if (found != NULL) {
+				safe_prf("Ambiguous command - type '?' for help\n");
+				return (TRUE);
+			}
+			found = cmd;
+		}
+	}
+	if (found != NULL)
+		return ((*found->function)(line));
+	safe_prf("Invalid command - type '?' for help\n");
+	return (TRUE);
+}
+
+void
+miniMonInit(void)
+{
+	_kernDebuggerLock = simple_lock_alloc();
+	simple_lock_init(_kernDebuggerLock);
+}
+
+/*
+ * Read one line into line (at most len - 1 characters).
+ */
+static void
+mm_getline(char *line, int len)
+{
+	register int	c;
+	char		*start = line;
+
+	len--;
+	for (;;) {
+		c = miniMonGetchar();
+		switch (c) {
+		case '\r':
+			miniMonPutchar('\n');
+			/* and end the line */
+		case '\n':
+			*line = '\0';
+			return;
+		case '\b':
+			miniMonPutchar(' ');
+			if (line != start) {
+				miniMonPutchar('\b');
+				line--;
+				len++;
+			}
+			continue;
+		case '\025':			/* ^U */
+			line = start;
+			miniMonPutchar('\n');
+			continue;
+		default:
+			if (len) {
+				*line++ = c;
+				len--;
+			} else {
+				miniMonPutchar('\b');
+				miniMonPutchar(' ');
+				miniMonPutchar('\b');
+			}
+		}
+	}
+}
+
+static char	mm_line[128];
+
+void
+miniMonLoop(char *prompt, int panic, void *state)
+{
+	int	c;
+
+	miniMonState = state;
+	if (panic) {
+		safe_prf("System Panic:\n");
+		safe_prf("%s\n", panicstr);
+		/*
+		 * plan 239.1: the original pops the two calls' arguments
+		 * here (0x160201); the construct that did so is unknown, an
+		 * empty loop gives the same code (variant s5p224-v1 p1).
+		 */
+		do {
+		} while (0);
+		safe_prf("(Type 'r' to reboot or 'm' for monitor)");
+		for (;;) {
+			c = miniMonTryGetchar();
+			if (c == 'r') {
+				safe_prf("\nRebooting...");
+				miniMonReboot("");
+			} else if (c == 'm') {
+				safe_prf("\n");
+				break;
+			}
+		}
+	}
+	safe_prf("NEXTSTEP Mini-monitor\n");
+	do {
+		safe_prf("%s> ", prompt);
+		mm_getline(mm_line, sizeof (mm_line));
+	} while (mm_parse(mm_line));
+}
+
+static boolean_t
+mm_continue(char *line)
+{
+	return (FALSE);
+}
+
+static boolean_t
+mm_help(char *line)
+{
+	miniMonCommand_t	*cmd;
+
+	safe_prf("Mini-monitor commands:\n");
+	safe_prf("?,help - Print this message\n");
+	for (cmd = miniMonCommands; cmd->name; cmd++)
+		if (cmd->help)
+			safe_prf("%s - %s\n", cmd->name, cmd->help);
+	for (cmd = miniMonMDCommands; cmd->name; cmd++)
+		if (cmd->help)
+			safe_prf("%s - %s\n", cmd->name, cmd->help);
+	return (TRUE);
+}
+
+/*
+ * printf to the mini-monitor console without using the console
+ * driver.
+ */
+void
+safe_prf(const char *format, ...)
+{
+	static char	buf[512];
+	char		*p = buf;
+	va_list		ap;
+
+	va_start(ap, format);
+	prf(format, ap, TOSTR, &p);
+	*p = '\0';
+	p = buf;
+	while (*p)
+		miniMonPutchar(*p++);
+	va_end(ap);
+}
+
+static boolean_t
+mm_reset(char *line)
+{
+	kdp_reset();
+	return (TRUE);
+}
+
+static boolean_t
+mm_gdb(char *line)
+{
+	boolean_t	ret;
+
+	if (simple_lock_try(_kernDebuggerLock)) {
+		ret = miniMonGdb(line);
+		simple_unlock(_kernDebuggerLock);
+	} else {
+		safe_prf("Couldn't acquire debugger lock:\n");
+		safe_prf("exit from monitor and try again.\n");
+		ret = TRUE;
+	}
+	return (ret);
+}

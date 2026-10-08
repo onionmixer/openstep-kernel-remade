@@ -1,0 +1,248 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_bio.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/vfs/vfs_bio.c	2026-10-03 14:25:37.517857342 +0900
+@@ -56,6 +56,9 @@
+ 	int	n_breada_hits1;
+ 	int	n_breada_hits2;
+ } bstats;
++
++/* plan 208: bsetvp and brelvp have no symbols in the original (0x11b244, 0x11b26c) */
++static bsetvp(), brelvp();
+ #endif	NeXT
+ 
+ /*
+@@ -161,6 +164,9 @@
+  *  BUFHASH data structure.  Others reading the same block will see the buffer,
+  *  wait for IO to complete, then retry with their own buffer.
+  */
++#if	NeXT
++static		/* plan 208: no symbol in the original (inlined into breadDirect) */
++#endif	NeXT
+ vnStartRead(vp, page, blkno, size, bp)
+     struct vnode *vp;
+     vm_page_t page;
+@@ -196,6 +202,9 @@
+  *  Clean up a private buffer.  We just remove it from the BUFHASH chain, and
+  *  release its vnode.
+  */
++#if	NeXT
++static		/* plan 208: no symbol in the original (inlined into breadDirect) */
++#endif	NeXT
+ vnCleanBuffer(bp)
+     struct buf *bp;
+ {
+@@ -403,7 +412,12 @@
+ 		bfreelist[0].b_flags &= ~B_WANTED;
+ 		wakeup((caddr_t)bfreelist);
+ 	}
++#if	NeXT
++	/* plan 208 (authored; original 0x11a2bb): delayed writes stay valid */
++	if ((bp->b_flags & (B_NOCACHE|B_DELWRI)) == B_NOCACHE) {
++#else	NeXT
+ 	if (bp->b_flags & B_NOCACHE) {
++#endif	NeXT
+ 		bp->b_flags |= B_INVAL;
+ 	}
+ 	if (bp->b_flags&B_ERROR)
+@@ -427,8 +441,13 @@
+ 	} else {
+ 		if (bp->b_flags & B_LOCKED)
+ 			flist = &bfreelist[BQ_LOCKED];
++#if	NeXT
++		else if (bp->b_flags & B_AGE)	/* plan 208 (original 0x11a361) */
++			flist = &bfreelist[BQ_AGE];
++#else	NeXT
+ /*		else if (bp->b_flags & B_AGE)
+ 			flist = &bfreelist[BQ_AGE];*/
++#endif	NeXT
+ 		else
+ 			flist = &bfreelist[BQ_LRU];
+ 		binstailfree(bp, flist);
+@@ -456,6 +475,7 @@
+ 	return (0);
+ }
+ 
++#if	!NeXT	/* plan 208: baddr has no body in the original range */
+ struct buf *
+ baddr(vp, blkno, size)
+ 	struct vnode *vp;
+@@ -467,6 +487,7 @@
+ 		return (bread(vp, blkno, size));
+ 	return (0);
+ }
++#endif	!NeXT
+ 
+ /*
+  * Assign a buffer for the given block.  If the appropriate
+@@ -490,8 +511,10 @@
+ 		printf("vp=0x%x, blkno=0x%x, size=0x%x\n", vp, blkno, size);
+ 		panic("getblk: Illegal vnode pointer");
+ 	}
++#if	!NeXT	/* plan 208: no clamp in the original getblk */
+ 	if ((unsigned)blkno >= 1 << (sizeof(int)*NBBY-DEV_BSHIFT))    /* XXX */
+ 		blkno = 1 << ((sizeof(int)*NBBY-DEV_BSHIFT) + 1);
++#endif	!NeXT
+ 	/*
+ 	 * Search the cache for the block.  If we hit, but
+ 	 * the buffer is in use for i/o, then we wait until
+@@ -570,6 +593,9 @@
+ 	register struct buf *ep;
+ 	struct buf *dp;
+ 	int s;
++#if	NeXT
++	int devblksize;		/* plan 208 */
++#endif	NeXT
+ 
+ 	/*
+ 	 * First need to make sure that all overlaping previous I/O
+@@ -617,8 +643,14 @@
+ 	 * at any point in time. Care must be taken to avoid deadlocking
+ 	 * when two buffer are trying to get the same set of disk blocks.
+ 	 */
++#if	NeXT
++	/* plan 208 (authored, D024; original 0x11a6cc-0x11a6ec) */
++	devblksize = VOP_DEVBLOCKSIZE(bp->b_vp);
++	if (devblksize < 0)
++		panic("Couldn't determine device blocksize!\n");
++#endif	NeXT
+ 	start = bp->b_blkno;
+-	last = start + btodb(size) - 1;
++	last = start + btodb(size, devblksize) - 1;
+ 	dp = BUFHASH(bp->b_vp, bp->b_blkno);
+ loop:
+ 	for (ep = dp->b_forw; ep != dp; ep = ep->b_forw) {
+@@ -626,7 +658,7 @@
+ 			continue;
+ 		/* look for overlap */
+ 		if (ep->b_bcount == 0 || ep->b_blkno > last ||
+-		    ep->b_blkno + btodb(ep->b_bcount) <= start)
++		    ep->b_blkno + ep->b_bcount / devblksize <= start)	/* plan 208.1: signed (original jge) */
+ 			continue;
+ 		s = splhigh();
+ 		if (ep->b_flags&B_BUSY) {
+@@ -677,7 +709,9 @@
+ 		bwrite(bp);
+ 		goto loop;
+ 	}
++#if	!NeXT	/* plan 208: no brelvp here in the original (0x11aa28) */
+ 	brelvp(bp);
++#endif	!NeXT
+ 	trace(TR_BRELSE, bp->b_vp, bp->b_blkno);
+ 	bp->b_flags = B_BUSY;
+ 	return (bp);
+@@ -760,9 +794,17 @@
+ 	struct buf *dp;
+ 	daddr_t start, last;
+ 	int s;
++#if	NeXT
++	int devblksize;
++
++	/* plan 208 (authored, D024; original 0x11ac31-0x11ac54) */
++	devblksize = VOP_DEVBLOCKSIZE(vp);
++	if (devblksize < 0)
++		panic("Couldn't determine device blocksize!\n");
++#endif	NeXT
+ 
+ 	start = blkno;
+-	last = start + btodb(size) - 1;
++	last = start + btodb(size, devblksize) - 1;
+ 	dp = BUFHASH(vp, blkno);
+ loop:
+ 	for (ep = dp->b_forw; ep != dp; ep = ep->b_forw) {
+@@ -770,7 +812,7 @@
+ 			continue;
+ 		/* look for overlap */
+ 		if (ep->b_bcount == 0 || ep->b_blkno > last ||
+-		    ep->b_blkno + btodb(ep->b_bcount) <= start)
++		    ep->b_blkno + ep->b_bcount / devblksize <= start)	/* plan 208.1: signed (original jge) */
+ 			continue;
+ 		s = splhigh();
+ 		if (ep->b_flags&B_BUSY) {
+@@ -829,6 +871,20 @@
+ 	(void) splx(s);
+ }
+ 
++#if	NeXT
++/*
++ * plan 208 (authored, D024; original _brelvp_wakeup 0x11af0c): b_iodone
++ * of the asynchronous writes started by binvalfree -- release the buffer,
++ * then its vnode.
++ */
++brelvp_wakeup(bp)
++	register struct buf *bp;
++{
++	brelse(bp);
++	brelvp(bp);
++}
++#endif	NeXT
++
+ /*
+  * Invalidate blocks associated with vp which are on the freelist.
+  * Make sure all write-behind blocks associated with vp are flushed out.
+@@ -846,7 +902,13 @@
+ 	for (bp = flist->av_forw; bp != flist; bp = bp->av_forw) {
+ 		if (vp == bp->b_vp || vp == (struct vnode *) 0) {
+ 			if (bp->b_flags & B_DELWRI) {
++#if	NeXT
++				/* plan 208 (authored; original 0x11b067-0x11b06e) */
++				bp->b_iodone = brelvp_wakeup;
++				bp->b_flags |= B_CALL|B_ASYNC;
++#else	NeXT
+ 				bp->b_flags |= B_ASYNC;
++#endif	NeXT
+ 				notavail(bp);
+ 				(void) splx(s);
+ 				bwrite(bp);
+@@ -861,6 +923,33 @@
+ 	(void) splx(s);
+ }
+ 
++#if	NeXT
++/*
++ * plan 208 (authored, D024; original _btrash 0x11b158): throw away the
++ * free buffers of vp (all of them for vp == 0) without writing them.
++ */
++btrash(vp)
++	struct vnode *vp;
++{
++	register struct buf *bp;
++	register struct buf *flist;
++	int s;
++
++loop:
++	s = splhigh();
++	for (flist = bfreelist; flist < &bfreelist[BQ_EMPTY]; flist++)
++	for (bp = flist->av_forw; bp != flist; bp = bp->av_forw) {
++		if (vp == bp->b_vp || vp == (struct vnode *) 0) {
++			bp->b_flags = (bp->b_flags & ~B_DELWRI) | B_INVAL;
++			brelvp(bp);
++			(void) splx(s);
++			goto loop;
++		}
++	}
++	(void) splx(s);
++}
++#endif	NeXT
++
+ /*
+  * Pick up the device's error number and pass it to the user;
+  * if there is an error but the number is 0 set a generalized
+@@ -907,6 +996,9 @@
+ 			}
+ }
+ 
++#if	NeXT
++static
++#endif	NeXT
+ bsetvp(bp, vp)
+ 	struct buf *bp;
+ 	struct vnode *vp;
+@@ -918,6 +1010,9 @@
+ 	bp->b_vp = vp;
+ }
+ 
++#if	NeXT
++static
++#endif	NeXT
+ brelvp(bp)
+ 	struct buf *bp;
+ {

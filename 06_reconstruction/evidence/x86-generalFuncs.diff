@@ -1,0 +1,244 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/driverkit/generalFuncs.c	2026-10-04 22:25:12.680440165 +0900
+@@ -0,0 +1,241 @@
++/*
++ * generalFuncs.c - kernel-level driverkit general functions (plan 294).
++ *
++ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
++ * original 0x1a5448-0x1a5614).  The text is nearly the same as Darwin 0.1
++ * driverkit-1/libDriver/Kernel/generalFuncs.m (the original has no
++ * Objective-C module record for it, so it is built as C here); the lines
++ * that differ are marked plan 294.  Kept as project-authored under
++ * D027/D030, without Darwin's notices (license judgement: D017).
++ */
++
++#import <bsd/sys/types.h>
++#import <objc/objc.h> 
++#import <driverkit/return.h>
++#import <driverkit/memcpy.h>
++#import <driverkit/generalFuncs.h> 
++#import <mach/mach_user_internal.h>
++#import <mach/mach_interface.h>
++#import <stdarg.h>
++/* plan 294: <machkit/NXLock.h> (Objective-C) not imported in this C build */
++#import <machine/mach_param.h>
++#import <bsd/sys/syslog.h>
++#import <bsd/sys/callout.h>
++#import <bsd/dev/ldd.h>
++#import <kernserv/ns_timer.h>
++#import <kern/clock.h>
++
++/*
++ * Misc. kernel prototypes.
++ */
++
++extern port_name_t IOTask;			// IOTask's task port
++
++/*
++ * Take this out when we have a kernel debugger that works.
++ */
++extern int libIO_dbg;
++#define cdprint(x) { 		\
++	if(libIO_dbg) { 	\
++		printf x; 	\
++	}			\
++}
++
++/*
++ * Kernel level libIO implementation.
++ */
++ 
++void *IOMalloc(int size)
++{
++	return(kalloc(size));
++}
++
++void IOFree(void *p, int size)
++{
++	kfree(p, size);
++}
++
++void IOCopyMemory(void *from, void *to, unsigned int numBytes, 
++	unsigned int bytesPerTransfer)
++{
++ 	_IOCopyMemory(from, to, numBytes, bytesPerTransfer);	
++}
++ 
++
++void IOSleep(unsigned milliseconds)
++{
++	ns_sleep((ns_time_t)(milliseconds) * 1000000LL);
++}
++
++/*
++ * Spin for indicated number of microseconds.
++ */
++void IODelay(unsigned microseconds)
++{
++	DELAY(microseconds);
++}
++
++/*
++ * Call function fcn with argument arg in specified number of seconds.
++ */
++void IOScheduleFunc(IOThreadFunc fcn, void *arg, int seconds)
++{
++	ns_time_t ns_time = (ns_time_t) seconds * 1000000000;
++	
++	ns_timeout((func)fcn, arg, ns_time, CALLOUT_PRI_THREAD);
++}
++
++/*
++ * Cancel callout requested in IOScheduleFunc().
++ */
++void IOUnscheduleFunc(IOThreadFunc fcn, void *arg)
++{
++	ns_untimeout((func)fcn, arg);
++}
++
++/*
++ * Obtain current time in nanoseconds.
++ */
++extern ns_time_t	clock_value();	/* plan 294 */
++
++void IOGetTimestamp(ns_time_t *nsp)
++{
++	*nsp = clock_value(System);	/* plan 294: the original calls clock_value(System) */
++}
++
++void IOLog(const char *format, ...)
++{
++        va_list ap;
++        
++        va_start(ap, format);
++        vlog(LOG_ERR, format, ap);	/* plan 294: the original passes LOG_ERR (3) */
++        va_end(ap);
++}
++
++/*
++ * Panic.
++ */
++void IOPanic(const char *reason)
++{
++	panic(reason);
++}
++
++
++/*
++ * Convert a integer constant (typically a #define or enum) to a string.
++ */
++static char noValue[80];
++
++const char *IOFindNameForValue(int value, const IONamedValue *regValueArray)
++{
++	for( ; regValueArray->name; regValueArray++) {
++		if(regValueArray->value == value)
++			return(regValueArray->name);
++	}
++	sprintf(noValue, "%d(d) (UNDEFINED)", value);
++	return((const char *)noValue);
++}
++
++IOReturn IOFindValueForName(const char *string, 
++	const IONamedValue *regValueArray,
++	int *value)
++{
++	for( ; regValueArray->name; regValueArray++) {
++		if(!strcmp(regValueArray->name, string)) {
++			*value = regValueArray->value;
++			return IO_R_SUCCESS;
++		}
++	}
++	return IO_R_INVALID_ARG;
++}
++
++IOAlignment IOSizeToAlignment(unsigned int size)
++{
++    register int shift;
++    const intsize = sizeof(unsigned int) * 8;
++    
++    for (shift = 1; shift < intsize; shift++) {
++	if (size & 0x80000000)
++	    return (IOAlignment)(intsize - shift);
++	size <<= 1;
++    }
++    return 0;
++}
++
++unsigned int IOAlignmentToSize(IOAlignment align)
++{
++    unsigned int size;
++    
++    for (size = 1; align; align--) {
++	size <<= 1;
++    }
++    return size;
++}
++
++/*
++ * Temporary test of IOTask context.
++ */
++#ifdef	DEBUG
++void iotaskTest()
++{
++	kern_return_t krtn;
++	port_t port1;
++	port_t port2;
++	msg_header_t *msg1, *msg2;
++	
++	/*
++	 * Allocate 2 ports.
++	 */
++	krtn = port_allocate(task_self(), &port1);
++	if(krtn) {
++		printf("iotaskTest: port_allocate() returned %d\n", krtn);
++		return;	
++	}
++	else {
++		cdprint(("...iotaskTest port1 %d\n", port1));
++	}
++	krtn = port_allocate(task_self(), &port2);
++	if(krtn) {
++		printf("iotaskTest: port_allocate() returned %d\n", krtn);
++		return;	
++	}
++	else {
++		cdprint(("...iotaskTest port2 %d\n", port2));
++	}
++	
++	/*
++	 * Send a dummy message from one port to another.
++	 */
++	msg1 = IOMalloc(sizeof(*msg1));
++	msg1->msg_simple = 1;
++	msg1->msg_size = sizeof(*msg1);
++	msg1->msg_type = MSG_TYPE_NORMAL;
++	msg1->msg_local_port = port1;
++	msg1->msg_remote_port = port2;
++	msg1->msg_id = 123;
++	krtn = msg_send(msg1, SEND_TIMEOUT, 1);
++	if(krtn) {
++		printf("iotaskTest: msg_send() returned %d\n", krtn);
++		return;	
++	}
++	
++	/*
++	 * Receive the message.
++	 */
++	msg2 = IOMalloc(sizeof(*msg2));
++	msg2->msg_size = sizeof(*msg2);
++	msg2->msg_local_port = port2;
++	krtn = msg_receive(msg2, RCV_TIMEOUT, 0);
++	if(krtn) {
++		printf("iotaskTest: msg_receive() returned %d\n", krtn);
++		return;	
++	}
++	cdprint(("iotaskTest: SUCCESS\n"));
++	port_deallocate(task_self(), port1);
++	port_deallocate(task_self(), port2);
++	IOFree(msg1, sizeof(*msg1));
++	IOFree(msg2, sizeof(*msg2));
++	IOExitThread();
++}
++#endif	DEBUG
++/* end of libIO.m */

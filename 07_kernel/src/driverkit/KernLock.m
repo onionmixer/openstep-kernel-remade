@@ -1,0 +1,119 @@
+/*
+ * KernLock.m (plan 304).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "/BinarySourceCache_Mario1A/mk/mk-183.34.4/driverkit/KernLock.m", methods 0x17e70c-0x17e83c).
+ * The text is nearly the same as Darwin 0.1
+ * kernel/driverkit/KernLock.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+#import <cpus.h>
+
+#import <mach/mach_types.h>
+
+#import <driverkit/KernLock.h>
+
+@implementation KernLock
+
+- initWithLevel:	(int)level
+{
+#if	NCPUS > 1
+    _slock = simple_lock_alloc();
+    simple_lock_init(_slock);
+#else
+    if (level == 0)
+    	return [super free];
+#endif
+
+    _lockLevel = level;
+    
+    return self;
+}
+
+- init
+{
+    return [self initWithLevel:0];
+}
+
+- free
+{
+#if	NCPUS > 1
+    simple_lock_free(_slock);
+#endif
+    
+    return [super free];
+}
+
+- (int)level
+{
+    return _lockLevel;
+}
+
+- (void)acquire
+{
+    int		oldLevel = curipl();
+    
+    if (oldLevel < _lockLevel)
+    	spln(ipltospl(_lockLevel));
+
+#if	NCPUS > 1	
+    simple_lock(_slock);
+#endif
+    _savedLevel = oldLevel;
+}
+
+- (void)release
+{
+    int		oldLevel = _savedLevel;
+
+#if	NCPUS > 1    
+    simple_unlock(_slock);
+#endif
+    spln(ipltospl(oldLevel));
+}
+
+@end
+
+typedef struct KernLock_ {
+    @defs(KernLock)
+} KernLock_;
+
+void
+KernLockAcquire(
+    KernLock		*_lock
+)
+{
+    KernLock_		*lock = (KernLock_ *)_lock;
+    int			oldLevel = curipl();
+    
+    if (_lock == nil)
+    	return;
+    
+    if (oldLevel < lock->_lockLevel)
+    	spln(ipltospl(lock->_lockLevel));
+
+#if	NCPUS > 1	
+    simple_lock(lock->_slock);
+#endif
+    lock->_savedLevel = oldLevel;
+}
+
+void
+KernLockRelease(
+    KernLock		*_lock
+)
+{
+    KernLock_		*lock = (KernLock_ *)_lock;
+    int			oldLevel;
+    
+    if (_lock == nil)
+    	return;
+
+    oldLevel = lock->_savedLevel;
+
+#if	NCPUS > 1    
+    simple_unlock(lock->_slock);
+#endif
+    spln(ipltospl(oldLevel));
+}

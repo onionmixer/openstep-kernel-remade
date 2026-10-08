@@ -1,0 +1,71 @@
+/*
+ * IOMallocLow.c - low (DMA-able) memory allocation (plan 293).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original 0x1c87e0-0x1c88ea).  The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/IOMallocLow.m (the original has no
+ * Objective-C module record for it, so it is built as C here); kept as
+ * project-authored under D027/D030, without Darwin's notices (license
+ * judgement: D017).
+ */
+
+#import <driverkit/i386/kernelDriver.h> 
+#import <mach/vm_param.h>
+#import <kernserv/queue.h>
+#import <machdep/i386/dma_exported.h>
+#import <driverkit/generalFuncs.h>
+
+queue_head_t dmaBufQueue;
+
+/*
+ * Need to keep dma_buf_t's around for IOFreeLow().
+ */
+typedef struct {
+	dma_buf_t 	*buf;
+	queue_chain_t	link;
+} low16Buf;
+
+
+void *IOMallocLow(int size)
+{
+	boolean_t brtn;
+	dma_buf_t *buf;
+	low16Buf *lowBuf;
+	
+	buf = IOMalloc(sizeof(*buf));
+	brtn = dma_buf_alloc(buf, size);
+	if(brtn == FALSE) {
+		IOFree(buf, sizeof(*buf));
+		return 0;
+	}
+	
+	/*
+	 * Enqueue this on dmaBufQueue.
+	 */
+	lowBuf = IOMalloc(sizeof(*lowBuf));
+	lowBuf->buf = buf;
+	queue_enter(&dmaBufQueue, lowBuf, low16Buf *, link);
+	return buf->_ptr;
+}
+
+void IOFreeLow(void *p, int size)
+{
+	low16Buf *lowBuf;
+
+	/*
+	 * Find the associated low16Buf.
+	 */
+	lowBuf = (low16Buf *)queue_first(&dmaBufQueue);
+	while(!queue_end(&dmaBufQueue, (queue_t)lowBuf)) {
+		if(lowBuf->buf->_ptr == p) {
+			queue_remove(&dmaBufQueue, lowBuf, low16Buf *, link);
+			dma_buf_free(lowBuf->buf);
+			IOFree(lowBuf->buf, sizeof(*lowBuf->buf));
+			IOFree(lowBuf, sizeof(*lowBuf));
+			return;
+		}
+		lowBuf = (low16Buf *)lowBuf->link.next;
+	}
+	IOLog("IOFreeLow: buf 0x%x not found\n", (unsigned)p);
+}
+

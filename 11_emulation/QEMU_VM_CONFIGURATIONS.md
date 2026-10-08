@@ -165,6 +165,7 @@ $QI snapshot -a NAME $D     # 되돌리기
 - 커널 로그는 부팅 프롬프트에서 `-v`.
 - `boot --cd ISO|KEY`: CD 자리(IDE 2차 마스터)에 다른 CD 를 넣는다(경로 또는 `site.conf` 키). 게스트의 `/usr/filesystems/CDROM.fs` 는 ISO 9660·Rock Ridge 도 읽는다.
 - 다른 커널로 부팅: `boot:` 에서 `hd()커널이름 -v`(디스크의 `BootHelp.txt`: `<<device>kernel> <arguments>`).
+- 시험 디스크로 부팅(plan 405): `vm-i386.sh boot-nocd --disk RAW --snapshot` — `--snapshot` 일 때만 받으며 그 디스크에 쓰지 않는다. `09_validation/images/i386/openstep42-i386-hdd.l2test.raw` 는 저장소 디스크의 사본에 07 에서 만든 커널 `/mach_kernel.l2`(SHA-256 33469393…, 기준과 같은 바이트)와 `/mach_kernel.l2.pic`(같은 PIC 수정, 304cb696…)를 넣은 것.
 - 전원을 끄면 `It's safe to turn off the computer.` 에서 멈추는 것이 정상이다. 모니터에서 `quit`.
 
 ### 3.4 커널

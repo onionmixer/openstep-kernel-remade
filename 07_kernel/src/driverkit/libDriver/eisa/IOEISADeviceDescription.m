@@ -1,0 +1,202 @@
+/*
+ * IOEISADeviceDescription.m (plan 345).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "eisa/IOEISADeviceDescription.m", 0x1c133c-0x1c1745).
+ * The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/eisa/IOEISADeviceDescription.m; kept as project-authored
+ * under D027/D030, without Darwin's notices (license judgement: D017).
+ */
+
+#define KERNEL_PRIVATE	1
+
+#import <objc/List.h>
+
+#import <driverkit/KernDeviceDescription.h>
+/*
+ * plan 345: driverkit/i386/EISAKernBus.h is in no reference tree; the two
+ * resource keys this file uses are defined here (same values as plan 333;
+ * the strings match the original).
+ */
+#define IO_PORTS_KEY 		"I/O Ports"
+#define DMA_CHANNELS_KEY	"DMA Channels"
+
+#import <driverkit/i386/IOEISADeviceDescription.h>
+#import <driverkit/i386/IOEISADeviceDescriptionPrivate.h>
+#import <driverkit/IODeviceDescriptionPrivate.h>
+#import <driverkit/IOProperties.h>
+
+struct _private {
+    unsigned int	*channels;
+    unsigned int	numChannels;
+    IORange		*portRanges;
+    unsigned int	numPortRanges;
+    BOOL		valid;
+    unsigned int	slotNum;
+    unsigned long	slotID;
+};
+
+@implementation IOEISADeviceDescription
+
+- free
+{
+    struct _private	*private = _eisa_private;
+    
+    if (private->numChannels > 0)
+    	IOFree(private->channels,
+		private->numChannels * sizeof (*private->channels));
+    if (private->numPortRanges > 0)
+    	IOFree(private->portRanges,
+		private->numPortRanges * sizeof (*private->portRanges));
+			
+    IOFree(private, sizeof (*private));
+    
+    return [super free];
+}
+
+- (unsigned int) channel
+{
+    return [self channelList][0];
+}
+
+
+- (unsigned int *) channelList
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->numChannels == 0)
+    	private->channels = [self
+				_fetchItemList:[[self _delegate] 
+					resourcesForKey:DMA_CHANNELS_KEY]
+				    returnedNum:&private->numChannels];
+    return private->channels;
+}
+
+- (unsigned int) numChannels
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->numChannels == 0)
+    	private->channels = [self
+				_fetchItemList:[[self _delegate] 
+					resourcesForKey:DMA_CHANNELS_KEY]
+				    returnedNum:&private->numChannels];
+    return private->numChannels;
+}
+
+- (IORange *) portRangeList
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->numPortRanges == 0)
+    	private->portRanges = [self
+				_fetchRangeList:[[self _delegate] 
+					resourcesForKey:IO_PORTS_KEY]
+				    returnedNum:&private->numPortRanges];
+    return private->portRanges;
+}
+
+- (unsigned int) numPortRanges
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->numPortRanges == 0)
+    	private->portRanges = [self
+				_fetchRangeList:[[self _delegate] 
+					resourcesForKey:IO_PORTS_KEY]
+				    returnedNum:&private->numPortRanges];
+    return private->numPortRanges;
+}
+
+
+- (IOReturn) setChannelList:(unsigned int *)aList num:(unsigned int) length
+{
+    IOReturn ret = IO_R_RESOURCE;
+    
+    if ([[self _delegate]
+	allocateItems:aList numItems:length
+	forKey:DMA_CHANNELS_KEY] != nil) {
+	
+	struct _private *private = (struct _private *)_eisa_private;
+	if (private->numChannels > 0)
+	    IOFree(private->channels,
+		private->numChannels * sizeof (*private->channels));
+	private->numChannels = 0;
+	ret = IO_R_SUCCESS;
+    }
+    return ret;
+}
+
+- (IOReturn) setPortRangeList:(IORange *)aList num:(unsigned int) length
+{
+    IOReturn ret = IO_R_RESOURCE;
+    Range *ranges;
+    int i;
+    
+    ranges = (Range *)IOMalloc(sizeof(Range) * length);
+    for (i=0; i<length; i++) {
+	ranges[i].base = aList[i].start;
+	ranges[i].length = aList[i].size;
+    }
+    if ([[self _delegate]
+	allocateRanges:ranges numRanges:length forKey:IO_PORTS_KEY] != nil) {
+	
+	struct _private *private = (struct _private *)_eisa_private;
+	if (private->numPortRanges > 0)
+	    IOFree(private->portRanges,
+		private->numPortRanges * sizeof (*private->portRanges));
+	private->numPortRanges = 0;
+	ret = IO_R_SUCCESS;
+    }
+    IOFree(ranges, sizeof(Range) * length);
+    return ret;
+}
+
+- (IOReturn) getEISASlotNumber : (unsigned int *) slotNum
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->valid) {
+	if (slotNum) *slotNum = private->slotNum;
+	return IO_R_SUCCESS;
+    }
+    return IO_R_NO_DEVICE;
+}
+
+
+- (IOReturn) getEISASlotID : (unsigned long *) slotID
+{
+    struct _private	*private = _eisa_private;
+
+    if (private->valid) {
+	if (slotID) *slotID = private->slotID;
+	return IO_R_SUCCESS;
+    }
+    return IO_R_NO_DEVICE;
+}
+
+@end
+
+@implementation IOEISADeviceDescription(Private)
+
+- _initWithDelegate:delegate
+{
+    struct _private	*private;
+    id			 theEISABus = [KernBus lookupBusInstanceWithName:"EISA" busId:0];
+
+    [super _initWithDelegate:delegate];
+    _eisa_private = (void *)IOMalloc(sizeof (struct _private));
+    bzero(_eisa_private, sizeof (struct _private));
+    private = _eisa_private;
+
+    private->valid = ( (theEISABus != nil) &&
+	([theEISABus getEISASlotNumber: &(private->slotNum)
+				slotID: &(private->slotID)
+		usingDeviceDescription: delegate] == IO_R_SUCCESS) );
+
+    return self;
+}
+
+/* plan 345: no property_IODeviceType:length: (not in the original method list) */
+
+@end

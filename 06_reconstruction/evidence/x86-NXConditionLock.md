@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/Kernel/NXConditionLock.m` (plan 298 (S5-P288), 2026-10-04)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "Kernel/NXConditionLock.m" (objc.json module 0x2090dc). Final run `s5p288-it1`; 07 file SHA-256 `14c148b6ad45a19a59a1ecbcbc6db7bce9d0f7c5904693256a898d57e1816d56`; diff `x86-NXConditionLock.diff`.
+
+- `__text` [0x1a8ddc, 0x1a8fd5) 505 B, 8 methods (-[NXConditionLock init], -[NXConditionLock initWith:], -[NXConditionLock condition], -[NXConditionLock free], -[NXConditionLock lock], -[NXConditionLock unlock], -[NXConditionLock lockWhen:], -[NXConditionLock unlockWith:]). Front `c3 00 00 00`, back `00 00 00 55`, next function 0x1a8fd8.
+- Sections: __TEXT,__text 505 B given by objc metadata; __OBJC,__cat_cls_meth 12 B inferred, verified by L1d; __OBJC,__cat_inst_meth 20 B inferred, verified by L1d; __OBJC,__message_refs 12 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 104 B given by objc metadata; __OBJC,__protocol 20 B inferred, verified by L1d; __OBJC,__class_names 55 B literal (references checked by content); __OBJC,__meth_var_types 31 B literal (references checked by content); __OBJC,__meth_var_names 70 B literal (references checked by content); __OBJC,__instance_vars 16 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 16 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p288-it1-l1-NXConditionLock-F-20261002.json`). Grade **A**.
+
+Module "Kernel/NXConditionLock.m": methods 0x1a8ddc-0x1a8fd4, 8 methods; front NXSpinLock (00 x 3 after 0x1a8dd8), next NXLock 0x1a8fd8. Scratch s5p288-nxcondit-1 (Darwin body + diagnostic #line) OBJECT_MATCH. Codex review of plans 298/299 verified (ranges, padding). s5p288-it1 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

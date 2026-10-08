@@ -1,0 +1,280 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/kern_prot.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/kern_prot.c	2026-10-03 15:09:03.452863595 +0900
+@@ -49,12 +49,57 @@
+ #import <sys/acct.h>
+ 
+ #import <kern/kalloc.h>
++#import <kern/thread.h>		/* plan 212: current_thread(), _uthread */
++#import <kern/task.h>		/* plan 212: task->u_address */
+ 
+ 
+ void crfree();
++
++/*
++ * plan 212 (authored, D024; original 0x107a24-0x107a76): these three
++ * start the kern_prot object (0x00 linker fill before 0x107a24, plan 211.1).
++ */
++struct proc *
++proc_from_thread(th)
++	thread_t th;
++{
++	if (th)			/* plan 211.1 (variant v2) */
++		return (th->task->u_address->uu_procp);
++	return (NULL);
++}
++
++struct utask *
++utask_from_thread(th)
++	thread_t th;
++{
++	if (th)			/* plan 211.1 (variant v2) */
++		return (th->task->u_address);
++	return (NULL);
++}
++
++struct uthread *
++uthread_from_thread(th)
++	thread_t th;
++{
++	if (th)			/* plan 211.1 (variant v2) */
++		return (th->_uthread);
++	return (NULL);
++}
++
++/* plan 212 (authored, D024; original _setprivexec 0x107a78) */
++setprivexec()
++{
++	register struct a {
++		int	flag;
++	} *uap = (struct a *)u.u_ap;
++
++	current_thread()->_uthread->uu_r.r_val1 = u.u_procp->p_debugger;
++	u.u_procp->p_debugger = (uap->flag != 0);
++	return (0);
++}
+ getpid()
+ {
+-	register struct uthread *uth = current_thread()->u_address.uthread;
++	register struct uthread *uth = current_thread()->_uthread;	/* plan 212 */
+ 	register struct proc *p = u.u_procp;
+ 
+ 	uth->uu_r.r_val1 = p->p_pid;
+@@ -92,6 +137,31 @@
+ 	u.u_r.r_val2 = (int) u.u_gid;
+ }
+ 
++/* plan 212 (authored, D024; original _getposix 0x107ba0) */
++getposix()
++{
++
++	u.u_r.r_val1 = (u.u_procp->p_posix != 0);
++}
++
++/* plan 212 (authored, D024; original _setposix 0x107bc4) */
++/* plan 212.1: variant p4 (s5p186-v2) */
++setposix()
++{
++	register struct a {
++		int	flag;
++	} *uap = (struct a *)u.u_ap;
++	register int flag = uap->flag;
++
++	if (flag == 0 || flag == 1) {
++		u.u_r.r_val1 = u.u_procp->p_posix;
++		u.u_procp->p_posix = flag;
++	} else {
++		u.u_r.r_val1 = -1;
++		u.u_error = EINVAL;
++	}
++}
++
+ getgroups()
+ {
+ 	register struct	a {
+@@ -110,10 +180,15 @@
+ 		return;
+ 	}
+ 	uap->gidsetsize = gp - u.u_groups;
+-	for (lp = groups, gp = u.u_groups; lp < &groups[uap->gidsetsize]; )
+-		*lp++ = (int) *gp++;
+-	u.u_error = copyout((caddr_t)groups, (caddr_t)uap->gidset,
+-	    uap->gidsetsize * sizeof (groups[0]));
++	if (u.u_procp->p_posix)		/* plan 212 (original 0x107c7a) */
++		u.u_error = copyout((caddr_t)u.u_groups, (caddr_t)uap->gidset,
++		    uap->gidsetsize * sizeof (gid_t));
++	else {
++		for (lp = groups, gp = u.u_groups; lp < &groups[uap->gidsetsize]; )
++			*lp++ = (int) *gp++;
++		u.u_error = copyout((caddr_t)groups, (caddr_t)uap->gidset,
++		    uap->gidsetsize * sizeof (groups[0]));
++	}
+ 	if (u.u_error)
+ 		return;
+ 	u.u_r.r_val1 = uap->gidsetsize;
+@@ -139,7 +214,11 @@
+ 		u.u_error = EPERM;
+ 		return;
+ 	}
++#if	POSIX_KERN
++	enterpgrp(p, uap->pgrp, 0);	/* plan 212 (original 0x107d68) */
++#else	POSIX_KERN
+ 	p->p_pgrp = uap->pgrp;
++#endif	POSIX_KERN
+ }
+ 
+ setreuid()
+@@ -178,6 +257,74 @@
+ #endif	NeXT
+ }
+ 
++#if	POSIX_KERN
++/* plan 212 (authored, D024; original __setuid 0x107e60) */
++_setuid()
++{
++	struct a {
++		int	uid;
++	} *uap = (struct a *)u.u_ap;
++	register uid_t uid, svuid, ruid;
++	struct posix_proc *px;
++
++	ruid = u.u_ruid;
++	uid = (uid_t)uap->uid;
++	px = get_posix_proc(u.u_procp->p_pid);
++	if (uid < 0) {
++		u.u_error = EINVAL;
++		return;
++	}
++	svuid = px->p_svuid;
++	if (!suser()) {
++		if (uid != ruid && uid != svuid) {
++			u.u_error = EPERM;
++			return;
++		}
++	} else
++		ruid = svuid = uid;
++	u.u_error = 0;
++	u_cred_lock();
++	u.u_cred = crcopy(u.u_cred);
++	u.u_ruid = px->p_ruid = ruid;	/* plan 212.1: variant s1 (s5p186-v1) */
++	u.u_procp->p_uid = u.u_uid = uid;
++	u_cred_unlock();
++	px->p_svuid = svuid;
++}
++
++/* plan 212 (authored, D024; original __setgid 0x107f48) */
++_setgid()
++{
++	struct a {
++		int	gid;
++	} *uap = (struct a *)u.u_ap;
++	register gid_t gid, rgid, svgid;
++	struct posix_proc *px;
++
++	rgid = u.u_rgid;
++	gid = (gid_t)uap->gid;
++	px = get_posix_proc(u.u_procp->p_pid);
++	if (gid < 0) {
++		u.u_error = EINVAL;
++		return;
++	}
++	svgid = px->p_svgid;
++	if (!suser()) {
++		if (gid != rgid && gid != svgid) {
++			u.u_error = EPERM;
++			return;
++		}
++	} else
++		rgid = svgid = gid;
++	u.u_error = 0;
++	u_cred_lock();
++	u.u_cred = crcopy(u.u_cred);
++	u.u_rgid = rgid;
++	u.u_gid = gid;
++	u_cred_unlock();
++	px->p_svgid = svgid;
++}
++#endif	POSIX_KERN
++
+ setregid()
+ {
+ 	register struct a {
+@@ -314,6 +461,8 @@
+  */
+ suser()
+ {
++	if (current_thread()->task->u_address->uu_procp == 0)	/* plan 212 (original 0x108313) */
++		return (0);
+ 	if (u.u_uid == 0) {
+ 		u.u_acflag |= ASU;
+ 		return (1);
+@@ -395,3 +544,70 @@
+  	return(newcr);
+ }
+ 
++#if	POSIX_KERN
++/*
++ * plan 212 (authored, D024; original _setsid 0x108474, _setpgid 0x1084d0):
++ * POSIX sessions and process groups through struct posix_proc.
++ */
++setsid()
++{
++	register struct proc *p = u.u_procp;
++	register struct posix_proc *px = get_posix_proc(p->p_pid);
++
++	if (px->p_pgid == p->p_pid || pgfind(p->p_pid)) {
++		u.u_error = EPERM;
++		return;
++	}
++	enterpgrp(p, p->p_pid, 1);
++	u.u_r.r_val1 = p->p_pid;
++}
++
++setpgid()
++{
++	register struct a {
++		int	pid;
++		int	pgid;
++	} *uap = (struct a *)u.u_ap;
++	register struct proc *curp = u.u_procp;
++	register struct proc *targp;
++	register struct posix_proc *curpx, *targpx;
++	register struct pgrp *pgrp;
++
++	if (uap->pgid < 0) {
++		u.u_error = EINVAL;
++		return;
++	}
++	curpx = get_posix_proc(curp->p_pid);
++	if (uap->pid != 0 && uap->pid != curp->p_pid) {
++		if ((targp = pfind(uap->pid)) == 0 || !inferior(targp)) {
++			u.u_error = ESRCH;
++			return;
++		}
++		targpx = get_posix_proc(targp->p_pid);
++		if (targpx->p_session != curpx->p_session) {
++			u.u_error = EPERM;
++			return;
++		}
++		if (targp->p_flag & SEXEC) {
++			u.u_error = EACCES;
++			return;
++		}
++	} else {
++		targp = curp;
++		targpx = curpx;
++	}
++	if (SESS_LEADER(targp, targpx)) {
++		u.u_error = EPERM;
++		return;
++	}
++	if (uap->pgid == 0)
++		uap->pgid = targp->p_pid;
++	else if (uap->pgid != targp->p_pid)
++		if ((pgrp = pgfind(uap->pgid)) == 0 ||
++		    pgrp->pg_session != curpx->p_session) {
++			u.u_error = EPERM;
++			return;
++		}
++	enterpgrp(targp, uap->pgid, 0);
++}
++#endif	POSIX_KERN

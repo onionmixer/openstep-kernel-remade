@@ -1,0 +1,57 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vm_swp.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/kern_physio.c	2026-10-03 17:45:23.639868578 +0900
+@@ -254,7 +254,7 @@
+ {
+ 	register struct iovec *iov;
+ 	register int c;
+-	char *a;
++	char *a = 0;		/* plan 228 (original 0x11eb64) */
+ 	int s, error = 0;
+ 
+ nextiov:
+@@ -278,10 +278,7 @@
+ 	while (iov->iov_len > 0) {
+ 		bp->b_flags = B_BUSY | B_PHYS | rw;
+ 		bp->b_dev = dev;
+-		if(blocksize == DEV_BSIZE)
+-			bp->b_blkno = btodb(uio->uio_offset);
+-		else
+-			bp->b_blkno = uio->uio_offset / blocksize;
++		bp->b_blkno = btodb(uio->uio_offset, blocksize);	/* plan 228 (0x11ec16) */
+ 		bp->b_bcount = iov->iov_len;
+ 		(*mincnt)(bp);
+ 		c = bp->b_bcount;
+@@ -326,14 +323,26 @@
+ 	goto nextiov;
+ }
+ 
+-#define	MAXPHYS	(63 * 1024)
+-
+-unsigned
+-minphys(bp)
++/*
++ * plan 228 (D024): the original object has no minphys
++ * ([0x11eb50, 0x11ed58) holds _physio and _physstrat only).
++ * physstrat below is NeXTMach next/machdep.c:1477-1491:
++ */
++/* 
++ * Copyright (c) 1987, 1988, 1989 NeXT, Inc.
++ */
++physstrat(bp, strat, prio)
+ 	struct buf *bp;
++	int (*strat)(), prio;
+ {
++	int s;
+ 
+-	if (bp->b_bcount > MAXPHYS)
+-		bp->b_bcount = MAXPHYS;
++	(*strat)(bp);
++	/* pageout daemon doesn't wait for pushed pages */
++	if (bp->b_flags & B_DIRTY)
++		return;
++	s = splbio();
++	while ((bp->b_flags & B_DONE) == 0)
++		sleep((caddr_t)bp, prio);
++	splx(s);
+ }
+-

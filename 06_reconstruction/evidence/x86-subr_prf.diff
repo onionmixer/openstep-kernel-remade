@@ -1,0 +1,282 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/subr_prf.c	2026-09-11 10:02:49.485217287 +0900
++++ 07_kernel/src/bsd/kern/subr_prf.c	2026-10-03 16:52:07.837510659 +0900
+@@ -92,9 +92,6 @@
+  *	@(#)subr_prf.c	7.1 (Berkeley) 6/5/86
+  */
+ 
+-#if	NeXT
+-#import <mach_ldebug.h>
+-#endif	NeXT
+ 
+ #import <sys/param.h>
+ #import <sys/systm.h>
+@@ -113,8 +110,7 @@
+ #import <machine/cpu.h>	/* for cpu_number() */
+ 
+ #ifdef	NeXT
+-#import <next/printf.h>
+-#import <mon/global.h>
++#import <kernserv/printf.h>	/* plan 220: struct reg_desc, TOCONS..TOSTR (was next/printf.h; mon/global.h dropped) */
+ #endif	NeXT
+ 
+ #define TOCONS	0x1
+@@ -165,9 +161,12 @@
+ #endif	NeXT
+ int printf(const char *format, ...)
+ {
++	va_list ap;
+ 
+-	if (prf(format, ((u_int *)&format)+1, TOCONS | TOLOG, (struct tty *)0))
++	va_start(ap, format);		/* plan 220: stdarg */
++	if (prf(format, ap, TOCONS | TOLOG, (struct tty *)0))
+ 		logwakeup();
++	va_end(ap);
+ 	return 0;
+ }
+ 
+@@ -183,6 +182,7 @@
+ 	register struct proc *p;
+ #endif
+ 	register struct tty *tp;
++	va_list ap;
+ 
+ 	if ((tp = u.u_ttyp) == NULL)
+ 		return;
+@@ -192,7 +192,9 @@
+ 			return -1;
+ #endif
+ 	(void)ttycheckoutq(tp, 1);
+-	prf(format, ((u_int *)&format)+1, TOTTY, tp);
++	va_start(ap, format);		/* plan 220: stdarg */
++	prf(format, ap, TOTTY, tp);
++	va_end(ap);
+ 	return 0;
+ }
+ 
+@@ -206,17 +208,33 @@
+ {
+ 	int flags = TOTTY | TOLOG;
+ 	extern struct tty cons;
++	va_list ap;
+ 
+ 	logpri(LOG_INFO);
+ 	if (tp == (struct tty *)NULL)
+ 		tp = &cons;
+ 	if (ttycheckoutq(tp, 0) == 0)
+ 		flags = TOLOG;
+-	prf(format, ((u_int *)&format)+1, flags, tp);
++	va_start(ap, format);		/* plan 220: stdarg */
++	prf(format, ap, flags, tp);
++	va_end(ap);
+ 	logwakeup();
+ 	return 0;
+ }
+ 
++/* plan 220: sprintf moved here (original order, 0x10c188) */
++int sprintf(char *s, const char *format, ...)
++{
++	char *p = s;			/* plan 220: local copy (original 0x10c192) */
++	va_list ap;
++
++	va_start(ap, format);
++	prf(format, ap, TOSTR, (struct tty *)&p);
++	va_end(ap);
++	*p++ = 0;
++	return p - s;
++}
++
+ /*
+  * Log writes to the log buffer,
+  * and guarantees not to sleep (so can be called by interrupt routines).
+@@ -226,13 +244,26 @@
+ {
+ 	register s = splhigh();
+ 	extern int log_open;
++	va_list ap;
+ 
+ 	logpri(level);
+-	prf(format, ((u_int *)&format)+1, TOLOG, (struct tty *)0);
++	va_start(ap, format);		/* plan 220: stdarg */
++	prf(format, ap, TOLOG, (struct tty *)0);
+ 	splx(s);
+ 	if (!log_open)
+-		prf(format, ((u_int *)&format)+1, TOCONS, (struct tty *)0);
++		prf(format, ap, TOCONS, (struct tty *)0);
++	va_end(ap);
+ 	logwakeup();
++	splx(s);			/* plan 220 (original 0x10c20c) */
++	return 0;
++}
++
++/* plan 220 (authored, D024; original _vlog 0x10c220) */
++int vlog(int level, const char *format, va_list ap)
++{
++
++	if (prf(format, ap, TOCONS | TOLOG, (struct tty *)0))
++		logwakeup();
+ 	return 0;
+ }
+ 
+@@ -244,7 +275,16 @@
+ 	logchar('>');
+ }
+ 
+-int prf(const char *fmt, u_int *adx, int flags, struct tty *ttyp)
++/* plan 220 (authored, D024; original __printf 0x10c274) */
++int _printf(int flags, struct tty *ttyp, const char *format, ...)
++{
++	va_list ap;
++
++	va_start(ap, format);
++	return (prf(format, ap, flags, ttyp));
++}
++
++int prf(const char *fmt, va_list ap, int flags, struct tty *ttyp)	/* plan 220: va_list */
+ {
+ 	register int b, c, i;
+ 	char *s;
+@@ -279,17 +319,17 @@
+ 	case 'o': case 'O':
+ 		b = 8;
+ number:
+-		printn((u_long)*adx, b, flags, ttyp, zf, fld_size);
++		printn(va_arg(ap, u_long), b, flags, ttyp, zf, fld_size);
+ 		break;
+ 	case 'c':
+-		b = *adx;
++		b = va_arg(ap, int);
+ 		for (i = 24; i >= 0; i -= 8)
+ 			if (c = (b >> i) & 0x7f)
+ 				tputchar(c, flags, ttyp);
+ 		break;
+ 	case 'b':
+-		b = *adx++;
+-		s = (char *)*adx;
++		b = va_arg(ap, int);
++		s = va_arg(ap, char *);
+ 		printn((u_long)b, *s++, flags, ttyp, 0, 0);
+ 		any = 0;
+ 		if (b) {
+@@ -319,7 +359,7 @@
+ 		break;
+ 
+ 	case 's':
+-		s = (char *)*adx;
++		s = va_arg(ap, char *);
+ 		while (c = *s++)
+ 			tputchar(c, flags, ttyp);
+ 		break;
+@@ -329,7 +369,7 @@
+ 		goto loop;
+ #if	NeXT
+ 	case 'C':
+-		b = *adx;
++		b = va_arg(ap, int);
+ 		for (i = 24; i >= 0; i -= 8)
+ 			if (c = (b >> i) & 0xff)
+ 				tputchar(c, flags, ttyp);
+@@ -337,8 +377,8 @@
+ 
+ 	case 'r':
+ 	case 'R':
+-		b = *adx++;
+-		s = (char *)*adx;
++		b = va_arg(ap, int);
++		s = va_arg(ap, char *);
+ 		if (c == 'R') {
+ 			puts("0x", flags, ttyp);
+ 			printn((u_long)b, 16, flags, ttyp, 0, 0);
+@@ -373,7 +413,7 @@
+ 					}
+ 				}
+ 				if (rd->rd_format) {
+-					prf(rd->rd_format, &field, flags, ttyp);
++					_printf(flags, ttyp, rd->rd_format, field);	/* plan 220 (original 0x10c824) */
+ 					any = 1;
+ 					if (rd->rd_values)
+ 						tputchar(':', flags, ttyp);
+@@ -402,8 +442,8 @@
+ 		{
+ 			register struct reg_values *rv;
+ 
+-			b = *adx++;
+-			s = (char *)*adx;
++			b = va_arg(ap, int);
++			s = va_arg(ap, char *);
+ 			for (rv = (struct reg_values *)s; rv->rv_name; rv++) {
+ 				if (b == rv->rv_value) {
+ 					puts(rv->rv_name, flags, ttyp);
+@@ -425,7 +465,6 @@
+ 		goto loop;
+ #endif	NeXT
+ 	}
+-	adx++;
+ 	goto loop;
+ }
+ 
+@@ -481,13 +520,6 @@
+ void panic(const char *s)
+ {
+ 	int bootopt = RB_AUTOBOOT;
+-#if	NeXT && MACH_LDEBUG
+-	extern int mach_ldebug;
+-#endif	NeXT && MACH_LDEBUG
+-#if	NeXT
+-	extern struct mon_global *mon_global;
+-	struct mon_global *mg = mon_global;
+-#endif	NeXT
+ 
+ 	simple_lock(&panic_lock);
+ 	if (panicstr) {
+@@ -506,15 +538,9 @@
+ 	}
+ 	simple_unlock(&panic_lock);
+ 
+-#if	NeXT && MACH_LDEBUG
+-	mach_ldebug = 0;		// turn off simple lock debugging.
+-#endif	NeXT && MACH_LDEBUG
+-
+ 	printf("panic: (Cpu %d) %s\n", paniccpu, s);
+ #if	NeXT
+-	printf ("NeXT ROM Monitor %d.%d v%d\n",
+-		mg->mg_major, mg->mg_minor, mg->mg_seq);
+-	printf("panic: %s\n", version);
++	printf("panic: %s\n", version);	/* plan 220: no ROM monitor line */
+ #endif	NeXT
+ #ifdef	vax
+ 	if (boothowto&RB_KDB)
+@@ -538,7 +564,7 @@
+ #if	NeXT
+ 	mini_mon ("panic", "System Panic", boothowto);
+ #endif	NeXT
+-	boot(RB_PANIC, bootopt);
++	boot(RB_PANIC, bootopt, "");	/* plan 220 (original 0x10cb0e) */
+ }
+ 
+ /*
+@@ -632,25 +658,3 @@
+ 		(*sp)++;
+ 	}
+ }
+-
+-int sprintf(char *s, const char *format, ...)
+-{
+-	char *s0 = s;
+-	prf(format, ((u_int *)&format)+1, TOSTR, (struct tty *)&s);
+-	*s++ = 0;
+-	return s - s0;
+-}
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-

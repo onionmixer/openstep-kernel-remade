@@ -8,6 +8,16 @@
 
 CMDFILE lines (blank lines and '#' comments ignored):
   RUN <absolute-tool> <args...>   run in the run directory; stdout/stderr to stage/_log/NN.*
+  RUNIN <dir> <absolute-tool> <args...>   (plan 297) the same, run in <dir> (relative to the run
+                                  directory, under src/); an argument starting with @R/ or -I@R/
+                                  has @R replaced by the run directory's absolute path;
+                                  (plan 361.1) <dir> may also be stage/<name> (one level,
+                                  [A-Za-z0-9_]+, not _log), made by run.sh after stage/_log,
+                                  for tools that write into the current directory (mig -i)
+  ABSROOT                         (plan 304, D033) point 08_build/runs/ABSROOT at this run's
+                                  src/src under the LOCK; RUN/RUNIN words starting with @ABS/
+                                  become /BinarySourceCache_Mario1A/mk/mk-183.34.4/ (the real
+                                  machine links that path to ABSROOT)
   EXPECT <path under stage/>      required non-empty output (Mach-O magic if it ends in .o)
 Arguments may only use [A-Za-z0-9_./=+,:@%-]; no shell metacharacters, no
 redirection, no background.  Inputs are src/...; outputs must go to stage/...
@@ -27,12 +37,14 @@ TOOLS_JSON = '08_build/toolchains/real-i386-20261001/sha256-vs-vm.json'
 GCDS_DIR = os.path.abspath(os.path.join(REPO, '..'))          # NeXT_DRIVER/
 REAL_ONLY_JSON = '08_build/toolchains/real-i386-20261001/real-only-20261002.json'
 ALLOWED_TOOLS = ('/bin/cc', '/bin/as', '/bin/ld', '/usr/bin/mig', '/lib/cpp', '/usr/lib/migcom',
-                 '/lib/i386/cpp', '/usr/lib/migcom3')
+                 '/lib/i386/cpp', '/usr/lib/migcom3',
+                 '/bin/strip')   # plan 402: strip -x of the linked kernel (Darwin Makefile.template:272)
 # hashed against a real-machine-only record (no VM value; plan 86.1), all others need real == vm
 REAL_ONLY_TOOLS = ('/usr/lib/migcom3',)
 ARG_RE = re.compile(r'^[A-Za-z0-9_./=+,:@%-]+$')
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9._-]{2,60}$')
 NAME_RE = re.compile(r'^[A-Za-z0-9_.,+-]+$')
+STAGE_DIR_RE = re.compile(r'^stage/[A-Za-z0-9_]+$')   # plan 361.1: RUNIN output directory under stage/
 
 
 def die(msg):
@@ -75,14 +87,48 @@ def walk_regular(root, top):
     return sorted(out)
 
 
+ABS_PATH = '/BinarySourceCache_Mario1A/mk/mk-183.34.4/'   # plan 304 (D033)
+
+
+def _abs_ok(no, w):
+    if '@ABS' in w and (not w.startswith('@ABS/') or w.count('@ABS') > 1):
+        die('line %d: bad @ABS use in %r' % (no, w))
+    return w.startswith('@ABS/')
+
+
 def parse_cmdfile(path):
     runs, expects = [], []
+    absroot, absused = 0, False
+    stagedirs = {}   # plan 361.1: lowercase -> stage/<name>
     for no, line in enumerate(open(path).read().splitlines(), 1):
         line = line.strip()
         if not line or line.startswith('#'):
             continue
         words = line.split()
-        if words[0] == 'RUN' and len(words) >= 2:
+        if words[0] == 'RUNIN' and len(words) >= 3:   # plan 297
+            d = words[1]
+            if STAGE_DIR_RE.match(d):   # plan 361.1: stage/<name>, not _log in any case, no case collision
+                if d.lower() == 'stage/_log':
+                    die('line %d: bad RUNIN directory %r' % (no, d))
+                if stagedirs.get(d.lower(), d) != d:
+                    die('line %d: RUNIN directory %r collides with %r' % (no, d, stagedirs[d.lower()]))
+                stagedirs[d.lower()] = d
+            elif not ARG_RE.match(d) or not d.startswith('src/') or '..' in d.split('/') or '@' in d:
+                die('line %d: bad RUNIN directory %r' % (no, d))
+            if words[2] not in ALLOWED_TOOLS:
+                die('line %d: tool %s not allowed' % (no, words[2]))
+            for w in words[3:]:
+                if not ARG_RE.match(w):
+                    die('line %d: bad argument %r' % (no, w))
+                if '..' in w.split('/'):
+                    die('line %d: ".." in %r' % (no, w))
+                if '@R' in w and not (w.startswith('@R/') or w.startswith('-I@R/')) or w.count('@R') > 1:
+                    die('line %d: bad @R use in %r' % (no, w))
+                absused |= _abs_ok(no, w)
+            runs.append(['RUNIN', d] + words[2:])
+        elif words == ['ABSROOT']:   # plan 304
+            absroot += 1
+        elif words[0] == 'RUN' and len(words) >= 2:
             if words[1] not in ALLOWED_TOOLS:
                 die('line %d: tool %s not allowed' % (no, words[1]))
             for w in words[2:]:
@@ -90,6 +136,7 @@ def parse_cmdfile(path):
                     die('line %d: bad argument %r' % (no, w))
                 if '..' in w.split('/'):
                     die('line %d: ".." in %r' % (no, w))
+                absused |= _abs_ok(no, w)
             runs.append(words[1:])
         elif words[0] == 'EXPECT' and len(words) == 2:
             if not ARG_RE.match(words[1]) or '..' in words[1].split('/') or words[1].startswith('/'):
@@ -99,6 +146,12 @@ def parse_cmdfile(path):
             die('line %d: unknown %r' % (no, line))
     if not runs or not expects:
         die('CMDFILE needs at least one RUN and one EXPECT')
+    if absroot > 1:
+        die('ABSROOT given more than once')
+    if absused and not absroot:
+        die('@ABS used without ABSROOT')
+    if absroot:
+        runs.insert(0, ['ABSROOT'])   # plan 304: marker entry, not a command
     return runs, expects
 
 
@@ -142,9 +195,23 @@ def prepare(rid, src, cmdfile):
     os.makedirs(rdir)
     shutil.copytree(src, os.path.join(rdir, 'src'), symlinks=True)
     shutil.copyfile(cmdfile, os.path.join(rdir, 'run.cmd'))
+    absroot = bool(runs and runs[0] == ['ABSROOT'])
+    if absroot:   # plan 304: marker inside src/src, hashed with the inputs
+        runs = runs[1:]
+        if not os.path.isdir(os.path.join(rdir, 'src', 'src')):
+            die('ABSROOT needs src/src in SRC')
+        with open(os.path.join(rdir, 'src', 'src', '.krabs'), 'w') as f:
+            f.write(rid + '\n')
     files = walk_regular(rdir, 'src')
     if not files:
         die('empty SRC')
+    for cmd in runs:   # plan 297: a RUNIN directory must exist in the copied tree
+        if cmd[0] == 'RUNIN' and not STAGE_DIR_RE.match(cmd[1]) and not os.path.isdir(os.path.join(rdir, cmd[1])):
+            die('RUNIN directory %s not in SRC' % cmd[1])
+    stagedirs = []   # plan 361.1: made by run.sh after stage/_log, once each, in first-use order
+    for cmd in runs:
+        if cmd[0] == 'RUNIN' and STAGE_DIR_RE.match(cmd[1]) and cmd[1] not in stagedirs:
+            stagedirs.append(cmd[1])
     tr = '%s/08_build/runs/%s' % (TARGET_REPO, rid)
     k = '%s/%s' % (TARGET_REPO, KRSHA)
     # expected lines, in the order the target will print them
@@ -159,18 +226,31 @@ def prepare(rid, src, cmdfile):
          'cd $R || exit 1',
          'mkdir %s/08_build/runs/LOCK 2>/dev/null || { echo LOCKED > $R/FAILED; exit 1; }' % TARGET_REPO,
          'echo "%s $$" > %s/08_build/runs/LOCK.owner' % (rid, TARGET_REPO),   # not inside LOCK: NFS silly-rename leaves .nfs* there
-         'fail() { echo "$1" > $R/FAILED; sync; rmdir %s/08_build/runs/LOCK; exit 1; }' % TARGET_REPO,
+         'A=%s/08_build/runs/ABSROOT' % TARGET_REPO,
+         'absclean() { %s }' % ('if [ -h $A ]; then rm -f $A || echo "ABSROOT cleanup failed" >> $R/FAILED; fi;' if absroot else ':;'),
+         'fail() { echo "$1" > $R/FAILED; absclean; sync; rmdir %s/08_build/runs/LOCK; exit 1; }' % TARGET_REPO,
+         "trap 'fail signal' 1 2 15" if absroot else ':',
          '[ -d stage ] && fail "stage exists"',
          '$K %s > input.actual 2>&1 || fail "input hash"' % ' '.join(files + ['run.cmd', 'run.sh']),
          'cmp -s input.actual input.expected || fail "input mismatch"',
          '$K %s > tools.actual 2>&1 || fail "tool hash"' % ' '.join(ALLOWED_TOOLS),
          'cmp -s tools.actual tools.expected || fail "tool mismatch"',
-         'mkdir stage stage/_log || fail "mkdir stage"',
+         'mkdir stage stage/_log || fail "mkdir stage"'] + [
+         'mkdir %s || fail "mkdir %s"' % (d, d) for d in stagedirs] + [   # plan 361.1
          ': > stage/_log/status']
+    if absroot:   # plan 304: replace a stale link only, then check the real-machine path reaches this run
+        L += ['if [ -h $A ]; then rm -f $A || fail "ABSROOT stale link"; elif [ -f $A -o -d $A ]; then fail "ABSROOT is not a link"; fi',
+              'ln -s %s/src/src $A || fail "ABSROOT ln"' % rid,
+              '[ "`cat %s.krabs 2>/dev/null`" = "%s" ] || fail "ABSROOT marker"' % (ABS_PATH, rid)]
     for i, cmd in enumerate(runs):
         n = '%02d' % i
+        ab = lambda w: ABS_PATH + w[len('@ABS/'):] if w.startswith('@ABS/') else w   # plan 304
+        if cmd[0] == 'RUNIN':   # plan 297: (cd DIR && TOOL ARGS), @R -> $R (the run directory)
+            line = '(cd %s && %s)' % (cmd[1], ' '.join(ab(w).replace('@R/', '$R/', 1) for w in cmd[2:]))
+        else:
+            line = ' '.join(ab(w) for w in cmd)
         L.append('%s > stage/_log/%s.out 2> stage/_log/%s.err; echo "%s $?" >> stage/_log/status'
-                 % (' '.join(cmd), n, n, n))
+                 % (line, n, n, n))
     L += ['$K %s > input.actual2 2>&1 || fail "input rehash"' % ' '.join(files + ['run.cmd', 'run.sh']),
           'cmp -s input.actual2 input.expected || fail "input changed during build"',
           'find stage ! -type f ! -type d -print > nonregular',
@@ -180,6 +260,7 @@ def prepare(rid, src, cmdfile):
           'sort +2 output.unsorted > output.manifest',        # old sort: no -k
           'sync',
           'echo "%s `grep -c . stage/_log/status`" > DONE' % rid,
+          'absclean',
           'sync',
           'rmdir %s/08_build/runs/LOCK' % TARGET_REPO,
           'exit 0']

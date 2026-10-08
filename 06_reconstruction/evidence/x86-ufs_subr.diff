@@ -1,0 +1,32 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_subr.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_subr.c	2026-10-03 14:09:04.957025772 +0900
+@@ -132,7 +132,16 @@
+ 			panic("update: ro fs mod");
+ 		}
+ 		fs->fs_fmod = 0;
++#if	NeXT
++	    {
++		struct timeval now;	/* plan 207 (authored; original 0x142923) */
++
++		getthetime(&now);
++		fs->fs_time = now.tv_sec;
++	    }
++#else	NeXT
+ 		fs->fs_time = time.tv_sec;
++#endif	NeXT
+ 		sbupdate(mp);
+ 	}
+ 	/*
+@@ -403,11 +412,8 @@
+ {
+ 	int s, i, j, count;
+ 	register struct buf *bp, *dp;
+-#if	NeXT
+-	int counts[MAXBSIZE/NeXT_MIN_CLBYTES+1];	/* must be constant */
+-#else	NeXT
++	/* plan 207: sized at run time from page_size (original 0x142e55-0x142e69) */
+ 	int counts[MAXBSIZE/CLBYTES+1];
+-#endif	NeXT
+ 	static char *bname[BQUEUES] = { "LOCKED", "LRU", "AGE", "EMPTY" };
+ 
+ 	for (bp = bfreelist, i = 0; bp < &bfreelist[BQUEUES]; bp++, i++) {

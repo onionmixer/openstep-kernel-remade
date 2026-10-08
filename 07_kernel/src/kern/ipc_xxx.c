@@ -39,6 +39,7 @@
 
 #import <mach/mach_types.h>
 #import <mach/notify.h>
+#import <ipc/ipc_notify.h>		/* plan 392: ipc_notify_msg_accepted_compat */
 
 static inline
 port_name_t
@@ -220,4 +221,48 @@ port_release(
 {
 	if (port != IP_NULL)
 		ipc_port_release_send(port);		/* XXX */
+}
+
+/*
+ * plan 392 (D024, D056): ds_notify, vm_object_pager_wakeup and task_secure
+ * are written from the original bytes [0x15a628, 0x15a634),
+ * [0x15a634, 0x15a63c) and [0x15a670, 0x15a67c); send_notification is the
+ * Darwin text again (original [0x15a63c, 0x15a670)).
+ */
+boolean_t
+ds_notify(msg)
+	mach_msg_header_t *msg;
+{
+	return (FALSE);
+}
+
+void
+vm_object_pager_wakeup(pager)
+	ipc_port_t pager;
+{
+}
+
+void
+send_notification(task, msg_id, name)
+	register task_t task;		/* Who we're notifying */
+	int msg_id;			/* What event occurred */
+	port_name_t name;		/* What port is involved */
+{
+	ipc_port_t	tnotify;
+	
+	if (msg_id != NOTIFY_MSG_ACCEPTED)
+		return;
+	
+	if (task_get_special_port(task,
+				TASK_NOTIFY_PORT, &tnotify) != KERN_SUCCESS)
+		return;
+		
+	ipc_notify_msg_accepted_compat(tnotify, name);
+}
+
+boolean_t
+task_secure(task)
+	task_t task;
+{
+	return (TRUE);
 }

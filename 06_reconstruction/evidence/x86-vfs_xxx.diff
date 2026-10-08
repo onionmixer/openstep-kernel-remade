@@ -1,0 +1,15 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_xxx.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_xxx.c	2026-10-03 12:31:11.651514663 +0900
+@@ -64,7 +64,12 @@
+ 	 * 512 bytes, sometimes it's whatever the "physical block size"
+ 	 * of your filesystem is.
+ 	 */
++#if	NeXT
++	/* plan 194 (authored; original 0x11eb14-0x11eb24): 512, name not recovered (DEV_BSIZE is not defined for NeXT) */
++	usb.f_tfree = howmany(sb.f_bavail * sb.f_bsize, 512);
++#else	NeXT
+ 	usb.f_tfree = howmany(sb.f_bavail * sb.f_bsize, DEV_BSIZE);
++#endif	NeXT
+ 	usb.f_tinode = sb.f_ffree;
+ 	u.u_error = copyout((caddr_t)&usb, (caddr_t)uap->buf, sizeof(usb));
+ }

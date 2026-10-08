@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/Kernel/EventIO.m` (plan 303 (S5-P293), 2026-10-05)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "Kernel/EventIO.m" (objc.json module 0x2091fc). Final run `s5p295-it5`; 07 file SHA-256 `a0f4694f459e95f864e0fd5c9a2f1c596c41b04838d691d2015dcdb195024e11`; diff `x86-EventIO.diff`.
+
+- `__text` [0x1b34c0, 0x1b37bc) 764 B, 10 functions (0 methods) (_EvGetParameterInt, _EvGetParameterChar, _EvSetParameterInt, _EvSetParameterChar, _EvOpen, _EvClose, _EvSetSpecialKeyPort, _EvMapEventShmem, _EvFrameBufferDevicePort, _EventCoalesceDisplayCmd). Front `5d c3 00 00`, back `55 89 e5 8b`, next function 0x1b37bc.
+- Sections: __TEXT,__text 764 B given by symbol; __TEXT,__cstring 4 B literal (references checked by content); __TEXT,__const 16 B inferred, verified by L1d; __OBJC,__message_refs 44 B literal (references checked by content); __OBJC,__cls_refs 4 B literal (references checked by content); __OBJC,__class_names 29 B literal (references checked by content); __OBJC,__meth_var_names 298 B literal (references checked by content); __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 12 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p295-it5-l1-EventIO-F-20261002.json`). Grade **A**.
+
+Module "Kernel/EventIO.m": __text [0x1b34c0, 0x1b37bc) 764 B, 11 functions; __const verified. Kernel-private headers from 07_kernel/nextdev_private (D032, nearly the same as Darwin 0.1): bsd/dev/evio.h, bsd/dev/machine/ev_private.h, bsd/dev/i386/ev_private.h; staging manifest has bsd/dev and bsd/net headers only from 07 and the SDK, unresolved only ppc branches. Scratch triage s5p291-23-* (Darwin body + diagnostic #line) OBJECT_MATCH. Codex review of plan 303 verified; user decision D032. s5p295-it5 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

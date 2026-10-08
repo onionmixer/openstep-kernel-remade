@@ -1,0 +1,8 @@
+# x86 `src/kern/ns_timer.c` (plan 234 (S5-P219), 2026-10-03)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 234 (S5-P219). Final run `s5p219-it3`; 07 file SHA-256 `3eaee9a59d88e53ea344bd08e9a26d1b1a1198b11ed40832b68c544d5c40891c`; diff `x86-ns_timer.diff`.
+
+- Object [0x160478, 0x160ad9) 1633 B, 17 functions (_ns_hardclock_init, _ns_timeout, _ns_abstimeout, _ns_untimeout, _ns_sleep, _ns_time_to_timeval, _timeval_to_ns_time, _ns_time_to_tsval, _ticks_to_ns_time, _sched_usec_elapsed, _get_calendar_time_value, _set_calendar_time_value, _microtime, _microboot, _us_timeout, _us_abstimeout, _us_untimeout). Front `5d c3 00 00`, back `00 00 00 55`, next symbol 0x160adc.
+- Final L1 `09_validation/reconstruction/s5p219-it3-l1-ns_timer-F-20261002.json`: __text/__const 0 byte differences; __DATA,__bss reference-inferred only. Grade **P**.
+
+Object extent [0x160478, 0x160adc) 1636 B, 17 functions, 0x00 fill before and after, nop or no fill inside (five unpadded seams, so one object is inferred; inlined division and multiplication sequences support it). Data: ns_per_tick (common), microtime previous value in __DATA,__data 0x1df21c (verified by L1), sched_usec_elapsed previous value in __DATA,__bss 0x1e5e44. The codex review of plan 234 confirmed the facts; its correction (five unpadded seams, not three) was adopted. it1 (s5p219-it1): ns_timeout and sched_usec_elapsed differed; variants s5p219-v1 (time += clock_value(System) matches) and s5p219-v2 (a by-value division helper returning the low quotient matches). it2: get_calendar_time_value frame 4 bytes larger; variants s5p219-v3 g1 (a local now divided in place) matches. it3: text and data match, relcheck 0; __bss reference-inferred.

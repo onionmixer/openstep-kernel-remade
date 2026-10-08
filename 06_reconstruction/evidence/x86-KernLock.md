@@ -1,0 +1,9 @@
+# x86 `src/driverkit/KernLock.m` (plan 304 (S5-P294), 2026-10-05)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "/BinarySourceCache_Mario1A/mk/mk-183.34.4/driverkit/KernLock.m" (objc.json module 0x208f2c). Final run `s5p298-it1`; 07 file SHA-256 `17a143219511b7df8aa0f40746647de28951c490ef5e16ee669e97b322e5fb50`; diff `x86-KernLock.diff`.
+
+- `__text` [0x17e70c, 0x17e83d) 305 B, 8 functions (6 methods) (_KernLockAcquire, _KernLockRelease, -[KernLock initWithLevel:], -[KernLock init], -[KernLock free], -[KernLock level], -[KernLock acquire], -[KernLock release]). Front `5d c3 00 00`, back `00 00 00 55`, next function 0x17e840.
+- Sections: __TEXT,__text 305 B given by objc metadata; __OBJC,__message_refs 8 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 80 B given by objc metadata; __OBJC,__class_names 79 B literal (references checked by content); __OBJC,__meth_var_types 41 B literal (references checked by content); __OBJC,__meth_var_names 77 B literal (references checked by content); __OBJC,__instance_vars 40 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 16 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p298-it1-l1-KernLock-F-20261002.json`). Grade **A**.
+
+Module "/BinarySourceCache_Mario1A/mk/mk-183.34.4/driverkit/KernLock.m": __text [0x17e70c, 0x17e83d) 305 B, 8 methods. Probe s5p298-probe-1 showed cc keeps the absolute path through the real-machine symlink (module name exact, no #line). Darwin kernel-tree headers staged by the existing 07-then-Darwin rule for non-BSD names (staging only): src/driverkit/KernLock.h. Scratch triage s5p297-* (Darwin body + diagnostic #line) OBJECT_MATCH. Codex review of plan 304 verified. s5p298-it1 from 07 with kr_run ABSROOT: OBJECT_MATCH, relcheck 0.

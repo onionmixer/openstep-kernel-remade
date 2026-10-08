@@ -1,0 +1,181 @@
+--- 01_resources/upstream/mach4/kernel/kern/exception.c	2026-09-11 10:02:48.335203149 +0900
++++ 07_kernel/src/kern/exception.c	2026-10-04 00:36:25.743827771 +0900
+@@ -92,9 +92,12 @@
+  *		Doesn't return.
+  */
+ 
++/* plan 263: exception() with a continuation, as in the original */
++__inline__
+ void
+-exception(_exception, code, subcode)
++exception_with_continuation(_exception, code, subcode, continuation)
+ 	integer_t _exception, code, subcode;
++	void (*continuation)(void);
+ {
+ 	register ipc_thread_t self = current_thread();
+ 	register ipc_port_t exc_port;
+@@ -102,6 +105,8 @@
+ 	if (_exception == KERN_SUCCESS)
+ 		panic("exception");
+ 
++	self->exc_func = continuation;			/* plan 263 */
++
+ 	/*
+ 	 *	Optimized version of retrieve_thread_exception.
+ 	 */
+@@ -150,6 +155,33 @@
+ 	/*NOTREACHED*/
+ }
+ 
++/* plan 263: exception() and exception_from_kernel() */
++void
++exception(_exception, code, subcode)
++	integer_t _exception, code, subcode;
++{
++	exception_with_continuation(
++		_exception, code, subcode, thread_exception_return);
++}
++
++void
++exception_from_kernel(_exception, code, subcode)
++	integer_t _exception, code, subcode;
++{
++	ipc_thread_t self = current_thread();
++	void (*old_continuation)(void) = self->exc_func;
++	integer_t old_exception = self->ith_exc,
++		old_code = self->ith_exc_code,
++		old_subcode = self->ith_exc_subcode;
++
++	exception_with_continuation(_exception, code, subcode, 0);
++
++	self->exc_func = old_continuation;
++	self->ith_exc = old_exception;
++	self->ith_exc_code = old_code;
++	self->ith_exc_subcode = old_subcode;
++}
++
+ /*
+  *	Routine:	exception_try_task
+  *	Purpose:
+@@ -453,6 +485,7 @@
+ 
+ 	receiver = ipc_thread_queue_first(&dest_mqueue->imq_threads);
+ 	if ((receiver == ITH_NULL) ||
++	    (self->exc_func == 0) ||			/* plan 263 */
+ 	    !((receiver->swap_func == (void (*)()) mach_msg_continue) ||
+ 	      ((receiver->swap_func ==
+ 				(void (*)()) mach_msg_receive_continue) &&
+@@ -764,7 +797,10 @@
+ 	mr = ipc_mqueue_receive(reply_mqueue, MACH_MSG_OPTION_NONE,
+ 				MACH_MSG_SIZE_MAX,
+ 				MACH_MSG_TIMEOUT_NONE,
+-				FALSE, exception_raise_continue,
++				FALSE,
++				(self->exc_func)?	/* plan 263 */
++					exception_raise_continue :
++						IMQ_NULL_CONTINUE,
+ 				&reply_kmsg, &reply_seqno);
+ 	/* reply_mqueue is unlocked */
+ 
+@@ -773,16 +809,6 @@
+     }
+ }
+ 
+-mach_msg_type_t exc_RetCode_proto = {
+-	/* msgt_name = */		MACH_MSG_TYPE_INTEGER_32,
+-	/* msgt_size = */		32,
+-	/* msgt_number = */		1,
+-	/* msgt_inline = */		TRUE,
+-	/* msgt_longform = */		FALSE,
+-	/* msgt_deallocate = */		FALSE,
+-	/* msgt_unused = */		0
+-};
+-
+ /*
+  *	Routine:	exception_parse_reply
+  *	Purpose:
+@@ -806,7 +832,7 @@
+ 			MACH_MSGH_BITS(MACH_MSG_TYPE_PORT_SEND_ONCE, 0)) ||
+ 	    (msg->Head.msgh_size != sizeof *msg) ||
+ 	    (msg->Head.msgh_id != MACH_EXCEPTION_REPLY_ID) ||
+-	    (* (int *) &msg->RetCodeType != * (int *) &exc_RetCode_proto)) {
++	    (* (int *) &msg->RetCodeType != * (int *) &exc_code_proto)	/* plan 263: no exc_RetCode_proto */) {
+ 		/*
+ 		 *	Bozo user sent us a misformatted reply.
+ 		 */
+@@ -890,9 +916,24 @@
+ 
+ 		while (thread_should_halt(self)) {
+ 			/* don't terminate while holding a reference */
+-			if (self->ast & AST_TERMINATE)
++			if (IP_VALID(reply_port))
+ 				ipc_port_release(reply_port);
+-			thread_halt_self();
++			reply_port = self->ith_port = IP_NULL;
++			reply_mqueue = IMQ_NULL;
++			thread_halt_self_with_continuation((void (*)()) 0);	/* plan 263 */
++
++			ith_lock(self);
++			reply_port = self->ith_port = self->ith_rpc_reply;
++			if (IP_VALID(reply_port)) {
++				ipc_port_reference(reply_port);
++				reply_mqueue = &reply_port->ip_messages;
++			}
++			ith_unlock(self);
++		}
++
++		if (!IP_VALID(reply_port)) {		/* plan 263 */
++			mr = MACH_RCV_PORT_DIED;
++			break;
+ 		}
+ 
+ 		ip_lock(reply_port);
+@@ -908,11 +949,16 @@
+ 		mr = ipc_mqueue_receive(reply_mqueue, MACH_MSG_OPTION_NONE,
+ 					MACH_MSG_SIZE_MAX,
+ 					MACH_MSG_TIMEOUT_NONE,
+-					FALSE, exception_raise_continue,
++					FALSE,
++					(self->exc_func)?	/* plan 263 */
++						exception_raise_continue :
++							IMQ_NULL_CONTINUE,
+ 					&kmsg, &seqno);
+ 		/* reply_mqueue is unlocked */
+ 	}
+-	ipc_port_release(reply_port);
++
++	if (IP_VALID(reply_port))
++		ipc_port_release(reply_port);
+ 
+ 	assert((mr == MACH_MSG_SUCCESS) ||
+ 	       (mr == MACH_RCV_PORT_DIED));
+@@ -928,9 +974,13 @@
+ 
+ 	if ((mr == KERN_SUCCESS) ||
+ 	    (mr == MACH_RCV_PORT_DIED)) {
+-		thread_exception_return();
+-		/*NOTREACHED*/
+-		return;
++	    	void		(*continuation)(void) = self->exc_func;	/* plan 263 */
++
++		if (continuation) {
++			call_continuation(continuation);
++			/*NOTREACHED*/
++		} else
++			return;
+ 	}
+ 
+ 	if (self->ith_exc != KERN_SUCCESS) {
+@@ -986,6 +1036,12 @@
+ 
+ 	kr = exception_parse_reply(kmsg);
+ 	if (kr == KERN_SUCCESS) {
++	    	void		(*continuation)(void) = self->exc_func;	/* plan 263 */
++
++		if (continuation) {
++			call_continuation(continuation);
++			/*NOTREACHED*/
++		}
+ 		thread_exception_return();
+ 		/*NOTREACHED*/
+ 		return; /* help for the compiler */

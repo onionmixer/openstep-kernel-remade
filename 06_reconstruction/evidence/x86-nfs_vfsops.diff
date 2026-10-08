@@ -1,0 +1,416 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_vfsops.c	2026-09-11 10:02:49.608218799 +0900
++++ 07_kernel/src/bsd/nfs/nfs_vfsops.c	2026-10-04 05:00:03.493698286 +0900
+@@ -76,7 +76,7 @@
+ extern int nfsdebug;
+ #endif
+ 
+-int nfsrootvp();
++static int nfsrootvp();	/* plan 281: static */
+ extern struct vnode *makenfsnode();
+ #define MAPSIZE  256/NBBY
+ static char nfs_minmap[MAPSIZE]; /* Map for minor device allocation */
+@@ -87,14 +87,14 @@
+ /*
+  * nfs vfs operations.
+  */
+-int nfs_mount();
+-int nfs_unmount();
+-int nfs_root();
+-int nfs_statfs();
+-int nfs_sync();
+-int nfs_mountroot();
++static int nfs_mount();	/* plan 281: static */
++static int nfs_unmount();	/* plan 281: static */
++static int nfs_root();	/* plan 281: static */
++static int nfs_statfs();	/* plan 281: static */
++static int nfs_sync();	/* plan 281: static */
++static int nfs_mountroot();	/* plan 281: static */
+ #if	!MACH
+-int nfs_swapvp();
++static int nfs_swapvp();	/* plan 281: static */
+ #endif	!MACH
+ int nfs_badop();
+ 
+@@ -111,11 +111,15 @@
+ #endif	!MACH
+ };
+ 
++/* plan 281: message printed once while getfile times out (original __data 0x1dc57c/0x1dc5bc) */
++static char *getfile_wait_msg =
++	"No bootparam server responding to GETFILE \"%s\"; still trying\n";
++
+ 
+ /*
+  * Called by vfs_mountroot when nfs is going to be mounted as root
+  */
+-int
++static int		/* plan 281: static */
+ nfs_mountroot(vfsp, vpp, name)
+ 	struct vfs *vfsp;
+ 	struct vnode **vpp;
+@@ -134,35 +138,39 @@
+ 	struct vfs *private_vfsp;
+ 	char *cp;
+ 	extern char *index();
++	int printed;				/* plan 281 */
+ #endif	NeXT
+ 
+ 	/* do this BEFORE getfile which causes xid stamps to be initialized */
+ #if	NeXT
+-	{
+-		extern struct timeval time, rtc_get();
+-		time = rtc_get();
+-		inittodr(time.tv_sec);
+-	}
+-	getfsname("root", name);
++	getfsname("root", name);		/* plan 281: no rtc_get/inittodr here */
+ #else	NeXT
+ 	inittodr(-1L);          /* hack for now - until we get time svc? */
+ #endif	NeXT
+ 
+ 	pn_alloc(&pn);
+ 	root_path = pn.pn_path;
++	printed = 0;				/* plan 281 */
+ 	do {
+ #if	NeXT
+ 		rc = getfile(*name ? name : "root", root_hostname,
+ 			    (struct sockaddr *)&root_sin, root_path);
++		if (rc == ETIMEDOUT && !printed) {	/* plan 281 */
++			printf(getfile_wait_msg, *name ? name : "root");
++			printed = 1;
++		}
+ #else	NeXT
+ 		rc = getfile("root", root_hostname,
+ 		    (struct sockaddr *)&root_sin, root_path);
+ #endif	NeXT
+ 	} while (rc == ETIMEDOUT);
+ 	if (rc) {
++		printf("RPC error during bootparam request: %d\n", rc);	/* plan 281 */
+ 		pn_free(&pn);
+ 		return (rc);
+ 	}
++	if (printed)				/* plan 281 */
++		printf("Bootparam response received\n");
+ 	rc = mountnfs(&root_sin, root_hostname, root_path, &root_fhandle);
+ 	if (rc) {
+ 		pn_free(&pn);
+@@ -206,15 +214,28 @@
+ 	 */
+ 	*private_name = '\0';
+ 	getfsname("private", private_name);
++	printed = 0;				/* plan 281 */
+ 	do {
+ 	    rc = getfile(*private_name ? private_name : "private",
+ 			 root_hostname, (struct sockaddr *)&root_sin,
+ 			 root_path);
++	    if (rc == ETIMEDOUT && !printed) {	/* plan 281 */
++		printf(getfile_wait_msg,
++		       *private_name ? private_name : "private");
++		printed = 1;
++	    }
+ 	} while (rc == ETIMEDOUT);
+ 	if (rc) {
++		if (rc == EINVAL) {		/* plan 281 */
++			printf("Using /private from root mount point\n");
++			rc = 0;
++		} else
++			printf("RPC error during bootparam request: %d\n", rc);
+ 		pn_free(&pn);
+ 		return (rc);
+ 	}
++	if (printed)				/* plan 281 */
++		printf("Bootparam response received\n");
+ 	/*
+ 	 * Scan for place to mount the private filesystem.
+ 	 */
+@@ -294,7 +315,7 @@
+  * Call nfsrootvp to set up the
+  * RPC/NFS machinery.
+  */
+-int
++static int		/* plan 281: static */
+ nfs_swapvp(vfsp, vpp, path)
+ 	struct vfs *vfsp;
+ 	struct vnode **vpp;
+@@ -391,7 +412,7 @@
+  * remotely call that routine with the given parameters.  This allows
+  * programs to do a lookup and call in one step.
+ */
+-enum clnt_stat
++static enum clnt_stat		/* plan 281: static */
+ pmap_rmtcall(call_addr, progn, versn, procn, xdrargs, argsp, xdrres, resp, tout, resp_addr)
+ 	struct sockaddr_in *call_addr;
+ 	u_long progn, versn, procn;
+@@ -410,23 +431,22 @@
+ #define PMAP_RETRIES 5
+ 	client = clntkudp_create(call_addr, PMAPPROG, PMAPVERS, PMAP_RETRIES,
+ 				 u.u_cred);
+-	if (client != (CLIENT *)NULL) {
+-		a.prog = progn;
+-		a.vers = versn;
+-		a.proc = procn;
+-		a.args_ptr = argsp;
+-		a.xdr_args = xdrargs;
+-		r.port_ptr = &port;
+-		r.results_ptr = resp;
+-		r.xdr_results = xdrres;
+-		stat = clntkudp_callit_addr(client, PMAPPROC_CALLIT,
+-		    xdr_rmtcall_args, (caddr_t)&a,
+-		    xdr_rmtcallres, (caddr_t) &r, tout, resp_addr);
+-		resp_addr->sin_port = htons((u_short) port);
+-		CLNT_DESTROY(client);
+-	} else {
++	if (client == (CLIENT *)NULL)		/* plan 281: panic first, then the call */
+ 		panic("pmap_rmtcall: clntkudp_create failed");
+-	}
++	a.prog = progn;
++	a.vers = versn;
++	a.proc = procn;
++	a.args_ptr = argsp;
++	a.xdr_args = xdrargs;
++	r.port_ptr = &port;
++	r.results_ptr = resp;
++	r.xdr_results = xdrres;
++	stat = clntkudp_callit_addr(client, PMAPPROC_CALLIT,
++	    xdr_rmtcall_args, (caddr_t)&a,
++	    xdr_rmtcallres, (caddr_t) &r, tout, resp_addr);
++	if (resp_addr)				/* plan 281 */
++		resp_addr->sin_port = htons((u_short) port);
++	CLNT_DESTROY(client);
+ 	return (stat);
+ }
+ 
+@@ -434,7 +454,7 @@
+ 
+ static struct sockaddr_in bootparam_addr;
+ 
+-int
++static int		/* plan 281: static */
+ whoami()
+ {
+ 	struct sockaddr_in sa;
+@@ -444,12 +464,19 @@
+ 	struct timeval tv;
+ 	struct in_addr ipaddr;
+ 	enum clnt_stat status;
+-	struct rtentry rtentry;
++#if	!NeXT
++	struct rtentry rtentry;		/* plan 281: only the !NeXT gateway code uses these */
+ 	struct sockaddr_in *sin;
++#endif	!NeXT
+ 	struct ifreq req;
+ 	int error = 0;
+ 	int printed_waiting_msg;
+ 	enum clnt_stat callrpc();
++	static int whoami_done = 0;	/* plan 281: original __data 0x1dc76c */
++
++	if (whoami_done)		/* plan 281: ask only once */
++		return (0);
++	whoami_done = 1;
+ 
+ 	bzero((caddr_t)&sa, sizeof sa);
+ 	ifp = ifb_ifwithaf(AF_INET);
+@@ -481,6 +508,8 @@
+ 	}
+ 	bcopy((caddr_t)&req.ifr_dstaddr, (caddr_t)&sa,
+ 	    sizeof (struct sockaddr_in));
++	bcopy((caddr_t)&req.ifr_dstaddr, (caddr_t)&bootparam_addr,	/* plan 281 */
++	    sizeof (struct sockaddr_in));
+ #endif notdef
+ 
+ 	arg.client_address.address_type = IP_ADDR_TYPE;
+@@ -514,7 +543,7 @@
+ 		    (u_long)BOOTPARAMVERS, (u_long)BOOTPARAMPROC_WHOAMI,
+ 		    xdr_bp_whoami_arg, (caddr_t)&arg,
+ 		    xdr_bp_whoami_res, (caddr_t)&res,
+-		    tv, &bootparam_addr);
++		    tv, (struct sockaddr_in *)0);	/* plan 281 */
+ 		if (status == RPC_TIMEDOUT && !printed_waiting_msg) {
+ 			printf("No bootparam server responding; still trying\n");
+ 			printf("whoami: pmap_rmtcall status 0x%x\n", status);
+@@ -567,9 +596,7 @@
+ 		bcopy((caddr_t)res.domain_name, (caddr_t)domainname,
+ 		    (u_int)domainnamelen);
+ 		printf("domainname: %s\n", domainname);
+-	} else {
+-		printf("whoami: no domain name\n");
+-	}
++	}				/* plan 281: no "no domain name" message */
+ #if	NeXT
+ #else	NeXT
+ 	bcopy((caddr_t)&res.router_address.bp_address.ip_addr, (caddr_t)&ipaddr,
+@@ -603,7 +630,7 @@
+ 	return error;
+ }
+ 
+-enum clnt_stat
++static enum clnt_stat		/* plan 281: static */
+ callrpc(sin, prognum, versnum, procnum, inproc, in, outproc, out)
+ 	struct sockaddr_in *sin;
+ 	u_long prognum, versnum, procnum;
+@@ -623,7 +650,7 @@
+ 	return (cl_stat);
+ }
+ 
+-int
++static int		/* plan 281: static */
+ getfile(fileid, server_name, server_address, server_path)
+ 	char *fileid;
+ 	char *server_name;
+@@ -636,14 +663,15 @@
+ 	int tries;
+ 	int error;
+ 	struct in_addr ipaddr;
++	struct timeval tv;			/* plan 281 */
+ 
++	tv.tv_sec = 5;				/* plan 281 */
++	tv.tv_usec = 0;
+ 	arg.client_name = hostname;
+ 	arg.file_id = fileid;
+ 	bzero((caddr_t)&res, sizeof res);
+-	if (bootparam_addr.sin_addr.s_addr == 0) {
+-		if ((error = whoami()) != 0) 
+-			return error;
+-	}
++	if ((error = whoami()) != 0)		/* plan 281: whoami asks only once */
++		return error;
+ #if	MACH
+ 	res.server_name = (bp_machine_name_t)kalloc(MAX_MACHINE_NAME + 1);
+ 	res.server_path = (bp_machine_name_t)kalloc(MAX_MACHINE_NAME + 1);
+@@ -652,10 +680,11 @@
+ 	res.server_path = (bp_machine_name_t)kmem_alloc(MAX_MACHINE_NAME + 1);
+ #endif	MACH
+ 	for (tries = 0; tries < 5; tries++) {
+-		status = callrpc(&bootparam_addr, (u_long)BOOTPARAMPROG,
++		status = pmap_rmtcall(&bootparam_addr, (u_long)BOOTPARAMPROG,	/* plan 281 */
+ 		    (u_long)BOOTPARAMVERS, (u_long)BOOTPARAMPROC_GETFILE,
+ 		    xdr_bp_getfile_arg, (caddr_t)&arg,
+-		    xdr_bp_getfile_res, (caddr_t)&res);
++		    xdr_bp_getfile_res, (caddr_t)&res,
++		    tv, (struct sockaddr_in *)0);
+ 		if (status != RPC_TIMEDOUT)
+ 			break;
+ 	}
+@@ -690,6 +719,8 @@
+ 			res.server_address.address_type);
+ 		return (EPROTONOSUPPORT);
+ 	}
++	printf("NFS mounting \"%s\" from  %s:%s\n", fileid,	/* plan 281 */
++	    server_name, server_path);
+ 	return (0);
+ }
+ 
+@@ -699,7 +730,7 @@
+  * returned from the server.
+  */
+ 
+-mountnfs(sin, server, path, fh)
++static mountnfs(sin, server, path, fh)	/* plan 281: static */
+ 	struct sockaddr_in *sin;
+ 	char *server;
+ 	char *path;
+@@ -742,7 +773,7 @@
+  * Set up mount info record and attach it to vfs struct.
+  */
+ /*ARGSUSED*/
+-int
++static int		/* plan 281: static */
+ nfs_mount(vfsp, path, data)
+ 	struct vfs *vfsp;
+ 	char *path;
+@@ -929,7 +960,7 @@
+ int	slownfs = 0;
+ #endif	PROTO
+ 
+-int
++static int		/* plan 281: static */
+ nfsrootvp(rtvpp, vfsp, sin, fh, shostname, netname, nlen, flags)
+ 	struct vnode **rtvpp;		/* where to return root vp */
+ 	register struct vfs *vfsp;	/* vfs of fs, if NULL make one */
+@@ -1064,7 +1095,7 @@
+ /*
+  * vfs operations
+  */
+-int
++static int		/* plan 281: static */
+ nfs_unmount(vfsp)
+ 	struct vfs *vfsp;
+ {
+@@ -1073,21 +1104,15 @@
+ #ifdef NFSDEBUG
+         dprint(nfsdebug, 4, "nfs_unmount(%x) mi = %x\n", vfsp, mi);
+ #endif
+-#ifdef NeXT
+-	if (mi->mi_refct != 1 || mi->mi_rootvp->v_count != 1) {
+-		return (EBUSY);
+-	}
+-#endif NeXT
++	/* plan 281: flush first, then the busy check; VN_RELE after rinactive */
+ 	rflush(vfsp);
+ 	rinval(vfsp);
+-#ifndef NeXT
+ 	if (mi->mi_refct != 1 || mi->mi_rootvp->v_count != 1) {
+ 		return (EBUSY);
+ 	}
+-#endif NeXT
+-	VN_RELE(mi->mi_rootvp);
+ 	rp_rmhash(vtor(mi->mi_rootvp));
+ 	rinactive(vtor(mi->mi_rootvp));
++	VN_RELE(mi->mi_rootvp);
+ 	vfs_putnum(nfs_minmap, mi->mi_mntno);
+ #if	MACH
+ 	if (mi->mi_netnamelen >= 0) {
+@@ -1106,7 +1131,7 @@
+ /*
+  * find root of nfs
+  */
+-int
++static int		/* plan 281: static */
+ nfs_root(vfsp, vpp)
+ 	struct vfs *vfsp;
+ 	struct vnode **vpp;
+@@ -1124,7 +1149,7 @@
+ /*
+  * Get file system statistics.
+  */
+-int
++static int		/* plan 281: static */
+ nfs_statfs(vfsp, sbp)
+ 	register struct vfs *vfsp;
+ 	struct statfs *sbp;
+@@ -1172,7 +1197,7 @@
+  * Flush dirty nfs files for file system vfsp.
+  * If vfsp == NULL, all nfs files are flushed.
+  */
+-int
++static int		/* plan 281: static */
+ nfs_sync(vfsp)
+ 	struct vfs *vfsp;
+ {
+@@ -1196,7 +1221,7 @@
+ 	panic("nfs_badop");
+ }
+ 
+-char *
++static char *		/* plan 281: static */
+ itoa(n, str)
+ 	u_short n;
+ 	char *str;
+@@ -1215,7 +1240,7 @@
+ 	return (str);
+ }
+ 
+-hostpath(name, shostname, path)
++static hostpath(name, shostname, path)	/* plan 281: static */
+ 	char *name;
+ 	char *shostname;
+ 	char *path;
+@@ -1232,7 +1257,7 @@
+ /*
+  * Convert a INET address into a string for printing
+  */
+-addr_to_str(addr, str)
++static addr_to_str(addr, str)	/* plan 281: static */
+ 	struct sockaddr_in *addr;
+ 	char *str;
+ {

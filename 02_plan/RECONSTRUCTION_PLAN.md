@@ -154,5296 +154,1399 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
 - S1-1 툴체인 기록: 실기 `cc -v` = `NeXT Software, Inc. version cc-744.13, gcc version 2.7.2.1`, `cc1obj` = `GNU Obj-C version 2.7.2.1 (80386, BSD syntax)`, 전처리기 `NeXT DevKit-based CPP 4.0`. 드라이버 기본 옵션은 `-dynamic -fPIC`(사용자 코드용) — 커널용 옵션은 S1-4 에서 찾는다. 파일 사본과 출력: `08_build/toolchains/real-i386-20261001/`(무시됨), 해시 비교 `sha256-vs-vm.json`: `/bin/cc`·`as`·`ld`·`/lib/cpp`·`migcom`·`make`·`gnumake`·`mig`·`/lib/i386/{as,cc1obj,cc1objplus,cc1plus,cpp,cpp-precomp,specs}` 15 개 모두 **실기 = i386 VM**. 실기에는 `42JDeveloperPatch1`·`42JUserPatch1`·`OS42MachUserPatch4` 영수증이 있으나 이 15 개 파일은 VM(패치 없음)과 같다.
 - 함정(재현됨): 실기에서 읽기 전용 모드(`r-xr-xr-x`, `r--r--r--`) 파일을 `cp -p` 로 `/ndrv` 에 복사하면 **빈 파일**이 생긴다(SHA-256 `e3b0c442…`). 쓰기 가능한 모드의 파일은 정상. `cat src > dst` 로 복사하면 정상. 빌드 절차 규약 6(게시)의 manifest 검사가 이런 빈 출력을 잡아야 한다.
 
-## 11. S1-A 세부 계획 — 빌드 왕복과 툴체인 probe (코딩 전, 2026-10-01)
-
-확인한 실기 조건(읽기 전용 명령): 해시 도구는 `/usr/bin/sum`(16 비트 BSD 체크섬)뿐이고 `cksum`·`md5`·`shasum`·`env`·`mktemp` 가 없다. `/bin/cmp`·`/bin/od`·`/usr/bin/find`·`/usr/bin/sort` 는 있다. `gcds` 명령은 `sh` 로 실행된다(로그인 셸은 csh, umask 0022). 실기 시계는 호스트보다 5 일 7:34:01 느리다(Python). 호스트에는 독립 교차 확인용 `llvm-objdump`(11, 14)가 있다.
-
-A1. 실기용 SHA-256 도구
-- `10_tools/reconstruction/target/krsha256.c`: FIPS 180-4 를 따라 새로 쓴 C89 구현(외부 코드 복사 없음). 사용법 `krsha256 FILE...` → `hex  size  path`.
-- 실기에서 `/bin/cc -O` 로 빌드해 `08_build/runs/tools/`(git 무시)에 둔다. 표준 시험 벡터(빈 입력, "abc", 448 비트 메시지, 'a' 1,000,000 개)와 임의 파일 몇 개(0 B, 55·56·63·64·65 B 경계, 1 MiB 이상)의 결과가 호스트 Python `hashlib` 과 모두 같아야 쓴다. 16 비트 `sum` 은 쓰지 않는다.
-
-A2. 빌드 실행 규약 도구(호스트 Python + 실기 sh)
-- `10_tools/reconstruction/kr_run.py prepare ID SRC_DIR CMDFILE`: `08_build/runs/ID/` 가 이미 있으면 거부. `src/` 에 복사, 파일마다 SHA-256·크기·모드·종류를 담은 `input.manifest`, 대소문자만 다른 경로·심볼릭 링크·비정규 파일은 거부. 실기용 `run.sh` 를 생성한다.
-- `run.sh`(실기, sh): ① `mkdir 08_build/runs/lock` 으로 단일 실행 잠금(실패하면 중단) ② `krsha256` 로 `src/` 를 다시 계산해 `input.manifest` 와 비교, 하나라도 다르면 중단 ③ `PATH=/bin:/usr/bin`, `TZ=GMT` 만 남긴 환경, 도구는 절대 경로 ④ 빈 `stage/` 에서 명령 파일의 줄을 차례로 실행하며 줄마다 종료 코드를 `stage.log` 에 기록 ⑤ `stage/` 전체를 `krsha256` 로 `output.manifest` 작성 ⑥ 마지막에 `DONE <종료코드>` 파일을 쓰고 잠금 해제. 오래 걸리면 `nohup` 으로 분리.
-- `kr_run.py collect ID`: `DONE` 이 있고 0 인지, `output.manifest` 의 모든 파일을 호스트 Python 으로 다시 계산해 같은지, 빈 파일이 없는지 확인한 뒤에만 `stage/` → `out/` 으로 이름을 바꾸고 `run.json`(입력·출력 해시, 명령, 도구 해시 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 참조, 실기·호스트 시각) 을 쓴다.
-- 시험: 입력 파일 1 바이트 변조, 출력 파일 삭제·절단, 잠금 중복, 실패하는 명령이 모두 거부·실패로 나오는지.
-
-A3. probe 소스(`10_tools/reconstruction/probes/`, 새로 작성)
-- `c_layout.c`: 여러 구조체(정렬·비트필드·중첩·배열)의 `sizeof`·`offsetof` 를 초기화된 전역 배열에 넣는다(실행 없이 `.o` 의 `__data` 에서 읽음).
-- `c_codegen.c`: 잎 함수, 정적 함수 호출, 외부 함수 호출, 전역 읽기·쓰기, 문자열 리터럴, `switch` 점프 표 — L1 도구 시험용 재료.
-- `objc_probe.m`: `Object` 하위 클래스(인스턴스 변수, 인스턴스·클래스 메서드, 카테고리 하나).
-- `asm_probe.s`: 함수 하나와 데이터 하나.
-- `mig_probe.defs`: 루틴 하나 → `/usr/bin/mig` 로 생성한 `.c`·`.h` 를 컴파일.
-- 명령 두 벌: 기본(`/bin/cc -arch i386 -c`)과 커널 후보(`-static -fno-common` 에 `-O`/`-O2`). 옵션 효과는 S1-4 에서 본다. 같은 입력을 두 번 빌드해 출력 해시가 같은지(결정성) 확인한다.
-
-A4. 호스트 Mach-O 목적 파일 판독기
-- `10_tools/reconstruction/macho_obj.py`: MH_OBJECT(i386) 의 header, `LC_SEGMENT` 섹션, `LC_SYMTAB` 심볼, 섹션별 재배치(일반·scattered) 판독. 판독 결과(섹션 이름·크기·오프셋, 심볼 이름·섹션·값, 재배치 개수·주소·형식)를 `llvm-objdump`(`-h`, `-t`, `-r`) 출력과 대조해 모두 같아야 한다. 대조가 안 되는 항목은 명시적으로 "미대조" 로 둔다.
-- `c_layout.o` 의 `__data` 에서 읽은 값을 표로 기록(`09_validation/reconstruction/toolchain/`).
-
-완료 조건: A1 벡터 전부 일치, A2 이상 시험 전부 기대대로, probe 전부 컴파일(종료 0)·수집(해시 일치)·결정성 확인, A4 판독이 `llvm-objdump` 와 일치. 실기 시계는 바꾸지 않는다(시각에 의존하지 않는 설계).
-
-### 11.1 codex 교차검토 반영 (QS1: A2 규약, QS2: A1 시험 범위)
-
-인용 줄(`RECONSTRUCTION_PLAN.md:64,72,159,161,166,167,168`)은 모두 열어 해당 내용임을 확인했다. 각 지적은 설계 논리라 사실 검증 대상은 "현재 계획에 그 대책이 없는가"이며, 계획 본문으로 확인했다.
-
-| 지적 | 판정 | A1·A2 에 더하는 대책 |
-|---|---|---|
-| QS1 목록 밖 파일이 `out/` 로 들어감 | ✅ | collect 는 `stage/` 전체 목록이 `output.manifest` 와 **정확히 같아야** 통과 |
-| QS1 출력 심볼릭·하드 링크 | ✅ | 실기(`find -type`)·호스트(`os.lstat`, `st_nlink==1`)에서 정규 파일·디렉터리만 허용 |
-| QS1 목록 밖 의존(시스템 헤더 등) 읽기 | ⚖️ | 격리는 OPENSTEP 에서 비현실적. 대신 번역 단위마다 `/bin/cc … -M` 로 실제 읽은 헤더 목록을 얻어 그 파일들의 SHA-256 을 기록한다. 결과를 저장소 밖 경로(실기 로컬 헤더)와 안(`src/`)으로 나눠 남기고, `src/` 밖 저장소 경로를 읽으면 실패 |
-| QS1 빌드 중 입력 변경 | ✅ | 빌드 뒤 `DONE` 전에 입력 manifest 를 다시 검사 |
-| QS1 명령·`run.sh`·도구 미결속 | ✅ | 명령 파일·`run.sh` 를 입력 manifest 에 포함, 실기에서 매 실행마다 사용하는 도구(`/bin/cc`, `/lib/i386/*` 등)를 `krsha256` 로 재계산해 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 과 비교 |
-| QS1 검증 뒤 다른 쓰기 | ✅ | 명령은 전경 실행만(배경 `&` 금지, 명령 형식 검사), collect 는 이름 바꾼 뒤 `out/` 를 다시 해시 |
-| QS1 NFS 반영·내구성 | ✅ | 순서: 출력 완료 → `sync` → `output.manifest` → `sync` → `DONE` → `sync`. 호스트(NFS 서버) 디스크에서 재해시가 실기 해시와 같아야 통과 — 서버에 도달한 바이트를 직접 확인하는 셈 |
-| QS1 잠금이 충돌 뒤 남음 | ✅ | 잠금 디렉터리에 실행 ID·실기 PID 기록. 남은 잠금은 자동 제거하지 않고, 실기에서 그 PID 가 없음을 확인한 뒤 수동 제거(기록 남김) |
-| QS1 ID 재사용 | ✅ | `08_build/runs/REGISTRY`(추가 전용)에 ID 를 먼저 등록, 등록된 ID 는 삭제 뒤에도 재사용 거부. 모든 표시 파일에 ID 기록 |
-| QS1 아무것도 안 만든 성공 | ✅ | 명령 파일에 `EXPECT <경로>` 로 필수 산출물을 선언, 없거나 빈 파일이거나 Mach-O 매직이 아니면 실패 |
-| QS1 셸 상태·환경 | ✅ | 명령은 파이프·`;`·`&&`·`&` 없는 단일 명령만 허용(prepare 에서 검사), 각 줄을 실행 직후 `$?` 기록. 환경은 `run.sh` 가 `PATH`·`TZ` 만 설정하고 나머지를 `unset`. 이 동작을 실기 `/bin/sh` 로 먼저 시험 |
-| QS1 `run.json` 게시 전 부재 | ✅ | `run.json` 을 `stage/` 안에 먼저 쓰고 검증한 뒤 한 번의 이름 바꾸기로 게시 |
-| QS2 2^29 바이트 이상 길이 | ⚖️ | 길이를 64 비트(32 비트 두 워드 + 올림)로 구현하되, 빌드 산출물 크기에 맞춰 **256 MiB 초과 파일은 거부**(오류 종료). 상한 거부를 시험 |
-| QS2 버퍼 경계 비정렬 | ✅ | 읽기 버퍼 크기를 컴파일 옵션으로 바꿀 수 있게 하고 1009 B 버퍼 판으로 같은 결과인지 시험 |
-| QS2 짧은 읽기 | ✅ | `fread` 반복을 EOF·오류까지. 1009 B 버퍼 시험과 NFS 위 큰 파일 시험으로 확인 |
-| QS2 부호 있는 `char` | ✅ | 모든 바이트 값(0x00–0xff)을 여러 블록 경계에 걸쳐 담은 파일 시험, 내부는 `unsigned char` |
-| QS2 여러 파일 사이 상태 | ✅ | 비어 있지 않은·빈·비어 있지 않은 파일을 한 번에 넘겨 해시와 **크기**를 모두 비교 |
-| QS2 열기·읽기 오류를 성공으로 보고 | ✅ | 없는 파일·읽기 불가 파일 → 0 이 아닌 종료, 그 파일의 해시 줄 없음 |
-| QS2 stdin | ⏭️ | stdin 은 지원하지 않는다(인자 없으면 사용법 오류) |
-
-### 11.2 S1-A 결과 (2026-10-01)
-
-- **A1 `krsha256`**: 호스트(gcc C89, 64 비트 long)와 실기(`/bin/cc -O`, 기본판·1009 B 버퍼판) 모두 해시 22 개(공개 벡터 4 개 포함)·크기 일치, 없는 파일·256 MiB 초과 거부(종료 1). 실기 바이너리 `08_build/runs/tools/target/krsha256-default`.
-- **A2 `10_tools/reconstruction/kr_run.py`**: 정상 실행 2 회 게시. 거부 시험: ID 재사용, 준비 뒤 입력 변조(`input mismatch`), 실패 명령(종료 1 기록·게시 거부), 필수 산출물 누락, 수집 전 출력 변조(해시 불일치), `stage` 에 목록 밖 파일, 잠금 보유 중 실행, 금지 명령 형식(`;`, 허용 목록 밖 도구) — 모두 기대대로. 발견·수정: ① 표시 파일(DONE/FAILED)이 잠금 해제보다 먼저 써져 연속 실행이 `LOCKED` → launch 는 잠금이 있으면 거부, `wait` 는 잠금 해제까지 대기 ② NFS silly-rename(`.nfsNNNN`)으로 잠금 디렉터리 안 파일을 지운 뒤 `rmdir` 실패 → 소유자 정보를 `LOCK.owner`(디렉터리 밖)로 옮김.
-- 실기 셸 확인: 함수·`unset`·`find -links/-exec`·`cmp`·`mkdir` 원자성 가능, `printf`·`sort -k` 없음(`sort +2`). `gcds` 로 `ps` 를 부르면 멈추고, 백그라운드 실행은 한 줄 + `< /dev/null > … 2>&1 &` 이어야 한다.
-- **A3 probe**: 기본 옵션 실행 2 회의 목적 파일 4 개 해시가 서로 같다(결정적). 커널 후보 옵션(Darwin 0.1 `conf/Makefile.i386`+`MASTER.i386`: `-static -traditional-cpp -fwritable-strings -fno-common -O3`)으로 C·ObjC·asm·MIG 생성·생성 코드 컴파일 모두 종료 0. `-fpascal-strings` 는 `cc-744.13` 의 `cc1obj` 가 거부한다(Darwin 0.1 설정은 더 새 컴파일러 전제). `cc -M`(cpp-precomp) 은 의존 목록이 불완전 → 의존 기록은 `-traditional-cpp -E` 의 줄 표시로 한다(`objc_probe.m` → 30 파일).
-- 구조체 배치(`09_validation/reconstruction/toolchain/c-layout-probe-20261001.json`): char 1, short 2, int 4, long 4, 포인터 4, float 4, double 8; `{char;double}` = 12(double 오프셋 4); 비트필드 3+5+9 뒤 char 오프셋 3, 전체 4. 두 옵션 세트에서 같다.
-- **A4 `macho_obj.py`**: 목적 파일 10 개에서 섹션·심볼·재배치(scattered·SECTDIFF·PAIR 포함)가 `llvm-objdump-14` 와 전부 일치(`check_macho_obj.py`). 대조 과정의 수정은 llvm 출력 형식 해석(공백 있는 ObjC 메서드 이름, `*COM*` 열, 주소 없는 PAIR 줄, 7 자로 잘린 재배치 종류 이름)과 판독기의 common 심볼 분류다.
-- 참고 코드 사실(후보): Darwin 0.1 `MASTER.i386` 의 `RELOC 00100000`·`SYMADDR 00780000` 이 원본 커널의 `__TEXT` 0x100000·`__LINKEDIT` 0x780000 과 같다.
-- 관찰: `-O3` 에서 `switch` 점프 표가 `__text` 안에 있고 항목마다 재배치가 붙는다. 정적 함수가 인라인되어 사라진다. L1 도구 설계(재배치 해석·표 포함)에 반영한다.
-
-다음: S1-4 컴파일 옵션 표본 시험과 L1·L1d 비교 도구(S1-5). 착수 전 세부 계획과 codex 검토.
-
-## 12. S1-B 세부 계획 — L1·L1d 비교 도구 (코딩 전, 2026-10-01)
-
-순서 결정: 옵션 표본 시험(S1-4)은 비교 도구가 있어야 점수를 낼 수 있으므로 비교 도구(S1-5)를 먼저 만든다(S1-B), 옵션 시험은 S1-C.
-
-입력:
-- 원본: 링크된 Mach-O(`03_original/x86/binaries/mach_kernel`, MH_EXECUTE). 원본 심볼(외부 3,651, 로컬 없음)과 Ghidra `04_ghidra/exports/x86/full-pass5/functions.json`(함수별 `body` 범위 목록, 떨어진 범위 가능, `status`).
-- 후보: 실기에서 만든 재배치 가능 목적 파일(MH_OBJECT), `macho_obj.py` 로 판독(`llvm-objdump` 와 대조 완료).
-- **배치(placement)**: 후보 목적 파일의 각 섹션이 원본의 어느 주소에 놓이는지. `__text` 배치는 사용자가 준다(예: 첫 함수 심볼을 원본 심볼 주소에 맞춤). 데이터 섹션 배치는 참조에서 **추론**하고, 추론한 배치에서 섹션 바이트 전체를 L1d 로 대조해 확인한다(추론만으로 판정하지 않음).
-
-비교 단위와 절차(`10_tools/reconstruction/l1_compare.py`):
-1. 함수 범위: 목적 파일 `__text` 의 심볼(외부·정적)을 주소순으로 정렬해 함수 범위를 만든다(다음 심볼 또는 섹션 끝까지). 범위 끝의 정렬 채움(`0x90` 등)은 분리해 따로 비교한다. 원본 쪽 범위는 배치로 얻은 주소이며, Ghidra `body` 와 다르면 "경계 불일치"로 기록한다(판정 보류 사유).
-2. 바이트: 재배치 필드를 뺀 모든 바이트가 원본과 같아야 한다.
-3. 참조(재배치 필드): 종류별로 원본 쪽 값을 해석해 대상 비교.
-   - 외부 심볼 + 절대: 원본 필드값 − 목적 파일의 가산값 = 원본 심볼표에서 그 이름의 주소.
-   - 외부 심볼 + PC 상대(`call`): 원본 필드 주소 + 길이 + 변위 = 그 이름의 원본 주소.
-   - 섹션 상대(비외부): 목적 파일 필드값(섹션 주소 공간)을 그 섹션의 배치로 옮긴 값 = 원본 필드값. 배치가 없는 섹션이면 "참조 미확인".
-   - scattered `SECTDIFF`+`PAIR`: 두 값을 각각 배치로 옮겨 (A−B+상수) 가 원본 필드값과 같은지. 배치 없으면 미확인. 그 밖의 재배치 형식은 거부(오류).
-   - 이름이 원본 심볼표에 없는 외부 참조(원본에서 정적이었을 함수 등)는 "참조 미확인".
-4. 재배치 없는 PC 상대 분기·호출: capstone(x86-32)으로 디스어셈블해 목적지를 구하고, 목적지가 비교 대상 범위 안(배치된 `__text`)이면 원본에서도 같은 상대 위치이므로 바이트 동일로 충분하다. 목적지가 비교 범위 밖이면 "참조 미확인".
-5. 점프 표·리터럴: 목적 파일 `__text` 안의 재배치가 걸린 데이터(표)는 함수 범위에 포함되므로 3 에서 대상까지 비교된다.
-6. L1d: 데이터 섹션(배치가 있거나 추론된 것)의 바이트를 재배치 필드 밖에서 비교하고, 섹션 안 재배치(포인터)는 3 의 규칙으로 비교한다.
-7. 결과 분류(함수마다): **일치**(바이트·모든 참조 확인), **일치·참조 일부 미확인**(바이트 동일, 미확인 참조 목록), **다름**(첫 차이 위치·종류), **경계 불일치**. 분모는 목적 파일 함수 수와 원본 바이트 수 둘 다. 모든 계산은 Python.
-
-자기 시험(도구를 믿기 전):
-- T1 실기 링크 상(像): probe 목적 파일(`c_codegen.o`·`c_layout.o`·`asm_probe.o` + 외부 정의를 담은 작은 `.o`)을 실기 `ld` 로 `__TEXT` 0x100000 에 정적 링크한 실행 파일을 만들고(`kr_run.py` 경로), 그 이미지를 "원본" 으로 두고 목적 파일을 비교 → 모든 함수 **일치**여야 한다. 배치는 링크된 이미지의 심볼에서 얻는다.
-- T2 변조(호스트에서 링크 상의 사본을 고침): ① 외부 `call` 변위를 다른 함수로 ② 절대 참조 가산값 +4 ③ 점프 표 한 항목을 다른 case 로 ④ 재배치 없는 바이트 1 개 ⑤ 함수 끝 절단(범위를 짧게 준 경우) — 각각 해당 함수만 **다름**(또는 경계 불일치)으로 나와야 하고 나머지는 일치.
-- T3 데이터 배치 추론: `__data` 배치를 주지 않고 추론하게 했을 때 T1 과 같은 배치를 찾고 L1d 일치, 데이터 1 바이트 변조 시 L1d 다름.
-- T4 원본 커널에 대한 무해 시험: 원본에서 잘라낸 바이트로 만든 가짜 목적 파일은 쓰지 않는다(재배치 정보가 없어 의미 없음). 원본 대상 실사용은 S1-C 에서.
-
-산출: 도구, 시험 스크립트(`10_tools/reconstruction/test_l1_compare.py`), 시험 결과 `09_validation/reconstruction/l1-selftest-<date>.json`.
-
-### 12.1 codex 교차검토 반영 (QB1, 인용 줄 `:231,234,235,238,239,242,245,248`, `macho_obj.py:93` 확인)
-
-| 지적 | 판정 | 수정된 설계 |
-|---|---|---|
-| PC 상대 가산값·`symbol+offset` 무시 | ✅ | 3 을 **링커 재배치 계산의 재현**으로 바꾼다. 필드 위치 P, 목적 파일 필드값 F, 섹션 배치 차 Δ(sec)=원본주소−목적주소. 외부 절대: F+S; 외부 PC 상대: F+S−Δ(P 의 섹션); 섹션 상대 절대: F+Δ(대상 섹션); 섹션 상대 PC 상대: F+Δ(대상)−Δ(P 의 섹션); `SECTDIFF`(A−B+c): F+Δ(A 의 섹션)−Δ(B 의 섹션). S 는 원본 심볼표의 그 이름 주소. 원본 필드가 이 값과 같아야 확인. |
-| 필드 폭·부호·마스크 | ✅ | length 0/1/2 → 1/2/4 바이트, 2^(8w) 나머지 산술, 필드가 섹션 안인지 검사, 마스크는 그 바이트들만. 폭 1·2 재배치를 시험 재료에 넣는다 |
-| 섹션 상대 PC 상대 재배치, 섹션 서수 | ✅ | 위 공식. 섹션은 그 목적 파일의 서수로만 찾는다 |
-| 별칭(같은 주소 여러 이름) | ✅ | 주소별로 이름을 묶고 모두 보존, 범위는 묶음 단위 |
-| 데이터 배치 추론의 우연 일치 | ✅ | 추론 배치는 (a) 그 섹션을 가리키는 모든 참조가 같은 Δ 를 주고 (b) 섹션 바이트 전체가 L1d 로 일치할 때만 채택하고 "추론" 표시. zero-fill(`__bss`·common)은 바이트 대조가 불가하므로 그쪽 참조는 이름이 원본 심볼표에 있을 때만 확인. 함수 판정은 참조한 데이터 섹션의 L1d 결과를 물려받는다(미확인·실패면 "일치" 불가) |
-| 심볼 구간은 함수 범위 증명이 아님 | ⚖️ | 판정의 기본 단위를 **배치된 섹션 전체**로 한다(모든 바이트 비교). 함수별 결과는 그 분해일 뿐이다. Ghidra `body` 가 목적 파일 함수 끝이나 섹션 끝을 넘으면 "경계 불일치" |
-| 디스어셈블 경계 미검증 | ⚖️ | 재배치 없는 분기의 올바름을 디스어셈블로 판정하지 않는다. 섹션 전체 바이트가 같으면 섹션 안 상대 목적지는 같은 상대 위치다. 재배치 없이 섹션 밖을 가리키는 PC 상대 참조는 생길 수 없다(어셈블러가 재배치를 만든다)는 전제를 시험 재료로 확인한다 |
-| 자기 시험의 순환성·누락 | ✅ | T1 은 실기 `ld` 가 재배치를 계산하므로 독립적이다. 기본(`-fPIC`, SECTDIFF 28 개)·커널 후보 목적 파일을 **모두** 링크해 공식 전체를 시험한다. 추가 재료: asm 으로 `call _ext+4`(가산값), `.word`/`.byte` 참조(폭 1·2), 두 `__TEXT` 섹션 사이 `call`(섹션 상대 PC 상대). 추가 변조: 동일한 데이터 블록 두 개(배치 추론이 모호하면 거부해야 함), Ghidra 식 범위를 일부러 길게 준 경우(경계 불일치) |
-
-### 12.2 S1-B 결과 (2026-10-01)
-
-- 도구: `10_tools/reconstruction/l1_compare.py`(링커 재배치 계산 재현, 섹션 전체 바이트 비교, 데이터 배치 추론 + L1d 확인, 별칭 묶음, 외부 범위와의 경계 비교), 시험 `test_l1_compare.py`, 결과 `09_validation/reconstruction/l1-selftest-20261001.json`.
-- T1 재료: 실기 `ld -static -e _kr_leaf -segaddr __TEXT 0x100000` 로 링크한 `t1img`(실행 `s1b-t1-kernel-4`). 재배치 종류: 외부 절대(가산값 +8 포함), 외부 PC 상대(`call _kr_ext+4`), 섹션 상대 절대(점프 표 8 항목 포함), 섹션 상대 PC 상대(`__text`→`__kr_text2`), scattered VANILLA, `SECTDIFF`+`PAIR` 2 쌍. **모든 재배치에서 도구 계산값 = 실기 `ld` 결과**.
-- 결과 14/14 통과: T1 다섯 목적 파일 전부 MATCH; M1 호출 대상 교체·M2 가산값 +4·M3 점프 표 항목 교체(항목 값이 서로 다름 확인)·M4 재배치 밖 바이트·M5 경계 연장이 각각 해당 함수만 DIFF/BOUNDARY; T3a `asm_reloc` `__data` 배치를 참조에서 추론·L1d 확인; M6 데이터 1 바이트 → 참조 함수 DIFF; M7 참조 하나를 어긋나게 하면 "ambiguous 2 candidates"·일치 판정 없음; M8 사용자 지정 zero-fill 배치는 MATCH_UNVERIFIED(심볼 이름으로 얻은 배치만 확인으로 인정).
-- 확인한 도구 사실: `cc -static` 으로 어셈블하면 `as` 가 섹션 간 차이(`SECTDIFF`)를 만들지 못한다("Can't emit reloc"), `-static` 없이 어셈블하면 만든다. 기본(`-fPIC`) 목적 파일은 `__picsymbol_stub` 때문에 `ld -static` 이 거부한다. `-fno-common` 의 미초기화 전역은 `__DATA,__common` zero-fill **섹션**에 들어간다. `llvm-objdump` 는 링크된 이미지(원본 커널 포함)의 `LC_UNIXTHREAD` 를 읽지 못한다 — 이미지 판독은 `macho_obj.py` 만 쓴다(목적 파일 판독은 llvm 과 대조 완료).
-- 한계(기록): 폭 1·2 바이트 재배치는 0x100000 배치에서 만들 수 없어 시험하지 못했다(도구는 지원, 실제로 나오면 별도 시험). ObjC 목적 파일은 런타임 심볼 없이 링크할 수 없어 T1 에 넣지 않았다 — ObjC 메타데이터 섹션(`__OBJC`) 비교는 S1-C 이후 별도 시험.
-
-다음: S1-C 컴파일 옵션 표본 시험(원본 커널 함수 대상). 착수 전 세부 계획과 codex 검토.
-
-## 13. S1-C 세부 계획 — 컴파일 옵션 표본 시험 (코딩 전, 2026-10-01)
-
-목적: 원본 커널을 만든 컴파일 옵션 후보를 원본 바이트로 가린다. 결과는 "이 표본에서 이 옵션 세트가 원본과 바이트·참조가 일치했다"는 관찰이며, 커널 전체 옵션의 증명이 아니다.
-
-표본 선택(Python, `04_ghidra/exports/x86/full-pass5/functions.json`): 분석 조각이 아니고, 몸체가 범위 하나, `status` decompiled, 메시지 없음, 이름 있음(1,509 개) 중 16–160 바이트이고 참고 `.c` 에 같은 이름의 정의가 있는 409 개에서, **원본 밖 타입·전역에 기대지 않는** 함수 12 개:
-- A 순수 계산(Darwin 0.1): `yeartoday`, `hexdectodec`, `dectohexdec`(`bsd/dev/i386/rtc.c`), `locc`(`bsd/libkern/locc.c`), `skpc`(`bsd/libkern/skpc.c`), `strcpy`(`machdep/i386/libc/strcpy.c`), `strcmp`(`machdep/i386/libc/strcmp.c`).
-- B 작은 구조체·매크로: `timevaladd`, `timevalsub`, `timevalfix`(`bsd/kern/kern_time.c`, `struct timeval{long;long}`), `byte_swap_shorts`, `byte_swap_ints`(`bsd/ufs/ufs/ufs_byte_order.c`, NeXT 헤더 `<architecture/byte_order.h>` 의 `NXSwapShort`/`NXSwapLong`).
-- 알려진 위험: 원본 `strcpy` 는 117 바이트인데 참고 소스는 짧은 루프다 → 소스가 다를 가능성이 크다(대조군 역할).
-
-표본 소스: 함수마다 `10_tools/reconstruction/s1c/src/<name>.c` 하나. 함수 본문은 참고 파일에서 **글자 그대로** 옮기고, 필요한 선언(`u_char`·`u_int` typedef, `struct timeval`, 반환형 선언, 헤더 include)만 덧붙인다. 파일 머리에 출처(트리·경로·revision/SHA-256)·라이선스(APSL)·덧붙인 줄 목록을 적고 `s1c/provenance.json` 에 기록. (D013: NeXTMach 는 쓰지 않음. 이 파일들의 공개 커밋 여부는 사용자 결정 전까지 보류.)
-
-옵션 세트(7): 공통 `-arch i386 -static -fno-common -fwritable-strings -traditional-cpp`(Darwin 0.1 `conf/Makefile.i386` 에서 `cc-744.13` 이 받는 것), 최적화 {없음, `-O`, `-O2`, `-O3`} × 프레임 포인터 {기본, `-fomit-frame-pointer`} 중 {없음}+{`-O`,`-O2`,`-O3`}×{기본, omit} = 7. 순수 계산 표본은 `-nostdinc`, 바이트 스왑 표본은 시스템 헤더 허용. 의존 헤더는 `-E` 출력으로 기록.
-
-실행: `kr_run.py` 한 번(7 세트 × 12 표본 = 84 컴파일 + 12 개 `-E`). 결정성은 S1-A 에서 확인됨.
-
-비교: 표본 목적 파일마다 `l1_compare.py` 를 원본 커널에 대해 `--place-from-image`(함수 이름이 원본 심볼표에 있음), `--ranges` = Ghidra `body`(시작, 끝+1)로 실행. 추가 분류(Python): 차이 바이트가 Ghidra 몸체 안인지 밖(정렬 채움)인지, 목적 파일 함수 길이와 Ghidra 몸체 길이가 같은지.
-
-판정·기록:
-- 세트별 MATCH 수, 몸체 안 차이 바이트 합, 길이 일치 수를 표로(`09_validation/reconstruction/s1c-options-<date>.json`).
-- 채택 규칙: 여러 표본에서 일치를 낸 세트를 **후보 1 순위**로 기록하고, 일치가 하나도 없으면 컴파일러 차이를 의심해 기록만 하고 채택하지 않는다. 세트 사이에 일치 수가 같으면 모두 남긴다.
-- 원본 커널 이미지에서 `l1_compare` 가 쓰는 것: 섹션 바이트(파일 오프셋)와 외부 심볼표뿐. 원본 판독 결과(섹션 주소·크기)를 `03_original/x86/inventory/macho.json` 과 대조한 뒤 쓴다(이미지 판독은 llvm 과 대조할 수 없으므로).
-
-### 13.1 codex 교차검토 반영 (QC1)
-
-인용을 모두 열어 확인했다. codex 가 든 `bsd/ufs/ufs_byte_order.c` 경로는 없고 실제는 `bsd/ufs/ufs/ufs_byte_order.c`(머리에 "Copyright (c) 1998, Apple", "16 Feb 1998" 이력, 25–32 행) — 경로는 틀렸지만 내용 지적은 맞다. `rtc.c:120–124`(K&R `yeartoday`), `locc.c:62–66`(`int` 반환, K&R, `register`), `Makefile.i386:78–91`(libc `-O4`, 문자열 함수 `-O4 -funroll-all-loops`), `kern_time.c:511–529`(`timevaladd/sub` 가 `timevalfix` 호출), `l1_compare.py:193–196,225–228,250–273,276–278` 확인.
-
-| 지적 | 판정 | 반영 |
-|---|---|---|
-| 참고 소스가 원본과 다른 판일 수 있어 순위를 흐림 | ✅ | **자격 게이트**: 어떤 세트에서도 몸체 안 일치가 없는 표본은 "소스 불확실"로 따로 보고하고 순위 계산에서 뺀다. 바이트 스왑 두 함수는 1998 Apple 구현이라 보조 표본으로만 둔다 |
-| 덧붙인 선언이 실험을 바꿈 | ✅ | 함수 정의 전체(반환형 생략=암묵 `int`, K&R 매개변수 선언, `register`)를 그대로 옮기고, 덧붙이는 것은 typedef·구조체·include 만. 원본 파일의 include 목록을 주석으로 남긴다 |
-| 구현 선택 미증명 | ✅ | 위 자격 게이트로 처리(일치가 나와야 구현이 맞다는 근거) |
-| 옵션 축 누락 | ⚖️ | 근거가 있는 축을 더한다: 최적화 {`-O`,`-O2`,`-O3`,`-O4`} × 프레임 포인터 {기본, `-fomit-frame-pointer`} × {기본, `-m486`}(먼저 `cc-744.13` 이 받는지 확인), libc 계열에는 `-O4 -funroll-all-loops`(Darwin 규칙). `-fno-builtin`·strength reduction·inline 축은 이 표본에 영향이 없어 이번에는 넣지 않고 "미시험 축"으로 기록 |
-| `-traditional-cpp`·`-fwritable-strings` 고정 | ⏭️ | 표본에 문자열 리터럴·`const` 가 없어 이번 결과에 영향이 없다. "미시험 축"으로 기록 |
-| 단일 승자가 파일별 옵션을 숨김 | ✅ | 결과를 계열별(rtc, libkern, libc, kern_time, ufs)로 따로 보고 |
-| 단독 함수로 문맥 상실 | ✅ | `kern_time.c` 의 세 함수는 원래 순서대로 한 파일로도 컴파일해 비교(단독판과 둘 다) |
-| 정렬 채움이 점수를 왜곡 | ✅ | 판정을 Ghidra 몸체 범위 안 차이로 계산하고 채움 차이는 따로 센다 |
-| 차이 출력 부족 | ✅ | `l1_compare.py` 가 모든 일반 바이트 차이 오프셋과 참조 차이 위치를 내보내게 고친다 |
-| 12 표본은 대표성 약함 | ✅ | 결과를 "제한된 증거"로 표기, 구분되지 않는 세트는 묶어서 보고. 넓은 표본 검증은 S5 진행 중 계속 |
-| 원본 이미지 판독의 독립 확인 | ✅ | `macho_obj.py` 의 원본 섹션 주소·크기·파일 오프셋, 외부 심볼 3,651 개 주소를 `03_original/x86/inventory/macho.json`·`symbols.tsv`(별도 구현 `10_tools/prepare.py` 산출)와 전수 대조. 함수 바이트는 파일 오프셋으로 직접 읽어 대조 |
-| zero-fill "확인"의 의미 | ✅ | 결과에 "배치 확인(심볼)"과 "내용 확인"을 나눠 표시 |
-
-### 13.2 S1-C 결과 (2026-10-01) — 제한된 표본의 관찰
-
-실행 `s1c-matrix-2`(19 세트 × 13 표본 파일 = 247 컴파일 + `-E` 13, 전부 종료 0, 781 파일 게시), 채점 `10_tools/reconstruction/s1c/score.py` → `09_validation/reconstruction/s1c-options-20261001.json`. 원본 판독 확인: `macho_obj.py` 의 원본 섹션 26 개(주소·크기·파일 오프셋)와 심볼 3,751 개가 `03_original/x86/inventory/` 와 전부 같음. 일치 3 건(`_yeartoday` -O2, `_strcpy` -O4 -funroll-all-loops, `_byte_swap_ints` -O2)은 원시 바이트를 파일 오프셋으로 직접 읽어 다시 확인.
-
-| 관찰 | 근거(몸체 안 BODY_MATCH) |
-|---|---|
-| **`cc-744.13`(GCC 2.7.2.1) 가 원본과 바이트가 같은 코드를 만든다** | 13 함수 중 11 개가 어떤 세트에서 몸체 전체 일치(117 바이트 `_strcpy` 포함) |
-| **프레임 포인터 유지**(`-fomit-frame-pointer` 아님) | omit 세트 9 개 모두 0 일치 |
-| **최적화 `-O2` 이상** | `-O` 은 9/13(바이트 스왑 2 개 불일치), `-O2`·`-O3`·`-O4` 는 11/13 — 이 표본으로는 셋을 구분할 수 없음 |
-| **libc 문자열 함수는 `-O4 -funroll-all-loops`** | `_strcpy`·`_strcmp` 는 그 세트(s17)에서만 일치 — Darwin 0.1 `conf/Makefile.i386:78–91` 의 libc 규칙과 같다. 계열별(파일별) 옵션이 실제로 있다 |
-| `-m486`/`-mno-486` 구분 불가 | 모든 쌍에서 같은 결과(S1-C 옵션 수용 시험에서도 같은 목적 파일) |
-| `timevaladd`·`timevalsub`·`timevalfix` 는 원본에서 이 순서로 붙어 있다 | 세 함수를 한 파일로 컴파일한 목적 파일이 하나의 배치로 세 이름에 모두 맞고 일치 |
-| 1998 Apple 판 `ufs_byte_order.c` 의 두 함수가 원본과 같다 | `-O2` 이상에서 일치 |
-| 소스 불확실 | `_locc`·`_skpc`: 어떤 세트에서도 몸체 차이 6–7 바이트 이상 → 참고 소스가 원본과 다르거나 다른 옵션. 순위 계산에서 제외 |
-
-미시험 축(기록): `-fno-builtin`, strength reduction, inline 계열, `-traditional-cpp`, `-fwritable-strings`. `-O2`/`-O3`/`-O4` 를 구분할 표본(인라인 가능한 정적 함수가 앞에 정의된 것 등)이 필요하다.
-
-판정: 커널 C 파일의 **후보 1 순위 옵션** = `-arch i386 -static -fno-common -fwritable-strings -traditional-cpp -O2`(또는 -O3/-O4, 미구분), 프레임 포인터 유지. libc 계열은 `-O4 -funroll-all-loops`. 표본 12 개의 제한된 증거이며, S5 진행 중 함수 대조로 계속 검증한다.
-
-### 13.3 S1-C2 결정 (2026-10-01): `-O2`/`-O3`/`-O4` 구분을 S5 로 미룸
-
-Darwin 0.1 에서 "작은 static 함수가 먼저 정의되고 원본에 깨끗한 경계로 있는 함수가 그것을 부르는" 쌍을 Python 으로 찾은 결과 8 쌍뿐이고, 판별 재료가 되지 못했다: `page_copy`·`suibyte` 의 도우미는 `__inline__`/`inline` 이 명시돼 `-O2` 에서도 인라인되고, `nb_alloc` 은 `nb_alloc_free` 를 함수 포인터로 넘길 뿐 호출하지 않으며, `ttywflush` 는 원본에 이름이 있는 외부 함수다. 표본을 억지로 만들지 않고, S5 에서 실제 파일을 `-O2` 와 `-O3` 로 함께 컴파일해 파일별로 판정한다(파일별 옵션이 있음은 13.2 에서 확인).
-
-## 14. S1-D 세부 계획 — Objective-C 목적 파일 대조 (코딩 전, 2026-10-01)
-
-확인한 사실: probe `objc_probe.o`(`s1a-probes-kernel-2`)와 원본 커널 모두 `__OBJC` 의 `__class_names`·`__meth_var_types`·`__meth_var_names` 가 섹션 종류 `cstring_literals`(2), `__message_refs`·`__cls_refs` 가 `literal_pointers`(5), 나머지는 regular(0). 리터럴 섹션은 링커가 모듈 사이에서 같은 내용을 합칠 수 있으므로, 한 목적 파일의 해당 섹션이 원본에서 한 덩어리로 있다는 가정(현재 배치 방식)이 성립하지 않는다.
-
-도구 확장(`l1_compare.py`):
-1. 리터럴 섹션은 섹션 배치를 하지 않는다(배치·L1d 대상에서 뺀다).
-2. 리터럴 섹션을 가리키는 참조는 **내용으로** 확인한다:
-   - `cstring_literals`: 목적 파일에서 가리키는 위치의 NUL 종결 문자열(가산값이 문자열 중간이면 그 오프셋부터)과, 원본 필드값이 가리키는 위치의 문자열이 같고, 그 위치가 원본의 **같은 이름 섹션** 안이어야 확인.
-   - `literal_pointers`: 목적 파일 항목(4 바이트)이 가리키는 문자열과, 원본 필드가 가리키는 원본 같은 이름 섹션 항목이 가리키는 문자열이 같아야 확인(한 단계 역참조).
-   - PC 상대·`SECTDIFF` 가 리터럴 섹션을 가리키면 지원하지 않음(오류)으로 둔다 — 실제로 나오는지 시험에서 본다.
-3. 리터럴 섹션 안의 재배치(리터럴 포인터 항목의 문자열 참조)는 2 의 역참조 규칙으로만 쓴다.
-4. 메서드 함수: ObjC 메서드는 목적 파일에서 로컬 심볼(`-[Class sel]`)이고 원본에는 이름이 없다. `__text` 배치는 원본 ObjC 메타데이터(`03_original/x86/inventory/objc.json` 의 메서드 IMP 주소)와 목적 파일 메서드 심볼을 같은 (클래스, 셀렉터) 로 짝지어 Δ 를 구하고, 모든 짝이 같은 Δ 를 줄 때만 쓴다.
-5. regular `__OBJC` 섹션(`__class`, `__meta_class`, `__inst_meth`, `__cls_meth`, `__category`, `__instance_vars`, `__module_info`, `__symbols` …)은 기존 방식(참조에서 배치 추론 + 바이트 전체 L1d)으로 대조한다.
-
-자기 시험(T-ObjC, 실기 `ld` 링크):
-- 재료: 같은 셀렉터·클래스 이름 문자열을 공유하는 ObjC 파일 두 개(합쳐짐을 강제) + 런타임 대용 정의(`_objc_msgSend`, `.objc_class_name_Object` 등, 어셈블리)를 `ld -static -segaddr __TEXT 0x100000` 로 링크.
-- 확인: 두 목적 파일 모두 메서드·regular `__OBJC` 섹션이 MATCH, 리터럴 참조가 내용으로 확인됨. 실제로 합쳐졌는지(두 번째 파일의 문자열이 첫 번째 파일 쪽 주소를 가리키는지)를 이미지에서 확인해 시험이 의미 있음을 보인다.
-- 변조: 원본 사본에서 ① 셀렉터 참조 하나를 다른 셀렉터 문자열로 ② `__class` 의 인스턴스 크기 필드 ③ 메서드 목록의 IMP 하나를 다른 메서드로 — 각각 해당 항목 DIFF.
-- 원본 대상 시범은 S5 에서(작은 ObjC 모듈 하나).
-
-### 14.1 codex 교차검토 반영 (QD1)
-
-인용 확인: 계획 349–357 행, `l1_compare.py:199,254`, `objc.json:2`(바이너리 해시), `:704`(`isa` 0x1fa71c), `:1999`(categories), `:2205`(selector), `:12436`(missing_ghidra_method_entries). Python 으로 `objc.json` 구조 확인: 메서드 키 `owner, kind, selector, types, imp, metadata_address, list_address`; 첫 클래스 `KernLock` 의 `isa` 0x1fa71c(= `__meta_class` 시작), `superclass` 0x1fdfdf(`__class_names` 안 = 문자열 포인터). 파일 상태에서 isa 는 포인터, superclass 는 이름 문자열이다.
-
-| 지적 | 판정 | 반영 |
-|---|---|---|
-| 리터럴 포인터의 두 단계 모두 섹션 확인 필요 | ✅ | 슬롯이 원본의 같은 이름 `literal_pointers` 섹션 안, 슬롯이 가리키는 문자열이 같은 이름 `cstring_literals` 섹션 안, 문자열은 섹션 끝 안에서 NUL 로 끝나야 함 |
-| 합쳐짐 시험이 슬롯 공유·`__cls_refs` 를 안 다룸 | ✅ | 재료에 두 파일이 같은 셀렉터를 보내는 코드(슬롯 공유 확인), 다른 클래스를 이름으로 참조하는 코드(`__cls_refs`)를 넣고, 이미지에서 실제 공유 관계를 확인 |
-| 함수 MATCH 가 메타데이터를 보증하지 않음 | ✅ | **목적 파일 판정**을 추가: regular `__OBJC` 섹션 전부 L1d 일치 + 그 안 모든 참조 확인(리터럴은 내용) + 메서드 대응 완전 → OBJECT_MATCH |
-| 메서드 식별 불충분 | ✅ | 대응 키 = (소유 클래스, 카테고리 이름 또는 없음, 인스턴스/클래스, 셀렉터). 목적 파일 메서드 전부가 원본에 하나씩 대응해야 함(빠짐·중복이면 배치 거부) |
-| IMP 목록 정확성 가정 | ✅ | `objc.json` 의 메서드 1,137 개를 원본 바이트로 재확인: 각 `metadata_address` 의 세 워드가 (셀렉터 문자열 포인터, 형식 문자열 포인터, IMP) 이고 문자열이 일치하는지, 메서드 목록 개수와 항목 수 합이 맞는지 — 불일치하면 해당 메서드는 배치 근거로 쓰지 않음 |
-| `ld` 의 regular 섹션 변형 가정 | ✅ | T-ObjC 에서 실제 링크 결과로 변형(정렬 등) 유무를 먼저 확인하고, 변형이 있으면 도구에 반영하기 전에 기록·재계획 |
-| 클래스 필드 표현 미시험 | ✅ | 재료에 지역 클래스의 하위 클래스를 넣어 isa(포인터)·superclass(이름 문자열) 표현을 이미지 바이트로 확인하고 각각의 규칙(포인터는 배치, 문자열은 내용)으로 대조 |
-| 자기 시험 범위 부족 | ✅ | 확장별 양성·음성 시험 표: 리터럴 문자열 참조, 리터럴 포인터 참조, 슬롯 공유, cls_refs, isa, superclass 문자열, 메서드 목록 IMP, 인스턴스 크기, 카테고리, 모듈 정보. 리터럴을 가리키는 PC 상대·SECTDIFF 는 만들 수 있는지 시도하고, 못 만들면 "생성 불가"로 기록 |
-
-### 14.2 S1-D 결과 (2026-10-01)
-
-- **원본 ObjC 목록 재확인**: `objc.json` 메서드 1,137 개 전부가 원본 바이트와 일치(메타데이터 주소의 세 워드 = 셀렉터·형식 문자열 포인터·IMP, 문자열은 올바른 섹션 안에서 NUL 종결, IMP 는 `__text` 안, 목록 120 개의 개수·순번 일치) → `09_validation/reconstruction/objc-inventory-recheck-20261001.json`. 독립 판독기 `10_tools/reconstruction/objc_meta.py`(모듈→symtab→클래스·카테고리→메서드 목록)도 원본에서 메서드 1,137 개(목록 주소까지)·클래스 59(= 인벤토리 118 의 클래스+메타클래스)·카테고리 40 으로 인벤토리와 동일. 원본의 모듈 이름 76 개·클래스 이름은 모두 유일.
-- **T-ObjC 링크 관찰**(`s1d-tobjc-1`, 실기 `ld`): 리터럴이 실제로 합쳐진다(`__message_refs` 24→20 B: 두 파일의 셀렉터 `x` 슬롯 공유, `__class_names` 75→61, `__meth_var_types` 40→32, `__meth_var_names` 62→55). regular `__OBJC` 섹션은 크기가 두 목적 파일의 합이고 입력 순서대로 이어 붙는다(정렬·재배열 없음). `__text` 는 목적 파일 사이 정렬 채움으로 164→168 B. 클래스 레코드: isa = 메타클래스 레코드 포인터, superclass·name = `__class_names` 문자열; 메타클래스 isa = 루트 클래스 이름 문자열.
-- **도구 확장**: 리터럴 섹션(`cstring_literals`·`literal_pointers`)은 배치하지 않고 참조를 내용으로 확인(리터럴 포인터는 두 단계 모두 같은 이름 섹션 확인), 리터럴을 가리키는 PC 상대·좁은 폭·SECTDIFF 는 "미지원"으로 미확인 처리. 메서드 심볼(`-[Class(Cat) sel]`)과 이미지 메타데이터의 (소유, 카테고리, 종류, 셀렉터) 완전 대응으로 `__text` 배치. `objc_place.py` 가 모듈·symtab·클래스·메타클래스·인스턴스 변수·메서드 목록·카테고리 레코드 대응으로 regular 섹션 배치(섹션마다 Δ 하나일 때만) → L1d 로 전 바이트·참조 확인. 목적 파일 판정 `OBJECT_MATCH`.
-- **시험 13/13** (`test_objc_compare.py` → `09_validation/reconstruction/objc-selftest-20261001.json`): 두 목적 파일 OBJECT_MATCH(메서드 6 개 MATCH), 합쳐짐 3 종 확인; 변조 8 종(셀렉터 슬롯, 인스턴스 크기, IMP, superclass 문자열, `cls_refs` 슬롯, 형식 문자열 1 바이트, 카테고리 이름, 모듈 크기) 모두 NOT_MATCH 이고 사유가 해당 섹션·참조(예: N3 `__inst_meth` 참조 차이 + 메서드 대응 불완전). 기존 L1 시험 14/14 유지.
-- 한계: 리터럴을 가리키는 PC 상대·SECTDIFF 는 만들지 못해 시험하지 않음. 프로토콜(`__protocol`)·클래스 변수(`__class_vars`)·`__sel_fixup` 이 있는 목적 파일은 아직 대응 규칙이 없다(나오면 "미배치"로 남아 OBJECT_MATCH 불가). big-endian(SPARC·m68k) 재배치 판독은 미구현(`macho_obj.py` 가 오류).
-
-S1 종료 상태: 툴체인·빌드 왕복·L1/L1d/ObjC 비교 도구·옵션 후보 확보. `-O2`/`-O3` 구분은 S5 로 이월(13.3). 다음은 S2(계보·구성 지도).
-
-## 15. S2-A 세부 계획 — 목적 파일 경계와 링크 순서 (코딩 전, 2026-10-01)
-
-전제(관찰, S1-D 14.2): `ld` 는 목적 파일의 regular 섹션(`__text`, `__data`, `__OBJC` regular)을 입력 순서대로 이어 붙이고 목적 파일 사이에 정렬 채움을 넣는다. 커널 C 는 `-fwritable-strings` 로 빌드되는 것이 후보 1 순위(13.2)라 문자열 리터럴이 목적 파일마다 `__data` 에 들어간다(합쳐지지 않음) — 이것은 S2-A 에서 확인할 가설이다.
-
-실현성 추정(Python, 2026-10-01): 분석 조각이 아닌 Ghidra 함수 4,761 개 중 원본 외부 심볼 이름이 있는 것 2,907, 없는 것 1,854(ObjC 메서드 1,137 포함). 이름 있는 함수 중 Darwin 0.1(ppc 경로 제외)의 `.c`/`.m`/`.s` 에 정의가 정확히 한 파일인 것 1,217, 여러 파일 6, 없음 1,684. 정의 파일이 하나인 함수만으로 주소 순 연속 구간 204 개, 파일 189 개, 둘 이상 구간으로 쪼개진 파일 14 개.
-
-증거와 단계(`10_tools/reconstruction/s2a_objects.py`, 모두 Python):
-1. **이름 표지**: 원본 외부 심볼 함수마다 정의 파일 후보를 Darwin 0.1 → NeXTMach → Mach4 순으로 찾는다(정의 줄 정규식, 어셈블리는 `ENTRY(x)`/`_x:`). 파일이 여럿이면 "모호". 이름 일치는 후보다.
-2. **ObjC 표지**: `objc_meta.py` 로 메서드 IMP → 소유 클래스 → 모듈 이름(원본 76 개, 유일). 메서드 IMP 의 주소 범위로 모듈별 `__text` 구간을 얻는다. 모듈 이름은 원본 바이트에서 온 사실이다.
-3. **구간 만들기**: 주소 순으로 같은 표지가 이어지는 구간을 만들고, 이름 없는 함수(정적 함수)는 양쪽 표지가 같을 때만 그 구간에 넣는다. 양쪽이 다르면 경계는 그 사이 어딘가로 "범위"(최소·최대)만 기록한다.
-4. **데이터 단조성 교차 확인**: Ghidra `references.tsv` 의 `__text`→`__data` 참조(READ·WRITE·READ_WRITE·DATA)로 구간마다 참조하는 `__data` 주소의 최소·최대를 구한다. 구간을 `__text` 순서로 늘어놓았을 때 `__data` 범위도 같은 순서여야 한다(겹침·역전은 잘못 붙인 표지나 쪼개진 파일의 신호로 보고). 참조 자료는 Ghidra 해석이므로, 무작위 표본 200 개를 capstone 디코딩(명령의 절대 주소 피연산자)으로 재확인한 뒤 쓴다.
-5. **문자열 가설 확인**: `__data` 안에서 함수가 문자열로 참조하는 위치가 같은 구간의 다른 데이터와 붙어 있는지(목적 파일별 데이터 덩어리) 표본으로 확인 — 맞으면 4 의 근거가 강해지고, 아니면 4 는 참고로만 쓴다.
-6. **Darwin 빌드 목록과 대조**(진단): `conf/files`·`files.i386` 의 파일 순서와 복원한 순서를 비교해 일치 구간을 보고한다(참고 코드 사실이므로 판정에 쓰지 않음).
-
-산출: `06_reconstruction/objects.tsv`(목적 파일 후보: 순번, 소스 후보, `__text` 시작·끝의 확정값 또는 범위, 함수 수·바이트 수, 근거 종류, 신뢰도, 데이터 범위, 모순), 보고서 `09_validation/reconstruction/s2a-objects-<date>.json`(분모: `__text` 851,436 B 중 구간에 배정된 바이트, 배정 못 한 바이트 목록). 이 단계는 원본 분석이며 코드 복원이 아니다.
-
-### 15.1 codex 교차검토 반영 (QS2A, 인용 380·389·394–398·401 행 확인)
-
-| 지적 | 판정 | 반영 |
-|---|---|---|
-| 이름이 소유 파일을 정하지 못함 | ✅ | 후보 파일을 모두(트리·경로) 보존, 하나로 좁히지 않는다. 소유 확정은 S5 의 L1 대조로만 |
-| 같은 표지 사이 정적 함수의 배정 | ✅ | "추정 소속"으로만 표시. 표지가 전혀 없는 목적 파일 가능성을 열어 둔다(구간 사이 미배정 바이트로 보고) |
-| 어셈블리 객체의 진입점 | ✅ | `.s` 후보는 모든 진입점·별칭을 묶은 후보로만 두고, 확정은 조립된 기여 전체의 대조(S5)로 |
-| ObjC 메서드 범위 ≠ 객체 범위 | ✅ | 같은 `.m` 의 C 함수 표지(파일 기본 이름)와 메서드 표지를 한 후보로 합친 뒤 범위를 낸다 |
-| 참조한 데이터 ≠ 소유 데이터 | ✅ | 단조성 확인에는 원본 외부 심볼 주소가 아닌 `__data` 대상(익명 데이터: 문자열·정적 변수)만 쓰고, 데이터가 없는 후보를 허용 |
-| 섹션 간 순서 동일 가정 | ✅ | `__text` 순서와 `__data` 순서를 따로 내고, 둘의 일치는 "관찰"로만 보고 |
-| 표본 검증으로는 부족 | ✅ | 결과에 쓰는 참조는 **전부** capstone 으로 원본 명령을 디코딩해 절대 주소 피연산자(즉시값·변위)가 대상과 같은지 확인, 안 맞으면 버린다 |
-| 문자열 인접성은 진단 | ✅ | 진단으로만 |
-| "확정" 규칙 없음 | ✅ | S2-A 는 확정 경계를 내지 않는다. 신뢰도: **B** 표지 있는 이웃으로 범위가 좁혀지고 데이터 단조성과 모순 없음, **C** 이름 표지만, **U** 미배정. **A**(바이트 확정)는 S5 의 L1 일치로만 부여 |
-
-### 15.2 S2-A 결과 (2026-10-01) — 후보 지도(확정 아님)
-
-도구 `10_tools/reconstruction/s2a_objects.py` → `06_reconstruction/objects.tsv`, `09_validation/reconstruction/s2a-objects-20261001.json`.
-- 함수 4,761 개 분류: 이름 표지(참고 트리에 정의 있음) 1,783, 이름 있으나 참고 정의 없음 1,124, ObjC 메서드 1,137(모듈 이름은 원본 바이트), 표지 없음 717.
-- 후보 구간 339 개: 신뢰도 B 235(69.3 %, Python), C 104. 둘 이상 구간으로 나뉜 파일 이름 16(`machdep.c`·`pcb.c` 처럼 트리 사이 같은 이름, 또는 쪼개진 파일 — 미해결로 남김).
-- 바이트(`__text` 851,436 B 기준): 함수 몸체 822,140 B(96.6 %) 중 표지 있음 508,158(59.7 %), 구간 안 추정 소속 61,574(7.2 %), 미배정 252,408(29.6 %).
-- 참조 검증: `__text`→`__data` 후보 4,785 중 외부 심볼 주소 1,323 제외, capstone 디코딩으로 피연산자(즉시값·변위)가 대상과 같은 것 2,525 채택, 937 거부(880 은 명령 피연산자에 그 주소가 없음 — Ghidra 의 자료흐름 추론, 57 은 배열 인덱스처럼 다른 주소). 구간에 쓰인 것 1,295.
-- 데이터 순서 진단: 범위(최소·최대) 기준 모순 16 건(28 구간; 대부분 `__data` 끝쪽의 다른 파일 표 원소 참조, 예: `tty.c`), 중앙값 기준 인접 역전 9/162(일치 94.4 %) → `__text` 와 `__data` 기여 순서가 대체로 같다는 관찰.
-- Darwin 0.1 `conf/files`+`files.i386` 순서와의 진단: 위치를 찾은 구간 212 중 최장 증가 부분열 152(71.7 %) — 링크 순서가 비슷하지만 같지 않다.
-- 해석 경계: 이 지도는 후보다. 경계 확정(A)은 S5 에서 목적 파일 L1 일치로만 준다. "이름 있으나 참고 정의 없음" 1,124 와 "표지 없음" 717 이 S2-B(함수 대응)와 S5 의 주요 미지수다.
-
-## 16. S2-B 세부 계획 — 함수 단위 후보 대응 (코딩 전, 2026-10-01)
-
-산출 위치: 자동 생성물은 `06_reconstruction/function_candidates.tsv`(새 파일). `06_reconstruction/functions.tsv` 는 README 의 취지(원시 심볼을 일괄 등록하지 않음)대로 대조·구현을 거친 항목만 둔다. 어휘는 README 를 따른다: 상태 `unmapped`/`candidate`(이 단계의 최대), 신뢰도 `low`/`medium`/`high`, 상충은 `conflicting`. 후보 출처에는 트리·고정 revision(Mach4 `69fa778`, NeXTMach `f6bdb9c`, Darwin `kernel-1.tar.gz` SHA-256 `0c19349b…`, `driverkit-139.1-1.tar.gz` `25523562…`)·경로·함수 이름을 적는다.
-
-원본 쪽 특징(모두 원본 바이트로 검증, `10_tools/reconstruction/s2b_candidates.py`):
-- F1 이름: 원본 외부 심볼 이름(없으면 없음).
-- F2 직접 호출: Ghidra `references.tsv` 의 `UNCONDITIONAL_CALL` 중 출발점이 함수 몸체 안이고, capstone 디코딩한 명령이 `call` 이며 목적지가 대상과 같은 것만. 목적지가 원본 외부 텍스트 심볼이면 그 이름.
-- F3 문자열: 몸체 안에서 `__data`·`__cstring`·`__const` 를 가리키는 참조 중 디코딩으로 피연산자(즉시값·변위)가 대상과 같은 것만, 대상에서 NUL 까지 읽어 3 자 이상·인쇄 가능 문자 비율 0.9 이상인 문자열.
-
-후보 쪽 특징(참고 소스 텍스트, ppc 경로 제외):
-- 함수 정의(정의 줄~첫 `}` 줄), 본문에서 호출한 식별자(`이름(`, C 키워드 제외), 문자열 리터럴(C 이스케이프 해석).
-
-후보 생성과 점수:
-- 이름 있는 원본 함수: 같은 이름의 정의 전부가 후보. 호출 일치도 Jc = |원본 호출 이름 ∩ 후보 호출 식별자| / |합집합| (둘 다 원본 외부 텍스트 이름으로 한정), 문자열 일치 수 Ks / 원본 문자열 수.
-- 이름 없는 원본 함수: S2-A 구간에 속하면 그 구간 후보 파일의 정적 함수(이름 일치로 이미 쓰인 것 제외)를 후보로, 같은 점수. 구간 밖이면 후보 없음.
-- 신뢰도: **high** = 최고 후보가 Jc ≥ 0.5(양쪽 호출 집합이 비어 있지 않을 때) 또는 원본 문자열 전부 일치, 그리고 2 위 후보보다 점수가 높음(같은 본문의 다른 트리 사본은 묶어서 하나로 봄). **medium** = 이름 일치 + 부분 증거(Jc > 0 또는 문자열 ≥ 1), 또는 이름 없는 함수의 유일한 최고 점수 후보. **low** = 이름만(증거를 낼 특징이 없거나 겹침 0). 최고 점수가 서로 다른 본문 둘 이상이면 **conflicting**.
-- 같은 함수의 여러 트리 사본은 본문 텍스트를 정규화(공백·주석 제거)해 같으면 "같은 본문"으로 묶는다.
-
-점수기 검증(쓰기 전):
-- 정답이 있는 표본: S1-C 에서 바이트 일치한 함수 11 개(Darwin 파일이 정답) — 후보 1 순위가 그 파일이어야 함.
-- ObjC 메서드: 원본 바이트로 아는 모듈 이름(파일)이 정답 — Darwin `.m` 의 `@implementation Class` 안 메서드 정의를 (클래스, 셀렉터)로 찾아 후보 파일 기본 이름과 모듈 이름이 같은 비율을 Python 으로 보고(점수기의 문자열·호출 특징이 ObjC 메서드에도 작동하는지 확인용, 메서드 행은 이 방식으로 후보를 만든다).
-- 무작위 50 개 함수의 F2·F3 를 사람이 읽을 수 있는 표로 뽑아 디코딩 결과와 함께 남긴다.
-
-결과는 후보이며, `compared` 이상은 S5 에서 L1 대조로만 올린다.
-
-### 16.1 codex 교차검토 반영 (QS2B) — 설계 변경
-
-인용 확인: 계획 282–284·310·421·430·434–449 행, `06_reconstruction/README.md:10–12`. 작은 집합 예 `{panic}` 대 `{panic}` 의 Jc = 1.0 을 Python 으로 확인. 지적 10 건 모두 ✅.
-
-변경된 설계:
-- **S2-B 의 신뢰도 최대값은 `medium`**. 전처리 전 텍스트 특징은 매크로·인라인·조건부 정의 때문에 원본과 직접 비교할 수 없다. `high` 는 S5 에서 컴파일한 번역 단위의 L1 대조 뒤에만 준다(그때 상태도 `compared`).
-- **출처 대안 보존**: 같은 본문의 다른 트리 사본도 하나로 합치지 않고 모두 나열(정규화 본문 해시로 "같은 본문 묶음" 표시만).
-- **판별력 가중치**: 원본 함수 집합에서 특징(호출 이름·문자열)의 문서 빈도 df 로 가중치 w = ln(N/df), N = 원본 함수 수. 점수 = 원본과 후보가 공유한 특징의 w 합. 문턱 τ = ln(N/5)(5 개 이하 함수에만 나오는 특징 하나와 같은 무게). 원본 특징의 w 합이 τ 미만이면 판별 불가로 `low`.
-- **결정 규칙**: `medium` = (이름 일치 또는 이름 없는 경우) 최고 후보 점수 ≥ τ 이고 다른 본문 묶음의 차점보다 τ/2 이상 높음. 그 밖은 `low`. 최고 점수가 τ 이상이고 차점과의 차가 τ/2 미만인 서로 다른 본문 둘 이상 → 처분 `conflicting`. 후보가 없으면 신뢰도 `unknown`.
-- **필드 분리**: 상태(`unmapped`/`candidate`), 신뢰도(`unknown`/`low`/`medium`), 처분(`single`/`identical-bodies`/`conflicting`)을 별도 열로.
-- **미해결 간선 기록**: 함수 몸체의 꼬리 `jmp`(다른 함수 시작으로), 간접 호출, 이름 없는 대상 호출 수를 기록하고, 이것이 있으면 호출 특징만으로는 `medium` 을 주지 않는다(문자열 증거 필요).
-- **이름 없는 함수 후보**: S2-A 구간과 앞뒤 이웃 구간 후보 파일의 정적 함수를 모두 후보로(이미 이름으로 쓰인 것도 제외하지 않음).
-- **문자열**: 원본 문자열은 3 자 이상·인쇄 가능, 가중치로 흔한 형식 문자열의 무게를 낮춘다. `__FILE__` 등 전처리로 생기는 문자열은 텍스트 후보에 없으므로 일치하지 않아도 감점하지 않는다.
-- **검증**: ① S1-C 일치 11 함수는 정답 Darwin 파일이 최고 후보 묶음에 있어야 함(증거가 없으면 `low` 여야 함) ② **음성 시험**: 이름 있는 함수마다 후보를 무작위의 다른 함수 정의로 바꿔 점수를 내면 `medium` 비율이 2 % 이하여야 함 ③ "항상 medium" 변형을 넣으면 ② 가 실패해야 함(시험이 작동함을 보임) ④ 무작위 50 함수의 F2·F3 를 디코딩 결과와 함께 표로 남김. ObjC 파일 이름 대조는 검증에서 뺀다(파일 이름은 힌트일 뿐).
-
-### 16.2 S2-B 결과와 S2-A 재실행 (2026-10-01)
-
-- **파서 결함 발견·수정**: S2-B 표본 검토에서 `_vm_map_protect` 의 후보가 없었다. 원인은 정의 줄 정규식이 `kern_return_t vm_map_protect(` 처럼 반환형이 같은 줄에 있는 정의와 K&R 선언 사이 주석(`struct vop_lookup_args /* { … } */ *ap;`)을 놓친 것. 공용 정의 탐지기 `10_tools/reconstruction/srcdefs.py`(괄호 균형 → `;` 이면 프로토타입, 주석을 걷은 K&R 선언 뒤 `{` 이면 정의, 본문은 0 열 `}` 까지)로 바꿔 S2-A·S2-B 를 다시 돌렸다. Darwin 커널(ppc 제외)에서 정의 3,947 → 5,102; 옛 정규식에만 잡힌 이름 153(상당수 `LIST_HEAD`·`int` 같은 오검출, 나머지는 닫는 `}` 가 0 열이 아닌 HFS 등 — 한계로 기록).
-- **S2-A 갱신**(15.2 대체, `06_reconstruction/objects.tsv`): 함수 분류 이름 표지 2,359 / 참고 정의 없음 548 / ObjC 1,137 / 표지 없음 717. 구간 362(B 265 = 73.2 %). 바이트 표지 612,938(72.0 %), 구간 안 추정 45,074(5.3 %), 미배정 164,128(19.3 %). 데이터 범위 모순 20 건, 중앙값 인접 역전 10/186(일치 94.6 %). `conf/files` 최장 증가 부분열 174/226(77.0 %).
-- **S2-B**(`06_reconstruction/function_candidates.tsv`, 13 열·4,761 행, 형식 검사 통과; `09_validation/reconstruction/s2b-candidates-20261001.json`): 신뢰도 medium 1,136(23.9 %), low 2,721(57.2 %), unknown 904(19.0 %), 처분 conflicting 445. 종류별: 이름 있음 medium 818 / low 1,516 / unknown 573, ObjC medium 158 / low 648 / unknown 331, 이름 없음 medium 160 / low 557.
-- **검증**(`09_validation/reconstruction/s2b-validation-20261001.json`): ① S1-C 바이트 일치 10 함수 모두 정답 Darwin 파일이 최고 후보 묶음(특징 없는 잎 함수는 low, 호출 특징이 있는 `timevaladd/sub` 는 medium) ② 무작위 다른 정의로 바꾼 음성 시험 medium 2/2,334 = 0.09 %(기준 2 % 이하) ③ "항상 medium" 변형은 100 % 로 ② 가 이를 잡음 ④ 무작위 50 함수 표 `s2b-sample50-20261001.tsv`.
-- TSV 출력에서 문자열의 줄바꿈이 행을 깨뜨리는 결함을 발견해 탭·줄바꿈·역슬래시를 이스케이프하도록 고쳤다(재생성 후 형식 오류 0).
-
-다음: S5 착수 준비 — 서브시스템 우선순위(S2 결과 기반)와 첫 시범 파일 선정. 착수 전 세부 계획·codex 검토.
-
-## 17. S5-P1 세부 계획 — 첫 시범 파일 `memcmp.c` (코딩 전, 2026-10-01)
-
-선정 근거(Python, S2-A·S2-B 산출): 신뢰도 B 단일 파일 구간이면서 그 파일의 정의가 다른 구간에 없고, 전이적 헤더 집합이 가장 작은 파일. `darwin01/kernel/machdep/i386/libc/memcmp.c`(SHA-256 `90baa677…`, APSL 1.0 머리말 포함)는 헤더 0, 정의 4(외부 `bcmp`·`memcmp`, `static inline` 도우미 2), 원본 구간 seq 1 = `_bcmp` 0x1012fc(40 B)·`_memcmp` 0x101324(164 B, 몸체 두 범위). 앞 구간(seq 0 `memchr.c`) 끝 0x1012f9, 뒤 구간(seq 2) 시작 0x1013cc.
-
-절차:
-1. 소스: 파일을 **바이트 그대로** `07_kernel/src/arch/x86/libc/memcmp.c` 에 둔다(APSL 머리말 유지). `07_kernel/PROVENANCE.tsv` 에 출처(`darwin01`, `kernel-1.tar.gz` SHA-256, 원 경로, 파일 SHA-256), 라이선스 `APSL 1.0 (01_resources/upstream/darwin01/architecture/APPLE_LICENSE)`, 변경 `none` 기록. 라이선스 원문 사본을 `07_kernel/LICENSES/APSL-1.0.txt` 로 둔다(원문 해시 기록).
-2. 옵션: Darwin `conf/Makefile.i386` 의 libc 규칙(`LIBC_SRC` 에 memcmp.c, `-O4`)과 13.2 의 후보 1 순위 공통 옵션: `-arch i386 -static -fno-common -fwritable-strings -traditional-cpp -O4`. 대조군으로 `-O2`(13.2 에서 `-O2`~`-O4` 미구분)와 `-O4 -funroll-all-loops` 도 함께 빌드. 실제로 쓰인 전처리 정의는 `-E` 로 기록(`NX_CURRENT_COMPILER_RELEASE` 가 410 이면 `SIREG "S"`).
-3. 빌드: `kr_run.py`(빌드 절차 규약 11.1) — 입력은 `07_kernel/src/arch/x86/libc/` 의 스냅샷.
-4. 대조: `l1_compare.py --place-from-image`(이름 `_bcmp`·`_memcmp` 로 배치) + `--ranges`(Ghidra 몸체). 판정 기준: 목적 파일의 `__text` 전체 바이트·참조가 원본과 같고(`object_verdict` OBJECT_MATCH), 두 함수 MATCH.
-5. **경계 증명서**(15.1 의 A 등급 규칙): (a) 배치 시작 = 원본 `_bcmp` 주소, 목적 파일 `__text` 전체 바이트 일치 (b) 목적 파일 `__text` 크기만큼 끝 주소를 계산하고, 그 뒤 원본 바이트가 다음 구간 시작 0x1013cc 까지 정렬 채움(목적 파일의 정렬 지수에서 계산한 개수 미만)인지 (c) 앞 구간 끝 0x1012f9 와 0x1012fc 사이도 정렬 채움 크기 범위인지. 셋 다 맞으면 이 목적 파일 경계를 **A**(바이트 확정)로, `bcmp`·`memcmp` 를 `06_reconstruction/functions.tsv` 에 상태 `compared`·신뢰도 `high` 로 올린다(근거 파일 `06_reconstruction/evidence/x86-memcmp.md`).
-6. 실패 시: 옵션 대조군 결과와 차이 위치를 기록하고, 원인(소스 판·옵션·인라인)을 가린 뒤 다시 계획한다. 소스를 원본에 맞게 고치는 일은 이 시범에서 하지 않는다.
-
-이후 S5-P2: `machdep/i386/kern_machdep.c`(헤더 25 개, 미해결 `i386/ansi.h`) 로 헤더 환경 구성 — 별도 세부 계획.
-
-### 17.1 codex 교차검토 반영 (QP1)
-
-인용 확인: 계획 484·487·488 행, `objects.tsv` 2·4 행(seq 0 `memchr.c`, seq 2 bcopy 무리), README 12 행(신뢰도와 검증 상태 독립), `memcmp.c` 68·85 행(`static inline` 도우미 두 개), `PROVENANCE.tsv` 1 행(열: destination, source_id, revision_or_sha256, original_path, license_reference, changes, evidence). 6 건 모두 ✅.
-
-- **채움 바이트**: 앞뒤 틈의 원본 바이트 값과 길이를 기록하고, 길이가 "다음 기여의 입력 정렬(목적 파일 섹션 정렬 지수)에 맞추는 데 필요한 최소 바이트 수"와 같은지 Python 으로 확인. 채움 값은 관찰값으로 기록(링커 동작은 T1 이미지 `s1b-t1-kernel-4` 의 목적 파일 사이 틈과 비교).
-- **등급 범위**: A 는 **이 목적 파일의 기여 범위**에만 준다. 이웃 구간(seq 0, seq 2)의 등급은 바꾸지 않는다.
-- **`compared`/`high` 의 뜻**: "이 후보 소스를 이 옵션으로 빌드한 결과가 원본 바이트·참조를 재현한다"는 강한 증거. 역사적 원 소스의 동일성과 실행 검증은 미결로 남긴다고 근거 파일과 README 에 적는다.
-- **인라인 도우미**: 근거 파일에 `simple_fwd_char_cmp`·`simple_fwd_int_cmp` 가 독립 기호 없이 `memcmp` 안으로 인라인됐음(목적 파일 심볼 목록으로 확인)을 적고, 원본 함수 행을 새로 만들지 않는다.
-- **PROVENANCE 열 매핑**: destination `07_kernel/src/arch/x86/libc/memcmp.c`, source_id `darwin01`, revision_or_sha256 `kernel-1.tar.gz` SHA-256, original_path `darwin01/kernel/machdep/i386/libc/memcmp.c`, license_reference `07_kernel/LICENSES/APSL-1.0.txt`, changes `none (verbatim)`, evidence `06_reconstruction/evidence/x86-memcmp.md`(파일·라이선스 사본 SHA-256 은 여기).
-- **대조군 판정 규칙**: 세 옵션 결과를 모두 기록. 둘 이상 일치하면 이 파일의 옵션은 "미구분"으로 남기고 기준 옵션(`-O4`)이 일치하면 승격. 대조군만 일치하면 승격하지 않고 기준 옵션을 다시 정한다.
-
-### 17.2 S5-P1 결과 (2026-10-01) — 첫 바이트 확정 목적 파일
-
-- `memcmp.c` 를 바이트 그대로 `07_kernel/src/arch/x86/libc/memcmp.c` 에 두고(APSL 원문 `07_kernel/LICENSES/APSL-1.0.txt`), 실기에서 `-O4`·`-O2`·`-O4 -funroll-all-loops` 로 빌드(`s5p1-memcmp-1`). 세 옵션 모두 `_bcmp`·`_memcmp` MATCH, OBJECT_MATCH → 옵션 미구분, 기준 옵션 일치로 승격.
-- 경계 증명서: 목적 파일 `__text` 207 B 가 원본 0x1012fc–0x1013cb 에 맞고, 앞 틈 3 B·뒤 틈 1 B 가 모두 0x00 이며 2^2 정렬 최소 길이와 같음. 채움 값 0x00 은 T1 링크 관찰과 같다.
-- 기록: `06_reconstruction/objects_confirmed.tsv`(x86-memcmp, 등급 A), `06_reconstruction/functions.tsv` 2 행(`compared`/`high`), `07_kernel/PROVENANCE.tsv` 1 행, 근거 `06_reconstruction/evidence/x86-memcmp.md`, README 에 `compared`/`high` 의 뜻.
-- 정정 1 건: `functions.tsv` 의 `_bcmp` 출처 줄을 확인 전에 `:63` 으로 적었다가 `:106`(정의 줄)으로 고쳤다.
-
-다음: S5-P2 `kern_machdep.c` 로 헤더 환경 구성(세부 계획·codex 검토 후).
-
-## 18. S5-P2 세부 계획 — `kern_machdep.c` 와 첫 헤더 환경 (코딩 전, 2026-10-01)
-
-확인한 사실:
-- 대상: `darwin01/kernel/machdep/i386/kern_machdep.c`(정의 `check_cpu_subtype`, `grade_cpu_subtype`, 둘 다 원본 구간 seq 258 안), `#import <sys/types.h>`, `<mach/machine.h>`, `<bsd/i386/cpu.h>`. 전이적 헤더 25 개, Darwin 커널 트리 밖 `i386/ansi.h`(`bsd/machine/ansi.h:39` 의 `#include "i386/ansi.h"`) 는 `darwin01/architecture/i386/ansi.h` 에만 있다.
-- Darwin 의 실제 include 순서(`conf/Makefile.template:86–92`): `-I.`(생성 헤더) `-I$(SOURCE_DIR)` `-I…/bsd` `-I…/bsd/include` `-I…/machdep` `-I…/bsd/netat…` 그리고 Rhapsody `System.framework` 의 PrivateHeaders·Headers·Headers/bsd. DEFINES(`:103–105`) `-DARCH_PRIVATE -D_KERNEL -DKERNEL -DKERNEL_PRIVATE -DDRIVER_PRIVATE -DKERNEL_BUILD -D__APPLE__ -DNeXT -D_NEXT_SOURCE`, CPP_FLAGS 에 `-imacros meta_features.h`(생성 헤더).
-- 실기 OPENSTEP 4.2 `System.framework` 는 PrivateHeaders 가 없고, `architecture/i386/ansi.h` 도 없으며 `bsd/machine` 구성이 다르다(`machparam.h` 등) → Darwin 의 헤더 전제와 다르다. 원본 커널을 만든 NeXT 내부 헤더는 우리에게 없다.
-
-설계(가설 환경 — 옳은지는 L1 결과로만 판단):
-1. **소스 배치**: `07_kernel/src/` 를 Darwin `kernel/` 트리와 같은 상대 경로로 둔다(include 가 경로에 의존하므로; `07_kernel/README` 가 원 경로 유지를 허용). Darwin `architecture/` 구성 요소는 `07_kernel/components/architecture/` 에 둔다. S5-P1 의 `memcmp.c` 를 `07_kernel/src/machdep/i386/libc/memcmp.c` 로 옮기고 P1 기록(PROVENANCE·functions.tsv·objects_confirmed·근거 파일)을 같은 내용으로 고친다(파일 해시 불변 확인).
-2. **채택 헤더**: `kern_machdep.c` 의 전이적 헤더(Python 으로 다시 계산)만 바이트 그대로 복사하고 파일마다 PROVENANCE 행. 시스템 헤더는 쓰지 않는다(`-nostdinc`).
-3. **include 루트**(Makefile 순서를 따름): `07_kernel/src`, `…/src/bsd`, `…/src/bsd/include`, `…/src/machdep`, `07_kernel/components`(→ `architecture/…`), `07_kernel/components/architecture`(→ `i386/ansi.h`; Rhapsody 의 설치 위치를 흉내낸 가정 — 기록). netat 경로는 이 파일과 무관하므로 넣지 않는다.
-4. **정의**: Darwin DEFINES 를 그대로 쓰되 `-D__APPLE__` 유무 두 판으로 빌드(1999 OPENSTEP 빌드에 있었는지 모름). `-imacros meta_features.h` 는 생성 헤더가 없어 이번에는 빼고, 전처리 결과(`-E`)에 그 매크로 의존이 있는지 확인한다.
-5. **빌드·대조**: 옵션은 13.2 후보(`-O2`, 대조 `-O3`·`-O4`). `kr_run.py` 의 입력은 `07_kernel` 의 필요한 부분만 복사한 스냅샷(경로 유지). 대조는 `l1_compare.py --place-from-image --ranges`, 경계 증명서는 17.1 규칙. 외부 참조(`_machine_slot`·`_cpu_number` 등)가 원본 심볼과 맞는지가 핵심 확인 항목.
-6. 실패하면 차이 위치를 기록하고 원인(헤더 판·정의·옵션·소스 판)을 가린다. 원본에 맞추려 소스를 고치는 일은 별도 결정.
-
-### 18.1 codex 교차검토 반영 (QP2) — 내 오류 1 건 포함
-
-인용 확인: 계획 515·521–524 행, `conf/Makefile.template:86`(`-I.` 가 맨 앞), `:103–105`(`$(IDENT)`·`$(MACHINE_DEFINES)`), `bsd/machine/ansi.h:36,39`, `mach/machine.h:104–106`(`#ifdef KERNEL` 안 `machine_slot[]` 선언), `bsd/i386/cpu.h:50`(`#define cpu_number() (0)`), `07_kernel/README.md:10`, P1 경로가 든 `PROVENANCE.tsv:2`·`functions.tsv:2`·`objects_confirmed.tsv:2`, `08_build/runs/s5p1-memcmp-1/prepare.json:4`(옛 입력 경로). `$(IDENT)` 는 설정 도구가 `MASTER:107 ident NeXT` 와 options 에서 만들고, `MACHINE_DEFINES` 는 정의가 없다(빈 값).
-**내 오류**: 계획 524 행에서 `_cpu_number` 를 외부 참조 확인 항목으로 적었으나 `cpu_number()` 는 매크로 `(0)` 이다. 기대 참조는 전처리 결과에서 뽑는다.
-
-수정된 절차(7 건 모두 ✅):
-1. include 해석을 고정: 작업 디렉터리 = 실행 디렉터리, 루트 순서 = `-I07_kernel/generated`(Darwin `-I.` 자리, 이번엔 비어 있음 — 명시) 다음 Makefile 순서. 실제 해석은 `cc-744.13 -traditional-cpp -E` 의 줄 표시로 기록(Python 목록은 후보일 뿐).
-2. 채택 헤더 목록은 **실제 전처리 기록**(정의 세트별)에서 만든다. 해석 안 된 include 는 오류로 거부(이름으로 다른 곳을 찾지 않음).
-3. 매크로: 정의 세트별 `-E -dM` 으로 실효 매크로 전체를 기록하고, `__APPLE__` 없는 판에 실제로 정의가 없음을 확인. 읽힌 헤더·소스의 모든 `#if/#ifdef/#ifndef/#elif` 조건식과 그 식의 매크로가 정의됐는지 표로 감사(설정 옵션성 매크로가 걸리면 기록하고 IDENT 재현은 S4 로).
-4. `-nostdinc` 시험: 같은 옵션으로 `<stdarg.h>` 를 부르는 probe 와 빈 파일의 `-dM`(미리 정의된 매크로)을 기록.
-5. 채택 헤더마다 PROVENANCE 행(목적지, 원 경로, 아카이브 SHA-256, 파일 SHA-256 은 근거 파일, 라이선스).
-6. 기대 외부 참조는 전처리 결과와 목적 파일 재배치에서 뽑아 원본 심볼과 대조.
-7. P1 이동: 현재 위치 열만 새 경로로 바꾸고, 근거 파일에 옛→새 경로 대응을 덧붙이며, 옛 실행·검증 산출물은 그대로 둔다. 새 경로에서 **다시 빌드·대조**해 같은 결과(OBJECT_MATCH)를 얻은 뒤에만 P1 결론을 새 위치에 잇는다.
-
-### 18.2 S5-P2 결과 (2026-10-01)
-
-- P1 이동: `memcmp.c` 를 `07_kernel/src/machdep/i386/libc/memcmp.c` 로 옮기고 새 위치에서 다시 빌드(`s5p1-memcmp-reloc-1`) → 목적 파일이 P1 것과 바이트 동일, OBJECT_MATCH. 현재 위치 열만 갱신, 옛 실행·검증 산출물 보존, 근거 파일에 대응 기록.
-- 헤더 환경: 실제 전처리로 읽힌 21 파일만 채택(스테이징한 ppc 헤더 7 개는 읽히지 않아 제외), 파일별 PROVENANCE(라이선스 표기 확인; BSD 표기만 있는 `architecture/i386/ansi.h` 는 그에 맞게 기록). `07_kernel/generated/` 를 Darwin `-I.` 자리로 비워 둠. `__APPLE__` 는 이 파일에 영향 없음, 설정 옵션 매크로 의존 없음, `-nostdinc` 에서는 컴파일러 내장 헤더 경로가 없음.
-- `kern_machdep.c`: 네 옵션 판이 같은 목적 파일. **L1 불일치** — 후보 `check_cpu_subtype` 144 B 대 원본 92 B. 원본 역어셈블로 보면 원본에는 Darwin 판의 `default:` Intel family/model 분기가 없다 → 후보 소스가 나중 판(가설). `functions.tsv` 에 두 함수를 `candidate`(check: medium, grade: low)로 기록, 근거 `06_reconstruction/evidence/x86-kern_machdep.md`. 소스 수정은 하지 않음.
-- 다음 결정 필요: 근거가 분명한 차이(예: 원본에 없는 분기)를 소스에서 고치는 "복원 수정"을 시작할지. 하게 되면 수정마다 원본 역어셈블 근거·L1 결과를 남기는 규칙을 먼저 세운다.
-
-## 19. S5-P3 세부 계획 — "복원 수정" 규칙과 첫 적용 `kern_machdep.c` (코딩 전, 2026-10-01, **사용자 결정 대기**)
-
-확인한 사실(원본 바이트, capstone; 계산은 Python):
-- 목적 파일 구간 후보 `0x18cac8`–`0x18cbca`(끝 제외, 258 B). 앞은 `_loutw` 의 `ret`(0x18cac4) 뒤 `00` 3 바이트, 뒤는 `00` 2 바이트 후 `_ldt_init`(0x18cbcc) — 두 틈 길이가 4 바이트 정렬 최소 채움(앞 3, 뒤 2; Python)과 같고 값 `00` 은 17.2 의 목적 파일 사이 채움 관찰과 같다. S2-A seq 258 의 경계 범위(0x18cac5–0x18cbcc)와 일치. 구간 안 두 함수 사이(0x18cb23)는 `90`(함수 사이 채움으로 보이나 이 파일 빌드로 확인할 항목).
-- `_check_cpu_subtype`: `machine_slot[0].cpu_subtype` 가 3 → 요청 3 만 참; 4·0x84 → 요청 4·0x84·3; 5 → 요청 4·5·0x84·3; **그 밖 → 0**. Darwin 판의 네 `case` 와 같은 의미이고 `default:` Intel family/model 분기만 원본에 없다.
-- `_grade_cpu_subtype`(`x86-kern_machdep.grade_cpu_subtype.disasm.txt` 로 보존 예정): 3 → {3:1}; 4 → {3:1, 0x84:2, 4:3}; 0x84 → {3:1, 4:2, 0x84:3}; 5 → {3:1, 0x84:2, 4:3, 5:4}; 나머지 0; **그 밖 → 0**. 역시 네 `case` 는 Darwin 과 같은 의미, `default:` 의 family/model 계산만 없다. 꼬리 코드 공유(교차 점프)는 GCC 최적화 결과로 보이며 소스 차이의 근거로 쓰지 않는다.
-- 따라서 차이는 "소스 판" 이 원인일 가능성이 가장 크다(가설). Darwin `mach/machine.h:208–218` 의 `CPU_SUBTYPE_INTEL*` 매크로도 나중 판일 수 있으나, 쓰이지 않으면 목적 파일에 영향이 없으므로 이번에는 헤더를 고치지 않는다.
-- APSL 1.0 2.1(c)(`07_kernel/LICENSES/APSL-1.0.txt:94–98`): 수정 내용과 날짜를 빠짐없이 기록, 사용한 원판 명시, 그 정보를 담은 파일을 수정본과 함께 두고, 각 수정 파일에 Exhibit A 표기를 유지.
-
-제안 규칙(사용자 승인 후에만 적용):
-- R1 **근거 있는 수정만**: 원본 역어셈블에서 관찰한 구체적 의미 차이(주소 범위 명시)가 있을 때만 고친다. "그럴 것 같다" 수준의 문체·순서 조정은 하지 않는다.
-- R2 **최소 수정**: 근거가 요구하는 부분만 지우거나 바꾸고 Darwin 의 문체·주석·머리말은 그대로 둔다. 같은 바이트를 내는 소스는 여럿일 수 있으므로 "역사적 원문" 이라고 주장하지 않는다(`compared/high` 의 뜻 그대로).
-- R3 **기록**: (a) `07_kernel/MODIFICATIONS.md` — 파일, 날짜, 원판(아카이브 SHA-256), 바뀐 줄, 근거 파일; (b) 수정 파일의 APSL 머리말은 그대로 두고 머리말 뒤에 한 줄 주석 "Modified <날짜>: see 07_kernel/MODIFICATIONS.md" (주석은 목적 파일 바이트에 영향 없음 — 빌드로 확인); (c) 원판 대비 diff 를 `06_reconstruction/evidence/<id>.diff` 로 보존; (d) `PROVENANCE.tsv` 의 `changes` 칸에 "restoration edit" 와 diff 경로; (e) `functions.tsv` 의 `source_revision` 에 "+ restoration edit (MODIFICATIONS.md)".
-- R4 **판정**: 수정 후 빌드가 L1 MATCH·OBJECT_MATCH 면 해당 함수 `compared/high`, 목적 파일 A 등급(17 절과 같은 기준). 일치하지 않으면 시도한 변형마다 결과를 남기고, **함수당 3 회 변형까지**만 시도한 뒤 멈추고 보고한다(맞을 때까지 소스를 맞춰 끼우는 일 방지).
-- R5 **예측 먼저**: 빌드 전에 예상(목적 파일 `__text` 크기, 함수 오프셋, 외부 참조)을 계획에 적고, 결과와 대조한다.
-
-첫 적용(H1, `07_kernel/src/machdep/i386/kern_machdep.c`):
-- `check_cpu_subtype`: `default:` 아래의 Intel family/model `if/else` 를 지우고 `default: break;` 만 남기거나 `default:` 자체를 지운다 — 두 변형은 의미가 같으니 둘 다 빌드해 결과를 기록하고, 원본과 맞는 것 중 원판과의 diff 가 작은 쪽을 택한다.
-- `grade_cpu_subtype`: `default:` 아래 계산을 지우고 `return 0;` 만 남긴다.
-- 예측: `__text` 258 B(0x18cac8–0x18cbca 와 같은 길이, 함수 사이 `90` 포함), `_grade_cpu_subtype` 오프셋 92, 외부 참조 `_machine_slot` 만, 재배치는 `machine_slot` 참조 2 개. 옵션 `-O2`·`-O3`·`-O4` 로 빌드(S5-P2 와 같은 환경, `-D__APPLE__` 판은 생략 — 영향 없음 확인됨).
-- 결과는 19.2 에, 대조 결과 JSON 은 `09_validation/reconstruction/s5p3-*`.
-
-### 19.1 codex 교차검토 반영 (QP3) 과 독립 확인
-
-독립 확인(codex 전에 실행): 원본 두 함수를 unicorn 으로 실행해 (ms, 요청) 144 쌍(값 0,1,2,3,4,5,6,0x84,0x85,0x13,0x16,−1)의 반환값을 H1 모델과 비교 → 차이 0(`09_validation/reconstruction/s5p3-semantics-emu-20261001.json`).
-
-| codex 주장 | 내 검증 방법 | 판정 |
-|---|---|---|
-| 두 함수의 (ms, 요청)→반환 표가 H1 수정 소스와 모든 칸에서 같다 | 위 에뮬레이션 144 쌍 차이 0 | ✅ |
-| check 586 경로 `lea eax,[edx-4]`/`cmp eax,1`/`jbe`(0x18cb08–0x18cb0e)는 정확히 요청 4·5 | 역어셈블 파일 해당 줄 확인, Python 으로 −5..299 범위에서 조건 성립 값 = [4, 5] | ✅ |
-| 386 경로는 0x18cb18 로 바로 들어가 요청 3 만 허용 | `0x18cadd je 0x18cb18` 확인 | ✅ |
-| grade 0 반환 블록이 0x18cb60 과 0x18cbc4 두 곳 | 두 줄 모두 `xor eax, eax` 확인 | ✅ |
-| `0x18cb3b` 는 near(`e9`), `0x18cb4c` 는 short(`eb`) 점프; 0x18cb89–0x18cb8b `nop` | 역어셈블 바이트 확인 | ✅ (사실; 바이트 일치는 빌드로만 판단) |
-| grade 본체 배치 386→486→486SX→586 이 소스 case 순서와 같고 원본 case 순서가 달랐다는 근거 없음 | 블록 시작 0x18cb50·0x18cb68·0x18cb98·0x18cbac 가 증가 순, 각 블록 첫 비교 확인 | ⚖️ 배치 사실은 ✅, "순서 같음" 은 가설로만 둔다 |
-| 의미가 같아도 바이트 일치는 보장되지 않는다(블록 병합·배치·점프 길이) | 설계 확인: 19 절 R4(변형 3 회 제한)·R5(예측 먼저)가 이미 이를 전제 | ⚖️ 사실, 설계 변경 없음 |
-| codex 가 "함수별 100 쌍을 Python 해석으로 대조" 했다는 진술 | 재현하지 않음 — 근거로 쓰지 않는다(내 에뮬레이션만 근거) | ⏭️ |
-
-결론: H1 은 동작 면에서 원본과 같다(확인). 바이트 일치 여부는 빌드해야 알 수 있다. 수정 적용은 사용자 결정 대기.
-
-### 19.2 S5-P3 결과 (2026-10-01) — 첫 복원 수정, 목적 파일 A
-
-- 사용자 결정 D014: 19 절 R1–R5 허용.
-- H1 변형 A 적용(diff `06_reconstruction/evidence/x86-kern_machdep.diff`, 기록 `07_kernel/MODIFICATIONS.md`). 변형 B 는 A 가 일치해 빌드하지 않음(계획의 "diff 가 작은 쪽" 기준과 같은 결론, 변형 시도 1 회).
-- `s5p3-build-1`: `-O2`/`-O3`/`-O4` 동일 목적 파일. 예측 4 항목 모두 적중. L1 두 함수 MATCH, OBJECT_MATCH, 경계 증명서 통과(앞 00×3, 뒤 00×2) → `x86-kern_machdep` A 등급, `_check_cpu_subtype`·`_grade_cpu_subtype` `compared/high`. 근거 `06_reconstruction/evidence/x86-kern_machdep.md`.
-- 의미: 이 목적 파일을 재현하는 소스를 얻었다(역사적 원문이라는 주장은 아님). `mach/machine.h` 등 헤더의 판 차이는 이 목적 파일에 드러나지 않아 판단 보류.
-
-## 20. S5-P4 세부 계획 — `pagesize.c` 와 Mach 커널 헤더 확장 (코딩 전, 2026-10-01)
-
-고른 이유(Python 으로 `objects.tsv` 를 정렬): B 등급·Darwin 후보 파일 1 개인 구간 중 작고(78 B), 외부 참조가 없고, 헤더가 `<mach/mach_types.h>` 하나지만 `#if _KERNEL && !MACH_USER_API`(`mach/mach_types.h:102`) 아래 `kern/task.h`·`kern/thread.h`·`kern/processor.h`·`vm/vm_user.h`·`vm/vm_object.h` 를 끌어와(`:103–109`; 그 위 `:85–100` 은 `mach/*` 16 개) Mach 커널 헤더 환경을 넓히는 첫 시험이 된다. 인라인 어셈블리와 `NX_CURRENT_COMPILER_RELEASE` 조건도 함께 시험된다.
-
-확인한 사실(원본 바이트·capstone, 계산 Python):
-- S2-A seq 6: `_page_set` 0x1019c0–0x1019f0, `_page_copy` 0x1019f0–0x101a0e, 합 78 B, `_page_copy` 오프셋 48. 앞 틈 0x1019be–0x1019c0 `00`×2(앞 구간 `bzero.S,memset.c` 의 `ret` 0x1019bd 뒤), 뒤 틈 0x101a0e–0x101a10 `00`×2 — 둘 다 4 바이트 정렬 최소 채움.
-- `_page_set`: 인자 3 개를 `edx`·`ecx`·`eax` 로 읽고 32 바이트 단위 `movl` 8 개 반복(`jne 0x1019cc`) — 소스의 `mem_set_a4_l32` 인라인 어셈블리와 같은 모양. 반복 시작 0x1019cc 는 이미 4 바이트 정렬이라 `.align 2, 0x90` 이 채움을 넣지 않은 것과 맞는다.
-- `_page_copy`: `edi`·`esi` 저장, `len>>2` → `ecx`, `rep movsd`. 외부 참조 없음.
-- 이 툴체인의 `NX_CURRENT_COMPILER_RELEASE` = 410(`s5p2-pre-2` 의 `-dM` 출력) → 소스는 `SIREG "S"` 쪽.
-
-설계:
-1. **스테이징**: `pagesize.c` 에서 `#include`/`#import` 를 텍스트로 따라가 Darwin 트리에서 닫힘을 구한다(P2 와 같은 include 루트 순서; 조건부 include 도 일단 포함 — 실제 사용은 전처리로 가림). 결과를 `08_build/runs/tools/s5p4-stage-1/` 에 경로 유지로 복사하고 manifest(대상, 원 경로, SHA-256). `07_kernel` 에 이미 있는 21 파일은 Darwin 원본과 SHA-256 이 같은지 확인한다. 스테이징 도구는 `10_tools/reconstruction/stage_headers.py` 로 만든다(P2 때 손으로 한 일을 재사용 가능하게; 같은 입력으로 P2 의 스테이징 목록을 다시 만들어 기존 manifest 와 같은지 자체 시험).
-2. **전처리** `s5p4-pre-1`: P2 와 같은 정의·include 루트로 `-E`(줄 표시로 읽힌 파일 목록), `-E -dM`. 확인 항목: 읽힌 파일 집합, 미해결 include 오류 유무, `SIREG` 값, `__APPLE__` 은 P2 결과대로 넣지 않는다.
-3. **채택**: 읽힌 파일만 `07_kernel` 에 바이트 그대로 복사, 파일마다 PROVENANCE 행과 라이선스 표기 확인(`@APPLE_LICENSE_HEADER_START@` 표지 + 그 밖 표기). Mach4/CMU 표기가 있는 헤더는 표기 그대로 기록. NeXTMach 원본은 쓰지 않는다(D013).
-4. **빌드** `s5p4-build-1`(입력 `07_kernel`): `-O4`, `-O2`, `-O4 -funroll-all-loops`(P1 의 libc 판 집합) 과 `-O3`.
-5. **예측**: `__text` 78 B, `_page_copy` 오프셋 48, 재배치 0, 정의 안 된 심볼 0, `static __inline__` 도우미 함수는 목적 파일에 남지 않음(남으면 크기가 달라진다), `__data` 등 다른 섹션 크기 0.
-6. **대조**: `l1_compare.py --place-from-image --ranges`(Ghidra 몸체) + 17.1 경계 증명서. 일치하지 않으면 원인을 가리고 D014 규칙(R1–R5)으로만 수정.
-7. **실패 시 헤더 문제의 구분**: 헤더가 많아 전처리·컴파일 오류가 날 수 있다(예: 생성 헤더 `meta_features.h`·MIG 산출물 요구). 오류가 나면 수정하지 않고 어떤 파일·매크로가 무엇을 요구했는지 기록하고 멈춘다 — 생성 헤더는 S4(빌드 골격) 몫이다.
-
-### 20.1 codex 교차검토(QP4-a: 인라인 asm 재현성) 판정과 독립 확인
-
-| codex 주장 | 내 검증 방법 | 판정 |
-|---|---|---|
-| 원본 첫 저장이 `89 42 00`(0 변위 명시), `jne .-30` 은 고정 거리라 짧은 인코딩(`89 02`)이면 목적지가 0x1019cb 로 어긋난다 | 역어셈블 0x1019cc `894200`; Python: 3 바이트면 `jne` 0x1019ea→0x1019cc, 2 바이트면 0x1019e9→0x1019cb | ✅ — 이 소스는 NeXT `as` 가 `0x00(%reg)` 를 disp8 로 남긴다는 전제를 가진다. 빌드로 확인할 항목에 추가 |
-| `.align` 무채움·레지스터 배정(`_page_set` EDX, `_page_copy` EAX 경유)·인라인 성공은 원본 관찰일 뿐 새 빌드의 보장이 아니다 | 원본 역어셈블 0x1019c3–0x1019c9, 0x1019f5–0x1019fb 확인; 소스 `pagesize.c:68`(`"=r"`), `:89` | ⚖️ 사실. 예측 항목으로 두고 빌드로 판정(설계 변경 없음) |
-| `pagesize.c` 줄 40–44(SIREG), 56·84(도우미), 59–67(asm), 89, 99·107 | 각 줄 열어 확인 | ✅ |
-| cc-744.13 은 입력 피연산자와 같은 레지스터 clobber(`"c"`/`"ecx"` 등)를 받아들인다 — `memcmp.c:72` asm, 실기 빌드 종료 코드 0·stderr 빈 파일 | `memcmp.c:72–81` 열어 `"c","D",SIREG` + `"ecx","edi","esi"` 확인; `s5p1-memcmp-reloc-1/out/_log/status` 전부 0, `*.err` 0 바이트; `run.cmd:2` 옵션 확인 | ✅ (단 `"a"`/`"eax"` 조합은 미확인 — 빌드 로그로 확인) |
-| `-traditional-cpp` 에서 줄바꿈이 든 문자열이 허용된다 — `memcmp.i:73` | `s5p1-memcmp-reloc-1/out/memcmp.i:70–76` 확인 | ✅ |
-| GCC 2.7.2 가 겹치는 clobber 를 검출하지 않았다는 gcc-patches 메일 | 열지 않음 | ⏭️ 근거로 쓰지 않음 |
-
-독립 확인(내 Python 텍스트 닫힘 계산, 스크래치): `pagesize.c` 닫힘 122 파일, 해석 안 되는 include 20 건. 그중 `-DKERNEL_BUILD` 아래 생성 헤더 요구 — `mach/features.h:50` `<meta_features.h>`(`#ifdef KERNEL`/`#ifdef KERNEL_BUILD`), `kern/sched.h:63` `<cpus.h>`, `kern/assert.h:39` `<mach_assert.h>` — 와 Darwin 트리에 없는 `machdep/i386/features.h`(`machdep/machine/features.h:32`, `__i386__` 분기). **따라서 설계 7 에 해당할 가능성이 높다**: 전처리 `s5p4-pre-1` 은 진단으로 실행해(07_kernel 변경 없음) 실제로 어떤 include 가 실패하는지 기록하고, 생성 헤더가 필요하면 P4 를 멈추고 S4(설정·생성 헤더) 계획으로 넘긴다. 정의를 빼거나(`-DKERNEL_BUILD` 제거) 빈 헤더를 만들어 통과시키는 우회는 하지 않는다.
-
-### 20.2 codex 교차검토(QP4-b: 스테이징 닫힘) 판정 — P4 를 S4 뒤로 미룸
-
-| codex 주장 | 내 검증 방법 | 판정 |
-|---|---|---|
-| `pagesize.c:38` → `mach/mach_types.h:102` → `kern/task.h:61` `<mach/features.h>` → `mach/features.h:47`(`#ifdef KERNEL`)·`:50` `<meta_features.h>`; Darwin 트리에 없음 | 각 줄을 Python 으로 열어 내용 확인; 내 닫힘 계산의 미해결 목록에 `meta_features.h` | ✅ |
-| `kern/timer.h:87`·`kern/sched.h:62` 의 `#ifdef KERNEL_BUILD` 아래 `cpus.h`·`stat_time.h`·`mach_fixpri.h`·`simple_clock.h` 요구 | `timer.h:84–92`, `sched.h:60–70` 열어 확인 | ✅ |
-| 모든 조건 분기를 따르면 비활성 분기에서도 미해결이 생긴다 — `kern/processor.h:75`(`NCPUS > 1`) → `machdep/machine/ast_types.h:32` → 없는 `machdep/i386/ast_types.h` | 줄 확인, 파일 부재 `os.path.exists` = False | ✅ → 스테이징 도구는 미해결 include 를 오류가 아니라 목록으로 기록하고, 성공 판정은 실기 전처리로만 한다 |
-| 따옴표 include 는 "포함한 파일의 디렉터리 → 루트" 순서; 이번 범위에 디렉터리 우선으로 달라지는 사례·여러 루트 충돌·매크로 include 없음 | 내 닫힘 계산: macro includes [], multi-root [], 따옴표 대상 모두 루트에서 해석(`vm_types.h:32`, `bsd/machine/ansi.h:39` 확인) | ✅ |
-| `#import`/`#include` 혼용(`mach_types.h:96` vs `task.h:65`, 가드 `time_value.h:51`)·서로 다른 파일의 같은 가드(`kern/macro_help.h:57`, `kernserv/macro_help.h:39`) | 줄 확인 | ✅ 사실. 가드 충돌은 어느 파일이 먼저 읽히느냐로 본문이 달라질 수 있어 전처리 결과로 확인할 항목 |
-| `-E` 줄 표시는 "모든 파일 읽기" 의 증명이 아니다 → 채택 파일만 있는 격리 입력으로 같은 전처리를 다시 해 성공·결과 동일을 확인하라 | 설계 확인: P2 는 채택 뒤 `07_kernel` 스냅샷으로 빌드했지만 `-E` 결과 동일 비교는 명시하지 않았다 | ✅ 채택 — 채택 절차에 "격리 입력 재전처리, `.i` 동일" 조건 추가(이후 모든 파일) |
-| GNU CPP 문서 링크 2 개 | 열지 않음 | ⏭️ 근거로 쓰지 않음 |
-
-결정(계획 20 설계 7 적용): `-DKERNEL_BUILD` 에서 `pagesize.c` 는 config 생성 헤더(`meta_features.h`, `cpus.h`, `stat_time.h`, `mach_fixpri.h`, `simple_clock.h`, `mach_assert.h` 등)를 필요로 한다. 이것들은 Darwin `config` 가 `conf/MASTER*` 의 `options` 로 만드는 파일이고, 값은 원본 커널의 설정을 따라야 한다. 따라서 **P4 는 코딩(스테이징 도구·전처리) 전에 멈추고 S4-A(설정 옵션·생성 헤더 계획) 를 먼저 세운다.** 정의 제거·빈 헤더 같은 우회는 하지 않는다.
-
-## 21. S4-A 사전 조사 — 설정 옵션과 생성 헤더 (조사만, 2026-10-01)
-
-P4 가 멈춘 원인(20.2)을 풀기 위한 사실 수집. 설계·코딩은 이 절의 계획과 codex 교차검토 뒤에 한다.
-
-확인한 사실(파일을 열어 확인, 줄은 Python 으로 대조):
-- 생성 헤더 출처 두 갈래: (1) `conf/files` 의 `OPTIONS/<name>` 76 행 — `config` 가 `<name>.h` 를 만들고 선택 여부에 따라 `#define <MACRO> 0/1`(NeXTMach `mk-108.1/src/config/mkheaders.c:232–233` 의 `fprintf(outf, "#define %s %d\n", …)`; D013 — 참고만, 옮기지 않음). 예: `mach_assert`(`files:40`), `mach_fixpri`(`:45`), `simple_clock`(`:65`), `stat_time`(`:66`). (2) `meta_features.h` — `Makefile.template:107` 의 `-imacros meta_features.h`, `:266` `FEATURES_H= meta_features.h`, `:831–833` 이 이것을 `cc -traditional-cpp -E -dD -P` 로 펼쳐 `features.h` 를 만든다. **`meta_features.h` 를 만드는 규칙·도구는 참고 자료 어디에도 없다**(전체 grep: `Makefile.template`, `mach/features.h` 두 곳만 언급). `cpus.h`(`NCPUS`)도 `OPTIONS` 목록이 아닌 `config` 의 장치/CPU 수 처리에서 나온다(가설 — 생성 규칙 확인 필요).
-- i386 설정(`conf/MASTER.i386`): `:83` `RELOC = "00100000"`, `:84` `SYMADDR = "00780000"` — 원본의 `__TEXT` 0x100000, `__LINKEDIT` 0x780000 과 같다(원본 판과 가까운 설정이라는 정황). `:81–82` `CCONFIGFLAGS` 는 `<gdb>` 이면 `-g -O3 -fno-omit-frame-pointer`, 아니면 `-O3` — 13.3 의 "-O2/-O3 구별 불가" 와 모순 없음. `:93` `config mach_kernel swap generic`.
-- 표준 구성 `RELEASE = [intel pc mach medium event vol pst gdb kernobjc libdriver fixpri simple_clock mdebug kernserv driverkit uxpr kernstack ipc_compat ipc_debug nfsclient nfsserver quota fifo fdesc union portal ffs cd9660 compat_43 revfs nbc]`(`MASTER.i386` 머리 주석). 이것은 Darwin(1999) 의 목록이며 OPENSTEP 4.2 원본의 구성과 같다는 근거는 아직 없다.
-
-S4-A 계획 방향(제안, 다음 단계에서 상세화·codex 검토):
-1. 원본 바이너리에서 옵션 값을 판정할 근거를 옵션마다 찾는다(예: `MACH_ASSERT` → assert 문자열·`_Assert` 호출 유무, `NCPUS` → `cpu_number()` 사용 형태, `STAT_TIME`/`SIMPLE_CLOCK` → 타이머 코드 모양, `MACH_FIXPRI` → 정책 코드 유무). 근거가 없는 옵션은 "미정" 으로 두고 그 옵션에 의존하는 파일은 확정하지 않는다.
-2. 생성 헤더는 `07_kernel/generated/` 에 우리 도구(Python, `10_tools/reconstruction/`)로 만든다 — 옵션 표(근거 열 포함)를 입력으로. NeXTMach `config` 코드는 옮기지 않고 출력 형식만 관찰 사실로 기록.
-3. `meta_features.h` 는 내용이 알려지지 않았으므로, 그것을 읽는 헤더(`mach/features.h`)가 실제로 요구하는 매크로를 전처리로 모아 최소 내용을 정하고, 그 내용이 목적 파일 바이트에 영향을 주는지 L1 로 확인한다.
-4. RELEASE 태그 목록은 1 차 가설로만 쓴다.
-
-## 22. S4-A1 세부 계획 — 공통 Mach 헤더가 요구하는 설정 옵션 6 개와 생성 헤더 (코딩 전, 2026-10-01)
-
-새로 확인한 사실:
-- 원본 문자열(파일 오프셋 0xe5659): `NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386` → 원본은 **RELEASE_I386 구성**으로 빌드됐다.
-- 원본에 박힌 소스 경로 19 개(`/BinarySourceCache_Mario1A/mk/mk-183.34.4/...`, `driverkit/KernBus.m`, `machdep/i386/swapgeneric.m` 등)가 모두 Darwin 0.1 `kernel/` 트리의 같은 상대 경로에 있다 → 원본 소스 트리 배치가 Darwin 과 같다는 근거(07_kernel 의 경로 유지 방침과 맞음).
-- 실기 OPENSTEP 4.2 의 `/NextLibrary /NextDeveloper /System /usr/include /usr/local /LocalDeveloper /LocalLibrary` 에 `features.h`·`meta_features.h`·`cpus.h`·`mach_assert.h`·`stat_time.h` 없음(양성 대조: 같은 방법으로 `/NextDeveloper/Headers/mach/mach_types.h` 등은 찾음). 원본 시대의 생성 헤더 실물은 없다.
-- `mach/mach_types.h` 의 텍스트 닫힘(121 파일, 모든 분기)에서 생성 헤더 요구: `meta_features.h`(`mach/features.h:50`), `cpus.h`(`kern/sched.h:63`, `kern/timer.h:88`), `mach_assert.h`(`kern/assert.h:39`), `mach_fixpri.h`(`kern/sched.h:64`), `simple_clock.h`(`:65`), `stat_time.h`(`:66`, `kern/timer.h:89`). 그 밖 미해결은 다른 아키텍처(ppc) 분기, `NCPUS > 1`·`!STAT_TIME`·`MACH_ASSERT`·`MACH_PAGEMAP` 분기 아래의 파일이다(`machine/cpu_number.h`, `machine/sched_param.h`, `kernserv/printf.h`, `vm/vm_external.h`, `machdep/i386/ast_types.h`).
-- Darwin `MASTER` 의 해당 옵션 태그: `MACH_ASSERT <test>`(`:119`), `MACH_FIXPRI <fixpri>`(`:124`), `SIMPLE_CLOCK <simple_clock>`(`:140`), `STAT_TIME <!timing>`(`:141`), `cpus` 1 이 기본(`:204–208`). Darwin RELEASE 태그 목록으로 계산한 1 차 가설: `MACH_ASSERT 0`, `MACH_FIXPRI 1`, `SIMPLE_CLOCK 1`, `STAT_TIME 1`, `NCPUS 1`. (`MACH_DEBUG` 는 ppc 분기에서만 요구되어 이번 범위 밖.)
-- 각 옵션의 조건부 사이트 수(Python, Darwin kernel 트리): NCPUS 58(27 파일), MACH_FIXPRI 30(8), SIMPLE_CLOCK 11(5), MACH_ASSERT 10(9), STAT_TIME 6(4).
-
-설계:
-1. **옵션 근거 수집 도구** `10_tools/reconstruction/option_evidence.py`(분석 도구, 커널 소스 아님): Darwin 소스에서 조건이 정확히 `OPT`, `!OPT`, `NCPUS > 1`, `NCPUS == 1` 류인 `#if` 블록을 중첩 추적으로 찾아, 블록 안에서만 정의되는 **외부 함수 정의**(srcdefs)와 **문자열 리터럴**을 뽑는다. 원본 심볼표(외부 3,651)와 원본 문자열에서 존재 여부를 본다. 출력 TSV: 옵션, 분기, 근거 종류, 이름/문자열, 소스 위치, 원본 존재 여부·주소.
-2. **판정 규칙**: 한 분기의 고유 근거가 원본에 1 개 이상 있고 다른 분기의 고유 근거가 하나도 없으면 그 값으로 판정. 양쪽 다 있거나 둘 다 없으면 "미정". 부재만으로 판정하지 않는다(나중 판에서 추가된 함수일 수 있음) — 부재는 보조 근거로만 기록. 미정 옵션은 원본 역어셈블 한 곳을 골라 수작업 확인하고 근거를 남긴다.
-3. **생성 헤더**: 판정된 값으로 `07_kernel/generated/<opt>.h`(`#define MACRO <값>`, 관찰된 NeXTMach `config` 출력 형식을 따르되 코드는 옮기지 않음)와 `cpus.h`(`#define NCPUS <값>`)를 Python 생성기 `10_tools/reconstruction/gen_config_headers.py` 로 만든다. 입력은 근거 열이 있는 `06_reconstruction/config_options.tsv`. 생성물마다 PROVENANCE 행(source_id `generated`, 근거 경로).
-4. **`meta_features.h`**: 만드는 규칙이 참고 자료에 없다. `Makefile.template:831–833` 이 이 파일을 `-E -dD` 로 펼쳐 정의 목록 `features.h` 를 만든다는 점에서 "생성 옵션 헤더들을 모으는 파일" 이라는 가설(H-meta)을 세우고, 최소판(이번에 만든 옵션 헤더를 `#import` 로 모음)으로 시작한다. 가설로 표시하고, 이후 파일마다 "조건에 쓰였는데 정의 안 된 매크로" 를 전처리로 점검(18 절 방식)해 빠진 옵션을 찾는다. `-imacros meta_features.h` 는 Darwin 명령 그대로 쓴다.
-5. **검증**: (a) S5-P1·P3 의 두 확정 목적 파일을 새 생성 헤더 + `-imacros` 로 다시 빌드해 바이트가 그대로인지(회귀), (b) 그 다음 P4 `pagesize.c` 를 20 절대로 재개.
-6. 이번 범위 밖: 나머지 27 개 OPTIONS 헤더, 장치 수 헤더(`bpfilter.h`·`pty.h` 등), `cputypes.h`·`confdep.h`, MIG 산출물, `assym.h`. 필요해질 때 같은 방법으로 넓힌다.
-
-### 22.1 codex 교차검토 반영 (QA1-a: 옵션 판정 규칙, QA1-b: meta_features.h) — 설계 변경
-
-QA1-a(내 검증: 인용 17 곳을 Python 으로 열어 내용 확인, 원본 `symbols.tsv`·바이트 검색):
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 조건부 문자열이 다른 파일에서 무조건 쓰임: `machdep/ppc/trap.c:533`(`#if MACH_ASSERT`)·`:558` `"%08x "` vs `machdep/i386/miniMonMachdep.c:133`; 원본에 `"%08x "` 두 곳 | 줄 확인; 원본 `\0%08x \0` 위치 0xd96bf·0xe174b(문자열 시작 +1 = 0xd96c0·0xe174c) | ✅ → 고유성은 **트리 전체(무조건 사용·다른 아키텍처 포함)** 에서 검사, 문자열은 앞뒤 NUL 경계로만 비교 |
-| 양 분기에 같은 이름: `processor_assign`(`kern/machine.c:286/373/723`), assert 문자열(`ipc_right.c:2587`, `mach_port.c:1598`) — 원본에 있음 | 줄 확인; `_processor_assign` 0x15dfd8, 문자열 0xdea42·0xdeafd | ✅ → 양 분기·조건 밖 출현이 있으면 근거에서 제외 |
-| 함수 본문만 조건부인 경우: `thread_policy`(`kern/thread.c:2200`), `processor_set_policy_enable`(`kern/processor.c:806`) — 원본 심볼 있음 | 줄 확인; 0x1688f4·0x161a98 | ✅ → 정의 전체(시작~끝)가 조건 블록 안일 때만 근거 |
-| 매크로·인라인·`notdef` 중첩으로 심볼이 안 생김(`parallel.h:65`, `lock.c:75`, `simple_lock.h:50`, `timer.h:160`) | 줄 확인; `_unix_master`·`__unix_master`·`_start_timer`·`_timer_switch`·`_time_trap_uentry`·`_time_int_entry` 원본에 없음 | ✅ → 부재는 판정에 쓰지 않음(기존 규칙 유지) |
-| 복합식(`bsd/kern/init_main.c:642` `NeXT && NCPUS > 1`)의 `#else` 는 옵션의 반대값 근거가 아니다 | 줄 확인 | ✅ → 단일 조건 블록만 쓰고 복합식은 참 분기의 conjunct 근거로만 |
-| 소스 판 차이: Darwin 에서 조건부인 정의가 원본 판에서는 무조건이었을 수 있다(`mach_clock.c:176` `sched_usec_elapsed`, 원본 0x160714) — 가설 | 줄·심볼 확인; 판 차이 자체는 증거 없음 | ⚖️ 채택 → 심볼·문자열 근거만으로는 **"가설"** 단계까지만 |
-| `#if OPT` 참은 "0 아님", `NCPUS > 1` 은 범위 — 정확한 값은 별도 근거 | 논리 확인 | ✅ → 값(특히 `NCPUS`)은 배열 크기 등 별도 근거 필요 |
-
-QA1-b(내 검증: `doconf.csh:103–123`, `Makefile.i386:78–82`, NeXTMach `mkheaders.c:14–18`, NeXTMach `conf/Makefile.template:458–467`, `conf/files:34–35` 를 열어 확인):
-
-| codex 주장 | 판정 |
-|---|---|
-| `doconf.csh` 에 `FEATURES_H=(cs_*.h mach_*.h net_*.h … cputypes.h cpus.h …)` 가 있으나 이후 쓰이지 않음 | ✅ (`:120–123`; `FEATURES` 는 `:120` 에서 설정만) |
-| NeXTMach `config` 는 features 생성을 버리고 Makefile 이 한다(`mkheaders.c:14–18`), NeXTMach Makefile 은 `mach_*.h cpus.h simple_clock.h stat_time.h …` 를 `sort` 로 합친다(`:458–467`) | ✅ — H-meta(옵션 헤더 집계) 를 지지하는 선례. 원본 내용의 증거는 아님 |
-| `memcmp.c` 도 `$(COPTS)`(따라서 `-imacros`)를 받는다: `Makefile.i386:78–82` | ✅ 추가 사실: libc 6 파일(`memchr memcmp memcpy memmove memset pagesize`)은 `-O4` 로 컴파일 — P1 결과와 일치, P4 옵션 집합 근거 |
-| 현재 `memcmp.c`·`kern_machdep.c` 의 헤더 경로에 5 옵션의 코드상 사용이 없다 → 바이트 불변 예상, 단 회귀 빌드로 확정 | ⚖️ 예상으로만 둠(설계 5 유지) |
-| `meta_features.h` 생성 주체는 미상(config 추정은 추측) | ✅ 가설 유지 |
-
-설계 변경:
-1. `option_evidence.py`: 근거 후보 = (a) **정의 전체가 단일 조건 블록 안**인 외부 함수, (b) 그 블록 안 문자열 리터럴(앞뒤 NUL 경계 정확 일치), 그리고 (c) 같은 이름·문자열이 **트리 전체에서 그 분기 밖에 한 번도 나오지 않을 것**(다른 아키텍처·무조건 코드 포함). 복합 조건 블록은 참 분기만, 반대값 근거로는 쓰지 않음.
-2. 옵션 상태 3 단계: **미정** → **가설**(위 근거 + 원본의 해당 함수를 IDA(`05_ida/databases/x86-full.i64`, 입력 SHA-256 원본과 동일 확인)로 열어 그 분기의 코드 모양과 대응함을 확인, 근거 기록) → **확정**(그 옵션에 따라 바이트가 달라지는 목적 파일이 L1 MATCH). 생성 헤더는 가설 단계 값으로 만들되 표에 상태를 적는다.
-3. `NCPUS` 의 정확한 값은 `[NCPUS]` 크기 배열(예: `machine_slot`)의 원본 크기 등 별도 근거로 정한다.
-4. `meta_features.h` = H-meta 최소판(생성 옵션 헤더 `#import` 모음), 가설 표시. 회귀(설계 5a) 필수.
-
-### 22.2 S4-A1 결과 (2026-10-01) — 옵션 5 개 가설 판정, 생성 헤더, 회귀 통과
-
-- `option_evidence.py`(22.1 규칙) 실행: `09_validation/reconstruction/s4a1-option-evidence-20261001.{tsv,json}`. Darwin 트리 1,569 파일, 블록 안 함수 30·문자열 26 후보. 대조 사례(codex 지적)는 의도대로 제외됨: `processor_assign`(분기 밖 정의), `"%08x "`(분기 밖 사용), `unix_master`(`#define`), `thread_policy`(정의 전체가 블록 안이 아님 → 후보 아님). 쓸 수 있는 양성 근거는 `SIMPLE_CLOCK=1` 의 `sched_usec_elapsed`(원본 0x160714) 1 건뿐, 나머지는 부재만 → 설계 2 대로 IDA 로 원본 함수 본문 확인.
-- IDA(`05_ida/databases/x86-full.i64`, 입력 SHA-256 = 원본 `33469393…` 확인, 읽기만·저장 안 함) 와 capstone 확인:
-  - `MACH_ASSERT=0`: `ipc_right_copyin_compat`(`ipc/ipc_right.c:2587`)·`convert_port_type` 등(`ipc/mach_port.c:1598`)의 `#else` 처럼 문자열을 바로 `_panic` 에 넘김(0x15032c→0x150331, 0x155cd8→0x155cdd).
-  - `MACH_FIXPRI=1`: `_thread_policy` 0x1688f4 가 `kern/thread.c:2214–2259` 분기 모양(잠금, `policy == 2` 일 때 `1000*data % tick` 양자, `compute_priority`)이고 `#else`(`:2260–2264`, 즉시 반환)가 아님.
-  - `SIMPLE_CLOCK=1`: `_sched_usec_elapsed` 존재. 본문은 Darwin 과 다름(`clock_value(1)`, 1000 으로 나눔) — 소스 판 차이 사례.
-  - `STAT_TIME=1`: `_clock_interrupt` 0x15bc30 이 사용자/시스템 타이머에 `usec` 를 더하고 부호 비트면 `_timer_normalize` 호출(`kern/mach_clock.c:112–123` 의 `timer_bump`, `kern/timer.h:176`).
-  - `NCPUS=1`: `_machine_slot`(`kern/machine.c:86` `machine_slot[NCPUS]`) 이 `__common` 에서 다음 심볼까지 32 B = 구조체 32 B(4×4 + 4×`CPU_STATE_MAX`(3) + 4, Python) 한 개.
-  - 다섯 값 모두 Darwin RELEASE 태그로 계산한 1 차 가설과 같다. 상태는 **가설**(확정은 이 옵션에 의존하는 목적 파일의 L1 일치 때).
-- `06_reconstruction/config_options.tsv`(근거 열 포함) → `gen_config_headers.py` → `07_kernel/generated/{cpus,mach_assert,mach_fixpri,simple_clock,stat_time,meta_features}.h`(`--check` 통과), PROVENANCE 6 행. `generated/EMPTY_ON_PURPOSE` 는 `README` 로 바꿈.
-- 회귀 `s4a1-regress-1`(전체 Darwin 정의 + `-nostdinc` + `-imacros src/generated/meta_features.h`): 오류 출력 없음, `-dM` 에 5 매크로 정의 확인, `kern_machdep.o`(`-O2`)·`memcmp.o`(`-O4`) 가 기존 확정 목적 파일과 SHA-256 동일(`09_validation/reconstruction/s4a1-regress-20261001.json`). 이후 빌드는 이 공통 명령을 기준으로 한다.
-- 다음: P4 `pagesize.c` 재개(20 절; 스테이징 도구 + 진단 전처리). 미해결로 남는 생성 헤더가 더 나오면 같은 방법(근거 → 가설 → 생성)으로 넓힌다.
-
-### 20.3 S5-P4 결과 (2026-10-01) — `pagesize.c` 원문 그대로 A, 미정의 옵션 9 개 발견
-
-- 스테이징 도구 `stage_headers.py`(자체 시험: P2 스테이징 28 파일 집합·SHA 동일), `s5p4-stage-1` 128 파일·미해결 11(모두 비활성 분기).
-- 진단 전처리 `s5p4-pre-1`(S4-A1 공통 명령): 오류 없음, 읽힌 파일 105. **읽힌 헤더의 조건식에 정의되지 않은 설정 옵션 9 개**(`MACH_HOST`, `MACH_IPC_COMPAT`, `MACH_IPC_DEBUG`, `MACH_PAGEMAP`, `MACH_VM_DEBUG`, `NEW_VM_CODE`, `OLD_VM_CODE`(20 곳), `NORMA_TASK`, `NORMA_VM`) — cpp 가 0 으로 평가해 구조체 배치를 바꿀 수 있다. 비-OPTIONS 미정의(`MACHINE_AST`, `PAGE_SIZE_FIXED` 등)는 ppc 에서만 정의되거나 어디에도 정의되지 않음(전수 grep).
-- **새 규칙**: 확정 대상 파일의 전처리에서 OPTIONS 매크로가 미정의로 남으면, 그 파일의 목적 코드가 그 매크로에 의존하지 않음을 보이기 전에는 확정하지 않는다(이번 파일은 타입·인라인 asm 만 쓰고 L1 일치). 다음 단계 S4-A2 에서 9 옵션을 22.1 방법으로 판정한다.
-- **내 오류(바로잡음)**: 채택 스크립트가 실행 경로 접두어 `src/` 를 두 번 벗겨 92 파일을 `07_kernel/{bsd,ipc,kern,kernserv,mach,machdep,vm}/` 에 복사했다. 첫 빌드 `s5p4-build-1` 은 입력 파일이 없어 모든 명령이 실패했고 collect 가 게시를 거부해 드러났다. 디스크의 92 파일이 복사 목록과 정확히 같음을 확인한 뒤 76 개를 `07_kernel/src/…` 로 옮기고, 이미 올바른 위치에 같은 SHA 로 있던 16 개의 중복 사본을 지우고 빈 디렉터리를 정리했다. PROVENANCE(76 행 경로 수정·16 행 삭제, 중복 0·없는 파일 0)와 근거 목록을 고치고, 읽힌 105 파일 전부가 올바른 위치에 같은 SHA·PROVENANCE 행으로 있음을 다시 확인했다. `s5p4-build-1` 은 실패 기록으로 남긴다.
-- `s5p4-build-2`: 격리 재전처리 `.i` 동일, 네 옵션 판 동일 목적 파일, 예측 5 항목 적중, L1 두 함수 MATCH·OBJECT_MATCH, 경계 증명서 통과 → `x86-pagesize` A, `_page_set`·`_page_copy` `compared/high`(복원 수정 없음). 근거 `06_reconstruction/evidence/x86-pagesize.md`.
-
-## 23. S4-A2 세부 계획 — 미정의로 남은 설정 옵션 9 개 (코딩 전, 2026-10-01)
-
-대상(20.3 에서 발견, Darwin `conf/files` OPTIONS 항목): `MACH_HOST`(files:46), `MACH_IPC_COMPAT`(:47), `MACH_IPC_DEBUG`(:48), `MACH_PAGEMAP`(:59), `MACH_VM_DEBUG`(:61), `NORMA_VM`(:79), `NORMA_TASK`(:80), `NEW_VM_CODE`(:82), `OLD_VM_CODE`(:83).
-
-확인한 사실(Python, Darwin 트리):
-- `MASTER` 태그와 RELEASE 태그(`MASTER.i386` 머리 주석, 31 개)로 계산한 1 차 가설: `MACH_IPC_COMPAT 1`(`<ipc_compat>`, MASTER:126), `MACH_IPC_DEBUG 1`(`<ipc_debug>`, :127), `OLD_VM_CODE 1`(`<!newvm>`, :115), `NEW_VM_CODE 0`(`<newvm>`, :114), `MACH_HOST 0`(`<host>`, :125), `NORMA_VM 0`(:137), `NORMA_TASK 0`(:138); `MACH_PAGEMAP`·`MACH_VM_DEBUG` 는 MASTER 에 없음 → config 기본 0(관찰한 NeXTMach config 형식: 선택 안 된 OPTIONS 는 0).
-- 조건부 사이트: MACH_IPC_COMPAT 79(21 파일), MACH_HOST 37(12), OLD_VM_CODE 25(7), MACH_VM_DEBUG 18(4), MACH_PAGEMAP 6(2), NORMA_VM 6(3), MACH_IPC_DEBUG 5(4), NORMA_TASK 4(2), NEW_VM_CODE 1(1).
-- 여러 옵션이 **구조체 배치**를 바꾼다: 예 `OLD_VM_CODE` 는 `vm/vm_page.h:120–122`(`clean:1`), `:142–147`(`copy_on_write`·`nfspagereq`·`asyncrw` 비트) 와 `vm_page_queue_free` 의 형(`:183–188`), 함수 집합(`:238–244`, `:412–416`)을 바꾼다.
-
-설계(22.1 의 규칙을 그대로 적용):
-1. `option_evidence.py` 를 옵션 목록 인자를 받도록 넓힌다(기본값은 S4-A1 5 개 그대로 — 이전 출력 재현을 자체 시험으로 확인). 9 옵션 근거 TSV 를 만든다.
-2. 옵션마다 IDA(`x86-full.i64`, 읽기만) 로 원본 함수 본문 1 곳 이상을 해당 분기와 대조. 근거 함수가 없거나 Darwin 과 판이 다르면 다음 방법 3 을 쓴다.
-3. **구조체 오프셋 탐침**(새 방법): 옵션 값 두 경우로 실기 `cc` 가 계산한 필드 오프셋을 얻는다 — 탐침 C 파일이 `int off_X = (int)&((struct T *)0)->field;` 같은 상수를 `__data` 에 두게 하고 목적 파일에서 읽는다(실행 없음, 실제 컴파일러 계산). 원본 IDA 디컴파일에서 그 필드를 쓰는 함수(이름과 본문 대응이 확인된 것)의 오프셋과 비교. 값마다 오프셋이 달라지는 필드만 근거로 쓴다.
-4. 판정 상태는 22.1 과 같다(가설/확정). `06_reconstruction/config_options.tsv` 에 행 추가, `gen_config_headers.py` 로 생성(헤더 이름은 `conf/files` 의 `OPTIONS/<name>` 그대로). `meta_features.h` 에 자동 포함.
-5. 회귀: 확정 목적 파일 3 개(`memcmp`, `kern_machdep`, `pagesize`)를 새 생성 헤더로 다시 빌드해 SHA-256 동일 확인. `pagesize.c` 는 전처리 결과에서 미정의 OPTIONS 가 사라졌는지도 확인.
-6. 근거가 모이지 않는 옵션은 "미정" 으로 두고 생성하지 않는다 — 그 경우 그 옵션을 조건에 쓰는 헤더를 읽는 파일은 확정하지 않는다(20.3 규칙).
-
-### 23.1 codex 교차검토(QA2: 오프셋 탐침) 판정 — 설계 변경, 헤더 판 차이 발견
-
-내 검증: 인용 줄 30 여 곳을 Python 으로 열어 내용 확인, 원본 함수 2 개를 capstone 으로 역어셈블, 비트필드 폭을 Python 으로 합산, 기존 탐침 `08_build/runs/s1a-probes-kernel-2/src/c_layout.c:8–18` 확인.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `vm_page.h` 의 `OLD_VM_CODE` 비트는 비트필드라 `&` 로 못 잰다; 묶음 합 21/22, 10/13 비트, 각 묶음 끝 `:0` → 뒤 일반 필드 오프셋 불변 추정 | Python 합산 결과 `[21, 10]`(0) / `[22, 13]`(1) | ✅ → 비트필드만 바뀌는 경우는 오프셋 근거로 쓰지 않음(필요하면 마스크·시프트 비교) |
-| 같은 구조체를 다른 옵션이 함께 바꾼다: `thread` 의 `MACH_FIXPRI`(`thread.h:152–153`), `MACH_IPC_COMPAT`(`:193`), `MACH_HOST`(`:239–240`), `NCPUS>1`(`:244`); `allocInProgress`(`:247`) 하나로는 교란 | 줄 확인 | ✅ → 같은 구조체에 영향을 주는 조건을 모두 나열하고, 이미 가설로 정한 값(S4-A1)을 고정한 상태에서만 비교, 여러 필드로 교차 확인 |
-| **Darwin 구조체가 원본과 다르다**: 원본 `_vm_object_reference` 의 `inc word ptr [ecx+0x18]`(0x178c54, `66 ff 41 18`) vs Darwin `vm_object.h:115` `int ref_count`, `vm_object.c:270–278` `ref_count++` | capstone 역어셈블로 확인(함수 0x178c30, 잠금 `[ecx+0x10]`); `_vm_map_reference` 는 `inc dword ptr [ecx+0x30]`, 잠금 `+0x34`(0x1747a8) | ✅ **중요**: 원본 `vm_object.ref_count` 는 16 비트 — Darwin `vm/vm_object.h` 는 나중 판이다. VM 파일을 확정하려면 헤더도 D014 복원 수정이 필요해질 것 |
-| `KR_OFF(t,f) ((unsigned long)&((t *)0)->f)` 상수 초기화는 S1-A 에서 이미 cc-744.13 이 받아들였다 | `c_layout.c:8–18`, 성공 기록 | ✅ → 탐침은 이 형태를 그대로 쓴다(`int` 캐스트 형태는 미검증이라 쓰지 않음) |
-| 함수 대응·기준 포인터(`vm_map_to_entry`, `vm_map.h:208`)·접근 폭을 각각 확인해야 한다 | 줄 확인 | ✅ |
-| 옵션별 일반 필드 신호: 있음(추정) `MACH_HOST`, `MACH_IPC_COMPAT`, `OLD_VM_CODE`; 없음 `MACH_IPC_DEBUG`, `MACH_PAGEMAP`(끝에 추가), `MACH_VM_DEBUG`, `NEW_VM_CODE`, `NORMA_TASK`(끝에 추가), `NORMA_VM`(형만) | 내 독립 전수 조사(구조체 안 조건부 선언)와 대조: 같은 필드 목록, 내 조사는 여러 줄 비트필드를 놓침(`vm_map.h:131–138`, `vm_object.h:201–205` 는 codex 쪽이 완전) | ✅ |
-| `MACH_PAGEMAP=1` 탐침은 `vm/vm_external.h` 부재로 불가 | `ls` 로 부재 확인 | ✅ → 이 옵션은 함수 근거로만 |
-
-설계 변경:
-1. 오프셋 근거는 (a) 두 설정에 공통인 비트필드 아닌 필드, (b) 그 구조체에 영향을 주는 다른 조건을 모두 고정, (c) 원본 함수 대응·기준 포인터·접근 폭 확인, 세 조건을 모두 만족할 때만. **일치는 "그 소스·설정 조합을 지지" 로만 기록**하고, 구조체 판 차이(위 `ref_count`)가 있는 구조체에서는 그 차이가 설명된 뒤에만 쓴다.
-2. 구조체 신호가 없는 6 옵션은 함수 본문 근거(IDA)로만 판정, 근거가 없으면 "미정".
-3. 새 사실 기록: Darwin `vm/vm_object.h` 는 원본보다 나중 판(16 비트 `ref_count`). VM 계열 확정 전에 헤더 판 차이를 별도 조사한다(S5 의 VM 단계).
-
-### 23.2 S4-A2 결과 (2026-10-01) — 옵션 6 개 가설, 5 개 미정, 헤더 판 차이 2 건
-
-- 근거 도구 확장(`--options`, 기본값 출력 재현 자체 시험 통과): `09_validation/reconstruction/s4a2-option-evidence-20261001.*`, `s4a2b-option-evidence-20261001.*`.
-- **내 검사 결함 발견·수정**: 20.3 의 미정의 검사는 `#if` 줄에 직접 쓰인 식별자만 봐서 매크로 안의 미정의(`kern/lock.h:66` `MACH_SLOCKS = (NCPUS > 1) || MACH_LDEBUG || DRIVERKIT`, `:81` `#if MACH_SLOCKS`)를 놓쳤다. 매크로 정의를 따라가는 `undef_conditionals.py` 를 만들어 다시 검사(`s5p4-undef-transitive-20261001.json`): `DRIVERKIT`·`MACH_LDEBUG` 가 추가로 드러남. `kern_machdep.c` 환경에는 표준·다른 아키텍처 매크로 외 미정의 없음.
-- 오프셋 탐침 `s4a2-probe-3`(`DRIVERKIT=1`; `-1` 은 탐침이 포함한 `mach/mach_types.h` 를 스테이징 시작점에 넣지 않은 내 실수로, `-2` 는 `DRIVERKIT` 미정의로 잠금 필드가 사라져 실패 — 둘 다 기록으로 남김). 결과 `09_validation/reconstruction/s4a2-offset-probe-20261001.json`:
-  - `OLD_VM_CODE=1` 일 때만 `vm_object` Lock 0x10·ref_count 0x18, `vm_map` ref_count 0x30·ref_lock 0x34 → 원본 `_vm_object_reference`(0x178c30)·`_vm_map_reference`(0x1747a8) 와 일치.
-  - `thread.ith_mig_reply` 는 탐침 0xc0(COMPAT 0)/0xc4(COMPAT 1), 원본 `_mig_get_reply_port`(0x158f88) 는 `+0xbc` → **둘 다 아님: `thread` 구조체도 Darwin 과 판이 다름**(헤더 판 차이 2 건째, `vm_object.ref_count` 16 비트에 이어). `thread` 오프셋은 옵션 판정에 쓰지 않음.
-- 판정(`06_reconstruction/config_options.tsv`, 근거 열 참조):
-  - 가설: `MACH_IPC_COMPAT=1`(고유 함수·문자열 60), `MACH_IPC_DEBUG=1`(`_ipc_hash_info`, `_ipc_marequest_info`), `OLD_VM_CODE=1`(오프셋 2 구조체), `MACH_HOST=0`(`_pset_deallocate` 0x1616f0 이 `kern/processor.c:376–378` `#if !MACH_HOST` 분기 모양), `DRIVERKIT=1`(`conf/files:513–525` 의 `optional driverkit` 소스 11 개 경로가 원본에 있음, 함수 2), `NORMA_TASK=0`(`_task_create` 0x165a20 이 task.c 구간 안, `_task_create_local` 없음; `kern/task.c:76–78`).
-  - 미정(생성 안 함): `NEW_VM_CODE`, `MACH_PAGEMAP`, `MACH_VM_DEBUG`, `NORMA_VM`, `MACH_LDEBUG` — 근거가 부재뿐이거나 없다. `gen_config_headers.py` 는 `undetermined` 행을 건너뛰도록 고침.
-- 생성 헤더 6 개 추가(PROVENANCE 6 행). 옵션 값이 바뀌어 읽는 파일이 달라짐: `s4a2-regress-1` 은 `vm/vm_object.h:75` 가 요구한 `vm/vm_pager.h` 미채택으로 `pagesize.c` 컴파일 실패(+ 실패한 컴파일이 남긴 NFS `.nfs*` 파일로 manifest 가 깨져 collect 가 게시 거부). `s5p4-stage-2`·`s5p4-pre-2` 로 다시 스테이징·전처리 → 새로 읽힌 `vm/vm_pager.h` 1 개 채택(APSL+CMU). 남은 미정의는 미정 옵션 5 개와 비옵션 `MACH_USER_API`·`VM_OBJECT_DEBUG` 뿐.
-- 회귀 `s4a2-regress-2`: `kern_machdep.o`·`memcmp.o`·`pagesize.o` 모두 확정본과 SHA-256 동일, `pagesize.i` 도 동일(`09_validation/reconstruction/s4a2-regress-20261001.json`).
-- 규칙 보강: (1) 옵션 값을 바꾸면 확정 파일마다 스테이징→전처리→채택을 다시 한다(읽기 집합이 바뀐다). (2) 미정의 검사는 `undef_conditionals.py`(매크로 추적)로 한다.
-- 다음 과제: (a) 헤더 판 차이(`vm_object`, `thread`) 조사 — VM·스레드 계열 파일 확정 전 필수, D014 복원 수정 대상이 헤더까지 넓어짐. (b) 미정 옵션 5 개는 그 옵션이 바이트에 영향을 주는 파일을 다룰 때 다시 판정.
-
-## 24. S4-B 세부 계획 — 헤더 판 차이: 구조체 배치 복원, 시범 `struct vm_object` (코딩 전, 2026-10-01)
-
-배경: 23.2 에서 Darwin `vm/vm_object.h` 와 `kern/thread.h` 의 구조체가 원본과 다름을 확인했다. VM·스레드 계열 파일을 확정하려면 원본 배치를 먼저 복원해야 한다(D014 를 헤더에 적용).
-
-확인한 사실(원본 바이트, capstone; 계산 Python):
-- `_vm_object_template`(0x1f7360, `__common`) 다음 심볼 `_vm_object_zone`(0x1f73b8)까지 88 B. Darwin 탐침(`OLD_VM_CODE=1`, `DRIVERKIT=1`) `sizeof(struct vm_object)` = 0x5c(92 B).
-- `_vm_object_init`(Darwin `vm/vm_object.c:160` `vm_object_init`)이 템플릿을 Darwin `:196–213` 과 같은 순서로 초기화한다(`__text` 선형 스캔: 템플릿 범위 메모리 변위 참조 18 곳 모두 이 함수, 그 밖에 `__vm_object_allocate` 0x178bb6 의 즉시값 참조 1 곳 — 디코딩 불가 구간을 건너뛴 스캔이라 완전성 증명은 아님, 24.1). 짝지은 결과(원본 오프셋·폭): `ref_count` 0x18·16 비트, `resident_page_count` 0x1a·16, `size` 0x14·32, `paging_in_progress` 0x44·16(비트필드 0–15), `copy` 0x1c, `pager` 0x28, `pager_request` 0x30, `pager_name` 0x34, `paging_offset` 0x2c, `shadow` 0x20, `shadow_offset` 0x24, `last_alloc` 0x54, `policy` 0x48·16; 비트: `can_persist` 0x46 bit3(전체 bit19), `pager_ready` bit18, `internal` bit20, `pager_creating` 0x4a bit0 — Darwin 비트 순서와 같다. `last_alloc`+4 = 0x58 = 템플릿 크기.
-- Darwin 과의 차이는 `ref_count`·`resident_page_count` 가 `int` → 16 비트(그 뒤 필드가 모두 −4)로 모두 설명된다(가설). 부호: `_vm_object_deallocate` 0x178cd3 `cmp word [esi+0x1a], 0` / `jle`(부호 있음) → `short`. `ref_count` 는 부호를 가리는 비교가 아직 없음.
-- 참고(근거 아님, D013): NeXTMach `mk-108.1/vm/vm_object.h:83–84` 도 `short ref_count; short resident_page_count;` — 다른 필드 순서는 Darwin 과 다르다(`copy` 다음 `pager`).
-
-설계:
-1. **구조체 배치 표** `06_reconstruction/struct_layouts/<struct>.tsv`: 필드, Darwin 오프셋·폭(탐침), 원본 오프셋·폭, 근거(함수·주소·명령), 상태. 근거는 이름이 대응되는 원본 함수(외부 심볼)의 명령에서만 — 초기화 함수(템플릿)를 우선, 다른 접근 함수로 교차 확인(필드마다 2 곳 이상 목표).
-2. **최소 수정 가설**: 차이를 설명하는 가장 작은 헤더 수정(여기서는 두 필드 `int`→`short`)을 세우고, **스테이징 사본**(07_kernel 아님)에 적용해 오프셋 탐침으로 모든 관측 필드의 오프셋·크기와 `sizeof`(0x58)가 원본과 같은지 확인한다. 탐침은 비트필드 대신 일반 필드만 재고, 비트 위치는 원본 마스크로 기록한다.
-3. 통과하면 D014 복원 수정으로 `07_kernel/src/vm/vm_object.h` 를 고친다: 머리말 뒤 수정 주석, `07_kernel/MODIFICATIONS.md`, diff `06_reconstruction/evidence/x86-vm_object_h.diff`, PROVENANCE `changes` 갱신. `short` 의 근거(부호 비교)가 없는 필드는 그 사실을 기록.
-4. 회귀: 확정 목적 파일 3 개 재빌드(바이트 불변 예상 — `pagesize.c` 는 `vm_object.h` 를 읽지만 코드가 의존하지 않음), 그리고 `undef_conditionals.py`.
-5. 같은 방법을 `struct thread`(원본 `ith_mig_reply` +0xbc vs 탐침 0xc0) 에 다음으로 적용. 그 밖 구조체는 해당 파일을 다룰 때.
-6. 한계: 이 방법은 원본이 실제로 접근하는 필드만 확인한다. 접근이 없는 필드의 존재·형은 "미확인" 으로 표시하고, 목적 파일 L1 일치가 최종 판정이다.
-
-### 24.1 codex 교차검토(QB1: vm_object 배치) 판정
-
-내 검증: 원본 명령 15 곳을 capstone 으로 다시 역어셈블해 내용·소속 함수 확인, Darwin `vm/vm_object.c` 인용 12 줄을 Python 으로 열어 확인.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| init 대응표 재현(17 문장), `AL` 이 최초 바이트를 보존해 `0xf3` 은 `can_persist`+`pager_ready` 누적 마스크 | 0x178abc–0x178b0f 명령 확인(내 24 절 해석과 같은 비트) | ✅ (해석 보완: 마스크는 누적) |
-| 크기 근거: `_vm_object_init` 0x1789ed `push 0x58` → `_zinit`(O:164 `sizeof(struct vm_object)`), `__vm_object_allocate` 0x178bbe `mov ecx, 0x16` + `rep movsd`(O:255 템플릿 복사), 심볼 거리는 패딩을 포함할 수 있음 | 명령·심볼(`0x16a490` = `_zinit`)·소스 줄 확인 | ✅ → 크기 근거 우선순위: zinit 인자·복사 길이 > 심볼 거리 |
-| `ref_count` 부호: `_vm_object_coalesce` 0x179c6d `cmp word [esi+0x18], 1` / `jg`(O:1495 `ref_count > 1`) | 확인 | ✅ → `ref_count` 도 signed 16 비트 |
-| 합쳐진 검사: `_vm_object_collapse` 0x179970 dword 읽기 `and 0x10ffff`/`cmp 0x100000`(O:1193–1194 `!internal || paging_in_progress != 0`) | 확인 | ✅ → dword 접근을 32 비트 필드로 해석하지 않는다 |
-| 다른 함수 접근이 가설과 일치: `_vm_fault` 0x1720bb/0x1720bf, `_vm_object_terminate` 0x178d69/0x178d88/0x178dba, `_vm_object_deallocate` 0x178cf3(`cached_list` +0x4c/+0x50), `_vm_object_copy` 0x1793f0, `_vm_object_setpager` 0x17961b, `_vm_set_policy` 0x17a7ec, `_vm_page_alloc_sequential` 0x17b467/0x17b47b(`policy`, `last_alloc`), `_vm_pageout_scan` 0x179f4a | 각 명령 확인(표본 전부), 소속 함수 확인 | ✅ |
-| 템플릿 참조 개수: 메모리 변위 18(모두 init) + 즉시값 1 | 내 스캔 출력과 같음 — 내 문구("19 곳 — 18 곳") 가 부정확 | ✅ 문구 수정(24 절) |
-| 미확인: `copy_strategy`(+0x38)·`absent_count`(+0x3c)·`all_wanted`(+0x40) 와 초기화되지 않는 비트(`pager_created` 등)의 이름·순서, `pager_request`/`pager_name` 구별 | 내 표에도 근거 없음 | ✅ → 배치 표에 "미확인" 으로 표시 |
-
-결론: 관찰한 원본 접근은 "Darwin 배치에서 두 count 를 signed `short` 로 바꾼 것" 과 모두 일치, 반례 없음. 접근이 없는 필드는 미확인으로 둔다.
-
-### 24.2 S4-B 결과 (2026-10-01) — `struct vm_object` 헤더 복원 수정
-
-- 탐침 `s4b-vmo-1`: 스테이징 사본(`08_build/runs/tools/s4b-vmo-stage-1`)의 `vm/vm_object.h` 에서만 두 필드를 `short` 로 바꾸고 일반 필드 19 개 오프셋과 `sizeof` 를 잼(`09_validation/reconstruction/s4b-vmo-probe-20261001.json`).
-- 배치 표 `06_reconstruction/struct_layouts/vm_object.tsv`: 원본 접근이 있는 15 항목(`sizeof` 0x58, `Lock`, `size`, 두 count(16 비트), `copy`, `shadow`, `shadow_offset`, `pager`, `paging_offset`, `pager_request`, `pager_name`, `cached_list`, `last_alloc`) **모두 일치, 불일치 0**. `memq`, `object_list`, `copy_strategy`, `absent_count`, `all_wanted` 는 원본 접근을 찾지 못해 **미확인**. 비트 위치(`can_persist` bit19, `pager_ready` bit18, `internal` bit20, `pager_creating` +0x4a bit0)는 원본 마스크로 기록(24·24.1).
-- D014 복원 수정: `07_kernel/src/vm/vm_object.h` 의 두 줄 `int` → `short` + 머리말 뒤 수정 주석(APSL·CMU 표기 유지). `07_kernel/MODIFICATIONS.md` 행, diff `06_reconstruction/evidence/x86-vm_object_h.diff`, PROVENANCE `changes` 갱신. 수정 후 SHA-256 `a43eb11ca6b73ba73269eec4776601e4d7a06070a6de74626c811376cb51e24d`.
-- 회귀 `s4b-regress-1`: 확정 목적 파일 3 개 SHA-256 동일, `pagesize.i` 에 수정 반영 확인(`09_validation/reconstruction/s4b-regress-20261001.json`).
-- 다음: `struct thread`(원본 `ith_mig_reply` +0xbc, Darwin 탐침 0xc4 — `MACH_IPC_COMPAT=1` 가설 기준 −8) 에 같은 방법.
-
-## 25. S4-B2 세부 계획 — `struct thread` 배치 복원 (코딩 전, 2026-10-01)
-
-확인한 사실(원본 바이트·capstone, Darwin 탐침 `s4b-thr-1` = 현재 생성 옵션 + Darwin `kern/thread.h` 그대로, 62 필드; 계산 Python):
-- 크기: `_thread_template`(0x1f6c00)~`_thread_zone` 396 B(0x18c), Darwin 탐침 `sizeof` 0x194 → −8.
-- `_thread_init`(0x166a8c) 의 템플릿 쓰기 35 곳(메모리 변위 33 + `timer_init` 인자 즉시값 2)을 Darwin `kern/thread.c:355–424` 문장 순서와 짝지음:
-  - 같음(Darwin 오프셋 그대로): `runq` 0x08, `ref_count` 0x24, `pcb` 0x28, `kernel_stack` 0x2c, `stack_privilege` 0x30, `swap_func` 0x34, `exc_func` 0x38, `wait_event` 0x3c, `wait_result` 0x44, `wake_active` 0x48, `state` 0x4c(=0x102), `unix_lock` 0x88(=−1), `user_stop_count` 0x8c(=1).
-  - −4: `max_priority` 0x54(D 0x58), `sched_data` 0x5c, `policy` 0x60, `depress_priority` 0x64, `cpu_usage` 0x68, `sched_usage` 0x6c(D 0x70). 0x74–0x80 의 0 쓰기 4 개는 Darwin 문장 순서와 맞지 않음(원본 소스 순서가 다를 수 있음) → 개별 판정 보류.
-  - −8: `user_timer` 0xe0(D 0xe8), `system_timer` 0xf0, timer_save 4 워드 0x100–0x10c, `cpu_delta` 0x110, `sched_delta` 0x114, `active` 0x178, `ast` 0x17c, `bound_processor` 0x184, `allocInProgress` 0x188.
-- `_ipc_thread_init`(0x15961c, Darwin `kern/ipc_tt.c:239–`): `ith_next` 0x90·`ith_prev` 0x94(같음), `ith_messages` 0xa4, `ith_lock_data` 0xa8, `ith_self` 0xac, `ith_sself` 0xb0, `ith_exception` 0xb4, `ith_reply` 0xb8(COMPAT 분기 있음), `ith_mig_reply` 0xbc, `ith_rpc_reply` 0xc0 — 모두 −8. 따라서 −8 은 0x98–0xa4 구간: Darwin 은 `ith_state`, `ith_rcv_option`, `ith_list`, `data`, `ith_seqno`(20 B), 원본은 12 B.
-- 정황(근거 아님): Mach4 `kernel/kern/thread.h:144–150` 은 그 구간이 `ith_state`, `data`, `ith_seqno` 3 개(12 B). NeXTMach `mk-108.1/kern/thread.h:225–228` 은 `_uthread` 대신 `struct u_address { struct uthread *uthread; struct utask *utask; } u_address;`(8 B).
-- Darwin 에서 문제의 필드를 쓰는 곳: `wait_mesg` 는 `bsd/kern/kern_synch.c` 의 `_sleep`(79–185, 원본 심볼 `__sleep` 없음), `ith_rcv_option`·`ith_list` 는 `ipc/ipc_mqueue.c`(원본 `_ipc_mqueue_receive` 0x14acd4 등), `_uthread` 는 13 파일.
-
-가설 H-thr(최소 수정 후보):
-1. `char *wait_mesg;` 없음(−4).
-2. `_uthread` 자리가 8 B(+4) — 형·이름 미정. 후보: (a) `_uthread` 뒤에 4 B 필드 1 개, (b) NeXTMach 식 `u_address` 구조체. Darwin 코드가 `->_uthread` 를 쓰므로 (a) 가 Darwin 소스와의 차이를 최소화하나, 이름 없는 필드를 만들어 넣는 것은 근거가 필요.
-3. `ith_rcv_option`, `ith_list` 없음(−8).
-
-설계(24 와 같은 절차 + 추가 조건):
-1. 근거 수집(IDA·capstone, 이름 있는 원본 함수만): (a) `priority` 0x50·`sched_pri` 0x58 류의 −4 영역 필드를 쓰는 함수(예 `_compute_priority`, `_thread_priority`), (b) 0x80/0x84 를 쓰는 함수(→ `_uthread` 와 두 번째 4 B 의 정체; BSD 쪽 `current_thread()->_uthread` 사용 함수), (c) `ith_state` 0x98·`ith_kmsg`/`ith_msize` 0x9c·`ith_seqno` 0xa0 를 쓰는 `_ipc_mqueue_receive`/`_mach_msg_trap` 계열, (d) `sleep_time`·`recover`·`vm_privilege` 의 실제 오프셋.
-2. 가설을 스테이징 사본에 적용해 탐침, 배치 표 `06_reconstruction/struct_layouts/thread.tsv`(필드마다 원본 근거 2 곳 이상 목표, 없으면 미확인).
-3. 필드 **삭제**는 "그 필드를 쓰는 Darwin 함수가 원본에 없거나 다른 판" 이라는 근거와 함께만 한다. 2 번의 이름 없는 필드는 원본 접근이 그 필드의 쓰임을 보여줄 때만 넣고, 근거가 없으면 이 절의 수정을 보류한다(빈 자리 채우기용 가짜 필드 금지).
-4. 헤더 수정은 그 필드를 쓰는 Darwin 소스(`kern_synch.c`, `ipc_mqueue.c` 등)의 컴파일을 깨뜨린다 — 이 파일들은 아직 채택하지 않았고, 다룰 때 원본 판에 맞춰 복원한다(D014). 확정 목적 파일 3 개는 회귀로 확인.
-
-### 25.1 codex 교차검토(QB2: struct thread) 판정 — 내 가설 H-thr 일부 기각, H-thr2
-
-내 검증: codex 가 인용한 원본 명령 16 곳을 capstone 으로 다시 역어셈블(소속 함수·호출 대상 확인), Darwin `kern/thread.c` 495·783·740–744·390–391·1640–1643, `kern/sched_prim.c` 1192, NeXTMach `kern/thread.c` 588–591·923–926 을 열어 확인. 독립 확인으로 `_thread_priority`·`_compute_my_priority` IDA 디컴파일, IPC 함수 3 개의 `+0x98/+0x9c/+0xa0` 접근 전수 목록.
-
-| 주장 | 내 검증 | 판정 |
-|---|---|---|
-| **내 H-thr (2) 오류**: `0x84` 는 `_uthread`(단일 포인터), `0x80` 은 VM 객체 포인터, `0x7c` 는 커널 매핑 주소 | `_thread_create` 0x166cd0 `zalloc` 결과 → `+0x84`(Darwin thread.c:495), `_thread_deallocate` 0x16715f `+0x84` → `_uthread_free`(:783), 0x1670d2 `+0x80` → `_vm_object_deallocate`, 0x1670b4 `+0x7c` → `_kmem_free`; `_uthread_from_thread` 0x107a6c `+0x84` | ✅ 내 가설(NeXTMach `u_address` 8 B) 기각. 내 `_getpid` 해석("utask")도 틀림 — `+0x84` 는 `_uthread` |
-| `sleep_time` 없음: `_thread_info` 0x1682e4 와 `_update_priority` 0x163dd4 가 `sched_tick − sched_stamp(+0x70)` 를 계산(Darwin thread.c:1640–1643 은 `thread->sleep_time` 을 읽음) | 명령·`_sched_tick`(0x1f653c) 확인 | ✅ |
-| `recover` 0x74(`_copyin` 0x189a6a/0x189b1d, `_copyout` 0x189d03), `vm_privilege` 0x78(`_vm_pageout` 0x17a0b3, `_vm_page_alloc_sequential` 0x17b25e) | 확인 | ✅ |
-| 크기: `_thread_init` 0x166aa0 `push 0x18c` → `_zinit` | 확인 | ✅ |
-| IPC 구간 `ith_state` 0x98·`data` 0x9c·`ith_seqno` 0xa0·`ith_messages` 0xa4 → `ith_rcv_option`·`ith_list` 없음 | 내 전수 목록과 같음 | ✅ |
-| 0x7c/0x80 의 원래 이름 후보 `tmp_address`/`tmp_object` 는 NeXTMach `thread.c:588–591, 923–926` 에만 있음 | 확인 — 역할은 원본 바이트로, **이름은 NeXTMach 에서만** | ⚖️ 이름은 미확정(D013 문제) |
-| `_sendsig` 0x193508 `lea ebx,[eax+0x84]` 는 pcb 경유라 근거에서 제외 | — | ⏭️ 근거로 쓰지 않음 |
-
-H-thr2(스테이징 사본에만 적용, `s4b-thr-2`): Darwin 에서 `wait_mesg`·`sleep_time`·`ith_rcv_option`·`ith_list` 제거, `vm_privilege` 뒤에 4 B 필드 2 개(`vm_offset_t`, `struct vm_object *`; 탐침에서는 중립 이름 `probe_7c`/`probe_80`). 결과(`09_validation/reconstruction/s4b-thr2-probe-20261001.json`, 표 `06_reconstruction/struct_layouts/thread.tsv`): 원본 근거가 있는 52 항목(`sizeof` 0x18c 포함) **모두 일치, 불일치 0**; 미확인 9(`links`, `task`, `thread_list`, `pset_threads`, `suspend_count`, `saved`, `timer`, `depress_timer`, `processor_set`).
-
-남은 결정(사용자): 0x7c/0x80 두 필드의 이름. 역할은 원본으로 확인되지만 이름은 NeXTMach 에서만 알 수 있어 D013(NeXTMach 유래 텍스트 비공개)과 충돌한다. 결정 전에는 `07_kernel/src/kern/thread.h` 를 고치지 않는다.
-
-관련 발견(전략): 원본 `_getpid`(0x107ac8)는 4.3BSD 식(`_uthread` 의 반환값 칸 +0x60/+0x64 에 16 비트 pid 를 씀)이고 Darwin `bsd/kern/kern_prot.c:100` 의 4.4BSD 식(`*retval = p->p_pid`)과 다르다. 원본 BSD 계층은 Darwin 보다 NeXT 이전 판에 가까울 가능성이 크다 — 참고 소스 선택(D013)에 영향.
-
-### 25.2 S4-B2 결과 (2026-10-01) — `struct thread` 헤더 복원 수정, D013 변경
-
-- 사용자 결정: D015(0x7c·0x80 필드 이름은 NeXTMach `tmp_address`·`tmp_object`), **D013 변경**(NeXTMach 유래 코드도 출처 기록과 함께 공개 커밋 가능, 라이선스 판단은 사용자). `02_plan/DECISIONS.md`, `AGENTS.md` 반영.
-- D014 복원 수정 `07_kernel/src/kern/thread.h`: `wait_mesg`·`sleep_time`·`ith_rcv_option`·`ith_list` 삭제, `vm_privilege` 뒤에 NeXTMach `mk-108.1/kern/thread.h:218–221`(커밋 `f6bdb9c3268f0eadc545d41bcc0564453b17001e`) 네 줄을 그대로 삽입, 머리말 뒤 수정 주석. diff `06_reconstruction/evidence/x86-thread_h.diff`, `07_kernel/MODIFICATIONS.md`, PROVENANCE(출처 두 개 기록). 수정 후 SHA-256 `3cfd6a91509328ecb1b2f5d204c70c40ef380a8909b3f5f7538dfd57b510976a`.
-- 확인 `s4b-thr-3`(07_kernel 사본 + 탐침): 61 필드 오프셋·크기가 H-thr2 탐침과 모두 같음, `sizeof` 0x18c(`vm_object_t` 형은 `kern/task.h` → `vm/vm_map.h` → `vm/vm_object.h` 경로로 보임 — 컴파일 성공). 배치 표 `06_reconstruction/struct_layouts/thread.tsv`: 원본 근거 52 일치·불일치 0·미확인 9. 회귀: 확정 목적 파일 3 개 SHA-256 동일, 미정의 집합 변화 없음(`09_validation/reconstruction/s4b-thr3-20261001.json`).
-- 이 수정으로 Darwin 의 `bsd/kern/kern_synch.c`(`wait_mesg`), `ipc/ipc_mqueue.c`(`ith_rcv_option`·`ith_list`), `kern/thread.c`·`kern/sched_prim.c`(`sleep_time`) 는 그대로는 컴파일되지 않는다 — 원본도 해당 코드가 다르다(25·25.1 근거). 해당 파일을 다룰 때 원본 판에 맞춰 복원한다.
-- 전략 메모: 원본 BSD 계층(`_getpid` 4.3BSD 식 등)과 `thread` 의 `tmp_*` 필드는 NeXTMach 쪽 판에 가깝다. D013 변경으로 NeXTMach 를 후보 소스로 쓸 수 있으므로, 이후 파일마다 Darwin·NeXTMach 두 후보를 원본과 대조해 가까운 쪽을 고른다(새 계획에서 상세화).
-
-## 26. S2-C 세부 계획 — 후보 소스 선택: Darwin 0.1 대 NeXTMach (코딩 전, 2026-10-01)
-
-배경: D013 변경으로 NeXTMach(mk-108.1)도 커밋 가능한 후보가 됐다. 25.1·25.2 에서 원본 BSD 계층(`_getpid`)과 `struct thread` 일부가 NeXTMach 쪽에 가깝고, IPC(`ith_*`, `ipc_mqueue`)·`vm_object` 초기화 순서는 Darwin 쪽에 가깝다. 파일마다 어느 후보에서 시작할지 근거로 정해야 한다.
-
-확인한 사실(Python): `06_reconstruction/function_candidates.tsv`(S2-B, 4,761 행) 의 1 위 후보 트리 — `darwin01` 1,882, `nextmach` 1,024, `darwin01-dk` 917, `mach4` 34; 신뢰도 medium 행만 보면 `nextmach` 477, `darwin01` 453, `darwin01-dk` 186, `mach4` 20. 그러나 표에는 **1 위 후보와 2 위 점수만** 있고 트리별 점수가 없어, 같은 함수에서 Darwin·NeXTMach 를 직접 비교할 수 없다.
-
-설계:
-1. `s2b_candidates.py` 에 `--detail OUT.tsv` 를 더한다: 모든 후보 행(원본 함수, 트리, 경로:줄, 이름, 호출 일치 Jc, 문자열 일치 Ks, 본문 해시). **기본 출력은 바뀌지 않아야 한다**(같은 입력으로 `function_candidates.tsv` 를 다시 만들어 바이트 비교 — 자체 시험).
-2. 집계 `06_reconstruction/source_choice.tsv`: S2-A 구간(목적 파일 후보)마다 함수별로 Darwin 최고 점수와 NeXTMach 최고 점수를 비교해 (Darwin 우세, NeXTMach 우세, 동률, 한쪽만 후보) 개수와 판정을 낸다. 판정은 "우세 쪽이 다른 쪽의 2 배 이상이고 우세 함수 3 개 이상" 일 때만, 아니면 "혼합/미정". 점수 특징이 없는 함수(호출·문자열 0)는 세지 않는다.
-3. 점수기 검증(쓰기 전 기준, 결과와 함께 기록): 이미 원본으로 확인한 사실과 맞아야 한다 — (a) `kern_machdep.c`·`memcmp.c`·`pagesize.c` 구간은 Darwin(NeXTMach 에 i386 판 없음), (b) `ipc/*` 구간은 Darwin(NeXTMach mk-108.1 에 `ipc/` 디렉터리가 없고 `ipc_mqueue_receive` 문자열도 트리 전체에 없음 — 확인함), (c) `_getpid` 가 속한 구간은 NeXTMach 우세 또는 혼합. 맞지 않으면 점수기를 고치기 전에 원인부터 기록한다.
-4. 결과는 시작 후보의 우선순위일 뿐이다. 어떤 후보에서 시작하든 확정은 L1 일치로만, 차이는 D014 복원 수정으로.
-5. 다음 시범(이 절 이후 별도 계획): NeXTMach 우세로 나온 작은 구간 하나를 골라, NeXTMach 헤더 환경(4.3BSD `user.h` 등)을 Darwin 커널 헤더와 어떻게 섞을지부터 계획한다.
-
-### 26.1 codex 교차검토(QC1: 후보 소스 선택) 판정 — 설계 변경
-
-내 검증: `s2b_candidates.py` 175–288 행을 읽음(점수식·정렬·출력), `corpus()` 56–64 행, NeXTMach 정의 5 개를 `srcdefs.find` 로 다시 찾음, `function_candidates.tsv` 10 행을 Python 으로 조회, 원본 `_gettimeofday`(0x10abb0) 역어셈블과 NeXTMach `bsd/kern_time.c:59–` 대조.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| **내 계획 오류**: 점수기에는 Jc·Ks 가 없고 점수는 공유 특징의 idf 가중합(243 행) | 코드 확인 — 26 절의 "Jc, Ks" 는 16 절 초안 용어를 잘못 옮긴 것 | ✅ 수정: 상세 출력은 현재 가중 점수와 공유 특징을 그대로 낸다 |
-| 기본 출력 보존: `rows` 에 열을 더하면 276 행 `rows[0].keys()` 때문에 기본 TSV 가 바뀐다; 상세는 240 행 묶기 전에 별도 목록으로 | 코드 확인 | ✅ |
-| 비결정성: `os.walk` 미정렬(60 행), 이름 없는 함수 후보는 집합 순회(233–237 행), 동점은 입력 순서 유지 | 코드 확인 | ✅ → 바이트 비교 자체 시험은 같은 환경에서 변경 전후로; 결정성 수정은 별도 변경 |
-| 동점은 트리 순서(Darwin 먼저)로 1 위가 정해짐 → "1 위 트리" 분포는 Darwin 쪽으로 기움 | 코드 확인(내 독립 판단과 같음) | ✅ 동점은 "판별 불가" 로 따로 센다 |
-| 파서 누락: 함수 머리와 `{` 사이 `#ifdef NeXT/#else` 가 있는 NeXTMach 정의를 놓침 — `netinet/if_ether.c` 의 `arpwhohas`(212)·`arpresolve`(356)·`arpinput`(513)·`in_arpinput`(609), `bsd/vfs_bio.c` 의 `bflush`(799) | `srcdefs.find` 로 5 개 모두 MISSED 확인, `if_ether.c:212–218` 에 `#else NeXT` 확인 | ✅ → "후보 없음 ≠ 소스 없음". 파서 수정은 별도 단계(S2-A/S2-B 재실행과 변경 보고 포함) |
-| 아키텍처·빌드 포함 필터 없음: NeXTMach `next/`(m68k), `stand/` 도 후보 | `corpus()` 는 `/ppc` 만 제외 | ✅ → 상세 행에 "i386 부적합/커널 밖" 표시 |
-| **내 검증 기준 (a) 모순**: `memcmp`·`pagesize`·`kern_machdep` 함수는 원본 특징 가중치 0 → 투표로는 Darwin 판정이 나올 수 없음 | 6 함수 모두 `original_feature_weight` 0 확인 | ✅ → 소스 가용성·아키텍처 근거는 투표와 별도 열로 기록 |
-| `_gettimeofday` 원본은 NeXTMach 식(`u.u_ap`·`u.u_error`, timezone 없음); 표에서는 9.532 동점 `conflicting`, Darwin 먼저 | 원본 0x10abb8–0x10abe0 (`[0x1e875c]`+0x24 인자, +0x68 바이트 오류 저장) 과 NeXTMach `kern_time.c:59–` 확인 | ✅ 투표가 ABI 차이를 놓치는 실례 |
-| `kern_time.c` 구간: Darwin 우세 1, NeXTMach 1, 동점 8, 특징 0 4 | 상세 출력 구현 후 재현해 확인(아직 미확인) | ⚠️ 미확인 |
-| "2 배·3 개" 규칙의 안전성 근거 없음 | 맞음 | ✅ 탐색 순서용 휴리스틱으로만 |
-
-변경된 설계:
-1. `--detail`: 후보마다(묶기 전) 원본 VA, 트리, 경로:줄, 이름, 본문 해시, **현재 가중 점수**, 공유 호출·문자열, 경로 분류(`next/`·`stand/` 등 i386 부적합/커널 밖). 기본 출력 바이트 동일 시험.
-2. 집계는 함수마다 (Darwin 우세 / NeXTMach 우세 / 동점 / 한쪽만 후보 / 특징 0 / 부적합) 를 따로 세고, 구간 표에는 이 개수와 **ABI 반증 메모**(예: u 영역 사용 여부)를 함께 둔다. 판정 열은 "탐색 우선순위" 로 이름 짓고 안전성 주장을 하지 않는다.
-3. 파서 수정(조건부 함수 머리)과 결정성 수정은 별도 단계로, 각각 변경 전후 S2-A·S2-B 차이를 보고한다.
-4. **전략 결론(현재까지의 근거)**: BSD 계층(`_getpid`, `_gettimeofday`)은 NeXTMach 의 4.3BSD u 영역 방식, IPC 는 Darwin(NeXTMach 에 `ipc/` 없음), `struct thread`·`vm_object` 는 두 판의 혼합. 파일 단위로 후보를 정하되, u 영역 사용 여부 같은 구조적 반증을 우선한다.
-
-### 26.2 S2-C 결과 (2026-10-01) — 탐색 우선순위 표(근거 아님)
-
-- `s2b_candidates.py --detail`(후보 40,353 행, `09_validation/reconstruction/s2c-candidate-detail-20261001.tsv`; 상세 출력에 `\r` 이스케이프 누락을 한 번 고침). **자체 시험**: 같은 `PYTHONHASHSEED=0` 에서 수정 전 스크립트 출력과 수정 후 기본 출력(`--detail` 유무 둘 다)이 TSV·JSON 바이트 동일. 
-- **비결정성 확인**: 저장된 `function_candidates.tsv` 는 시드 0 재실행과 4,764 행 중 106 행의 `top` 열만 다름(점수·신뢰도는 같음) — 이름 없는 함수 후보 순서가 문자열 집합 순회에 달림(233–237 행). 결정성 수정은 별도 단계(26.1 설계 3).
-- 집계 `s2c_source_choice.py` → `06_reconstruction/source_choice.tsv`, `09_validation/reconstruction/s2c-source-choice-20261001.json`: 후보가 있는 원본 함수 3,857 — 특징 0 1,088, Darwin 만 1,387, NeXTMach 만 358, 동점 478, Darwin 우세 180, NeXTMach 우세 345, 양쪽 없음 21. 362 구간의 탐색 우선순위: NeXTMach 29, Darwin 16, 혼합/미정 317.
-- 검증(26 절 기준, 26.1 에서 고친 기대치): IPC 계열 26 구간은 Darwin 우세 58·NeXTMach 우세 0 — NeXTMach 에 `ipc/` 없음과 일치. `kern_prot.c`(seq 24) 는 NeXTMach 우선 — `_getpid` 의 u 영역 ABI 근거와 일치. 확정 세 구간은 모두 특징 0 이라 "혼합/미정"(투표로는 판정 불가, 소스 가용성은 따로). `kern_time.c`(seq 31): 동점 8·NeXTMach 우세 1 은 codex 와 같고, 나머지 분류는 codex 수치(Darwin 우세 1·특징 0 4)와 함수 하나 차이 — 정의·경계 차이로 보이며 판정에 영향 없음(혼합/미정).
-- 한계(26.1): 파서가 조건부 함수 머리를 놓쳐 "Darwin 만" 에 NeXTMach 누락분이 섞여 있다(예 `if_ether.c` 의 `arpresolve`). 파서 수정 뒤 다시 낸다.
-- 다음: (1) 파서(조건부 함수 머리)·결정성 수정 → S2-A·S2-B·S2-C 재실행과 변경 보고, (2) NeXTMach 우선 구간 중 작은 것 하나로 NeXTMach 헤더 환경(4.3BSD u 영역) 시범 계획.
-
-## 27. S2-D 세부 계획 — 정의 파서(조건부 함수 머리)·결정성 수정과 재실행 (코딩 전, 2026-10-01)
-
-확인한 사실:
-- 누락 형태(NeXTMach `netinet/if_ether.c:211–222`, `bsd/vfs_bio.c:798–806`): `#if NeXT` / 머리(ANSI 또는 K&R 선언 포함) / `#else NeXT` / 다른 머리 / `#endif NeXT` / `{`. 현재 `srcdefs.find`(53–90 행) 는 닫는 괄호 뒤~`{` 사이를 전처리 없이 보므로 두 번째 머리의 `(` 때문에 정의가 아니라고 판단한다.
-- `srcdefs` 사용처: `s2a_objects.py`, `s2b_candidates.py`, `option_evidence.py`. 따라서 파서를 바꾸면 S2-A(구간), S2-B(후보), S2-C(우선순위), S4 옵션 근거가 모두 바뀔 수 있다.
-- 비결정성: `s2b_candidates.py` 의 `corpus()` 는 `os.walk` 순서 그대로(60 행), 이름 없는 함수 후보는 문자열 집합 순회(233–237 행). 시드 0 재실행과 저장 표가 106 행의 `top` 에서 다름(26.2).
-- S2-B 검증 값(`s2b-validation-20261001.json`: 양성 10/10, 음성 0.09 %, 변이 100 %)은 저장된 스크립트 없이 만든 것이라 같은 절차로 다시 낼 수 없다. 양성 표본의 정답은 `10_tools/reconstruction/s1c/samples-1/provenance.json` 의 `samples[].reference`(Darwin 파일)·`functions`, 대상 함수 10 개는 `09_validation/reconstruction/s1c-options-20261001.json` 의 `qualified`.
-
-설계:
-1. **파서 수정**(`srcdefs.find`): 닫는 괄호 뒤 `{` 를 찾는 구간에서 전처리 지시문 줄은 코드로 보지 않고, `#else`/`#elif` 를 만나면 같은 깊이의 `#endif` 까지(그 사이의 다른 머리·K&R 선언 포함) 건너뛴다. 정의 시작은 첫 머리, 끝은 지금처럼 첫 0 열 `}`. 다른 규칙은 바꾸지 않는다.
-2. **파서 회귀 시험**(`10_tools/reconstruction/test_srcdefs.py`): (a) 위 5 개 NeXTMach 정의가 찾아짐, (b) 세 참고 트리 전체에서 **수정 전 결과가 수정 후 결과의 부분집합**(이름·시작·끝 동일) — 빠지거나 범위가 바뀐 정의 0, (c) 새로 찾은 정의 수와 무작위 20 개 목록(사람이 검토할 수 있게 머리 줄 포함), (d) 프로토타입(`;` 로 끝남)이 새로 정의로 잡히지 않음.
-3. **결정성 수정**: `corpus()` 의 디렉터리·파일 순회를 정렬, 이름 없는 함수의 `bases` 를 정렬해 순회. 동점 순서는 그대로(트리 순서) 두되 S2-C 는 동점을 따로 센다. 수정 후 서로 다른 `PYTHONHASHSEED` 두 개로 실행해 바이트 동일 확인.
-4. **검증 스크립트** `s2b_validate.py`: 양성(10 함수의 최고 후보 묶음에 정답 Darwin 파일 포함), 음성(`--shuffle-negative` 의 이름 있는 medium 비율, 기준 2 % 이하), 변이(`--mutate-always-medium` 100 %). 수정 전 코드(사본)로 먼저 돌려 기존 JSON 값과 같은지 확인한 뒤 수정 후 값을 낸다.
-5. **재실행과 변경 보고**: 순서 결정성 수정 → (보고) → 파서 수정 → (보고). 각 단계에서 S2-A(`objects.tsv`: 구간 수·경계·seq 변화), S2-B(행별 top·신뢰도 변화 수), S2-C(우선순위 변화), S4 근거(`option_evidence` 두 실행의 usable 행 변화 — 22·23 절 판정이 바뀌는지) 를 Python 으로 비교해 `09_validation/reconstruction/s2d-*` 에 남긴다. 계획 문서에 인용한 S2-A seq 번호(24·31·193·258 등)가 바뀌면 대응표를 남긴다.
-6. 확정 항목(`objects_confirmed.tsv`, `functions.tsv` 의 `compared/high`)은 주소·소스 줄로 기록돼 있어 영향이 없어야 한다 — 소스 줄 인용을 다시 대조한다.
-
-### 27.1 codex 교차검토(QD1: 파서 수정) 판정 — 설계 1 기각, 보수적 변형 A+B 채택
-
-codex 는 내 설계 1(조건부 머리에서 `#else`~`#endif` 건너뛰기)을 메모리 안에서 모사해 반례를 냈다. 나는 `srcdefs.py` 사본으로 같은 실험과 대안 두 개를 직접 돌렸다(세 참고 트리 + driverkit, `.c/.m`, 비교 단위 (파일, 이름, 시작, 끝)).
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 설계 1 은 기존 정의 17 개를 잃거나 이름·시작을 바꾼다(`rindex.c:65`, `ip_output.c:687`, NeXTMach `vm_resident.c:230`, Mach4 `ds_routines.c:91` …) — 원인은 앞 머리가 성공하면 `i = e + 1`(95 행) 로 뒤 머리를 다시 보지 않음 | 기존 총 16,030 개는 내 집계와 같음. 원인 코드 확인 | ✅ 설계 1 기각 |
-| S2-B 는 `head` 가 아니라 원문 `lines[i:j+1]` 를 본문으로 써서 건너뛴 분기의 다른 머리(`rindex`, `ds_device_open`)가 호출 특징에 섞인다(72–78 행) | 코드 확인 | ✅ |
-| 기존 종료 규칙(첫 0 열 `}`)의 결함: Darwin `vm_fault.c` 의 `vm_fault` 를 76–122 로 잘못 끝냄(122 는 `FREE_PAGE` 매크로) | `vm_fault.c:118–122` 가 `\` 연속 `#define` 의 `}` 임을 확인, 실제 끝 1169 | ✅ → 변형 B 로 고침 |
-| `msdos-11/lowlevel.c:44` 의 `pc_cl2sector` 가 44–1144 로 과잉 포함 | 내 변형 A·A+B 에서도 48–1144 로 나옴 | ✅ 남은 한계로 기록(아래) |
-| Mach4 `if_de6c.c:1729` `print_arp` 가 다른 분기의 `{`/`}` 를 이음 | 내 변형 A 에서 1729–1748 로 나옴 | ✅ 남은 한계(Mach4 i386at 드라이버, OPENSTEP 원본과 무관한 후보) |
-| 현재 파서도 조건부 K&R 선언(`vm_map.c:2340`)은 통과, `kern_exit.c:397` `wait1` 은 놓침 | 변형 A 추가 목록에 `wait1` 397–526 이 있음 | ✅ |
-
-내 대안 측정(Python):
-- **변형 A**(머리 뒤~`{` 사이의 전처리 지시문 줄만 무시, `#else` 건너뛰기 없음): 16,030 → 16,064, **기존 손실 0**, 추가 34(목표 5 개 `arpwhohas` 219–337, `arpresolve` 366–504, `arpinput` 520–592, `in_arpinput` 616–875, `bflush` 803–830 포함 — 첫 머리가 아니라 `#else` 쪽 머리부터 잡힘). 앞 머리는 뒤 머리의 `(` 때문에 지금처럼 거부되므로 "첫 성공 머리" 의미가 유지된다.
-- **변형 A+B**(B: 끝 `}` 탐색에서 전처리 지시문 줄과 그 `\` 연속 줄을 무시): A 와 같은 추가 + 기존 4 개 범위 교정 — Darwin `vm_fault_wire_fast` 1378–1399→1538, Mach4 같은 함수 1657–1678→1797, NeXTMach `vm_fault` 85–124→1186, `vm_fault_wire_fast` 1394–1415→1547; 모두 옛 끝이 매크로 `}` 였음(Darwin 1395–1399 가 `\` 연속 `#define` 확인). 새 `vm_fault` 83–1169.
-- 남은 한계(이번에 고치지 않음, 기록): (1) 함수 닫는 `}` 가 0 열이 아니면 뒤 함수까지 이어진다 — 현재 결과에도 본문 안에 0 열 `{` 가 있는 정의가 511 개(예 `SCSIDiskKern.m` `sdopen` 169–1044). "0 열 `{` 거부" 보호 규칙은 기존 결과를 크게 바꿔 이번 범위에서 제외. (2) 줄 나누기 불일치: `s2a/s2b` 는 `splitlines()`, `option_evidence` 는 `split('\n')` — 참고 트리 51 파일에서 줄 수가 다르다(`\r`·`\f` 등). 줄 번호 인용 시 그 도구 기준임을 기록.
-
-변경된 설계 1: 변형 A+B 를 `srcdefs.find` 에 적용. 회귀 시험(`test_srcdefs.py`): (a) 목표 5 개, (b) 기존 튜플 ⊆ 새 튜플 + 위 4 개 교정(사유 포함 허용 목록) 외 손실 0, (c) 추가 목록을 시험 출력에 저장, (d) 추가 정의의 머리가 `;` 로 끝나지 않음. 나머지 설계(결정성·검증·재실행·변경 보고)는 27 절 그대로.
-
-### 27.2 S2-D 결과 (2026-10-01) — 파서·결정성 수정과 재실행
-
-- 결정성(`s2b_candidates.py`: `os.walk` 디렉터리·파일 정렬, 이름 없는 함수 `bases` 정렬): `PYTHONHASHSEED` 1·987 실행 결과 TSV·JSON·상세 모두 바이트 동일. S2-A(`s2a_objects.py`)는 원래부터 결정적이며 재실행이 저장본과 바이트 동일.
-- 검증 스크립트 `s2b_validate.py`: 수정 전 점수기 사본으로 저장 값 5 항목 모두 재현(양성 10/10, 음성 2/2,334, 변이 2,334/2,334, real_named 818/2,334, 전체 분포).
-- 파서(`srcdefs.find`, 27.1 변형 A+B): `test_srcdefs.py` 4 시험 통과(`09_validation/reconstruction/s2d-srcdefs-test-20261001.json`) — 목표 5 개 찾음, 기준선 16,030 개 보존(매크로 끝 교정 4 개 제외), 추가 34 개(목록 저장), 프로토타입 추가 0. 기준선 `s2d-srcdefs-baseline-20261001.tsv`.
-- 재실행과 변경 보고(`09_validation/reconstruction/s2d-change-report-20261001.json`; 이전 판은 `s2d-before-20261001/` 에 보존):
-  - S2-A: 구간 362 그대로, 바뀐 구간 2 개(`ufs_subr.c` 시작 0x1429dc→0x142884, `ddm.c` 구간 표지에 `debugging.m` 추가). **seq 번호 변화 0** — 계획에 인용한 seq(6, 24, 31, 38, 76, 193, 258)는 그대로 유효. 신뢰도·후보 열 변화 0.
-  - S2-B: 4,761 행 그대로. 신뢰도 변화 8 행(unknown→medium 3, low→medium 2, unknown→low 1, medium→low 2), `top` 변화 202 행(결정성 191 + 파서 11). 검증(`s2b-validation-20261001b.json`): 양성 10/10, 음성 1/2,338(0.04 %), 변이 100 %.
-  - S2-C: 함수 3,857→3,861, 구간 우선순위 분포 그대로(NeXTMach 29, Darwin 16, 혼합/미정 317).
-  - S4 옵션 근거(세 실행): usable 행 변화 0 → 22·23 절 판정에 영향 없음(기존 근거 파일 유지).
-  - 확정 함수 6 개의 소스 줄 인용이 새 파서 결과와 모두 같음.
-- 새 표: `06_reconstruction/objects.tsv`, `function_candidates.tsv`, `source_choice.tsv` 교체, 보고서 `s2a-objects-20261001b.json`, `s2b-candidates-20261001b.json`, `s2c-*-20261001b.*`.
-- 남은 한계(27.1): 0 열이 아닌 닫는 괄호로 인한 과잉 범위(본문 안 0 열 `{` 가 있는 정의 511 개), 도구 간 줄 나누기 차이(51 파일).
-
-## 28. S5-P5 세부 계획 — `vm_pager.c`: Darwin 바탕 + NeXTMach 구조 복원 (코딩 전, 2026-10-01)
-
-고른 이유: S2-C NeXTMach 우선 구간 중 가장 작다(seq 211, 0x17a240–0x17a336, 246 B, 함수 6). 원본이 두 판의 **중간판**이라 D013 변경 후 첫 혼합 복원 시험이 된다. 헤더는 Darwin 환경 그대로 쓸 수 있다.
-
-확인한 사실(원본 capstone, 계산 Python):
-- 원본 함수: `_vm_pager_init` 0x17a240(빈 함수), `_vm_pager_get` 0x17a248, `_vm_pager_put` 0x17a284, `_vm_pager_deallocate` 0x17a2c0, `_vm_pager_allocate` 0x17a2f8, `_vm_pager_has_page` 0x17a308. 뒤 틈 0x17a336–0x17a338 `00`×2, **앞 틈 0x17a23e–0x17a240 은 `90 90`**(앞 구간 마지막 `jmp` 뒤) — 지금까지의 "목적 파일 사이 00" 관찰과 다름 → 경계 증명서 앞쪽은 성립하지 않을 수 있다(앞 목적 파일 끝의 채움일 가능성; 판정은 빌드 결과로).
-- `_vm_pager_get`: `pager == 0` → `vm_page_zero_fill(m)`, `return 0`; `*pager`(is_device) ≠ 0 → `device_pagein(m)` 반환; 아니면 `vnode_pagein(m, error)`(`vm_pager_get(pager, m, error)` 가 인자 3 개, `vnode_pagein` 은 2 개 — **Darwin 시그니처**, `vm_pager.c:61–72`; `device_pagein` 에는 `m` 하나).
-- `_vm_pager_put`: null → `panic("vm_pager_put: null pager")`(0x1e0cbc), device → `device_pageout(m)`, 아니면 `vnode_pageout(m)` — **NeXTMach 구조**(`mk-108.1/vm/vm_pager.c`, Darwin 은 `panic("vm_pager_put device")`).
-- `_vm_pager_deallocate`: null → panic(0x1e0cd5), device → `device_dealloc(pager)`, 아니면 `vnode_dealloc(pager)` — NeXTMach 구조.
-- `_vm_pager_allocate`, `_vm_pager_has_page`(panic 0x1e0cf5 `"vm_pager_has_page"`): 두 판 같음.
-- 원본에 `"vm_pager_get device"`·`"vm_pager_put device"`·`"vm_pager_deallocate device"` 없음, NeXTMach `!MACH_XP` 분기의 `DUMMY(pager_data_provided …)` 심볼 없음, `_pager_cache` 없음 → NeXTMach 파일 그대로도 아니다.
-
-설계:
-1. 시작 후보: **Darwin `vm/vm_pager.c`**(헤더가 현재 환경과 맞고, 차이가 국소적). D014 복원 수정 4 곳: (a) `vm_pager_get` 앞에 `void vm_pager_init() {}`(NeXTMach `vm_pager.c` 의 정의를 그대로; D013), (b) get 의 device 분기 `panic(...)` → `return(device_pagein(m));`, (c) put 의 device 분기 → `return(device_pageout(m));`, (d) deallocate 의 device 분기 → `device_dealloc(pager); else` 형태(반환형은 바이트로 구별되지 않아 Darwin 의 `void` 유지 — 28.1). 각 수정에 원본 주소 근거를 MODIFICATIONS 에 기록.
-2. 절차는 P4 와 같다: `stage_headers.py` 스테이징 → 진단 전처리(`undef_conditionals.py` 로 미정의 확인; 미정 옵션이 이 파일 코드에 영향을 주는지 판단) → 읽힌 헤더 채택 → 격리 재전처리 `.i` 동일 → 빌드(`-O2`, `-O3`, `-O4`) → L1(`--place-from-image`, Ghidra 몸체) → 경계 증명서.
-3. **예측**(빌드 전 기록): `__text` 246 B, 함수 오프셋 0/8/0x44/0x80/0xb8/0xc8(Python 으로 원본 주소 − 0x17a240), 외부 참조 `_vm_page_zero_fill`·`_device_pagein`·`_vnode_pagein`·`_panic`·`_device_pageout`·`_vnode_pageout`·`_device_dealloc`·`_vnode_dealloc`·`_vnode_alloc`·`_vnode_has_page`, 문자열 3 개(`-fwritable-strings` 로 `__data`). 
-4. 일치하지 않으면 R4(변형 3 회)·R5 를 따른다. 반환형(`void` 대 `boolean_t`)처럼 바이트로 구별되지 않는 선택은 Darwin 쪽을 유지하고 그 사실을 기록한다.
-5. 앞 틈 `90 90` 의 해석은 결과와 함께 기록하고, 경계 증명서가 성립하지 않으면 목적 파일 등급은 A 가 아니라 "L1 일치, 경계 미증명" 으로 둔다.
-
-### 28.1 codex 교차검토(QP5) 판정
-
-내 검증: 원본 0x17a240–0x17a338 전체를 capstone 으로 직접 역어셈블(이번 세션), panic 뒤 세 곳(0x17a29d, 0x17a2d5, 0x17a322) 확인, Darwin `bsd/sys/systm.h:136–144`, `vm/vm_pager.h:46–50` 확인, `stage_headers.py --list vm/vm_pager.c`(로컬) 로 닫힘 72 파일 확인.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 네 수정으로 제어 흐름·호출 인자가 설명된다; `device_pagein` 인자는 `m` 하나, `vnode_pagein` 은 `error, m` 순 push | 0x17a269 `push eax`(m) → `_device_pagein`, 0x17a274–0x17a279 확인 | ✅ (계획 문구 보완) |
-| `deallocate` 합류는 반환형을 구별하지 못한다(`put` 도 `return(x)` 인데 합류) | 확인 | ✅ 문구 수정 — Darwin `void` 는 후보 선택일 뿐 |
-| panic 뒤에도 코드가 이어진다 → 컴파일 시 `panic` 이 비복귀로 선언되지 않았다; Darwin `bsd/sys/systm.h:140` 은 GNU 에서 `volatile void panic` | 세 곳 확인, `systm.h:140` 확인 | ✅ → **예측 추가**: `vm_pager.c` 닫힘에 `bsd/sys/systm.h` 가 없으므로(로컬 닫힘 목록) `panic` 은 암묵 선언 → 호출 뒤 코드 유지. 진단 전처리 `.i` 에서 `panic` 선언 유무를 확인 |
-| 채움: 함수 사이·함수 안 모두 4 바이트 정렬 `90` | 역어셈블과 같음 | ✅ |
-| 앞 틈 `90 90` 은 `_vm_pageout`(0x17a0a4) 끝 `jmp 0x17a1c4` 뒤; S2-A 경계는 함수 범위에서 계산한 것이라 목적 파일 경계의 증거가 아님 | 0x17a23c `eb 86` 확인, S2-A 코드 105 행 계산 방식 확인 | ✅ → 앞 경계는 미증명으로 둘 수 있음(설계 5) |
-| Ghidra 가 panic 뒤 `add esp,4` 를 분석 조각으로 떼어 냄 → 몸체 범위만 보면 빠진다 | L1 범위는 함수의 몸체 블록 중 최대 끝까지라 조각을 포함함(내 범위 계산 방식) — 전체 `__text` 비교도 함께 함 | ⚖️ 사실, 이미 대응됨 |
-| `is_device` 오프셋 0, `boolean_t` = `unsigned int`(i386) | `vm_pager.h:46–50` 확인 | ✅ |
-
-진행 제약(2026-10-01): 사용자가 OPENSTEP 실기를 다른 세션에서 쓰는 동안 실기(gcds) 작업을 하지 않는다 — 스테이징·명령 파일까지 로컬에서 준비하고 전처리·빌드는 실기가 비면 한다.
-
-### 28.2 S5-P5 결과 (2026-10-01) — 첫 혼합(Darwin+NeXTMach) 복원, `-O3` 증거
-
-- 진단 전처리 `s5p5-pre-1`: 읽힌 48 파일, 채택 2(`vm/vm_pager.c`, `vm/vnode_pager.h`), `panic` 선언 없음(예측 적중), 남은 미정의는 미정 옵션·`VM_OBJECT_DEBUG` 뿐(이 파일 코드는 해당 구조체 필드를 쓰지 않음).
-- 복원 수정(28 설계 1, 초안 그대로) → `07_kernel/src/vm/vm_pager.c`, diff `06_reconstruction/evidence/x86-vm_pager.diff`, MODIFICATIONS·PROVENANCE(NeXTMach `vm_pager.c:84` 출처 포함). 07_kernel 스냅샷 `.i` 는 진단 `.i` 와 의도한 두 수정(`vm_object.h` S4-B, 이 파일)만 다름.
-- `s5p5-build-1`: `-O3`=`-O4` 동일, `-O2` 다름. `-O3` 예측 4 항목 적중. L1: `-O3`/`-O4` 6 함수 MATCH·OBJECT_MATCH(`__data` 0x1e0cbc L1d 검증), `-O2` 는 `get`·`put` DIFF → **원본 컴파일 옵션이 `-O3` 이상이라는 첫 증거**(13.3 의 보류 사항; Darwin `MASTER.i386:82` `-O3` 와 일치). 이후 공통 빌드 옵션은 `-O3`(libc 6 파일은 `Makefile.i386:82` 의 `-O4`).
-- 경계: 뒤 `00`×2 통과, 앞 `90 90`(길이는 최소 채움, 값이 00 아님) → 목적 파일 등급 **A\***(README 에 정의 추가). 함수 6 개 `compared/high`(`vm_pager_init` 은 source_id `nextmach`).
-- 남은 질문: 앞 목적 파일(`vm_pageout.c`)이 끝에 `90` 채움을 갖는 이유 — 그 파일을 다룰 때 확인.
-
-## 29. S5-P6 세부 계획 — `ipc/ipc_thread.c`(Darwin 단일 후보) 와 스테이징 개선 (코딩 전, 2026-10-01)
-
-고른 이유: Mach IPC 쪽 작은 구간(S2-A seq 150, 0x151be8–0x151cb9, 209 B, 함수 3). NeXTMach 에 `ipc/` 가 없어 후보는 Darwin 하나, 헤더는 현재 환경. `struct thread` 의 `ith_next`/`ith_prev` 를 써서 S4-B2 수정 헤더(`kern/thread.h`)를 처음 거치는 파일.
-
-확인한 사실(원본 capstone, 계산 Python):
-- 함수: `_ipc_thread_enqueue` 0x151be8, `_ipc_thread_dequeue` 0x151c24, `_ipc_thread_rmqueue` 0x151c70(오프셋 0, 0x3c, 0x88). 외부 호출·데이터 참조 없음. `ith_next` +0x90, `ith_prev` +0x94(배치 표와 같음).
-- 동작이 Darwin `ipc/ipc_thread.c:90–148` 과 같고 `assert` 코드 없음(`MACH_ASSERT=0` 가설과 맞음).
-- 앞 틈 0x151be6–0x151be8 `00`×2, 뒤 틈 0x151cb9–0x151cbc `00`×3 — 둘 다 4 바이트 정렬 최소 채움.
-
-설계:
-1. **스테이징 개선**: `stage_headers.py` 에 `--prefer-07` 을 더한다 — 닫힘의 파일이 `07_kernel` 에 같은 상대 경로로 있으면 그 파일(복원 수정본 포함)을 복사하고, manifest 에 출처를 `07_kernel/...` 로 적는다. 닫힘 계산은 지금처럼 Darwin 트리 기준(07_kernel 판에서 include 가 달라지지 않았음을 같이 확인: 두 판의 include 줄 집합 비교). 자체 시험: `--prefer-07` 없이 만든 스테이징과 파일 집합이 같고, 내용이 다른 파일은 07_kernel 에서 수정한 파일(`MODIFICATIONS.md` 목록)뿐.
-2. 절차: 스테이징(`--prefer-07`) → 진단 전처리(`undef_conditionals.py`) → 채택 → 07_kernel 스냅샷 빌드(`-O3`, 대조 `-O2`·`-O4`) → `.i` 동일 확인(이제 수정 헤더 차이 없이 바이트 동일이어야 함) → L1 → 경계 증명서.
-3. **예측**: `__text` 209 B, 함수 오프셋 0/0x3c/0x88, 재배치 0, 외부 심볼 0, `__data` 없음.
-4. 일치하지 않으면 D014 R4·R5.
-
-### 29.1 codex 교차검토(QP6: `--prefer-07`) 판정 — 설계 1 수정
-
-내 검증: 07_kernel 전체를 Darwin 원본과 비교(Python: 내용이 다른 파일 4 개 = `MODIFICATIONS.md` 목록, include 줄이 다른 파일 0, 07 에만 있는 파일은 `.gitkeep` 4 개), `stage_headers.py` 20–45 행(`ROOTS` 첫 항목이 이미 `07_kernel/generated`, `staged_name()` 은 07 의 `src`·`components` 경로를 모름), `vm_external.h` include 가 Darwin `vm_object.h:79` / 07 판 `:81` 임을 grep 으로 확인.
-
-| codex 주장 | 판정 |
-|---|---|
-| 현재 스냅샷·`ipc_thread.c` 에 한해 "Darwin 으로 탐색, 07 을 복사" 는 같은 닫힘을 낸다 | ✅(include 줄 차이 0 직접 확인) |
-| 일반 기능으로는 부족: 07 판에서 include 가 바뀌거나 07 에만 새 헤더가 생기면 Darwin 기준 탐색이 놓친다; 따옴표 include 의 기준 디렉터리도 논리 경로여야 한다 | ✅ 설계 변경 |
-| `staged_name()` 이 07 의 물리 경로를 지원하지 않아 "읽는 경로만 바꾸기" 로는 안 된다 | ✅(코드 확인) |
-| 미해결 위치(`at`)가 Darwin 줄이면 복사본과 어긋난다(79 대 81) | ✅ → 실제로 읽은 파일 기준으로 기록 |
-| manifest 최소 정보(조건·파일별 실제 원본과 해시·의존 관계·생성 입력) | ⚖️ 파일별 실제 원본·해시, Darwin 대응 해시(다르면), 미해결의 실제 위치, 옵션·루트 목록을 기록(의존 관계 전체 목록은 이번 범위 밖) |
-
-변경된 설계 1: 닫힘을 **논리 경로**(`generated/…`, `src/…`, `components/…`)로 계산한다. 논리 경로마다 `--prefer-07` 이면 `07_kernel/<논리 경로>` 를 먼저, 없으면 Darwin 대응 경로를 고르고, **고른 파일의 내용으로** 재귀한다. 따옴표 include 는 포함한 파일의 논리 디렉터리를 먼저 본다. 루트 순서는 지금과 같다. 자체 시험: (a) 옵션 없이 기존 manifest(`s5p2-stage-1`, `s5p4-stage-2`, `s5p5-stage-1`)의 파일·출처·해시를 그대로 재현, (b) `--prefer-07` 로 `pagesize.c`·`vm_pager.c`·`ipc_thread.c` 닫힘이 옵션 없을 때와 논리 파일 집합이 같고, 내용이 다른 파일은 `MODIFICATIONS.md` 의 수정 파일뿐.
-
-### 29.2 S5-P6 결과 (2026-10-01) — `ipc_thread.c` A, 스테이징 개선
-
-- `stage_headers.py` 를 논리 경로 기준으로 다시 씀(29.1): 자체 시험 통과 — 옵션 없이 기존 manifest 3 개(`s5p2-stage-1` 28, `s5p4-stage-2` 134, `s5p5-stage-1` 72 파일, 미해결 목록 포함)를 그대로 재현, `--prefer-07` 은 `pagesize.c`·`vm_pager.c`·`ipc_thread.c` 닫힘에서 논리 파일 집합이 같고 내용 차이는 수정 파일(`thread.h`, `vm_object.h`, `vm_pager.c`)뿐.
-- `s5p6-pre-1`: 읽힌 90 파일 중 89 가 07_kernel 과 동일, 채택 1. **07_kernel 스냅샷 `.i` 가 진단 `.i` 와 바이트 동일**(스테이징 개선 효과).
-- `s5p6-build-1`: `-O2`=`-O3`=`-O4`, 예측 적중, L1 3 함수 MATCH·OBJECT_MATCH, 경계 증명서 통과(앞 00×2, 뒤 00×3) → `x86-ipc_thread` **A**, 3 함수 `compared/high`. 수정한 `struct thread` 를 거친 첫 확정 파일.
-
-## 30. S5-P7 세부 계획 — libc `memcpy.c`·`memmove.c` 의 `bcopy` 위치 복원 (코딩 전, 2026-10-01)
-
-확인한 사실(원본 capstone·Ghidra 함수표, 계산 Python):
-- 원본 순서: `_memcmp`(끝 0x1013cb) → `00`×1 → `_bcopy` 0x1013cc → `_memcpy` 0x1013e4 → (0x101487 `90`) → `_bcopy16` 0x101488 → (틈 0) → `_ovbcopy` 0x1014ec → `_memmove` 0x101504 → 끝 0x1015fe → `00`×2 → `_bzero` 0x101600.
-- 원본 `_bcopy` 는 `[ebp+0x10]`, `[ebp+8]`, `[ebp+0xc]` 순으로 push 해 **`_memcpy(dst, src, len)`** 을 호출(0x1013db). `_ovbcopy` 는 같은 모양으로 `_memmove` 호출(0x1014fb).
-- Darwin `machdep/i386/libc/memmove.c` 는 `bcopy`(115–118)·`ovbcopy`(120–123)·`memmove` 를 정의하고 `bcopy` 도 `memmove` 를 부른다; `memcpy.c` 는 `memcpy`(101–134)·`bcopy16`(141–171)만, `memcpy` 프로토타입은 99 행.
-- 해석(가설): 원본 판에서 `bcopy` 는 `memcpy.c` 에 있고 `memcpy` 를 부른다 → 목적 파일 두 개: **memcpy**(0x1013cc–0x1014ec, 288 B: `bcopy` 0, `memcpy` 0x18, `bcopy16` 0xbc; 내부 `90` 채움은 같은 목적 파일 안이라는 관찰과 맞음), **memmove**(0x1014ec–0x1015fe, 274 B: `ovbcopy` 0, `memmove` 0x18). S2-A seq 2·3 의 경계(0x101487)는 함수 범위 기반이라 목적 파일 경계라는 증거가 아님(30.1).
-- 경계: memcpy 앞 `00`×1(최소 채움 1), memcpy 뒤·memmove 앞 0 바이트(이미 정렬), memmove 뒤 `00`×2(최소 채움 2).
-
-설계:
-1. D014 복원 수정 두 파일: (a) `memmove.c` 에서 `bcopy` 정의(115–118 행과 뒤 빈 줄) 삭제. (b) `memcpy.c` 의 `memcpy` 프로토타입(99 행) 뒤, `memcpy` 정의 앞에 `void bcopy(const void *src, void *dst, unsigned long ulen) { (void) memcpy(dst, src, ulen); }` 를 Darwin `memmove.c:115–118` 의 문체 그대로(호출 대상만 `memcpy`) 넣는다. 각 수정 근거: 원본 0x1013db·0x1014fb.
-2. 절차: `stage_headers.py --prefer-07`(두 소스) → 진단 전처리 → 채택 → 07_kernel 스냅샷 빌드(libc 규칙 `-O4`, 대조 `-O3`·`-O4 -funroll-all-loops`) → `.i` 동일 → L1 → 경계 증명서(두 목적 파일 연속, 사이 틈 0).
-3. **예측**: memcpy `__text` 288 B·함수 오프셋 0/0x18/0xbc·같은 목적 파일 안 호출이라 외부 재배치 없음(있다면 `_memcpy` 로컬 재배치 0 개 예상); memmove `__text` 274 B·오프셋 0/0x18·외부 참조 없음. 둘 다 `__data` 없음.
-4. 일치하지 않으면 R4·R5.
-
-### 30.1 codex 교차검토(QP7) 판정
-
-내 검증: 원본 0x1013c8–0x1013f0, 0x1014e8–0x101508 역어셈블(이번 세션), 경계 바이트 4 곳, Darwin `memcpy.c:99`·`memmove.c:113–123` 확인.
-
-| codex 주장 | 판정 |
-|---|---|
-| `_bcopy` → `_memcpy(dst, src, len)`(0x1013db), `_ovbcopy` → `_memmove`(0x1014fb) | ✅ 확인 |
-| `_bcopy` 는 EAX, `_ovbcopy` 는 EDX 로 인자를 옮긴다 — 빌드에서 확인할 차이 | ✅ 사실(원인은 미확인) → 예측 항목에 추가 |
-| 경계 바이트는 "목적 파일 2 개" 를 지지하지만 "3 개(`bcopy16` 별도)" 를 배제하지 못한다(0x101487 `90` 은 앞 목적 파일 끝 채움일 수도) | ✅ → **빌드로 판정**: `memcpy.c` 한 목적 파일이 0x101487 의 `90` 을 포함해 288 B 로 L1 일치하면 2 개 가설이 바이트로 확인된다 |
-| 본문(`memcpy`, `bcopy16`, `memmove`)은 Darwin 과 대응, `bcopy` 이동 외 수정 근거 없음 | ⚖️ 소스–명령 대응은 합리적, 최종 판정은 L1 |
-| `bcopy` 는 프로토타입(99 행) 뒤·`memcpy` 정의 앞에 — 가장 작은 변경 | ✅ 설계 그대로 |
-
-### 30.2 S5-P7 결과 (2026-10-01) — `memcpy`·`memmove` A
-
-- 두 소스는 include 가 없어 스테이징 2 파일, 채택 2(APSL). 복원 수정(`bcopy` 이동) diff `06_reconstruction/evidence/x86-memcpy_memmove.diff`.
-- `s5p7-build-1`: 파일마다 `-O4`=`-O3`=`-O4 -funroll-all-loops`, 예측(크기·오프셋) 적중. L1 5 함수 MATCH, 두 목적 파일 OBJECT_MATCH, 경계 증명서 통과 → `x86-memcpy`·`x86-memmove` **A**, 5 함수 `compared/high`.
-- 30.1 의 열린 질문 해결: 0x101487 의 `90` 은 memcpy 목적 파일 안 채움 → 목적 파일 2 개가 바이트로 확인. `_bcopy`(EAX)/`_ovbcopy`(EDX) 의 레지스터 차이도 추가 수정 없이 재현.
-
-### 30.3 사고 기록 (2026-10-01) — `06_reconstruction/functions.tsv` 행 손실과 복구
-
-- 원인(내 오류): 행 추가에 `open(f,'w').write(open(f).read() + …)` 를 썼다. 쓰기용 `open` 이 먼저 평가돼 파일을 비운 뒤 읽으므로 기존 내용이 사라진다. S5-P5(`vm_pager`), S5-P6(`ipc_thread`), S5-P7(`memcpy/memmove`) 세 번 실행돼 헤더와 앞선 15 행이 사라졌다(세션 기록 전수 검색: 이 패턴은 이 세 곳뿐, 모두 `functions.tsv`). `objects_confirmed.tsv`(추가 모드), PROVENANCE·MODIFICATIONS·계획 문서는 읽은 뒤 쓰거나 추가 모드라 영향 없음.
-- 복구: 헤더는 `git show HEAD:06_reconstruction/functions.tsv`, 사라진 행은 파일 변경 때 세션에 남은 diff(삭제된 줄 원문)에서 그대로 복원 — memcmp·kern_machdep·pagesize 6 행, vm_pager 6 행(다음 diff 의 삭제 줄과 같음을 확인), ipc_thread 3 행 — 에 현재 memcpy·memmove 5 행을 더해 20 행. 검증: ID 중복 0, 열 수 모두 15, 20 행 모두 소스 줄 인용이 원본·수정본 줄과 일치(자동 대조), kern_machdep 의 `:88` 교정 유지. 손상된 판은 스크래치에 보존.
-- 재발 방지: 표 갱신은 항상 "읽기 → 메모리에서 변경 → 쓰기" 또는 추가 모드로 하고, 갱신 뒤 행 수를 Python 으로 확인한다.
-
-## 31. S5-P8 세부 계획 — libc `memchr.c`(그대로)·`memset.c`(뒷부분 삭제) (코딩 전, 2026-10-01)
-
-확인한 사실(원본 심볼표·Ghidra·바이트, 계산 Python):
-- `memchr`: `_memchr` 0x1012d0 = `__text` 시작, 몸체 끝 0x1012f9(41 B), 뒤 틈 `00`×3(최소 채움 3) 다음 `_bcmp`(memcmp 목적 파일, A). Darwin `machdep/i386/libc/memchr.c` 는 `memchr`(38–54) 하나, include 없음.
-- `memset`: 0x101600–0x1019be(958 B), `_bzero` 0x101600·`_blkclr` 0x101618·`_memset` 0x101630(오프셋 0/0x18/0x30), 앞 틈 `00`×2(memmove 끝 0x1015fe, A 에서 확인), 뒤 틈 `00`×2(최소 채움 2) 다음 `_page_set`(pagesize, A). `_memset` 안에 Ghidra 분석 조각 다수(0x10183c–0x1018bd) — 전체 `__text` 비교로 확인.
-- Darwin `memset.c`(338 줄)는 `bzero`(186)·`blkclr`(191)·`memset`(198–248) 뒤에 `#import <mach/mach_types.h>`·`<sys/errno.h>`(250–251), `set_recover`·`clear_recover`·`safe_bzero`·`safe_memset`(257–338)을 둔다. 원본에는 `_safe_bzero`·`_safe_memset`·`_set_recover`·`_clear_recover` 심볼이 없고(`set_recover`·`clear_recover` 는 `static inline`), memset 구간도 `_memset` 끝에서 끝난다 → 원본 판에는 249–338 행이 없다(가설; `safe_*` 는 나중 판에서 추가된 것으로 보임).
-
-설계:
-1. `memchr.c`: Darwin 원문 그대로 채택. `memset.c`: D014 복원 수정으로 249–338 행 삭제(머리말 뒤 수정 주석 추가) — 근거: 원본 심볼·구간.
-2. 두 소스 모두 include 가 없게 되므로 스테이징·헤더 채택 없음. 07_kernel 스냅샷 빌드(`-O4`, 대조 `-O3`·`-O4 -funroll-all-loops`) + `-E`.
-3. **예측**: memchr `__text` 41 B·외부 참조 0·재배치 0; memset `__text` 958 B, 함수 오프셋 0/0x18/0x30, `bzero`·`blkclr` 는 `_memset` 호출(재배치는 같은 목적 파일 안), `switch` 가 있으면 점프 표 재배치. 둘 다 `__data` 없음(문자열 없음).
-4. L1(`--place-from-image`, Ghidra 몸체) + 경계 증명서. 일치하지 않으면 R4·R5.
-
-### 31.1 codex 교차검토(QP8) 판정
-
-내 검증: 0x1017b9 `jmp [eax*4+0x1017c0]`, 점프 표 3 개(0x101670 31 항목, 0x1017c0 31, 0x101900 29)의 모든 항목이 memset 구간 안을 가리킴(Python), 원본 `_mfs_trunc` 0x15e79f `call _bzero`, Darwin `kern/mapfs.c:43–45`(1997 년 mfs→mapfs 이름 변경 기록), 248 행까지 `mach_types.h` 형·`EFAULT`·`current_thread` 사용 없음(grep).
-
-| codex 주장 | 판정 |
-|---|---|
-| `_memchr`·`_bzero`·`_blkclr`·`_memset` 이 Darwin 소스와 대응(인라인된 `simple_char_set` 두 사본, `MODULO_LOOP_UNROLL`, fall-through switch) | ⚖️ 대응은 합리적, 최종 판정은 L1 |
-| 0x10183c–0x1018bd 는 두 번째 `simple_char_set` 의 switch 코드, 점프 표는 `__text` 안(세 개) | ✅ 점프 표 확인 → 예측: 목적 파일에 점프 표 항목 재배치(로컬)가 있다 |
-| 248 행까지는 `#import <mach/mach_types.h>` 에 의존하지 않음 | ✅ |
-| `nfs.h:795` 는 주석·상수일 뿐, 실제 호출은 `mapfs.c:696`; 원본에는 `mapfs_*` 대신 `_mfs_trunc` 가 있고 그 자리에서 **일반 `_bzero`** 를 호출(0x15e79f) | ✅ 내 근거("mapfs 심볼 없음")보다 강한 직접 근거 — `safe_*` 부재 판단 유지 |
-
-### 31.2 S5-P8 결과 (2026-10-01) — `memchr`·`memset` A
-
-- 채택 2(APSL), `memset.c` 249–338 행 삭제(MODIFICATIONS, diff `06_reconstruction/evidence/x86-memset.diff`). 두 소스 모두 include 없음.
-- `s5p8-build-1`: 파일마다 세 옵션 동일, 예측(41 B; 958 B·오프셋 0/0x18/0x30) 적중, memset 재배치 96 = 점프 표 91 + 표 기준 3 + 호출 2.
-- L1 4 함수 MATCH, OBJECT_MATCH 2, 경계 증명서 통과 → `x86-memchr`·`x86-memset` **A**, 4 함수 `compared/high`. 표 갱신 후 행 수 확인(functions 20→24 행, 30.3 의 재발 방지 규칙대로).
-- 이로써 Darwin `Makefile.i386:78` 의 libc 6 파일(`memchr memcmp memcpy memmove memset pagesize`)이 모두 원본 바이트로 확정됐다(0x1012d0–0x101a0e 연속, 목적 파일 6 개 모두 A).
-
-## 32. S5-P9 세부 계획 — libc 두 번째 묶음 11 파일(`-O4 -funroll-all-loops`) (코딩 전, 2026-10-01)
-
-확인한 사실(원본 함수표·바이트, Darwin `conf/Makefile.i386:84–91`, 계산 Python):
-- Darwin 규칙 `LIBC_UNROLL_SRC = strchr strrchr strlen strcpy strncpy strcat strncat strcmp strncmp index ffs`, `${KCC} $(COPTS) $(MACHINE_CFLAGS) -c -O4 -funroll-all-loops`. 링크 순서 `LDOBJS_PREFIX= $(LIBC_OBJ) $(LIBC_UNROLL_OBJ)`(:68) — 원본도 libc 6 파일(0x1012d0–0x101a0e, 모두 A) 바로 뒤에 같은 순서로 놓임.
-- 원본 함수(시작, 크기 B): `_strchr` 0x101a10 41, `_strrchr` 0x101a3c 187, `_strlen` 0x101af8 77, `_strcpy` 0x101b48 117, `_strncpy` 0x101bc0 248, `_strcat` 0x101cb8 181, `_strncat` 0x101d70 265, `_strcmp` 0x101e7c 127, `_strncmp` 0x101efc 197, `_index` 0x101fc4 41, `_ffs` 0x101ff0 188. 함수 사이 틈은 모두 `00` 이고 길이가 4 바이트 정렬 최소 채움과 같음(`strncpy`→`strcat`, `ffs`→`_rpause` 는 0). 외부 호출·구간 밖 절대 참조 없음(capstone 전수).
-- Darwin `machdep/i386/libc/<name>.c` 는 각각 함수 하나, include 없음(`srcdefs`). S1-C 에서 `strcpy`·`strcmp` 는 이미 몸체 일치 관찰.
-- S2-A 는 이 구간을 seq 7–11 로 나눴고(seq 9·11 은 NeXTMach `next/libc.s` 표지로 묶임) — 함수 범위 기반 표지라 목적 파일 경계의 증거가 아님.
-
-설계:
-1. 11 파일 모두 Darwin 원문 그대로 채택(PROVENANCE 행), 수정 없음.
-2. 07_kernel 스냅샷 빌드: 파일마다 `-O4 -funroll-all-loops`(Makefile 규칙), 대조 `-O4`·`-O3`, `-E` 1 개씩.
-3. **예측**: 파일마다 목적 파일 `__text` 크기 = 위 원본 크기, 기호 1 개, 외부 심볼 0, `__data` 없음. 재배치는 점프 표가 있으면 그 수만큼(외부 0).
-4. L1(`--place-from-image`, Ghidra 몸체) + 경계 증명서(앞뒤 틈이 연속 구간이라 이웃 목적 파일의 증명서와 공유). 일치하지 않는 파일은 원인을 기록하고(R4·R5), 일치한 파일만 확정한다.
-
-### 32.1 codex 교차검토(QP9) 판정
-
-내 검증: S1-C 산출물 `08_build/runs/s1c-matrix-2/out/s13__strcpy.o`·`s17__strcpy.o`·`s13__strcmp.o`·`s17__strcmp.o` 의 `__text` 를 원본과 직접 비교(s13 = `-O4`, s17 = `-O4 -funroll-all-loops`, `10_tools/reconstruction/s1c/samples-1/provenance.json:19,23`), 원본 `_index` 41 B 와 `_strchr` 41 B 바이트 비교.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 함수별 의미가 Darwin 소스와 맞고, 루프 본문이 8 번 반복(펼침), `strchr`·`index` 는 펼침 없음 | 개별 대조는 L1 로 판정 | ⚖️ 예측 근거로만 |
-| `strcpy`·`strcmp`: `-O4` 는 43 B 로 불일치, `-O4 -funroll-all-loops` 는 117·127 B 로 원본 `__text` 일치 | 직접 비교: s13 43 B False, s17 117/127 B True | ✅ → 이 묶음의 옵션이 Makefile 규칙과 같다는 바이트 근거 |
-| `index` 는 `strchr` 와 함수 전체가 같은 바이트 | 확인 | ✅ |
-| 틈 `00`·최소 채움은 파일마다 목적 파일 하나와 양립; S1-C 의 여러 함수 목적 파일은 함수 사이를 `90` 으로 채움; 그러나 다른 분할을 완전히 배제하지는 못함 | 기존 관찰(함수 사이 90, 목적 파일 사이 00)과 같음 | ✅ 판정은 빌드 결과로(각 목적 파일 크기가 원본 함수 크기와 같은지) |
-
-### 32.2 S5-P9 결과 (2026-10-01) — libc 두 번째 묶음 11 파일 A
-
-- 11 파일 원문 채택(PROVENANCE 11 행), `s5p9-build-1` 44 명령 모두 종료 코드 0(`ffs.c:40` 내장 함수 형 충돌 경고만).
-- 크기 예측 11/11 적중, 재배치·외부 심볼 0. L1: `-O4 -funroll-all-loops` 에서 11 목적 파일 OBJECT_MATCH, `-O4`·`-O3` 에서는 9 개 불일치(`strchr`·`index` 만 옵션 무관) → Makefile 규칙의 옵션이 바이트로 확인.
-- 경계 증명서 11/11 통과 → 11 목적 파일 **A**, 11 함수 `compared/high`(표 행 수 확인: functions 24→35 행, objects 9→20).
-- 누적: libc 17 파일(0x1012d0–0x1020ac 연속)이 모두 원본 바이트로 확정.
-
-## 33. S5-P10 세부 계획 — `kern/timer.c`(옵션 `STAT_TIME`·`NCPUS` 확정 시험) (코딩 전, 2026-10-01)
-
-고른 이유: Mach 쪽 작은 구간(S2-A seq 197), 코드가 `STAT_TIME` 분기와 `NCPUS` 크기 배열에 직접 의존 → 일치하면 S4-A1 가설 두 개를 **확정**으로 올릴 수 있다(22.1 의 확정 조건).
-
-확인한 사실(원본, 계산 Python):
-- 목적 파일 0x16a198–0x16a35e(454 B): `_init_timers` 0, `_timer_init` 0x34, `_timer_normalize` 0x5c, `_timer_read` 0x94, `_thread_read_times` 0xe8, `_timer_delta` 0x174. 앞 틈 `00`×2·뒤 틈 `00`×2(최소 채움). 뒤의 `FUN_0016a360` 은 `00 00` 뒤에 있고 끝에서 `_zinit` 까지 `90 90 90`, 호출자 0x16ae29(zalloc 구간) → zalloc.c 의 정적 함수(이 목적 파일 아님).
-- Darwin·NeXTMach `kern/timer.c` 는 같은 함수 목록; 원본에 없는 `start_timer`·`time_trap_*`·`time_int_*`·`timer_switch` 는 소스에서 `!STAT_TIME` 분기 → `STAT_TIME=1` 과 맞음.
-- 외부 참조: 호출은 `_timer_init`(같은 파일), 절대 참조는 `_current_timer` 0x1f6d9c(4 B)·`_kernel_timer` 0x1f6da0(16 B) — 둘 다 이 파일이 정의(`timer.c:49–50`, `timer_t current_timer[NCPUS]`, `timer_data_t kernel_timer[NCPUS]`), 원본 `__common` 에서 연속, 크기가 `NCPUS=1` 과 맞음(`struct timer` 16 B). `-fno-common` 의 미초기화 전역은 목적 파일의 `__DATA,__common` zero-fill 섹션(11.2 도구 사실).
-- 헤더: `sys/param.h`, `sys/kernel.h`, `bsd/machine/cpu.h`(Darwin 4.4BSD 판) 를 읽는다 — 이 파일 코드가 BSD 구조체를 쓰는지 전처리 결과로 확인.
-
-설계:
-1. 시작 후보 Darwin(헤더 환경 준비됨; NeXTMach 판은 `sys/` 헤더 경로가 달라 이번에는 대조용). 원문 그대로 채택.
-2. 절차: `stage_headers.py --prefer-07` → 진단 전처리(`undef_conditionals.py`) → 채택 → 07_kernel 빌드(`-O3`, 대조 `-O2`·`-O4`) → `.i` 동일 → L1(`__common` 배치 포함) → 경계 증명서.
-3. **예측**: `__text` 454 B, 함수 오프셋 위와 같음, 목적 파일 `__common` 20 B(`current_timer` 4 + `kernel_timer` 16), 외부 심볼 없음(전부 정의), 재배치는 `__common` 참조와 `timer_init` 호출.
-4. 일치하면 `06_reconstruction/config_options.tsv` 의 `STAT_TIME`·`NCPUS` 상태를 `confirmed` 로(근거: 이 목적 파일 L1), 생성 헤더 내용은 그대로(`--check`). 일치하지 않으면 R4·R5.
-
-### 33.1 codex 교차검토(QP10) 판정
-
-내 검증: Darwin `timer.c:49` 와 NeXTMach `timer.c:92` 부터 파일 끝까지 줄 단위 동일(Python), 원본 0x16a1b8–0x16a1be(`inc ebx; add esi,0x10; test ebx,ebx; jle`) 확인.
-
-| codex 주장 | 판정 |
-|---|---|
-| 6 함수가 Darwin `STAT_TIME` 분기 소스와 대응(`timer_normalize` 제수 1,000,000, `thread_read_times` 의 `+0xe0`/`+0xf0` 은 복원한 `thread.h` 와 맞음, `TIMER_ADJUST` 는 `STAT_TIME` 분기에서 `#undef`) | ⚖️ 대응은 합리적, 최종은 L1 |
-| `init_timers` 는 펼쳐지지 않은 1 회 루프(`jle` 로 i≤0 재시도) | ✅ 확인 |
-| Darwin·NeXTMach 본문은 전역 정의부터 끝까지 동일 → 이 파일로는 판을 가를 수 없음 | ✅ 확인 → 후보 선택은 헤더 환경으로만 의미 |
-| `#if STAT_TIME` 은 0/비영만 구별 → 확정은 "비영" 이며 값 1 은 불리언 옵션 전제 | ✅ → 표에 "confirmed (nonzero; boolean option)" 로 적는다 |
-| `__common` 은 zero-fill 이라 파일 바이트로 크기 검증 불가 — 목적 파일의 zero-fill 섹션 크기·심볼 오프셋과 원본 심볼 간격으로 비교해야 | ✅ 예측 3 을 그렇게 판정 |
-| `STAT_TIME=0` 대조 빌드는 Darwin i386 헤더에 `TIMER_HIGH_UNIT` 정의가 없어 성립하지 않을 수 있음 | ⏭️ 대조 빌드는 하지 않음(확정 근거는 일치 쪽만 사용) |
-
-### 33.2 S5-P10 중단 (2026-10-01) — BSD 헤더 환경 공백
-
-- `s5p10-stage-1`(`--prefer-07`, 136 파일, 미해결 13) → 진단 전처리 `s5p10-pre-1` 실패: `src/src/bsd/sys/param.h:106: machine/limits.h: No such file or directory`(두 명령 모두 종료 코드 1; collect 는 NFS 임시 파일로 manifest 가 깨져 게시 거부 — 메모리의 증상 그대로).
-- Darwin `kernel/bsd/machine/` 에는 `limits.h` 가 없다(`architecture/i386/limits.h`, `bsd/include/limits.h` 만 있음). Darwin 빌드는 이것을 시스템(Rhapsody `System.framework`) 헤더로 풀었을 것으로 보인다(추정).
-- 실기 OPENSTEP 4.2 의 `/NextDeveloper/Headers` 에는 `limits.h` 가 `ansi/{,i386,m68k,sparc,hppa,machine}/limits.h` 에만 있고 `bsd/machine/` 에는 없다(읽기 전용 조회). Darwin 4.4BSD 판 `sys/param.h` 의 `<machine/limits.h>` 요구는 원본 시대의 NeXT BSD 헤더 배치와 맞지 않는다.
-- `timer.c` 는 `sys/param.h`·`sys/kernel.h`·`bsd/machine/cpu.h` 를 읽기 때문에 처음으로 BSD 헤더 환경에 걸렸다. 빈 헤더·경로 끼워 넣기 같은 우회는 하지 않고 P10 을 멈춘다(채택한 파일 없음, 07_kernel 변경 없음).
-- 다음: S4-C 계획 — BSD 헤더 환경(Darwin 4.4BSD 판 대 NeXTMach 4.3BSD 판, i386 기계 의존 헤더의 출처)을 원본 근거로 정한다. 그 전까지 BSD 헤더를 읽는 파일은 진행하지 않는다.
-
-## 34. S4-C 조사와 S5-P11 세부 계획 — BSD 헤더 공백의 범위, `kern/mach_factor.c` (코딩 전, 2026-10-01)
-
-S4-C 조사(Python, `stage_headers.py --prefer-07` 닫힘, Darwin 단일 후보 구간 중 아직 안 한 170 개): 기존 비활성 미해결 11 종 외에 새 미해결 이름 — `machine/limits.h` 90 구간, `mach_nbc.h`·`kdebug.h` 각 11, `mach_kdb.h` 10, `cputypes.h` 7, … . 새 미해결이 없는 구간 61 개(대부분 BSD `sys/` 헤더를 읽지만 `machine/limits.h` 경로에 닿지 않음). → `machine/limits.h`(Darwin 4.4BSD `sys/param.h:106`) 한 가지가 가장 큰 장애. BSD 헤더 판 결정(S4-C)은 따로 계획하고, 그동안 새 미해결이 없는 Mach 쪽 파일을 진행한다.
-
-S5-P11 대상: `kern/mach_factor.c` — 닫힘 45 파일, BSD `sys/` 헤더 없음.
-
-확인한 사실(원본, 계산 Python):
-- 목적 파일 0x15c100–0x15c2fc(508 B), `_compute_mach_factor` 하나. 앞 `FUN_0015c0ac` 는 `_mach_clock_bootstrap` 과 사이가 `90`(같은 목적 파일, mach_clock.c 정적 함수)이고 끝 뒤 `00`×1(최소 채움 1) → 앞 경계 0x15c100. 뒤는 `mach_header.c` 가 0x15c2fc 에서 바로 시작(틈 0).
-- 호출 없음. 데이터 참조: `_avenrun` 0x1dee68(12 B, 0x1dee70 = `avenrun[2]`), `_mach_factor` 0x1dee74(12 B), 0x1dee80(이름 없음 — 소스의 `static long fract[3]` 로 보임), `_all_psets` 0x1e9600, `_all_psets_lock` 0x1e9608, `_default_pset` 0x1e9610. `processor_set` 필드 접근 오프셋 264–376.
-- 세 후보(Darwin, Mach4, NeXTMach)에 같은 함수 하나; Darwin 은 Mach 헤더만 include.
-
-설계: Darwin 원문 그대로 채택 → `--prefer-07` 스테이징 → 진단 전처리(`undef_conditionals.py`) → 채택 → 07_kernel 빌드(`-O3`, 대조 `-O2`·`-O4`) → `.i` 동일 → L1(`__data` 포함) → 경계 증명서.
-예측: `__text` 508 B, `__data` 36 B(`avenrun`·`mach_factor`·`fract` 각 12 B, 원본 0x1dee68–0x1dee8c 연속), 외부 심볼 `_all_psets`·`_all_psets_lock`·`_default_pset`. `processor_set` 오프셋이 다르면 구조체 판 차이(`kern/processor.h`) → 24·25 절 방법으로 조사.
-
-### 34.1 codex 교차검토(QP11) 판정
-
-내 검증: 0x1dee68–0x1dee8c 원본 값(`avenrun` 0×3, `mach_factor` 0×3, 0x1dee80 = 800, 966, 983) 직접 읽음.
-
-| codex 주장 | 판정 |
-|---|---|
-| 제어 흐름·상수(LOAD_SCALE 1000, SCHED_SHIFT 7, `(old<<2)+now)/5`, fract 가중 평균)·잠금 순서가 Darwin 소스와 대응 | ⚖️ 최종은 L1 |
-| 현재 옵션의 `struct processor_set` 계산 배치가 관찰 오프셋(264, 276, 284, 292, 332, 344, 368, 372, 376)과 모두 맞음 | ⚖️ 빌드 결과로 판정 |
-| **내 계획 정정**: 오프셋 308 은 `pset` 이 아니라 내부 루프의 `processor`(`edi`) 의 `processors.next`(0x15c189) | ✅ 수용 — 34 절의 "processor_set 필드 접근 오프셋 264–376" 은 308 을 포함해 잘못 묶었음 |
-| 세 배열이 소스 정의 순서대로 `__data` 에 연속, 0x1dee80 은 `fract` 초기값 | ✅ 직접 확인 |
-
-### 34.2 S5-P11 결과 (2026-10-01) — `mach_factor.c` A
-
-- 채택 1, `.i` 동일, 세 옵션 동일 목적 파일, 예측(508 B, `__data` 36 B, 외부 3) 적중. L1 OBJECT_MATCH(`__data` 포함) → `x86-mach_factor` **A**, `_compute_mach_factor` `compared/high`. Darwin `struct processor_set` 배치가 현재 옵션에서 원본과 같음이 바이트로 확인됨(구조체 판 차이 없음).
-
-## 35. S5-P12 세부 계획 — `ipc/ipc_table.c`(데이터 값 복원) (코딩 전, 2026-10-01)
-
-확인한 사실(원본, 계산 Python):
-- 목적 파일 0x151934–0x151be6(690 B): `_ipc_table_fill` 0, `_ipc_table_init` 0x94, `_ipc_table_alloc` 0x210, `_ipc_table_realloc` 0x250, `_ipc_table_free` 0x284; 함수 사이 `90`, 앞 `00`×2·뒤 `00`×2(최소 채움). 호출: `_kalloc`, `_kfree`, `_kmem_alloc`, `_kmem_free`, `_kmem_realloc`; 데이터: `_page_size`, `_kalloc_map`, 자기 정의 `_ipc_table_entries_size` 0x1dea94·`_ipc_table_dnrequests_size` 0x1dea98(`__data`), `_ipc_table_dnrequests` 0x1f6328·`_ipc_table_entries` 0x1f632c(`__common`).
-- **원본 `__data` 값: `ipc_table_entries_size` = 128, `ipc_table_dnrequests_size` = 64.** Darwin `ipc/ipc_table.c:106` 은 `= 512`(dnrequests 는 64 로 같음) → 데이터 값 차이.
-- 원본 `__common` 에서 `ipc_table_dnrequests` 가 `ipc_table_entries` 앞(소스 정의 순서와 반대, 알파벳 순서와 같음). 원본 `__common` 417 심볼 중 인접 쌍 336/416 이 알파벳 오름차순, 역전 80 곳 → 목적 파일별 `__common` 묶음이 이어지고 묶음 안은 알파벳 순서일 가능성(가설; 이 빌드로 확인).
-
-설계:
-1. D014 복원 수정: `ipc_table.c:106` `= 512` → `= 128`(근거: 원본 0x1dea94 의 값). 그 밖은 그대로.
-2. 절차: `--prefer-07` 스테이징 → 진단 전처리 → 채택 → 07_kernel 빌드(`-O3`, 대조 `-O2`·`-O4`) → `.i` 동일 → L1(`__data`·`__common` 배치 포함) → 경계 증명서.
-3. **예측**: `__text` 690 B·오프셋 위와 같음, `__data` 8 B(128, 64), 목적 파일 `__common` 8 B 이고 그 안 순서가 원본(dnrequests → entries)과 같은지 기록. `ipc_table_init` 안에 `ipc_table_entries_size` 에 따른 상수가 있으면 512/128 차이가 코드에도 드러남 — 그 경우 수정이 코드까지 맞춰야 일치.
-4. 불일치 시 R4·R5.
-
-### 35.1 codex 교차검토(QP12) 판정 — 내 주장 기각, 수정 두 곳
-
-내 검증: 원본 0x151970–0x1519c8 역어셈블, 0x151a6b·0x151b1f, Darwin `ipc/ipc_table.c:112–150`, 0x1519d1·0x1519ec·0x151a72·0x151a85·0x151aa0·0x151b26 의 메모리 읽기 확인.
-
-| codex 주장 | 판정 |
-|---|---|
-| **내 주장("512→128 만") 기각**: 원본 `_ipc_table_fill` 은 0x1519b5 `add edi, edi` 로 증가 폭을 **상한 없이** 두 배로 하고, `ipc_table_init` 의 인라인 사본 두 곳(0x151a6b, 0x151b1f)도 같다; Darwin `:147–148` 은 `if (incrsize < (PAGE_SIZE << 3))` 상한을 둔다 | ✅ 확인 — 수정이 하나 더 필요 |
-| 두 size 전역은 메모리에서 읽고 상수로 접히지 않음 → 512/128 차이는 데이터에만 | ✅ 확인 |
-| 128 은 이미지 `__data` 초기값; 로컬 참고 판(Darwin, Mach4)은 512, NeXTMach 에 해당 파일 없음 | ✅(Mach4 `ipc_table.c:61` 확인) |
-| `__common` 역순 배치를 설명할 cc-744.13 근거는 저장소 산출물에 없음(여러 미초기화 전역을 가진 목적 파일 없음) | ✅ → 이번 빌드가 첫 표본 |
-| `alloc`·`realloc`·`free` 는 Darwin 과 일치, `assert` 코드 없음(MACH_ASSERT=0) | ⚖️ 최종은 L1 |
-
-설계 변경: D014 복원 수정 두 곳 — (a) `:106` `= 512` → `= 128`(근거: 원본 0x1dea94), (b) `:147–148` 의 상한 조건 삭제, `incrsize <<= 1;` 만 남김(근거: 원본 0x1519b5, 0x151a6b, 0x151b1f).
-
-### 35.2 S5-P12 결과 (2026-10-01) — `__text`·`__data` 일치, `__common` 순서 문제로 판정 보류
-
-- 채택 4(`ipc/ipc_entry.h`, `ipc/ipc_table.c`, `ipc/port.h`, `vm/vm_kern.h`), 복원 수정 두 곳 적용(diff `06_reconstruction/evidence/x86-ipc_table.diff`; MODIFICATIONS 행은 판정 뒤 작성). `.i` 는 진단 판과 의도한 두 수정만 다름.
-- `s5p12-build-1`: `-O3`=`-O4`, `-O2` 다름. `-O3`: `__text` 690 B **바이트 차이 0**(5 함수 중 4 개 MATCH, `_ipc_table_init` 은 바이트 0 차이·참조 4 개 미검증), `__data` 8 B 를 0x1dea94 에 배치해 일치(128, 64). 
-- **보류 사유**: 목적 파일 `__common`(`-fno-common`)은 정의 순서대로 `_ipc_table_entries` 0x2bc → `_ipc_table_dnrequests` 0x2c0 인데, 원본은 `_ipc_table_dnrequests` 0x1f6328 → `_ipc_table_entries` 0x1f632c 로 반대. 한 섹션을 한 Δ 로 둘 수 없어 `l1_compare` 가 `__DATA,__common` 배치를 거부했고, 그 두 심볼을 가리키는 참조 4 개가 미검증.
-- 해석 후보(미확정): (a) 원본은 `-fno-common` 이 아니라 진짜 common 기호로 컴파일되어 링커가 배치했다(순서 규칙 미상), (b) 원본 판 소스에서 두 전역의 정의 순서가 반대, (c) 컴파일러가 zero-fill 섹션 안 순서를 다른 규칙으로 정함. 원본 `__common` 의 다른 관찰: `machine_slot`(kern/machine.c, `__text` 0x15d…)이 0x1e8e00 으로 `ipc_table` 쌍(0x1f6328)보다 앞 — 링크 순서(텍스트 순서)대로 목적 파일별 `__common` 이 이어진다는 단순 모델과도 맞지 않는다.
-- 다음: (1) 원본 `__common` 417 심볼의 배치 규칙을 조사(정의 파일의 텍스트 순서·알파벳·크기와의 관계, Python), (2) `-fno-common` 없는 변형 빌드로 목적 파일 기호 형태 비교, (3) 필요하면 `l1_compare` 에 zero-fill 섹션의 심볼별 검증(이름이 원본 외부 심볼과 같고 참조 값이 그 주소와 같음)을 추가 — 모두 계획·codex 검토 후.
-
-## 36. S1-E 세부 계획 — `__common`(zero-fill) 의 심볼별 검증 (코딩 전, 2026-10-01)
-
-조사(Python, 원본 심볼표): `__common` 417 심볼을 이름 오름차순이 끊기는 곳에서 나누면 81 묶음(크기 1–34). 묶음의 순서는 정의 파일의 텍스트(링크) 순서와 맞지 않는다(예: `ipc_*` 묶음(텍스트 0x146908 근처)이 0x1f62xx 에, `processor.c` 의 `all_psets` 묶음(텍스트 0x161134)이 0x1e9600 에). → 이미지의 `__common` 배치 규칙은 링커 내부 순서일 가능성이 크고(미확인), 목적 파일 하나의 대조로는 판정할 수 없다. `-fno-common` 여부도 이미지의 심볼 형태로는 구별되지 않는다(둘 다 `__common` 의 외부 심볼). → 배치 규칙·`-fno-common` 여부는 최종 링크 재현(S6) 단계의 과제로 넘긴다.
-
-목적 파일 대조(L1)에서 필요한 것: zero-fill 섹션은 바이트가 없으므로, **참조가 원본의 같은 이름 심볼(같은 오프셋)을 가리키는지**만 확인하면 된다.
-
-설계(`10_tools/reconstruction/l1_compare.py`):
-1. `evaluate()`: 로컬 재배치의 대상 섹션 T 가 zero-fill 이고 Δ 가 없으면, 목적 파일에서 T 에 정의된 심볼 중 값이 F 이하인 가장 큰 것(이름 N, 값 v)을 찾고, N 이 원본 외부 심볼이면 기대값 = `img.symbol(N) + (F − v) − (pcrel 이면 ΔP)`, 사유 `zerofill symbol N`. 해당 심볼이 없거나 원본에 없으면(정적 심볼 등) 지금처럼 미검증.
-2. 섹션 판정: zero-fill 섹션 T 를 Δ 하나로 둘 수 없을 때, T 에 정의된 **모든** 외부 심볼이 원본 `__common`(같은 이름)에 있고 T 안에 정적 심볼이 없으면 `placement = 'per symbol (zero-fill)'`, 섹션 검증으로 인정. 하나라도 없으면 미검증. 추가로 목적 파일의 심볼 간격(크기)과 원본의 다음 심볼까지 간격을 기록만 한다(크기 하한 확인용, 판정에는 쓰지 않음).
-3. 기존 동작 보존: Δ 하나로 배치되는 zero-fill 섹션, 다른 섹션은 지금과 똑같이 처리.
-4. 시험(`test_l1_compare.py` 에 추가): (a) 기존 14 시험 그대로 통과, (b) 확정된 목적 파일들(`09_validation/reconstruction/*-l1-*` 의 OBJECT_MATCH 대상)을 다시 돌려 판정 변화 0, (c) `s5p12` `ipc_table` `-O3` 이 OBJECT_MATCH 가 되고 사유가 `zerofill symbol` 로 기록, (d) 음성: 원본 사본에서 `_ipc_table_init` 의 `ipc_table_entries` 참조 한 곳을 `ipc_table_dnrequests` 주소로 바꾸면 DIFF.
-5. 결과로 `ipc_table` 을 판정하고(경계 증명서 포함), 확정되면 등급 문구에 "zero-fill per symbol" 를 남긴다.
-
-### 36.1 codex 교차검토(QE1) 판정 — 36 절 설계 기각, 대안
-
-내 검증: `l1_compare.py` 219–227 행(zero-fill **대상**도 Δ 추론 대상 — 207 행은 출발 섹션만 제외), 276–281 행(zero-fill 은 `given by symbol` 일 때만 `placement-only`), `ipc_table.o` 의 참조 4 개 필드값(0x1519e5·0x151a79 → 0x1f632c, 0x151a99·0x151b2d → 0x1f6328)은 codex 표와 같음(35.2 결과 JSON 으로도 확인 가능).
-
-| codex 주장 | 판정 |
-|---|---|
-| 로컬 재배치는 섹션 번호만 보존 → "F 이하 가장 큰 심볼" 로 대상 심볼을 증명할 수 없다(예: `dnrequests` 시작 = `entries` 끝 0x2c0) | ✅ 설계 1 기각 |
-| `infer()` 가 zero-fill 대상도 추론 → 원본 참조를 바꿔도 단일 Δ 가 나와 심볼별 검증을 우회할 수 있음 | ✅ 코드 확인 |
-| pcrel·scattered·SECTDIFF·정적 심볼·별칭·패딩에서 오판 가능 | ✅ |
-| 심볼 간격은 크기의 상한 후보일 뿐, 크기 증명 아님 | ✅ |
-
-대안 설계(도구 수정 없음): zero-fill 전역을 참조하는 목적 파일은 **`-fno-common` 을 뺀 변형**을 함께 빌드한다. 그 변형에서 미초기화 전역은 이름 있는 common 심볼(정의되지 않은 외부 심볼, `n_value` = 크기)이 되어 참조가 **외부 재배치(심볼 번호 = 그 이름)** 로 남는다 → 기존 L1 의 외부 경로가 이름으로 정확히 검증. 판정 조건: (a) `-fno-common` 판의 `__text`·`__data` 바이트 차이 0(재배치 필드 제외), (b) common 변형이 OBJECT_MATCH(모든 참조 검증), (c) common 심볼 크기 ≤ 원본에서 다음 심볼까지 간격(상한 일관성만 기록). 원본이 `-fno-common` 이었는지는 목적 파일로 판정하지 않는다(S6).
-
-### 36.2 codex 교차검토(QE2) 판정과 S5-P12 확정 (2026-10-01)
-
-QE2(대안 설계): 핵심은 타당, 결론 범위를 좁힘 — 증명되는 것은 "common 변형에서 복원 측 이름·addend 로 다시 계산한 값이 원본 필드와 같다" 이고, `-fno-common` 판에 옮기려면 두 판의 참조 대응(같은 전처리 입력, 같은 재배치 위치·폭·pcrel·유형, 재배치 밖 바이트 동일)을 확인해야 한다(✅ 수용). 원본의 비-STAB 섹션 심볼 3,651 개가 모두 외부라 이름 해석의 local 혼동은 이 원본에서 생기지 않음(codex 수치, 35.2 이전 집계 3,651 과 같음). 정적 미초기화 변수는 이 방법의 대상이 아님(✅ 범위 밖으로 기록).
-
-결과: `s5p12-common-1` — 전처리 입력 바이트 동일, 재배치 28 개 위치 동일·재배치 밖 바이트 동일, 달라진 4 개는 폭·pcrel·유형 같고 local→extern(이름 `_ipc_table_entries`·`_ipc_table_dnrequests`)만 다름, common 크기 4 ≤ 원본 간격 4, L1 OBJECT_MATCH(모든 참조 검증). 경계 증명서 통과 → `x86-ipc_table` **A**, 5 함수 `compared/high`(표 행 수 확인: functions +5, objects +1, MODIFICATIONS +1). 앞으로 `__common` 정의를 가진 파일은 이 두 판 방식으로 판정한다.
-
-## 37. S5-P13 세부 계획 — `kern/host.c`(`MACH_HOST` 확정 시험) (코딩 전, 2026-10-01)
-
-확인한 사실(원본, 계산 Python):
-- 목적 파일 0x157958–0x157c3e(742 B): `_host_processors` 0, `_host_info` 0xd0, `_host_kernel_version` 0x224, `_host_processor_sets` 0x254, `_host_processor_set_priv` 0x2b4; 함수 사이 `90`, 앞 `00`×2, **뒤 0x157c3e–0x157c40 은 `90 90`**(37.1: 내가 처음에 `00` 으로 잘못 적음). 호출 `_bcopy`·`_convert_processor_to_port`·`_convert_pset_name_to_port`·`_kalloc`·`_panic`·`_pset_reference`·`_strncpy`; 데이터 `_processor_ptr`(0x1e9050, 색인 주소 — 내 첫 조사에서 누락), `_tick`, `_avenrun`, `_mach_factor`, `_version`, `_machine_slot`, `_default_pset`, `_master_processor`, `_machine_info`+8/+12/+16(0x1f6348–0x1f6350), 문자열 `"host_processors"`(0x1deb90, `__data`, Darwin `host.c:99` 의 panic).
-- `host_processor_sets` 는 세 후보 모두 `#if MACH_HOST`/`#else` 로 두 번 정의 → 원본이 `!MACH_HOST` 판과 일치하면 `MACH_HOST=0` 확정 근거(값은 0/비영 구분).
-- 세 후보(Darwin, NeXTMach, Mach4)의 5 함수 본문(주석·공백 정규화 후)은 서로 모두 다르다 → 어느 판이 원본과 맞는지 함수별 대조가 필요(codex 질문).
-
-설계: 시작 후보 Darwin(헤더 환경). `--prefer-07` 스테이징 → 진단 전처리 → 채택 → 07_kernel 빌드(`-O3`, 대조 `-O2`·`-O4`) → `.i` 동일 → L1(`__data` 의 panic 문자열 포함) → 경계 증명서. 예측: `__text` 742 B·오프셋 위와 같음, `__data` 에 `"host_processors"` 문자열(16 B 이상), 외부 심볼 위 목록. 불일치 시 차이 위치를 원본·세 후보와 대조해 D014(R4·R5).
-
-### 37.1 codex 교차검토(QP13) 판정
-
-내 검증: 0x157c3a–0x157c42 바이트(`ret` 뒤 `90 90`), 첫 조사 출력의 `gap 9090` 재확인.
-
-| codex 주장 | 판정 |
-|---|---|
-| Darwin 5 함수가 원본 흐름과 모두 대응(`host_info` flavor 1–4, count 검사, `machine_info` +8/+12/+16, `host_load_info` 두 `bcopy`, `strncpy(…, 512)`, `!MACH_HOST` 의 `kalloc`+`pset_reference`+`convert_pset_name_to_port`); NeXTMach 는 여러 곳에서 다르고(LOAD 분기 없음, `copystr`, `vm_allocate`), Mach4 는 SCHED 의 `min_quantum` 이 다름 | ⚖️ 대응은 합리적 — 최종은 L1 |
-| **내 기록 오류 2 건**: 뒤 틈은 `90 90`(00 아님), 참조 목록에 `_processor_ptr` 누락 | ✅ 수정 |
-| `host_info.h` 구조체 배치가 원본 저장 오프셋과 맞음 | ⚖️ 빌드로 판정 |
-
-### 37.2 S5-P13 결과 (2026-10-01) — `kern/host.c` 확정(등급 A)
-
-- 채택 1(`kern/host.c`, Darwin 그대로). `s5p13-build-1`: `-O3` = `-O4`, `-O2` 다름(734 B). `-O3` L1 OBJECT_MATCH, 5 함수 MATCH, `__text` 744 B 차이 0·참조 27 일치, `__data` 16 B(0x1deb90) 일치, `__common` `_realhost` 심볼로 배치.
-- `-fno-common` 없는 변형(`s5p13-common-1`)도 OBJECT_MATCH, `_realhost` 크기 8 = 원본 다음 심볼까지 간격.
-- 경계: 앞 `00 00`(최소 채움), 뒤 0 — 뒤 `90 90`(37.1)은 host.o `__text` 안의 컴파일러 채움으로 바이트 비교에 포함됨 → **A**.
-- `MACH_HOST`=0 을 confirmed 로 올림(`config_options.tsv`, 생성 헤더 변화 없음: `gen_config_headers.py --check` 통과). 헤더 변경이 없으므로 회귀 재빌드 불필요.
-- 증거: `06_reconstruction/evidence/x86-host.md`.
-
-## 38. S5-P14 세부 계획 — `kern/priority.c` `_thread_quantum_update` (코딩 전, 2026-10-01)
-
-원본 사실(capstone 4.0.2, 원본 이미지 직접 디스어셈블; IDA 작업 프로세스가 응답하지 않아 사용하지 않음):
-- 객체 `__text` 0x160e84–0x161134(688 B, Python), 함수 하나. 앞 틈 0x160e81–0x160e84 `00 00 00`(앞 함수 `_kern_PMRestoreDefaults` 끝 0x160e81, Ghidra 본문), 0x161132–0x161134 `00 00`, 다음 `_pset_sys_bootstrap` 0x161134.
-- 호출: `_splsched`×2, `_update_priority`×2(0x160ef7, 0x161037), `_timer_delta`×4, `_compute_my_priority`×2, `_splx`×2, `_ast_check`. 데이터: `_processor_ptr`(색인), `_min_quantum`, `_sched_tick`, 0x1e977c(= `_default_pset` 0x1e9610 + 364, Python).
-- 0x160ea3: `min_quantum` 을 0x1e977c 에 저장 → `NCPUS > 1` 이 아닌 분기(`default_pset.set_quantum = quantum`). pset 읽기·`quantum_adj_lock` 없음.
-- 0x160f04: `cmp [esi+0x60], 2; je` → `thread->policy != POLICY_FIXEDPRI`(policy.h:64 = 2) — Darwin 식. Mach4 는 `== POLICY_TIMESHARE`(1).
-- `_update_priority` 를 `sched_stamp != sched_tick` 일 때 호출 — Darwin 은 이 호출을 `#if NCPUS > 1`(priority.c:173–175, :218–220)로 감싸 NCPUS=1 이면 사라진다. Mach4 는 감싸지 않음.
-- NeXTMach 트리에는 `thread_quantum_update` 가 없다(grep 0 건).
-
-후보 판정: Darwin 그대로도, Mach4 그대로도 원본과 다르다(앞은 `update_priority` 없음, 뒤는 policy 비교 상수 다름).
-
-설계:
-1. 채택 기준 소스: Darwin `kern/priority.c`. **복원 수정(D014)**: `update_priority(thread);` 를 감싼 `#if NCPUS > 1` / `#endif` 두 쌍(4 줄)을 제거 — Mach4 구조와 같고, 원본 바이트의 두 호출이 근거. 그 밖은 바꾸지 않는다.
-2. 대조군: 수정 없는 Darwin 판(진단 빌드)도 함께 빌드해 두 `_update_priority` 호출만큼만 다른지 본다(수정의 효과를 분리).
-3. 환경: `stage_headers.py --prefer-07`, 진단 전처리로 정의 안 된 식별자 확인. 빌드 `-O3`(대조 `-O2`, `-O4`), L1, 경계 증명서.
-4. 일치하면: 함수·객체 기록, diff 를 `06_reconstruction/evidence/x86-priority.diff`, MODIFICATIONS 행. `NCPUS`=1 을 confirmed 로 올릴 근거가 되는지 판단(NCPUS>1 분기는 pset 경로를 컴파일하므로 바이트로 배제됨). `MACH_FIXPRI`=1 도 같은 방식으로 판단(0 이면 policy 비교가 사라짐).
-5. 불일치하면: 차이 위치를 기록하고 채택하지 않는다.
-
-### 38.1 codex 교차검토(QP14) 판정
-
-내가 직접 확인한 것: capstone 디스어셈블(`scratchpad/prio.dis`), Darwin `priority.c`·Mach4 `priority.c`·07_kernel `sched.h`·`timer.h`·`lock.h` 해당 줄, Python.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원본은 Darwin(NCPUS=1, MACH_FIXPRI=1) + `update_priority` 무조건 호출과 의미상 같고 다른 차이는 없다 | 호출·데이터 목록(38절), 0x160f04·0x160fe6·0x161044 `cmp [esi+0x60],2` 세 곳, 0x160fd9 `processor+0x124 = 0`(`first_quantum = FALSE`, priority.c:195), 0x160ffc `thread+0x5c`(`sched_data`) | ✅ 의미 대응 — 최종은 L1 |
-| 임계값 0x1610f5 `cmp eax,0x7ffffff; jbe` = `1 << (18+2+7)` | Python `(1<<27)-1 = 0x7ffffff`; sched.h:81 `PRI_SHIFT 18`(STAT_TIME 분기), :154 `SCHED_SHIFT 7` | ✅ |
-| `thread_timer_delta` 는 sched.h:160, system 먼저·user 다음, `sched_load` 를 `thread+0x180`→`+0x178` 로 곱함 | sched.h:160–168 열람(system_timer 먼저), 0x160f9a/0x1610da `[esi+0x180]`, 0x160fa0/0x1610e0 `imul [eax+0x178]` | ✅ |
-| 잠금은 남아 있다(MACH_SLOCKS via DRIVERKIT, lock.h:66); 획득·해제 xchg | lock.h:66 열람, 0x160fcd·0x161114 `xchg [esi+0x20]` | ✅ (기존 가설과 같음) |
-| Mach4 는 정책 비교 세 곳이 다르고 그 밖에 더 나은 곳 없음 | Mach4 priority.c:155 등 `== POLICY_TIMESHARE`, policy.h:63–64 | ✅ |
-| 대조군 차이는 레지스터 배치까지 다를 수 있으니 의미 비교로 볼 것 | 대조 빌드 662 B, L1 459 B 차이 — 호출 두 개만의 차이로 보지 않는다 | ✅ 설계 2 문구 완화 |
-| 이 함수 하나로 전역 옵션 값을 확정할 수 없다 | 설계 4 는 "판단" 으로만 적음. NCPUS·MACH_FIXPRI 승격은 일치 뒤 따로 근거를 적는다 | ⚖️ |
-| 인용 줄 priority.c:172, :217 | 172·217 은 `if (thread->sched_stamp != sched_tick)` 줄(가드는 173–175, 218–220) | ⚖️ 위치는 가드 바로 위 줄 |
-
-### 38.2 S5-P14 결과 (2026-10-01) — `kern/priority.c` 확정(등급 A, 복원 수정)
-
-- 채택 5(`kern/priority.c`, `kern/mach_param.h`, `kern/time_stamp.h`, `machdep/i386/time_stamp.h`, `machdep/machine/time_stamp.h`), 복원 수정 1 곳(가드 두 쌍 제거) + 수정 주석. `.i` 는 진단 판과 두 호출만 다름.
-- `-O2` = `-O3` = `-O4`(같은 SHA, 주석 넣은 최종 파일 `s5p14-build-2` 도 같은 SHA). L1 OBJECT_MATCH, 차이 0, 참조 18 일치. 경계 앞 `00`×3·뒤 `00`×2(최소 채움) → **A**.
-- 옵션: `NCPUS`=1, `MACH_FIXPRI`=1 confirmed. `STAT_TIME` 은 근거 추가(임계 상수)만, hypothesis 유지. 생성 헤더 변화 없음.
-- 증거: `06_reconstruction/evidence/x86-priority.md`, `x86-priority.diff`.
-
-## 39. S5-P15 세부 계획 — `vm/vm_init.c` `_vm_mem_init` (코딩 전, 2026-10-01)
-
-후보 선정(Python, `objects.tsv` 중 미확정·Mach 쪽 작은 묶음): seq 164/166(7·12 B, 단편), 192 `syscall_sw.c`(대부분 데이터), 165, 214, **196 `time_stamp.c` 보류**, **205 `vm_init.c` 선택**.
-- 196 보류 사유: 원본 `_kern_timestamp`(0x16a158–0x16a196)는 `ns_time_to_tsval(clock_value(1), &ts)` 후 `copyout` — Darwin(clock_get_counter + usec 계산), Mach4(`time`), NeXTMach(`event_set_ts`) 모두 다르고, `clock_value`·`ns_time_to_tsval` 정의·사용 모두 어떤 참조 트리에도 없음(`grep -rnw` 0 건; 처음 적은 "NeXTMach `tags`·`nextdev/sc.c` 사용처" 는 `s5r_clock_values` 부분 문자열 일치였음 — 39.1). 맞추려면 분기 전체를 새로 써야 하므로 19 절 R1/R2(최소 수정) 범위를 넘는다 → 새 코드 작성 규칙이 정해질 때까지 보류.
-
-원본 사실(capstone):
-- `_vm_mem_init` 0x173a68–0x173ad3(107 B, Python), 앞 틈 0(앞 함수 `_vm_fault_wire_fast` Ghidra 끝 0x173a68), 뒤 0x173ad3 `00` 1 B, 다음 `_kmem_alloc` 0x173ad4(vm_kern.c).
-- 호출 순서: `vm_page_startup(mem_region, num_regions, virtual_avail)` → `virtual_avail` 저장 → `zone_bootstrap` → `vm_object_init` → `vm_map_init` → `kmem_init(virtual_avail, virtual_end)` → `pmap_init(mem_region, num_regions)` → `zone_init` → `kalloc_init` → **`vm_pager_init`** → `vm_user_init`.
-- Darwin `vm/vm_init.c` 은 `vm_pager_init` 만 없고 나머지 순서·인자가 같다. NeXTMach mk-108.1 `vm/vm_init.c:91` 에 `vm_pager_init();` 가 같은 자리(`kallocinit()` 뒤, `vm_user_init` 앞)에 있다(NeXTMach 은 `kallocinit` 이름이 달라 기준으로 못 씀). Mach4 는 구조가 다름.
-
-설계:
-1. 기준 Darwin `vm/vm_init.c`, 복원 수정(D014): `kalloc_init();`(:85) 뒤에 `vm_pager_init();` 한 줄 추가 + 머리말 뒤 수정 주석. 추가 줄의 출처는 NeXTMach(`https://github.com/johnsonjh/NeXTMach.git` f6bdb9c3268f0eadc545d41bcc0564453b17001e, `mk-108.1/vm/vm_init.c:91`) — D013 에 따라 MODIFICATIONS·PROVENANCE 에 기록.
-2. **새 옵션 `MACH_XP`**: Darwin `vm_init.c` 가 `#import <mach_xp.h>` 하므로 생성 헤더가 필요. 값 0, 상태 hypothesis(근거: Darwin `conf/MASTER.i386:72` RELEASE 태그에 `xp` 없음, `MASTER:134` `options MACH_XP # <xp>`). 일치하면 confirmed(원본이 `#else MACH_XP` 의 `vm_user_init` 을 호출 — `MACH_XP` 분기는 비어 있음).
-3. 생성 헤더 추가는 `meta_features.h` 를 바꾸므로 **회귀**: 확정 객체 24 개 가운데 `meta_features.h` 를 쓰는 커널 C 빌드를 원래 명령 그대로 다시 빌드해 SHA-256 동일 확인. 저장소 전체에 `#ifdef MACH_XP`/`defined(MACH_XP)` 는 없다(grep 0 건) — 정의 추가가 `#if` 결과를 바꾸지 않는다는 예측.
-4. 예측(R5): `__text` 108 B(뒤 `00` 포함 여부는 빌드로), 재배치: 외부 호출 11 + `virtual_avail` 3·`num_regions` 2·`mem_region` 2·`virtual_end` 1, `__data` 없음.
-5. 진단 빌드(수정 없는 Darwin)도 함께 — 호출 하나 차이인지 확인. 빌드 `-O3`(대조 `-O2`, `-O4`), L1, 경계 증명서.
-
-### 39.1 codex 교차검토(QP15) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `_vm_mem_init` = Darwin + `vm_pager_init` 한 줄(0x173ac5, `_kalloc_init` 0x173ac0 와 `_vm_user_init` 0x173aca 사이); `#ifdef ppc` 는 i386 에서 비활성 | 39 절 디스어셈블 다시 확인(같은 호출 순서·인자) | ✅ — ppc 블록은 x86 바이트로 검증 불가(그대로 둠) |
-| MACH_XP=0 에서만 생기는 원본 심볼: `_vm_user_init` 0x17c4e0, `_vm_alloc_lock` 0x1f64c0, `_vm_map_lookup_done` 0x1783d8; XP 전용 `vm_map_verify(_done)` 없음 | `symbols.tsv` grep(앞 셋 있음, verify 둘 없음), vm_user.c:61–63 `#if MACH_XP / #else`, vm_map.c:60 `USE_VERSIONS MACH_XP`·:2588 `#if USE_VERSIONS` 안의 `vm_map_verify`(:2596) | ✅ MACH_XP=0 근거 추가 |
-| vm_fault 의 non-XP `FREE_PAGE`(PAGE_WAKEUP 먼저) | 주소만 받음, 이번 판정에 쓰지 않음 | ⏭️ (근거로 기록하지 않음) |
-| `#ifdef MACH_XP`/`defined(MACH_XP)` 0 건, 07_kernel 에 `MACH_XP` 토큰 없음 | grep 두 트리 0 건, `grep -rn MACH_XP 07_kernel` 0 건 | ✅ — 회귀 빌드는 그대로 수행 |
-| 경계: 앞 0, 끝 0x173ad3(107 B), 0x173ad3 `00`, 다음 0x173ad4 | 39 절 Python 출력과 같음 | ✅ |
-| **내 기록 오류**: `clock_value`/`ns_time_to_tsval` 의 NeXTMach "사용처" 는 `s5r_clock_values` 부분 일치 | `grep -rnw` 0 건, sc.c:226·237 은 `s5r_clock_values` | ✅ 39 절 문구 수정 |
-
-### 39.2 S5-P15 결과 (2026-10-01) — `vm/vm_init.c` 확정(등급 A, 복원 수정) · `MACH_XP`=0
-
-- `MACH_XP` 옵션 행 추가·생성 헤더 `mach_xp.h` 생성(`meta_features.h` 에 `#import <mach_xp.h>` 한 줄). 회귀 `s5p15-regress-2`: 확정 24 개 SHA 모두 동일(`-1` 은 S5-P1 memcmp 명령의 옛 경로 `src/memcmp.c` 때문에 memcmp 만 실패 → memcmp·kern_machdep 은 S4-A2 회귀의 공통 명령으로 바꿔 재실행).
-- 채택 1(`vm/vm_init.c`), 복원 수정 1 줄(`vm_pager_init();`, NeXTMach 출처) + 수정 주석. `.i` 는 진단 판과 주석·한 줄만 다름.
-- `-O2` = `-O3` = `-O4`, `__text` 107 B, 재배치 18. L1 OBJECT_MATCH(차이 0, 참조 18 일치). 경계 앞 0·뒤 `00`×1(최소 채움) → **A**. 대조군(수정 전) 102 B.
-- **예측 오류**: 설계 4 의 "외부 호출 11 / 재배치 19" 는 잘못 셈 — 호출 10, 재배치 18(Python).
-- `MACH_XP`=0 confirmed. 증거 `06_reconstruction/evidence/x86-vm_init.md`, `x86-vm_init.diff`.
-
-## 40. S4-C 사실 조사(2026-10-01) — 결정 없음, 기록만
-
-- 계기: 다음 후보 `vm/vm_synchronize.c`(seq 214; 원본 0x17b9e0–0x17bd28, 함수 4 개가 Darwin 정의 순서와 같고 `vm_pageout_page` 의 `assert_wait`/`thread_block` 재시도 경로까지 Darwin 판과 대응)가 `#import <sys/param.h>` → `bsd/sys/param.h:106` `<machine/limits.h>` 로 막힘.
-- 조사 결과 보존: `09_validation/reconstruction/s4c-survey-20261001.json`(미확정 199 구간, 첫 Darwin 후보의 `--prefer-07` 닫힘; 미해결은 모든 분기 기준). 집계(Python): BSD 쪽 86 개 중 77 개, Mach 쪽 113 개 중 31 개(Mach 소계 40619 B; BSD 소계 158669 B, 41.1)가 `machine/limits.h` 에 닿음(경로: `bsd/include/time.h:103` 107 건, `bsd/sys/param.h:106` 105 건, `bsd/include/limits.h:65` 1 건). Mach 쪽 82 개는 닿지 않고, 그중 **59 개는 이미 성공한 빌드의 미해결 11 종 밖의 새 미해결이 없음**.
-- 참조: Darwin 빌드는 `conf/Makefile.template:86–92` 에서 `$(NEXT_ROOT)/System/Library/Frameworks/System.framework/{PrivateHeaders,Headers,Headers/bsd}` 를 include 경로에 넣는다 — `machine/limits.h` 는 소스 트리가 아니라 빌드 머신의 시스템 헤더에서 왔을 가능성(미확인). Darwin 트리의 후보: `architecture/i386/limits.h`(CHAR_BIT 8, MB_LEN_MAX 6, CLK_TCK 100, …, SSIZE_MAX/SIZE_T_MAX/QUAD_*).
-- 실기 OPENSTEP 4.2(읽기 전용 조회, gcds): `/NextDeveloper/Headers/bsd/machine/` 에 `param.h`·`limits.h` 없음, 대신 4.3BSD 식 `machparam.h`; `limits.h` 는 `ansi/machine/limits.h`(→ `ARCH_INCLUDE(ansi/, limits.h)`)와 `ansi/i386/limits.h`(1992 NeXT; MB_LEN_MAX 1, UCHAR_MAX 255U, CLK_TCK 없음, LONG_LONG_*)에만 있다. `architecture/i386/` 에도 `limits.h` 없음. → 원본 시대 NeXT 헤더는 Darwin 4.4BSD 판과 배치·값이 다르다(그 판이 커널 빌드에 쓰였는지는 미확인).
-- 결정하지 않는 이유: 어느 판을 쓸지는 BSD 쪽 재구성 전체에 영향을 주고, 지금은 새 헤더 없이 진행할 Mach 쪽 59 구간이 남아 있다. S4-C 결정은 BSD 쪽에 들어갈 때 계획·codex 검토·사용자 판단으로 다룬다. 그때까지 `machine/limits.h` 에 닿는 파일은 진행하지 않는다(30.x 규칙 유지). `vm_synchronize.c` 는 보류.
-
-## 41. S5-P16 세부 계획 — machdep/i386 작은 세 파일 `bios.c`, `checksum_16.c`, `ldt.c` (코딩 전, 2026-10-01)
-
-선정: 40 절의 "새 미해결 없음" 59 구간 중 작은 순. seq 192 `syscall_sw.c`(대부분 데이터 표), seq 165 `_send_notification`(앞뒤 틈이 `90` — seq 162 `ipc_xxx.c` 객체의 일부로 보여 그쪽과 함께)는 뒤로.
-
-원본 사실(capstone, 계산 Python):
-- `bios.c`: `_bios32` 0x1871d4–0x1871e6(18 B) — `__bios32(bb)` 호출 뒤 `return 0`. Darwin `machdep/i386/bios.c` 에서 `NOTYET` 이 거짓인 경우와 대응(정적 지역 변수 4 개와 `static inline` 두 함수는 쓰이지 않음 — 목적 파일에 데이터가 남는지는 빌드로). 앞 틈 `00`×3(앞 `__bios32` 끝 0x1871d1), 뒤 `00 00`, 다음 `FUN_001871e8`.
-- `checksum_16.c`: `_checksum_16` 0x1877f8–0x187842(74 B) — 16 비트 바이트 교환(`ror ax,8`) 합, 접기, `> 0xffff` 이면 −0xffff. Darwin `machdep/i386/checksum_16.c` 와 대응(`NXSwapShort` 인라인). 앞 `00`×3(앞 `_PMUpdateClock` 끝 0x1877f5), 뒤 `00 00`, 다음 `_system_timer_dispatch` 0x187844.
-- `ldt.c`: `_ldt_init` 0x18cbcc–0x18cc25(89 B) — `ldt[1]`(UCS) 코드, `ldt[2]`(UDS) 데이터 서술자 기록, DPL 3. 데이터: `_ldt` 0x1e2278 = 0x1e2260 을 가리킴, 정적 `ldt_store[LDTSZ=3]` 24 B 가 그 앞(0x1e2260–0x1e2278) — Darwin 정의 순서와 같음. 앞 `00 00`(확정 객체 kern_machdep 끝 0x18cbca 와 일치), 뒤 `00`×3, 다음 `_halt_thread` 0x18cc28.
-
-설계:
-1. 세 파일 모두 Darwin 그대로, 수정 없음. `stage_headers.py --prefer-07` 으로 각각 스테이징, 진단 전처리로 정의 안 된 식별자 확인(`NOTYET` 포함).
-2. 빌드 `-O3`(대조 `-O2`, `-O4`), L1(`ldt.c` 는 `__data` 28 B 포함), 경계 증명서. 일치하면 등급 A 기록.
-3. 예측(R5): `bios.o` `__text` 18 B 와 재배치 1(`__bios32`); `checksum_16.o` 74 B, 재배치 0; `ldt.o` `__text` 89 B, 재배치 2(`ldt` ×2), `__data` 28 B 와 재배치 1(`ldt` → `ldt_store`).
-4. 불일치면 채택하지 않고 차이를 기록.
-
-### 41.1 codex 교차검토(QP16) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `_bios32` = bios.c `NOTYET` 거짓 경로; 정적 지역 4 개(bios.c:56–59)는 쓰이지 않아도 16 B zero-fill 로 남을 것(GCC 소스 근거, NeXT cc 미검증) | bios.c:56–59 열람; 빌드 `s5p16-pre-2` 실측: `__bss` 16 B, 참조 0 | ✅ 실측으로 확인(GCC 소스 인용은 근거로 쓰지 않음) |
-| 원본에서 그 16 B 의 위치는 증명 불가(지역 심볼 없음, zero-fill) | 원본 심볼표는 외부 심볼만, `__bss` 바이트 비교 불가 | ✅ → `bios` 객체는 확정하지 않음 |
-| `NXSwapShort` 는 architecture/i386/byte_order.h:38–53 의 인라인 `rorw $8` | 해당 줄 열람 | ✅ |
-| `ldt_init` 서술자 저장 전부 일치; VM_MIN/MAX 0/0xc0000000(mach/i386/vm_param.h:65–66), USER_PRIV 3(architecture/i386/sel.h:42); 원본 0x1e2260 24 B 0, `_ldt` = `60 22 1e 00` | 세 줄 열람, 원본 28 B 덤프 | ✅ (최종은 L1 일치) |
-| 경계 세 쌍 모두 최소 채움 | 41 절 Python 값과 같음 | ✅ |
-| 40 절 수치 재계산 일치; "합 40619 B" 는 Mach 소계 | Python 합계 BSD 158669, Mach 40619 | ✅ 문구 수정 |
-
-### 41.2 S5-P16 결과 (2026-10-01)
-
-- 세 파일 Darwin 그대로 채택(읽힌 115 파일 중 새 10 개 채택: 세 `.c` 와 `bios.h`, `desc_inline.h`, `gdt.h`, `idt.h`, `ldt.h`, `table_inline.h`, `architecture/i386/table.h`). 07_kernel 빌드 `s5p16-build-1` 이 진단 빌드와 `.i`·목적 파일 모두 같음. 세 파일 모두 `-O2` = `-O3` = `-O4`.
-- `checksum_16.c`, `ldt.c`: OBJECT_MATCH, 경계 최소 채움 → **A** 2 개(`ldt` 는 `__data` 28 B 포함).
-- `bios.c`: `_bios32` 함수는 MATCH(compared/high). 객체는 쓰이지 않는 정적 지역 변수 4 개가 `__bss` 16 B 로 남는데(실측), 원본에서 위치를 보일 수 없으므로 **확정하지 않고** S6 로 넘김. 예측(41 설계 3)은 `__bss` 를 빼먹었음.
-- 증거 `06_reconstruction/evidence/x86-machdep_small.md`.
-
-## 42. S5-P17 세부 계획 — `machdep/i386/gdt.c`, `idt.c` (코딩 전, 2026-10-01)
-
-선정: 40 절 59 구간 중 앞뒤 틈이 모두 `00` 최소 채움인 것. 같이 본 `dbl_fault.c`(seq 247), `intr.c`(254), `dma_buf.c`(246)는 뒤 틈이 `90` 이라 객체가 이어지는 것으로 보여 뒤로.
-
-원본 사실(capstone, Python):
-- `gdt.c`(seq 250): `_locate_gdt` 0x18a904, `_gdt_init` 0x18a924, 끝 0x18aafa(502 B). 앞 `00 00`(`_fp_synch` 끝 0x18a902), 뒤 `00 00`, 다음 `_i386_init` 0x18aafc. 호출 없음, 데이터 `_gdt_base`·`_gdt_limit`(0x1e17b2/0x1e17b0, 다른 파일), `_gdt`(×11), `_unix_syscall_`·`_mach_kernel_trap_`·`_machdep_call_`. `_gdt` 0x1e19b0 = 0x1e18b0 → 정적 `gdt_store` 256 B(= GDTSZ 32 × 8, gdt.h:38)가 바로 앞 — Darwin 정의 순서와 같음.
-- `idt.c`(seq 252): `_locate_idt` 0x18b184, `_idt_init` 0x18b1a4, 끝 0x18b2ab(295 B). 앞 `00`×3(`_getval` 끝 0x18b181), 뒤 `00`×1, 다음 `_in_cksum` 0x18b2ac. 데이터 `_idt_pseudo` 0x1e1a04(2048 B = IDTSZ 256 × 8, idt.h:38), 바로 뒤 `_idt` 0x1e2204 = 0x1e1a04.
-- **Darwin `idt.c` 의 세 번째 함수 `idt_copy`(idt.c:438–451)의 흔적이 원본에 없고 그 호출 자리도 없다**(42.1: "없다" 는 과장 — 정적 함수·다른 곳 인라인 가능성은 기호 부재로 배제되지 않음): 심볼 `_idt_copy` 없음(원본 심볼표는 외부 심볼을 보존), 문자열 `"idt_copy"` 없음(strings.tsv 0 건), 원본 `_i386_init`(0x18aafc–0x18abcd) 호출 목록에 `alloc_cnvmem`/`idt_copy` 없이 `_pmap_bootstrap` → `_locate_gdt` → `_locate_idt` — Darwin `i386_init.c:159–163` 의 'f00f' 우회(`idt_copy(alloc_cnvmem(...))`)가 없는 판.
-
-설계:
-1. `gdt.c`: Darwin 그대로.
-2. `idt.c`: 복원 수정(D014) — idt.c:437–451(빈 줄과 `idt_copy` 정의) 삭제 + 머리말 뒤 수정 주석. 근거는 위 세 가지.
-3. 진단(수정 없는 Darwin)과 07_kernel 판을 함께 빌드: 진단 `idt.o` 는 `_idt_copy`·`panic`·`memcpy` 참조와 문자열을 더 가질 것.
-4. 예측(R5): `gdt.o` `__text` 502 B, `__data` 260 B(gdt_store 256 + gdt 4), 재배치 `__data` 1. `idt.o` `__text` 295 B(`idt_copy` 제거 후), `__data` 2052 B(idt_pseudo 2048 + idt 4), `__data` 재배치 257(IPE 256 + idt 1). 둘 다 `-O3`(대조 `-O2`, `-O4`), L1, 경계 증명서.
-
-### 42.1 codex 교차검토(QP17) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `_gdt_init` 의 7 서술자·3 호출 게이트 모두 gdt.c·seg.h·desc_inline.h 와 일치; `KERNEL_LINEAR_BASE` = `VM_MAX_ADDRESS`(pmap.h:84), 커널 min/max 0/0x40000000(mach/i386/vm_param.h:68–69) | pmap.h:84, vm_param.h:65–69 열람 | ✅ 헤더 값 — 서술자 전부는 L1 로 판정 |
-| IDT 표 256 항목 0 불일치, `_idt` = 0x1e1a04 | 진단 빌드 `__data` 2061 B 중 표 부분은 L1 로 판정 | ⚖️ L1 로 확인 예정 |
-| task gate: idt.c:159–162 는 인자 4 개, desc_inline.h:409–417 은 3 개 → `tmp.offset` 이 DPL 로 들어감, 원본도 그렇다 | 두 곳 열람(4 인자 대 3 매개변수 확인) | ✅ 소스 그대로 둔다(고치지 않음) |
-| `idt_copy` "없다" 는 과장 — 정적·인라인 가능성; `_alloc_cnvmem`(0x18ad9c)은 존재 | 심볼표에서 `_alloc_cnvmem` 확인, 원본 파일 전체 `b"idt_copy"` 0 건 | ✅ 42 절 문구 수정 |
-| 설계 4 예측 타당; "_idt_copy 참조" 가 아니라 정의 | 설계 3 의 "참조" 는 정의가 맞음 | ✅ |
-| 경계(배타 끝) 확인; 502·295 B 는 객체, 함수는 470·263 B | Python 41/42 절 값과 같음 | ✅ |
-
-### 42.2 S5-P17 결과 (2026-10-01) — `gdt.c`, `idt.c` 확정(A 2 개)
-
-- `gdt.c` Darwin 그대로, `idt.c` 복원 수정(`idt_copy` 삭제) + 수정 주석. `.i` 차이는 의도한 것만(`gdt.i` 동일).
-- 둘 다 `-O3` = `-O4` OBJECT_MATCH, `-O2` 다름(gdt 486 B, idt 279 B). `gdt` `__data` 260 B(0x1e18b0), `idt` `__data` 2052 B(0x1e1a04, 재배치 257 일치 — IDT 표 전체 확인). 경계 최소 채움 → **A**. 예측(설계 4) 크기·재배치 수 모두 맞음.
-- 증거 `06_reconstruction/evidence/x86-gdt_idt.md`, `x86-idt.diff`.
-
-## 43. S5-P18 세부 계획 — `machdep/i386/dma_buf.c`, `dbl_fault.c` (코딩 전, 2026-10-01)
-
-원본 사실(capstone, Python):
-- `dma_buf.c`(seq 246 확장): 0x189748–0x18991c(468 B) = `_dma_buf_initialize` 0x189748, `_dma_buf_alloc` 0x18980c, `_dma_buf_free` 0x18987c, 이름 없는 `FUN_001898bc`(`alloc_cnvmem(page_size, page_size)` + `bzero` = Darwin 정적 `dma_buf_sm_create`, `DMA_BUF_SM_LEN = PAGE_SIZE` dma_exported.h:41), `FUN_001898ec`(`alloc_cnvmem(0x10000, 0x10000)` + `bzero` = 정적 `dma_buf_lg_create`, `DMA_BUF_LG_LEN = 64*1024` :42). 함수 사이 `90`. 앞 `00`×3(`_get_dma_count` 끝 0x189745), 뒤 틈 0(다음 0x18991c).
-- `dbl_fault.c`(seq 247): `_dbf_init` 0x18991c, `_dbf_handler` 0x1899d0, 본문 끝 0x189a5a, 그 뒤 `90 90`, 다음 `_copyin` 0x189a5c. 호출 `_pmap_kernel`, `_kernel_trap`.
-- 전역(원본 `__common`, 섹션 6, 이름순 배치): `_dma_buf_lg` 0x1f7510, `_dma_buf_sm` 0x1f7520(각 다음까지 16 B = `dma_buf_type_t` 4 필드), `_dbf_stack` 0x1f7530(1024 B = DBF_STACK_SIZE), `_dbf_state` 0x1f7930(96 B), `_dbf_tss` 0x1f7990(다음 `_cpu_config` 까지 104 B).
-
-설계:
-1. 두 파일 Darwin 그대로(수정 없음).
-2. 36.1 방식: `-fno-common` 빌드(바이트 차이 0)와 `-fno-common` 없는 변형(OBJECT_MATCH, 공통 기호 크기 ≤ 원본 다음 심볼까지 간격)을 모두 확인.
-3. `dbl_fault.o` 의 끝: `__text` 가 318 B 면 뒤 `90 90` 은 원본에서 객체 사이 채움(00 아님) → 경계 증명 불완전(A*); 320 B 로 `90 90` 을 포함하면 뒤 틈 0 → A. 빌드 전에는 판정하지 않는다.
-4. 예측(R5): `dma_buf.o` `__text` 468 B, `__common`(또는 변형의 공통 기호) 2 × 16 B; `dbl_fault.o` `__common` 3 기호 1024/96/104 B. 옵션 `-O3`(대조 `-O2`, `-O4`). 진단 전처리로 미정의 식별자 확인.
-
-### 43.1 codex 교차검토(QP18) 판정과 실측
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| DMA 세 함수·정적 두 함수 흐름 일치; 0x18976e/0x189778 에서 `create_fcn` 에 0x1898bc/0x1898ec 저장 → 이름 없는 두 함수 = `dma_buf_sm_create`/`dma_buf_lg_create` | 빌드 L1(변형) 5 함수 MATCH(정적 두 함수 포함) | ✅ |
-| dbl_fault TSS·saved state 필드 오프셋 전부 일치(tss.h:41, machdep/i386/thread.h:88, seg.h:140 …) | 세 줄 열람; L1(변형) 2 함수 MATCH | ✅ |
-| **`thread_saved_state_t` 는 92 B**(계획의 96 B 는 틀림 — 원본 간격 96 은 다음 심볼까지 거리일 뿐) | 변형 빌드 공통 기호 `_dbf_state` 크기 92 실측 | ✅ **내 예측 오류**, 설계 4 정정 |
-| 07_kernel 에 `dma_buf_internal.h`·`dma_exported.h`·`trap.h` 없음 | `ls` 0 건 — 이번 채택에서 들어감 | ✅ |
-| `PAGE_SIZE → page_size` 유지, NCPUS=1·잠금 저장소 유지(pcb +0x28), `make_task_gate` 4 인자 형태 유지 | 기존 설정 그대로 빌드해 MATCH | ✅ 변경 없음 |
-
-실측(`s5p18-pre-1`, Darwin 그대로): 두 파일 모두 `-O2` = `-O3` = `-O4`.
-- `dma_buf.o`: `__text` 468 B, `-fno-common` 판 바이트 차이 0(공통 영역 참조 4 개는 배치 모호로 미검증), 변형(`-fno-common` 없음) OBJECT_MATCH, 공통 기호 16/16 B = 원본 간격 16/16. 두 판의 재배치 위치 24 개 같고 필드 밖 바이트 같음.
-- `dbl_fault.o`: `__text` **320 B**(뒤 `90 90` 포함 → 원본 뒤 틈 0), `-fno-common` 판 바이트 차이 0, 변형 OBJECT_MATCH, 공통 기호 1024/92/104 B ≤ 원본 간격 1024/96/104. 재배치 위치 23 개 같고 필드 밖 바이트 같음. `-fno-common` 판에서 `_dbf_init` 판정이 `DIFF` 로 나온 것은 크기 0 인 `__data` 가 `__common` 시작과 같은 주소라 scattered 재배치 대상이 `__data` 로 잘못 분류된 도구 한계(바이트 차이 0, 참조 차이 0).
-
-### 43.2 S5-P18 결과 (2026-10-01) — `dma_buf.c`, `dbl_fault.c` 확정(A 2 개)
-
-- 두 파일 Darwin 그대로 채택(새 5 개). 07_kernel 빌드 `s5p18-build-1` 이 진단 빌드와 모두 같음.
-- 36.1 기준 충족(`-fno-common` 바이트 차이 0 + 변형 OBJECT_MATCH + 크기 ≤ 간격). `dbl_fault.o` `__text` 320 B 가 뒤 `90 90` 을 포함 → 뒤 틈 0, **A**. `dma_buf` 도 **A**(앞 `00`×3, 뒤 0).
-- 정적 함수 두 개(`dma_buf_sm_create`, `dma_buf_lg_create`)도 함수 표에 기록.
-- 증거 `06_reconstruction/evidence/x86-dma_buf_dbl_fault.md`.
-
-## 44. S5-P19 세부 계획 — `vm/vm_mem_region.c` (코딩 전, 2026-10-01)
-
-후보 조사(Python, capstone): seq 138 `ipc_init.c`, 208 `vm_mem_region.c`, 254 `intr.c`, 195 `thread_swap.c`.
-- **`ipc_init.c` 보류**: 원본 `_ipc_init`(0x146ed8–0x146f38)은 `MACH_OLD_VM_COPY` 분기의 `task_create(0,0,&ipc_soft_task)` → 실패 시 `panic` → `ipc_soft_map = ipc_soft_task->map` 은 있으나, Darwin 의 `vm_allocate(ipc_soft_map, &x, PAGE_SIZE, FALSE)`(ipc_init.c:201–213 블록; 44.1 에서 줄 범위 정정)와 두 번째 `kmem_suballoc`(`ipc_kernel_copy_map`, :219–220)가 없고 `_ipc_kernel_copy_map` 심볼도 없다. `MACH_OLD_VM_COPY`(MASTER:145 `<!newvm>`)는 07_kernel 에 아직 정의가 없고, `ipc_kernel_copy_map` 은 `ipc_kmsg.c` 에도 쓰인다 → 옵션 결정과 ipc_kmsg 와 함께 따로 계획.
-- `intr.c`(뒤 `90` → `_spl0` 와 이어짐), `thread_swap.c` 는 다음 차례.
-
-원본 사실(`vm_mem_region.c`, seq 208): 0x1787c4–0x1789cf(523 B), 함수 `_vm_mem_ppi`, `_vm_valid_page`, `_vm_phys_to_vm_page`, `_vm_region_to_vm_page`, `_vm_alloc_from_regions`(Darwin 정의 순서와 같음). 호출 `_panic` 2(문자열 0x1e0b14 `"mem_ppi"`, 0x1e0b1c `"vm_mem_alloc_from_regions"` — Darwin 의 두 `panic` 문자열과 같음). 데이터 `_mem_region` 0x1f6e60, `_num_regions` 0x1f6e98, `_page_shift`(`atop`). `ASSERT` 는 `MACH_ASSERT`=0 이면 사라질 것(kern/assert.h). 앞 `00`×3(`_vm_map_pmap_EXTERNAL` 끝 0x1787c1), 뒤 `00`, 다음 `_vm_object_init` 0x1789d0.
-
-설계:
-1. Darwin 그대로(수정 없음). `--prefer-07` 스테이징, 진단 전처리, `-O3`(대조 `-O2`, `-O4`), L1, 경계 증명서.
-2. 예측(R5): `__text` 523 B, `__data` 에 문자열 두 개(`-fwritable-strings` 이므로 `__data`, 8 + 26 = 34 B), 함수 5 개.
-3. 불일치면 채택하지 않고 차이 기록.
-
-### 44.1 codex 교차검토(QP19) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 5 함수 의미 일치, `struct mem_region` 28 B(오프셋 0x00/0x04/0x0c/0x14/0x18, vm/pmap.h:167–178), `vm_page` 원소 48 B | pmap.h:167–178 열람; 빌드 L1 5 함수 MATCH(차이 0) | ✅ |
-| `vm_region_to_vm_page` 는 `vm_phys_to_vm_page` 를 인라인(두 구간 104 B 같음) | L1 MATCH 로 같은 결과 | ✅ |
-| `ASSERT` 는 kern/assert.h 와 `MACH_ASSERT`=0 으로 사라짐 | 빌드 결과 호출 2 개(`panic`)뿐, L1 일치 | ✅ |
-| ipc_init 보류 타당; 빠진 블록은 **201–213**(내가 198–213 으로 잘못 씀), 두 번째 suballoc 219–220; `mach/features.h:49–50` 은 `meta_features.h` 를 import 할 뿐 | ipc_init.c:196–222 열람(201–213 확인), features.h:49–50 열람 | ✅ 44 절 정정 |
-| 예측 523 B·34 B 맞음; 범위는 반열림으로 | 빌드 실측 같음 | ✅ |
-
-### 44.2 S5-P19 결과 (2026-10-01) — `vm_mem_region.c` 확정(A)
-
-- Darwin 그대로. 진단 `s5p19-pre-1`: `-O3` = `-O4` OBJECT_MATCH(5 함수, 차이 0, 참조 27, `__data` 34 B 0x1e0b14 L1d 확인), `-O2` 다름(435 B). 07_kernel 빌드로 같은 SHA 확인 후 기록. 경계 앞 `00`×3·뒤 `00`×1(최소 채움) → **A**.
-- 증거 `06_reconstruction/evidence/x86-vm_mem_region.md`.
-
-## 45. S5-P20 세부 계획 — `kern/thread_swap.c` (코딩 전, 2026-10-01)
-
-원본 사실(capstone, Python): seq 195, [0x168ed4, 0x169124) 592 B — `_swapper_init` 0x168ed4, `_thread_swapin` 0x168efc, `_thread_doswapin` 0x168f90, `_swapin_thread_continue` 0x168ff4, `_swapin_thread` 0x16910c(Darwin 정의 순서). 앞 틈 0(`_current_thread_EXTERNAL` 끝 0x168ed4), 뒤 틈 0(다음 `_calloutInitialize` 0x169124).
-- 호출: `thread_wakeup_prim` 1, `panic` 1(문자열 0x1dfcac `"thread_swapin"`), `stack_alloc` 2(`thread_doswapin` 본체 + `swapin_thread_continue` 안 인라인으로 보임), `splsched`/`splx` 각 4, `thread_setrun` 2, `assert_wait` 1, **`thread_block_with_continuation`** 1, `stack_privilege` 1, `swapin_thread_continue` 1.
-- 데이터: `_swapin_queue` 0x1f6d90(8 B), `_swapper_lock_data` 0x1f6d98(4 B), 둘 다 `__common`(원본 이름순 배치).
-- 후보 비교: Mach4 판은 `thread_block(swapin_thread_continue)` 이고 `current_thread()->vm_privilege = TRUE;` 가 없다; NeXTMach 판은 `swap_state`·`make_unswappable` 등 구조가 다르다 → Darwin 판이 원본 호출 목록과 맞음.
-
-설계:
-1. Darwin 그대로(수정 없음). `kern/counters.h` 등 07_kernel 에 없는 헤더는 읽힌 것만 채택.
-2. 36.1 방식(`__common` 기호 2 개): `-fno-common` 빌드 바이트 차이 0 + 변형 OBJECT_MATCH + 크기(8, 4) ≤ 원본 간격(8, 4).
-3. 예측(R5): `__text` 592 B, 함수 5 개, `__data` 에 문자열 `"thread_swapin"` 14 B. 옵션 `-O3`(대조 `-O2`, `-O4`).
-
-### 45.1 진단 빌드 결과·codex 교차검토(QP20) 판정 → 설계 변경(복원 수정 1 줄)
-
-진단 `s5p20-pre-1`(Darwin 그대로): `-O3` = `-O4` `__text` **604 B**(원본 592 B, 차이 12 B — Python). 앞 네 함수 MATCH(차이 0), `_swapin_thread` 만 DIFF: 빌드는 `stack_privilege` 호출 뒤 `mov eax,[current_thread]; mov dword [eax+0x78],1`(12 B)을 하는데 원본(0x16910c–0x169124)은 `stack_privilege` 다음 바로 `swapin_thread_continue` 호출. `-O2` 516 B.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 앞 네 함수 Darwin 흐름 일치(상태 `thread+0x4c`, 마스크 0x300, TH_RUN 4 …) | 진단 빌드 L1 네 함수 MATCH, 차이 0 | ✅ |
-| **`swapin_thread` 에 `vm_privilege` 저장이 없다** — Darwin thread_swap.c:211 이 더함; 07 thread.h:164 `vm_privilege` +0x78(32 비트) | thread_swap.c:211 열람, 원본·빌드 디스어셈블 비교(위), thread.tsv `vm_privilege 0x78 match` | ✅ 설계 변경 |
-| `thread_doswapin` 이 continuation 안에 인라인(stack_alloc 0x168f9e, 0x169064) | 진단 빌드에서 그 함수 MATCH | ✅ |
-| `counter()` 는 counters.h:66 `#if MACH_COUNTERS` — 미정의라 비어 있고 원본에도 증가 없음 | counters.h:66 열람, 진단 미정의 목록에 `MACH_COUNTERS`, continuation MATCH | ✅ (옵션은 정의하지 않고 둠: `#if` 미정의 = 0) |
-| `__common` 8/4 B, 잠금은 MACH_SLOCKS(DRIVERKIT) 로 4 B | 변형 빌드 공통 기호 8/4 실측 | ✅ |
-
-설계 변경: Darwin `kern/thread_swap.c` 에서 :211 `current_thread()->vm_privilege = TRUE;` 한 줄 삭제(D014 복원 수정, 근거 원본 0x16910c–0x169124) + 머리말 뒤 수정 주석. 이 한 줄은 Mach4 판(mach4 thread_swap.c `swapin_thread`)에도 없다. 예측: `__text` 592 B, 다섯 함수 MATCH.
-
-### 45.2 S5-P20 결과 (2026-10-01) — `kern/thread_swap.c` 확정(A, 복원 수정)
-
-- 복원 수정 1 줄(`vm_privilege` 저장 삭제) + 수정 주석. `.i` 차이는 의도한 것만. `-O3` = `-O4` 592 B(예측대로), OBJECT_MATCH(5 함수). `-fno-common` 판과 변형 모두 OBJECT_MATCH, 공통 크기 8/4 = 원본 간격. 경계 앞 0·뒤 0 → **A**.
-- 증거 `06_reconstruction/evidence/x86-thread_swap.md`, `x86-thread_swap.diff`.
-
-## 46. S1-F 세부 계획 — 정적 zero-fill 의 참조 기반 배치 판정, 참조 없는 영역의 등급 처리; S5-P21 `intr.c` (코딩 전, 2026-10-01)
-
-계기(진단 `s5p21-pre-1`, Darwin `machdep/i386/intr.c` 그대로, 계획 전 사실 수집용 빌드): 원본 객체 [0x18b514, 0x18c9da) 5318 B(33 함수, Darwin 정의 순서, `send_eoi`·`set_*`·`lower_ipl` 등 static inline 은 인라인), 앞 `00 00`(`_in_cksum` 끝 0x18b512), 뒤 `00 00`. 빌드 `-O3` = `-O4` `__text` 5318 B, **33 함수 모두 바이트 차이 0**, `-O2` 2930 B. 섹션: `__data` 86 B(0x1e2208, L1d 확인), `__common` 12 B(`_intr_cnt`, 심볼로 배치), **`__bss` 266 B(정적 표 `dispatch_table`·`ipl_mask`·`defer_table`·`current_ipl` 등, 심볼 없음)는 참조로 0x1e7618 에 추정되지만 도구가 설계상 미검증**(l1_compare.py: zero-fill 은 심볼로 배치될 때만 placement-only), **`__TEXT,__const` 4 B(`18 00 20 00`, 컴파일러 생성, 참조 0 — .i 에 `const` 없음)는 배치 불가**(원본 `__TEXT,__const` 에 같은 4 B 가 9 곳). 함수 판정은 `__bss` 의존 때문에 30 개가 MATCH_UNVERIFIED.
-
-`__bss` 추정의 근거(Python): 참조 341 개, 서로 다른 오프셋 9 곳(0, 12, 204, 220, 252, 256, 260, 262, 264)이 모두 같은 Δ; 추정 구간 [0x1e7618, 0x1e7722) 은 원본 `__bss` [0x1e56c0, 0x1e8750) 안; 그 구간 ±64 B 안에 원본 이름 심볼 없음.
-
-설계(코드 변경은 codex 검토·내 검증 뒤):
-1. `l1_compare.py`: zero-fill 섹션이 참조로 추정(Δ 하나)되고 (a) 서로 다른 참조 오프셋 ≥ 2, (b) 추정 구간이 원본의 같은 이름 섹션 안, (c) 추정 구간 안에 원본 이름 심볼 없음 — 셋을 모두 만족하면 `placement = 'inferred from N references at K offsets (zero-fill)'`, `sec_ok = 'placement-only'`(심볼 배치와 같은 취급). 하나라도 어기면 지금처럼 미검증. 기존 동작(다른 섹션, 심볼 배치 zero-fill)은 그대로.
-2. 시험: 기존 시험 전부 통과; 확정 객체 33 개의 L1 판정 변화 없음(재실행 비교); `intr` 의 `__bss` 가 새 판정으로; 음성 시험 — 원본 사본에서 참조 하나의 값을 4 바이트 어긋나게 바꾸면 Δ 가 둘 → ambiguous.
-3. 참조가 전혀 없는 섹션(`intr` `__const` 4 B, `bios` `__bss` 16 B): 위치를 보일 방법이 없으므로 **등급 A 를 주지 않고 A\* 로 두며 사유 칸에 "unreferenced <섹션> <크기> not placeable" 를 적는다**(A\* 의 뜻을 넓힘 — 17.1 의 등급 정의 문구 수정) **[46.1 에서 기각: A\* 는 그대로, 새 등급 P; 정의 위치는 17.1 이 아니라 `06_reconstruction/README.md:22`(도입 28.2)]**. 그 섹션 말고 모든 것이 일치해야 한다(함수 바이트·참조·다른 섹션).
-4. 적용: `intr.c`(Darwin 그대로 — 수정 없음) 재판정, `bios.c`(41.2 에서 보류) 재판정.
-
-### 46.1 codex 교차검토(QP21) 판정 → 설계 수정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 참조 341, Δ 하나; "9 오프셋" 은 재배치 기준 수이고 실제 대상 오프셋은 25 | 목적 파일 직접 계산: refs 341, 기준 9, 대상 25 | ✅ 문구 정정 |
-| 제안 조건은 **일관되게 4 B 밀린 배치도 통과**(반례) — 내부 상대 배치 일관성만 보일 뿐 소유·절대 위치 증명은 아니다; 상태를 "reference-inferred" 로 따로 둘 것 | 반례의 논리 확인(조건 a–c 는 Δ 하나·구간 안·심볼 없음뿐) | ✅ → **도구 판정 규칙을 바꾸지 않음** |
-| `__const` 4 B 는 참조 0(349 재배치 전수, SECTDIFF 없음); 출처는 쓰이지 않는 `ltr()`/`lldt()`(cpu_inline.h:126–140)의 선택자 `TSS_SEL` 0x18·`LDT_SEL` 0x20 | cpu_inline.h:120–140, seg.h:63/70 열람; 진단 목적 파일 재배치 전수(내 계산: `__const` 대상 0) | ✅ ("`.i` 에 const 없음" 은 근거로 부적절 — 철회) |
-| 원본 0x1d14e4 가 링크 순서상 그럴듯한 후보(0x1d14dc/e0/e4/e8 연속) 이나 유일하지 않음 | 원본 `__TEXT,__const` 9 곳 실측(41 절 계산) | ⚖️ 기록만, 판정에 쓰지 않음 |
-| A\* 를 넓히지 말고 별도 등급(P); 정의는 README:22(도입 28.2); README:20 도 손볼 것 | README:20·22, 계획 28.2 열람 | ✅ |
-| 확정 33 객체는 추정 zero-fill 에 의존하지 않음 | 09_validation 의 L1 JSON 전수: 추정 zero-fill 은 `s5p21` 2 건뿐 | ✅ |
-
-**내 기존 기록의 불일치(정정 대상)**: README:20 은 `compared/high` 에 "목적 파일 OBJECT_MATCH" 를 요구하는데, 41.2 에서 `_bios32` 를 객체 미확정인 채 `compared/high` 로 올렸다.
-
-수정 설계(46 의 1–4 대체):
-1. `l1_compare.py` 는 바꾸지 않는다. 참조로만 배치되는 zero-fill 은 **별도 검사 기록**(`09_validation/reconstruction/s5p21-zerofill-check-20261001.json`: 참조 수, 기준·대상 오프셋, Δ, 정렬, 원본 섹션 범위 안 여부, 이름 심볼 없음, 확정 객체의 zero-fill 배치와 겹침 없음)으로 남기고 상태를 **reference-inferred** 로 부른다. 증명이 아니라 정황이다.
-2. 새 등급 **P**(부분 검증): 파일 기반 섹션은 모두 바이트·참조 일치, 다른 zero-fill 은 심볼 배치이거나 reference-inferred(목록 명시), 참조가 전혀 없는 섹션은 "unplaced, unverified" 로 목록 명시. P 는 OBJECT_MATCH 가 아니다. README:22 에 정의 추가.
-3. 함수 상태(README:20 에 조건 추가): `compared`+`high` = 함수 L1 MATCH(모든 바이트·참조 검증) 이고 객체가 A/A\*/P; 함수 바이트가 같고 미검증 참조가 reference-inferred zero-fill 로만 가는 경우 `compared`+`medium`.
-4. 적용: `bios.c` → P(`__bss` 16 B unreferenced), `_bios32` 는 함수 MATCH 이므로 `high` 유지(조건 3 으로 정당화). `intr.c` → Darwin 그대로 채택, P(`__bss` 266 B reference-inferred, `__const` 4 B unreferenced); 함수 MATCH 3 개 `high`, MATCH_UNVERIFIED 30 개 `medium`.
-
-### 46.2 codex 재검토(QP21b) 판정과 최종 설계
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| intr: MATCH 3(`_intr_disbl`, `_intr_enbl`, `_ipltospl`), MATCH_UNVERIFIED 30, 미검증 원인은 `__bss`(섹션 2) 하나뿐, 함수별 미검증 참조·차이 0 | 내 계산(L1 JSON 집계)과 같음 | ✅ |
-| P 정의 문구: "파일 기반 섹션 모두" 는 `__const` 예외와 모순 → "목록에 적은 참조 없는 미배치 섹션을 뺀 모든 파일 기반 섹션"; 바이트 차이 0 만으로는 부족(재배치 필드 제외) → 참조 차이·미지원·모호 배치 없음까지 | 46.1 문구 재검토 | ✅ 문구 강화 |
-| `medium` 은 MATCH_UNVERIFIED 이면서 미검증 의존이 **검사 기록이 있는** reference-inferred zero-fill 뿐일 때만 | — | ✅ |
-| 검사 기록 항목(입력 SHA, 섹션 정보, 재배치 전수와 식, Δ 일치, 정렬·포함·심볼 검사, 겹침 검사, 음성 검사) | — | ✅ 도구에 반영 |
-| 확정 객체의 zero-fill 배치는 모두 원본 `__common` 에 있어 intr `__bss` 와 겹칠 수 없다(→ 겹침 검사는 소유의 적극적 증거가 못 됨) | 10 심볼 모두 섹션 6(`__common`, 0x1e8750~) 확인 | ✅ 기록 |
-| P 는 별도 표 `objects_partial.tsv`; `objects_confirmed.tsv` 를 읽는 스크립트 없음 | `grep -rn objects_confirmed 10_tools` 0 건 | ✅ |
-
-최종 설계:
-1. 새 도구 `10_tools/reconstruction/zerofill_check.py`(L1 은 그대로): 목적 파일의 지정 zero-fill 섹션을 가리키는 모든 재배치(일반·scattered; PAIR/SECTDIFF 가 있으면 실패)를 원본 값과 대조해 Δ 를 각각 계산, 전부 같을 때만 후보 배치; 정렬·원본 같은 이름 zero-fill 섹션 포함·이름 심볼 없음·주어진 기존 배치와 겹침 없음 검사; 음성 검사(원본 값 하나를 4 B 바꾼 사본 → Δ 불일치로 실패해야 함). 출력 JSON 에 입력 SHA-256, 명령, 재배치별 기록, 결론 `reference-inferred` 또는 `fail`.
-2. README:20/22 수정 — `high` 는 함수 L1 MATCH 이고 객체가 A/A\*/P(`objects_partial.tsv`); `medium` 은 위 조건; P 정의(46.2 문구) 추가; `objects_partial.tsv` 설명.
-3. `objects_partial.tsv` 새 표(열: object, arch, binary_sha256, text_start, text_end_exclusive, source, build, grade, unverified_sections, gap_before, gap_after, evidence): `bios`(P, `__bss` 16 B unreferenced), `intr`(P, `__bss` 266 B reference-inferred, `__const` 4 B unreferenced).
-4. `intr.c` Darwin 그대로 07_kernel 채택, 07_kernel 빌드로 같은 SHA 확인, 함수 33 행(high 3, medium 30), 증거 `x86-intr.md`.
-
-### 46.3 결과 (2026-10-01) — 새 등급 P, `intr.c`·`bios.c` 를 P 로 기록
-
-- 도구 `10_tools/reconstruction/zerofill_check.py`(L1 은 그대로). `intr` `__bss`: reference-inferred(참조 341, 대상 오프셋 25, Δ 0x1e60f4, 음성 검사 감지) — `09_validation/reconstruction/s5p21-zerofill-check-20261001.json`. `bios` `__bss`: 참조 0 → `fail`(= unreferenced 로 분류).
-- README:20–22 정의 수정(`high`/`medium` 조건, 등급 P). 새 표 `06_reconstruction/objects_partial.tsv`(bios, intr). `objects_confirmed.tsv` 는 A/A\* 만 유지.
-- `intr.c` Darwin 그대로 채택(새 9 파일), 07_kernel 빌드가 진단과 같은 SHA. 함수 33 행: high 3, medium 30. `_bios32` 행 비고를 "object grade P" 로 갱신(41.2 의 README 불일치 해소).
-- 증거 `06_reconstruction/evidence/x86-intr.md`.
-
-## 47. S5-P22 세부 계획 — IPC 네 파일 `ipc_space.c`, `ipc_hash.c`, `ipc_pset.c` (+ `ipc_object.h`), `ipc_sched.c` 보류 (코딩 전, 2026-10-01)
-
-사실(계획 전 진단 `s5p22-pre-1` Darwin 그대로, 탐침 `s5p22-probe-1` 스테이징 사본만 수정; 계산 Python):
-- `ipc_space.c` [0x1506b0, 0x150a05) 853 B, 5 함수, 앞 `00`(0x1506af), 뒤 `00`×3. 진단: `-O3` = `-O4` 853 B, 바이트 차이 0; `-fno-common` 판은 `__common` 12 B 배치 추정·미검증, 변형(`-fno-common` 없음) OBJECT_MATCH.
-- `ipc_hash.c` [0x146908, 0x146dbe) 1206 B, 11 함수, 앞·뒤 `00 00`. 진단 1190 B(16 B 짧음): `_ipc_hash_lookup` 만 원본 80 B 대 64 B. 원본은 결과를 0/1 로 정규화(`xor esi,esi` … `mov esi,1`) — **Mach4 판의 `return (local || (is_tree_hash > 0 && global));`**(mach4 ipc_hash.c:73–76)와 같은 모양, Darwin 판(ipc_hash.c:133–141)은 `rv` 를 그대로 반환. 탐침에서 이 본문만 바꾸면 1206 B, 변형 OBJECT_MATCH(11 함수).
-- `ipc_pset.c` [0x14d61c, 0x14db06) 1258 B, 6 함수, 앞·뒤 `00 00`. 진단 1280 B(22 B 김): `_ipc_pset_move`·`_ipc_pset_destroy` 에서 빌드만 값을 스택에 내렸다 다시 읽음. 원인: Darwin `ipc/ipc_object.h:142` `io_check_unlock` 의 `volatile ipc_object_refs_t _refs` — Mach4(ipc_object.h:94)는 `volatile` 없음. 탐침에서 `volatile` 만 지우면 1258 B, `-fno-common` 판·변형 모두 OBJECT_MATCH.
-- `ipc_sched.c` [0x159000, 0x1593e1) 993 B: `_thread_handoff` 만 다름(원본 309 B 대 301 B) — 원본은 `stack_handoff` 앞에 `switch_unix_context(new)`(원본 0x106e0c, BSD 쪽) 호출이 있고 이 함수는 어떤 참조 트리에도 없다(grep 0 건) → 참조에 없는 코드를 써야 하므로 **보류**(time_stamp.c 와 같은 사유, 사용자 결정 대기).
-
-설계:
-1. `ipc_space.c`: Darwin 그대로, 36.1 방식(`-fno-common` 바이트 0 + 변형 OBJECT_MATCH + 공통 크기 ≤ 간격).
-2. `ipc_hash.c`: 복원 수정 — `ipc_hash_lookup` 본문(Darwin :133–141)을 Mach4 ipc_hash.c:73–76 의 return 식으로 교체(출처 https://github.com/openmach/mach4.git 69fa77870f20d854c875135e116ebc80b118e7ff `kernel/ipc/ipc_hash.c:73–76`; 같은 CMU 고지(1991,1990,1989)가 Darwin 파일에 이미 있음 — 파일 머리말 유지). 36.1 방식.
-3. `ipc/ipc_object.h`: 복원 수정(헤더) — :142 의 `volatile` 삭제(Mach4 :94 와 같은 형태). **헤더 변경이므로 회귀**: 확정 33 + 부분 2 객체를 원래 명령으로 다시 빌드해 SHA 동일 확인(`io_check_unlock` 을 쓰는 객체가 있으면 바뀔 수 있고, 그러면 원본과 다시 대조).
-4. `ipc_pset.c`: Darwin 그대로(헤더 수정 반영), 36.1 방식 확인.
-5. 예측(R5): `ipc_space` 853 B, `ipc_hash` 1206 B, `ipc_pset` 1258 B; `-O2` 는 셋 모두 `-O3` 와 다른 목적 파일(실측: ipc_space 854 B, ipc_hash 1206 B 이나 SHA 다름, ipc_pset 882 B — 판정에 쓰지 않음).
-
-### 47.1 codex 교차검토(QP22) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `ipc_hash_lookup` 의 Mach4 식은 바이트를 설명하는 "최소로 보인 교체 범위" 이지 유일한 원문은 아님; 나머지 10 함수는 이미 같음 | 진단 함수별 길이 비교(10 함수 같은 길이), 탐침 변형 OBJECT_MATCH | ✅ 문구: "minimal demonstrated replacement" |
-| `volatile` 이 ipc_pset 차이의 원인; 탐침에서 move/destroy 일치 | 탐침 L1(두 판 모두 OBJECT_MATCH) | ✅ |
-| 확정·부분 객체 중 이 매크로를 전개하는 것 없음 | 확정 빌드 `.i` 전수: `volatile ipc_object_refs_t _refs` 전개 0 곳 | ✅ (회귀는 그대로 수행) |
-| 원본 방증: `_ipc_object_release` 0x14b888–0x14b896, `_ipc_port_release_send` 0x14d070– 이 참조 수를 레지스터에 둔 채 unlock | 0x14b888–0x14b898 디스어셈블 열람(`dec eax; xor edx,edx; xchg [ecx],edx; test eax,eax`) | ✅ (선언의 철자까지는 증명 아님) |
-| `thread_handoff` 차이는 `switch_unix_context(new)` 호출 하나(바이트로는 변위 등 연쇄 변경); 참조 트리에 이름 없음 | 47 절 diff, grep 0 건 | ✅ 보류 유지 |
-| `ipc_space` 공통 기호 `_ipc_space_kernel`/`_reply`/`_zone` 각 4 B = 원본 간격 4 | 변형 목적 파일 공통 기호와 원본 간격 Python 확인 | ✅ |
-| CMU 고지는 "supporting documentation" 에도 요구 → `07_kernel/LICENSES` 에 CMU 고지 파일 추가; Mach4 출처는 PROVENANCE·MODIFICATIONS 에 함수 단위로 | mach4 ipc_hash.c:1–25 열람, AGENTS.md 규칙 | ✅ `LICENSES/CMU-MACH.txt` 추가 |
-
-### 47.2 S5-P22 결과 (2026-10-01) — `ipc_space`, `ipc_hash`, `ipc_pset` 확정(A 3 개)
-
-- 복원 수정 2: `ipc/ipc_object.h`(`io_check_unlock` 의 `volatile` 삭제), `ipc/ipc_hash.c`(`ipc_hash_lookup` 본문을 Mach4 :73–76 식으로). 새 `07_kernel/LICENSES/CMU-MACH.txt`.
-- 07_kernel 빌드가 탐침과 같은 목적 파일. 세 객체 OBJECT_MATCH(ipc_space·ipc_hash 는 36.1 변형, ipc_pset 은 두 판 모두). 경계 최소 채움 → **A** 3 개. 회귀 35 객체 동일.
-- `ipc_sched.c` 보류(사용자 결정 대기 목록에 추가: `time_stamp.c` 의 `kern_timestamp`, `ipc_sched.c` 의 `switch_unix_context` 호출).
-- 증거 `06_reconstruction/evidence/x86-ipc_s5p22.md`.
-
-## 48. 새 코드 작성 규칙(D016)과 첫 적용 — `kern/time_stamp.c`, `kern/ipc_sched.c` (코딩 전, 2026-10-01)
-
-사용자 결정 D016: 참조 소스에 없는 코드를 원본 바이트에 맞춰 새로 써도 된다. 규칙:
-- W1 **마지막 수단**: 참조 텍스트(Darwin/NeXTMach/Mach4)와 D014 복원 수정으로 원본 바이트를 낼 수 없을 때만. 그 사실(어느 참조와 어떻게 다른지)을 계획에 적는다.
-- W2 **최소·근거 한정**: 원본 역어셈블에서 관찰한 동작(호출·인자·순서·상수, 주소 명시)만 쓴다. 이름은 원본 심볼표에 있는 것(함수·전역)과 참조 헤더의 타입·상수만 쓰고, 근거 없는 새 식별자를 만들지 않는다(지역 선언은 허용). 둘레 코드의 문체를 따른다.
-- W3 **표시·기록**: 작성한 줄 바로 앞에 `/* Reconstructed from the original binary (no reference source), 2026-10-01: see 07_kernel/MODIFICATIONS.md */`; 머리말 뒤 수정 주석(D014 와 같음); MODIFICATIONS 행에 "authored" 와 근거 주소; PROVENANCE `changes` 에 "authored lines"; functions.tsv `source_id` 에 `+authored`. 작성분은 "역사적 원문" 이라 주장하지 않는다.
-- W4 **판정**: 수정 후 L1 MATCH·객체 OBJECT_MATCH(또는 정의된 등급) 필수. 함수당 변형 3 회까지, 불일치면 기록하고 멈춘다.
-- W5 **예측 먼저**: 빌드 전 크기·재배치·호출을 적는다.
-
-적용 1 — `kern/time_stamp.c`(seq 196): 원본 `_kern_timestamp` [0x16a158, 0x16a196) 62 B(Python): `push 1; call _clock_value`(0x187b98) → 64 비트 반환(`edx:eax`) → `lea ebx,[ebp-8]; push ebx; push edx; push eax; call _ns_time_to_tsval`(0x160674) → `copyout(&ts, tsp, 8)` → 0 이 아니면 1(`KERN_INVALID_ADDRESS`), 아니면 0. 앞 틈 0(앞 `FUN_0016a140` 끝 0x16a158), 뒤 `00 00`, 다음 `_init_timers` 0x16a198.
-- W1: Darwin(`clock_get_counter` + usec 계산, time_stamp.c:65–72), Mach4(`time` 복사), NeXTMach(`event_set_ts`) 모두 다름; `clock_value`·`ns_time_to_tsval` 은 어느 트리에도 없음(`grep -rnw` 0 건).
-- 작성: Darwin 파일의 `#else m68k` 분기 본문(:65–72 — `usec_now`·`now` 선언 :65–66, 빈 줄 :67, 계산 4 문장 :68–72; 처음에 `:68–74` 로 잘못 적어 정정)을 `ns_time_to_tsval(clock_value(System), &ts);` 한 줄로 바꾸고, 파일 앞쪽에 선언 두 줄 `extern unsigned long long clock_value(clock_type_t which_clock);`, `extern void ns_time_to_tsval(unsigned long long value, struct tsval *tsp);` 를 둔다(`System` = 1 은 kern/clock.h:77–80 의 열거; `unsigned long long` 은 kernserv/clock_timer.h:40 의 `ns_time_t` 정의 — 그 헤더는 `bsd/sys/time.h` 를 끌어와 BSD 헤더 문제에 닿을 수 있어 쓰지 않음).
-- 예측: `__text` 62 B, 외부 호출 3(`_clock_value`, `_ns_time_to_tsval`, `_copyout`), 데이터 없음.
-
-적용 2 — `kern/ipc_sched.c`(seq 160): `_thread_handoff` 만 다름 — 원본 0x159342 `push ebx`(new), 0x159343 `call _switch_unix_context`(0x106e0c), 그다음 `stack_handoff`(0x15934a). Darwin ipc_sched.c:348 `stack_handoff(old, new);` 바로 앞.
-- W1: 이 호출은 Darwin·Mach4·NeXTMach 어디에도 없음(`switch_unix_context` grep 0 건).
-- 작성: :348 앞에 `switch_unix_context(new);` 한 줄. 선언은 넣지 않는다(K&R 암시 선언, 반환값 안 씀) — 바이트가 다르면 변형 2 로 `extern void switch_unix_context();` 추가.
-- 예측: `__text` 993 B(원본과 같음), 함수 5 개 MATCH, 다른 네 함수는 진단에서 이미 MATCH.
-
-### 48.1 codex 교차검토(QP23) 판정과 규칙 보강
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 교체 범위는 :65–72(`#else` :64, `#endif` :73 유지) — 계획의 :68–74 는 틀림 | time_stamp.c 52–79 줄번호 출력 | ✅ (codex 회신 전에 내가 이미 정정) |
-| 원본 `_kern_timestamp` 순서: `sub esp,8`(ts), `esi`=tsp, `push 1; call clock_value`, `ebx`=&ts, `push ebx/edx/eax; call ns_time_to_tsval`, `copyout(ebx, esi, 8)`, 0/1 반환, 인자 28 B 는 에필로그에서 한 번에 정리 | 0x16a158–0x16a196 디스어셈블(196 절 조사 출력) | ✅ — 정확한 레지스터·순서는 빌드로 판정 |
-| `System`=1, `kern/clock.h` 는 time_stamp.c:47 에서 import; 07_kernel 에 아직 없음 → 스테이징·채택 필요 | clock.h:77–80, time_stamp.c:45–47 열람, `ls 07_kernel/src/kern/clock.h` 없음 | ✅ |
-| 핵심 선언은 `clock_value` 의 64 비트 반환(암시 `int` 면 틀림); `ns_time_to_tsval` 의 `void` 는 역사적 선언의 증명 아님 | — | ✅ 기록 |
-| ipc_sched: 삽입 위치 :348 앞, 원본 0x1592b5 에서 `new` 는 `ebx`, 0x159342 `push ebx`; 985 + 6 + 정렬 2 = 993 | 47 절 diff 와 일치, Python `985+6+2` = 993 | ✅ |
-| 선언 바꾸기를 바이트 맞추기 수단으로 쓰지 말 것(`extern void f();` 는 C89 비원형 선언) | — | ✅ 설계 변형 2 삭제 |
-| W 규칙 보강: 작성 줄의 라이선스, 기록 방식, 과적합 방지(모든 시도·예측·이유·.i·옵션 보존, 환경 고정, 이유 없는 꼼수 금지), W1 문구는 "검토한 후보로는 안 됨" | 저장소에 LICENSE 파일 없음(`ls`), AGENTS.md D013 은 라이선스 판단을 사용자에게 둠 | ✅ W6 추가 |
-| `ns_time_to_tsval`(0x160674) 은 `kern/ns_timer.c`, `clock_value`(0x187b98) 는 `machdep/i386/machine_clock.c` 쪽일 가능성 | — | ⏭️ 이후 작업용 기록(판정에 안 씀) |
-
-규칙 보강:
-- W1 문구: "검토한 참조 후보(이름 명시)와 복원 수정으로는 원본 바이트가 나오지 않았다" 를 적는다(참조 기반 해법이 없다는 증명이 아님).
-- W6 **라이선스·과적합**: Darwin 파일 안에 작성한 줄은 APSL 1.0 의 Modifications 로 그 파일의 고지 아래 두고 MODIFICATIONS 에 "authored" 로 적는다. 독립 새 파일의 라이선스는 사용자 판단(D013 원칙). 시도마다 예측·이유·`.i`·명령·결과를 보존하고, 빌드 환경·옵션은 고정한다. 이유 없는 군더더기·선언 바꾸기·레지스터 유도 같은 꼼수로 바이트를 맞추지 않는다.
-- functions.tsv: `source_id` = `darwin01+authored`, 비고에 작성 줄 범위(선언 포함)·근거 주소·diff 경로.
-
-설계 수정: ipc_sched 변형 2(선언 추가) 삭제 — 한 줄 삽입이 맞지 않으면 기록하고 멈춘다.
-
-### 48.2 실행 기록 — 도구 수정, 변형 1 결과, 변형 2 근거 (2026-10-01)
-
-- 도구 결함 수정: `stage_headers.py` 의 닫힘이 `-imacros src/generated/meta_features.h` 를 따라가지 않아 작은 닫힘(`time_stamp.c`)에서 생성 헤더가 빠져 진단 `s5p23-pre-1` 이 실패. `closure()` 가 처음부터 `generated/meta_features.h` 를 넣도록 고침 — 기존 닫힘과 비교해 빠진 파일 0, 추가만(`kern/priority.c` 는 `generated/mach_xp.h` 1 개 추가). 진단 `s5p23-pre-2`: 수정 없는 Darwin `time_stamp.o` 143 B.
-- `ipc_sched.c`(한 줄 삽입): `s5p23-build-1` `-O2`=`-O3`=`-O4` 993 B, OBJECT_MATCH(5 함수, `__data` 15 B L1d) — 예측대로.
-- `time_stamp.c` 변형 1(`ns_time_to_tsval(clock_value(System), &ts);`): 66 B, DIFF. 차이는 평가 순서뿐: 빌드는 `lea ebx,[ebp-8]; push ebx; push 1; call clock_value; add esp,4; push edx; push eax; call ns_time_to_tsval`, 원본은 `push 1; call clock_value; lea ebx,[ebp-8]; push ebx; push edx; push eax; call ns_time_to_tsval`(인자 정리를 미룸). 원본은 `clock_value` 결과를 먼저 얻은 뒤 두 번째 호출을 만든 모양 → 시도 파일·`.i` 보존(`09_validation/reconstruction/s5p23-attempts/time_stamp-v1.*`).
-- 변형 2(근거: 위 호출 순서): 지역 변수에 먼저 받고 다음 문장에서 호출 — `unsigned long long now;` / `now = clock_value(System);` / `ns_time_to_tsval(now, &ts);`(지역 이름은 Darwin 판의 `now` 를 재사용, W2). 예측: 62 B, 호출 3, 원본과 같은 순서.
-
-### 48.3 결과 (2026-10-01) — 새 코드 작성 첫 적용, A 2 개
-
-- `time_stamp.c` 변형 2: 62 B, `-O2`=`-O3`=`-O4`, OBJECT_MATCH, 경계 앞 0·뒤 `00 00` → **A**. `ipc_sched.c`: 993 B OBJECT_MATCH, 경계 앞 `00`·뒤 `00`×3 → **A**.
-- 함수 표: 두 함수(`kern_timestamp`, `thread_handoff`) `source_id` `darwin01+authored`, 나머지 4 함수 `darwin01`. MODIFICATIONS 에 "authored" 행 2 개. 시도 기록 `09_validation/reconstruction/s5p23-attempts/`.
-- 증거 `06_reconstruction/evidence/x86-time_stamp.md`, `x86-ipc_sched.md`.
-
-## 49. S5-P24 세부 계획 — 일괄 진단 결과, `kern/lock.c`·`ipc/ipc_splay.c` 확정 (코딩 전, 2026-10-01)
-
-일괄 진단(계획 전 사실 수집, Darwin 그대로; `s5p24-pre-1` 은 두 파일 컴파일 실패로 게시 거부 → 두 파일을 빼고 `s5p24-pre-2`): 남은 "새 미해결 없음" Mach 쪽 41 구간 중 12 개.
-- 컴파일 실패(보류): `ipc/ipc_mqueue.c` — 복원한 thread.h 에서 뺀 `ith_rcv_option`·`ith_list` 를 씀(원본은 다른 판, D015·24.x 의 thread 배치와 연결해 따로 계획); `kern/kernel_stack.c` — `mach_debug.h`(옵션 헤더 미정) 필요.
-- **Darwin 그대로 OBJECT_MATCH**: `kern/lock.c`(seq 169, [0x15b504, 0x15bc2d) 1833 B, 16 함수, `-O2`=`-O3`, `__data` 81 B 심볼 배치, 앞 틈 0(`_stack_statistics` 끝 0x15b504), 뒤 `00`×3, 다음 `_clock_interrupt` 0x15bc30), `ipc/ipc_splay.c`(seq 148, [0x150a08, 0x151932) 3882 B, 11 함수, `-O3` 만(`-O2` 2150 B 다름), 앞 `00`×3(확정 `ipc_space` 의 뒤 틈과 같음), 뒤 `00 00`(확정 `ipc_table` 앞 틈과 같음)).
-- 함수 일부만 다름(이후 조사): `kern/ipc_host.c`(`_mach_host_self`, `_host_self`), `kern/syscall_subr.c`(`_thread_switch`, 빌드 1028 B 대 S2-A 구간 1481 B — 구간 경계도 확인 필요), `kernserv/kern_notify.c`(`_notify_server_loop`), `ipc/ipc_marequest.c`(3 함수).
-- 크기부터 다름(이후 조사): `ipc/ipc_notify.c`(2680 대 2302), `ipc/ipc_entry.c`(2826 대 2754), `ipc/ipc_object.c`(3098 대 3088), `kern/power.c`(949 대 933).
-
-설계: `lock.c`, `ipc_splay.c` 를 Darwin 그대로 채택(읽힌 파일 중 07_kernel 에 없는 것만), 07_kernel 빌드로 진단과 같은 SHA 확인, 경계 증명서, 등급 A 기록. 예측: 진단과 같은 SHA(lock `-O3`, ipc_splay `-O3`).
-
-### 49.1 codex 교차검토(QP24) 판정과 추가 사실
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| lock·ipc_splay OBJECT_MATCH 진짜, zero-fill·공통 없음; lock `__data` 81 B = `lock_wait_time` 0 + 두 panic 문자열 | 원본 0x1deddc 81 B 덤프(`00×4`, 두 문자열) | ✅ |
-| 경계 바이트 맞음; 단 lock 앞 틈 0 은 별개 객체의 독립 증명이 아님(`_stack_statistics` 는 kernel_stack.c 로 강하게 귀속) | 41–49 절 Python 값과 같음 | ✅ 증거 문서에 한계 명시 |
-| `kernel_stack.c` 는 원본에 `_stack_statistics`·`_stack_finalize`·`_stack_init` 이 있어 `MACH_DEBUG=1` 후보 | — | ⏭️ 이후 계획에서 검증 |
-| syscall_subr S2-A 구간 1481 − 1028 = 453 B 는 `_map_fd` [0x165784, 0x165949)(NeXTMach syscall_subr.c:637 에도 있음); 공유 구간의 차이는 0x165516 변위 0x80 대 0x88 하나 | Python 453 = 0x165949 − 0x165784, `_map_fd` 심볼 0x165784, NeXTMach :637 열람, 0x165514 `mov eax,[eax+0x88]` | ✅ |
-| kern_notify `__bss` 20 B 추정·미검증, ipc_marequest 는 데이터 불일치 포함 | — | ✅ 조사 메모 |
-
-추가 사실(내 조사): `kern/ipc_host.c` 의 `_mach_host_self`·`_host_self` 차이와 syscall_subr 의 한 바이트는 같은 원인 — `current_space()` 가 읽는 `task->itk_space` 가 원본 +0x88, 07_kernel `kern/task.h:123` 판은 +0x80(8 B 차이). → `struct task` 배치 복원(24 절 thread·vm_object 와 같은 방법)을 다음 계획(50)으로.
-
-### 49.2 S5-P24 결과 (2026-10-01) — `lock.c`, `ipc_splay.c` 확정(A 2 개)
-
-- Darwin 그대로 채택(새 2 파일). 07_kernel 빌드가 진단과 같음. lock(16 함수, `__data` 81 B), ipc_splay(11 함수) OBJECT_MATCH, 경계 최소 채움 → **A**. lock 앞 틈 0 의 한계는 증거·objects 표에 적음.
-- 증거 `06_reconstruction/evidence/x86-lock_ipc_splay.md`.
-
-## 50. S4-B3 세부 계획 — `struct task` 배치 복원(24 절 방법) (코딩 전, 2026-10-01)
-
-계기: 49.1 — `ipc_host.c` `_mach_host_self`/`_host_self` 와 `syscall_subr.c`(0x165514) 가 `task->itk_space` 를 +0x88 에서 읽는데 07_kernel `kern/task.h` 판은 +0x80.
-
-원본 근거(capstone; 계산 Python):
-- `sizeof(struct task)` = **0x8c**(140): `_task_init` 0x165978 `push 0x8c` → `_zinit`.
-- `_task_create` 0x165a20–0x165beb 의 저장: `ref_count` +4(=2), `map` +0xc, `lock` +0, `thread_list` +0x1c/+0x20(자기 연결), `thread_list_lock` +0x28, `suspend_count` +0x18, `active` +8(=1), `user_stop_count` **+0x44**, `thread_count` +0x24, `pcb_common` **+0x40**(=0), `kernel_vm_space` **+0x50**(=0), 시간 4 워드 **+0x54/+0x58/+0x5c/+0x60**, `kernel_privilege` **+0x4c**, `processor_set` +0x2c, `priority` **+0x48**(=10 BASEPRI_USER), `may_assign` +0x30(=1), `assign_active` +0x34(=0); 그리고 Darwin 에 없는 **`zalloc(u_task_zone)` 결과를 +0x38 에 저장**하고 `_utask_zero(task)` 호출. `_task_init` 0x16599a/0x1659a1: kernel_task 의 +0x4c(`kernel_privilege`)·+0x50(`kernel_vm_space`) = 1.
-- `_mach_ports_register` 0x15a030: `cmp esi,4`(portsCnt > 4), 루프 `cmp ebx,3`(i < 4), 지역 배열 16 B, `itk_registered` 접근 `[ecx+ebx*4+0x78]`; `_mach_ports_lookup` 0x15a104: `kalloc(0x10)`, `*portsCnt = 4`, `[edi+ebx*4+0x78]` → **TASK_PORT_REGISTER_MAX = 4**, `itk_registered` +0x78.
-- Darwin 판(07_kernel task.h, `TASK_PORT_REGISTER_MAX` 3 — mach/mach_param.h:86): `proc` +0x38 … `itk_registered` +0x74, `itk_space` +0x80, sizeof 0x84(탐침으로 확인 예정).
-
-가설 H-task(최소 수정, D014):
-1. `kern/task.h`: `struct proc *proc;`(:94) 앞에 `struct utask *u_address;` 한 필드 — 이름은 NeXTMach `mk-108.1/kern/task.h:178` 의 것(D015 와 같은 원칙: 역할은 원본 바이트, 이름은 NeXTMach 유래로 기록). 이로써 0x38 이후가 +4.
-2. `mach/mach_param.h:86`: `TASK_PORT_REGISTER_MAX` 3 → 4(NeXTMach `mk-108.1/kern/mach_param.h:44` 도 4). 이로써 `itk_space` 가 추가 +4 → 0x88, sizeof 0x8c.
-- 예측(Python): `u_address` 0x38, `proc` 0x3c, `pcb_common` 0x40, `user_stop_count` 0x44, `priority` 0x48, `kernel_privilege` 0x4c, `kernel_vm_space` 0x50, 시간 0x54–0x63, `itk_lock_data` 0x64, `itk_self` 0x68 … `itk_registered` 0x78(4 개), `itk_space` 0x88, sizeof 0x8c.
-
-설계:
-1. 스테이징 사본에 두 수정만 넣고 오프셋 탐침(24 절 `thr_probe.c` 방식: 상수 배열, 실행하지 않음)으로 모든 필드의 오프셋·크기와 sizeof 를 원본 근거와 대조 → 배치 표 `06_reconstruction/struct_layouts/task.tsv`.
-2. 모두 맞으면 07_kernel 두 헤더에 복원 수정(수정 주석, MODIFICATIONS, diff, PROVENANCE). `mach_param.h` 는 공개 헤더이므로 이 상수를 쓰는 곳(Darwin 은 kern/ipc_tt.c 만, grep)을 기록.
-3. 회귀: 확정 40 + 부분 2 객체 재빌드, SHA 동일 확인(이 필드들을 쓰는 확정 객체는 원본과 이미 일치했으므로 변화가 없어야 함 — 바뀌면 원인 분석).
-4. 그다음 `ipc_host.c`(Darwin 그대로)·`syscall_subr.c` 를 다시 진단(syscall_subr 은 원본 구간에 NeXTMach 의 `map_fd` 가 함께 있으므로 별도 계획).
-5. 한계: `task_create` 의 `proc = 0` 은 원본에서 `_utask_zero`(0x106dfd `mov [ebx+0x3c],0`) 안으로 옮겨져 있고(50.1 정정), `u_task_zone`·`utask_zero` 는 task.c 의 차이 — 이번 범위 밖(task.c 계획에서).
-
-### 50.1 codex 교차검토(QP25) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 계획의 원본 오프셋 주장 모두 맞음; 추가 근거 — `_ipc_task_init` `itk_self` +0x68(0x159440), `itk_sself` +0x6c(0x159449), `itk_space` +0x88(0x15944f), `itk_exception` +0x70, `itk_bootstrap` +0x74, `itk_registered[i]` +0x78, `itk_lock` +0x64(0x1594cd xchg); `_task_info` `user_stop_count` +0x44(0x166766), 시간 +0x54/58/5c/60(0x16676b–0x16677d) | 해당 주소 디스어셈블 열람(모두 확인) | ✅ |
-| `proc` 는 빠진 게 아니라 `_utask_zero` 가 +0x3c 를 0 으로(0x106dfd); `_utask_zero` 는 +0x38(`u_address`)을 `bzero(…, 0x298)` | 0x106de8–0x106e0b 열람 | ✅ 50 절 5 번 정정 |
-| `pcb_common` +0x40·`user_stop_count` +0x44 식별은 다른 소비처(`_pcb_common_init` 0x18d603, `_task_suspend`/`_task_resume`)로 확정 | `_task_info` 의 +0x44 읽기 확인(나머지는 주소만 받음) | ⚖️ |
-| 두 수정이 최소 설명(다른 위치 필드로는 +0x38 할당/해제·+0x3c·색인 접근을 함께 설명 못 함) | 50 절 예측과 원본 접근 일치 | ✅ |
-| 상수 사용처: Darwin `mach/mach_param.h`·`kern/task.h`·`kern/ipc_tt.c`, 07_kernel 은 정의와 task.h 뿐; 확정 40 객체 소스는 직접 안 씀 | 50 절 grep 결과와 같음 | ✅ 회귀는 수행 |
-| NeXTMach 의 4 는 NeXT 조건부 커널 헤더 값 — 공개 SDK 정의의 증명은 아님 | — | ✅ 기록(근거는 원본 바이트) |
-| 탐침은 원본 설정(잠금 저장소 있음, `NORMA_TASK`=0)으로 | 생성 헤더 `norma_task.h` = 0, DRIVERKIT=1 | ✅ |
-
-### 50.2 결과 (2026-10-01) — `struct task` 복원, `ipc_host.c` 확정(A)
-
-- 탐침 `s4b-task-1`: 가설판의 원본 근거 있는 27 필드와 sizeof 0x8c 모두 일치(불일치 0, `pset_tasks` 미확인) → 배치 표 `06_reconstruction/struct_layouts/task.tsv`.
-- 07_kernel 복원 수정: `kern/task.h`(`u_address`, NeXTMach 이름), `mach/mach_param.h`(`TASK_PORT_REGISTER_MAX` 4). 회귀 42 객체 동일.
-- 설계 4 의 재진단: `ipc_host.c` 가 Darwin 그대로 OBJECT_MATCH(19 함수, `-O2`=`-O3`) → 채택(새 2 파일)·07_kernel 빌드 동일 → **A**. `syscall_subr.c` 는 `map_fd` 문제로 따로 계획.
-- 증거 `06_reconstruction/evidence/x86-task_layout_ipc_host.md`.
-
-## 51. S5-P25 세부 계획 — `kernserv/kern_notify.c` 를 P 로 (코딩 전, 2026-10-01)
-
-- `kern/syscall_subr.c` 보류: 원본 구간 끝의 `_map_fd`(453 B) 는 NeXTMach `kern/syscall_subr.c:637` 에 있고, 그 코드는 `sys/file.h`·`sys/vnode.h`·u-area 등 BSD 헤더가 필요 → S4-C(BSD 헤더 판) 결정 뒤.
-- 재진단 `s5p25-pre-1`(복원 task.h, Darwin 그대로): `kern_notify.c` 의 `_notify_server_loop` 차이는 모두 `struct task` 오프셋(`kernel_privilege` +0x50, `itk_space` +0x88)이었고 이제 7 함수 바이트·참조 차이 0. 나머지(`ipc_marequest`·`ipc_notify`·`ipc_entry`·`ipc_object`·`power`)는 여전히 다름 — 다음 조사.
-
-`kern_notify.c` 사실(seq 200): `__text` [0x16d20c, 0x16d64d) 1089 B(`-O3`; `-O2` 는 `_port_request_notification` 다름), 7 함수(정적 `pn_panic`·`pn_register`·`pn_notify` 와 외부 `get_kern_port` 포함 — 처음에 `get_kern_port` 를 정적으로 잘못 적음, 51.1), 앞 `00 00`(`_kern_serv_kernel_task_port` 끝 0x16d20a), 뒤 `00`×3(다음 `_kern_serv_handler` 0x16d650). `__data` 485 B(0x1dff0c, `_pn_register_port` 심볼로 배치), `__common` 4 B(`_pn_register_port_k` 0x1f6e30, 심볼). **`__bss` 20 B**(정적 `pn_notify_port`·`pn_notify_port_k`·`pnotify_port_set`·`pn_reg_q`, 원본 심볼표에 없음): `zerofill_check.py` → reference-inferred, 참조 27, Δ 하나, 후보 [0x1e726c, 0x1e7280), 정렬·원본 `__bss` 안·이름 심볼 없음·기존 배치(확정 zero-fill + intr `__bss`)와 겹침 없음, 음성 검사 감지. 함수 판정: MATCH 4, MATCH_UNVERIFIED 3(의존은 `__bss` 뿐 — 확인 예정).
-
-설계: Darwin 그대로 채택, 07_kernel 빌드 동일 확인, 등급 **P**(`objects_partial.tsv`, `__bss` 20 B reference-inferred), 함수 high 4·medium 3(README 규칙), 증거 문서.
-
-### 51.1 codex 교차검토(QP26) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 7 함수 바이트·참조 91 일치, MATCH_UNVERIFIED 3 의 미검증 의존은 `__bss` 뿐 | L1 JSON 집계(내 계산과 같음) | ✅ |
-| `__data` 485 B 차이 0, `__common` `_pn_register_port_k` 4 B 심볼 배치 | L1 JSON 섹션 값 | ✅ |
-| zero-fill: 참조 27 모두 VANILLA 4 B, Δ 0x1e6c3c, 대상 오프셋 0–16 이 네 정적 변수 전부를 덮음, intr 추정 블록과 920 B 떨어짐 | zerofill_check 출력(참조 27, Δ 하나, 후보·음성 검사) | ✅ |
-| **`get_kern_port` 는 외부 심볼**(계획의 "정적" 은 틀림) | 원본 심볼표에 `_get_kern_port` 있음 | ✅ 51 절 정정 |
-| 경계 앞 `00 00`·뒤 `00`×3, README P 조건 정확히 적용 | 51 절 Python 출력 | ✅ |
-
-### 51.2 결과 (2026-10-01) — `kern_notify.c` 를 P 로
-
-- Darwin 그대로 채택(새 5 파일), 07_kernel 빌드 동일. 최종 목적 파일로 zero-fill 검사 다시 실행: reference-inferred. `objects_partial.tsv` 에 P, 함수 high 4·medium 3. 증거 `06_reconstruction/evidence/x86-kern_notify.md`.
-- 기록 도구 한계: `srcdefs.find` 가 한 줄 `static void f(...)` 정의를 놓쳐(`pn_panic`) 기록 스크립트에 보조 규칙(0 열 시작, `;` 로 끝나지 않는 `name(` 줄, 후보 1 개만 허용)을 썼다.
-
-## 52. S5-P26 세부 계획 — `ipc/ipc_marequest.c` (코딩 전, 2026-10-01)
-
-사실(재진단 `s5p25-pre-1`, Darwin 그대로; L1 `-O3c`): 원본 [0x14a0d8, 0x14a631) 1369 B, 6 함수. 빌드 1369 B, 3 함수 MATCH, `_ipc_marequest_destroy` 만 바이트 1·참조 2 차이(나머지 두 DIFF 는 `__data` 실패 의존뿐). 원본 0x14a5a8–0x14a5ad: `push esi; mov ecx,[ebp-4]; push ecx; call _ipc_notify_msg_accepted`(0x14b464; 처음 `push [ebp-4]` 로 잘못 적음, 52.1), 빌드: `push "ipc_marequest_destroy"; call panic`. `__data`: 빌드 52 B = 원본 30 B(`ipc_marequest_max` 0x400 + `"ipc msg-accepted requests"`) + panic 문자열 22 B(Python); 원본은 30 B 뒤에 다른 객체의 문자열(`"ipc_mqueue_receive: …"`)이 바로 이어짐.
-- Darwin ipc_marequest.c:459 `panic("ipc_marequest_destroy");` 자리에 Mach4 ipc_marequest.c:437 은 `ipc_notify_msg_accepted(soright, name);`.
-
-설계: 복원 수정(D014) — Darwin :459 를 Mach4 :437 의 줄로 교체(출처 https://github.com/openmach/mach4.git 69fa77870f20d854c875135e116ebc80b118e7ff `kernel/ipc/ipc_marequest.c:437`, CMU 고지는 파일에 있음) + 머리말 뒤 수정 주석. 예측: `__text` 1369 B, `__data` 30 B, 6 함수 MATCH. `__common`(`ipc_marequest_table` 등)이 있으면 36.1 방식. 경계 증명서.
-
-### 52.1 codex 교차검토(QP27) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 한 줄 교체로 모든 차이 설명(필드 밖 차이 1 바이트 `68→56`, panic 재배치, 문자열 22 B); 원본 명령은 `mov ecx,[ebp-4]; push ecx` | 52 절 원본 디스어셈블 출력(`push esi; mov ecx,[ebp-4]; push ecx; call 0x14b464`) | ✅ 문구 정정 |
-| Darwin 의 `zinit(…, FALSE, …)` + `zchange` 는 유지(원본 0x14a1a0 `_zchange` 호출) — Mach4 의 `IPC_ZONE_TYPE` 판을 가져오면 안 됨 | 진단 L1 에서 `_ipc_marequest_init` 바이트 차이 0(데이터 의존만 실패) | ✅ |
-| 원본 `__data` [0x1de710, 0x1de72e) 30 B, 그 뒤 `"ipc_mqueue_receive: strange ith_state"` 는 `_ipc_mqueue_receive` 0x14aea4 가 참조 | 52 절 데이터 덤프 | ✅ |
-| 36.1 필수 — 공통 기호 mask/size/table/zone 각 4 B ≤ 간격 4/4/4/8 | — | ✅ 재빌드 뒤 확인 |
-| 경계: 앞 `00 00`(0x14a0d6), 뒤 `00`×3, 다음 `_ipc_mqueue_init` 0x14a634 | — | ✅ 재빌드 뒤 확인 |
-
-### 52.2 결과 (2026-10-01) — `ipc_marequest.c` 확정(A, 복원 수정) · `power.c` 보류 사유
-
-- 한 줄 교체 후 `__data` 30 B, 변형 OBJECT_MATCH(6 함수), 36.1 대응 조건 충족, 경계 최소 채움 → **A**. 증거 `06_reconstruction/evidence/x86-ipc_marequest.md`.
-- `kern/power.c` 보류: 원본 `_power_callout`·`_power_init` 은 `_calloutEntryAllocate`/`_calloutDeadlineFromInterval`/`_calloutEntryDispatchDelayed` 를 부르는데 Darwin 판은 `thread_call_allocate`/`deadline_from_interval`/`thread_call_enter_delayed`(함수마다 8 B 차이). `callout*` API 는 어떤 참조 트리에도 없고 원본에는 0x169124 부터 `callout` 모듈(`_calloutInitialize` …)이 있다 → `callout` 모듈(Darwin `thread_call.c` 의 이전 판으로 보임)과 함께 계획.
-
-## 53. S5-P27 세부 계획 — `ipc/ipc_object.c` + `ipc_entry.h`·`ipc_port.h` 원형 (코딩 전, 2026-10-01)
-
-사실(재진단 `s5p25-pre-1` Darwin 그대로 3098 B 대 원본 [0x14b844, 0x14c454) 3088 B; 탐침은 스테이징 사본만, 계산 Python):
-- **원본의 `_ipc_entry_grow_table`·`_ipc_port_dngrow` 호출은 모두 인자 1 개**(Ghidra 함수 단위 전수 스캔 9 곳: `_ipc_entry_alloc` 0x145fd1, `_ipc_entry_alloc_name` 0x146144, `_ipc_kmsg_copyout_header` 0x14894e/0x148a05, `_ipc_object_copyout` 0x14be30, `_ipc_object_copyout_compat` 0x14c210/0x14c299, `_ipc_object_copyout_name_compat` 0x14c438, `_ipc_right_dnrequest` 0x14dcea — 모두 `push` 1 개 뒤 `add esp,4` 또는 곧바로 결과 사용). Darwin 은 `(space, ITS_SIZE_NONE)`·`(port, ITS_SIZE_NONE)` 두 인자(ipc_object.c:657, 1077, 1101, 1206; 원형 ipc_entry.h:206–208, ipc_port.h:279–281), Mach4 는 한 인자(mach4 ipc_entry.h:156, ipc_port.h:258).
-- `_ipc_object_destroy`(0x14bd68): `default` 에서 아무 호출 없이 반환 — Darwin(:601)·Mach4 모두 `panic` 이 있음.
-- `_ipc_object_copyin_type`: `panic` 뒤 `xor eax,eax` — Mach4 :384 `return 0; /* in case assert/panic returns */`.
-- `_ipc_object_copyout_dest`: `mscount` 초기화(`mov [ebp-4],0`, Mach4 :854 `= 0`)와 함수 시작의 `xor esi,esi`(`name` = 0), send-once 이상 분기에서 다시 0 을 넣지 않음.
-- 탐침: `s5p27-probe-1`(원형·호출 4 곳·mscount·destroy) 3088 B, 18 MATCH; `s5p27-probe-2` 변형 A(+`return 0`) 19 MATCH, 변형 B(mscount 초기화 없음) 배치 실패; `s5p27-probe-3` 변형 C(`mach_port_t name = MACH_PORT_NULL;`) **OBJECT_MATCH 20/20**, 변형 D(C + 분기 대입 삭제)도 OBJECT_MATCH → 더 작은 C 를 택함. copyout_dest 변형 3 회(R4 한도).
-
-설계(복원 수정, D014):
-1. `ipc/ipc_entry.h`·`ipc/ipc_port.h`: `ipc_entry_grow_table(ipc_space_t space)`·`ipc_port_dngrow(ipc_port_t port)` 한 인자 원형(Darwin 문체, Mach4 의 인자 수).
-2. `ipc/ipc_object.c`: (a) 호출 4 곳에서 `, ITS_SIZE_NONE` 삭제(Mach4 형태), (b) `ipc_object_destroy` 의 `default:` 를 `break;` 로(panic 삭제), (c) `ipc_object_copyin_type` 의 panic 뒤에 Mach4 :384 줄, (d) `copyout_dest` 의 `mscount` 에 Mach4 :854 초기화, (e) `copyout_dest` 의 `name` 선언에 `= MACH_PORT_NULL`(참조 소스에 없는 최소 수정 — 근거 0x14bfb3 `xor esi,esi`; 처음 0x14bfb2 로 잘못 적음, 53.1).
-3. 원형 변경은 헤더 → 회귀(확정 42 + 부분 3). 아직 채택하지 않은 Darwin `ipc_entry.c`·`ipc_port.c`·`ipc_kmsg.c`·`ipc_right.c` 는 이 원형과 맞지 않게 되므로 그 파일을 다룰 때 함께 고친다(원본과 같은 방향).
-4. `__common`(`ipc_object_zones`) 은 36.1 방식, 경계 증명서. 예측: 3088 B, 20 함수 MATCH, `__data` 172 B(0x1de8ae).
-
-### 53.1 codex 교차검토(QP28) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 한 인자 호출 9 곳 정확, 두 피호출 함수 본체가 `[ebp+0xc]` 를 읽지 않음 | 내 Ghidra 함수 단위 스캔(호출 9 곳), 두 본체 `[ebp+0xc]` 0 건 | ✅ |
-| 변형 C 의 차이는 설계 2(a–e) 뿐; Mach4 인용 줄 맞음(Mach4 헤더의 인자는 주석 안 — 인자 수의 근거일 뿐 강제 원형 아님) | 53 절 근거 줄 열람 | ✅ |
-| **`xor esi,esi` 는 0x14bfb3**(내 0x14bfb2 는 틀림); C 는 시험한 것 중 가장 작은 일치 수정, 원문 철자의 증명은 아님 | 0x14bfa4 디스어셈블(0x14bfb3) | ✅ 53 절 정정 |
-| 42+3 확정·부분 객체는 두 함수를 쓰지 않음 | — | ✅ 회귀는 수행 |
-| **36.1 미완**: C 는 `-fno-common` 으로만 빌드됨 → 최종 소스로 변형(`-fno-common` 없음) 빌드·대응 검사 필요; `_ipc_object_zones` 8 B = 간격 8 | s5p27-probe3.cmd 두 명령 모두 `-fno-common` 확인 | ✅ 최종 빌드에 포함 |
-| 경계: 앞 `00 00`, 뒤 0(`_ipc_port_timestamp` 0x14c454) | 내 Python 확인과 같음 | ✅ |
-
-### 53.2 결과 (2026-10-01) — `ipc_object.c` 확정(A) · 헤더 원형 두 개
-
-- 07_kernel 수정: `ipc/ipc_entry.h`, `ipc/ipc_port.h`(한 인자 원형), `ipc/ipc_object.c`(설계 2 의 a–e). 07_kernel 빌드의 `-O3` 목적 파일이 탐침 C 와 같은 SHA.
-- `-O3`·`-O2`·변형 모두 OBJECT_MATCH(20 함수), 36.1 대응 조건 충족, 경계 앞 `00 00`·뒤 0 → **A**. 회귀 45/45 동일(`09_validation/reconstruction/s5p27-regress-20261001.json`).
-- 실수 기록: 회귀 참조 목록 저장 줄에서 `open(…, 'w')` 를 빠뜨려 그 JSON 만 쓰이지 않음(명령 파일·회귀 실행은 정상) — 다시 만들어 비교.
-- 증거 `06_reconstruction/evidence/x86-ipc_object.md`.
-
-## 54. S5-P28 세부 계획 — `ipc/ipc_entry.c` (코딩 전, 2026-10-01)
-
-사실: 원본 [0x145e44, 0x146906) 2754 B, 7 함수. 재진단(`s5p25-pre-1`) 2826 B — `ipc_entry_alloc`·`alloc_name` 은 `ipc_entry_grow_table(space, ITS_SIZE_NONE)` 의 둘째 인자만큼 4 B 씩 길고, `grow_table` 은 Darwin 이 더한 `target_size` 처리(:636–653 블록, :704–705 assert 조건, `psize` 변수)가 있음. 원본 `_ipc_entry_grow_table` 1114 B 의 호출은 Darwin 식(`thread_block_with_continuation`, `bcopy`, `bzero` — Mach4 의 `thread_block`/`memcpy`/`memset` 아님), 두 번째 인자를 읽지 않음(53.1).
-- 탐침 `s5p28-probe-1`(스테이징 사본만; 07_kernel 의 한 인자 원형 사용): 호출 2 곳 `, ITS_SIZE_NONE` 삭제, 정의를 `ipc_entry_grow_table(ipc_space_t space)` 로, `psize` 선언·`target_size` 블록(주석 포함) 삭제, assert 를 `assert(space->is_table_next == its);` 로 → `-O3`·변형 **OBJECT_MATCH 7/7, 2754 B**; `-O2` 다름.
-
-설계(복원 수정, D014): 위 탐침 수정을 07_kernel `ipc/ipc_entry.c` 에 그대로 적용(+ 머리말 뒤 수정 주석); 07_kernel 빌드가 탐침과 같은 SHA 인지, 36.1(공통 기호 있으면), 경계 증명서. 헤더 변화 없음 → 회귀 불필요(이 파일은 다른 확정 객체가 쓰지 않음).
-
-### 54.1 codex 교차검토(QP29) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 diff 는 54 절 수정뿐; 원본 호출 0x145fd1·0x146144 한 인자, grow_table 은 `[ebp+8]` 만 | 53.1 의 스캔, 54 절 탐침 수정 목록 | ✅ |
-| 주석·안 쓰는 선언·꺼진 assert 는 바이트로 증명 불가(MACH_ASSERT=0) — Mach4 와 일치하는 재구성 선택 | — | ✅ 증거에 명시 |
-| L1 재현: O3·O3c OBJECT_MATCH 2754 B, O2 2554 B NOT_MATCH; 36.1 통과 — `_ipc_tree_entry_zone` 4 B = 간격 4, 재배치 56 대응, 필드 밖 차이 0 | 내 36.1 계산(재배치 56, 필드 밖 같음, 4/4) | ✅ |
-| 경계: `_ufs_nlinks`(UFS) 끝 0x145e44 틈 0, 뒤 `00 00` 은 확정 ipc_hash 앞 틈과 같음 | 54 절 Python 출력 | ✅ |
-
-### 54.2 결과 (2026-10-01) — `ipc_entry.c` 확정(A)
-
-- 탐침 본문을 07_kernel 에 적용(+수정 주석), 07_kernel 빌드가 탐침과 같은 SHA(O3·O3c·O2). OBJECT_MATCH 7/7, 36.1 충족, 경계 앞 0·뒤 `00 00` → **A**. 증거 `06_reconstruction/evidence/x86-ipc_entry.md`.
-- 실수 기록: 첫 기록 스크립트가 따옴표 문법 오류로 실행되지 않음(표 변경 없음) → 다시 실행.
-
-## 55. S5-P29 세부 계획 — `ipc/ipc_port.c` + `ipc_port.h`·`ipc_kmsg.h` (코딩 전, 2026-10-01)
-
-사실(원본 [0x14c454, 0x14d61a) 4550 B, 29 함수; 탐침은 스테이징 사본만; 계산 Python):
-- `s5p29-probe-1`(한 인자 `ipc_port_dngrow`, Darwin :185 매개변수·:198–211 `target_size` 블록 삭제): 4366 B — 원본에 있는 `_ipc_port_lock_mqueue`(0x14c748, 164 B)가 Darwin 에 없고, `dngrow` 가 20 B 짧음(원본 `mov [ebp-0x10],0`).
-- Mach4 `ipc_port.c:372–423` 에 `ipc_port_lock_mqueue`(주석 포함)와 이를 쓰는 `ipc_port_set_seqno` 가 있음(Darwin 은 `set_seqno` 안에 펼친 판). Mach4 `dngrow` 의 `oits = 0` 초기화.
-- `s5p29-probe-2`(+ Mach4 블록으로 Darwin `set_seqno` 교체, + `oits = 0`, + `ipc_port.h` 에 `ipc_port_lock_mqueue` 원형): 4550 B, 26 MATCH; 남은 차이 — `release_send`(원본 시작의 `xor ebx,ebx` = `mscount` 0; Darwin·Mach4 모두 초기화 없음), `copyout_send_compat`(같은 함수 인라인), `destroy`(`kmsg->ikm_header.msgh_remote_port` 를 원본 +0x1c, 빌드 +0x24).
-- `struct ipc_kmsg`: Darwin 에 `security_id_t ikm_sender`(8 B, mach/message.h:384)와 `integer_t ikm_delta` 가 있음. 원본 `_ipc_kmsg_get`(0x1475f0/0x147623 `lea [..+0x14]` = `ikm_header` +0x14; 0x147616/0x14766f `[ebx+0x10]` 에 0 다음 세 번째 인자 저장 = `ikm_delta`).
-- `s5p29-probe-3`(+ `mscount = 0`, 두 필드 모두 삭제): `destroy` 가 +0x18 로 지나침. `s5p29-probe-4`(+ `mscount = 0`, **`ikm_sender` 만 삭제**): 변형 **OBJECT_MATCH 29/29**, `-fno-common` 판 바이트·참조 차이 0(`__common` 순서만 미검증).
-
-설계(복원 수정, D014):
-1. `ipc/ipc_kmsg.h`: `security_id_t ikm_sender;` 삭제(원본 배치; `ikm_delta` 유지). Darwin `ipc_notify.c` 등의 `ikm_sender` 사용은 그 파일을 다룰 때 처리.
-2. `ipc/ipc_port.h`: `ipc_port_lock_mqueue(ipc_port_t)` 원형 추가(Mach4 ipc_port.h:303–304 에 있음; Darwin 문체).
-3. `ipc/ipc_port.c`: (a) `dngrow` 한 인자·`target_size` 블록 삭제, (b) `oits = 0`(Mach4 줄), (c) Darwin `set_seqno` 주석+본문을 Mach4 :372–423 블록으로 교체, (d) `release_send` 의 `mscount = 0`(참조 없는 최소 수정, 근거 원본 함수 시작 `xor ebx,ebx`).
-4. 헤더 변경 → 회귀(확정 44 + 부분 3). 36.1 대응 조건, 경계 증명서(앞 0: ipc_object 끝 0x14c454, 뒤 `00 00`: ipc_pset 앞 틈).
-
-### 55.0 설계 보강(codex 회신 전, 내 발견) — `ipc_kmsg.h` 매크로
-
-- `ikm_sender` 필드를 지우면 Darwin `ipc_kmsg.h` 의 `ikm_init_special`(:174)·`ikm_check_initialized`(:182)에 있는 `(kmsg)->ikm_sender = ANONYMOUS_SECURITY_ID_VALUE;` 두 줄이 컴파일되지 않는다(4 회차 탐침 `s5p30-probe-2` 에서 확인; 탐침 4 의 `ipc_port.c` 는 이 매크로를 쓰지 않아 드러나지 않음). 원본 `_ipc_kmsg_get` 0x14760f/0x147616 은 `ikm_marequest`(+0xc)·`ikm_delta`(+0x10)에만 0 을 쓰고 sender 저장이 없다 → **설계 1 에 두 줄 삭제를 추가**.
-
-### 55.1 codex 교차검토(QP30) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| stage-4 의 수정은 설계 1–3 그대로, Mach4 인용(:179, :372–423, ipc_port.h:303–304) 맞음 | 55 절 근거 줄 열람(grep 출력) | ✅ |
-| `ikm_delta` 유지·`ikm_sender` 삭제 강하게 지지(`_ipc_kmsg_get` +0x10 지우고 셋째 인자 저장, `_ipc_kmsg_put` 0x1476fa 가 +0x10 지움, mach_msg 경로가 `msgh_size + delta` 사용); `security_id_t` 8 B(message.h:381) | 0x1476fa `mov [ebx+0x10],0` 확인, 탐침 3·4 결과 | ✅ |
-| **헤더 결함: `ikm_init_special`·`ikm_check_initialized` 의 `ikm_sender` 대입 2 줄** | 내가 55.0 에서 먼저 발견(4 회차 탐침 컴파일 오류) | ✅ 55.0 보강 유지 |
-| `mscount = 0` 의 근거 `xor ebx,ebx` 는 **0x14d05a**(함수 시작 0x14d050 이 아님); 재구성일 뿐 원문 철자 증명 아님 | 0x14d050 디스어셈블(0x14d05a `xor ebx,ebx`) | ✅ 주소 명시 |
-| 36.1: O3c OBJECT_MATCH 29/29, 재배치 101 대응, 공통 3 개 4 B = 간격; O3 의 14 참조는 미검증(차이 0 ≠ 검증) | 내 36.1 계산과 같음 | ✅ |
-| `-fno-common` 유무로 전처리는 같다는 쌍 기록이 없음 | `-fno-common` 은 전처리 옵션이 아님(같은 명령·입력) — 최종 빌드에서 O3c 용 `-E` 도 받아 비교 | ⚖️ 최종 빌드에 추가 |
-| 확정 44 + 부분 3 객체는 kmsg 멤버·크기를 쓰지 않음 | — | ✅ 회귀는 수행 |
-
-### 55.2 결과 (2026-10-01) — `ipc_port.c` 확정(A) · `ipc_kmsg.h`·`ipc_port.h` 복원
-
-- 07_kernel: `ipc_kmsg.h`(필드 + 매크로 2 줄), `ipc_port.h`(원형), `ipc_port.c`(stage-4 본문 + 수정 주석). 07_kernel 빌드가 탐침 4 와 같은 SHA, `.i` 두 판 동일. 변형 OBJECT_MATCH 29/29, 36.1 충족, 경계 앞 0·뒤 `00 00` → **A**. 회귀 47/47 동일. 증거 `06_reconstruction/evidence/x86-ipc_port.md`.
-
-## 56. S5-P30 세부 계획 — `ipc/ipc_notify.c`·`mach/notify.h` 를 Mach4 판으로 (코딩 전, 2026-10-01)
-
-사실(원본 [0x14af44, 0x14b842) 2302 B, 16 함수; 탐침은 스테이징 사본만):
-- Darwin 판(재진단 `s5p25-pre-1`) 2680 B: 함수 구성이 다름 — 원본의 `ipc_notify_init_msg_accepted`·`ipc_notify_msg_accepted` 가 없고 원본에 없는 `*_compat` 초기화 3 개가 있음. **Mach4 `kernel/ipc/ipc_notify.c` 의 16 함수가 이름·순서까지 원본과 같다**(srcdefs 목록).
-- 원본 `_ipc_notify_init_port_deleted`(0x14af44): `msgh_size` 0x20, +0x18 의 `mach_msg_type_t` 비트필드(name 0x0f, size 0x20, number 1, inline …), +0x1c `not_port` = 0, `msgh_seqno` 자리(+0x10)에 1 = Mach4 의 `NOTIFY_MSGH_SEQNO`(`MACH_IPC_COMPAT` 일 때 `MSG_TYPE_EMERGENCY`) — **이전 메시지 형식**(타입 기술자). Darwin `mach/notify.h` 는 이후 형식(NDR·트레일러·디스크립터)이고 Mach4 `include/mach/notify.h` 는 이전 형식. Darwin `mach/message.h` 에도 `mach_msg_type_t`·`msgh_seqno` 는 있음.
-- 탐침: `s5p30-probe-1`(Mach4 ipc_notify.c + Darwin notify.h) 컴파일 실패(`mach_msg_accepted_notification_t`·`not_type` 없음); `s5p30-probe-2`(+ Mach4 notify.h) 실패 — `ipc_kmsg.h` 매크로의 `ikm_sender`(→ 55.0 으로 해결, 지금 07_kernel 에 반영됨); `s5p30-probe-3`(+ 매크로 수정) **변형 OBJECT_MATCH 16/16**, `-fno-common` 판 미검증 80 참조(공통 템플릿 6 개).
-- 공통 기호(변형): 템플릿 5 개 32 B·`send_once` 24 B = 원본 간격과 같음. `__data` 346 B.
-- 영향: `mach/notify.h` 를 쓰는 확정 객체는 `kern_notify`(P) 뿐 — Mach4 notify.h 로 빌드해도 SHA 동일(`s5p30-probe-kn-1`). 아직 채택 안 한 사용처: Darwin `mach_port.c`, `ipc_kobject.c`, `server_loop.c`, `kern_server.c`, `ipc_xxx.c`, `bsd/dev/vol.c`(그 파일을 다룰 때 이 형식에 맞춘다).
-- 경계: 앞 `00 00`(`_ipc_mqueue_receive` 끝 0x14af42), 뒤 `00 00`(확정 ipc_object 앞 틈과 같음).
-
-설계:
-1. `07_kernel/src/mach/notify.h` 를 Mach4 `include/mach/notify.h`(https://github.com/openmach/mach4.git 69fa77870f20d854c875135e116ebc80b118e7ff, CMU 고지) 로 교체 — 파일 출처가 mach4 로 바뀐다(PROVENANCE `source_id` mach4). 수정 없이 그대로.
-2. `07_kernel/src/ipc/ipc_notify.c` = Mach4 `kernel/ipc/ipc_notify.c` 그대로(D013/AGENTS: Mach4 텍스트는 CMU 고지·출처 기록과 함께).
-3. 07_kernel 빌드(`-E` 두 판, `-O3`/`-O2`/변형), 36.1, 경계 증명서. `mach/notify.h` 는 공개 헤더 → 회귀 48(확정 45 + 부분 3).
-
-### 56.1 codex 교차검토(QP31) 판정 → 설계 변경(최소 수정)
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원본은 형식 있는 알림(템플릿 32 B×5, send-once 24 B), `__data` 346 B 는 문자열 9 개로 일치 | 탐침 3 L1(`__data` 일치), 56 절 디스어셈블 | ✅ |
-| Mach4 헤더 통째 교체는 현재 설정에선 되지만 최소가 아님 — Darwin 헤더에서 구조체 정의만 바꾸고 `mach_msg_accepted_notification_t` 추가로 충분할 것(빌드로 확인 필요) | **탐침 4**: Darwin `notify.h` 106–143 행을 Mach4 62–94 행으로 바꾼 혼합판 → `ipc_notify` O3·O3c 가 탐침 3 과 같은 SHA, `kern_notify` 확정 SHA 그대로(`s5p30-probe-kn-2`) | ✅ **혼합판 채택** |
-| L1·36.1 재현: O3c 16/16, 127 참조; O3/O3c 필드 밖 바이트 같음, 재배치 127 곳 대응(80 개 공통 참조 변환, scattered 포함) | 내 계산: 위치 127 같음, 형태 차이 65 개는 모두 `-fno-common` 판의 `__common` 대상 scattered VANILLA ↔ 변형의 외부 재배치(타입 같음) | ✅ 36.1 형태 조건에 이 예외 명시 |
-| 공통 템플릿 시작 주소들과 간격 32/32/32/32/32/24 | 탐침 3 공통 기호 크기 = 간격 | ✅ |
-| 경계 `00 00`/`00 00` | 56 절 Python 출력 | ✅ |
-| 출처: 파일·함수 단위 기록, 헤더의 CMU 고지(1991,1990,1989,1988,1987)도 `CMU-MACH.txt` 에 | mach4 notify.h 머리말 확인, `CMU-MACH.txt` 는 ipc_hash.c 판(1991,1990,1989)만 | ✅ 추가 |
-
-설계 변경: 56 절 설계 1 을 "Darwin `mach/notify.h` 의 구조체 정의 블록(:106–143)을 Mach4 `include/mach/notify.h:62–94` 로 교체(복원 수정)" 로 바꾼다. 설계 2(Mach4 `ipc_notify.c` 그대로)는 유지.
-
-### 56.2 결과 (2026-10-01) — `ipc_notify.c` 확정(A, Mach4) · `mach/notify.h` 최소 복원
-
-- 07_kernel: `mach/notify.h` 혼합판(+수정 주석), `ipc/ipc_notify.c` = Mach4 원문, `LICENSES/CMU-MACH.txt` 에 헤더 판 CMU 고지 추가. 07_kernel 빌드가 탐침 4 와 같은 SHA, `.i` 두 판 같음. 변형 OBJECT_MATCH 16/16, 36.1 충족(형태 예외: `__common` 대상 scattered↔외부), 경계 `00 00`/`00 00` → **A**. 회귀 48/48. 증거 `06_reconstruction/evidence/x86-ipc_notify.md`.
-
-## 57. S5-P31 세부 계획 — `ipc/ipc_right.c` = Mach4 판 + Darwin 의 `ipc_hash_delete` (코딩 전, 2026-10-01)
-
-사실(원본 [0x14db08, 0x1506af) 11175 B, 19 함수; 탐침은 스테이징 사본만):
-- Darwin 판(dngrow 호출만 한 인자로 고친 탐침 1): 11147 B — `ipc_right_clean`·`destroy`·`dealloc`·`delta` 가 4–8 B 짧음. 차이는 Mach4 와의 차이와 같은 곳: 세 함수의 `mscount = 0` 초기화(Mach4 판에 있음), `delta` 의 범위 검사 두 곳의 위치(Darwin 은 포트 잠금 뒤로 옮김).
-- **탐침 2(Mach4 `kernel/ipc/ipc_right.c` 그대로)**: 앞 17 함수 크기가 모두 원본과 같고 `ipc_right_copyin_compat` 만 12 B 짧음 — Darwin 판은 이 함수에 `ipc_hash_delete(space, (ipc_object_t) port, name, entry);`(4 줄, darwin ipc_right.c 해당 함수 :50–53)가 더 있고, 탐침 1(Darwin)의 이 함수는 원본과 같은 1176 B.
-- **탐침 3(Mach4 판 + 그 4 줄을 Darwin 과 같은 자리에)**: `-O3`·변형 **OBJECT_MATCH 19/19**(`__common` 없음), `-O2` 다름. 이 함수 본문은 Darwin 판과 글자까지 같아짐.
-- 경계: 앞 `00 00`(확정 ipc_pset 뒤 틈), 뒤 `00`(확정 ipc_space 앞 틈).
-
-설계: `07_kernel/src/ipc/ipc_right.c` = Mach4 `kernel/ipc/ipc_right.c`(69fa778…) + Darwin `ipc_right_copyin_compat` 의 `ipc_hash_delete` 4 줄(복원 수정; MODIFICATIONS 에 Mach4 기준·Darwin 줄 출처, CMU·APSL 고지 — 파일 머리말은 Mach4(CMU)이고 추가 4 줄은 Darwin(APSL) 유래임을 기록). 07_kernel 빌드 동일 SHA 확인, 경계 증명서. 헤더 변경 없음 → 회귀 불필요.
-
-### 57.1 codex 교차검토(QP32) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 diff 는 삽입 1 곳(+4/−0), Darwin 해당 줄은 **2422–2425**, 위치 동일(`ipc_marequest_cancel` 뒤, `ie_object = IO_NULL` 앞) | Darwin ipc_right.c:2420–2426 열람, 탐침 3 함수 = Darwin 함수(diff 0) | ✅ 줄 번호 기록 |
-| 탐침 3 O3·O3c OBJECT_MATCH 19/19, `__text` 11175 B·재배치 228·`__data` 312 B([0x1de95a, 0x1dea92)) 차이 0 | 탐침 3 L1 결과 | ✅ |
-| Mach4 기준이 더 작다(+4/−0 대 Darwin 기준 8 의미 수정·10 블록) — Darwin 초기화 차이는 4 함수 5 곳(dealloc 두 곳) | — | ✅ 57 절 서술 보강 |
-| **MODIFICATIONS 만으로 부족 — Darwin(APSL) 줄을 넣은 파일엔 APSL 고지(Exhibit A)를 파일에 둬야 함**(APSL 1.0 §2.1(c)), CMU 고지 유지, 혼합 출처 명시 | `LICENSES/APSL-1.0.txt` §2.1 확인 | ✅ 파일 머리에 Darwin APSL 머리말(:1–23) + 수정 주석 추가 |
-| 경계 [0x14db08, 0x1506af), 앞 `00 00`·뒤 `00` | 57 절 Python 출력 | ✅ |
-
-### 57.2 결과 (2026-10-01) — `ipc_right.c` 확정(A, Mach4 + Darwin 4 줄)
-
-- 07_kernel `ipc/ipc_right.c` = Darwin APSL 머리말 + 수정 주석 + 탐침 3 본문. 07_kernel 빌드가 탐침 3 과 같은 SHA(O3·O3c·O2). OBJECT_MATCH 19/19, 경계 `00 00`/`00` → **A**. 헤더 변경 없음.
-- 증거 `06_reconstruction/evidence/x86-ipc_right.md`.
-
-## 58. S5-P32 세부 계획 — `ipc/mach_port.c` + `mach/port.h` + 옵션 `MACH_OLD_VM_COPY` (코딩 전, 2026-10-01)
-
-사실(원본 [0x154b28, 0x156693) 7019 B, Ghidra 범위 40 개, `__data` 72 B; 탐침은 스테이징 사본만, `08_build/runs/tools/s5p33-probe-stage-N`):
-- 탐침 1(Mach4 `kernel/ipc/mach_port.c` 그대로): 컴파일 실패 — `old_mach_port_status_t` 가 Darwin `mach/port.h` 에 없음.
-- 탐침 2(Mach4 + Mach4 `include/mach/port.h:146–156` typedef): `mach_port_names` −12, `port_names` −128, `port_set_backlog` +4 B.
-- 탐침 3(Darwin 판 + `MACH_OLD_VM_COPY 1`, 스테이징 generated 헤더): `port_names` 일치(436). 남은 차이 `mach_port_names` +16, `old_mach_port_get_receive_status` 없음, `mach_port_get_set_status` +24, `port_set_backlog` +4.
-- 탐침 4(+ Darwin `mach_port.c:380`·`:386`·`:1151` 의 `vm_move` 크기 인자 `size_used` → `vm_size_used`): 정규화 diff 에서 원본은 `round_page` 결과(`esi`)를 넘김. `mach_port_names` 1208·`get_set_status` 716 일치.
-- `port_set_backlog`: 두 판 소스 동일. 원본은 `lea eax,[edi-1]; cmp eax,0xf; jbe` (int 범위 검사 1–16 을 하나로 접음), 빌드는 `test/jle` + 부호 없는 `cmp 0x10; jbe` — Darwin `mach/port.h:229` `PORT_BACKLOG_MAX` = `MACH_PORT_QLIMIT_MAX` = `((mach_port_msgcount_t) 16)`(부호 없음). NeXTMach `sys/port.h:143`·Mach4 `include/mach/mach_param.h:49` 은 int `16`. 커널(드라이버 `/dev/` 제외)에서 `PORT_BACKLOG_MAX` 사용처는 `ipc/mach_port.c:1892` 하나(전수 grep).
-- **탐침 5**(탐침 4 + Mach4 `mach_port.c:738–777`(`old_mach_port_get_receive_status` 주석·본문)을 Darwin `mach_port_set_qlimit` 주석 앞에 삽입 + port.h 에 Mach4 typedef(146–156)를 `MACH_PORT_QLIMIT_MAX` 뒤에, `PORT_BACKLOG_MAX` 를 `16`): `-O3`·O3c(같은 SHA, `__common` 없음) **OBJECT_MATCH 40/40**, `__text` 7019 B·재배치 164, `__data` 72 B 0x1deada(L1d) 차이 0. 미정의 심볼 `_vm_move`·`_vm_map_pageable`·`_ipc_soft_map`(=`MACH_OLD_VM_COPY` 분기; `#else` 는 `vm_map_wire`/`unwire`/`vm_map_copyin`) — L1 은 참조까지 같아야 MATCH.
-- 경계: 앞 간격 0(`_msg_receive_continue` 끝 = 0x154b28, 4 정렬), 뒤 `00` 1 B(0x156694 `_ast_init`, 4 정렬) — 최소 채움.
-- `MACH_OLD_VM_COPY` 사용처(Darwin 커널, `/dev/` 제외): `conf/MASTER`, `bsd/kern/init_main.c`, `ipc/mach_debug.c`, `ipc/mach_port.c`, `ipc/ipc_kmsg.c`, `ipc/ipc_init.c`, `kern/zalloc.c`. 이 중 확정(A/A*/P) 객체 없음.
-
-설계:
-1. `06_reconstruction/config_options.tsv` 에 `mach_old_vm_copy	MACH_OLD_VM_COPY	mach_old_vm_copy.h	1	confirmed` 행 추가(근거: MASTER:145 `<!newvm>`, RELEASE 에 newvm 없음, mach_port.c OBJECT_MATCH 의 `_vm_move`·`_vm_map_pageable`·`_ipc_soft_map` 참조). `gen_config_headers.py` 로 `generated/mach_old_vm_copy.h`·`meta_features.h` 생성(`--check` 통과 확인). 손으로 쓰지 않는다.
-2. `07_kernel/src/ipc/mach_port.c` = Darwin 판 + 복원 수정 (a) `vm_move` 크기 3 곳 `vm_size_used`, (b) Mach4 `old_mach_port_get_receive_status`(CMU) 삽입. 파일 머리 수정 주석, MODIFICATIONS·PROVENANCE 행.
-3. `07_kernel/src/mach/port.h` = Darwin 판 + Mach4 typedef + `PORT_BACKLOG_MAX 16`(근거 NeXTMach·Mach4). 수정 주석, MODIFICATIONS·PROVENANCE 행.
-4. 회귀: port.h·meta_features.h 가 바뀌므로 확정 47 + 부분 3 객체를 직전 회귀(s5p30-regress-1 이후 확정분 포함)와 같은 명령으로 다시 빌드하여 **출력 SHA 가 직전과 모두 같아야** 한다. 하나라도 다르면 중단하고 원인 조사.
-5. 07_kernel 빌드(O3·O3c·O2) — 탐침 5 와 같은 SHA, L1 OBJECT_MATCH, 경계 증명서 → 등급 A. 기록: objects_confirmed, functions.tsv 40 행(high), 증거 md·diff, 58.2 결과.
-
-### 58.1 codex 교차검토(QP33) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 탐침 5 diff 는 Darwin :380·:386·:1151 교체 + Mach4 :738–777 삽입뿐, port.h 는 typedef(Mach4 :146–156) + `PORT_BACKLOG_MAX 16` 뿐 | `diff` 출력: `380c380`·`386c386`·`836a837,876`·`1151c1191`, 변경 46 줄(=3×2+40); port.h diff `181a182,192`·`229c240` | ✅ |
-| 탐침 5 O3·O3c OBJECT_MATCH 40/40, 7019 B·재배치 164·`__data` 72 B 0x1deada | l1batch 출력(58 절) | ✅ |
-| `PORT_BACKLOG_MAX` 실행 사용처는 Darwin `ipc/mach_port.c:1892` 하나(:1866 은 주석), 07 에는 정의(port.h:229)만; Darwin·07 `mach_param.h` 에 정의 없음, Mach4 `mach_param.h:46–51` 의 `MACH_IPC_COMPAT` 블록 16 은 일치 | grep(07_kernel/src·darwin, `/dev/` 제외) 출력; Mach4 mach_param.h 40–60 열람 | ✅ |
-| typedef 중복 정의 없음 | `old_mach_port_status` grep: darwin·07 0 건 | ✅ |
-| `vm_move` 4 번째 인자는 바이트 수이고 함수가 스스로 `round_page` — 올린 크기를 넘겨도 범위 동일 | `vm/vm_map.c:2933–2956` 열람(`src_size = round_page(src_addr + num_bytes) - src_start`), 0 이면 둘 다 0 | ✅ (동작 동일, 증거는 바이트 일치) |
-| **삽입 함수의 출처 고지가 "CMU" 만으로는 부족 — Mach4 `mach_port.c` 머리말은 CMU + University of Utah/CSL(1993,1994) 공동 고지**, Darwin 판 머리말·`LICENSES/CMU-MACH.txt` 에는 Utah 없음 | Mach4 `mach_port.c:1–28` 열람(:4–5 Utah/CSL), Darwin :1–75 Copyright 줄에 Utah 없음, `grep Utah 07_kernel/LICENSES/*` 0 건 | ✅ 설계 2 수정: Mach4 고지 :1–28 을 파일 머리(Darwin 고지 뒤)에 그대로 두고 적용 범위를 주석으로 밝힘, `LICENSES/CMU-UTAH-MACH4.txt` 추가. port.h typedef 의 Mach4 `port.h` 고지는 CMU 만(:3) — 기존 CMU-MACH.txt 로 충분 |
-| 회귀 기준에 ipc_notify·ipc_right 가 없음(s5p30 회귀 마지막이 ipc_port) | s5p30-regress-1 `-o` 마지막 3 개 `ipc_object`·`ipc_entry`·`ipc_port` | ✅ 기준은 s5p30-build-1(ipc_notify)·s5p32-build-1(ipc_right) 출력 SHA |
-| 확정 객체 불변이 미채택 파일(ipc_kmsg·ipc_init·zalloc 등)의 새 분기를 검증하지는 않음 | 사용처 목록(58 절) | ✅ 기록(그 파일들은 각 차례에서 검증) |
-| port.h 포함 객체 28 확정 + 3 부분 | — | ⏭️ 전 객체 회귀를 하므로 수를 쓰지 않음 |
-| **O2 기준 없음** — 탐침 5 는 O3·O3c 만 | `s5p33-probe5.cmd` RUN 3 줄(O3·O3c·.i), EXPECT 에 O2 없음 | ✅ 설계 5 수정: O3·O3c 는 탐침 5 와 같은 SHA, O2 는 기록만 |
-| 절 표기 S5-P32 와 실행 ID s5p33 불일치 | 이전 관례: 57 절 S5-P31 의 빌드 `s5p32-build-1` 머리 `# S5-P31 …`, 탐침 `s5p32-probe-*` 머리 `# S5-P32 PROBE` — 실행 ID 와 절 번호는 원래 1:1 이 아님 | ⚖️ 절 번호 유지, 58 절 실행 ID 가 `s5p33-*` 임을 명기 |
-| config 행에 evidence 열도 넣을 것 | `config_options.tsv:1` 머리 6 열 | ✅ (원래 의도; 근거 문구를 evidence 열에) |
-
-설계 수정 요약: (2') `mach_port.c` 머리 = Darwin APSL·CMU 고지 + 수정 주석 + Mach4 고지(:1–28, "old_mach_port_get_receive_status 에 적용") ; `07_kernel/LICENSES/CMU-UTAH-MACH4.txt` 신설. (5') O3·O3c SHA = 탐침 5, O2 는 기록. 고지·주석 줄 추가로 줄 번호가 바뀌므로 `__LINE__` 영향 여부는 SHA 동일로 확인한다. 58 절의 실행 ID 는 `s5p33-*`.
-
-### 58.2 결과 (2026-10-01) — `mach_port.c` 확정(A) · `mach/port.h` 복원 · `MACH_OLD_VM_COPY` confirmed
-
-- `config_options.tsv` 에 `mach_old_vm_copy` 행(confirmed) 추가(18→19 행), `gen_config_headers.py` 로 `mach_old_vm_copy.h`·`meta_features.h` 생성, `--check` 통과.
-- 07_kernel `ipc/mach_port.c`(신규) = Darwin + (a) `vm_size_used` 3 곳 + (b) Mach4 함수, 머리에 수정 주석과 Mach4 고지(:1–28); `mach/port.h` = typedef + `PORT_BACKLOG_MAX 16` + 수정 주석; `LICENSES/CMU-UTAH-MACH4.txt` 신설.
-- 빌드 `s5p33-build-1`: O3 = O3c = 탐침 5 SHA(`5e1ff613…`), O2 다름(6059 B, 기록만). L1 OBJECT_MATCH 40/40, 경계 앞 0 B(`ret` 0x154b27)·뒤 `00` 1 B → **A**.
-- 회귀 `s5p33-regress-1`: 50/50 SHA 동일.
-- 기록: objects_confirmed 49 행(A 47, A* 1 + 머리), functions.tsv 323 함수(+40, high), PROVENANCE port.h 행 갱신·mach_port.c·mach_old_vm_copy.h 추가, **이전 누락이던 `generated/mach_xp.h` 행도 추가**(209→212), MODIFICATIONS 2 행, 증거 `x86-mach_port.md`·`.diff`·`x86-port_h.diff`.
-
-## 59. S5-P33 세부 계획 — `ipc/mach_debug.c` = Darwin 판 + 크기 변수 0 초기화 4 곳(작성, D016) (코딩 전, 2026-10-01)
-
-사실(원본 [0x151cbc, 0x1525a7) 2283 B, Ghidra 범위 6 개, 객체 소유 데이터 섹션 없음(외부 `_page_mask`·`_ipc_kernel_map`·`_ipc_soft_map` 참조); 실행 ID `s5p34-*`, 탐침은 스테이징 사본만):
-- 일괄 진단 `s5p34-pre-1`(Darwin 그대로, 현재 07 헤더; ast·exception·ipc_kobject·ipc_mig·ipc_tt·ipc_xxx·kalloc·mach_debug): ast 는 BSD 헤더(`machine/limits.h`), exception 은 `norma_ipc.h`·`mach_kdb.h` 없음, ipc_kobject 는 `ikm_sender` 로 컴파일 실패; ipc_mig·ipc_xxx·kalloc 은 크기 차이 여럿, ipc_tt 는 원본에 없는 함수 2 개(`retrieve_task_self`·`retrieve_thread_self`). **mach_debug 는 6 함수 중 `mach_port_space_info` 만 12 B 짧음**(빌드 2271 B).
-- 원본 `_mach_port_space_info`(0x151f60) 머리에 `mov [ebp-0x1c],0`(0x151f69)·`mov [ebp-0x28],0`(0x151f70). `[ebp-0x1c]` 는 `round_page` 결과를 받아 `kmem_alloc`(0x173ad4) 에 넘기고 `kmem_free`(0x173e90) 에 쓰는 `table_size`(0x15207e 저장), `[ebp-0x28]` 은 같은 방식의 `tree_size`(0x152112 저장).
-- 탐침 1(+ Darwin :347 `table_size = 0`, :351 `tree_size = 0` 선언 초기화): `mach_port_space_info` MATCH. `_host_ipc_hash_info`(0x151d04)·`_host_ipc_marequest_info`(0x151e30) 가 17 B씩 다름 — 원본 머리 `xor edi,edi` 가 빌드에 없음.
-- 탐침 2(+ Darwin :158·:250 `vm_size_t size = 0;`): O3·O3c(같은 SHA `7c7da496…`, `__common`·`__data` 없음) **OBJECT_MATCH 6/6**, `__text` 2283 B·재배치 71. 미정의 심볼에 `_vm_move`·`_ipc_soft_map`(= `MACH_OLD_VM_COPY` 분기, 58 절 옵션과 일치).
-- W1: 검토한 참조 후보 — Darwin `ipc/mach_debug.c`(초기화 없음), Mach4 `kernel/ipc/mach_debug.c`(초기화 없음, `MACH_OLD_VM_COPY` 분기 자체가 없음 — 함수 diff), NeXTMach(이 파일 없음) — 와 복원 수정으로는 원본 바이트가 나오지 않음. `grep 'table_size = 0\|tree_size = 0'` 참조 트리 0 건.
-- 경계: 앞 `00 00 00`(확정 ipc_thread 끝 0x151cb9, 정렬 4), 뒤 `00` 1 B(0x1525a8 `mach_msg.c` 시작) — 최소 채움.
-
-설계(W2–W6):
-1. `07_kernel/src/ipc/mach_debug.c` = Darwin 판 + 선언 4 줄의 초기화(`= 0`) — 지역 변수 이름은 참조 그대로, 새 식별자 없음. 각 줄 바로 앞에 W3 표시 주석, 머리말 뒤 수정 주석. MODIFICATIONS("authored", 근거 주소 — 59.1 에서 0x151d0d·0x151f69·0x151f70 로 정정, 0x151e39 는 Mach4 줄), PROVENANCE("authored lines"), functions.tsv `source_id` = `darwin01+authored`(변경한 3 함수) / `darwin01`(그대로인 3 함수).
-2. 헤더·옵션 변경 없음 → 회귀 불필요(58 절 회귀 이후 07 헤더·generated 불변을 SHA 로 확인).
-3. W5 예측: `__text` 2283 B, 재배치 71, O3 = O3c = 탐침 2 SHA(주석 줄 추가로 줄 번호만 바뀜), O2 는 기록만. L1 OBJECT_MATCH 6/6, 경계 증명서 → 등급 A.
-
-### 59.1 codex 교차검토(QP34) 판정 → 설계 변경(참조 1 줄 + 작성 3 줄)
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| **W1 일부 거짓: Mach4 `kernel/ipc/mach_debug.c:195` 에 `vm_size_t size = 0; /* '=0' to shut up lint */`(`host_ipc_marequest_info`)** — 내 grep 은 `table_size`/`tree_size` 만 찾아 놓침 | Mach4 mach_debug.c:188(함수 시작)·190–200 열람, :195 에 그 줄 | ✅ **내 오류.** `host_ipc_marequest_info` 의 초기화는 참조(Mach4) 줄을 그대로 쓰는 복원 수정(D014)이고 작성이 아님 |
-| `xor edi,edi` 실제 주소는 0x151d0d·0x151e39(머리 push 뒤), `edi` = `size`(`addr` 는 `[ebp-4]`) | capstone: 0x151d0d·0x151e39 `xor edi, edi`; 0x151d04·0x151e30 은 `push ebp` | ✅ 근거 주소를 명령 주소로 |
-| `[ebp-0x1c]`=table_size(0x15207e), `[ebp-0x28]`=tree_size(0x152112), Darwin :390·:411 흐름과 일치 | 59 절 디스어셈블 출력(0x15207e·0x152112 저장 직후 `kmem_alloc`) | ✅ |
-| 스테이징 diff 는 :158·:250·:347·:351 의 ` = 0` 뿐(715 줄) | 탐침 스크립트의 assert(정확한 원래 줄 내용) + `diff` | ✅ |
-| 탐침 2 O3·O3c OBJECT_MATCH 6/6, 2283 B, 71 재배치, SHA `7c7da496a90c089c…` | l1batch 출력 | ✅ |
-| 경계 `00 00 00` / `00`, 다음 심볼 `_mach_msg_send` 0x1525a8 | 59 절 Python 출력 | ✅ |
-| 회귀 생략은 조건부로 타당 — 비교 증거를 남길 것 | 탐침 2 스테이징 137 파일 중 mach_debug.c 를 뺀 136 개가 현재 원천과 SHA 동일(Python) | ✅ 58.2 이후 헤더 불변의 증거로 기록 |
-| W3 표시는 작성 줄에만, Mach4 유래 줄은 참조 출처로 | — | ✅ |
-| W6: 탐침마다 사전 예측 기록이 없음 | 탐침 1·2 는 예측을 문서로 남기지 않고 실행(사실 수집 관례) | ✅ **규칙 위반 인정.** 이유는 당시 근거(탐침 1: 0x151f69·0x151f70 의 0 저장; 탐침 2: 0x151d0d·0x151e39 의 `xor edi,edi`) — 이후 탐침은 cmd 머리에 예측을 적는다 |
-| "데이터 참조 없음" → "객체 소유 데이터 섹션 없음"(`_page_mask`·`_ipc_kernel_map`·`_ipc_soft_map` 참조) | 탐침 2 미정의 심볼 목록에 셋 다 있음 | ✅ 문구 정정 |
-
-설계 수정:
-1. `host_ipc_marequest_info`(Darwin :250): Mach4 :195 의 줄 `vm_size_t size = 0; /* '=0' to shut up lint */` 을 그대로(주석 포함) — 복원 수정, Mach4(CMU) 출처. functions.tsv `source_id` = `darwin01`(+ restoration edit).
-2. 작성 3 줄(W3 표시 주석 각각 앞): `host_ipc_hash_info`(Darwin :158) `size`, `mach_port_space_info`(:347·:351) `table_size`·`tree_size` — 근거 0x151d0d·0x151f69·0x151f70. 이 두 함수만 `darwin01+authored`. 문체는 Darwin 의 다른 선언과 같게(`= 0` 만, 주석 없음).
-3. Mach4 줄이 들어가므로 파일에 Mach4 고지 필요 여부: Mach4 `mach_debug.c` 머리말 확인 후 해당 고지(CMU / Utah) 추가.
-4. 예측(W5): 주석은 바이트에 영향 없음 → O3 = O3c = 탐침 2 SHA `7c7da496…`, 2283 B, 재배치 71, OBJECT_MATCH 6/6.
-
-### 59.2 결과 (2026-10-01) — `mach_debug.c` 확정(A, Mach4 1 줄 + 작성 3 줄)
-
-- 07_kernel `ipc/mach_debug.c`(신규) = Darwin + Mach4 :195 줄(`host_ipc_marequest_info`) + 작성 3 줄(W3 표시) + 수정 주석. 고지: Darwin 판이 같은 CMU 고지(1991,1990)를 이미 가짐.
-- 빌드 `s5p34-build-1`: 예측대로 O3 = O3c = 탐침 2 SHA(`7c7da496…`). **O2 도 같은 SHA**(명령에 `-O2` 확인) — 이 객체는 최적화 수준의 증거가 아님. OBJECT_MATCH 6/6, 경계 `00 00 00`/`00` → **A**.
-- 회귀 없음(헤더·generated 불변, 59.1). 기록: objects_confirmed 50 행(머리 포함), functions.tsv +6(329 함수; `darwin01+authored` 2), MODIFICATIONS·PROVENANCE 각 1 행, 증거 `x86-mach_debug.md`·`.diff`.
-
-## 60. S5-P34 세부 계획 — `kern/ipc_tt.c` = Darwin 판에서 `retrieve_task_self`·`retrieve_thread_self` 삭제 (코딩 전, 2026-10-01)
-
-사실(원본 [0x1593e4, 0x15a39c) 4024 B, Ghidra 범위 32 개, `__data` 60 B; 실행 ID `s5p35-*`, 탐침은 스테이징 사본만):
-- 진단 `s5p34-pre-1`(Darwin 그대로): 원본 32 함수의 길이는 모두 같고, 빌드에만 `_retrieve_task_self`·`_retrieve_thread_self` 가 있음(빌드 4176 B). 원본 심볼표(`03_original/x86/inventory/symbols.tsv`)에는 `_retrieve_task_self_fast`(0x1598a0)·`_retrieve_thread_self_fast`(0x159900)만 있고 두 함수는 없음.
-- 탐침 1(예측을 cmd 머리에 기록: 4024 B, 32 함수): Darwin `kern/ipc_tt.c:418–471`(두 함수의 주석·본문·빈 줄; :472 부터 `retrieve_task_self_fast` 주석) 삭제 → O3·O3c(같은 SHA `d2731dfd…`) **OBJECT_MATCH 32/32**, `__text` 4024 B·재배치 83, `__data` 60 B 0x1decc4(L1d) 차이 0.
-- 다른 사용처: `machdep/ppc/PseudoKernel.c:105`(ppc, x86 빌드 밖), 선언 `kern/ipc_tt.h:68`·`:74`(정의 없는 선언은 무해 — 그대로 둠). Mach4 `kernel/kern/ipc_tt.c:401`·`:428` 에도 두 함수가 있어 참조 대안 없음.
-- 경계: 앞 `00 00 00`(확정 ipc_sched 끝 0x1593e1, 정렬 4), 뒤 0 B(마지막 `_space_deallocate` 가 `ret` 0x15a39b 로 끝나고 0x15a39c 에서 다음 함수 `55 89 e5` 시작).
-
-설계: `07_kernel/src/kern/ipc_tt.c` = Darwin 판에서 :418–471 삭제(복원 수정 D014, 작성 없음) + 수정 주석. MODIFICATIONS·PROVENANCE 행, objects_confirmed(A)·functions.tsv 32 행. 헤더 변경 없음 → 회귀 불필요. 예측: O3 = O3c = 탐침 1 SHA, O2 는 기록만.
-
-### 60.1 codex 교차검토(QP35) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 = Darwin[:417] + Darwin[471:] (418–471 만 삭제) | 탐침 스크립트 assert(:418 `/*`+`Routine:\tretrieve_task_self`, :472 `/*`+`…_fast`, :470 `}`) 와 `grep -n` 출력(:419·:473) | ✅ |
-| O3·O3c OBJECT_MATCH 32/32, 4024 B, 83 재배치, `__data` 60 B 0x1decc4, SHA `d2731dfd…` | l1batch 출력(60 절) | ✅ |
-| 원본 inventory 에 비-fast 이름 없음(symbols.tsv:2605·2607, strings.tsv:5548·5550 은 `_fast`) — 이름 없는/인라인 코드 부재의 증명은 아님 | 60 절 grep 출력(같은 4 줄) | ✅ 문구 그대로 받음 |
-| 사용처: `ipc_tt.h:68·74` 선언, ppc `PseudoKernel.c:105` 뿐, `.defs` 0 | 60 절 `grep -rnw` 출력 | ✅ (`.defs` 0 건은 grep 범위에 포함됨) |
-| 경계 `00 00 00`, `ret` 0x15a39b, 0x15a39c `push ebp` | 60 절 Python/capstone 출력 | ✅ |
-| D014 R2(최소 삭제) 에 부합, 선언 유지 무해 | 19 절 R1–R5 열람 | ✅ |
-| R3: diff·PROVENANCE `changes`·functions `source_revision` 접미 명시 | — | ✅ 설계에 명시 |
-| R5: 탐침 예측에 외부 참조·오프셋 없음 | `s5p35-probe1.cmd:1` 예측 = 크기·함수 수·span | ✅ 절차 미흡 인정. 최종 빌드 예측에 넣음(아래) |
-| 표제 S5-P34 와 ID s5p35 불일치 | 58.1 과 같은 관례(실행 ID ≠ 절 번호) | ⚖️ 유지 |
-| "참조 대안 없음" 은 과함: Mach4 에도 두 함수가 있고(:401·:428), NeXTMach 는 구조가 다름 | Mach4 grep 출력(:401·:428) | ✅ 문구: "검토한 참조(Darwin·Mach4)는 모두 두 함수를 가짐, NeXTMach 는 다른 IPC 구조" |
-| **`ipc_tt.h`(·`ipc_tt.c`) 가 07_kernel 에 없음 — 채택·출처 기록 필요** | `.i` 의 `# N "file"` 표지를 07 과 대조(Python): s5p32·s5p33 빌드는 07 에 없는 파일 0, s5p35 탐침은 `kern/ipc_tt.c`·`kern/ipc_tt.h`, **s5p34-build-1(7 회차)은 `mach_debug/ipc_info.h`** | ✅ **7 회차 누락(내 오류) 발견.** `ipc_tt.h`·`mach_debug/ipc_info.h` 를 그대로 07 에 채택, PROVENANCE "none (verbatim)" 행 |
-
-설계 보강: (1) `07_kernel/src/kern/ipc_tt.c` = Darwin − :418–471 + 수정 주석; `kern/ipc_tt.h`·`mach_debug/ipc_info.h` 그대로 채택(내용 동일 → 이미 확정된 mach_debug 빌드 입력과 같은 바이트, 07 빌드 SHA 로 재확인). (2) R3 기록: `evidence/x86-ipc_tt.diff`, PROVENANCE `changes` "restoration edit: retrieve_task_self/retrieve_thread_self removed (…diff)", functions `source_revision` "+ restoration edit". (3) R5 예측(최종 빌드): `__text` 4024 B, 재배치 83, `__data` 60 B, 외부 미정의 심볼 = 탐침 1 과 같은 집합(비-fast `retrieve_*` 없음), 함수 오프셋 = 탐침 1(32 범위와 같음), O3 = O3c = `d2731dfd…`. (4) 채택 검사: 최종 `.i` 의 모든 `src/` 표지가 07 에 있는지 Python 으로 확인(앞으로 매 회차 수행).
-
-### 60.2 결과 (2026-10-01) — `ipc_tt.c` 확정(A) · `ipc_tt.h`·`mach_debug/ipc_info.h` 채택
-
-- 07_kernel `kern/ipc_tt.c` = Darwin − :418–471 + 수정 주석; `kern/ipc_tt.h`·`mach_debug/ipc_info.h` 그대로.
-- 빌드 `s5p35-build-1`: 예측대로 O3 = O3c = `d2731dfd…`(O2 `8e28b8c3…` 다름), 4024 B·재배치 83·`__data` 60 B, 미정의 심볼 = 탐침 1. OBJECT_MATCH 32/32, 경계 `00 00 00`/0 B → **A**. 같은 실행에서 mach_debug 재빌드 = `7c7da496…`(3 변형) — `ipc_info.h` 채택이 바이트를 바꾸지 않음.
-- 채택 검사: 두 `.i` 의 `src/` 표지 109 개가 모두 07 에 있음.
-- 기록: objects_confirmed 51 행(머리 포함), functions.tsv +32(361 함수), MODIFICATIONS +1, PROVENANCE +3(216 행), 증거 `x86-ipc_tt.md`·`.diff`, `x86-mach_debug.md` 정정 추가.
-
-## 61. S5-P35 세부 계획 — `kern/kalloc.c` = Darwin 판 + NeXTMach malloc 계열 + 작성 3 곳(D016) (코딩 전, 2026-10-01)
-
-사실(원본 [0x15a67c, 0x15ab9b) 1311 B; 실행 ID `s5p36-*`, 탐침은 스테이징 사본만; 탐침 cmd 머리에 예측 기록):
-- 원본 심볼(symbols.tsv): `_kalloc_init` 0x15a67c, `_kalloc_noblock`, `_kalloc`, `_kget`, `_kfree`, `_malloc` 0x15a880, `_calloc` 0x15a910, `_realloc` 0x15a9a8, `_free` 0x15ab30, `_malloc_good_size` 0x15ab94(Ghidra 범위 밖, capstone: `push ebp; mov ebp,esp; mov esp,ebp; pop ebp; ret` → 끝 0x15ab9b).
-- 진단(Darwin 그대로): 앞 5 함수 길이 일치, malloc 계열 없음, 원본에 없는 `kalloc_zone`(Darwin :261–281) 있음. Darwin·Mach4 에는 malloc 계열이 없고 NeXTMach mk-108.1 `kern/kalloc.c:332–376` 에 `malloc`·`calloc`·`realloc`·`free`·`malloc_good_size` 가 있음.
-- 탐침 1(Darwin :261–281 을 NeXTMach :332–376 으로 교체): malloc 144·calloc 152 일치(-O3 인라인), realloc 256(원본 392)·free 96(100).
-- 원본 realloc(0x15a9a8): ① `addr == 0` 이면 malloc 과 같은 경로(인라인 kalloc → `bzero` → `*new = size+8` → `new+2`; 0x15a9b7–0x15aa37), ② `bcopy` 길이는 `size < *sizep` 이면 `size`, 아니면 `*sizep`(0x15aab8–0x15aac8; 두 `push` 가 공통 `call _bcopy` 로 합류). 원본 free(0x15ab30): ③ `data == 0` 이면 반환(0x15ab38 `test/je`), `sizep` 계산(0x15ab3c `lea ebx,[eax-8]`)은 검사 뒤.
-- 탐침 2(①·② 를 `?:`·③ 을 선언 초기화 뒤 검사로): realloc 388(−4), free 길이 일치. 탐침 3(② 를 if/else 두 `bcopy` 호출로 — realloc 변형 2): realloc MATCH, free 7 B 다름(`lea` 가 검사 앞). 탐침 4(③ 의 `sizep` 대입을 검사 뒤로 — free 변형 2): **`__text` 1311 B 바이트·참조 차이 0**. common 변형(O3c): 9 MATCH + `_kalloc_init` MATCH_UNVERIFIED(`__bss`). `-fno-common`(O3): `__common` 72 B 후보 3 개로 모호 → 36.1 절차 대상.
-- 데이터: `__data` 79 B 0x1ded18(`_k_zone_elemsize` 심볼, L1d 일치). common: `_k_zone` 0x40(원본 0x1f6360, 다음 심볼까지 64), `_k_zone_maxsize` 4(0x1f63a0, 간격 16), `_kalloc_map` 4(0x1f6330, 간격 16) — 크기 ≤ 간격. `__bss` 256 B = `static char k_zone_name[16][16]`(원본 심볼 없음): `zerofill_check.py` → 참조 1 개, Δ 하나, 후보 [0x1e5a98, 0x1e5b98) 정렬·zero-fill 섹션 안·심볼 없음·겹침 없음이지만 **음성 검사 미검출(참조 1 개라 구조상 불가) → `fail`**(`09_validation/reconstruction/s5p36-zerofill-check-kalloc-pre-20261001.json`).
-- 경계: 앞 0 B(`_task_secure` 끝 `ret` 0x15a67b), 뒤 `00` 1 B(kernel_stack 0x15ab9c).
-- W1: 검토한 참조 — Darwin(malloc 계열 없음), Mach4(없음), NeXTMach(①②③ 없음) — 와 복원 수정으로 원본 바이트가 나오지 않음.
-
-설계:
-1. `07_kernel/src/kern/kalloc.c` = Darwin 판, `kalloc_zone`(:261–281, 원본에 없음 — 복원 수정) 자리에 NeXTMach :332–376(복원 수정, 출처 NeXTMach; D013 커밋 허용) + 작성 ①②③(W3 표시 주석 각각). 작성분: realloc `if (addr == 0) return malloc(size);` 와 `if (size < *sizep) bcopy(…, size); else bcopy(…, *sizep);`, free 의 `if (data == 0) return;` 와 `sizep` 대입을 검사 뒤로(선언과 대입 분리). 변형 수: realloc 2, free 2(W4 한도 3 이내).
-2. 등급: `__bss` 가 zerofill `fail` 이므로 규칙상 A/A*/P 를 줄 수 없다. objects 표에 넣지 않고 증거·계획에만 "바이트·참조 일치, `__bss` 단일 참조로 배치 미검증" 으로 기록. functions.tsv 10 행은 `compared` + **`low`**(README:12 의 일반 등급 — high/medium 정의를 충족하지 못함)로 두고 비고에 사유. 규칙 완화는 하지 않는다.
-3. 36.1: O3(`-fno-common`)·O3c 의 재배치 위치·형태 대응, 재배치 밖 바이트 동일, common 크기 ≤ 간격을 Python 으로 확인해 기록.
-4. 헤더 변경 없음 → 회귀 불필요. `.i` 표지 채택 검사. 최종 빌드 예측: O3·O3c 가 탐침 4 와 같은 SHA(`d87a52ac…`·`126e1a24…`), 1311 B, 재배치 95, 미정의 심볼 = 탐침 4.
-
-### 61.1 codex 교차검토(QP36) 판정 → 설계 변경: **채택 보류**
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 = Darwin[:260] + NeXTMach[331:376] + Darwin[281:] + 작성 3 곳, 다른 차이 없음 | 탐침 스크립트 assert(:261 `struct zone *kalloc_zone(`, :281 `}`, 블록 처음 `/*`·끝 `malloc_good_size`), 교체 문자열 각 1 회 | ✅ |
-| 원본 realloc NULL 경로·min 길이(`*sizep` 는 머리 8 B 포함)·free 검사 뒤 `lea`·`malloc_good_size` 끝 0x15ab9b·경계 | 61 절 capstone 출력(0x15a9b7, 0x15aab8–0x15aac8, 0x15ab38–0x15ab3c, 0x15ab9a `ret`, 0x15ab9b `00`) | ✅ ("min(size, 헤더 포함 이전 크기)" 로 기록) |
-| O3 는 참조 42 개 미검증(`__common` 모호), O3c 는 9 MATCH + `_kalloc_init` 만 미검증 — "차이 0" 이 "전부 검증" 은 아님 | l1batch 출력(탐침 4) | ✅ 문구 정정 |
-| zerofill `fail` 은 음성 검사만의 이유, `__data` 재배치 0 → 두 번째 참조 없음 | 탐침 4 O3c 섹션 목록 `('__data', 79, 0)`, zerofill JSON `problems` 빈 목록 | ✅ |
-| common 크기 ≤ 간격(64/64, 4/16, 4/16) — 상한 일관성일 뿐 | symbols.tsv 1781·1783·1786·2061·2870 줄 출력 | ✅ |
-| **`low` 는 README:12 에 이름만 있고 대체 등급으로 정의되지 않음; W4 는 OBJECT_MATCH 또는 정의된 등급을 요구** | README:12, 계획 :1642 W4 원문 열람 | ✅ **설계 2 철회: 작성 줄이 있는 파일은 W4 를 충족하지 못하므로 07_kernel 채택·표 추가를 하지 않는다** |
-| 작성 3 곳은 W2/W6 에 부합(관찰된 실행 순서·두 인자 경로 + 합류 호출), 다만 역사적 문법의 증명은 아님 | 탐침 2–4 diff 와 원본 명령 | ✅ 기록 |
-| NeXTMach `kalloc.c:1–11` 고지(1987 CMU, CMU 라이선스 합의 언급, 1985 Avadis Tevanian) 보존·D013 기록 | NeXTMach kalloc.c 1–24 열람, `acquisition.json:16–19` 커밋 `f6bdb9c…` | ✅ 채택 시 필요(보류로 이번엔 미적용) |
-| 36.1 의 재배치 대응은 성립하나 O3c 가 NOT_MATCH 라 전체 조건 불성립; O3c 의 `.i` 미보존 | `s5p36-probe4.cmd` 의 `-E` 1 개 | ✅ |
-| R5 예측에 함수 오프셋 누락, R3/W3 기록 명시 | — | ✅ 채택 시 적용 |
-
-### 61.2 결과 (2026-10-01) — `kalloc.c` 보류(바이트·참조 차이 0, `__bss` 배치 미검증)
-
-- 07_kernel 변경 없음. 탐침 4 원문 diff 를 `06_reconstruction/evidence/x86-kalloc-probe4.diff` 로, 사실과 판정을 `x86-kalloc.md` 로 보존.
-- 재개 조건(하나라도): (a) `k_zone_name`(`__bss` 256 B)의 위치를 독립적으로 고정하는 근거(예: 이웃 zero-fill 의 확정으로 [0x1e5a98, 0x1e5b98) 의 앞뒤가 모두 다른 객체 소유로 증명), (b) 단일 참조 zero-fill 에 대한 규칙을 계획에 새로 세우고 codex 검토·사용자 판단을 거친 경우. 그때 O3c `.i` 도 함께 보존하고 R3/W3·D013(NeXTMach 고지) 기록을 한다.
-
-## 62. S5-P36 세부 계획 — `kern/ipc_xxx.c` = Darwin 판에서 나중 추가분 제거 + `suser()` (코딩 전, 2026-10-01)
-
-사실(원본 [0x15a39c, 0x15a628) 652 B, 함수 8: `_host_priv_self`·`_device_master_self`·`__lookupd_port`·`__event_port_by_tag`·`_object_copyin`·`_object_copyout`·`_port_reference`·`_port_release`; `__data` 23 B 0x1ded00(`_ev_port_list`), common `_lookupd_port` 0x1f6358; 실행 ID `s5p37-*`, 탐침은 스테이징 사본만, cmd 머리에 예측):
-- 진단(Darwin 그대로): `host_priv_self`·`device_master_self` +4, `__lookupd_port` +32, `__event_port_by_tag` +8, 빌드에만 `__lookupd_port1`·`_send_notification`.
-- 원본 `_host_priv_self`(capstone 0x15a39c–0x15a3f4): 인라인 `do_object_copyout` 에 `IP_DEAD` 검사가 없음 — `push &name; push 1; push 0x11; push port; call _ipc_port_copy_send; add esp,4; push eax; push itk_space; call _ipc_object_copyout`. 특권 검사는 인자 없는 `call _suser`(0x108310); 원본 심볼표에 `_is_suser`·`_lookupd_port_priv`·`__lookupd_port1` 없음, `_send_notification` 은 0x15a63c(이 객체 밖, 사이에 `_ds_notify` 0x15a628 등).
-- 탐침 1(Darwin 에서: `do_object_copyout` 의 `IP_DEAD` 분기 제거 → `ipc_object_copyout(task->itk_space, ipc_port_copy_send(port), …)`; `lookupd_port_priv` 선언·`_lookupd_port_choose`·`_lookupd_port1`·`send_notification` 삭제; `_lookupd_port` 의 else 를 `port = lookupd_port;`): 8 함수 길이·바이트 일치, 참조만 `_is_suser`(원본 `_suser`) 4 곳 미검증.
-- 탐침 2(+ `is_suser()` → `suser()` 4 곳; NeXTMach mk-108.1 의 인자 없는 `suser()` 와 같은 형태, 예: `bsd/kern_time.c:116`): O3·O3c **OBJECT_MATCH 8/8**, `__text` 652 B·재배치 32, `__data` 23 B(L1d), O3 의 `__common` 4 B 는 심볼 배치(placement-only), common 크기 4 ≤ 원본 간격 8(다음 `_k_zone`).
-- 경계: 앞 0 B(확정 ipc_tt 끝 0x15a39c), 뒤 0 B(`ret` 0x15a627, `_ds_notify` 0x15a628). `.i` 표지 중 07 에 없는 것은 대상 파일 자신뿐.
-
-설계: `07_kernel/src/kern/ipc_xxx.c` = 탐침 2 본문(복원 수정 D014: 삭제와 단순화, 작성 없음 — `suser()` 는 원본 호출 대상의 이름) + 수정 주석. MODIFICATIONS·PROVENANCE·diff, objects_confirmed(A)·functions.tsv 8 행(`+ restoration edit`). 헤더 변경 없음 → 회귀 불필요. 예측(R5): O3 = `2c9bccd5…`, O3c = `369dcdf9…`(탐침 2), 652 B, 재배치 32, 함수 오프셋 = 탐침 2(spans 표와 같음), 미정의 심볼에 `_suser`, `_is_suser` 없음.
-
-### 62.1 codex 교차검토(QP37) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 diff 는 계획한 편집뿐(`IP_DEAD` 분기, priv 선언·chooser·`_lookupd_port1`·`send_notification` 삭제, `port = lookupd_port`, `is_suser()`→`suser()` 4 곳) | 탐침 스크립트의 문자열 교체(각 1 회 assert)·`is_suser count 4` 출력 | ✅ |
-| 원본: 0x15a3ab 인자 없는 `call _suser`, `copy_send` 결과가 바로 `copyout` 으로, `_send_notification` 0x15a63c 는 다른 곳에 존재 | 62 절 capstone 출력, symbols.tsv | ✅ "전역적으로 없음" 이 아니라 "이 객체 밖" 으로 기록 |
-| L1 O3·O3c OBJECT_MATCH 8/8, 652 B, 32 재배치, `__data` 23 B(포트 배열 + `"object_copyout"`), O3 `__common` 4 B placement-only | l1batch 출력 | ✅ |
-| R1/R2 최소 복원 수정. 단 **동작 차이**: Darwin 은 `IP_DEAD` 면 `PORT_NULL` 반환, 복원본은 그 값을 `ipc_object_copyout` 에 넘김(전제 `assert(IO_VALID(object))`, 07 `ipc/ipc_object.c:637`) | ipc_object.c:630–640, ipc_port.c:1055–1062 열람 | ✅ 기록: 바이트로 입증된 원본 동작이며 Darwin 과 동작이 같다고 주장하지 않음 |
-| 원본 `_suser`(0x108310–0x10835c)는 인자를 읽지 않고 0/1 반환; Darwin `suser(cred, acflag)`(kern_prot.c:532)는 0/오류 — 나중 BSD 복원 때 Darwin 정의를 그대로 쓸 수 없음 | capstone(`[ebp+8]`·`[ebp+0xc]` 읽기 없음), kern_prot.c:528–536 열람 | ✅ 후속 의무로 기록 |
-| 스테이징 헤더에 `suser` 선언 없음 | probe 2 cmd 실행 전 `grep -rn suser …/src --include=*.h` 출력 0 줄 | ✅ |
-| 경계 0 B / 0 B | 62 절 출력 | ✅ |
-| 36.1: 재배치 위치·폭·pcrel·유형 동일, 재배치 밖 바이트 동일, 4 곳(0xfb·0x10e·0x116·0x11f)이 local→extern `_lookupd_port`; **O3c `.i` 미보존** | `s5p37-probe2.cmd` 에 `-E` 1 개 | ✅ 최종 빌드에 O3c `.i` 추가하고 두 `.i` 동일 확인 |
-| 통합 의무: `send_notification`(kern_server.c:1149 호출)은 원본 0x15a63c 의 다른 객체로; `_lookupd_port1` 은 `syscall_sw.c:156`·`mach_traps.h:70`·`mach/syscall_sw.h:79` 에서 참조 | 내 grep 출력(같은 4 곳) | ✅ 기록(그 객체·syscall_sw 차례에서 처리) |
-| R3·R5 기록 완비, 표제 S5-P36 vs `s5p37-*` | 58.1 과 같은 관례 | ✅ R3/R5 / ⚖️ 표제 유지 |
-
-설계 보강: 최종 빌드에 O3c 전처리(`-E` 를 `-fno-common` 없이)를 추가해 두 `.i` 의 바이트 동일을 Python 으로 확인. R5 외부 참조 예측: 미정의 심볼 = 탐침 2 집합(`_suser` 포함, `_is_suser` 없음).
-
-### 62.2 결과 (2026-10-01) — `ipc_xxx.c` 확정(A)
-
-- 07_kernel `kern/ipc_xxx.c` = 탐침 2 본문 + 수정 주석(APSL 고지만 있는 파일). 빌드 `s5p37-build-1`: 예측대로 O3 = `2c9bccd5…`(O2 도 같음), O3c = `369dcdf9…`, 두 `.i` 동일, 미정의 심볼 = 탐침 2. OBJECT_MATCH 8/8(두 변형), 경계 0/0 → **A**.
-- 기록: objects_confirmed 52 행(머리 포함), functions.tsv +8(369 함수), MODIFICATIONS·PROVENANCE 각 +1, 증거 `x86-ipc_xxx.md`·`.diff`. 후속 의무(send_notification·`_lookupd_port1`·`suser` 정의)는 증거에 기록.
-
-## 63. S5-P37 세부 계획 — `vm/vm_user.c` = Darwin 판에서 `vm_reallocate`·`vm_wire` 삭제 (코딩 전, 2026-10-02)
-
-이번 회차에서 먼저 조사하고 보류한 것(실행 ID `s5p38-*`, 스테이징만):
-- `kern/ipc_mig.c`: 원본에 `_mach_msg`(0x158534, 416 B)가 `_mach_msg_abort_rpc` 뒤에 있음(Darwin 판에 없음, Mach4 `kern/ipc_mig.c:255` 에 있음). 탐침 1(Mach4 :240–336 삽입)은 `ipc_kmsg_get_from_kernel`·`ipc_mqueue_send`·`ipc_mqueue_receive`·`ipc_kmsg_copyout` 인자 수 불일치로 컴파일 실패 — 아직 미복원인 ipc_kmsg·ipc_mqueue 의 API 결정이 먼저. 보류.
-- [0x15a628, 0x15a67c): `_ds_notify`(`xor eax,eax; ret`), `_vm_object_pager_wakeup`(빈 함수), `_send_notification`, `_task_secure`(`return 1`) — 함수 사이 채움이 `90` 이라 한 목적 파일로 보이나 Darwin 에는 `send_notification` 만 있음 → 참조에 없는 독립 새 파일이 필요(W6: 라이선스는 사용자 판단). 보류.
-- 일괄 진단 `s5p38-pre-1`(14 파일): machine·ns_timer·timer·mapfs·ux_exception·vm_machdep·miniMonMachdep·catch·mach_header 는 BSD 헤더(`machine/limits.h`)·옵션 헤더(`norma_ether.h`·`mach_nbc.h`·`mach_kdb.h`)·`pc_support.h`·`mach-o/loader.h` 없음으로 실패. PCtimers·mach_clock·vm_pageout 은 차이 큼, syscall_sw 는 `__data` 6 B 차이·참조 3 미검증(`_lookupd_port1` 등, 62.1 의무와 연결), **vm_user 는 원본 11 함수 길이 모두 같고 빌드에만 `_vm_reallocate`·`_vm_wire`**.
-
-사실(vm_user, 원본 [0x17c4e0, 0x17c942) 1122 B, 함수 11; 원본 심볼표에 `_vm_reallocate`·`_vm_wire` 없음):
-- 탐침 2(Darwin `vm/vm_user.c` 에서 `vm_reallocate`(:189–203, 정의와 뒤 빈 줄)·`vm_wire`(:327–363, 앞 빈 줄 3 개·주석 포함) 삭제; diff `189,203d188`·`327,363d311`): O3c(common 변형) **OBJECT_MATCH 11/11**, `__text` 1122 B·재배치 52, `__data` 26 B 0x1e0e3d(L1d). O3(`-fno-common`)는 바이트·참조 차이 0, `__common` 64 B 후보 2 개로 모호.
-- 36.1: common `_vm_alloc_lock` 12 B(원본 0x1f64c0, 다음 심볼까지 12), `_vm_stat` 52 B(0x1f64f0, 52) — 크기 ≤ 간격. `__text`·`__data` 재배치 위치 동일, 재배치 밖 바이트 차이 0, 모양 차이는 scattered VANILLA(`__common` 대상) → extern 6 곳과 local → extern 5 곳(63.1 에서 정정 — 처음 4 곳만 적음).
-- 다른 사용처: `mach_host.defs:427` `routine vm_wire`, `mach_debug.defs:217` `routine vm_reallocate`(MIG 정의 — 서버 스텁 복원 때 의무), 선언 `vm/vm_user.h:47`(07 에 있음, 그대로).
-- 경계: 앞 0 B(`ret` 0x17c4df), 뒤 `00 00`(vnode_pager 0x17c944, 4 정렬 최소).
-
-설계: `07_kernel/src/vm/vm_user.c` = 탐침 2 본문(복원 수정 D014, 작성 없음) + 수정 주석. MODIFICATIONS·PROVENANCE·diff·functions.tsv 11 행·objects_confirmed(A, 36.1 근거). 헤더 변경 없음. 최종 빌드에 O3c `.i` 도 남겨 두 `.i` 동일 확인. 예측(R5): O3 = `a56055a3…`, O3c = `7b9ce4fe…`, 1122 B, 재배치 52, 함수 오프셋·미정의 심볼 = 탐침 2.
-
-### 63.1 codex 교차검토(QP38) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 스테이징 = Darwin − :189–203 − :327–363 정확(뒤 삭제는 앞 빈 줄 2 개 포함, :326 남음) | `diff` 출력 `189,203d188`·`327,363d311`, `sed -n 326,327p` 둘 다 빈 줄 | ✅ |
-| 원본에 `_vm_reallocate`·`_vm_wire` 없음, 11 함수 1122 B, `ret` 0x17c4df, 끝 `ret` 0x17c941 뒤 `00 00`, 다음 `_vnode_pager_vput` 0x17c944 | 63 절 Python 출력(앞 `…5d c3`, 뒤 `0000`) | ✅ |
-| O3c OBJECT_MATCH 11/11; O3 는 차이 0 이나 참조 11 미검증·NOT_MATCH | l1batch 출력 | ✅ |
-| **재배치 변환은 scattered→extern 6(0x5e·0x92·0x227·0x233·0x23f·0x24b) + local→extern 5(0x6·0x4b·0x97·0x21b·0x253)** — 계획의 "4 곳" 은 틀림 | Python 재계산 출력(같은 11 곳, 그 밖 0) | ✅ **내 오류**(첫 4 개만 출력하고 extern 비교를 안 함) — 63 절 정정 |
-| 36.2(ipc_table)에는 scattered 가 없어 "같은 예외" 가 아님 | `s5p12-build-1` O3 ipc_table 의 scattered 0 | ⚖️ 사실. 다만 scattered→extern 은 이미 56.1(ipc_notify, 계획 1912 행: "형태 차이 65 개는 모두 `__common` 대상 scattered")에서 인정된 선례 — 근거를 56.1 로 바로잡음 |
-| common 12/12·52/52 는 상한 일관성일 뿐 | — | ✅ |
-| 최종 빌드에 O3c `.i` 추가·두 `.i` 동일·대응 재확인 | — | ✅ (계획에 있음) |
-| 다른 C 사용처 없음, MIG `.defs` 는 서버 생성 때 의무 | 63 절 grep 출력 | ✅ |
-| ipc_mig 실패 4 건 확인; `_mach_msg` 416 B 중 명령은 413 B(뒤 nop 3) | 탐침 1 `01.err` | ✅ 기록 |
-| 일괄 진단 14 중 실패 9·성공 5, 빠진 헤더에 `mach/mach_user_internal.h`(ux_exception) 추가; syscall_sw 미검증 참조 이름 `__lookupd_port1`·`_mach_msg_overwrite_trap`·`_mach_msg_simple_trap` | `04.err` 열람(:3) | ✅ 기록 |
-| 작은 객체를 한 파일로 묶는 것은 추론 | — | ✅ (보류 상태 유지) |
-
-### 63.2 결과 (2026-10-02) — `vm_user.c` 확정(A)
-
-- 07_kernel `vm/vm_user.c` = 탐침 2 본문 + 수정 주석. 빌드 `s5p38-build-1`: 예측대로 O3 = `a56055a3…`, O3c = `7b9ce4fe…`(O2 `2240c57e…` 다름), 두 `.i` 동일, 미정의·common 심볼 = 탐침 2. O3c OBJECT_MATCH 11/11, 36.1 충족, 경계 0/`00 00` → **A**.
-- 기록: objects_confirmed 53 행(머리 포함), functions.tsv +11(380 함수), MODIFICATIONS·PROVENANCE 각 +1, 증거 `x86-vm_user.md`·`.diff`.
-
-## 64. S5-P38 세부 계획 — `machdep/i386/pc_support/PCinit.c`·`machdep/i386/fault_copy.c` 를 Darwin 판 그대로 채택 (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p39-*`; 일괄 진단 `s5p39-pre-1`, Darwin 15 파일 그대로, 현재 07 헤더):
-- 실패 8(vm_resident·vm_policy·vm_unix·kernel_stack·kern_server·machine_clock·APM_i386·kdp_machdep), 성공 7. 차이 큼: task(3 함수)·vm_kern(7 함수, 원본에 없는 `_kmem_alloc_pages`·`_kmem_remap_pages`)·zalloc. processor 는 함수 27 개 바이트 일치·`__common` 732 B 후보 7 개로 모호(36.1 대상, 다음 회차 후보). PCresume 는 5 함수 MATCH, `__TEXT,__const` 4 B 배치 불가(참조 없음).
-- **PCinit**: `-O3`(`-fno-common`) L1 **OBJECT_MATCH 7/7**, `__text` 1365 B·재배치 59, 데이터 섹션 없음. 원본 [0x1a0e48, 0x1a139d): 앞 `00 00`(이전 객체 `ret` 0x1a0e45), 뒤 `00 00 00`(`_PCexception` 0x1a13a0) — 최소 채움.
-- **fault_copy**: `-O3` L1 **OBJECT_MATCH 14/14**, `__text` 2225 B·재배치 56, 데이터 섹션 없음. 원본 [0x189a5c, 0x18a30d): 앞 0 B(확정 dbl_fault 끝 0x189a5c, 그 `90 90` 은 dbl_fault 소유), 뒤 `00 00 00`(`_fp_configure` 0x18a310). Ghidra 범위는 0x18a2f6 에서 끝나지만 그 뒤 이름 없는 코드(…`c3` 0x18a30c)까지 `__text` 2225 B 전체가 바이트 비교됨(objects.tsv 의 0x18a2f6 은 하한일 뿐).
-- 두 객체 모두 common·zero-fill·`__data` 없음 → 36.1 불필요.
-
-설계: 두 파일을 Darwin 원문 그대로 07 에 복사(수정 없음 → 수정 주석·MODIFICATIONS 없음, PROVENANCE "none (verbatim)"). 최종 `.i` 의 `src/` 표지 중 07 에 없는 헤더도 그대로 채택(PROVENANCE 행). 07 에서 다시 빌드해 진단과 같은 SHA 를 확인하고(예측: PCinit·fault_copy O3 SHA = `s5p39-pre-1` 의 것), objects_confirmed 2 행(A)·functions.tsv 21 행(`darwin01`, 수정 없음)·증거 1 개. O2·O3c 는 기록만. 헤더 변경 없음(새 헤더 추가만) → 다른 객체 회귀 불필요 — 단 추가 헤더가 기존 확정 빌드의 `.i` 에 이미 Darwin 원문으로 들어가던 것과 같은 바이트임을 SHA 로 확인.
-
-### 64.1 codex 교차검토(QP39) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 진단 입력은 Darwin 원문(SHA 동일) | 스테이징은 `stage_headers.py --prefer-07` 로 만들었고 07 에 두 파일이 없음 → Darwin 원문 | ✅ (07 빌드 후 `.i`·SHA 로 재확인) |
-| L1 은 `--ranges` 와 무관하게 `__text` 전체를 비교(l1_compare.py:282·315), 두 객체 OBJECT_MATCH 7/7·14/14, 데이터·common 없음 | 64 절 L1 출력(섹션 크기 1365·2225, 바이트 차이 0) | ✅ |
-| 경계 바이트(PCinit `c3 00 00`/`c3 00 00 00`, fault_copy `90 90`/`c3 00 00 00`) | 64 절 Python 출력 | ✅ |
-| 0x18a2f8–0x18a30c 는 `_suibyte` 의 `do_fault` 복구 경로(0x18a2da 가 복구 주소 0x18a2f8 저장) — fault_copy.c `suibyte` | capstone 0x18a2cc–0x18a30c, fault_copy.c:570–584 열람 | ✅ |
-| 07 에 없는 실제 의존 헤더: PCinit → `PCprivate.h`·`PCpublic.h`·`PCmiscInline.h`·`bsd/i386/signal.h`, fault_copy → `bsd/sys/errno.h` | (07 빌드 `.i` 로 확정 예정) | ⚖️ 목록은 최종 `.i` 표지로 확정한 것만 채택 |
-| "그대로" 는 채택 소스에 한함 — 헤더 환경에는 이미 복원 수정된 07 헤더가 쓰임 | — | ✅ 증거에 명시 |
-| O3 일치는 재현성이지 역사적 최적화 수준의 유일성 아님; PCinit 경고 4 개 기록 | `13.err` 의 warning 4 줄 | ✅ |
-| 표제 S5-P38 vs ID s5p39 | 관례 | ⚖️ 유지 |
-| 다른 객체 회귀 생략은 "추가 헤더가 Darwin 원문과 같은 바이트" 확인 조건부 | — | ✅ 설계대로 SHA 확인 |
-
-### 64.2 결과 (2026-10-02) — `PCinit.c`·`fault_copy.c` 확정(A, 원문 그대로)
-
-- 07_kernel: 두 소스 + `.i` 표지로 확정한 헤더 5 개(`bsd/i386/signal.h`·`bsd/sys/errno.h`·`pc_support/PCmiscInline.h`·`PCprivate.h`·`PCpublic.h`)를 Darwin 원문 그대로 채택(빌드에 쓰인 스테이징 사본과 SHA 동일).
-- 빌드 `s5p39-build-1`: 예측대로 O3 = 진단 SHA(`667a6de1…`·`024a7889…`), O3c 같음, O2 다름. OBJECT_MATCH 7/7·14/14, 경계 증명서 성립 → 둘 다 **A**.
-- 기록: objects_confirmed 55 행(머리 포함), functions.tsv +21(401 함수), PROVENANCE +7(225 행; errno.h 는 UC 고지 병기), 증거 `x86-pc_support_fault_copy.md`. 수정 없음 → MODIFICATIONS 행 없음.
-
-## 65. S5-P39 세부 계획 — `kern/processor.c` 를 Darwin 판 그대로 채택(36.1 common 절차) (코딩 전, 2026-10-02)
-
-사실(원본 [0x161134, 0x161e5a) 3366 B, Ghidra 범위 27 개; 실행 ID `s5p40-*`, 탐침 cmd 머리에 예측):
-- 탐침 1(Darwin `kern/processor.c` 그대로, 현재 07 헤더): `-fno-common` O3 = 진단 `s5p39-pre-1` 과 같은 SHA(`7e6688b3…`) — 27 함수 바이트·참조 차이 0, `__common` 732 B 후보 7 개로 모호(NOT_MATCH, 참조 24 미검증). common 변형 O3c(`8a5034b8…`) **OBJECT_MATCH 27/27**, `__data` 74 B 0x1df228(L1d). 두 `.i` 동일.
-- 36.1: common 7 개 — `_all_psets` 8/간격 8, `_all_psets_count` 4/16, `_all_psets_lock` 4/8, `_default_pset` 380/380, `_master_processor` 4/4, `_processor_array` 328/336, `_processor_ptr` 4/4 (모두 크기 ≤ 원본 다음 심볼까지 간격, 상한 일관성). `__text` 재배치 55 곳 위치 동일, 폭·pcrel·유형 동일, 모양 차이는 scattered→extern 8·local→extern 16(56.1·63.1 과 같은 종류), 재배치 밖 바이트 차이 0; `__data` 재배치 없음, 바이트 동일.
-- 경계: 앞 `00 00`(확정 priority 끝 0x161132), 뒤 `00 00`(`_enqueue_head` 0x161e5c) — 최소 채움.
-- `.i` 표지 중 07 에 없는 것은 대상 파일뿐.
-
-설계: `07_kernel/src/kern/processor.c` = Darwin 원문 그대로(수정 없음). PROVENANCE "none (verbatim)". 07 빌드(O3·O3c·O2·두 `.i`)로 탐침 1 과 같은 SHA 확인, objects_confirmed(A, 36.1)·functions.tsv 27 행·증거. 헤더 변경 없음 → 회귀 불필요. 예측: O3 `7e6688b3…`, O3c `8a5034b8…`, 미정의·common 심볼 = 탐침 1.
-
-### 65.1 codex 교차검토(QP40) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원문·스테이징 SHA 동일, 두 `.i` 동일, O3 = 진단 SHA | 탐침 1 출력(`cmp` 동일, SHA 접두 `7e6688b3` 두 곳) | ✅ |
-| O3c OBJECT_MATCH 27/27·참조 55 검증·`__data` 74 B L1d; O3 는 참조 24 미검증 | l1batch 출력 | ✅ |
-| 재배치 55 곳 위치·폭·pcrel·유형 동일, scattered→extern 8 + local→extern 16, 그 밖 15 곳은 외부 심볼 번호만 바뀜(이름·가산값 동일), 16 곳 완전 동일, 재배치 밖 바이트 동일 | 내 Python(55·55, 8·16, 밖 차이 0) — 번호만 바뀐 15 곳은 내 검사의 "변환 없음" 범주에 포함 | ✅ 증거에 명시 |
-| common 7 개 크기 ≤ 간격(상한 일관성) | 65 절 Python 출력 | ✅ |
-| 경계 `…5d c3 | 00 00` / `…5d c3 | 00 00 | 55 89 e5` | 65 절 Python 출력 | ✅ |
-| 설정 `MACH_HOST=0`·`NCPUS=1`·`MACH_FIXPRI=1`(config_options.tsv 3·6·10 행)과 일치 | 그 세 행 열람 | ✅ |
-
-### 65.2 결과 (2026-10-02) — `processor.c` 확정(A, 원문 그대로)
-
-- 07_kernel `kern/processor.c` = Darwin 원문. 빌드 `s5p40-build-1`: 예측대로 O3 `7e6688b3…`·O3c `8a5034b8…`(O2 `1b836934…` 다름), 두 `.i` 동일. O3c OBJECT_MATCH 27/27, 36.1 충족, 경계 `00 00`/`00 00` → **A**.
-- 기록: objects_confirmed +1, functions.tsv +27, PROVENANCE +1, 증거 `x86-processor.md`. 수정 없음.
-
-## 66. S5-P40 세부 계획 — `machdep/i386/pc_support/PCresume.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02)
-
-사실(원본 `__text` [0x1a15c4, 0x1a19c7) 1027 B, 함수 5: `_PCresume`·`_PCcallMonitor`·`_PCbopFA`·`_PCbopFC`·`_PCbopFD`; 실행 ID `s5p41-*`):
-- 진단 `s5p39-pre-1`(Darwin 원문, 현재 07 헤더): `__text` 1027 B·재배치 9, **5/5 MATCH**, 객체 판정 NOT_MATCH 의 유일한 이유는 `__TEXT,__const` 4 B(`18 00 20 00`) 미배치.
-- `__TEXT,__const`: 심볼 없음, 이 섹션을 가리키는 재배치 0 개(Python, 일반·scattered 모두) — intr(계획 46.x, `objects_partial.tsv` x86-intr 행)과 같은 ltr/lldt 선택자 상수로 보임(같은 바이트). 규칙상 "참조 없음(unreferenced)" → 등급 P 조건(README:24).
-- 경계: 앞 `00` 1 B(이전 코드 `ret` 0x1a15c2, objects.tsv 의 PCexception 하한 0x1a1511 뒤에도 이름 없는 코드가 0x1a15c2 까지 있음), 뒤 `00` 1 B, 0x1a19c8 부터 이름 없는 함수 둘(56 B, `90 90` 로 구분) 뒤 `_PCscheduleTimers` 0x1a1a00 — 진단에서 Darwin `PCtimers.c` 빌드는 정적 `PCpendTimeout`·`PCpendTick` 가 앞 56 B 를 차지하므로 0x1a19c8 은 PCtimers 객체의 시작으로 보임(이번 판정에는 쓰지 않음). 앞뒤 모두 4 정렬 최소 채움.
-
-설계: `07_kernel/src/machdep/i386/pc_support/PCresume.c` = Darwin 원문(수정 없음). `.i` 표지 중 07 에 없는 헤더도 원문 채택. 07 빌드(O3·O3c·O2·두 `.i`)로 진단과 같은 SHA 확인(예측: O3 = 진단 O3, `__const` 4 B 그대로). `objects_partial.tsv` 에 P 행(`unverified_sections`: `__TEXT,__const 4 B unreferenced`), functions.tsv 5 행(`high` — README:20 은 P 객체의 L1 MATCH 함수를 high 로 정의), PROVENANCE, 증거.
-
-### 66.1 codex 교차검토(QP41) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원문 SHA `8bdafe08…`, 진단 O3 `0c48d41a…`, L1 5/5 MATCH·1027 B·참조 9·차이 0, 유일한 미검증은 `__TEXT,__const` 4 B | 66 절 Python·진단 출력(O3 SHA 접두 `0c48d41a`) | ✅ |
-| `__const` `18 00 20 00` 은 `cpu_inline.h` 의 `ltr()`·`lldt()` 메모리 피연산자(`TSS_SEL`·`LDT_SEL`, seg.h) — 재배치 0, 심볼 0; intr 과 같은 기제. 인용은 :126–142(`LDT_SEL` 은 :141) | `grep -n 'TSS_SEL\|LDT_SEL' cpu_inline.h` 출력 | ✅ 인용 정정 |
-| 경계 `ret` 0x1a15c2·`00`·0x1a15c4 / `ret` 0x1a19c6·`00`·0x1a19c8, 최소 채움 1/1 | 66 절 Python 출력 | ✅ |
-| 0x1a19c8–0x1a19ff 56 B 는 Darwin PCtimers 빌드의 첫 56 B(`_PCpendTimeout`·`_PCpendTick`)와 바이트 동일 — P 판정에는 불필요 | — | ⏭️ 기록만(PCtimers 차례에서 재확인) |
-| P + 함수 `high` 는 README:20·24 와 일치, `__const` 는 미검증으로 남김 | README:20·24 | ✅ |
-
-### 66.2 결과 (2026-10-02) — `PCresume.c` 등급 P(원문 그대로)
-
-- 07_kernel: `PCresume.c` + `.i` 표지로 확인한 `machdep/i386/sel_inline.h` 원문 채택. 빌드 `s5p41-build-1`: 예측대로 세 변형 모두 `0c48d41a…`, 두 `.i` 동일, 5/5 MATCH, `__const` 4 B 미배치 → **P**.
-- 기록: objects_partial +1(4 객체), functions.tsv +5(433 함수, high), PROVENANCE +2, 증거 `x86-PCresume.md`.
-
-## 67. S5-P41 세부 계획 — 옵션 `MACH_KDB`·`NORMA_ETHER` 추가와 `kern/machine.c` 원문 채택 (코딩 전, 2026-10-02)
-
-먼저 조사하고 보류한 것(실행 ID `s5p42-*`): `PCtimers.c` — 원본 `_PCscheduleTimers` 는 타이머 호출의 인자 형태·시간 변환이 Darwin 판과 다름(power.c 보류와 같은 callout API 문제). `mapfs.c` 는 BSD 헤더(`machine/limits.h`), `exception.c` 는 `ikm_sender` 로 막힘.
-
-사실:
-- 일괄 진단에서 machine·miniMonMachdep·exception 은 `mach_kdb.h`, machine 은 `norma_ether.h` 가 없어 실패. 둘 다 `06_reconstruction/config_options.tsv` 에 행이 없고 `07_kernel/generated` 에 헤더 없음.
-- `MACH_KDB`: Darwin `conf/MASTER*` 에 옵션 자체가 없음(grep 0). 사용처는 `kern/exception.c:87–92`(`thread_kdb_return`·`db_printf` 선언, `boolean_t debug_user_with_kdb`) 과 `:300–311` 뿐, `bsd/sys/reboot.h:65` 는 include 만. 원본 심볼표에 `_debug_user_with_kdb`·`_thread_kdb_return`·`_db_printf` 없음(grep 0 — 1 이었다면 전역 `_debug_user_with_kdb` 가 있어야 함). → 값 0, **hypothesis**(바이트 확인은 exception.c 차례).
-- `NORMA_ETHER`: `conf/MASTER:139` `<norma_ether>`, RELEASE 태그(`MASTER.i386:72`)에 없음. 사용처는 `kern/machine.c:58` include 뿐(값을 쓰는 곳 없음). → 값 0, **hypothesis**(바이트에 영향 없음).
-- 탐침 3(스테이징만: 두 헤더를 generated 에 두고 meta_features 에 import): Darwin `kern/machine.c` 원문 — O3(`-fno-common`) = O2 = 탐침 1 SHA `39a4e686…`, 바이트·참조 차이 0, `__common` 64 B 모호(+ 크기 0 `__data` 추정 배치로 `cpu_up`·`cpu_down` 이 DIFF 표시, 바이트 차이 0); common 변형 O3c `67e04b32…` **OBJECT_MATCH 6/6**(`__text` 380 B, 재배치 17), 두 `.i` 동일.
-- 36.1: common `_action_lock` 4/4, `_action_queue` 8/8, `_machine_info` 20/20, `_machine_slot` 32/32(크기/간격); 재배치 17 곳 위치·폭·pcrel·유형 동일, scattered→extern 4·local→extern 2, 재배치 밖 바이트 차이 0.
-- 경계: 앞 0 B(`ret` 0x15de67), 뒤 0 B(`_mfs_init` 0x15dfe4) — 원본 [0x15de68, 0x15dfe4) 380 B.
-
-설계:
-1. `config_options.tsv` 에 `mach_kdb`·`norma_ether` 두 행(값 0, hypothesis, evidence 열에 위 근거), `gen_config_headers.py` 로 생성·`--check`.
-2. 회귀: `meta_features.h` 가 바뀌므로 확정 55 + 부분 4 = 59 객체를 마지막 확정 빌드 명령으로 다시 빌드해 SHA 전부 동일 확인(기준: `s5p33-regress-1` 50 개 + 이후 확정 9 개의 최종 빌드 출력).
-3. `07_kernel/src/kern/machine.c` = Darwin 원문. 07 빌드(O3·O3c·O2·두 `.i`) — 예측: 탐침 3 과 같은 SHA. objects_confirmed(A, 36.1)·functions.tsv 6 행·PROVENANCE·증거.
-
-### 67.1 codex 교차검토(QP42) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `MACH_KDB` 0 은 가설로 타당: MASTER 에 없음, 원본 심볼 3 개·문자열 `"No exception server, calling kdb"` 없음; 옵션 등록은 `conf/files:50` | 67 절 grep(심볼 0·0·0), strings.tsv grep 0 줄 | ✅ (문자열 부재도 근거에 추가) |
-| `NORMA_ETHER` 0 은 설정 가설일 뿐, 쓰이지 않는 값이라 이 객체로 확정 불가 | 67 절 grep(include 1 줄) | ✅ hypothesis 유지 |
-| O3 의 `_cpu_up`·`_cpu_down` DIFF 는 도구 인공물: 크기 0 `__data` 를 `sect_of` 가 1 바이트로 취급(`l1_compare.py:68` `max(s['size'], 1)`) → scattered `_machine_info` 참조를 잘못 분류; O3 는 여전히 참조 4 미검증 | l1_compare.py:66–70 열람 | ✅ 기록(도구 수정은 이번 범위 밖, 판정은 O3c + 36.1) |
-| 36.1: 재배치 17 = extern→extern 11 + scattered→extern 4 + local→extern 2, 이름·가산값 대응, 밖 바이트 동일, common 4/4·8/8·20/20·32/32 | 67 절 Python 출력 | ✅ |
-| 경계 0/0, 380 B | 67 절 출력 | ✅ |
-| 회귀: `s5p33-regress.cmd` 가 이전 50 개를 정확히 포함, 이후 9 개 기준 출력(표) | 기준 파일 존재·SHA 접두가 각 회차 기록과 같음 | ✅ 기준으로 사용 |
-| **누락 채택: `bsd/sys/reboot.h`·`bsd/machine/reboot.h`·`bsd/i386/reboot.h`(machine.i 에서 사용)** | 탐침 3 `machine.i` 표지 대조(Python): 07 에 없는 것 = 두 generated + 이 세 헤더 + machine.c | ✅ 설계 3 에 추가 |
-| 탐침의 import 는 끝에 덧붙였고 생성기는 정렬 — 최종 생성 헤더로 재현 필요 | gen_config_headers.py:35 `sorted(files)` | ✅ 07 빌드로 확인 |
-
-### 67.2 결과 (2026-10-02) — 옵션 2 개 추가, `machine.c` 확정(A, 원문 그대로)
-
-- `config_options.tsv` 19→21 행(`mach_kdb`·`norma_ether`, hypothesis 0), 생성 헤더·`--check` 통과. 회귀 `s5p42-regress-1` 59/59 동일.
-- 07_kernel `kern/machine.c` + `bsd/{sys,machine,i386}/reboot.h` 원문. 빌드 `s5p42-build-1`: 예측대로 O3 = O2 = `39a4e686…`, O3c `67e04b32…`, 두 `.i` 동일, `.i` 표지 모두 07 에 있음. O3c OBJECT_MATCH 6/6, 36.1 충족, 경계 0/0 → **A**.
-- 기록 처리 중 `processor_assign` 정의가 세 개(MACH_HOST·#else·#else NCPUS>1)라 스크립트가 쓰기 전에 멈춤 → 활성 정의 :723 명시 후 기록. objects_confirmed +1, functions.tsv +6, PROVENANCE +6(생성 헤더 2 포함), 증거 `x86-machine.md`.
-- 도구 메모: `l1_compare.py:68` 의 크기 0 섹션 처리(`max(size,1)`)가 빈 `__data` 를 1 바이트로 취급 — 판정에 영향 없으나 나중에 도구 수정 후보.
-
-## 68. S5-P42 세부 계획 — `machdep/i386/miniMonMachdep.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p43-*`; 일괄 진단 `s5p43-pre-1`, Darwin 7 파일 그대로):
-- miniMon·kdp_udp·kdp_machdep·unix_signal·unix_startup·pcb 는 BSD 헤더(`machine/limits.h`, unix_startup 은 `kernserv/ns_timer.h` 경유)로 실패 — S4-C 결정 대기. **miniMonMachdep 성공**(이제 `mach_kdb.h` 가 있으므로).
-- miniMonMachdep: `__text` 728 B·재배치 24 **바이트·참조 차이 0**. objects.tsv 범위(0x185fb0, 154 B)는 하한일 뿐 — Darwin 에서 `static` 인 `miniMonDump`(:100)가 앞 [0x185e04, 0x185fb0) 428 B, `miniMonBacktrace`(:43)가 끝 [0x18604c, 0x1860dc) 144 B 를 차지하고(68.1 정정) 원본 이미지 [0x185e04, 0x1860dc) 와 바이트 일치(정적 심볼은 원본 심볼표에 없음 — 일관). `__data` 129 B(`_miniMonMDCommands`, 재배치 6) 심볼 배치·L1d 일치. 객체 판정 NOT_MATCH 의 유일한 이유는 `__DATA,__bss` 4 B(함수 정적 `ptr`, `miniMonDump` 안 :103) — `zerofill_check.py`: 참조 5, Δ 하나, 후보 [0x1e75a0, 0x1e75a4) 정렬·zero-fill 섹션 안·심볼 없음·겹침 없음, 음성 검사 검출 → **reference-inferred**(`09_validation/reconstruction/s5p43-zerofill-check-miniMonMachdep-pre-20261002.json`). common 없음.
-- 경계: 앞 `00` 1 B(`ret` 0x185e02, 앞은 kdp 계열 함수), 뒤 0 B(`_start` 0x1860dc).
-
-설계: `07_kernel/src/machdep/i386/miniMonMachdep.c` = Darwin 원문. `.i` 표지로 07 에 없는 헤더 원문 채택. 07 빌드(O3·O3c·O2·두 `.i`) — 예측: O3 = 진단 SHA, common 없음 → O3c 도 같은 바이트. 등급 **P**(`unverified_sections`: `__DATA,__bss 4 B reference-inferred at 0x1e75a0`, README:24), functions.tsv: `miniMonDump` 은 `__bss` 의존으로 MATCH_UNVERIFIED → **medium**(README:21), 나머지 7 은 **high**. 최종 빌드 객체로 zerofill_check 를 다시 돌려 기록.
-
-### 68.1 codex 교차검토(QP43) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원문·진단 입력 SHA 동일, 진단 O3 `51b24681…` | 진단 출력 SHA 접두 | ✅ |
-| L1: 7 MATCH + `miniMonDump` MATCH_UNVERIFIED(`__bss` 만), `__text` 728 B·참조 24, `__data` 129 B·참조 6(0x1e1728) 차이 0 | 68 절 L1 출력 | ✅ |
-| 배치는 공개 심볼 6 개가 같은 Δ 를 주는 "심볼 배치" — 0x185e04 에 원본 심볼은 없음 | `_miniMonReboot` 0x185fb0 − 0x1ac = 0x185e04(Python) | ✅ |
-| **`miniMonBacktrace` 는 앞이 아니라 끝 [0x18604c, 0x1860dc) 144 B** | 빌드 심볼 `_miniMonBacktrace` 0x248 → 0x185e04+0x248 = 0x18604c, 728−584 = 144(Python) | ✅ **내 오류** — 68 절 정정 |
-| 경계 `ret` 0x185e02·`00`·…·`ret` 0x1860db·`_start` 0x1860dc | 68 절 Python 출력 | ✅ |
-| zero-fill: 참조 5, Δ 0x1e7244, 후보 [0x1e75a0, 0x1e75a4), 음성 검사 검출, 대상은 `static ptr`(:103) | zerofill JSON 출력, 빌드 심볼 `_ptr.102` | ✅ |
-| **`--known` 이 낡음**(kern_notify [0x1e726c, 0x1e7280) 등 누락) — 겹침은 없음 | s5p25 known 11 구간에 kern_notify 없음(Python) | ✅ `zerofill-known-s5p43-20261002.json`(12 구간)으로 최종 재실행 |
-| P·`miniMonDump` medium·나머지 high | README:20–24 | ✅ |
-
-### 68.2 결과 (2026-10-02) — `miniMonMachdep.c` 등급 P(원문 그대로)
-
-- 07_kernel: `miniMonMachdep.c` + `kern/miniMonPrivate.h` 원문. 빌드 `s5p43-build-1`: 예측대로 O3 = O3c = `51b24681…`(O2 다름), 두 `.i` 동일. 7 MATCH + `miniMonDump` MATCH_UNVERIFIED(`__bss`), 갱신한 known 으로 zerofill reference-inferred → **P**.
-- 기록: objects_partial +1(5 객체), functions.tsv +8(high 7, medium 1), PROVENANCE +2, known-range 파일 `zerofill-known-s5p43-20261002.json`, 증거 `x86-miniMonMachdep.md`.
-
-## 69. S5-P43 세부 계획 — `pc_support/PCemulateREAL.c`·`PCemulatePROT.c` 를 Darwin 판 그대로 채택 (코딩 전, 2026-10-02)
-
-선정: 40 절 규칙(`machine/limits.h` 에 닿는 파일은 S4-C 결정 전까지 진행 안 함) 아래에서 조사 자료 `s4c-survey-20261001.json` 의 Mach 쪽 미확정·미시도 후보를 다시 뽑아 일괄 진단 `s5p44-pre-1`(Darwin 원문 7 개, 실행 ID `s5p44-*`).
-- 결과: 7 개 모두 컴파일. PCexception(바이트 358 차이·참조 17 차이, 보류), vm_fault·vm_map·pmap(배치 실패 — 크기 다름), **dma**(`__text` 5889 B 바이트 차이 0, `__bss` 12 B·`__common` 28 B 미검증 — 다음 회차 후보), **PCemulateREAL·PCemulatePROT OBJECT_MATCH**.
-- PCemulateREAL: `__text` [0x1a1b60, 0x1a2b3e) 4062 B, 함수 12(정적 포함, Ghidra 범위 10), `__data` 1024 B 0x1e4b80(추정 배치, L1d 일치). 앞 `00`×3(`ret` 0x1a1b5c, PCtimers 쪽), 뒤 `00 00`.
-- PCemulatePROT: `__text` [0x1a2b40, 0x1a3d0a) 4554 B, 함수 5(정적 `handle_bop`·`push_frame16_err_code`·`emulate_exception`·`emulate_instruction` 이 앞, 공개 `_PCemulatePROT` 0x1a3ac4), 데이터 없음. 앞 = REAL 의 뒤 `00 00`, 뒤 `00 00`(`_IOGetObjectForDeviceName` 0x1a3d0c). 네 틈 모두 4 정렬 최소 채움.
-- 두 파일에 같은 이름의 정적 `handle_bop` 이 있음(파일마다 static — 충돌 없음).
-
-설계: 두 파일을 Darwin 원문 그대로 07 에 복사, `.i` 표지로 07 에 없는 헤더 원문 채택. 07 빌드(각 O3·O3c·O2·두 `.i`) — 예측: O3 = 진단 SHA(`s5p44-pre-1`). common 없음 → 36.1 불필요. objects_confirmed 2 행(A), functions.tsv 17 행(high; 정적 함수는 원본 심볼 없음 명기), PROVENANCE, 증거.
-
-### 69.1 codex 교차검토(QP44) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 두 소스는 Darwin 원문(SHA 동일) | 진단 스테이징은 `--prefer-07` 이고 07 에 두 파일 없음 | ✅ (07 빌드 SHA 로 재확인) |
-| REAL 12/12·4062 B·참조 31, PROT 5/5·4554 B·참조 33 OBJECT_MATCH | 69 절 L1 출력 | ✅ |
-| **REAL `__data` 1024 B(정적 `inst_table`, :771) 배치는 들어오는 참조 1 개(0xaf3)로 추정**, 나가는 함수 포인터 6 개 포함 1024 B 전체 L1d 일치 | Python: incoming 1(`__text` 0xaf3), `__data` 재배치 6 | ✅ 기존 L1 추정 배치 규칙(263 행: 모든 참조 같은 Δ + 섹션 전체 L1d 일치) 충족. 단일 참조임을 증거에 기록 |
-| 경계 바이트, PROT 시작 0x1a2b40 = 0x1a3ac4 − 0xf84, 정적 함수 4 개는 원본 심볼 없음 | 69 절 Python 출력 | ✅ |
-| `machine/limits.h` 의존 없음; 예상 미채택 헤더 `machdep/i386/err_inline.h`·`pc_support/PCtaskInline.h` | (07 빌드 `.i` 로 확정) | ⚖️ `.i` 로 확정한 것만 채택 |
-| 표제 S5-P43 → P44 | 관례(실행 ID 와 절 번호 별개) | ⚖️ 유지 |
-
-### 69.2 결과 (2026-10-02) — `PCemulateREAL.c`·`PCemulatePROT.c` 확정(A, 원문 그대로)
-
-- 07_kernel: 두 소스 + `.i` 로 확정한 `machdep/i386/err_inline.h`·`pc_support/PCtaskInline.h` 원문. 빌드 `s5p44-build-1`: 예측대로 O3 = O3c = 진단 SHA, 두 `.i` 동일, OBJECT_MATCH 12/12·5/5, 경계 최소 채움 → 둘 다 **A**.
-- 기록 처리: 함수 정의 찾기가 여러 줄 원형 선언(:348)을 정의로 잘못 잡아 표 기록 전에 멈춤 → 괄호 뒤 `;` 여부로 원형을 거르도록 고쳐 기록(PROVENANCE 4 행은 그 전에 기록됨). objects_confirmed +2, functions.tsv +17(정적 15 은 원본 심볼 없음 명기), PROVENANCE +4, 증거 `x86-PCemulate.md`.
-
-## 70. S5-P44 세부 계획 — `machdep/i386/dma.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02)
-
-사실(원본 `__text` [0x188044, 0x189745) 5889 B, 함수 22; 실행 ID `s5p45-*`, 탐침은 스테이징만, cmd 머리에 예측):
-- 탐침 1(Darwin 원문): `-fno-common` O3 = 진단 `s5p44-pre-1` SHA `2e601aad…` — 바이트·참조 차이 0, 참조 129 미검증(`__common` 28 B 후보 4·`__bss`). common 변형 O3c `412a0bde…`: 7 MATCH + 15 MATCH_UNVERIFIED, **유일한 미검증은 `__DATA,__bss` 12 B**(함수 정적 `xxx` 3 개, 오프셋 0x1770·0x1774·0x1778). `__data` 108 B 0x1e1842 심볼 배치·L1d 일치. 두 `.i` 동일.
-- `__bss`: `zerofill_check.py`(known 범위 파일 `zerofill-known-s5p45-20261002.json` = s5p43 + miniMonMachdep [0x1e75a0, 0x1e75a4)) — 참조 67, Δ 0x1e5e7c 하나, 후보 [0x1e75ec, 0x1e75f8) 정렬·zero-fill 안·심볼 없음·겹침 없음, 음성 검사 검출 → **reference-inferred**(`09_validation/reconstruction/s5p45-zerofill-check-dma-pre-20261002.json`).
-- 36.1: common 5 개 `_dma_assigned_bits` 4/4, `_dma_cmd_regs` 4/16, `_dma_write_regs` 16/16, `_prev_tcstatus0` 4/4, `_prev_tcstatus1` 4/12(크기/간격); `__text` 재배치 425 곳 위치 동일, 폭·pcrel·유형 동일(같은 종류 296, local→extern 123, scattered→extern 6), 재배치 밖 바이트 차이 0; `__data` 재배치 없음·바이트 동일.
-- 경계: 앞 0 B(`_isbad` 쪽 `ret` 0x188043), 뒤 `00`×3(`_dma_buf_initialize` 0x189748 — 확정 dma_buf 객체 시작).
-
-설계: `07_kernel/src/machdep/i386/dma.c` = Darwin 원문(수정 없음), `.i` 표지로 07 에 없는 헤더 원문 채택. 07 빌드(O3·O3c·O2·두 `.i`) 예측: 탐침 1 과 같은 SHA. 최종 객체로 zerofill_check 재실행. 등급 **P**(`unverified_sections`: `__DATA,__bss 12 B reference-inferred at 0x1e75ec`), common 은 36.1 로 검증. functions.tsv 22 행: O3c 에서 MATCH 인 7 개 high, `__bss` 의존 MATCH_UNVERIFIED 15 개 medium(README:20–21).
-
-### 70.1 codex 교차검토(QP45) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원문·`.i` 동일, O3 = 진단, O3c `412a0bde…` | 70 절 탐침 출력 | ✅ |
-| O3c 7 MATCH + 15 MATCH_UNVERIFIED(`__bss` 만), `__data` 108 B 0x1e1842 | l1batch 출력 | ✅ |
-| zero-fill: 참조 67·Δ 하나·음성 검사 검출. **참조는 모두 오프셋 0** — 셋 중 첫 `xxx` 만 직접 배치되고 나머지 8 B 는 섹션 연속성으로 추정 | 기록의 `field_target_offsets` = [0] | ✅ 증거에 한계 명시 |
-| `xxx` 는 dma.c 가 아니라 `io_inline.h:108·128·148` 의 `outb`·`outw`·`outl` 안 정적 변수(`lock; incl` 더미 피연산자) | dma.i 14435 행 등, io_inline.h grep | ✅ |
-| known 범위는 이 후보 주변에 충분(원본 `__common` 은 0x1e8750 부터라 무관) | known 13 구간 | ✅ |
-| 36.1 수치(4/4·4/16·16/16·4/4·4/12, 425 = 296 + 123 + 6, 밖 차이 0)·경계 | 70 절 Python 출력 | ✅ |
-| **문구: 36.1 의 OBJECT_MATCH 조건은 이 객체에서 문자 그대로 성립하지 않음**(O3c 에 `__bss` 남음) — common 참조 검증이 옮겨지고 남은 `__bss` 는 46 절 P 규칙으로 | 36.1(:1269) 열람 | ✅ 기록 문구를 "common 참조는 변형에서 검증, `__bss` 는 reference-inferred" 로 |
-| P + high 7 / medium 15 | README:20–24 | ✅ |
-
-### 70.2 결과 (2026-10-02) — `dma.c` 등급 P(원문 그대로)
-
-- 07_kernel: `dma.c` + `.i` 로 확정한 `bsd/i386/param.h`·`machdep/i386/dma.h`·`dma_inline.h`·`dma_internal.h` 원문. 빌드 `s5p45-build-1`: 예측대로 O3 `2e601aad…`, O3c `412a0bde…`, 두 `.i` 동일. 최종 객체 zerofill reference-inferred → **P**.
-- 기록: objects_partial +1(6 객체), functions.tsv +22(high 7, medium 15), PROVENANCE +5, 증거 `x86-dma.md`.
-
-## 71. S5-P45 세부 계획 — `l1_compare.py` 의 크기 0 섹션 처리 수정 (코딩 전, 2026-10-02)
-
-먼저 조사하고 보류한 것(실행 없음, 원본 역어셈블만): `pc_support/PCexception.c` — 원본 `_PCexception`(369 B, 빌드 348 B)은 `vm_fault` 호출 앞뒤로 이름 없는 전역 0x1e875c 가 가리키는 구조체의 바이트 필드 +0x68 을 저장·0 으로·복원([0x1a1400, 0x1a144e)). 같은 전역·필드를 원본 `_suser`([0x10833c, 0x108345))도 씀 → BSD 쪽 구조체(S4-C) 결정 없이는 이름을 정할 수 없음. 보류.
-
-문제(67.1 에서 기록): `l1_compare.py:66–70` `sect_of` 가 `s['addr'] <= addr < s['addr'] + max(s['size'], 1)` 로 크기 0 섹션을 1 바이트로 취급 → 크기 0 섹션이 다음 섹션과 같은 주소를 가지면(machine.o: 크기 0 `__data` 와 `__common` 이 둘 다 0x17c 에서 시작) scattered 참조가 빈 섹션으로 잘못 분류되어 그 섹션이 추정 배치되고 파일 기반 검사가 `fail` → 함수가 DIFF 로 표시됨(판정에 쓴 O3c 에는 영향 없었음). `zerofill_check.py:40–45` 의 `sect_of` 는 이미 `s['size'] and …` 로 크기 0 섹션을 건너뜀.
-
-설계:
-1. `l1_compare.py` `sect_of` 를 `if s['size'] and s['addr'] <= addr < s['addr'] + s['size']` 로(크기 > 0 섹션의 동작은 같음). 주석에 이유.
-2. 시험: (a) 기존 자체 시험 `test_l1_compare.py 08_build/runs/s1b-t1-kernel-4/out` 14/14 그대로(수정 전 기준 14/14 확인함); (b) **차등 회귀** — `09_validation/reconstruction/*-l1-*.json` 의 `object` 경로로 아직 존재하는 모든 목적 파일에 대해, 같은 입력(`placements_from_image`, ranges 없음)으로 수정 전·후 `compare()` 결과 전체를 비교. 예측: 차이는 크기 0 섹션이 다른 섹션과 주소를 공유하는 객체에서만, machine O3(`s5p42-build-1`)은 `_cpu_up`·`_cpu_down` 이 DIFF → MATCH_UNVERIFIED 로 바뀌고 객체 판정은 NOT_MATCH 유지(`__common` 모호); 확정·부분 객체의 판정 근거(O3c 등)는 바뀌지 않음. 하나라도 예측 밖이면 되돌리고 조사.
-3. 기록: 도구 수정 이력(계획·증거), 자체 시험 결과 `09_validation/reconstruction/l1-selftest-20261002.json`, 차등 결과 `09_validation/reconstruction/l1-sectof-diff-20261002.json`.
-
-### 71.1 codex 교차검토(QP46) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 크기 > 0 섹션의 소속 조건은 같지만, 앞의 빈 섹션에 가려졌던 조회 결과는 바뀌고, 맨 끝 빈 섹션은 index → `None`; 호출부(:130 literal → `differs`, :182·:193 → 미검증, :222 → 건너뜀)는 `None` 을 처리 | l1_compare.py 120–135·178–200·216–230 열람(`if A is None …` 분기 존재) | ✅ "차이는 주소를 공유할 때만" 문구를 "빈 섹션이 조회에 걸리는 경우에만(공유 주소 또는 맨 끝)" 으로 고침 |
-| 전체 자료(301 객체)에 빈 섹션 심볼·빈 섹션 대상 local 재배치·`None` 이 되는 scattered 대상 0 | 내 드라이런 차등: 301 중 차이 5, 오류 0 | ✅ |
-| `max(size,1)` 도입 이유 기록 없음(파일 미추적) | — | ⏭️ 기록만 |
-| machine.o: 빈 것은 `__data` 뿐(0x17c, 크기 0), `__common` 은 0x17c·0x40 | 67 절 섹션 목록 출력(`('__data', 0, 0)`, `('__common', 64, 0)`) | ✅ 문구 정정 |
-| 차등 301/5 재현(dbl_fault 진단 O2·O3·O4, machine O3 두 개), 모두 NOT_MATCH 유지; machine 미검증 참조 4 → 6 | 내 드라이런 출력 | ✅ |
-| `by_symbol=set(placements)` 를 넘길 것 | 내 스크립트 `bs=set(pl)` | ✅ 이미 그렇게 함 |
-| 빈 섹션 앞·끝 경우의 집중 시험 추가 | — | ✅ 합성 시험 `test_sect_of.py`(sect_of 단위: 빈 섹션 앞 공유 주소, 맨 끝 빈 섹션, 일반 경계) — 재배치 종류별 종단 시험은 이번 범위 밖으로 기록 |
-| PCexception 범위는 반열림 끝 0x1a144e, `_suser` 는 0x108345 | capstone 출력(0x1a144b 3 B 명령, 0x108341 4 B 명령) | ✅ 정정 |
-
-### 71.2 결과 (2026-10-02) — `sect_of` 수정 완료
-
-- `10_tools/reconstruction/l1_compare.py` `sect_of`: 크기 0 섹션은 어떤 주소도 소유하지 않음(`if s['size'] and …`, 주석에 이유). 
-- 시험: 단위 `test_sect_of.py` 7/7(빈 섹션 앞 공유 주소·맨 끝 빈 섹션·일반 경계), 자체 시험 `test_l1_compare.py` 14/14(`09_validation/reconstruction/l1-selftest-20261002.json`).
-- 차등 회귀 `check_sectof_diff.py`(옛 조건식 대 수정 도구, 같은 입력): 301 객체 중 차이 5 — `s5p18-pre-1` dbl_fault O2·O3·O4 의 `_dbf_init`, `s5p42-build-1`·`s5p42-probe-3` machine O3 의 `_cpu_up`·`_cpu_down` 이 DIFF → MATCH_UNVERIFIED, 객체 판정은 모두 NOT_MATCH 유지(`09_validation/reconstruction/l1-sectof-diff-20261002.json`). 예측과 같음. 확정·부분 객체의 판정 근거(dbl_fault·machine 은 common 변형의 OBJECT_MATCH)는 바뀌지 않음 → 표 수정 없음.
-- 남은 한계: 재배치 종류별(VANILLA·SECTDIFF/PAIR·literal) 종단 합성 시험은 만들지 않았음(자료 전체에 해당 사례 0 — 71.1).
-
-## 72. S5-P46 세부 계획 — 기록 정합성 점검, `07_kernel/README.md` 정정, 64 객체 최종 회귀 (코딩 전, 2026-10-02)
-
-점검(Python, 읽기만):
-- 07_kernel 파일 257 개 중 PROVENANCE 행이 없는 것은 `07_kernel/README.md` 뿐(프로젝트 문서; LICENSES·PROVENANCE·MODIFICATIONS 제외). PROVENANCE 244 행에 중복 대상·없는 파일 없음, "verbatim" 행의 SHA 가 실제 파일·Darwin 원문과 모두 같음.
-- "수정" PROVENANCE 행 중 MODIFICATIONS 에 없는 것으로 보인 `memmove.c` 는 MODIFICATIONS:18 의 memcpy.c·memmove.c 공동 행 — 점검 정규식이 첫 경로만 읽은 오탐.
-- 표 열 수: objects_confirmed 59 행·objects_partial 7 행·functions.tsv 487 행·config_options 21 행·PROVENANCE 245 행 모두 일정. 확정·부분 객체의 증거 파일 모두 존재, functions.tsv 의 VA 중복·없는 구현 경로 없음.
-- **`07_kernel/README.md:3` "아직 채택된 커널 구현은 없다" 는 사실과 다름**(확정 58·부분 6 객체가 채택됨).
-
-설계:
-1. `07_kernel/README.md:3` 을 현재 상태로 고침: 채택 기준(06_reconstruction 의 등급표)과 기록 위치(PROVENANCE·MODIFICATIONS)를 가리키는 문장. 숫자는 쓰지 않음(표가 기준).
-2. 최종 회귀: 현재 07_kernel 트리로 확정 58 + 부분 6 = 64 객체의 기준 명령(`s5p42-regress.cmd` 59 개 + machine `s5p42-build-1`·miniMonMachdep `s5p43-build-1`·PCemulateREAL/PROT `s5p44-build-1`·dma `s5p45-build-1` 의 O3)을 다시 빌드, 모든 SHA 가 기준과 같아야 함. 예측: 64/64 동일.
-3. 결과를 72.2 와 회귀 기준 파일에 기록.
-4. (보강) README 6–8 행의 예약 디렉터리(`src/common` 등)는 `.gitkeep` 만 있는 빈 구조로 실제로 존재함. 실제 채택 파일은 Darwin 경로를 유지한 `src/<Darwin kernel 경로>`·`components/architecture/…`·`generated/`(생성 헤더) 에 있다는 한 문장을 추가(8 행 "원래 파일 경로를 최대한 유지" 의 실제 적용).
-
-### 72.1 codex 교차검토(QP47) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| **`07_kernel/generated/README` 에 PROVENANCE 행 없음** — 내 점검은 이름이 `README` 로 끝나는 파일을 제외해 놓침 | 점검 스크립트의 제외 조건 `f.endswith('README')` 확인 | ✅ **내 점검 오류.** 두 README 는 프로젝트 문서(제3자 코드 아님)이므로 PROVENANCE 대상에서 제외하는 규칙을 `07_kernel/README.md` 에 명시 |
-| verbatim SHA 27 건·verbatim 파일 195(Darwin 194, Mach4 1)·수정/작성 33 행 모두 MODIFICATIONS 와 대응, 라이선스 파일·구현 경로·증거 경로 모두 존재 | 내 점검 출력(불일치 0, memmove 는 18 행 공동 행) | ✅ |
-| 열 수 59×11·7×12·487×15·21×6·245×7 | 내 점검 출력 | ✅ |
-| README:3 낡음, 예약 디렉터리 6 개는 `.gitkeep` 만 | 72 절 `ls -a` 출력 | ✅ |
-| 64 객체 ↔ 기준 64 출력 정확히 대응, 명령은 O3 46·O2 1·O4 6·O4+unroll 11 그대로 유지 | 내 대응표 Python(누락·중복·여분 0, 비 O3 기준 18 = O2 1 + O4 6 + U 11) | ✅ |
-
-### 72.2 결과 (2026-10-02) — 정합성 점검 완료, README 정정, 64 객체 최종 회귀 64/64
-
-- `07_kernel/README.md`: 낡은 "채택된 구현 없음" 문장을 등급표·함수표를 가리키는 문장으로 바꾸고, 실제 배치(`src/`·`components/architecture/`·`generated/`, 예약 디렉터리는 비어 있음)와 PROVENANCE 대상 제외 규칙(프로젝트 문서 `README.md`·`generated/README`, `PROVENANCE.tsv`·`MODIFICATIONS.md`·`LICENSES/`)을 적음(15 → 19 줄).
-- 최종 회귀 `s5p46-regress-1`: 현재 07_kernel 트리로 확정 58 + 부분 6 = 64 객체를 각자의 확정 명령(O3 46·O2 1·O4 6·O4+unroll 11)으로 다시 빌드 — 빌드 입력 소스 64 개 모두 07_kernel 에서, **64/64 SHA 가 기준과 동일**(`08_build/runs/tools/s5p46-regress-baseline.json`).
-- 점검 결과 그 밖의 불일치 없음(72 절·72.1).
-
-## 73. S5-P47 세부 계획 — D018(S4-C 안 B) 1 단계: 실기 헤더 확인·기록과 스테이징 루트 추가(선택 플래그) (코딩 전, 2026-10-02)
-
-사실(실기는 읽기만, gcds; 계산 Python):
-- 실기 `/NextDeveloper/Headers` 일반 파일 704 개의 SHA-256(실기 krsha256, `08_build/runs/tools/s4c-target-headers-sha.txt`) 대 로컬 사본 `01_resources/local_mirrors/headers/NextDeveloper/Headers`(→ `../ref/openstep/headers`): 699 동일, 5 다름(전부 미리 컴파일된 `.p`: `bsd/libc.p`·`ansi/ansi.p`·`mach/mach.p`·`mach/cthreads.p`·`objc/Object.p`), 실기에만 0, 사본에만 3(AppKit). 심볼릭 링크 2 개(`X11`, `objc/hashtable.h`) 동일. 커널 관련 bsd 335 중 334·ansi 53 중 52·architecture 37/37·mach 98 중 96·kernserv 33/33 동일(다른 것은 `.p` 뿐).
-- 실기 `cc`(cc-744.13, gcc 2.7.2.1) 기본 `<…>` 검색: `System.framework/PrivateHeaders`(없음), `System.framework/Headers`, `…/Headers/ansi`, `…/Headers/bsd`, `/NextDeveloper/Headers`, `/NextDeveloper/Headers/ansi`, `/NextDeveloper/Headers/bsd`, `/LocalDeveloper/Headers`, `/usr/include`. `System.framework/Versions/A/Headers` 는 `/NextDeveloper/Headers` 의 ansi·architecture·bsd·mach·mach-o·machkit·objc·remote·streams 를 가리키는 링크 모음. `<machine/limits.h>` → `ansi/machine/limits.h` → `architecture/ARCH_INCLUDE.h` → `ansi/i386/limits.h`.
-- Darwin `conf/Makefile.template:86–92`: 소스 루트 뒤에 `System.framework/{PrivateHeaders,Headers,Headers/bsd}` — `-nostdinc` 없이 쓰므로 cc 기본 목록(위)이 뒤에 붙음 → 실효 순서 소스 루트 → `Headers` → `Headers/bsd` → `Headers/ansi`.
-- Darwin `architecture/`(architecture-1 tar, 지금 `components/architecture` 루트)와 NeXT `Headers/architecture` 는 공통 20 개가 모두 바이트가 다름; Darwin 에만 `i386/ansi.h`·`i386/limits.h` 등, NeXT 에만 `ARCH_INCLUDE.h` 등. 확정 객체 빌드는 Darwin 판(`byte_order.h`·`i386/{ansi,byte_order,cpu,desc,fpu,frame,io,sel,table,tss}.h`)을 쓰며 바이트로 검증됨.
-
-설계:
-1. 기록: `09_validation/reconstruction/s4c-nextdev-headers-20261002.json` — 실기 704 파일 SHA·사본 대조 결과·검색 경로 사실(위). 사본은 "불변 스냅샷 아님"(SOURCES.md:39–41)이므로 이 JSON 이 이후 채택의 고정 기준.
-2. `stage_headers.py` 에 선택 플래그 `--nextdev`: 기존 루트 **뒤에** `<사본>/Headers`, `Headers/bsd`, `Headers/ansi` 를 이 순서로 추가(논리 경로 `nextdev/…`, `--prefer-07` 이면 `07_kernel/nextdev/…` 먼저). Darwin 루트가 앞이므로 Darwin 에 있는 이름은 그대로 Darwin 판 — D018 의 "Darwin 소스 트리에 없는 시스템 헤더" 와 일치. 플래그 없으면 동작 그대로. 빌드 명령에는 `-Isrc/nextdev -Isrc/nextdev/bsd -Isrc/nextdev/ansi` 를 기존 `-I` 목록 끝에 추가(이번 회차는 스테이징 탐침에서만).
-3. 검증: (a) 플래그 없는 스테이징 결과가 수정 전과 manifest 동일(확정 소스 하나 이상으로); (b) `--nextdev` 로 40 절에서 막힌 `vm/vm_synchronize.c` 를 스테이징·진단 빌드(탐침, 07 변경 없음) — 컴파일 여부와 `.i` 에서 nextdev 쪽에서 온 헤더 목록 기록. 예측: `machine/limits.h` 는 `nextdev/ansi/machine/limits.h` → `nextdev/architecture/ARCH_INCLUDE.h`·`nextdev/ansi/i386/limits.h` 로 해결; 다른 새 미해결이 나올 수 있음.
-
-### 73.1 codex 교차검토(QR1) 판정 → 설계 수정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 사본 대조 699/5/0/3(SHA·크기), 디렉터리별 표, 다른 5 개는 `.p` | 73 절 Python 출력과 같음 | ✅ |
-| 실기 쪽 심볼릭 링크 동일성은 일반 파일 목록으로는 입증 안 됨 | 실기 `find … -type l | xargs ls -l` 출력(2 개, 대상 같음)을 따로 받음 | ⚖️ 이미 확인 — JSON 에 함께 기록 |
-| NeXT 루트를 기존 루트 뒤에 두는 것은 D018 과 일치(이름이 아니라 "요청 경로로 앞 루트에서 해석 안 되는 것") | — | ✅ |
-| `components/architecture` 루트의 `i386/ansi.h`·`i386/limits.h` 는 Darwin 설치 시 `Headers/bsd/i386/` 로 감(architecture/Makefile:4–8·50–56) | Makefile 1–10·48–58 열람(`ANSI_DSTDIR=…/Headers/bsd`, `ANSI_HDRS = ansi.h limits.h`) | ✅ 기록 |
-| **차단: 스캐너는 문자 그대로의 include 만 따라감 — NeXT `ansi/machine/limits.h:11` `#include ARCH_INCLUDE(ansi/, limits.h)` 의 대상(`ansi/i386/limits.h`)이 스테이징되지 않음** | limits.h 1–15 열람, `ARCH_INCLUDE.h`: `#define ARCH_INCLUDE(prefix, suffix) #prefix __TARGET_ARCHITECTURE__ "/" #suffix`; NeXT 헤더 41 개가 이 형식 사용 | ✅ **설계 추가** |
-| 기본 동작은 선택 플래그면 바이트 동일 유지 가능(현재 회귀 manifest 64 소스·268 파일·미해결 12 재현) | — | ✅ 수정 후 실제로 비교 |
-| 매핑은 `Headers` 기준 하나로(`Headers/bsd`+`sys/x` 와 `Headers`+`bsd/sys/x` → `nextdev/bsd/sys/x`) 중복 제거 | — | ✅ |
-| 아키텍처 20 개: 13 개는 주석만 다름, `byte_order.h`·`alignment.h` 는 선택 방식이 다름(Darwin `#if __i386__`, NeXT `ARCH_INCLUDE`) | 내 Python(주석 제거 후 13 동일)·`byte_order.h` diff | ✅ Darwin 우선 유지 |
-| **해시 강제**: 사본은 불변이 아니므로 JSON 기준과 다른·목록에 없는 파일은 거부, manifest 에 실기 경로·SHA·D017 상태 | SOURCES.md:39–41 | ✅ 설계 추가 |
-
-**내가 추가로 찾은 위험**: 우리 빌드는 `-traditional-cpp`. 전통 모드 전처리기는 `#prefix` 문자열화를 하지 않으므로 `ARCH_INCLUDE` 가 실기에서도 이 플래그로는 동작하지 않을 수 있음 → 탐침에서 먼저 확인.
-
-수정 설계:
-1. 기록 JSON(실기 704 파일 SHA·크기, 링크 2 개, 사본 대조, 검색 경로 사실).
-2. `stage_headers.py --nextdev`: (a) 루트를 기존 뒤에 `Headers`·`Headers/bsd`·`Headers/ansi` 순으로 추가, 논리 경로는 모두 `Headers` 기준 `nextdev/…`(`--prefer-07` 이면 `07_kernel/nextdev/…` 먼저); (b) 스캐너가 `#include/#import ARCH_INCLUDE(p, s)` 를 i386 대상으로 `p` + `i386/` + `s` 로 해석(우리 빌드는 `-arch i386` 고정 — 명시); (c) nextdev 파일은 JSON 의 SHA 와 같아야 스테이징(다르거나 없으면 오류), manifest 행에 실기 경로 `/NextDeveloper/Headers/…`·SHA·"license TBD (D017)". 플래그 없으면 동작·출력 그대로.
-3. 검증: 플래그 없는 스테이징이 수정 전과 manifest 바이트 동일(s5p46 회귀 소스 64 개로); `--nextdev` 로 `vm/vm_synchronize.c` 스테이징 → 실기 진단 빌드(07 변경 없음), `-traditional-cpp` 에서 `ARCH_INCLUDE` 동작 여부와 `.i` 의 nextdev 출처 헤더 목록 기록.
-- 탐침(실기 `/tmp` 에 시험 파일만): `-traditional-cpp -nostdinc -I/NextDeveloper/Headers{,/bsd,/ansi}` 로 `<machine/limits.h>` 전처리 → `ansi/machine/limits.h` → `architecture/ARCH_INCLUDE.h` → `ansi/i386/limits.h` 까지 정상 — NeXT cpp 는 전통 모드에서도 `ARCH_INCLUDE` 를 처리(내가 걱정한 위험 없음).
-
-### 73.2 결과 (2026-10-02) — 실기 헤더 기준 고정, `stage_headers.py --nextdev`, 첫 시험 OBJECT_MATCH
-
-- 기록: `09_validation/reconstruction/s4c-nextdev-headers-20261002.json`(실기 704 파일 SHA·크기, 링크 2, 사본 대조 699/5(`.p`)/3(AppKit), cc 기본 검색 경로, `System.framework/Headers` 링크 구성, license TBD(D017)).
-- `10_tools/reconstruction/stage_headers.py`: `--nextdev` 추가 — 루트 `Headers`·`Headers/bsd`·`Headers/ansi` 를 기존 루트 뒤에, 논리 경로 `nextdev/…`(07 우선은 `07_kernel/nextdev/…`), `ARCH_INCLUDE(p, s)` → `p` + `i386/` + `s`(플래그 있을 때만), nextdev 파일은 JSON 의 실기 SHA 와 다르면 오류, manifest 행에 실기 경로·SHA·"license TBD (D017)". **플래그 없는 동작은 그대로**: 회귀 소스 64 개 스테이징이 수정 전 `s5p46-regress-stage-1` 과 manifest·파일 트리 모두 바이트 동일.
-- 탐침 `s5p47-probe-1`(07 변경 없음): Darwin `vm/vm_synchronize.c` 원문 + `--nextdev` 스테이징(nextdev 8 파일 모두 실기 SHA 일치), 빌드 명령 `-I` 끝에 `-Isrc/nextdev -Isrc/nextdev/bsd -Isrc/nextdev/ansi`. 컴파일 성공, `.i` 의 nextdev 출처 = `ansi/machine/limits.h`·`architecture/ARCH_INCLUDE.h`·`ansi/i386/limits.h`, 두 `.i` 동일, O3 = O3c = O2 `a97565b4…`, **L1 OBJECT_MATCH 4/4**(원본 [0x17b9e0, 0x17bd28) 840 B). 채택(07_kernel/nextdev 사본·경계·기록)은 다음 회차.
-
-## 74. S5-P48 세부 계획 — `vm/vm_synchronize.c` 채택과 첫 NeXT 헤더 채택(D018) (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p47-*`; 73.2 탐침):
-- 원본 [0x17b9e0, 0x17bd28) 840 B, 함수 4(공개 `_vm_synchronize` 0x17b9e0, 정적 3 — 원본 심볼 없음, Ghidra `FUN_0017ba1c`·`FUN_0017bacc`·`FUN_0017bc50`), 데이터 섹션 없음. 앞 `00`×3(`ret` 0x17b9dc, vm_resident 쪽), 뒤 0 B(`ret` 0x17bd27, `_useracc` 0x17bd28). objects.tsv 의 끝 0x17ba1b 는 이름 있는 함수만의 하한.
-- 탐침: Darwin 원문 + `--nextdev`, O3 = O3c = O2 `a97565b4…`, OBJECT_MATCH 4/4, 두 `.i` 동일.
-- `.i` 표지 중 07 에 없는 것: 대상 소스, NeXT 헤더 3(`ansi/machine/limits.h`, `architecture/ARCH_INCLUDE.h`, `ansi/i386/limits.h` — 고지는 `ansi/i386/limits.h:1` "Copyright (c) 1992 NeXT Computer, Inc." 뿐), Darwin BSD 헤더 9(`bsd/machine/{param,signal}.h`, `bsd/sys/{param,resource,signal,syslimits,time,ucred,uio}.h`).
-
-설계:
-1. `07_kernel/src/vm/vm_synchronize.c`·Darwin BSD 헤더 9 개 = Darwin 원문(PROVENANCE "none (verbatim)", 고지 기록).
-2. `07_kernel/nextdev/{ansi/machine/limits.h, architecture/ARCH_INCLUDE.h, ansi/i386/limits.h}` = 사본 그대로이되 **실기 SHA 와 같음을 다시 확인**. PROVENANCE: source_id `nextdev-os42`, revision "OPENSTEP 4.2 real machine /NextDeveloper/Headers (09_validation/reconstruction/s4c-nextdev-headers-20261002.json)", 원 경로 `/NextDeveloper/Headers/…`, 라이선스 칸 "license TBD (D017); NeXT notice in file"(있는 경우), changes "none (verbatim; file SHA-256 …)".
-3. 07 빌드: `stage_headers.py --prefer-07 --nextdev`(nextdev 3 파일이 `07_kernel/nextdev` 에서 오는지 manifest 로 확인), 명령은 기존 `-I` 끝에 `-Isrc/nextdev -Isrc/nextdev/bsd -Isrc/nextdev/ansi`. 예측: 탐침과 같은 SHA `a97565b4…`. objects_confirmed(A)·functions.tsv 4 행(정적 3 명기)·증거.
-4. 다른 객체 회귀 불필요(기존 헤더 변경 없음, 새 파일은 `--nextdev` 에서만 쓰임) — 단 BSD 헤더 9 개를 07 로 들이면 플래그 없는 스테이징에서도 07 판이 우선되므로, 내용이 Darwin 원문과 같음(SHA)으로 영향 없음을 확인.
-
-### 74.1 codex 교차검토(QR2) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 탐침: 원문 SHA `e360165a…`, nextdev 8 파일 실기 SHA 일치, L1 OBJECT_MATCH 4/4(정적 이름 `_map_push_range`·`_vm_pageout_page`·`_object_push`), 840 B, O2=O3=O3c | 73.2 출력 | ✅ |
-| **범위 JSON 키가 Ghidra `FUN_*` 라 정적 함수의 경계 검사가 조용히 건너뜀**(`l1_compare.py:363` `if nm in ranges`); 객체 심볼 이름으로 바꾸면 4/4 그대로 | l1_compare.py 355–372 열람 | ✅ 채택 증거는 객체 심볼 이름으로 바꾼 범위로. **앞선 확정 중 정적 함수가 있는 객체(mach_debug·miniMonMachdep·PCemulateREAL/PROT·vm_synchronize 탐침 등)도 정적 함수 경계 검사는 하지 않았음** — `__text` 전체 바이트·참조 비교는 했으므로 판정은 유지, 한계로 기록 |
-| 경계 `c3 00 00 00`/`c3`·`_useracc` | 74 절 출력 | ✅ |
-| `.i` 의 07 미채택 = 소스 + nextdev 3 + BSD 9, 고지(Darwin 전부 APSL, `sys/*` 7 개 UC, 일부 NeXT; nextdev 는 `ansi/i386/limits.h` 만 1992 NeXT) | 74 절 Python 출력 | ✅ 고지 없음도 명기 |
-| 회귀 64 소스는 새 BSD 헤더를 읽지 않음 | 내 Python(교집합 []) | ✅ |
-| "새 파일은 `--nextdev` 에서만" 은 nextdev 에만 해당 — BSD 헤더는 `--prefer-07` 로 늘 우선(내용 동일하므로 무해) | stage_headers.py:76 `select` | ✅ 문구 정정 |
-| **07_kernel 사본에는 실기 SHA 검사가 적용 안 됨**(:183 조건) | stage_headers.py 178–190 열람 | ✅ 수정: 07 사본이 실기 SHA 와 다르면 manifest 에 "differs from real machine" 표시(사본에서 온 파일은 지금처럼 오류), 이번 채택은 3 파일 SHA 를 별도로 확인 |
-| README 디렉터리 목록에 `nextdev/` 추가 | README:10 | ✅ |
-
-### 74.2 결과 (2026-10-02) — `vm_synchronize.c` 확정(A), 첫 NeXT 헤더 채택
-
-- `stage_headers.py`: 07_kernel 쪽 nextdev 사본이 실기 SHA 와 다르면 manifest 에 "differs from the real machine" 표시(사본에서 온 파일은 오류 유지).
-- 07_kernel: `src/vm/vm_synchronize.c`·Darwin BSD 헤더 9 개(원문), `nextdev/ansi/machine/limits.h`·`nextdev/architecture/ARCH_INCLUDE.h`·`nextdev/ansi/i386/limits.h`(실기 SHA 와 같음 확인, license TBD D017). README 에 `nextdev/` 추가.
-- 빌드 `s5p47-build-1`(`--prefer-07 --nextdev`, nextdev 3 파일이 07_kernel 에서): 예측대로 세 변형 `a97565b4…`, 두 `.i` 동일, 객체 심볼 이름 범위로 L1 OBJECT_MATCH 4/4(정적 경계 포함), 경계 `00`×3/0 → **A**.
-- 기록: objects_confirmed +1(59 객체), functions.tsv +4, PROVENANCE +13(258 행; `nextdev-os42` 3 행), 증거 `x86-vm_synchronize.md`. 처리 중 실수: PROVENANCE 고지 검출이 "NeXT, Inc." 형식을 놓쳐 vm_synchronize.c 행을 고침.
-
-## 75. S5-P49 세부 계획 — `kern/timer.c`(A)·`machdep/i386/vm_machdep.c`(P) 를 Darwin 판 그대로 채택(`--nextdev`) (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p48-*`; 일괄 진단 `s5p48-pre-1` = `machine/limits.h` 로 막혔던 Darwin 13 파일, `--nextdev`):
-- 컴파일 10, 실패 3(unix_signal·pcb: `pc_support.h`/`fp_emul.h` 없음; mapfs: `mach_nbc.h` 없음). L1: **timer OBJECT_MATCH 6/6**, **syscall_subr OBJECT_MATCH 9/9**(1028 B), **vm_machdep 2/2 MATCH + `__TEXT,__const` 4 B 미배치**; ns_timer·miniMon·kdp_udp·kdp_machdep·unix_startup 은 크기 다름(배치 실패), ux_exception·ast 는 바이트 차이.
-- syscall_subr 보류: 원본 구간에 NeXTMach `kern/syscall_subr.c` 의 `map_fd`(원본 [0x165784, 0x165949), 49.1)가 이어지고, 이 함수는 `struct file`·`vnode`·`getf` 등 BSD 구조체에 의존 — BSD 쪽 정리 후.
-- timer: `__text` [0x16a198, 0x16a35e) 454 B, 함수 6(`_init_timers`·`_timer_init`·`_timer_normalize`·`_timer_read`·`_thread_read_times`·`_timer_delta`, 모두 원본 심볼), `-fno-common` 판 `__common` 20 B 는 원본 심볼로 배치(placement-only), `__data` 크기 0. 앞 `00 00`(확정 time_stamp 끝 0x16a196), 뒤 `00 00`(0x16a360 부터 이름 없는 코드, 다음 심볼 `_zinit` 0x16a490).
-- vm_machdep: `__text` [0x193e58, 0x193f31) 217 B, 함수 2(`_pagemove`·`_kernacc`), `__data` 9 B 0x1e294a(추정·L1d 일치), `__TEXT,__const` 4 B `18 00 20 00` — 재배치 0(ltr/lldt 선택자, PCresume·intr 과 같은 기제). 앞 `00 00`(`ret` 0x193e55, `_startup` 쪽; 0x193e56→0x193e58 최소 채움 2), 뒤 `00`×3(`_probeNativeDevices` 0x193f34).
-
-설계: 두 소스 Darwin 원문 그대로 07 에 복사, `.i` 표지로 07 에 없는 헤더 원문 채택(nextdev 쪽은 실기 SHA 확인 후 `07_kernel/nextdev`). 07 빌드(`--prefer-07 --nextdev`, O3·O3c·O2·두 `.i`) 예측: O3 = 진단 SHA(`s5p48-pre-1`). timer 는 common 변형으로 36.1 확인(common 1 개 이상이면), 등급 A. vm_machdep 는 등급 **P**(`__TEXT,__const 4 B unreferenced`). 함수 L1 은 객체 심볼 이름 키 범위로.
-
-### 75.1 codex 교차검토(QR3) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 입력 원문 SHA·nextdev 9 파일 실기 SHA 일치, 객체 SHA = output.manifest | 진단 스테이징 `--nextdev`(사본 파일은 불일치 시 오류) | ✅ |
-| timer OBJECT_MATCH 6/6·454 B; vm_machdep 2/2, `__data` 9 B(`"pagemove"`)는 참조 1 개(0x193e6d)로 추정·L1d 일치, `__const` 는 들어오는 재배치 0 | 75 절 출력(`refs to const 0`, 섹션 표) | ✅ `__data` 단일 참조 배치를 증거에 명기 |
-| 경계 두 객체 모두 성립; 0x16a360 의 이름 없는 함수는 zalloc 의 정적 `zone_free_space_lookup` 으로 보임(원본 0x16ae29 의 호출) | 75 절 바이트 출력 | ✅ 귀속은 "추정" 으로 기록 |
-| **timer 의 common 2 개(`_current_timer` 4 B, `_kernel_timer` 16 B)는 심볼 배치라도 36.1 절차(변형 OBJECT_MATCH·전처리 동일·재배치 대응·크기 상한)를 생략하지 않음**(계획 1273–1275, host 선례) | 1273–1275 열람 | ✅ 07 빌드에서 수행 |
-| vm_machdep P 는 선례·README:24 와 일치 | — | ✅ |
-
-### 75.2 결과 (2026-10-02) — `timer.c` 확정(A), `vm_machdep.c` 등급 P
-
-- 07_kernel: `kern/timer.c`·`machdep/i386/vm_machdep.c` 원문 + `.i` 로 확정한 Darwin BSD 헤더 6(`bsd/machine/cpu.h`·`bsd/sys/{kernel,buf,queue,vm,vmmeter}.h`). nextdev 쪽은 74 에서 채택한 3 파일 그대로.
-- 빌드 `s5p48-build-1`(`--prefer-07 --nextdev`): 예측대로 timer O3 = O2 = `ae4e93ed…`, O3c `2561c773…`, vm_machdep 세 변형 `760ab32f…`, 두 `.i` 각각 동일. timer O3·O3c OBJECT_MATCH 6/6, 36.1(common 2, 재배치 3 대응, 밖 바이트 동일) → **A**; vm_machdep 2/2 MATCH + `__const` 4 B 참조 없음 → **P**.
-- 기록: objects_confirmed +1(60 객체), objects_partial +1(7), functions.tsv +8(high), PROVENANCE +8, 증거 2.
-
-## 76. S5-P50 세부 계획 — 옵션 `PC_SUPPORT`·`FP_EMUL`·`MACH_NBC` 추가, 67 객체 회귀, `machdep/i386/catch.c` 채택 (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p49-*`; 탐침은 스테이징에만 옵션 헤더):
-- `pc_support.h`·`fp_emul.h`·`mach_nbc.h` 는 파일이 아니라 config 옵션 헤더(`conf/files.i386:5–6` `OPTIONS/fp_emul`·`OPTIONS/pc_support`, `conf/MASTER:131` `MACH_NBC <nbc>`). `MASTER.i386:90–91`: `FP_EMUL <fp>`, `PC_SUPPORT <pc>`; RELEASE 태그(`MASTER.i386:72`)에 `pc`·`nbc` 있고 `fp` 없음. 원본 심볼표에 `fp_emul/*.s` 의 전역(`_e80387` 등 20 개 검사) 없음, PC 지원 심볼(`_PCcreate` 0x1a0e48·`_PCexception`·`_PCresume` 등) 있음 — 76.1 에서 정정(`_PCinit` 은 없음).
-- 탐침 `s5p49-pre-1`(PC_SUPPORT 1·FP_EMUL 0·MACH_NBC 1, `--nextdev`): unix_signal·pcb·mapfs·catch·fp_support 모두 컴파일. **catch OBJECT_MATCH 2/2**(300 B); fp_support 3 MATCH + 7 MATCH_UNVERIFIED(`__TEXT,__const`·`__DATA,__bss` 미검증 — 다음 회차 후보); unix_signal(1416 대 1452)·pcb(6753 대 6760)·mapfs 는 크기 다름.
-- catch.c: `#if PC_SUPPORT` 분기(:40–42, :52–54, :65–67)가 `threadPCInterrupt`/`threadPCException` 인라인을 넣어 미정의 참조 `_PCcallMonitor`·`_PCexception` 이 생기고, 이것이 원본 참조와 일치(L1 참조 차이 0) → **PC_SUPPORT=1 의 바이트 근거**. 원본 [0x186fdc, 0x187108): 앞 `00` 1 B(`ret` 0x186fda), 뒤 0 B(`__bios32` 0x187108). 데이터 섹션 없음.
-
-설계:
-1. `config_options.tsv` 3 행: `pc_support` PC_SUPPORT 1 **confirmed**(catch.c), `fp_emul` FP_EMUL 0 hypothesis(fp_emul 전역 부재, RELEASE 에 fp 없음; fp_support 판정 때 바이트 확인), `mach_nbc` MACH_NBC 1 hypothesis(RELEASE nbc). `gen_config_headers.py` 로 생성·`--check`.
-2. 회귀: `meta_features.h` 변경 → 확정 60 + 부분 7 = 67 객체를 각 확정 명령으로 다시 빌드(기준 `s5p46-regress-baseline.json` 64 + vm_synchronize `s5p47-build-1`·timer·vm_machdep `s5p48-build-1` O3), 스테이징은 `--nextdev` 하나로(기존 64 명령에는 nextdev `-I` 가 없으므로 영향 없음), 예측 67/67.
-3. `07_kernel/src/machdep/i386/catch.c` = Darwin 원문, `.i` 로 07 에 없는 헤더 원문 채택. 07 빌드 예측: O3 = 탐침 `23bd2de7…`. objects_confirmed(A), functions.tsv 2, PROVENANCE, 증거.
-
-### 76.1 codex 교차검토(QR4) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| **`_PCinit` 은 원본에 없음** — PCinit.c 의 함수는 `_PCcreate` | `grep -cP '\t_PCinit\t'` = 0, `_PCcreate` 0x1a0e48 | ✅ **내 오류** — 76 절 정정 |
-| 옵션 근거(MASTER.i386:72·90–91, MASTER:131, files.i386:5–6, 추가로 `conf/files:54` `OPTIONS/mach_nbc`), fp_emul 전역 140 개 중 원본 일치 0 | files:54 열람, 내 검사(20 개 검사, 0) | ✅ |
-| catch.c OBJECT_MATCH 2/2(300 B, 참조 8, 차이 0, 데이터 없음); `PC_SUPPORT=0` 이면 `PCexception`/`PCcallMonitor` 참조가 사라져 이 바이트를 낼 수 없음 → confirmed 타당(0 판 빌드는 안 함) | catch.c 36–80 열람, 탐침 미정의 심볼에 두 이름 | ✅ |
-| 67 등록 소스와 그 닫힘(304 파일)에 세 매크로·헤더 이름 없음 → 기존 객체 코드 불변 예상; fp_support.c 는 등록 밖 | — | ✅ 회귀로 확인 |
-| catch 경계(앞 1·뒤 0) | 76 절 출력 | ✅ |
-| 회귀 기준 67 개 완비(목록), 기존 64 명령에 nextdev `-I` 없음, `--prefer-07 --nextdev` 스테이징 | 내 기준 구성과 같음 | ✅ |
-
-### 76.2 결과 (2026-10-02) — 옵션 3 개 추가, 회귀 67/67, `catch.c` 확정(A)
-
-- `config_options.tsv` 21→24 행(`pc_support` 1 confirmed, `fp_emul` 0·`mach_nbc` 1 hypothesis), 생성·`--check` 통과.
-- 회귀 `s5p49-regress-1`(`--prefer-07 --nextdev` 스테이징, 각 확정 명령): **67/67 동일**.
-- 07_kernel `machdep/i386/catch.c` 원문(07 에 없는 `.i` 헤더 없음). 빌드 `s5p49-build-1`: 예측대로 세 변형 `23bd2de7…`, 두 `.i` 동일, OBJECT_MATCH 2/2, 경계 1/0 → **A**.
-- 기록: objects_confirmed +1(61 객체), functions.tsv +2, PROVENANCE +4(생성 헤더 3 포함), 증거 `x86-catch.md`.
-
-## 77. S5-P51 세부 계획 — `machdep/i386/fp_support.c` 채택(등급 P)과 `FP_EMUL=0` 확정 (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p50-*`; 탐침은 Darwin 원문을 07 의 생성 헤더·`--nextdev` 로 스테이징):
-- 탐침 1: O3 = O3c = O2 `d90a0d6c…`(= 76 절 진단 `s5p49-pre-1` 의 O3), 두 `.i` 동일. 섹션: `__text` 1522 B·재배치 43, `__TEXT,__const` 4 B `18 00 20 00`(들어오는 재배치 0 — ltr/lldt 선택자), `__DATA,__bss` 4 B(정적 `fp_thread`, :57).
-- 원본 `__text` [0x18a310, 0x18a902) — 공개 심볼로 Δ 하나(0x18a310), 함수 10(원본 심볼 7 + 원본에 이름 없는 정적 3 `fp_save`·`fp_switch`·`fp_unowned` — 77.1 정정; 범위는 객체 심볼 이름 키 10/10). L1(O3·O3c): 3 MATCH(`_fp_configure`·`_fp_noextension`·`_fp_ast`) + 7 MATCH_UNVERIFIED(모두 `__bss` 에만 의존), 객체 NOT_MATCH 사유는 `__const`·`__bss` 미검증뿐. 바이트·참조 차이 0.
-- `__bss`: `zerofill_check.py`(known `zerofill-known-s5p50-20261002.json` = s5p45 + dma [0x1e75ec, 0x1e75f8)) — 참조 9(모두 오프셋 0), Δ 0x1e7000 하나, 후보 [0x1e75f8, 0x1e75fc) 정렬·zero-fill 안·심볼 없음·겹침 없음, 음성 검사 검출 → **reference-inferred**.
-- 경계: 앞 `00`×3(확정 fault_copy 끝 0x18a30d), 뒤 `00 00`(`_locate_gdt` 0x18a904).
-- `FP_EMUL`: `#if FP_EMUL` 분기(:47, :120–122, :158–167, :354–360, :386–392, :438–444, :470–477)는 `FPU_EMUL` 대입·`e80387(state)` 호출·`map_data(...)` 를 넣음. 원본에 `_e80387` 없고 함수 바이트가 0 판과 일치 → **FP_EMUL=0 바이트 확정** 가능(1 판 빌드는 안 함).
-
-설계:
-1. `07_kernel/src/machdep/i386/fp_support.c` = Darwin 원문, `.i` 로 07 에 없는 헤더 원문 채택. 07 빌드 예측: 세 변형 `d90a0d6c…`. 최종 객체로 zerofill_check 재실행.
-2. 등급 **P**(`unverified_sections`: `__TEXT,__const 4 B unreferenced` + `__DATA,__bss 4 B reference-inferred at 0x1e75f8`), functions.tsv 10 행(3 high, 7 medium).
-3. `config_options.tsv` `fp_emul` 행 상태 hypothesis → **confirmed**(값 0 그대로 → 생성 헤더 내용 불변, `--check`; 회귀 불필요 — 생성 결과 바이트 동일 확인).
-
-### 77.1 codex 교차검토(QR5) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 탐침 원문·`.i` 동일·O2=O3=O3c | 77 절 출력 | ✅ |
-| L1 3 MATCH + 7 MATCH_UNVERIFIED(`__bss` 만), `__const` 들어오는 재배치 0, 범위 키 10/10 | 77 절 출력 | ✅ |
-| zero-fill 9 참조·Δ 하나·후보·음성 검사; known 은 겹침 검사용으로 적절(소유 증명 아님); dma 끝 = 후보 시작, text 에서도 dma 가 앞 — 일관 | 77 절 출력 | ✅ |
-| 경계 `00 00 00`/`00 00` | 77 절 출력 | ✅ |
-| **FP_EMUL=0 확정 타당**: :120(`FPU_EMUL` 대입)·:158(`e80387` 호출)이 들어가는 두 함수(`_fp_configure`·`_fp_ast` 쪽)가 **완전 MATCH** — BSS 의존 7 개와 무관; 심볼 부재만으로는 부족 | L1 함수 판정(`_fp_configure`·`_fp_ast` MATCH) | ✅ |
-| **"전부 원본 심볼" 은 틀림 — 원본 심볼 7, 원본에 없는 정적 3(`_fp_save`·`_fp_switch`·`_fp_unowned`)** | symbols.tsv grep(그 3 개 0 건) | ✅ **내 오류** — 77 절 정정 |
-
-### 77.2 결과 (2026-10-02) — `fp_support.c` 등급 P, `FP_EMUL=0` confirmed
-
-- 07_kernel: `machdep/i386/fp_support.c` 원문 + `.i` 로 확정한 헤더 6(`mach/{,i386/,machine/}exception.h`, `machdep/i386/{configure,fp_exported,fp_inline}.h`) 원문.
-- 빌드 `s5p50-build-1`: 예측대로 세 변형 `d90a0d6c…`, 두 `.i` 동일, 3 MATCH + 7 MATCH_UNVERIFIED(`__bss`), 최종 객체 zerofill reference-inferred → **P**.
-- `config_options.tsv` `fp_emul` hypothesis → confirmed(값 그대로, `--check` 통과 — 생성 헤더 불변, 회귀 불필요).
-- 기록: objects_partial +1(8 객체), functions.tsv +10(high 3·medium 7, 정적 3 명기), PROVENANCE +7, 증거 `x86-fp_support.md`.
-
-## 78. S5-P52 세부 계획 — 첫 BSD 쪽 일괄 진단과 `bsd/libkern/strtol.c` 채택 (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p51-*`; 일괄 진단 `s5p51-pre-1` = BSD 쪽 미확정 B 후보 49 중 작은 30 구간의 Darwin 원문 29 파일, `--nextdev`):
-- 컴파일 17, 실패 12 — 대부분 옵션 헤더 없음(`quota.h`·`cputypes.h`·`uxpr.h`·`bpfilter.h`·`rev_endian_fs.h`, `kern/kdebug.h` 가 찾는 `kdebug.h`), tcp_output 은 코드 오류.
-- L1: **strtol OBJECT_MATCH 2/2**; in_bootp·ip_mroute 는 빌드 `__text` 0 B(in_bootp 는 `#if NEXT`(:25)로 비고, ip_mroute 는 `#ifndef MROUTING`(:76) 판에 `__common` 4 B `_ip_mrtproto` 만 — 78.1 정정; 원본 seq 78 은 실행 코드, seq 92 는 스텁 3 개); 나머지는 크기 다름 또는 바이트·참조 차이(cmu_syscalls·kern_acct) — 후보 빌드가 원본과 다르다는 뜻이며, 판 차이 외에 설정·헤더 차이도 원인일 수 있음(78.1 정정).
-- strtol: 원본 [0x1beb58, 0x1bee8b) 819 B, `_strtol`·`_strtoul`(원본 심볼), 재배치·데이터 없음, O3 SHA(진단) `4392f8a9da471e71…`. 앞 `00 00`(`ret` 0x1beb55, `_audio_byteToMulaw` 쪽), 뒤 `00`(`_Event_server` 0x1bee8c). 고지: APSL, 1995 NeXT, UC Regents(1990, 1993).
-
-설계: `07_kernel/src/bsd/libkern/strtol.c` = Darwin 원문, `.i` 로 07 에 없는 헤더 원문 채택. 07 빌드(`--prefer-07 --nextdev`, 세 변형·두 `.i`) 예측: 진단 SHA. objects_confirmed(A)·functions.tsv 2·PROVENANCE·증거. 다른 실패 원인(옵션 헤더 `quota`·`cputypes`·`uxpr`·`bpfilter`·`rev_endian_fs`·`kdebug`)은 다음 회차 이후 옵션 근거 조사 대상으로 기록.
-
-### 78.1 codex 교차검토(QR6) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 17/12 맞음; 실패 원인에 `kernobjc.h`·`loop.h`·`xpr_debug.h`·`driverkit/{ddmPrivate,Device_ddm}.h` 추가, tcp_output 은 `DBG_*` 미정의 | 78 절 요약은 첫 오류만 출력 | ✅ 기록 보강 |
-| strtol OBJECT_MATCH 2/2, 819 B, 재배치 0, `__text` 만, SHA `4392f8a9…`, 원문 SHA 일치 | 78 절 출력 | ✅ |
-| **seq 344 상한 [0x1bee8c, 0x1c0918) 에는 `_Event_server`·`_audio_server` 등 다른 코드 — strtol 에 귀속하지 말 것** | 78 절 출력(다음 심볼 `_Event_server` 0x1bee8c) | ✅ 객체 범위는 [0x1beb58, 0x1bee8b) 만 |
-| strtol 의 헤더 사슬은 nextdev `objc/objc.h`·`objc/objc-api.h`·limits 3 개 | (07 빌드 `.i` 로 확정) | ⚖️ `.i` 로 확정한 것만 채택 |
-| UC 4 조항 고지 등 원 고지 보존이면 D017 상 별도 BSD 라이선스 파일 불필요 | DECISIONS:21 | ✅ |
-| **in_bootp 은 `#if NEXT`(:25, `NeXT` 아님) — 빌드는 `-DNeXT` 만** | in_bootp.c:25, run.sh 의 `-DNeXT` 29 회·`-DNEXT` 0; Darwin BSD 13 파일이 `#if NEXT`/`#ifdef NEXT` 사용, conf Makefile 에 정의 없음 | ✅ **열린 질문으로 기록**(BSD 쪽 `NEXT` 매크로 근거 조사 필요) |
-| ip_mroute 빈 판은 MROUTING 을 켰다는 증거가 아님(원본 seq 92 는 스텁) | — | ✅ |
-| "판이 다름" 은 과한 결론 | — | ✅ 문구 정정 |
-
-### 78.2 결과 (2026-10-02) — `strtol.c` 확정(A), 첫 BSD 쪽 객체
-
-- 07_kernel: `bsd/libkern/strtol.c` 원문 + `.i` 로 확정한 Darwin `bsd/include/{limits,stdlib,string}.h` 와 실기 `nextdev/objc/{objc,objc-api}.h`(실기 SHA 같음, license TBD).
-- 빌드 `s5p51-build-1`: 예측대로 세 변형 `4392f8a9…`, 두 `.i` 동일, OBJECT_MATCH 2/2, 경계 2/1 → **A**.
-- 기록: objects_confirmed +1(62 객체), functions.tsv +2, PROVENANCE +6(283 행), 증거 `x86-strtol.md`. 열린 질문: BSD 파일의 `#if NEXT`(빌드에는 `NeXT` 만 정의).
-
-## 79. S5-P53 세부 계획 — BSD 쪽 기준 판 조사: 구조체 비교 도구(NeXT SDK·NeXTMach·Darwin) (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p52-*`, 탐침은 스테이징만):
-- `#if NEXT`(대문자)를 쓰는 Darwin 파일 13 개(PCRE 전수: `bsd/kern/uipc_{socket,syscalls}.c`, `bsd/netat/*` 4, `bsd/netinet/{in_bootp,in_cksum,ip_input,ip_output,tcp_output,udp_usrreq}.c`, `machdep/i386/fp_emul/fp_e80387.h`) — 확정 객체 소스·07 헤더에는 없음. `NEXT` 를 정의하는 곳은 `driverkit-1/libDriver/Kernel/IOEthernet.m:51` 뿐, Darwin `conf/Makefile.template:104` 는 `-D__APPLE__ -DNeXT`. 원본에는 bootp 심볼 2 개와 in_bootp 객체(seq 78)가 있음 → 원본 빌드에서 그 블록이 켜져 있었을 것.
-- 탐침 `s5p52-probe-1`(in_bootp.c + `-DNEXT`): `struct ifnet` 에 `if_eflags` 없음 오류 — Darwin `bsd/net/if.h:163–168` 은 `#if __APPLE__` 에서만 `if_eflags`(우리 빌드는 `__APPLE__` 를 정의하지 않고 지금까지의 확정 객체도 그 없이 일치).
-- **실기 SDK `bsd/net/if.h` 의 `struct ifnet`(주석 제거 후 본문의 비어 있지 않은 줄 43 — 필드 수가 아님, 79.1 정정)은 NeXTMach `mk-108.1/net/if.h` 와 완전히 같고, Darwin 판(40 줄)과 다름** — `char *if_name`, `short if_unit`, `netbuf_t (*if_getbuf)()` 등 4.3BSD 식.
-
-설계(이번 회차는 도구와 기록, 07 변경 없음):
-1. 새 도구 `10_tools/reconstruction/struct_compare.py`: 헤더 세 판(실기 SDK `NextDeveloper/Headers/bsd/...`, NeXTMach `mk-108.1/...`, Darwin `kernel/bsd/...`)에서 지정 구조체 본문을 뽑아(주석·공백 정규화) 같음/다름과 필드 수를 JSON 으로 냄. 대상: BSD 쪽 핵심 구조체(`ifnet`·`ifaddr`·`mbuf`·`socket`·`sockbuf`·`proc`·`ucred`·`file`·`vnode`·`uio`·`timeval`·`rusage`·`user` 등 — 세 판에 같은 이름의 헤더가 있는 것만).
-2. 결과 `09_validation/reconstruction/s4c-bsd-struct-compare-20261002.json` 와 요약을 계획 79.2 에 기록 — 구조체마다 "SDK = NeXTMach" / "SDK = Darwin" / "셋 다 다름". 이는 BSD 각 하위 체계의 기준 판(Darwin 대 NeXTMach) 판단의 근거 자료이며, 판단 자체(사용자 결정 사항일 수 있음)는 하지 않는다.
-3. 도구 자체 검증: `ifnet` 결과가 위 수동 비교(SDK = NeXTMach, Darwin 다름)와 같아야 함.
-
-### 79.1 codex 교차검토(QR7) 판정 → 설계 보강
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `#if/#ifdef NEXT` 파일은 14(백업 `bsd/netat/h/localglue.h.pre0529` 포함), 제외하면 13 | `ls bsd/netat/h` 에 `.pre0529` 존재 | ✅ 문구에 필터 명시 |
-| `NEXT` 정의는 `IOEthernet.m:51` 뿐(그 번역 단위 한정), Darwin 은 `-D__APPLE__ -DNeXT` | 79 절 grep | ✅ |
-| 원본 bootp 근거는 `symbols.tsv:1229–1230`(`_in_bootp` 0x124154, `_in_bootp_bptombuf` 0x124590); NeXTMach `nextif/in_bootp.c` 는 바깥 `NEXT` 가드 없음 | — | ✅ 기록 |
-| **`__APPLE__` 미정의는 전역 검증이 아님** — 07 의 `bsd/i386/param.h:102–111` 이 `#ifdef __APPLE__` 로 `btodb/dbtob` 형태를 고름; vm_synchronize·timer 는 이 헤더를 포함하지만 매크로를 쓰지 않아 바이트로 가려지지 않음. 실기 SDK `bsd/sys/param.h:219–228` 은 `NeXT` 에서 두 인자 판(= Darwin `__APPLE__` 분기와 같은 꼴) | param.h 100–112, SDK param.h 219–228 열람 | ✅ **열린 질문 추가**: BSD 쪽에서 `__APPLE__` 분기 판정 필요(지금까지 확정 객체는 이 매크로를 쓰지 않음) |
-| `ifnet` 비교 맞음, 다만 "필드 43" 이 아니라 "본문 비어 있지 않은 줄 43"(지시문·대안 분기 포함) | — | ✅ 문구 정정 |
-| 도구: 중괄호 균형 추출, 중첩·typedef·여러 정의·조건부 멤버 처리, 원문 비교와 전처리 비교 구분, 입력 해시·정의 범위·정규화 방식 기록, 결과 분류(모두 같음 / S=N≠D / S=D≠N / N=D≠S / 모두 다름 / 없음·모호), 픽스처 시험 | — | ✅ 이번 판은 "원문(조건부 텍스트 포함) 비교" 모드만 구현하고 그 한계를 명시 |
-| 경로 대응표(13 구조체, 세 판의 경로:줄) | Python: 표의 모든 경로:줄에 `struct` 와 이름이 있음(불일치 0) | ✅ 도구 입력으로 사용 |
-| 원문 동일 ≠ ABI 동일 — 배치 판단에는 원본 바이트·컴파일러 ABI 필요 | — | ✅ 결과 해석에 명시 |
-
-### 79.2 결과 (2026-10-02) — BSD 구조체 13 개 비교: 실기 SDK 는 NeXTMach 계열
-
-- 도구 `10_tools/reconstruction/struct_compare.py`(원문·조건부 텍스트 비교: 주석·문자열 가림 후 중괄호 균형 추출, 주석 제거·공백 정규화, 전처리 줄 유지; 입력 SHA·정의 줄 범위 기록; 결과 6 분류 + 없음/모호), 픽스처 시험 `test_struct_compare.py` 9/9(일반·주석 안 중괄호·문자열 안 중괄호·중첩·typedef·전방 선언만·조건부 멤버·정의 둘·이름 접두).
-- 결과 `09_validation/reconstruction/s4c-bsd-struct-compare-20261002.json`: **S=N≠D 10**(`ifnet`·`ifaddr`·`mbuf`·`socket`·`sockbuf`·`ucred`·`file`·`vnode`·`uio`·`timeval`), all-equal 1(`rusage`), 모두 다름 2(`proc`·`user` — 단 SDK 대 NeXTMach 줄 유사도 0.960·0.967, SDK 가 6 줄씩 더 있음; Darwin `user` 는 본문 0 줄). 자체 검증: `ifnet` 이 수동 비교(SDK = NeXTMach, Darwin 다름)와 같음.
-- 해석(원문 비교일 뿐 ABI 증명 아님): 원본 시대의 BSD 헤더(SDK)는 **NeXTMach mk-108.1(4.3BSD 계열) 쪽**이고 Darwin(4.4BSD 계열)과 다르다. BSD 쪽 소스 기준 판을 Darwin 에서 NeXTMach 로 바꿀지(하위 체계별로) 는 **사용자 판단 사항**으로 올린다 — 근거: 이 표, 78 절 BSD 일괄 진단(Darwin 판 17 컴파일 중 1 일치), 79 절 `in_bootp`·`ifnet`. 열린 질문 둘(`NEXT` 매크로, `__APPLE__` 분기)도 같은 판단과 묶임.
-
-## 80. S5-P54 세부 계획 — `machdep/i386/kdp_machdep.c` = Darwin 판 + 래퍼 2 개 작성(D016) (코딩 전, 2026-10-02)
-
-먼저 조사하고 보류한 것(실행 ID `s5p53-*`): `machdep/i386/pcb.c` — 원본과 다른 곳은 `_thread_dup`(324 대 320 B) 한 곳, 원본은 `child->task->proc->p_pid` 를 `movsx word [proc+0x30]` 로 읽고 Darwin 판은 `[proc+0x24]` 32 비트 — 실기 SDK `bsd/sys/proc.h:328`·NeXTMach `sys/proc.h:272` 는 `short p_pid`, Darwin 은 `pid_t p_pid`(:123). D018 상 Darwin 에 있는 `sys/proc.h` 는 Darwin 판이 우선이므로 **BSD 기준 판 결정(79.2, 사용자) 대기**. ns_timer·unix_startup·miniMon·kdp_udp·unix_signal 은 함수 크기 차이가 커서 보류.
-
-사실(kdp_machdep):
-- 진단(Darwin 원문, `--nextdev`): 원본에 있고 빌드에 없는 것은 `_kdp_en_send_pkt`(0x185dc0, 20 B)·`_kdp_en_recv_pkt`(0x185dd4, 24 B) 뿐, 그 밖 함수 크기 일치(끝의 `_kdp_flush_cache` 8 대 7 은 정렬 끝).
-- 원본(capstone): `_kdp_en_send_pkt` = `push [ebp+0xc]; push [ebp+8]; call _en_send_pkt; ret`, `_kdp_en_recv_pkt` = 세 인자를 그대로 `call _en_recv_pkt`. 원본 순서 `_kdp_intr_enbl` 0x185db0 → 두 래퍼 → `_kdp_us_spin` 0x185dec.
-- W1: Darwin `kdp_machdep.c` 에 없음(Darwin 은 `kern/kdp_udp.c:113–121` 에서 정적 함수 포인터 `kdp_en_send_pkt` 를 등록식으로 씀), NeXTMach·Mach4 에 kdp 없음. `en_send_pkt(void *pkt, unsigned int pkt_len)`·`en_recv_pkt(void *pkt, unsigned int *pkt_len, unsigned int timeout)` 꼴은 Darwin `driverkit-1/libDriver/Kernel/IOEthernetDebugger.m:175–195`(거기선 static) — 원본에는 전역 `_en_send_pkt`·`_en_recv_pkt` 심볼 있음.
-- 탐침 2(스테이징; 예측을 cmd 머리에 기록: 887 B, 모든 함수 일치): `kdp_us_spin` 앞에 `void kdp_en_send_pkt(void *pkt, unsigned int pkt_len) { en_send_pkt(pkt, pkt_len); }` 와 `void kdp_en_recv_pkt(void *pkt, unsigned int *pkt_len, unsigned int timeout) { en_recv_pkt(pkt, pkt_len, timeout); }`(선언 없이 — 반환값 미사용, 48 절 ipc_sched 선례) → O3 = O3c(O2 는 다름 — 80.1 정정), **OBJECT_MATCH**(함수 15 + `__const` 섹션 시작 1 = 16 항목), `__text` 887 B(= 원본 [0x185a8c, 0x185e03))·재배치 21, `__TEXT,__const` 172 B 0x1d13f4·`__DATA,__data` 15 B 0x1e1716 추정·L1d 일치. 변형 1 회.
-- 경계: 앞 0 B 이나 그 앞 0x185a8b 가 `90`(`_vol_check_set_poll` 은 0x1859d8 에서 `ret`, 0x1859dc 부터 이름 없는 함수가 `jmp` 0x185a86 + `90` 으로 끝남 — 소유 미증명, 80.1 정정), 뒤 `00` 1 B(확정 miniMonMachdep 0x185e04).
-
-설계(W2–W6): `07_kernel/src/machdep/i386/kdp_machdep.c` = Darwin 원문 + 작성 2 함수(각 앞에 W3 표시 주석) + 머리말 뒤 수정 주석. MODIFICATIONS("authored", 근거 주소 0x185dc0·0x185dd4), PROVENANCE("authored lines"), functions.tsv 해당 2 함수 `darwin01+authored`. 07 빌드 예측: 탐침 2 SHA. 등급 **A\***(앞 틈 값이 `00` 이 아닌 `90`, vm_pager 선례).
-
-### 80.1 codex 교차검토(QR8) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| pcb 보류 타당: 원본 0x18ebb5 `movsx eax, word [eax+0x30]`; D018 은 Darwin 에 없는 헤더만 공급, BSD 기준 판 교체는 아님 | 80 절 ndiff·proc.h 세 판 줄 | ✅ |
-| 스테이징 diff 는 래퍼 2 개 추가뿐; L1 OBJECT_MATCH, 887 B·재배치 21, `__const` 172 B 는 참조 3, `__data` 15 B 는 참조 1 로 배치·L1d 일치 | 탐침 2 출력 | ✅ |
-| **"16/16" 은 함수 15 + `__const` 섹션 시작 항목** | — | ✅ 정정 |
-| **O2 는 다름**(695 B, NOT_MATCH) — O3 = O3c 만 | 탐침 2 SHA(`O2 7d671d0a…` ≠ `0df7708d…`) | ✅ **내 오류** — 정정 |
-| 래퍼·W1 통과(원본 호출 0x185dcb→0x1aad8c, 0x185de3→0x1aad58; 세 참조 트리에 정의 없음) | 80 절 capstone·grep | ✅ |
-| **앞 경계 과장**: `_vol_check_set_poll` 은 0x1859d8 `ret`, 0x1859dc 부터 다른 함수가 0x185a86 `jmp` + `90` — `90` 의 소유 미증명 → A\* | capstone(0x1859d8 `ret`, 0x1859dc `push ebp`, 0x185a86 `jmp`, 0x185a8b `nop`) | ✅ **내 오류** — 등급 A\* |
-| 뒤 경계 통과, 다만 miniMonMachdep 은 P | objects_partial.tsv:6 | ✅ 문구 정정 |
-| 암시 선언은 선례대로 허용, 인자 형은 IOEthernetDebugger.m 에서 — 바이트가 형을 증명하지 않음; W3 표시·기록 | — | ✅ |
-| **W5 미흡**: 탐침 예측에 재배치 수 없음, "`__const` 4 B possible" 은 틀린 예측(실제 172 B) | `s5p53-probe2.cmd:1` | ✅ 예측 불일치 기록, 채택 빌드 예측: 887 B·재배치 21·`__const` 172 B·`__data` 15 B·O3 = O3c `0df7708d…` |
-
-### 80.2 결과 (2026-10-02) — `kdp_machdep.c` 확정(A\*, 래퍼 2 개 작성)
-
-- 07_kernel `machdep/i386/kdp_machdep.c` = Darwin + 작성 2 함수(W3 표시) + 수정 주석; `.i` 로 확정한 Darwin 헤더 24 개 원문(BSD 네트워크 헤더 포함 — 79.2 결정 후 바뀔 수 있음을 증거에 명기).
-- 빌드 `s5p53-build-1`: 예측대로 O3 = O3c `0df7708d…`, O2 `7d671d0a…`, 887 B·재배치 21·`__const` 172 B·`__data` 15 B, 두 `.i` 동일, OBJECT_MATCH → **A\***(앞 틈의 `90` 소유 미증명).
-- 기록: objects_confirmed +1(63 객체), functions.tsv +15(작성 2 는 `darwin01+authored`), MODIFICATIONS +1, PROVENANCE +25(308 행), 증거·diff.
-
-## 81. S5-P55 세부 계획 — 옵션 `UXPR`·`XPR_DEBUG` 추가, Darwin `driverkit-1` 헤더 루트 추가, 70 객체 회귀 (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p54-*`):
-- `kern/xpr.h:112–114` 가 `KERNEL_BUILD` 에서 `<uxpr.h>`·`<xpr_debug.h>`(config 옵션 헤더, `conf/files:67`·`:75`)를 import — vm_resident·vm_object·kern_clock·ddm 등이 여기서 막힘. `MASTER.i386:92` `UXPR <uxpr>`, `MASTER:142` `XPR_DEBUG <xpr_debug>`; RELEASE 태그(`MASTER.i386:72`)에 `uxpr` 있고 `xpr_debug` 없음(DEBUG 태그 :74 에만). `conf/files:529` `driverkit/ddm.c optional uxpr` 가 정의하는 `_uxprGlobal`(0x1f74c0)·`_xpr_lock`(0x1f74d0)·`_xprLocked`(0x1e13a0)가 원본에 있음.
-- 탐침 `s5p54-pre-1`(스테이징에 UXPR 1·XPR_DEBUG 0): 옵션 헤더는 해결되나 다음이 `driverkit/ddmPrivate.h`·`driverkit/Device_ddm.h`(vm_resident·kern_clock·ddm, `machdep/i386/xpr.h:57–58` 경유)와 `norma_vm.h`·`mach_pagemap.h`(vm_object) 에서 막힘. 앞의 둘은 Darwin `driverkit-1/driverkit/` 에 있음(Darwin 빌드에서는 driverkit 프로젝트가 설치한 시스템 헤더 — 지금 스테이징 루트 밖). 현재 회귀 70 객체의 스테이징에는 미해결 `driverkit/…` 이름 없음.
-
-설계:
-1. `config_options.tsv`: `uxpr` UXPR 1 hypothesis(RELEASE `uxpr`, ddm.c 의 전역 3 개 원본 존재), `xpr_debug` XPR_DEBUG 0 hypothesis(RELEASE 에 없음). 생성·`--check`.
-2. `stage_headers.py`: 루트에 Darwin `driverkit-1`(그 아래 `driverkit/…`) 을 기존 Darwin 루트 뒤·`--nextdev` 루트 앞에 추가(논리 경로 `components/driverkit-1/…` 대신 별도 접두 `driverkit/…` 매핑은 기존 `components` 루트(= darwin01)로 이미 가능한지 먼저 확인 — `-Isrc/components` 가 darwin01 이므로 `driverkit/x.h` 는 `components/driverkit/x.h` 를 찾음 → 없음; 따라서 새 루트 `components/driverkit-1` 와 빌드 `-Isrc/components/driverkit-1` 를 추가). 기본 동작 변화는 회귀 manifest 로 확인.
-3. 회귀: 확정 63 + 부분 8 = 71 객체… (정확한 수는 표 기준)를 각 확정 명령으로 다시 빌드, 전부 동일 예측.
-4. 그다음 vm_resident·kern_clock·ddm·vm_object 를 다시 진단(결과 기록; 채택은 다음 회차).
-
-### 81.1 codex 교차검토(QR9) 판정 → 설계 확정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 옵션 근거 맞음(files:67 = xpr_debug, :75 = uxpr). **`XPR_DEBUG=0` 의 원본 바이트 근거: 0x184964 `call _IOMalloc`** = `driverkit/ddm.c:100–111` 의 `#else XPR_DEBUG` 분기; `_IOAddDDMEntry` 는 있으나 직접 호출·점프·절대 주소 0 | capstone(0x184964 → `_IOMalloc` 0x1a5448), ddm.c 100–112 열람 | ✅ 근거 추가(객체 일치 전이므로 hypothesis 유지) |
-| 기존 확정·부분 객체의 닫힘에 `uxpr.h`·`xpr_debug.h`·두 매크로 없음; 다만 `meta_features.h` 가 모든 빌드에 정의를 들임 | — | ✅ 회귀로 확인 |
-| **회귀는 71 객체**(63 + 8) — `s5p49-regress.cmd` 67 에 strtol·catch·fp_support·kdp_machdep 추가 | 표 행 수 Python(71) | ✅ 정정 |
-| driverkit 헤더는 `driverkit-1/driverkit/Makefile:14–15` 의 PrivateHeaders 로 설치, 커널은 `Makefile.template:90` 에서 검색 → Darwin 루트로 추가하고 NeXT 루트 앞이 맞음; 겹치는 이름 46 개는 Darwin 우선 | Makefile:14–15 열람 | ✅ |
-| **정확한 매핑**: `ROOTS` 에 `os.path.join(D01, 'driverkit-1')` 추가(NeXT 루트 앞), 기존 `D01 ↔ components` 대응으로 논리 경로 `components/driverkit-1/driverkit/…`, 빌드 `-Isrc/components/driverkit-1` 를 Darwin `-I` 뒤·nextdev 앞 | stage_headers.py 45–72 | ✅ 설계 2 를 이것으로 교체 |
-| 메모리 안 시험: 루트 추가로 67·71 소스 모두 파일 선택·미해결 목록 변화 없음 | — | ✅ 실제 회귀로 재확인 |
-
-### 81.2 결과 (2026-10-02) — 옵션 `UXPR`·`XPR_DEBUG` 추가, driverkit-1 루트, 회귀 71/71
-
-- `config_options.tsv` 24→26 행(`uxpr` 1, `xpr_debug` 0, 둘 다 hypothesis), 생성·`--check` 통과.
-- `stage_headers.py`: `ROOTS` 끝(nextdev 앞)에 `darwin01/driverkit-1`(논리 `components/driverkit-1/…`, 빌드 `-Isrc/components/driverkit-1`).
-- 회귀 `s5p54-regress-1`(확정 63 + 부분 8, 각 확정 명령): **71/71 동일**.
-- 재진단 `s5p54-pre-2`: vm_resident·kern_clock·ddm 컴파일, vm_object 는 `norma_vm.h`·`mach_pagemap.h`(옵션 미정) 로 실패. vm_resident(4345 대 ≤4140)·kern_clock(1146 대 ≤820) 크기 다름. **ddm.c**: `__text` 618 B 바이트 차이 0, 원본 [0x18494c, 0x184bb6) 함수 7 중 4 MATCH + 3 MATCH_UNVERIFIED(`__bss` 20 B 의존), `__TEXT,__const` 12 B 미배치, `__data` 74 B 심볼 배치 일치 — 다음 회차 후보(P 판정 절차, `XPR_DEBUG=0` 의 객체 단위 근거).
-
-## 82. S5-P56 세부 계획 — `driverkit/ddm.c` 채택(등급 P) (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p55-*`; 탐침은 Darwin 원문, UXPR 1·XPR_DEBUG 0, `-Isrc/components/driverkit-1`):
-- 탐침 1: O3 `fc557038…`(= 81.2 진단), O3c `af1e2c09…`, O2 다름; 두 `.i` 동일. 섹션: `__text` 618 B·재배치 41, `__bss` 20 B(정적 `xxx` 3 개 — `io_inline.h` 의 `outb/outw/outl` 더미 — 와 `xprEnd`·`xprInitialized`), `__TEXT,__const` 12 B `40 00 00 00 41 00 00 00 42 00 00 00`(정적 `_timer_cnt_port_`, 들어오는 재배치 0), `__data` 74 B(`_xprLocked` 심볼 배치·L1d 일치), `-fno-common` 판 `__common` 36 B.
-- 원본 [0x18494c, 0x184bb6) 618 B, 함수 7(모두 원본 심볼). L1(O3·O3c): 4 MATCH + 3 MATCH_UNVERIFIED(`_IOInitDDM`·`_IOAddDDMEntry`·`_IOClearDDM` — `__bss` 에만 의존), 바이트·참조 차이 0; 객체 NOT_MATCH 사유는 `__bss`·`__const` 미검증뿐.
-- `__bss`: `zerofill_check.py`(known `zerofill-known-s5p55-20261002.json` = s5p50 + fp_support [0x1e75f8, 0x1e75fc)) — 참조 5(대상 오프셋 12·16), Δ 0x1e72b0 하나, 후보 [0x1e7574, 0x1e7588) 정렬·zero-fill 안·심볼 없음·겹침 없음, 음성 검사 검출 → **reference-inferred**(오프셋 0–12 의 `xxx` 는 참조 없음, 섹션 연속성으로만).
-- 36.1: common `_IODDMMasks` 16/16, `_uxprGlobal` 16/16, `_xpr_lock` 4/4(크기/간격); `__text` 재배치 41 곳 위치·폭·pcrel·유형 동일(같은 종류 19, local→extern 8, scattered→extern 14), 재배치 밖 바이트 차이 0; `__data` 재배치 없음·동일.
-- 경계: 앞 0 B(`ret` 0x18494b, `_sgioctl` 쪽), 뒤 `00 00`(`_volopen` 0x184bb8).
-
-설계: `07_kernel/src/driverkit/ddm.c` = Darwin 원문; `.i` 로 07 에 없는 헤더 원문 채택(Darwin `driverkit-1` 헤더는 `07_kernel/components/driverkit-1/…` — `--prefer-07` 의 논리 경로 대응). 07 빌드 예측: O3 `fc557038…`, O3c `af1e2c09…`. 최종 객체로 zerofill_check 재실행. 등급 **P**(`__TEXT,__const 12 B unreferenced` + `__DATA,__bss 20 B reference-inferred`), functions.tsv 7 행(4 high, 3 medium). 옵션 UXPR·XPR_DEBUG 는 hypothesis 유지(`_IOInitDDM` 은 바이트 일치이나 MATCH_UNVERIFIED).
-
-### 82.1 codex 교차검토(QR10) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원문·`.i`·O3/O3c SHA 일치; `__const` 는 `timer_inline.h:83` 의 정적 `_timer_cnt_port_`(객체 심볼 `__timer_cnt_port_`), 들어오는 재배치 0 | 82 절 출력, grep(timer_inline.h:82–83) | ✅ |
-| L1 4 MATCH + 3 MATCH_UNVERIFIED(`__bss` 만), 범위 키 7/7 | 82 절 출력 | ✅ |
-| zero-fill 5 참조(오프셋 12·16)·Δ 하나·검사 통과; [0,12) 는 연속성으로만; 가장 가까운 기록 구간(miniMonMachdep)과 24 B 떨어짐 | 82 절 출력 | ✅ |
-| 36.1 대응(41 = 19 + 8 + 14, 이름·가산값 대응, 밖 차이 0); **문자 그대로의 36.1(b) OBJECT_MATCH 는 미충족** — dma 선례로 common 참조 검증만 옮김 | 36.1(:1269), dma 증거 | ✅ 증거에 명시 |
-| 경계 성립; objects.tsv 하한 0x18447c 는 앞 구간 끝일 뿐, `debugging.m` 은 다른 후보 소스이지 앞 객체 증거 아님; `_IOInitDDM` 이 객체 오프셋 0 | 82 절 출력 | ✅ |
-| P + high 4 / medium 3 | README:20–24 | ✅ |
-
-### 82.2 결과 (2026-10-02) — `ddm.c` 등급 P
-
-- 07_kernel: `driverkit/ddm.c` 원문 + `.i` 로 확정한 헤더 20(`components/architecture/arch_types.h`, `components/driverkit-1/driverkit/` 7, Darwin kernel 12) 원문.
-- 빌드 `s5p55-build-1`: 예측대로 O3 `fc557038…`, O3c `af1e2c09…`, 두 `.i` 동일, 4 MATCH + 3 MATCH_UNVERIFIED, 최종 객체 zerofill reference-inferred → **P**.
-- 기록: objects_partial +1(9 객체), functions.tsv +7(high 4·medium 3), PROVENANCE +21(329 행), 증거 `x86-ddm.md`.
-
-## 83. S5-P57 세부 계획 — D020(BSD 기준 = NeXTMach) 적용 1 단계: `stage_headers.py --bsd-next` (코딩 전, 2026-10-02)
-
-사실(실행 ID `s5p56-*`; Python):
-- NeXTMach mk-108.1 은 68k 판: `machine -> next`(심볼릭 링크). 실기 SDK `NextDeveloper/Headers/bsd/` 는 같은 계열(79.2: 구조체 13 중 10 이 NeXTMach 와 같음)의 OPENSTEP 4.2 **i386** 판(`bsd/i386/`, `bsd/machine/` 은 ARCH_INCLUDE)이며 .h 319 개.
-- SDK `bsd/` 의 이름 중 Darwin `kernel/` 최상위(kern·mach·vm 등) 와 겹치는 것 0, Darwin `machdep/machine` 과 겹치는 것 0; Darwin `bsd/machine` 과 겹치는 것 14(`machine/{cons,cpu,endian,label_t,psl,reboot,reg,signal,spl,table,types,unix_traps,user,vmparam}.h`).
-- NeXTMach `sys/` 94 개 중 SDK `sys/` 73 개에 없는 것 25(`sys/{boolean,exception,features,host_info,kern_return,linedisc,loader,mach_extra,machine,message,mig_errors,msg_type,notify,policy,port,processor_info,table,task_info,task_special_ports,thread_info,thread_special_ports,thread_status,thread_switch,time_stamp,time_value}.h`) — 대부분 Mach 호환·커널 내부.
-- 탐침 `s5p56-probe-1`(pcb.c 스테이징의 Darwin `bsd/sys/proc.h` 를 SDK 판으로 바꿔치기): SDK `proc.h:222–223` 의 `sys/user.h`·`kernserv/lock.h` 를 찾지 못해 실패 — 스테이징 닫힘을 SDK 판 기준으로 다시 계산해야 함(도구 지원 필요).
-
-해석(D020 적용 방식, codex 검토 대상): 헤더는 **SDK(OPENSTEP 4.2 i386, NeXTMach 계열)** 를 우선하고, SDK 에 없는 BSD 이름은 **NeXTMach** 에서, 둘 다 없으면 지금처럼 Darwin. 소스(.c)의 NeXTMach 판 채택은 객체별 계획에서.
-
-설계:
-1. `stage_headers.py --bsd-next`(`--nextdev` 와 함께만): 루트 순서를 `GEN, KERNEL, [SDK bsd], [NeXTMach(이름의 첫 구성요소가 sys·net·netinet·nfs·ufs·specfs·rpc·rpcsvc·nextif·netns·netimp·krpc 일 때만)], Darwin bsd, bsd/include, machdep, darwin01, architecture, driverkit-1, nextdev 루트` 로. 논리 경로: SDK 는 기존 `nextdev/bsd/…`, NeXTMach 는 새 접두 `nextmach/…`(07 우선은 `07_kernel/nextmach/…`). SDK 파일은 기존 실기 SHA 검사, NeXTMach 파일은 저장소 커밋(`f6bdb9c…`)·경로로 manifest 기록. 빌드 `-I`: `-Isrc/src` 다음에 `-Isrc/nextdev/bsd -Isrc/nextmach` 를 넣고 나머지는 그대로. 플래그 없으면 동작 그대로(기존 회귀 소스 71 개 스테이징이 바이트 동일한지 확인).
-2. 시험: pcb.c 를 `--bsd-next` 로 진단(07 변경 없음) — `.i` 에서 `proc.h` 출처가 SDK 인지, `_thread_dup` 이 원본(`movsx word [proc+0x30]`)과 맞는지.
-3. 이번 회차에는 객체 채택 없음(도구·시험·기록).
-
-### 83.1 codex 교차검토(QS1) 판정 → 설계 교체(전역 루트 재배치 폐기)
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 83 절 사실(68k 링크, 319, 겹침 0/0/14, 25 개 목록, 탐침 실패 줄) 맞음 | 83 절 Python 출력 | ✅ |
-| SDK 우선은 D020 의 귀결이 아니라 후보 정책 — D020 은 객체별 바이트 근거를 요구 | DECISIONS D020 | ✅ |
-| **SDK 헤더 일부는 커널 부분이 빠짐**: `sys/ux_exception.h`(SDK 52 줄 대 N 64), `sys/callout.h`(SDK `#if NeXT` 에서 구조체·전역 없음, :22), `sys/kernel.h`(SDK 에 `boottime`·`time`·`phz` 없음, N:68–76) | wc·sed·grep 출력 | ✅ "이름이 없을 때만 대체" 규칙 폐기 |
-| **2 차 해석 누출**: SDK `machine/user.h:11` `ARCH_INCLUDE(bsd/, user.h)` → `bsd/i386/user.h` 가 `KERNEL` 루트(Darwin `kernel/bsd/i386/user.h`)로 해석 | sed·ls 출력 | ✅ 전역 재배치 폐기 |
-| NeXTMach 대체 헤더도 전역 루트를 따라 SDK/Darwin `machine/…` 을 받음(68k 판 아님), 일부는 미해결 | — | ✅ |
-| 인용 상대 경로 우선 유지, `ARCH_INCLUDE` 는 실제로 인용 형식 문자열 — 시험 필요 | stage_headers.py:134–138 | ✅ |
-| NeXTMach 출처: `https://github.com/johnsonjh/NeXTMach.git` `f6bdb9c…`, 작업 트리 바이트를 그 커밋 객체와 대조할 것 | `git rev-parse HEAD` 출력 | ✅ |
-| 플래그 끈 동작 동일성은 구현 후 다시 확인; pcb 는 `.i` 출처·L1 로 판정 | — | ✅ |
-
-교체 설계(코딩 전 재검토 QS1b 대상):
-1. 전역 루트는 그대로 둔다. `stage_headers.py --subst MAP.json`: MAP 은 `{논리 경로: "sdk:<Headers 상대>" | "nextmach:<mk-108.1 상대>"}`. 닫힘 계산에서 그 논리 경로를 고를 때 대응 파일을 대신 쓰고(그 파일의 include 는 평소대로 해석 — 필요하면 그 이름도 MAP 에 명시), 스테이징은 같은 논리 경로(예: `src/bsd/sys/proc.h`)에 그 내용을 둔다 → 빌드 `-I` 변경 없음. MAP 키는 Darwin 에 없는 이름도 허용(예: `src/bsd/sys/thread_switch.h`).
-2. 검증: SDK 대체 파일은 실기 SHA 목록과 일치, NeXTMach 대체 파일은 `git -C … cat-file -p f6bdb9c:mk-108.1/<경로>` 바이트와 일치해야 스테이징. manifest 행에 출처(실기 경로·SHA 또는 저장소 URL·커밋·경로·SHA), "license TBD (D017)"/NeXTMach 고지 기록.
-3. `--prefer-07` 와의 관계: 07 에 같은 논리 경로 파일이 있으면 07 이 우선(채택 후에는 07 이 기준) — MAP 은 아직 채택 안 된 이름에만 의미.
-4. 시험: (a) MAP 없으면 71 회귀 소스 스테이징 바이트 동일; (b) 작은 MAP 으로 `--list` 결과가 기대대로 바뀌는지; (c) pcb.c 를 `{src/bsd/sys/proc.h: sdk:bsd/sys/proc.h}` 로 시작해 컴파일 실패 원인을 하나씩 MAP 에 더하는 진단(변형 기록), `.i` 출처·`_thread_dup` L1 로 판정. 객체 채택은 이번 회차 없음.
-
-### 83.2 codex 교차검토(QS1b, 83.1 교체 설계) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `closure()` 는 실제 파일만 `order` 에 남기고(`stage_headers.py:127`), 스테이징 이름은 `staged_name(f)`(:174)로 실제 경로에서 다시 계산 → MAP 대상 논리 경로가 사라짐 | 파일 열람 :107–146, :173–179 | ✅ `(논리, 실제)` 쌍을 끝까지 유지 |
-| `ARCH_INCLUDE` 는 문자열을 만드는데 스캐너는 `q='<'` | `ARCH_INCLUDE.h:29–30`(`#prefix __TARGET_ARCHITECTURE__ "/" #suffix`), 스캐너 :134(codex 는 :132 라 했으나 :132 는 `elif`) | ✅ 인용 형식으로 수정, 기존 회귀 스테이징 동일성으로 확인 |
-| 2 차 해석은 MAP 에 명시해야 함(`machine/user.h` 만으로 부족) | 83.1 표 | ✅ |
-| 07 우선이 MAP 을 조용히 가릴 수 있음 → 충돌은 거부 | :78–86 `select` | ✅ `--prefer-07` 이고 `07_kernel/<키>` 가 있으면 오류 |
-| "differs from" 표시가 `prefer07` 조건에 묶임 | :181 | ✅ 대체 행은 Darwin 대비 차이를 따로 기록 |
-| NeXTMach `machine` 은 심볼릭 링크(`next`), `cat-file …:mk-108.1/machine/user.h` 실패 | `git ls-tree`: `120000 … mk-108.1/machine`, 내용 `next`; cat-file `fatal: Not a valid object name` | ✅ 심볼릭 링크 경로 거부 |
-| NeXTMach 작업 트리 HEAD 가 `f6bdb9c…`, `proc.h` 는 LF | `git rev-parse HEAD`, `ls-files --eol` → `i/lf w/lf` | ✅ 바이트 비교(정규화 없음) |
-| SDK SHA 목록에 `bsd/sys/proc.h` 있음(:1075) | json 로드: `5eda0a5a…`, 크기 20390; grep 1075 행 | ✅ 원 SDK 경로로 검사, 없으면 거부 |
-| `--list` 가 검증을 건너뜀 | :158–164 | ✅ MAP 검증은 `--list` 전에도 수행 |
-| 키 범위 제한·경로 탈출·디렉터리 대상 거부, 같은 원본 두 번 허용 | — (설계 요구) | ✅ 시험 항목으로 반영 |
-| `.i` 의 경로는 논리 경로만 보여 줌 → manifest·MAP 해시와 묶어야 | — | ✅ manifest 에 MAP 경로·SHA 기록 |
-
-구현 결정: `--subst` 는 `--nextdev` 와 함께만(SDK 파일이 `ARCH_INCLUDE` 를 씀). NeXTMach 허용 첫 구성요소: sys·net·netinet·nfs·ufs·specfs·rpc·rpcsvc·nextif·netns·netimp·krpc. 키는 `src/bsd/…` 만.
-
-### 83.3 결과 (S5-P57, 2026-10-02)
-
-- 도구: `stage_headers.py --subst MAP.json`(sha256 `d346dfce2633b06b…`). `closure()` 는 `(논리 경로, 실제 파일)` 쌍을 돌려주고, 스테이징·manifest 는 논리 경로를 그대로 쓴다. `ARCH_INCLUDE` 는 인용 형식으로 해석한다. MAP 검증은 `--list` 전에도 한다. 대체 행은 `substituted: …` 와 `replaces <Darwin 출처> sha256 …`(또는 `no Darwin file`)을 기록하고, manifest 에 `subst`(MAP 경로·SHA·항목)를 둔다.
-- 기본 동작 동일성: 회귀 71 개 + ddm 을 합친 72 개 소스를 `--prefer-07 --nextdev` 로 옛 도구와 새 도구에서 각각 스테이징해 비교했다. 파일 368 개 트리 바이트, manifest JSON, `--list` 출력이 모두 같다.
-- 시험 `test_stage_headers_subst.py`(sha256 `7d4b59c6cb3de70b…`): 19/19 통과. 기존 `test_sect_of` 7/7, `test_struct_compare` 9/9 도 통과.
-  - 거부 시험: `--nextdev` 없음, 키가 `src/bsd` 밖, 키·원본 경로 탈출, 절대 경로, Darwin 디렉터리 키, 키 충돌, 중복 키, 알 수 없는 스킴, 실기 목록에 없는 SDK 이름, NeXTMach 허용 밖 디렉터리(`machine`), 없는 NeXTMach 파일, 07 가림(`sys/callout.h`), 심볼릭 링크 경로.
-  - 정상 시험: 스테이징 바이트, manifest 행, 쓰이지 않는 키는 스테이징 안 됨.
-  - ARCH 2 차 해석: SDK `machine/user.h` 만 대체하면 `src/bsd/i386/user.h` 는 Darwin 판이고, 그 이름까지 대체하면 SDK 판이다.
-- pcb.c 진단(객체 채택 없음, 실행 ID `s5p57-probe-1…3`).
-  1. MAP `{proc.h: sdk}`(`s5p57-subst-sdk.json`): 스테이징 195, 컴파일 실패. SDK `proc.h:222` → Darwin `sys/user.h:75` → Darwin `sys/sysctl.h:215·219` 에서 `kp_proc`·`e_pcred` 가 불완전 형이다.
-  2. MAP `{proc.h, sys/boolean.h: nextmach}`(`s5p57-subst-nextmach.json`): 실패. NeXTMach `sys/boolean.h:26` 의 `machine/boolean.h` 가 없다. NeXTMach `machine` 은 68k `next` 를 가리키는 심볼릭 링크라 허용하지 않는다.
-  3. MAP `{proc.h, sys/user.h: sdk}`(`s5p57-subst-p3.json`): 실패. SDK `sys/user.h:72·230` 의 `label_t` 는 SDK `sys/types.h:94` 의 `bsd/machine/label_t.h` 에서 오지만, Darwin `sys/types.h` 에는 `label_t` 가 없다.
-  4. `sys/types.h` 를 추가한 MAP(`s5p57-subst-p4.json`)은 도구가 거부했다: `07_kernel/src/bsd/sys/types.h` 는 이미 채택된 Darwin 판이다(PROVENANCE 행 있음). 확정 객체들이 이 헤더로 일치를 냈으므로 바꾸면 그 객체들과 충돌할 수 있다.
-  - 결론: 이름 단위 대체는 BSD 헤더 연쇄(proc → user → types)로 번지고, 채택된 07 헤더에서 멈춘다. pcb 는 다음 회차에 계획을 새로 세운다. 후보는 (a) 객체별 최소 수정(D014)으로 Darwin `proc.h` 의 `p_pid` 앞쪽 배치를 원본에 맞추는 방안, 이때 다른 필드 오프셋 근거가 필요하다. (b) BSD 헤더 집합을 객체별로 통째로 바꾸고 별도 스테이징 접두를 쓰는 방안. 어느 쪽이든 원본 오프셋 전수 근거가 먼저다.
-- 알려진 도구 한계(기존 기록과 같음): 실패한 실행은 `stage/.nfsNNNN` 때문에 `kr_run.py collect` 가 `krsha256: read error` 행에서 `ValueError` 를 낸다(probe-2). 게시는 원래도 거부되므로 결과에는 영향이 없다.
-
-## 84. S5-P58 세부 계획 — D019 를 `zerofill_check.py` 에 반영하고 `kern/kalloc.c`(61 절 보류분) 채택 (코딩 전, 2026-10-02)
-
-사실(61·61.2 절, `06_reconstruction/evidence/x86-kalloc.md`):
-- 원본 [0x15a67c, 0x15ab9b) 1311 B, 10 함수. 앞 0 B, 뒤 `00` 1 B 이고, 다음 `_initKernelStacks` 는 0x15ab9c 이다.
-- 탐침 4(`s5p36-probe-4`): O3c 는 9 MATCH 에 `_kalloc_init` MATCH_UNVERIFIED 1 개. 남은 것은 `__bss` 256 B 하나다.
-- zerofill 결과(`s5p36-zerofill-check-kalloc-pre-20261001.json`): 참조 1, Δ 1 개(`0x1e5529`), 후보 [0x1e5a98, 0x1e5b98), 다른 검사는 모두 참, `negative_check.detected = false` 라서 `fail`.
-- D019(사용자 확정): 이 경우는 `reference-inferred-single` 이다. 등급은 P 까지, 그 섹션에 의존하는 함수는 medium.
-
-설계:
-1. `zerofill_check.py`: 결론이 `fail` 이 되는 원인이 "참조 1 개 + 음성 검사 미검출" 뿐일 때만 `reference-inferred-single` 로 바꾼다. 조건은 다음을 모두 만족하는 것이다.
-   - `problems` 가 비어 있다.
-   - Δ 가 1 개다.
-   - `references == 1` 이다.
-   - 다섯 검사(aligned, inside_zero_fill_image_section, image_symbols_inside 없음, overlaps 없음, field_targets_in_range)를 모두 통과한다.
-   - `negative_check.detected == false` 다.
-
-   다른 경우의 결론은 그대로 둔다. 확인 방법:
-   - 기존 `reference-inferred` 결과 파일들을 같은 명령으로 다시 돌려 결론이 같은지 본다.
-   - 탐침 4 O3c 는 `reference-inferred-single` 이 나와야 한다.
-   - 참조가 2 개 이상인데 음성 검사가 실패하는 경우는 계속 `fail` 이어야 한다(합성 시험).
-2. `07_kernel/src/kern/kalloc.c`: 탐침 4 스테이징 사본(`s5p36-probe-stage-4/src/kern/kalloc.c`)에 다음을 더한다.
-   - D014 머리말 뒤에 `/* Modified 2026-10-02: … */` 를 넣는다.
-   - 작성 ①②③ 각 줄 앞에 W3 표시 주석을 넣는다.
-   - NeXTMach 블록 앞에는 출처 주석을 넣는다(필요하면).
-
-   주석만 더하므로 목적 코드는 바뀌지 않아야 한다. 단 `__LINE__` 사용이 없다는 것을 확인하고, `meta_features.h` 변경(UXPR 등) 영향은 빌드로 확인한다.
-3. 빌드 `s5p58-build-1`: O3, O3c, O2, `.i` 두 개(5 명령, 표준 템플릿). **예측**:
-   - O3 `d87a52ac…`, O3c `126e1a24…` 로 탐침 4 와 같다.
-   - 두 `.i` 는 같다.
-   - L1: O3c 는 9 MATCH 와 `_kalloc_init` MATCH_UNVERIFIED(`__bss`), O3 는 36.1 절차 대상(`__common` 72 B).
-4. 판정:
-   - 36.1 공통 절차. 두 `.i` 가 같아야 하고, 재배치가 대응해야 하며, 재배치 밖 바이트가 같아야 한다. common 크기는 원본 간격 이하여야 한다(`_k_zone` 64≤64, `_k_zone_maxsize` 4≤16, `_kalloc_map` 4≤16, 다시 계산).
-   - 경계 증명서: 뒤 1 B 는 4 정렬 최소 채움이고 값이 00 이어야 한다.
-   - zerofill: 알려진 범위 `zerofill-known-s5p55-20261002.json` 으로 → `reference-inferred-single`.
-
-   위가 모두 성립하면 등급 P(`unverified_sections` = `__DATA,__bss` 단일 참조, 행에 "단일 참조" 명시)다. 함수는 `_kalloc_init` 가 medium, 나머지 9 개가 high 다. 단 9 개 각각이 `__bss` 에 의존하지 않는지 재배치로 확인한다.
-5. 기록:
-   - PROVENANCE 행: Darwin 과 NeXTMach 출처, CMU 고지, authored lines.
-   - MODIFICATIONS 행: restoration edit 과 authored, 근거 주소.
-   - 표: objects_partial, functions 10 행.
-   - 증거 파일 갱신, `.i` 채택 검사.
-   - 새 알려진 범위 파일 `zerofill-known-s5p58-20261002.json` = s5p55 15 개 + [0x1e5a98, 0x1e5b98) "kalloc k_zone_name (single)" 로 16 개.
-   - 다른 객체 재판정은 없다.
-
-### 84.1 codex 교차검토(QS2) 판정 → 계획 보강
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| kalloc 탐침 기록은 다섯 조건 + 음성 미검출에 해당(참조 1, problems 없음, base_offset 없음) | `s5p36-zerofill-check-kalloc-pre…json`: references 1, problems [], base_offsets [], field_target_offsets [0], checks 모두 참, detected false | ✅ |
-| `references` 는 받아들인 기록만 셈 — 지원 안 되는 재배치는 `problems` 로만 걸러짐 | `zerofill_check.py` `infer()` :58–96(PAIR/SECTDIFF → problems, 배치 없는 출발 섹션 → problems) | ✅ 조건에 `problems` 비어 있음 포함(이미 있음) |
-| `field_targets_in_range` 는 pc-relative 아닌 필드만, scattered `base_offset` 은 범위 검사 안 함 | :125(`field_target_offsets` 는 `not r['pcrel']` 만), base_offset 은 기록만 | ✅ **단일 판정은 그 한 기록이 scattered 아님·pcrel 아님(필드 목표가 범위 검사됨)일 때만** 으로 좁힘 |
-| 섹션별 적용, 미검증 섹션 모두가 자격을 갖춰야 P | README:24 P 정의 | ✅ (kalloc O3c 미검증은 `__bss` 하나뿐 — L1 JSON 확인) |
-| `meta_features.h` 에 import 8 개 추가됨 → SHA 예측은 잠정, `.i` 는 옛 것과 다를 수 있음 | `diff` 출력: `fp_emul.h`·`mach_kdb.h`·`mach_nbc.h`·`norma_ether.h`·`pc_support.h`·`uxpr.h`·`xpr_debug.h` (7 개; codex 는 개수 미언급) | ✅ SHA 가 다르면 L1 전에 `.i` 차이부터 분석 |
-| `_kalloc_init` 만 섹션 3 미검증, 나머지는 섹션 2 만(또는 없음) | L1 JSON `functions[*].data_sections` 출력: 첫 함수 {2 ok, 3 unverified}, 8 개 {2 ok}, 마지막 {} | ✅ 함수별 의존 표를 증거에 남김 |
-| README 의 medium·P 정의가 `reference-inferred-single` 을 받아들이지 않음 | README:21 "그 검사가 실패하면 이 분류를 쓰지 않는다" | ✅ README 를 D019 대로 고침 |
-| W3 표시는 realloc 두 분기·free 선언/검사/대입 각각 | 스테이징 kalloc.c realloc/free 본문 열람 | ✅ 바뀐 줄 묶음마다 표시 |
-| NeXTMach 고지(1987 CMU "software License Agreement", 1985 Avadis Tevanian) 필수 — 스테이징에는 없음 | NeXTMach `kern/kalloc.c:1–11`; 스테이징에서 `License Agreement` grep 0 건, `Avadis` 는 :52 Darwin 머리말의 Author 줄뿐 | ✅ NeXTMach 블록 앞에 고지 원문 주석 |
-| W5: 크기·재배치·호출 예측 | 탐침 4 O3 Python 파싱 | ✅ 아래 예측 |
-
-빌드 예측(W5, 탐침 4 Python 파싱): `__text` 1311 B·재배치 95, `__data` 79 B, O3 `__common` 72 B, `__bss` 256 B; 함수 오프셋 `_kalloc_init` 0, `_kalloc_noblock` 112, `_kalloc` 224, `_kget` 336, `_kfree` 424, `_malloc` 516, `_calloc` 660, `_realloc` 812, `_free` 1204, `_malloc_good_size` 1304; 미정의 14: `_bcopy _bzero _kernel_map _kmem_alloc_wired _kmem_alloc_zone _kmem_free _page_size _panic _sprintf _zalloc _zalloc_noblock _zfree _zget _zinit`.
-
-### 84.2 결과 (S5-P58, 2026-10-02) — `kalloc.c` **P**(단일 참조)
-
-- 도구: `zerofill_check.py` 에 `conclude()` 를 두었다. `reference-inferred-single` 은 84.1 조건일 때만 나온다: 음성 검사 전 검사 모두 통과, 기록 1 개, 그 기록이 scattered·pcrel 아님, 음성 미검출. 시험 `test_zerofill_conclude.py` 8/8 통과(참조 2 개·scattered·pcrel·다른 검사 실패는 모두 `fail`). 저장된 zerofill 결과 14 개를 같은 명령으로 다시 돌렸다. kalloc 탐침 결과의 `conclusion` 만 `fail` → `reference-inferred-single` 로 바뀌고, 나머지 13 개는 모든 필드가 같다.
-- `07_kernel/src/kern/kalloc.c`: 탐침 4 본문에 주석만 더했다(Modified 1, NeXTMach 고지 1, W3 표시 5). 주석을 빼면 스테이징과 바이트가 같다(Python). 그 스테이징은 Darwin[:260] + NeXTMach[331:376] + Darwin[281:] 에 작성 3 곳을 적용한 것과 같다(다시 확인).
-- 빌드 `s5p58-build-1`: 예측이 모두 맞았다. O3 `d87a52ac…` 와 O3c `126e1a24…` 는 탐침 4 와 같고, 두 `.i` 는 같다. 1311 B, 재배치 95, 미정의 14.
-- L1(객체 심볼 이름 범위): O3c 는 9 MATCH 와 `_kalloc_init` MATCH_UNVERIFIED(`__bss` 만)이고, 차이는 0, BOUNDARY 는 없다. 36.1: 재배치 95 개가 대응(같은 형태 53, local→extern 42)하고, 재배치 밖 바이트가 같다. common 64/64·4/16·4/16.
-- 경계: 앞 0 B(`ret` 0x15a67b, 4 정렬), 뒤 `00` 1 B(최소 채움).
-- zerofill(known s5p55): `reference-inferred-single`, [0x1e5a98, 0x1e5b98). 알려진 범위 파일 s5p58 은 16 개다.
-- 판정: **P**(단일 참조). functions +10(high 9, medium 1) → 544(high 484, medium 60). objects_partial 10, PROVENANCE 329 행, MODIFICATIONS +1. README 의 medium·P 정의를 D019 에 맞게 고쳤다. `.i` 채택 검사에서 51 개 모두 07 에 있다. 헤더 변경이 없으므로 회귀는 필요 없다.
-
-## 85. S5-P59 세부 계획 — `vm/vm_object.c` 진단(옵션 `NORMA_VM`·`MACH_PAGEMAP` 헤더) (코딩 전, 2026-10-02)
-
-사실(Python·grep):
-- 원본 구간(objects.tsv seq 209, 등급 B): [0x1789d0, 0x179d41) 4977 B, 함수 25 개(`_vm_object_init` … `_vm_object_name` 0x179d38). 뒤 3 B 다음에 `_vm_pageout_scan` 0x179d44 가 온다. 앞은 확정 `vm_mem_region` 끝 0x1789cf(경계는 빌드 뒤 다시 계산).
-- 후보(`srcdefs.py`):
-  - Darwin `vm/vm_object.c` 는 원본 25 개를 원본 순서대로 모두 가진다. 추가로 static `_vm_object_deactivate_pages`, 전역 `vm_object_deactivate_pages_first`(:557)·`adjust_vm_object_cache`(:588)·`vm_object_cache_steal`(:1117), `vm_object_print`(`#if DEBUG` :1545) 가 있다. 앞의 세 전역은 원본 심볼표에 없다(grep 0 건). 뒤의 둘은 Darwin `bsd/vfs/vfs_subr.c` 가 부른다.
-  - NeXTMach 는 `vm_object_cache_object` 가 없다. Mach4 는 7 개가 없다.
-- 막힌 원인: `vm_object.c:57–58` 이 `<norma_vm.h>`·`<mach_pagemap.h>` 를 include 하는데, 두 옵션은 config_options.tsv 에서 `undetermined`(값 0)라 생성되지 않는다.
-- 두 매크로의 쓰임은 Darwin 트리 전체에서 `#if` 뿐이다(`#ifdef`·`defined()` 0 건). 파일은 `vm/memory_object.c`(conf/files 밖), `vm/vm_object.c:60–62`, `vm/vm_object.h:78–90·212–214` 셋이다. 정의 안 된 `#if` 는 0 이므로, 지금까지 확정된 객체들(`vm_object.h` 사용)은 이미 사실상 0 으로 빌드되었다.
-
-설계:
-1. 탐침 1(스테이징만): `stage_headers.py --prefer-07 --nextdev vm/vm_object.c` 를 쓰고, 스테이징 사본에만 `src/generated/norma_vm.h`(`#define NORMA_VM 0`)·`src/generated/mach_pagemap.h`(`#define MACH_PAGEMAP 0`)를 둔다. 07 과 config 표는 바꾸지 않는다. 빌드는 O3·O3c·O2·`.i` 두 개다.
-   - 예측: 컴파일은 성공한다(실패하면 원인을 기록하고 멈춘다).
-   - 예측: `__text` 는 원본보다 크다(전역 3 개 추가분).
-   - 함수별 L1(객체 심볼 이름 범위, Ghidra 몸체 끝)으로 25 함수 각각의 크기·바이트 차이를 기록한다.
-2. 탐침 2(조건부, 복원 수정 D014): 원본에 없는 전역 3 개(`vm_object_deactivate_pages_first`·`adjust_vm_object_cache`·`vm_object_cache_steal`)를 지운다. 단 원본 바이트에서 그 흔적(호출 등)이 없는지 먼저 확인한다. 함수별 차이가 남으면 원인을 하나씩 기록한다.
-3. 판정:
-   - OBJECT_MATCH 또는 P 조건(README)이 성립하면 채택한다. 채택 단계는 다음과 같다.
-     - 두 옵션을 `hypothesis` 0 으로 config_options.tsv 에 올리고(근거: 객체 바이트와 위 `#if` 사용), `gen_config_headers.py` 로 다시 생성한다.
-     - `meta_features.h` 에 import 2 개가 늘어나므로, 회귀(확정·부분 73 객체 = s5p54 71 + ddm + kalloc)로 모두 동일함을 확인한다.
-     - 그다음 07 채택, `.i` 채택 검사, 표 갱신을 한다.
-   - 성립하지 않으면 함수별 차이를 증거로 남기고 보류한다.
-
-### 85.1 codex 교차검토(QS3) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 범위·함수 25·뒤 3 B·Darwin 이 25 개를 순서대로 가지고 5 개 추가 | 85 절 Python(symbols.tsv, srcdefs) 출력 | ✅ |
-| "Darwin 트리 전체에서 세 파일" 은 과함 — `conf/MASTER`·`.defs` 주석에도 나옴 | grep: `conf/MASTER:137`, `mach/memory_object.defs:89` 등(C 코드 아님); SDK `mach/mach_types.defs:218` 은 `#if` | ⚖️ 문구를 "C/H 소스에서" 로 좁힘, 결론(`#if` 뿐) 유지 |
-| `#ifdef`·`defined()` 사용은 Darwin C/H·07 에 없음 → 0 정의는 기존 분기 유지 | 85 절 grep 0 건 + 07·SDK grep(위) | ✅ 회귀로 확인 |
-| `kern/mapfs.c:1033` 이 `vm_object_deactivate_pages_first` 를, `vfs_subr.c` 가 나머지 둘을 부름 → 원본 호출자 확인 필요 | grep: mapfs.c:206·1033; vfs_subr.c:177·184·429·445·463 | ✅ 탐침 2 전에 원본 호출 대상 확인(mapfs·vfs_subr 원본 구간의 call 대상) |
-| 원본의 cache_trim panic 문자열은 `vm_object_deactivate: I'm sooo confused.`(0xe0bb2), Darwin 은 `vm_object_cache_trim: …`(:575) | strings.tsv:1393, vm_object.c:570–580 | ✅ 세 전역 삭제만으로는 복원되지 않음 — 탐침 1 의 함수별 차이로 확인 |
-| "`__text` 가 크다" 는 예측이 아니라 관찰 대상 | — | ✅ 문구 수정 |
-| 스테이징 뒤 덧붙인 헤더는 manifest 에 없음 → 덧붙임과 해시 기록 | `stage_headers.py` 는 덧붙임을 모름 | ✅ 실행 cmd 머리와 계획에 두 파일 SHA 기록 |
-| `s5p54-regress.cmd` 는 71 RUN → ddm·kalloc 을 명시 추가해야 73 | `grep -c ^RUN` = 71 | ✅ |
-| 경계 별도 확인(앞 1 B, 뒤 3 B) | objects_confirmed `x86-vm_mem_region` 끝 0x1789cf, gap_after `1 x 00` | ✅ |
-
-### 85.2 결과 (S5-P59, 2026-10-02) — 탐침 1 컴파일 실패, 보류
-
-- 탐침 `s5p59-probe-1`(스테이징 + 덧붙인 헤더 2 개: `generated/norma_vm.h` sha256 `c278bc14…`, `generated/mach_pagemap.h` `8394f10f…`): 5 명령 모두 실패했다. 원인은 둘이다.
-  1. `machdep/i386/xpr.h:56–58`·`driverkit/xpr_mi.h:47–48` 의 `driverkit/…` 가 없다. **내 실수**다: driverkit-1 `-I` 가 없는 s5p47 템플릿을 썼다. ddm 빌드(s5p55-build.cmd)와 같은 플래그를 써야 한다.
-  2. `vm_object.c:65–66` 의 `mach/memory_object_default.h`·`mach/memory_object_user.h` 가 없다. 이 둘은 MIG 생성물이다. Darwin `conf/Makefile.template:534–558` 이 `mig -typed -MD $(MIGKUFLAGS) -DSEQNOS -header … -user … -server /dev/null mach/memory_object{,_default}.defs` 로 만들고, `MIGKUFLAGS = -I. -I.. -I$$REL_SOURCE_DIR -DKERNEL -DKERNEL_USER`(:442–444)이다.
-- 07·config 표 변경은 없다. NORMA_VM·MACH_PAGEMAP 은 `undetermined` 로 둔다.
-- 다음(86 절): 게스트 `/usr/bin/mig`(kr_run 허용 도구, A3 탐침에서 사용)로 두 헤더를 생성하는 절차를 세운다. 같은 실행에서 생성된 `memory_object_user.c`·`memory_object_default_user.c` 도 원본 객체 후보로 진단한다.
-
-## 86. S5-P60 세부 계획 — MIG 생성 헤더 `mach/memory_object_user.h`·`mach/memory_object_default.h` 를 게스트 `mig` 로 만들고 vm_object 재진단 (코딩 전, 2026-10-02)
-
-사실:
-- Darwin 규칙은 `conf/Makefile.template:534–558` 이다.
-  - 명령: `mig -typed -MD $(MIGKUFLAGS) -DSEQNOS -header X.h -user X_user.c -server /dev/null mach/X.defs`.
-  - `MIGKUFLAGS` = `-I. -I.. -I$$REL_SOURCE_DIR -DKERNEL -DKERNEL_USER`(:442–444).
-  - 작업 디렉터리는 빌드의 `mach/` 이다. `..` 는 config 생성물이 있는 빌드 디렉터리, `REL_SOURCE_DIR` 은 소스 루트다.
-- 두 `.defs` 는 `<mach/std_types.defs>`·`<mach/mach_types.defs>` 만 include 한다(`memory_object.defs:169–170`, `memory_object_default.defs:144–145`). `serverprefix seqnos_` 를 쓴다.
-- `kr_run.py` 허용 도구에 `/usr/bin/mig`·`/usr/lib/migcom`·`/lib/cpp` 가 있다(:28). A3 탐침이 `/usr/bin/mig -arch i386 -user stage/… -server stage/… -header stage/… src/mig_probe.defs` 를 실행했다(`probes/probes-kernel.cmd:7`).
-- 원본 심볼표에 `_memory_object_*` 사용자 스텁은 하나도 없다(12 개 이름 grep 0). Darwin `vm_object.c` 에서 `memory_object_` 함수는 `:85` 의 `memory_object_release` 원형뿐이다. 따라서 이 헤더들은 vm_object 에서 선언 공급용이다(생성 `.c` 는 원본 객체 후보가 아니다).
-
-설계:
-1. 실행 `s5p60-mig-1`(스테이징: `stage_headers.py --prefer-07 --nextdev mach/memory_object.defs mach/memory_object_default.defs` + config 생성물). 명령은 다음과 같다(작업 디렉터리 = 실행 디렉터리, 출력은 `stage/`).
-   - `RUN /usr/bin/mig -arch i386 -typed -Isrc/generated -Isrc/src -DKERNEL -DKERNEL_USER -DSEQNOS -header stage/memory_object_user.h -user stage/memory_object_user.c -server stage/memory_object_server_unused.c src/src/mach/memory_object.defs`
-   - default 도 같은 방식이다.
-   - 결정성을 보려고 각각 두 번 돌린다(출력 이름 `…_2`).
-   - `-MD` 는 의존성 파일만 만들므로 뺀다. 내용 영향이 없는지 한 쌍으로 확인한다(`-MD` 판 1 회, `.d` 를 `stage/` 에 두는 방법이 없으면 생략하고 기록).
-   - `-server /dev/null` 대신 `stage/` 의 버릴 파일을 쓴다(출력 규약). `-arch i386` 은 A3 탐침과 같게 둔다.
-2. 검사: 두 번의 출력 해시가 같은지 보고, 헤더 안에 경로·날짜 같은 비결정 요소가 있는지 Python 으로 본다.
-3. vm_object 탐침 2: 탐침 1 스테이징을 다시 만들고 덧붙임은 `generated/norma_vm.h`·`generated/mach_pagemap.h`(0), `generated/mach/memory_object_user.h`·`generated/mach/memory_object_default.h`(1 의 출력)이다. Darwin 의 `-I.`(빌드 디렉터리) 위치에 해당한다. 빌드 플래그는 ddm 템플릿(driverkit-1 포함)이다.
-   - 관찰: 컴파일 여부, 함수별 크기, L1(객체 심볼 이름 범위).
-   - 이 회차에는 07·config 표를 바꾸지 않는다. 채택 여부는 결과에 따라 다음 회차에 정한다. 생성 헤더를 07 에 둘 때는 `07_kernel/generated/mach/` 에 두고, README·PROVENANCE 에 "mig 생성물(도구 해시·명령·입력 해시)" 로 기록할 예정이다. `gen_config_headers.py --check` 는 자기 파일만 비교한다(:40–53).
-
-### 86.1 실기 `mig` 확인과 codex 교차검토(QS4 시간 초과 → QS4b) 판정 → 설계 수정
-
-내 확인(실기 읽기 전용, gcds):
-- `/usr/bin/mig`(셸 스크립트, sha256 `6341c61c…` = 툴체인 기록)의 옵션 처리는 다음과 같다.
-  - `-[qQvVtTrRsSiPp]` 와 `-user/-server/-header/-sheader/-handler X` 는 migcom 으로 간다.
-  - `-arch X` 는 아키텍처를 정한다.
-  - `-newipc` 를 주면 `/usr/lib/migcom3` 을 쓰고 cpp 에 `-DNEW_MACH_IPC` 를 더한다.
-  - `-MD` 는 **버린다**(`shift`).
-  - 그 밖의 `-*`(`-typed`·`-I`·`-D`)는 **cpp 로** 간다.
-  - cpp 는 `/lib/${arch}/cpp` 다.
-- 실기 해시(`krsha256`): `/usr/lib/migcom3` `7676a202…` 91144 B. migcom `b9d62a00…`, mig `6341c61c…`, `/lib/i386/cpp` `a21a9f03…` 는 기록(`sha256-vs-vm.json`)과 같다. `migcom3` 은 기록에 없어 VM 대조값이 없다.
-
-| codex 주장(QS4b) | 내 검증 | 판정 |
-|---|---|---|
-| 어느 migcom 이 이 `.defs` 를 읽는지는 근거 없음 → 두 모드 모두 실행·기록 | 위 스크립트 | ✅ 탐침에 기본/`-newipc` 두 모드 |
-| `-typed` 는 이 대상에서 cpp 로 가므로 타입 출력 효과 없음, cpp 오류 가능 | 스크립트 `-* ) cppflags=…` | ✅ 주 명령에서 뺌. 효과는 별도 1 쌍으로 관찰 |
-| `migcom3`·`/lib/i386/cpp` 를 해시 목록에 추가 | `kr_run.py:28`(현재 6 개), `:118–120`(VM 일치 필수) | ⚖️ `/lib/i386/cpp` 는 VM 일치 해시가 있어 그대로 추가. `migcom3` 은 VM 값이 없으므로 **실기 전용 해시 목록**(새 json, 출처 = 이 측정)으로 결속하고, `run.json` 에 그 구분을 남긴다 |
-| `-MD` 설명 정정(무시됨) | 스크립트 `-MD ) shift;;` | ✅ 86 절의 `.d` 확인 항목 삭제 |
-| `-newipc` 는 cpp 입력(`-DNEW_MACH_IPC`)도 바꿈 | 스크립트 | ✅ 기록 |
-| Darwin make 규칙은 Darwin 호출의 근거일 뿐, 대상 래퍼 동작이 우선 | — | ✅ |
-
-수정 설계:
-1. `kr_run.py`:
-   - `ALLOWED_TOOLS` 에 `/lib/i386/cpp`·`/usr/lib/migcom3` 을 더한다.
-   - `migcom3` 은 `REAL_ONLY_TOOLS` 로 `08_build/toolchains/real-i386-20261001/real-only-20261002.json`(이번 측정, VM 미대조 명시)과 대조한다.
-   - 나머지 도구의 VM 일치 규칙은 그대로 둔다.
-   - 바뀌는 것은 `tools.expected` 줄이 늘어나는 것뿐이다(도구 해시 결속 강화). 기존 실행 기록은 다시 만들지 않는다.
-2. `s5p60-mig-1` 명령(각각 `memory_object.defs`·`memory_object_default.defs`):
-   - (A) 기본: `mig -arch i386 -Isrc/generated -Isrc/src -DKERNEL -DKERNEL_USER -DSEQNOS -header … -user … -server …`
-   - (B) (A) + `-newipc`
-   - (C) (B) 를 한 번 더 돌린다(결정성).
-   - (D) (B) + `-typed`(관찰).
-
-   성공한 모드의 헤더를 Python 으로 비교하고 필요한 선언(`memory_object_release` 원형 쪽과 vm_object 가 쓰는 이름)이 있는지 본다.
-3. vm_object 탐침 2 는 86 절 3 그대로다. 생성 헤더는 (B) 를 우선 쓴다. (B) 가 실패하면 (A) 를 쓰고 그 사실을 기록한다.
-
-### 86.2 결과 (S5-P60, 2026-10-02) — 도구 결속 확장, Darwin `.defs` 로는 MIG 실패
-
-- `kr_run.py` 를 다음과 같이 고쳤다.
-  - `ALLOWED_TOOLS` 에 `/lib/i386/cpp`(VM 일치 해시)·`/usr/lib/migcom3` 을 더했다.
-  - `REAL_ONLY_TOOLS`·`REAL_ONLY_JSON` 을 두고 `tool_hashes()` 로 결속한다. `migcom3` 의 실기 측정값은 `08_build/toolchains/real-i386-20261001/real-only-20261002.json` 이고, VM 대조는 없다고 명시했다.
-  - `prepare.json`/`run.json` 에 `tools_real_only`(기록 SHA·주석)·`tool_list` 를 넣는다.
-
-  시험:
-  - `test_kr_run_tools.py` 7/7.
-  - 실기 거부 시험 `s5p60-krtest-1`: 틀린 real-only 해시로 준비하면 `FAILED` 에 `tool mismatch` 가 남고 `stage/` 는 생기지 않는다(예측대로).
-- MIG 실행 `s5p60-mig-1`(B: `-newipc`, Darwin `.defs`): 4 명령 모두 종료 136. `std_types.defs:149–152` 의 `MSG_TYPE_*` 가 정의되지 않았다. Darwin `std_types.defs` 는 `#ifdef MACH_IPC_FLAVOR`(:57) 아래에 새 IPC 형을 두고, `#else`(:147) 에 옛 `MSG_TYPE_*` 를 둔다. 이 래퍼는 `MACH_IPC_FLAVOR` 를 정의하지 않는다.
-- `s5p60-mig-2`:
-  - A(기본 migcom)는 `memory_object.defs:167…`·`memory_object_default.defs:142…` 에서 구문 오류(`subsystem` 등 새 문법)로 종료 1.
-  - D(`-newipc -typed`)는 B 와 같은 오류(136)다. `-typed` 는 cpp 에서 오류를 내지 않았다.
-- 결정적 사실: 실기 SDK `mach/std_types.defs:81` 은 `#ifdef NEW_MACH_IPC` 를 쓴다. 이것은 래퍼의 `-newipc` 가 정의하는 매크로다. 주석을 뺀 Python 비교 결과는 다음과 같다.
-  - `memory_object.defs`·`memory_object_default.defs` 는 SDK 와 Darwin 이 **같다**(0 줄 차이).
-  - `std_types.defs` 는 매크로 이름 한 줄만 다르다.
-  - `mach_types.defs` 는 119 줄 다르다(Darwin 이 뒤의 판).
-  - `machine/machine_types.defs` 는 SDK 가 `ARCH_INCLUDE`, Darwin 이 `#if defined(ppc)…` 다.
-
-  즉 OPENSTEP 4.2 시대의 MIG 입력은 SDK 판 `.defs` + `-newipc` 조합이다.
-- 07·config 변경은 없다. vm_object 탐침 2 는 다음 절(87)로 넘긴다.
-
-## 87. S5-P61 세부 계획 — SDK 판 `.defs` + `mig -newipc` 로 MIG 헤더 생성, vm_object 탐침 2 (코딩 전, 2026-10-02)
-
-사실(86.2, grep):
-- SDK 닫힘은 7 개다: `mach/memory_object.defs`·`mach/memory_object_default.defs`(→ `mach/std_types.defs`·`mach/mach_types.defs`), `std_types.defs:94` → `mach/machine/machine_types.defs` → `architecture/ARCH_INCLUDE.h` + `ARCH_INCLUDE(mach/, machine_types.defs)` = `mach/i386/machine_types.defs`. `mach_types.defs:143` 의 `<norma_vm.h>` 는 `#if KERNEL_SERVER` 안에 있어 사용자 쪽 생성에서는 읽지 않는다. 7 개 모두 실기 SHA 목록(`s4c-nextdev-headers-20261002.json`)에 있다.
-- `stage_headers.py` 는 Darwin 판 이름을 먼저 해석한다(SDK 루트는 뒤). `--subst` 는 `src/bsd/` 만 허용한다. 그래서 이 7 개는 `--nextdev` 스테이징으로 얻을 수 없다.
-
-설계:
-1. 스테이징(새 작은 도구 없이, 이번만 Python 스크립트를 `08_build/runs/tools/s5p61-stage-mig.py` 로 저장):
-   - 7 개를 `nextdev/<경로>` 로 바이트 복사한다. 각 파일은 실기 SHA 목록과 같아야 하고, 다르면 중단한다.
-   - `generated/` 의 config 생성물을 함께 둔다(Darwin `-I..` 대응, 사용자 쪽에서는 읽히지 않음).
-   - manifest(경로·출처·SHA)를 쓴다.
-2. 실행 `s5p61-mig-1`: `mig -arch i386 -newipc -Isrc/generated -Isrc/nextdev -DKERNEL -DKERNEL_USER -DSEQNOS -header stage/memory_object_user.h -user stage/memory_object_user.c -server stage/…_unused.c src/nextdev/mach/memory_object.defs`. default 도 같은 방식이고, 둘 다 반복 1 회(결정성)다.
-   - 예측: 성공, 반복 출력 동일.
-   - 헤더에서 확인할 것: `memory_object_*` 사용자 원형, 경로·시각 같은 비결정 문자열(Python).
-3. vm_object 탐침 2(`s5p61-probe-1`): `stage_headers.py --prefer-07 --nextdev vm/vm_object.c` 를 쓰고, 덧붙임은 `generated/norma_vm.h`·`generated/mach_pagemap.h`(0)와 `generated/mach/memory_object_user.h`·`generated/mach/memory_object_default.h`(2 의 출력, SHA 기록)다. 플래그는 ddm 템플릿(driverkit-1 포함)으로 O3·O3c·O2·`.i` 두 개다.
-   - 관찰: 컴파일, 25 함수 L1(객체 심볼 이름 범위), 크기.
-   - 07 은 바꾸지 않는다. 채택은 결과를 보고 다음 회차에 정한다.
-
-### 87.1 codex 교차검토(QS5) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| SDK `.defs` + `-newipc` 는 유력 후보일 뿐, 원본과 같다는 증명은 아님 | 86.2 | ✅ 86.2 결론을 "가장 근거 있는 후보(생성 헤더·바이너리 확인 전)" 로 읽는다 |
-| `std_types.defs` 가 `<mach/std_types.h>` 를 import → 생성 C 헤더는 컴파일 경로의 C 헤더(07/Darwin)에 기댐, vm_object 환경에서 `.i` 로 확인 필요 | SDK `std_types.defs:197` `import <mach/std_types.h>;` | ✅ 탐침 2 의 `.i` 에서 생성 헤더가 끌어오는 경로 확인 |
-| mig 에 `-nostdinc` 가 없으면 스테이징에 없는 이름이 실기 `/NextDeveloper/Headers` 로 샐 수 있음 | mig 래퍼는 `-*` 를 cpp 로 넘김(86.1) | ✅ `-nostdinc` 판을 따로 돌려 출력이 같으면 닫힘 증명 |
-| `-DSEQNOS` 는 생성 시그니처를 바꿈 | `memory_object.defs:133–136·151–153` — `serverprefix`/`serverdemux` 와 `msgseqno` 인자(서버 쪽) | ⚖️ Darwin 규칙(`Makefile.template:541·556`)이 사용자 쪽에도 `-DSEQNOS` 를 준다. `msgseqno` 는 서버 쪽 인자라 사용자 헤더 영향은 생성물로 확인(SEQNOS 없는 판 1 쌍도 생성해 비교) |
-
-### 87.2 결과 (S5-P61, 2026-10-02) — MIG 헤더 생성 성공, vm_object 컴파일·크기 진단
-
-- 스테이징 `s5p61-mig-stage-1`(`08_build/runs/tools/s5p61-stage-mig.py`): SDK 7 개는 실기 SHA 와 일치했고, `generated/` 는 07 사본이다.
-- `s5p61-mig-1`(SDK `.defs`, `-newipc`, `-DSEQNOS`)·`s5p61-mig-2`: 8 명령 모두 성공했다(collect 게시).
-  - 헤더 `memory_object_user.h` `440be767…`(6539 B)·`memory_object_default.h` `247dee04…`(1667 B)는 반복, `-nostdinc` 판, SEQNOS 없는 판이 모두 **바이트 같다**. 닫힘과 결정성을 확인했고, 사용자 헤더는 SEQNOS 영향이 없다.
-  - 생성 `.c` 의 차이는 첫 줄 `#include "<헤더 이름>"` 뿐이다(diff).
-  - 헤더에 경로·날짜 문자열은 없다(Python 정규식).
-  - include 는 `mach/kern_return.h`·`port.h`·`message.h`·`std_types.h`·`mach_types.h` 다.
-  - 원형은 `memory_object_init` 등 10 개이고 `memory_object_release` 는 없다(Darwin vm_object.c:85 가 스스로 원형을 둔다).
-- vm_object 탐침 2(`s5p61-probe-1`, ddm 템플릿 플래그, 덧붙임 4 개 SHA 기록): 5 명령 모두 성공했다. 두 `.i` 는 같다(`a0ac0b05…`). O3/O3c `__text` 5594 B·재배치 297, O2 4446 B.
-  - L1 `--place-from-image` 는 크기가 달라 Δ 가 하나로 정해지지 않아 함수 판정이 없다(`__text` unverified).
-  - 객체 심볼 간격으로 크기를 비교(Python)했다.
-    - 원본 25 함수 중 20 개는 크기가 같다.
-    - 원본에 없는 `_vm_object_deactivate_pages_first` 88·`_adjust_vm_object_cache` 164·`_vm_object_cache_steal` 348(합 600)이 있다.
-    - `_vm_object_lookup` 192/188, `_vm_object_enter` 124/120, `_vm_object_remove` 104/100, `_vm_object_cache_clear` 336/332 로 각 +4 다.
-    - 끝 `_vm_object_name` 10/9 는 끝 정렬 차이다.
-  - 계산: 5594 − 600 − 16 = 4978 이고, 원본은 4977 + 끝 채움 1 이다.
-- 다음(88 절, 다음 회차): 위 세 전역 제거(복원 수정), 네 함수의 4 B 원인(바이트 비교), cache_trim panic 문자열(`vm_object_deactivate: …`, 86 절 QS3)을 다룬다.
-
-## 88. S5-P62 세부 계획 — vm_object.c 복원 수정(탐침 3) (코딩 전, 2026-10-02)
-
-사실(capstone diff, Python, grep):
-- `_vm_object_lookup`(원본 0x179630)·`_vm_object_remove`(0x179764) 의 차이는 해시 계산이다.
-  - 원본: `and eax,0x7f` → `lea edx,[eax*8+0x1f6f50]`, 즉 `pager % 128`.
-  - Darwin: `shr eax,5; and eax,0x1ff8`, 즉 `(pager >> 8) % 1024`(`vm_object.c:976–978` `VM_OBJECT_HASH_SHIFT 8`, `:121` `VM_OBJECT_HASH_COUNT 1024`).
-  - 나머지 명령은 재배치 필드 밖에서 같다(차이 목록에 다른 명령 없음).
-  - 원본 `_vm_object_hashtable` 0x1f6f50 에서 다음 심볼 `_vm_object_list` 0x1f7350 까지 1024 B = 128 × 8(`queue_head_t`).
-  - NeXTMach `vm_object.c:976–977` 은 `#define vm_object_hash(pager) (((unsigned)pager)%VM_OBJECT_HASH_COUNT)`(시프트 없음)이고 `:109` `VM_OBJECT_HASH_COUNT 521` 이다. 128 은 어느 참조에도 없다.
-- 원본 문자열 0xe0bb2 `vm_object_deactivate: I'm sooo confused.`(strings.tsv:1393) = NeXTMach `vm_object.c:564`. Darwin `:576` 은 `vm_object_cache_trim: …` 이다. `vm_object_cache_steal: …` 문자열은 원본 strings 에 없다(:1391–1398 사이에 없음).
-- 원본에 없는 전역 3 개: `vm_object_deactivate_pages_first`(Darwin :549–561, 주석 포함), `adjust_vm_object_cache`(:584–593), `vm_object_cache_steal`(:1113–1137). 원본 객체의 25 함수가 이것들 없이 연속으로 크기가 맞는다(87.2).
-
-탐침 3(스테이징 사본에서, 복원 수정 D014 R1–R5 + 작성 W 규칙):
-- E1(R1·R2): 위 세 함수 정의와 바로 앞 주석 블록을 지운다(헤더 `vm_object.h:248` 의 원형은 코드에 영향이 없으므로 그대로 둔다).
-- E2(R1, NeXTMach :564 문자열): `vm_object_cache_trim` 의 panic 문자열을 바꾼다.
-- E3: `vm_object_hash` 를 NeXTMach :976–977 형태(시프트 없음)로 바꾸고 `VM_OBJECT_HASH_SHIFT` 정의를 지운다. `VM_OBJECT_HASH_COUNT` 1024 → **128** 은 참조에 없는 값이라 **작성(D016, W3 표시)** 으로 기록한다(근거: `and 0x7f`, 표 크기 1024 B).
-- 예측(R5/W5):
-  - `__text` 4977 또는 4978 B(끝 채움). 25 함수 크기가 모두 원본과 같다.
-  - `vm_object_hashtable` 은 O3 에서 1024 B `__common`, O3c 에서 common 1024 다.
-  - 문자열 `__cstring` 에 `vm_object_cache_steal` 이 없다.
-  - L1(O3c, 객체 심볼 이름 범위)은 25 함수 MATCH 거나 bss/common 의존 MATCH_UNVERIFIED 다.
-  - 남는 차이가 있으면 함수별로 기록한다(변형 한도 함수당 3).
-- 이번 회차에는 07 을 바꾸지 않는다. 일치하면 다음 회차에 채택 절차(옵션 2 개 config 반영·회귀 73·MIG 헤더 07 배치·표)를 계획한다.
-
-### 88.1 codex 교차검토(QS6) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `vm_object_cache_steal` 은 :1138 에서 끝남(1137 아님) | `sed -n 1137,1139p`: 1137 `return(num_removed);`, 1138 `}` | ✅ 정정(:1113–1138) |
-| E1 은 다른 호출처의 인라인·최적화를 바꿀 수 있음 → 수정 뒤 크기·바이트 재확인 | `adjust_vm_object_cache`(:588–594)가 `vm_object_cache_trim()` 호출(164 B, 인라인) | ✅ 수정 뒤 25 함수 바이트를 모두 비교 |
-| 원본 문자열과 NeXTMach 의 trim panic 이 같음(codex 는 :563 이라 함) | NeXTMach :563 은 `if (…)`, **:564** 가 `panic("vm_object_deactivate: …")` — 내 표기 :564 가 맞음 | ⚖️ 사실 ✅, 줄 번호는 기각 |
-| 그 문자열을 원본의 어느 함수가 참조하는지는 문자열 목록만으로 미확정 | — | ✅ L1 의 `__cstring` 참조 검증으로 확인 |
-| 128 이라는 **동작**은 근거 있음, 소스 철자(`% 128`·`& 127`·`& (COUNT-1)`)는 미확정 → "의미 복원, 철자는 추정" | 원본 `vm_object_init` 의 루프 끝 `mov ecx, 0x1f7348`(= 0x1f6f50 + 127×8, Python), 빌드는 `0x1ff8`(1023×8) | ✅ MODIFICATIONS/W3 표시에 "값 128 은 바이너리에서(표 1024 B, `and 0x7f`, init 루프 끝 0x1f7348), 철자는 NeXTMach 형태를 따른 추정" 으로 기록 |
-| `VM_OBJECT_HASH_COUNT` 의 모든 사용처 확인 | grep: :121 정의, :126 배열, :179 init 루프, :978 해시 매크로(:992·:1040·:1065 사용) | ✅ 모두 E3 에 포함됨 |
-
-### 88.2 결과 (S5-P62, 2026-10-02) — 탐침 3: 23/25 MATCH
-
-- 탐침 `s5p62-probe-1`(스테이징 소스 sha256 `fe3cecb0…`, diff `06_reconstruction/evidence/x86-vm_object-probe3.diff`): 5 명령 모두 성공했고, 두 `.i` 는 같다(`c30167e5…`).
-  - `__text` 4978 B·재배치 258(예측 4977–4978 범위). O3 `__common` 1336 B(해시표 1024 포함).
-  - L1 O3c: placement `__text` 0x1789d0, `__data` 0x1e0b38. **23 MATCH**, 2 DIFF(바이트 차이 49, 참조 차이 3).
-  - O3 는 15 MATCH_UNVERIFIED(`__common` 미배치) + 8 MATCH + 2 DIFF 다.
-- 남은 차이 1: `_vm_object_deactivate_pages`(42 B, 참조 3).
-  - 원본은 페이지마다 `vm_page_lock_queues()` 를 잡고 `call 0x17b810` 을 한다(루프 안 잠금).
-  - 빌드는 Darwin 의 static `_vm_object_deactivate_pages(object, age)` 가 인라인되어 루프 전체를 잠근다.
-  - NeXTMach `vm_object.c:533–548` 의 `vm_object_deactivate_pages` 는 루프 안에서 잠그고 `vm_page_deactivate(p)` 를 부른다. 이것이 원본 구조와 같다.
-- 남은 차이 2: `_vm_object_name`. 원본 `55 89 e5 31 c0 89 ec 5d c3` 은 `return 0`. Darwin(`:1539` `return ((port_t)object)`)과 NeXTMach(`:1840` 이름 포트 조회)는 모두 다르다. → 작성(W) 후보다.
-- 다음(89 절): `vm_object_deactivate_pages` 를 NeXTMach 판으로 바꾸고 static 도우미를 지운다(복원 수정). `vm_object_name` 은 `return 0` 계열로 작성한다(W1–W5).
-
-## 89. S5-P63 세부 계획 — vm_object 탐침 4: `vm_object_deactivate_pages` NeXTMach 본문, `vm_object_name` 작성 (코딩 전, 2026-10-02)
-
-근거(88.2, 원본 바이트):
-- 원본 `_vm_object_deactivate_pages`(0x179084, 88 B)는 루프 안에서 잠근다. `call 0x17b810` = `_vm_page_deactivate`(symbols.tsv:3499). 도우미 함수나 `vm_page_deactivate_first` 호출은 없다.
-- 원본 `_vm_object_name`(0x179d38, 9 B)은 `xor eax,eax` 로 0 을 돌려준다.
-
-수정(탐침 3 스테이징 위에서):
-- E4(D014 R1·R2, NeXTMach D013): Darwin :506–528(static `_vm_object_deactivate_pages` 와 그 주석)을 지운다. Darwin `vm_object_deactivate_pages`(:538–542)의 머리(`void …(object)`·K&R 선언)는 남긴다(:90 원형 `void` 와 맞추기 위해서다. NeXTMach 의 암시적 `int` 머리는 충돌한다). 본문만 NeXTMach `vm_object.c:536–547`(지역 `p, next`, 루프 안 `vm_page_lock_queues()`·`vm_page_deactivate(p)`·`vm_page_unlock_queues()`)로 바꾼다.
-- E5(D016 작성, W1–W5): `vm_object_name` 본문을 `return (PORT_NULL);` 로 바꾼다. W3 표시를 한다. `PORT_NULL` 은 Darwin `mach/port.h:226`(07 `:239`)의 정의(`(port_name_t) 0`)다.
-  - W1: Darwin(`object` 반환)·NeXTMach(이름 포트 조회)·Mach4(이 함수 없음, 85 절 srcdefs)로는 원본 바이트가 나오지 않는다.
-  - 변형 1/3 이다.
-- 예측(W5/R5):
-  - `__text` 4978 B → `deactivate_pages` 길이 같음(88), `vm_object_name` 9 B + 채움.
-  - 재배치 258 − 3(Darwin 판 잠금 변수 참조 차이분 재계산은 빌드로) 이다.
-  - L1 O3c 25/25 MATCH, 차이 0 이다.
-  - O3 는 `__common` 때문에 MATCH_UNVERIFIED 다(36.1 절차는 채택 회차에).
-- 일치하면 다음 회차(90)에 채택 계획을 세운다. 채택 항목: NORMA_VM·MACH_PAGEMAP config(hypothesis 0)·MIG 헤더 07 배치·`.i` 채택 검사·회귀 73·36.1·경계·`__data` 확인·표.
-
-### 89.0 자체 정정(codex QS7 회신 전, Python 줄 출력으로 확인)
-
-89 절의 줄 번호를 정정한다. 근거는 `vm_object.c` 줄 출력이다(Darwin 505–547, NeXTMach 533–548).
-- 지울 Darwin 도우미: 주석 :506–513, 정의 :514–533. 뒤의 빈 줄 :534 까지 지운다(89 절의 ":506–528" 은 틀림).
-- 남길 Darwin 머리: 주석 :535–542, `void vm_object_deactivate_pages(object)` :543, 선언 :544, `{` :545. 바꿀 본문은 :546 `_vm_object_deactivate_pages(object, FALSE);` 한 줄이다(89 절의 ":538–542" 는 틀림).
-- 들여올 NeXTMach 본문: `vm_object.c:537–548`(지역 선언 `register vm_page_t p, next;` 부터 `while` 블록의 닫는 `}` 까지)이다. 89 절의 ":536–547" 은 한 줄씩 어긋났다(:536 은 `{`).
-
-### 89.1 codex 교차검토(QS7 은 회신 지연으로 중단, QS7b 범위 축소) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 89.0 의 범위(지울 :506–534, 남길 :535–545, 바꿀 :546 ← NeXTMach :537–548)는 정확하고 결과 함수는 문법상 온전 | 89.0 의 줄 출력(Python) | ✅ |
-| 지정 범위 안에는 지운 도우미·`vm_page_deactivate_first` 참조가 남지 않음, 파일 전체는 미확인 | 탐침 3 스테이징 파일 전체 grep(아래 결과) | ✅ 파일 전체 grep 으로 보완 |
-- 파일 전체 grep(탐침 3 스테이징): 참조는 :508·:515·:527·:547 네 곳이고, 모두 지우거나 바꿀 범위 안이다(스테이징은 W3 표시 1 줄 때문에 Darwin 보다 +1).
-
-### 89.2 결과 (S5-P63, 2026-10-02) — 탐침 4: O3c **OBJECT_MATCH 25/25**
-
-- 탐침 `s5p63-probe-1`(스테이징 소스 sha256 `98869e38…`, diff `06_reconstruction/evidence/x86-vm_object-probe4.diff`): 5 명령 모두 성공했다.
-  - O3 `daa551c6…`, O3c `c8b1bd8b…`, O2 `042b05d9…`(다름). 두 `.i` 는 같다(`80676253…`).
-  - `__text` 4977 B(원본 [0x1789d0, 0x179d41) 와 같은 길이)·재배치 258, `__data` 378 B.
-- L1(객체 심볼 이름 범위):
-  - O3c **OBJECT_MATCH**: 25 MATCH, 바이트·참조 차이 0, `__data` 포함.
-  - O3 는 10 MATCH + 15 MATCH_UNVERIFIED(`__common` 1336 B 미배치)다. 36.1 절차 대상이다.
-- 변형 수: `vm_object_deactivate_pages` 1, `vm_object_name` 1(작성), 해시 1.
-- 다음(90 절): 채택 계획을 세운다(07 반영, NORMA_VM·MACH_PAGEMAP config, MIG 헤더 07 배치·출처, `.i` 채택 검사, 회귀 73, 36.1, 경계, 표).
-
-## 90. S5-P64 세부 계획 — `vm/vm_object.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python, 탐침 4):
-- 경계: 앞 0x1789cf `00` 1 B. 확정 `x86-vm_mem_region` 의 gap_after `1 x 00 (min align 2^2)` 와 같은 바이트다. 뒤 0x179d41–0x179d44 `00 00 00` 3 B = 4 정렬 최소 채움 3 이다.
-- O3c common 14 개는 모두 원본 심볼이 있고 크기 ≤ 간격이다(예: `_vm_object_hashtable` 1024/1024, `_kernel_object_store` 88/88, `_vm_object_count` 4/16).
-- `.i` 표지 131 개 가운데 07 에 없는 것은 다음과 같다.
-  - 대상 `src/vm/vm_object.c` 다.
-  - 생성물 4 개: `generated/norma_vm.h`·`generated/mach_pagemap.h`·`generated/mach/memory_object_user.h`·`generated/mach/memory_object_default.h`.
-  - Darwin 헤더 9 개: `components/driverkit-1/driverkit/Device_ddm.h`, `src/driverkit/xpr_mi.h`, `src/kern/xpr.h`, `src/mach/vm_policy.h`, `src/machdep/i386/xpr.h`, `src/machdep/machine/xpr.h`, `src/vm/memory_object.h`, `src/vm/vm_fault.h`, `src/vm/vm_pageout.h`.
-
-채택 절차:
-1. config: `config_options.tsv` 의 `norma_vm`·`mach_pagemap` 을 `undetermined` 에서 `hypothesis`(값 0)로 바꾼다. 근거:
-   - C/H 의 쓰임은 `#if` 뿐이다(85 절). 그래서 0 정의는 정의 안 함과 같다.
-   - vm_object 는 0 으로 OBJECT_MATCH 다. 단 `vm_object.c:60–62` 의 `NORMA_VM` 분기는 include 뿐이라 값의 직접 증거는 약하다. 그러므로 `confirmed` 가 아니라 `hypothesis` 다.
-
-   `gen_config_headers.py` 로 다시 생성하고 `--check` 를 돌린다. `meta_features.h` 에 import 가 2 개 늘어난다.
-2. 회귀: 확정·부분 73 객체를 새 `meta_features.h` 로 다시 빌드해 기준과 바이트가 같은지 본다. 대상은 s5p54-regress.cmd 71 + ddm(s5p55 명령) + kalloc(s5p58 명령)이다. 기준 해시는 s5p54 기준 json 과 s5p55/s5p58 산출이다.
-3. MIG 헤더를 `07_kernel/generated/mach/` 에 둔다(s5p61-mig-1 출력 그대로, sha `440be767…`·`247dee04…`).
-   - `07_kernel/generated/README` 에 "mach/ 는 MIG 생성물(입력·명령·도구 해시는 PROVENANCE)" 을 더한다.
-   - PROVENANCE 행: 생성 도구(실기 `/usr/bin/mig` `6341c61c…`, `/usr/lib/migcom3` `7676a202…` 실기 전용, `/lib/i386/cpp` `a21a9f03…`), 명령, 입력 SDK `.defs` 7 개 SHA(실기 목록), 실행 ID `s5p61-mig-1`, license TBD(D017).
-4. `07_kernel/src/vm/vm_object.c`: 탐침 4 본문 + 머리말 뒤 `Modified` 주석을 넣는다. W3 표시는 이미 2 곳(해시 수, `vm_object_name`) 있다. 주석만 더한 것인지 Python 으로 확인한다.
-   Darwin 헤더 9 개는 원문 그대로 채택한다(PROVENANCE 행, Darwin 아카이브 SHA).
-5. 최종 빌드 `s5p64-build-1`(07 스테이징, 덧붙임 없음). 예측: O3 `daa551c6…`·O3c `c8b1bd8b…`(탐침 4 와 같음). 근거는 주석만 다르고, 생성 헤더가 같은 바이트이며, `meta_features.h` 의 import 2 개는 `#if` 의미가 같다는 것이다.
-   이어서 L1(O3c OBJECT_MATCH)을 확인하고 36.1 을 한다(재배치 258 대응, 밖 바이트 동일, common 크기 ≤ 간격).
-6. 판정은 **A** 다(OBJECT_MATCH + 경계 앞 1·뒤 3 최소 채움 00). 표: objects_confirmed +1, functions +25(high). source_id 는 `darwin01`, 일부 `+authored`(`vm_object_name`), NeXTMach 출처(`vm_object_deactivate_pages` 본문, 해시 매크로, panic 문자열)를 기록한다. MODIFICATIONS·증거·diff 를 남긴다.
-
-### 90.1 codex 교차검토(QS8) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 작성 `vm_object_name` 은 A 를 막지 않음(A 는 객체 일치 기준). 단 A 는 O3 로의 36.1 이전(common·재배치·`__data`·경계)이 성립할 때만 | README:23 A 정의, 89.2 의 O3 결과(15 MATCH_UNVERIFIED) | ✅ 판정은 5–6 단계 결과 뒤 |
-| `hypothesis` 는 역사적 값 증명이 아님 → `undetermined` 유지하고 빌드값만 따로 두라 | config 표의 선례: `norma_ether` 0 `hypothesis`("bytes cannot confirm it", plan 67), `mach_kdb` 0 `hypothesis` | ⚖️ 사실은 수용, 결론은 기각 — 표의 `hypothesis` 는 선례상 "빌드에 쓰는 가설 값" 이다(`gen_config_headers.py` 는 `undetermined` 를 생성하지 않음). 근거 칸에 "역사적 값은 미확정, `#if` 전용이라 0 = 미정의" 를 명시 |
-| README 의 "모든 파일은 gen_config_headers 가 씀" 문구를 고쳐야 함 | `07_kernel/generated/README` 전문 | ✅ `mach/` 예외를 명시하도록 바꿈 |
-| ddm·kalloc 기준 산출물을 정확히 고정, 같은 명령·플래그로 비교. kalloc 이 같다는 것은 등급 유지 근거일 뿐 | s5p54 기준 json 형식(`base`: 이름→산출 경로) | ✅ 기준에 `O3__ddm.o`·`O3c__ddm.o` → `s5p55-build-1/out`, `O3__kalloc.o`·`O3c__kalloc.o` → `s5p58-build-1/out` 을 더한 새 기준 json |
-| 최종 O3 이전에서 `__data` 재확인, `vm_object_name` 함수 행에 authored 표시 | — | ✅ |
-
-### 90.2 결과 1 (S5-P64, 2026-10-02) — config·MIG 헤더 배치·회귀
-
-- `config_options.tsv`: `norma_vm`·`mach_pagemap` 을 `hypothesis` 0 으로 바꿨다. 근거 칸에 "빌드 값, 역사적 값 미확정" 을 적었다. 행 수 26 은 그대로다.
-- `gen_config_headers.py` 를 다시 돌렸고 `--check` 를 통과했다.
-  - 새 파일 `norma_vm.h`(`c278bc14…`)·`mach_pagemap.h`(`8394f10f…`)는 탐침 덧붙임과 바이트가 같다.
-  - `meta_features.h` import 는 20 에서 22 가 됐다.
-  - 다른 생성 파일은 s5p58 사본과 같다(cmp).
-- `07_kernel/generated/mach/memory_object_user.h`(`440be767…`)·`memory_object_default.h`(`247dee04…`)는 s5p61-mig-1 출력 그대로다. `07_kernel/generated/README` 를 고쳐 `mach/` 예외를 명시했다.
-- 회귀 `s5p64-regress-1`: 73 객체 / 75 명령(s5p54 71 + ddm O3·O3c + kalloc O3·O3c). 기준 `08_build/runs/tools/s5p64-regress-baseline.json` 은 s5p54 기준 71 의 해시를 다시 확인하고 4 개를 더한 것이다. 스테이징은 `--prefer-07 --nextdev` 소스 73 개다. 결과 **75/75 바이트 동일**이다.
-
-### 90.2 결과 2 (S5-P64, 2026-10-02) — `vm_object.c` **A**
-
-- `07_kernel/src/vm/vm_object.c`: 탐침 4 본문 + `Modified` 주석 1 줄. 주석만 더한 것인지 Python 으로 확인했다.
-- Darwin 헤더 9 개는 원문 그대로 채택했다(스테이징 사본과 SHA 같음).
-- 최종 빌드 `s5p64-build-1`(덧붙임 없음):
-  - 예측 일치: O3 `daa551c6…`·O3c `c8b1bd8b…`. 두 `.i` 는 같다(`ade38440…`, 탐침 4 와는 `Modified` 주석 줄만큼 다름).
-  - L1 O3c OBJECT_MATCH 25/25(`__data` 포함).
-  - 36.1: 재배치 258 대응(같은 형태 102, local→extern 122, scattered→extern 34), 밖 바이트 동일. common 14 개 크기 ≤ 간격.
-  - 경계: 앞 1·뒤 3 B 최소 채움 00.
-  - `.i` 표지 131 개가 모두 07 에 있다.
-- 판정 **A**. 표 변경: functions +25(high) → 569(high 509, medium 60), objects_confirmed 64(A 62, A* 2). PROVENANCE +16 → 345 행(vm_object.c, Darwin 헤더 9, 생성 config 헤더 4, MIG 헤더 2). MODIFICATIONS +1, 증거 `x86-vm_object.md`·`.diff`.
-- **내 누락 정정**: 81 절에서 만든 `generated/uxpr.h`·`generated/xpr_debug.h` 의 PROVENANCE 행이 없었다. 이번에 더했다. 07 의 생성 헤더 23 개 모두에 행이 있는지 셸 루프로 확인했다.
-
-## 91. S5-P65 세부 계획 — vm/ 미채택 7 파일 일괄 진단(채택 없음) (코딩 전, 2026-10-02)
-
-계기: vm_object 채택으로 생긴 기반이 있다. 옵션 `NORMA_VM`·`MACH_PAGEMAP` 헤더, MIG `generated/mach/memory_object_{user,default}.h`, Darwin 헤더 9 개(`vm/vm_fault.h`·`vm/vm_pageout.h`·`vm/memory_object.h`·`mach/vm_policy.h`·xpr 계열)다. 같은 이유로 막혔을 수 있는 vm/ 후보를 다시 본다.
-
-대상(objects.tsv, Python 추출, Darwin 후보 첫째 열 기준, 07 에 없음):
-- `vm/vm_fault.c` seq 204 [0x172038, 0x173a68)
-- `vm/vm_kern.c` 206 [0x173ad4, 0x174600)
-- `vm/vm_map.c` 207 [0x174600, 0x1787c1)
-- `vm/vm_pageout.c` 210 [0x179d44, 0x17a23e)(확정 vm_object 바로 뒤)
-- `vm/vm_policy.c` 212 [0x17a338, 0x17a9b1)
-- `vm/vm_resident.c` 213 [0x17a9b4, 0x17b9dd)
-- `vm/vm_unix.c` 215 [0x17bd28, 0x17c409)
-
-설계:
-1. 스테이징 `stage_headers.py --prefer-07 --nextdev` 에 7 소스를 넣는다. 07·config 는 바꾸지 않는다.
-2. 실행 `s5p65-pre-1`: 소스마다 O3c(공통 변형) 1 명령이다. 플래그는 ddm 템플릿(driverkit-1·nextdev)이고 출력 이름은 `O3c__<이름>.o` 다. 실패가 있으면 collect 가 거부하므로 로그를 직접 읽는다(이전 관행). 성공한 것만 따로 정리한다.
-3. 관찰(Python):
-   - 컴파일 성공 여부와 첫 오류.
-   - 객체 심볼 간격 기준의 함수별 크기 대 원본(원본 심볼 간격, 구간 끝은 objects.tsv `text_end`).
-   - 빌드에만 있는 함수 / 원본에만 있는 함수.
-   - 크기가 모두 같은 파일만 L1(객체 심볼 이름 범위)을 돌린다.
-4. 기록: 92 절 이후의 후보 우선순위표(파일별 "차이 요약·예상 원인"). 판정·채택은 없다.
-
-### 91.1 codex 교차검토(QS9) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 인용한 seq·범위 7 개 일치 | objects.tsv 출력(위 awk, seq 204–215) | ✅ |
-| 원본 심볼 간격에는 심볼 없는 static 함수·채움이 섞일 수 있음 → 크기 차이를 곧바로 "함수 크기 차이" 로 적지 말 것 | vm_object 에서도 끝 채움 1 B 차이가 있었음(87.2) | ✅ 간격 차이는 "간격 차이" 로 적고, 빌드에만 있는 static 은 따로 표시 |
-| 마지막 함수 크기는 `text_end` 추정에 기댐(vm_unix 는 상한 215 B 뒤) | awk: seq 215 end 0x17c409, end_upper_bound(열 7) 확인 | ✅ 마지막 함수 비교는 "잠정" 표시 |
-| 한 명령 실패가 collect 를 막음 → 파일별 수집 | kr_run collect 는 status 전부 0 요구(:236 부근) | ✅ 파일마다 실행 ID 하나(`s5p65-pre-<이름>`) |
-| "크기 모두 같을 때만 L1" 은 부분 일치를 숨김 | — | ✅ 컴파일된 모든 파일에 L1 을 돌리고 함수별 결과·배치 여부를 기록 |
-
-### 91.2 결과 (S5-P65, 2026-10-02) — vm/ 7 파일 진단(채택 없음)
-
-실행 `s5p65-pre-<이름>`(파일마다 하나, O3c 1 명령). 스테이징 `s5p65-pre-stage-1`(07 우선, 덧붙임 없음). 요약은 `09_validation/reconstruction/s5p65-pre-summary-20261002.json`, 파일별 L1 은 `s5p65-pre-l1-<이름>-O3c-20261002.json` 이다. 크기는 심볼 간격 기준이며, 마지막 함수는 `text_end` 추정이라 잠정이다(91.1).
-
-| 파일 | 컴파일 | `__text` 빌드/원본 | 간격 같은 함수 | 차이 요약 | L1 |
-|---|---|---|---|---|---|
-| vm_policy | ✅ | 1657/1657 | 3/4(+ 빌드 전용 static 3) | `_vm_policy_apply` 간격 차이는 원본에 심볼 없는 static 3 개가 그 간격 안에 있어서다 | **OBJECT_MATCH 7/7**(`__text` 0x17a338) → 다음 채택 후보 |
-| vm_fault | ✅ | 6688/6704 | 4/5 | `_vm_fault_unwire` 152/168(−16) | 배치 안 됨 |
-| vm_resident | ✅ | 4345/4137 | 16/17 | 빌드 전용 `_vm_page_deactivate_first`(vm_object 와 같은 후대 추가 계열), `_vm_page_startup` 1048/1028 | 배치 안 됨 |
-| vm_map | ✅ | 17813/16833 | 25/29 | 빌드 전용 `_vm_map_find_entry`·`_vm_map_reallocate`(그 둘이 원본 간격 안에 들어가는지는 미확인), `_vm_map_insert`·`_find`·`_copy`·`_region` 간격 차이 | 배치 안 됨 |
-| vm_kern | ✅ | 3120/2860 | 6/13 | 빌드 전용 `_kmem_alloc_pages`·`_kmem_remap_pages`, 7 함수 간격 차이 | 배치 안 됨 |
-| vm_pageout | ✅ | 1408/1274 | 0/2 | `_vm_pageout_scan` 932/864, `_vm_pageout` 476/410 | `__data` 만 배치 |
-| vm_unix | ❌ | — | — | `vm_unix.c:34` `cputypes.h` 없음 | — |
-
-우선순위(다음 계획 후보):
-1. vm_policy 채택. 36.1(O3), 경계, `.i` 검사가 필요하다.
-2. vm_fault(차이 1 함수).
-3. vm_resident(후대 함수 제거 + 1 함수).
-4. 나머지는 차이가 크다.
-
-## 92. S5-P66 세부 계획 — `vm/vm_policy.c` 채택(Darwin 그대로) (코딩 전, 2026-10-02)
-
-사실(91.2, Python):
-- 원본 [0x17a338, 0x17a9b1) 1657 B. 원본 심볼 4 개(`_vm_policy_apply`·`_vm_set_policy`·`_vm_fault_range`·`_vm_deactivate`)가 있고, 빌드에는 static 3 개(`_deactivate_object` 440·`_deactivate_range` 604·`_set_policy` 956)가 더 있다.
-- 탐침 `s5p65-pre-vm_policy`(O3c, 07 우선 스테이징): 섹션은 `__text` 1657 B·재배치 50 하나뿐이다(`__data`·common 없음). L1 OBJECT_MATCH 7/7, `__text` 는 심볼로 배치된다.
-- 경계:
-  - 앞 0x17a336–0x17a337 `00 00` 은 확정 `x86-vm_pager` 의 gap_after `2 x 00` 과 같은 바이트다.
-  - 뒤 0x17a9b1–0x17a9b3 `00 00 00` 3 B = 4 정렬 최소 채움 3 이다(다음 0x17a9b4 는 vm_resident 구간 시작).
-- 고지: APSL + `Copyright (c) 1992 NeXT, Inc.`(:26) 다.
-
-절차:
-1. `07_kernel/src/vm/vm_policy.c` = Darwin 원문 그대로(R 수정 없음, PROVENANCE `none (verbatim)`, NeXT 고지 표기).
-2. 빌드 `s5p66-build-1`(07 스테이징, ddm 템플릿 플래그 5 명령: `.i`·O3·O3c·`_c.i`·O2).
-   - 예측: O3c 는 탐침과 같은 해시, O3 는 common 이 없으므로 O3c 와 같은 바이트(해시 같음 예상), 두 `.i` 같음.
-   - 탐침 해시는 빌드 전에 Python 으로 기록한다.
-3. 판정: L1 O3·O3c OBJECT_MATCH, 경계 증명, `.i` 표지 전부 07 존재(없으면 원문 그대로 채택)이면 **A** 다. 7 함수 중 원본 심볼 4 개만 functions.tsv(high)에 올린다. static 3 개는 원본 심볼이 없으므로 행을 만들지 않고 증거에만 적는다(이전 관행 확인 후).
-4. 헤더 채택이 있으면 회귀가 필요한지 판단한다(원문 그대로 채택은 07 우선 스테이징 바이트가 같아 회귀 불필요 — 이전 관행).
-- 정정(코딩 전, 선례 확인): functions.tsv 는 static 함수도 행으로 둔다. 예: `x86-0x1898bc` 의 symbol 칸 `(static dma_buf_sm_create; Ghidra FUN_001898bc)`. 그래서 7 함수 모두 행으로 올린다(static 3 개는 같은 표기).
-- 탐침 O3c sha256 `75be59ca…`(빌드 전 기록).
-
-### 92.1 codex 교차검토(QS10 은 지연으로 중단, QS10b 축약) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| README 정의상 A 가능. 단 OBJECT_MATCH 가 객체 전체와 참조를 덮고 경계 바이트가 독립 확인되어야 | 92 절 Python: 앞 `00 00`, 뒤 `00 00 00`, 최소 채움 3; static 3 개 = Ghidra `FUN_0017a4f0`·`FUN_0017a594`·`FUN_0017a6f4`(주소 일치, Python) | ✅ 최종 빌드에서 다시 확인 |
-| 36.1 불필요(`__data`·common·bss 없음) | 탐침 섹션 목록 `[('__text', 1657, 50)]` | ✅ |
-| A 는 객체 일치이지 역사적 원문 증명이 아님 | README:22 | ✅ 기존 문구 그대로 |
-
-### 92.2 결과 (S5-P66, 2026-10-02) — `vm_policy.c` **A**
-
-- 07 원문 그대로 채택했다(sha `aca8ff47…`).
-- 빌드 `s5p66-build-1`: 예측 일치. O3 = O3c = 탐침 `75be59ca…`, 두 `.i` 같음, O2 다름.
-- L1 OBJECT_MATCH 7/7(참조 50 검증). 경계 앞 `00 00`·뒤 `00 00 00` 을 다시 확인했다. `.i` 표지 123 개 모두 07 에 있다.
-- 표: functions +7 → 576, objects_confirmed +1 → 65(A 63), PROVENANCE +1 → 346, 증거 `x86-vm_policy.md`. 헤더 채택이 없어 회귀는 필요 없다.
-
-## 93. S5-P67 세부 계획 — `vm/vm_fault.c` 탐침(복원 수정 1 곳) (코딩 전, 2026-10-02)
-
-사실(91.2, capstone diff, Python):
-- 원본 [0x172038, 0x173a68) 6704 B, 5 함수(`_vm_fault`·`_vm_fault_wire`·`_vm_fault_unwire` 0x1735f4·`_vm_fault_copy_entry`·`_vm_fault_wire_fast`). Darwin 그대로 빌드는 6688 B 이고 4 함수의 간격이 같다.
-- `_vm_fault_unwire` 168/152 B:
-  - 원본은 `pmap_extract` 결과가 0 이면 `push 0x1e09c1; call _panic` 한다. 문자열은 "unwire: page not in pmap"(Python 으로 원본 바이트를 읽음).
-  - Darwin `vm_fault.c:1234–1235` 는 `if (pa == (vm_offset_t) 0)` / `continue;` 다.
-  - NeXTMach `vm_fault.c:1251–1253` 은 `if (pa == (vm_offset_t) 0) {` / `panic("unwire: page not in pmap");` / `}` 다.
-
-탐침(스테이징 사본만, D014 R1·R2, NeXTMach D013):
-- E1: Darwin :1235 `continue;` 를 NeXTMach :1252 `panic("unwire: page not in pmap");` 로 바꾼다. 중괄호는 Darwin 문체를 유지해 넣지 않는다(코드 동일). 변형 1/3.
-- 예측(R5): `__text` 6704 B, 5 함수 간격이 모두 원본과 같고, `__cstring` 에 그 문자열이 추가된다. L1(O3c, 객체 이름 범위)은 OBJECT_MATCH 또는 bss/common 의존 MATCH_UNVERIFIED 다. O3·O3c·O2·`.i` 두 개를 빌드한다.
-- 일치하면 다음 회차에 채택 계획(36.1·경계·`.i` 검사·표)을 세운다.
-
-### 93.1 codex 교차검토(QS11) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 줄 번호 정확, 수정은 문법상 온전하고 최소 | 93 절 `cat -A` 출력(Darwin :1230–1240), NeXTMach :1251–1253 `sed` | ✅ |
-| 다른 차이: Darwin `entry->vme_start` 대 NeXTMach `entry->start` → Darwin 필드 유지 | 두 `sed` 출력 | ✅ (계획도 Darwin 필드 유지) |
-
-### 93.2 결과 (S5-P67, 2026-10-02) — 탐침 1: **OBJECT_MATCH 5/5**
-
-- `s5p67-probe-1`(diff `06_reconstruction/evidence/x86-vm_fault-probe1.diff`): O3 = O3c `9148cba6…`(common 없음), O2 `0ada66f7…` 다름, 두 `.i` 같음(`8b7528d3…`).
-- `__text` 6704 B·재배치 275 로 예측과 같다. `__data` 282 B.
-- L1(O3, 객체 이름 범위): OBJECT_MATCH 5/5, 차이 0. `__data` 는 L1d 로 추론·검증된다.
-- 다음(94): 채택. 경계, `.i` 검사, `__data` 배치 근거, 표.
-
-## 94. S5-P68 세부 계획 — `vm/vm_fault.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python):
-- 경계:
-  - 앞 0 B. 0x172037 이 `c3`(ret)이고 0x172038 은 4 정렬이다. 그 `ret` 앞 함수에는 원본 심볼이 없다(0x171f00–0x172038 심볼 0 개). 이는 ddm(`ret` 0x18494b) 선례처럼 "앞 객체 끝 = 직전 ret" 이고 소유는 미확정이다.
-  - 뒤 0 B. 다음은 확정 `x86-vm_init` 0x173a68 이고, 그 행의 gap_before 가 `0 (previous function ends at 0x173a68, aligned)` 다.
-- `__data` 282 B 는 L1 이 0x1e08e2 에 추론·L1d 로 검증했다(차이 0). 심볼 배치가 아니라 참조 추론이다.
-
-절차:
-1. `07_kernel/src/vm/vm_fault.c` = 탐침 본문(Darwin + 93 의 E1) + 머리말 뒤 `Modified` 주석. MODIFICATIONS 행(NeXTMach :1252 출처, 근거 0x1735f4 함수·문자열 0x1e09c1), PROVENANCE 행, diff 를 남긴다.
-2. 빌드 `s5p68-build-1`. 예측: O3 = O3c = `9148cba6…`(주석만 다름), 두 `.i` 같음.
-3. L1 OBJECT_MATCH 5/5, `.i` 표지 07 존재(없으면 원문 그대로 채택).
-4. 판정: 앞 경계는 "0 B, 직전 `ret` 소유 미확정" 이라 ddm 선례와 같은 처리다. ddm 은 P 였지만 그 이유는 bss/const 였고 앞 경계는 문제 삼지 않았다(증거 확인 후 확정). 따라서 **A** 후보다. 단 `__data` 가 추론 배치이므로 A 의 "모든 섹션 검증" 조건을 README 로 다시 확인한다.
-5. 표: objects_confirmed +1, functions +5(high), PROVENANCE +1(+채택 헤더), MODIFICATIONS +1, 증거.
-
-### 94.1 codex 교차검토(QS12) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| A 는 `__data` 의 심볼 배치를 요구하지 않음. 선례 `x86-PCemulateREAL`(단일 참조 배치 + L1d) | README:23, objects_confirmed.tsv:58 | ✅ |
-| 앞 0 B(`ret` 뒤) A 선례: `x86-vm_user`(ret 0x17c4df)·`x86-machine`(ret 0x15de67). 단 "앞 함수가 심볼 없음" 까지 같다는 근거는 아님 | objects_confirmed.tsv:53·57 출력 | ✅ |
-| `ret` 이 앞 함수의 끝점임을 따로 확인해야 함 | Ghidra functions.json: `FUN_00171f6c` 몸체 조각 `[0x172010, 0x172037]` 의 end_inclusive 가 0x172037. 0x172038 앞 마지막 원본 심볼은 `_catch_exception_raise` 0x171eb0(Python) | ✅ 앞 경계 = 심볼 없는 함수 `FUN_00171f6c` 의 끝 |
-
-### 94.2 결과 (S5-P68, 2026-10-02) — `vm_fault.c` **A**
-
-- 07 반영: 탐침 본문 + `Modified` 주석. 주석만 더한 것인지 Python 으로 확인했다.
-- 빌드 `s5p68-build-1`: 예측 일치. O3 = O3c `9148cba6…`, 두 `.i` 같음.
-- L1 OBJECT_MATCH 5/5(참조 275 검증, `__data` L1d). `.i` 표지 90 개 모두 07 에 있다.
-- 표: functions +5, objects_confirmed +1(A), PROVENANCE +1, MODIFICATIONS +1, 증거·diff.
-
-## 95. S5-P69 세부 계획 — `vm/vm_resident.c` 탐침(복원 수정 2 곳) (코딩 전, 2026-10-02)
-
-사실(91.2, capstone 나란히 보기, Python):
-- 원본 [0x17a9b4, 0x17b9dd) 4137 B, 17 함수. Darwin 그대로 빌드는 4345 B 다. 함수 16 개 간격이 같고, 빌드 전용 `_vm_page_deactivate_first` 가 있으며, `_vm_page_startup` 은 1048/1028 이다.
-- `_vm_page_deactivate_first`(Darwin :897–910, 주석 포함)는 원본 심볼표에 없다. Darwin 안의 유일한 호출처는 vm_object.c:526 이고, 그것은 이미 vm_object 복원에서 지웠다(89.0). 다른 호출처는 Darwin 커널 전체 grep 0 건이다.
-- `_vm_page_startup` 차이:
-  - 원본 0x17abe9 근처: `mov eax,[_page_size]; lea edx,[eax*8]; mov [_zdata_size],edx; push eax; push edx; call _vm_alloc_from_regions` 다. 반올림이 없다.
-  - 빌드는 `page_mask` 를 더하고 `not`·`and` 하는 `round_page` 가 끼어 있다.
-  - 출처는 Darwin `PALLOC_PAGES` 의 `(size) = round_page(size);` 다. `#if SHOW_SPACE` 판 :226, `#else` 판 :257 의 두 정의 모두에 있다. `SHOW_SPACE` 는 Darwin 헤더에 정의가 없으므로 `#else` 판이 쓰인다.
-  - NeXTMach 은 `zdata_size = 40*sizeof(struct zone)`(:394)로 다르고 `PALLOC_PAGES` 가 없다. Mach4 도 없다.
-
-탐침(스테이징 사본만):
-- E1(D014 R1·R2): :897–911(주석·함수·뒤 빈 줄)을 지운다.
-- E2(D014 R1·R2, 참조 없는 삭제): `#else` 판 `PALLOC_PAGES`(:255–261)의 `(size) = round_page(size);`(:257) 한 줄을 지운다. 새 텍스트를 쓰지 않으므로 "작성" 이 아니라 삭제형 복원 수정이다(근거: 원본 명령열). `#if SHOW_SPACE` 판은 쓰이지 않으므로 그대로 둔다(R2).
-- 예측(R5): `__text` 4137 또는 4140(끝 채움) B, 17 함수 간격이 모두 같다. `_vm_page_deactivate` 인라인 변화는 바이트로 확인한다. L1(O3, 객체 이름 범위)은 OBJECT_MATCH 또는 bss/common 의존 MATCH_UNVERIFIED 다.
-
-### 95.1 codex 교차검토(QS13) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 줄 번호, `#else` 판 선택, 매크로 연속줄 정상 | 95 절 `grep`·줄 출력, `cat -A`(:252–262) | ✅ |
-| `PALLOC_PAGES` 의 다른 사용은 범위 밖이라 미확인 | 파일 전체 grep: 정의 :224·:255, 사용 :370 하나. 커널 다른 파일 0 건 | ✅ 영향은 zdata 하나 |
-
-### 95.2 결과 (S5-P69, 2026-10-02) — 탐침 1: 크기 일치, 15/17 MATCH
-
-- `s5p69-probe-1`(diff `x86-vm_resident-probe1.diff`): `__text` **4137 B**(원본과 같음)·재배치 256. O3 `c76be09b…`, O3c `9ea78a22…`, 두 `.i` 같음.
-- L1 O3c: 15 MATCH, 2 DIFF(각 11 B).
-  - `_vm_page_startup` 끝: 원본 `mov eax,[ebp+0x10]`(셋째 인자 반환, 3 B), 빌드 `mov eax,[virtual_avail]`(5 B). Darwin :423 `return(virtual_avail);` 인데, 셋째 인자 `vavail`(:264·:267)은 Darwin 안에서 쓰이지 않는다(grep).
-  - `_vm_page_deactivate`: 원본은 `queue_enter` 하나뿐인 배치이고, 빌드는 Darwin static `_vm_page_deactivate(m, age)`(:854–880)의 `age` 분기(`queue_enter_first`)가 인라인되어 레이블 정렬 위치가 달라진다. NeXTMach `vm_resident.c:1014–1039` 의 `vm_page_deactivate` 는 `age` 없는 본문이다(`m->laundry` 는 `#if !MACH_XP`, MACH_XP 는 config 값 0).
-
-## 96. S5-P70 세부 계획 — vm_resident 탐침 2 (코딩 전, 2026-10-02)
-
-탐침 1 스테이징 위에서:
-- E3(D014 R1·R2, NeXTMach D013): Darwin :843–881(static `_vm_page_deactivate` 의 주석 블록부터 정의, 뒤 빈 줄까지. 주석 시작 줄은 코딩 때 Python 으로 확정)을 지운다. Darwin `vm_page_deactivate`(:891–893 머리)는 남기고 본문 :894 를 NeXTMach :1017–1038 로 바꾼다. vm_object E4 와 같은 방식이다.
-- E4(작성 D016, W1–W5): :423 `return(virtual_avail);` → `return(vavail);`. 참조에 이 문장은 없다(Darwin 은 전역 반환, NeXTMach 는 `vaddr` 를 다른 구조로 반환). 근거는 원본 `mov eax,[ebp+0x10]` 이다. W3 표시, 변형 1/3.
-- 예측: `__text` 4137 B, L1 O3c 17/17 MATCH(차이 0). O3 는 `__common` 156 B 때문에 MATCH_UNVERIFIED 가 남고 36.1 은 채택 회차에 한다.
-
-### 96.1 codex 교차검토(QS14 는 지연으로 중단, QS14b 사실 제시형) 판정
-
-내 확인(줄 출력, Python): 도우미 주석 시작 **:844**, 정의 :854–880, 빈 줄 :881. 셋째 인자 `vavail` 은 :264·:267 이고, :423 은 `return(virtual_avail);` 다.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 도우미 삭제는 유일 호출처가 :894 라면 구조상 문제없음 | 탐침 1 스테이징에서 `_vm_page_deactivate` 참조는 정의와 :894 뿐(`vm_page_deactivate_first` 는 탐침 1 에서 지움) | ✅ |
-| NeXTMach 본문 교체의 의미 동등성은 원본 바이트로 확인해야 | — | ✅ L1 바이트 비교가 그 확인이다 |
-| `return(vavail)` 로 바꾸지 말 것 — 인자 이름은 `virtual_avail` 의 반환 시점 값과 같다는 근거가 아님 | 근거는 이름이 아니라 원본 명령이다. 원본 `_vm_page_startup` 끝 0x17adfd 는 `mov eax, dword ptr [ebp + 0x10]` 로 셋째 인자 자리를 읽는다. 빌드는 `mov eax,[virtual_avail]` 이다(95.2 capstone 출력) | ❌ 기각. 원본이 반환하는 것은 셋째 인자 자리의 값이다. 함수 안에서 그 자리에 쓰는 명령이 있는지까지 포함해 L1 이 함수 전체 바이트로 확인한다. 의미("가상 주소 진행")에 대한 주장은 하지 않는다 |
-
-### 96.2 결과 (S5-P70, 2026-10-02) — 탐침 2: O3c **OBJECT_MATCH 17/17**
-
-- `s5p70-probe-1`(diff `x86-vm_resident-probe2.diff`): O3 `7a9fcea4…`, O3c `a423bca0…`, 두 `.i` 같음(`ebb73de3…`), O2 다름.
-- L1 O3c OBJECT_MATCH 17/17, 차이 0(`__data` 포함). `return(vavail)` 은 원본 바이트로 확인되었다(QS14b 의 반대 의견은 96.1 에서 기각).
-- O3 는 3 MATCH + 14 MATCH_UNVERIFIED(`__common` 156 B)다. 다음(97)에 채택한다.
-
-## 97. S5-P71 세부 계획 — `vm/vm_resident.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python, 탐침 2 산출):
-- 경계:
-  - 앞 0x17a9b1–0x17a9b3 `00×3` 은 확정 `x86-vm_policy` 의 gap_after `3 x 00` 과 같은 바이트다.
-  - 뒤 0x17b9dd–0x17b9df `00×3` 은 확정 `x86-vm_synchronize` 의 gap_before `3 x 00` 과 같고, 4 정렬 최소 3 이다.
-- 36.1(O3 대 O3c):
-  - `__text` 4137 B·재배치 255 대응(같은 형태 78, local→extern 141, scattered→extern 36), 밖 바이트 차이 0.
-  - `__data` 172 B 차이 0.
-  - common 25 개는 모두 원본 심볼이 있고 크기 ≤ 간격이다(예 `_vm_page_template` 48/48).
-- `.i` 표지 122 개 중 07 에 없는 것은 대상 파일뿐이다.
-
-절차:
-1. `07_kernel/src/vm/vm_resident.c` = 탐침 2 본문 + `Modified` 주석(주석만인지 Python 확인).
-2. 빌드 `s5p71-build-1`. 예측 O3 `7a9fcea4…`·O3c `a423bca0…`, 두 `.i` 같음. L1 O3c OBJECT_MATCH, O3 는 36.1 로 이전한다.
-3. 판정 **A**. 표:
-   - functions +17(high). `_vm_page_startup` 은 `+authored`(return) + 복원 수정(round_page 삭제), `_vm_page_deactivate` 는 NeXTMach 본문.
-   - objects_confirmed +1, PROVENANCE +1, MODIFICATIONS +1, 증거·diff.
-
-### 97.1 codex 교차검토(QS15) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| O3c 기준으로 A 는 타당 | README:23 | ✅ |
-| `-fno-common` 판 자체는 OBJECT_MATCH 가 아님 | 36.2 결정: "앞으로 `__common` 정의를 가진 파일은 이 두 판 방식으로 판정한다". 선례 ipc_table·vm_object | ⚖️ 사실은 맞다. 등급은 36.2 의 두 판 규칙으로 준다(새 결정 아님) |
-| 복원 수정·작성 토큰은 PROVENANCE·MODIFICATIONS 에 기록 | — | ✅ 절차 3 |
-
-### 97.2 결과 (S5-P71, 2026-10-02) — `vm_resident.c` **A**
-
-- 빌드 `s5p71-build-1`: 예측 일치. O3 `7a9fcea4…`, O3c `a423bca0…`, 두 `.i` 같음. L1 O3c OBJECT_MATCH 17/17. `.i` 표지 122 개 모두 07 에 있다.
-- 표: functions +17, objects_confirmed +1(A), PROVENANCE +1, MODIFICATIONS +1, 증거·diff.
-
-## 98. S5-P72 세부 계획 — `vm/vm_pageout.c` 탐침 1: `vm_pageout()` (코딩 전, 2026-10-02)
-
-사실(91.2, capstone, Python):
-- 원본 [0x179d44, 0x17a23e) 1274 B = `_vm_pageout_scan` 864 + `_vm_pageout` 410. 앞은 확정 vm_object(뒤 3 B), 뒤는 확정 vm_pager(앞 2 B `90`)다.
-- 원본 `_vm_pageout`(0x17a0a4):
-  - `ebx = 1`(`did_work` 지역) 다음 `active_threads[0]->(+0x78) = 1`(`vm_privilege`), `spl0`.
-  - 매개변수 초기화. `vm_page_free_reserved` 가 0 이면 **3 만 대입**한다(`/4` 계산 없음).
-  - 루프는 Darwin 형태다(`did_work` 가 0 이면 잠, `free_count > free_min` 등). 결과 `ebx = vm_pageout_scan()`.
-  - `stack_privilege` 호출과 `sched_pri`·`priority`·`policy`·`sched_data` 대입이 없다.
-- Darwin `vm_pageout`:
-  - :376 `self = current_thread()`, :379 `stack_privilege(self)`, :380–382 sched 필드 대입, :383 `self->vm_privilege = TRUE`.
-  - :404–410 은 `if ((vm_page_free_reserved = vm_page_free_min / 4) < 3) … = 3;`(위 cat 출력으로 범위 확정).
-- NeXTMach `vm_pageout`: `current_thread()->vm_privilege = TRUE;`, :724–726 `if (vm_page_free_reserved == 0) {` / `//\t\tif ((… / 4) < 3)` / `\t\t\tvm_page_free_reserved = 3;`.
-
-탐침 1(스테이징 사본만, D014 R1·R2, NeXTMach D013):
-- P1: :379–382(`stack_privilege` 와 sched 3 줄)을 지운다. `self` 지역과 :383 은 유지한다.
-- P2: `vm_page_free_reserved` 블록의 `if ((… / 4) < 3)` 줄을 NeXTMach :725 처럼 주석 처리하는 대신 지운다(R2: 동작 근거만, 주석 처리도 결과는 같지만 지우는 쪽이 diff 가 작다). `vm_page_free_reserved = 3;` 만 남긴다.
-- 예측: `_vm_pageout` 크기 410 B 로 바이트 일치(`self` 지역이 레지스터/스택 배치를 바꾸면 차이가 나므로, 그 경우 `self` 를 없애고 NeXTMach 의 `current_thread()->vm_privilege = TRUE;` 로 바꾸는 변형 2 를 한다). `_vm_pageout_scan` 은 이번에 고치지 않는다(932 그대로).
-
-### 98.1 codex 교차검토(QS16 지연 중단 → QS16b) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| :379–382·:408 삭제 뒤에도 `self`(:383)가 쓰이고 :409 는 유효한 문장 → 온전 | 98 절 줄 출력(Python)·`cat -A`(:404–412) | ✅ |
-| 남는 논리는 0 일 때만 3 대입, 원본과 같음 | 원본 0x17a10c–0x17a115 | ✅ |
-| :405–407 주석("0.50% …")이 지운 계산을 설명하면 고칠 것 | 주석 내용 확인 | ⚖️ 사실은 맞다. 다만 R2(Darwin 문체·주석 유지, 최소 수정)에 따라 주석은 두고, MODIFICATIONS 에 "주석은 원문 그대로, 계산은 삭제" 를 적는다 |
-
-### 98.2 결과 (S5-P72, 2026-10-02) — `vm_pageout()` 바이트 일치(변형 2)
-
-- 탐침 1 `s5p72-probe-1`(P1·P2): `_vm_pageout` 412 B(원본 410 + 끝 `90 90`, vm_pager 앞 채움과 같음)다. 차이는 오프셋 5·10–13 의 명령 순서다. 빌드는 `self = current_thread()` 를 먼저 읽고, 원본은 `ebx = 1` 이 먼저다.
-- 탐침 2 `s5p72-probe-2`(변형 2: `self` 지역을 없애고 :383 을 NeXTMach `vm_pageout.c:706` `current_thread()->vm_privilege = TRUE;` 로): `_vm_pageout` 재배치 밖 바이트 차이 **0**(Python). diff 는 `x86-vm_pageout-probe2.diff` 다.
-- `_vm_pageout_scan` 은 그대로 932/864 다(다음 절).
-
-## 99. S5-P73 세부 계획 — `vm_pageout_scan` (코딩 전, 2026-10-02)
-
-사실(98 절 호출 순서 비교, Python):
-- 원본 `_vm_pageout_scan` 호출 23 개는 빌드의 앞 23 개와 순서·대상이 같다.
-- 빌드에만 끝에 `thread_will_wait`·`thread_set_timeout`·`thread_block` 3 호출이 있다. 이것은 Darwin :353–364 의 "IO 도 해제도 없으면 양보" 블록이다(`if (!pages_cleaned && !pages_freed && did_work) {…}`).
-- 크기 차이는 932 − 864 = 68 B 다.
-
-탐침 3(탐침 2 위에서, D014 R1·R2):
-- S1: :353–364 블록(주석 포함, `if` 부터 닫는 `}` 까지. 정확한 범위는 코딩 때 Python 으로 확정)을 지운다.
-- 예측: `_vm_pageout_scan` 이 864 B 에 가까워진다. `pages_cleaned` 는 :131·:290 에서 아직 쓰이므로 남긴다. 남은 차이는 바이트 비교로 기록한다(함수당 변형 한도 3, 이번이 scan 변형 1).
-
-### 99.1 codex 교차검토(QS17) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| :353–365 삭제는 최소·온전 | 99 절 줄 출력(Python) | ✅ |
-| :131·:290 참조만으로는 두 변수가 계속 "쓰인다" 는 근거가 아님 | grep: `pages_cleaned` 는 :131 에서 읽힌다(살아 있음). `pages_freed` 는 :123 대입·:180 증가뿐이다(:334 는 `//` 주석). 삭제 후 `pages_freed` 는 쓰기 전용이 되어 코드 생성이 바뀔 수 있다 | ✅ 바이트로 판정 |
-| 호출 목록만으로 제어 흐름 일치를 증명할 수 없음 → 바이트 비교 | — | ✅ |
-
-### 99.2 결과 (S5-P73, 2026-10-02) — scan 932 → 880 B, `__data` 차이 발견
-
-- `s5p73-probe-1`(diff `x86-vm_pageout-probe3.diff`): `__text` 1292 B(scan 880 + pageout 412)다. L1 `__text` unplaced, `__data` fail.
-- `__data` 8 B: `_vm_page_free_min_sanity` 는 빌드 `0x40000`(Darwin :54 `256*1024`), 원본 `0x20000` 이다(Python 바이트). NeXTMach `vm_pageout.c:75` 가 `128*1024` 다.
-- scan 정규화 diff(capstone, 주소를 N 으로):
-  - 원본에는 `pages_cleaned` 가 없다. 지역 초기화가 1 개 적고, 목표 비교가 `cmp [free_target], free_count; jge` 다(Darwin :131 은 `(vm_page_free_count + pages_cleaned) >= …`, NeXTMach :488 은 `vm_page_free_count >= vm_page_free_target`).
-  - Darwin :290 `pages_cleaned++` 에 대응하는 `inc [ebp-4]` 가 원본에 없다.
-  - 나머지 차이는 스택 오프셋과 정렬 nop 이다.
-
-## 100. S5-P74 세부 계획 — vm_pageout 탐침 4 (코딩 전, 2026-10-02)
-
-탐침 3 위에서(D014 R1·R2, NeXTMach D013):
-- S2: :54 `int vm_page_free_min_sanity = 256*1024;` → `128*1024`(NeXTMach :75).
-- S3: `pages_cleaned` 를 없앤다.
-  - :71 선언을 지운다.
-  - :131 `if ((vm_page_free_count + pages_cleaned) >= vm_page_free_target) {` → `if (vm_page_free_count >= vm_page_free_target) {`(NeXTMach :488 의 식).
-  - :290 `pages_cleaned++;` 을 지운다. 탐침 3 에서 yield 블록을 지웠으므로 다른 참조는 없다(grep).
-- 예측: scan 864 B, `__text` 1276(864+412) B, `__data` 일치. L1 O3c OBJECT_MATCH 2/2(배치되면). 남는 차이는 기록한다(scan 변형 2/3).
-
-### 100.1 codex 교차검토(QS18) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| S2·S3 는 바이너리 근거와 맞음 | 99.2 | ✅ |
-| :290 이 중괄호 없는 단독 문장이면 삭제가 빈 본문을 만듦 → 구조 확인 필요 | `cat -A` :276–295: :290 은 `if (vm_pager_put(…) == PAGER_SUCCESS) {` 블록(:285–291) 안에서 `pageout_succeeded = TRUE;` 다음 문장이다 | ✅ 삭제해도 온전(블록 유지) |
-| 디버그 증가는 유지 | `#if MACH_VM_DEBUG`(:287–289)는 손대지 않음 | ✅ |
-
-### 100.2 결과 (S5-P74, 2026-10-02) — 탐침 4: O3·O3c **OBJECT_MATCH 2/2**
-
-- `s5p74-probe-1`(diff `x86-vm_pageout-probe4.diff`): O3 = O2 `4d60fe86…`, O3c `cd58704a…`, 두 `.i` 같음(`561f2de8…`).
-- `__text` 1276 B = [0x179d44, 0x17a240). `_vm_pageout` 412 B 는 끝에 컴파일러 정렬 `90 90` 을 포함한다.
-- L1:
-  - O3: OBJECT_MATCH 2/2. `__text`·`__data`·`__common` 모두 심볼 배치이고, 바이트·참조 차이가 0 이다.
-  - O3c: OBJECT_MATCH 2/2.
-- cmd 머리 주석에 sed 치환 잔여가 섞였다("…;: probe 1 plus s…"). 실행 내용에는 영향이 없으며, 탐침별 diff 파일이 정확한 기록이다.
-
-## 101. S5-P75 세부 계획 — `vm/vm_pageout.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python):
-- 객체 = [0x179d44, 0x17a240) 1276 B(objects.tsv 의 0x17a23e 끝은 마지막 `ret` 기준 추정). 원본 0x17a23e–0x17a23f `90 90` 은 이 객체 `__text` 의 일부다(빌드 바이트와 같음).
-  - 앞: 0x179d41–0x179d43 `00×3` = 확정 vm_object 의 gap_after `3 x 00`.
-  - 뒤: 0 B. 확정 `x86-vm_pager` 가 0x17a240 에서 시작한다.
-  - `x86-vm_pager` 의 gap_before 칸 "2 x 90 (… value 90 not 00, see evidence)" 는 이제 "vm_pageout 객체 안의 정렬 채움" 으로 설명된다. 그 행을 정정할지는 아래 3 에서 정한다.
-- common 2 개(`_vm_pages_needed` 4/4, `_vm_pages_needed_lock` 4/12)는 크기 ≤ 간격이다. O3 에서 이미 심볼로 배치되어 OBJECT_MATCH 다(36.1 의 대응 확인도 기록용으로 한다).
-- `.i` 표지 93 개 중 07 에 없는 것은 대상 파일뿐이다.
-
-절차:
-1. `07_kernel/src/vm/vm_pageout.c` = 탐침 4 본문 + `Modified` 주석. 빌드 `s5p75-build-1` 의 예측은 O3 `4d60fe86…`·O3c `cd58704a…` 다.
-2. 판정 **A**(경계 앞 3 B 최소 00, 뒤 0 B). 표: functions +2, objects_confirmed +1, PROVENANCE·MODIFICATIONS·증거·diff.
-3. `x86-vm_pager` 의 gap_before 칸을 "0 bytes (x86-vm_pageout __text includes the 90 90 alignment, ends at 0x17a240)" 로 정정한다. 표 수정은 읽기→쓰기→행 수 확인으로 하고, 증거 파일에 정정 메모를 남긴다.
-
-### 101.1 codex 교차검토(QS19) 판정과 추가 사실
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| A 등급과 vm_pager gap_before 정정은 근거 있음 | 100.2 의 L1 JSON, 원본 0x17a23e `90 90`(Python) | ✅ |
-
-추가(내 확인): `x86-vm_pager.md:34–37` 은 이 `90 90` 을 "설명 안 됨" 으로 두고 vm_pager 를 **A\***("앞 경계 미증명")로 판정했다. 이제 앞 경계가 증명되었다. vm_pageout `__text` 의 끝이 0x17a240 이고, 그 2 B 는 vm_pageout 빌드 바이트와 같다. README:23 의 A 조건(OBJECT_MATCH + 앞뒤 경계 증명서)에 따라 vm_pager 를 **A 로 재판정**한다. 행 수정은 읽기→쓰기→행 수 확인, 증거 파일에 재판정 메모를 남긴다.
-
-### 101.2 결과 (S5-P75, 2026-10-02) — `vm_pageout.c` **A**, `vm_pager` A* → **A**
-
-- 빌드 `s5p75-build-1`: 예측 일치. O3 `4d60fe86…`·O3c `cd58704a…`, 두 `.i` 같음. L1 O3 OBJECT_MATCH 2/2(참조 99). `.i` 표지 93 개 모두 07 에 있다.
-- 표:
-  - functions +2.
-  - objects_confirmed +1(vm_pageout A). `x86-vm_pager` 는 grade A*→A, gap_before 를 정정했다(행 수는 +1 만 늘어남 확인).
-  - PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-vm_pageout.md` 와 `x86-vm_pager.md` 재판정 메모.
-
-## 102. S5-P76 세부 계획 — vm_kern 판단 보류, kern/ 미채택 파일 일괄 진단(채택 없음) (코딩 전, 2026-10-02)
-
-vm_kern 판단(Python 호출 순서 비교, srcdefs):
-- 원본 `_kmem_alloc` 계열은 `vm_map_find`·`vm_map_delete`·`vm_map_insert`·`lock_done`·static 도우미(`FUN_00173ebc`: `vm_page_alloc_sequential`·`thread_sleep`·`vm_page_zero_fill`)·`vm_map_pageable` 을 부른다. NeXTMach `kmem_alloc` 방식이다.
-- 동시에 원본에는 Darwin 에만 있는 `kmem_realloc`·`kmem_alloc_wired`·`kmem_alloc_zone`·`copyinmap`·`copyoutmap` 이 있다. 즉 두 참조의 중간 판이다.
-- 함수 여러 개에 걸친 혼합·작성이 필요해 위험도가 높다. 그래서 이번 연속 회차에서는 미룬다. vm_map 도 같은 계열(빌드 전용 `vm_map_find_entry`)이라 함께 미룬다.
-
-진단 대상(91 절 목록 중 kern/, 07 에 없음, Darwin 후보): ast, exception, ipc_kobject, ipc_mig, kernel_stack, mach_clock(seq 170), mach_header, mach_net, mapfs, miniMon, ns_timer, power, kdp_udp, sched_prim, syscall_subr, syscall_sw, task, thread, zalloc. objects.tsv 행 하나에 후보가 하나인 C 등급 4 개(mach_init·mach_fat·mach_loader·kdp, 함수 1 개)도 넣는다.
-
-설계(91.1 반영 방식 그대로):
-- 스테이징 1 개를 쓰고, 파일마다 kr_run 실행 1 개(O3c 1 명령, ddm 템플릿 플래그)를 돌린다. 수집은 파일별로 한다.
-- 컴파일된 파일마다 심볼 간격 비교와 L1 을 하고 요약을 남긴다.
-- 실패는 첫 오류를 기록한다. 채택·판정은 없고, 다음 회차 후보 순위만 정한다.
-
-### 102.1 codex 교차검토(QS20) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 91.1 의 "간격 차이는 간격 차이로, 빌드 전용 static 은 따로, 마지막 함수는 잠정" 이 102 에 명시되지 않음 | 102 절 본문 | ✅ 요약 JSON 에 `gap_diff`·`build_only`·`last_provisional` 칸을 둔다 |
-| 파일마다 실행 ID·출력 분리 | kr_run 은 ID 마다 별도 디렉터리(`08_build/runs/<ID>`) | ✅ ID `s5p76-pre-<이름>` |
-| mach_clock 은 seq 170 로 고정 | objects.tsv: seq 170 [0x15bc30,0x15c023), 182 [0x160714,0x160795) | ✅ 구간을 seq 로 고정 |
-| ipc_mig·syscall_subr 의 이전 보류 이유 유지 | 계획 64·52 절 기록 | ✅ 요약에 "이전 보류 사유" 를 함께 적는다 |
-
-### 102.2 결과 (S5-P76, 2026-10-02) — kern/ 23 파일 진단
-
-실행 `s5p76-pre-<이름>`(miniMon 은 ID 규칙상 소문자 `s5p76-pre-minimon`). 요약 `09_validation/reconstruction/s5p76-pre-summary-20261002.json` 에는 간격 차이·빌드 전용·원본 전용·마지막 함수(잠정)·이전 보류 사유 칸이 있다. 파일별 L1 은 `s5p76-pre-l1-<이름>-O3c-20261002.json` 이다.
-
-- 컴파일 실패 7:
-  - exception(`norma_ipc.h`)
-  - ipc_kobject(`ikm_sender` 멤버 없음)
-  - kernel_stack(`mach_debug.h`)
-  - mach_net(`mach_net.h`)
-  - sched_prim·thread(`hw_footprint.h`)
-- 컴파일 17 의 요약(빌드/원본 `__text`, 간격 같은 함수 수):
-
-| 파일 | 크기 | 간격 같음 | 메모 | L1 |
-|---|---|---|---|---|
-| syscall_sw | 24/24 | 2/2 | `__data` 1124 B 에 바이트 차이 6, 참조 미검증 3 | `__text` 2 MATCH |
-| syscall_subr | 1028/1481 | 9/10 | 원본 전용 `_map_fd`(이전 보류: 52 절, NeXTMach `map_fd` 의 BSD 의존) | 9 MATCH |
-| ast | 568/580 | 1/2 | `_ast_check` 540/552 | 1 MATCH, 1 BOUNDARY |
-| task | 4326/4342 | 18/21 | 3 함수 간격 차이 | 배치 안 됨 |
-| power | 949/933 | 5/7 | `power_callout`·`power_init` 각 +8 | 배치 안 됨 |
-| mach_header | 1375/1190 | 13/14 | 빌드 전용 2 | 배치 안 됨 |
-| 그 밖 | — | — | 크기·구성 차이가 큼(mach_loader·kdp·mapfs·kdp_udp 등은 빌드가 훨씬 큼 = 객체 범위 추정 문제 가능) | — |
-
-다음 우선순위는 syscall_sw(`__data` 6 B), ast, power, task 다.
-
-## 103. S5-P77 세부 계획 — `kern/syscall_sw.c` 탐침(트랩 표 4 항목) (코딩 전, 2026-10-02)
-
-사실(Python, `__data` 0x1df72c 원본 대 빌드, 16 B 항목 `{arg_count, function, stack, 0}`):
-- 빌드 바이트 차이 6 곳(328·384·392·512·520·576)은 트랩 20·24·32·36 에 있다.
-  - 트랩 20: 원본 `{4, _msg_send_trap, 0}`, 빌드 stack=1. Darwin :133 `MACH_TRAP_STACK(msg_send_trap, 4)` 다. 트랩 21·22 는 원본도 stack=1 이다(Python 디코드).
-  - 트랩 24: 원본 `{0, _kern_invalid, 0}`, Darwin :142–143 `MACH_TRAP_STACK(mach_msg_simple_trap, 5)`.
-  - 트랩 32: 원본 `_kern_invalid`, Darwin :152 `MACH_TRAP_STACK(mach_msg_overwrite_trap, 9)`.
-  - 트랩 36: 원본 `_kern_invalid`, Darwin :156 `MACH_TRAP(_lookupd_port1, 1)`.
-- `_mach_msg_simple_trap`·`_mach_msg_overwrite_trap`·`__lookupd_port1` 은 원본 심볼표에 없다(grep 0). `_lookupd_port1` 은 ipc_xxx 복원(62 절)에서 이미 지운 함수다. L1 의 미검증 참조 3 개가 이 셋이다.
-- `__text` 24 B 는 2 MATCH 다.
-
-탐침(스테이징만, D014 R1·R2):
-- T1: :133 `MACH_TRAP_STACK(msg_send_trap, 4)` → `MACH_TRAP(msg_send_trap, 4)`(같은 파일의 매크로, 원본 stack=0). 주석은 유지한다.
-- T2: :142–143 → `MACH_TRAP(kern_invalid, 0),\t\t/* 24 */`.
-- T3: :152 → `MACH_TRAP(kern_invalid, 0),\t\t/* 32 */`.
-- T4: :156 → `MACH_TRAP(kern_invalid, 0),\t\t/* 36 */`.
-- 예측: `__data` 1124 B 바이트 차이 0, 참조 70 → 67(모두 검증). L1 OBJECT_MATCH. 크기는 그대로다.
-- 일치하면 다음 회차에 채택한다. 경계 확인, `.i` 검사, `mach_trap_count` 확인을 한다.
-
-### 103.1 codex 교차검토(QS21) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `MACH_TRAP` 은 같은 파일이 아니라 `kern/syscall_sw.h` 에 정의됨 | grep: `syscall_sw.h:70`(`MACH_TRAP`), `:72`(`MACH_TRAP_STACK`) | ✅ 103 절 표현 정정(동작 영향 없음) |
-| :133 은 `#if MACH_IPC_COMPAT` 안이라 그 분기가 컴파일되는지 미확인 | `07_kernel/generated/mach_ipc_compat.h` = `#define MACH_IPC_COMPAT 1` | ✅ 그 분기가 컴파일된다 |
-| 16 B 크기는 `boolean_t` 크기에 달림 | `syscall_sw.h:63` `boolean_t mach_trap_stack;`. 표 1120 B = 70 × 16, `_mach_trap_count` 가 1120 에 있다(빌드 심볼, Python) | ✅ |
-
-### 103.2 결과 (S5-P77, 2026-10-02) — 탐침 1: **OBJECT_MATCH**
-
-- `s5p77-probe-1`(diff `x86-syscall_sw-probe1.diff`): O2 = O3 = O3c `d99442d4…`(common 없음), 두 `.i` 같음.
-- L1 O3·O3c OBJECT_MATCH 2/2: `__text` 24 B, `__data` 1124 B(심볼 배치, 바이트 차이 0).
-- **예측 오류**: 참조 수를 67 로 예측했지만 70 이며 모두 검증되었다. 바꾼 항목도 `kern_invalid` 재배치를 가진다.
-
-## 104. S5-P78 세부 계획 — `kern/syscall_sw.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python, capstone):
-- 원본 `__text` [0x16594c, 0x165964) 24 B: `_null_port`(`xor eax,eax`)·`_kern_invalid`(`mov eax,4`), 사이에 `90×3`.
-- 앞 경계: 0x165948 `c3` 다음 0x165949–0x16594b `00×3` = 4 정렬 최소 채움 3. 그 `ret` 이 어느 Ghidra 함수의 끝인지는 위 출력으로 확인한다.
-- 뒤 경계: 0 B. `_task_init` 0x165964 = Ghidra 함수 시작.
-- `__data` 1124 B 는 `_mach_trap_table` 0x1df72c·`_mach_trap_count` 심볼로 배치된다.
-
-절차: 07 = 탐침 본문 + `Modified` 주석. 빌드 `s5p78-build-1` 의 예측은 `d99442d4…` 3 판 동일이다. 이어서 L1, `.i` 검사, 경계를 확인하고 **A** 로 판정한다. 표 functions +2(high), objects_confirmed +1, PROVENANCE·MODIFICATIONS·증거·diff.
-
-### 104.1 codex 교차검토(QS22) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 앞뒤 관찰을 경계 증명서로 기록하면 A 타당. syscall_subr 채택은 필요 없음 | README:23–24 | ✅ |
-| `_map_fd` 의 끝은 Ghidra 해석이므로 원본 바이트·심볼 근거를 남길 것 | 원본 심볼 `_map_fd` 0x165784(symbols.tsv). Ghidra 몸체 조각 끝 0x165948 = capstone `ret`. 다음 원본 심볼 `_null_port` 0x16594c. 사이 `00×3` = 최소 채움(Python) | ✅ 증거 파일에 기록 |
-| 출처·수정 4 곳을 PROVENANCE·MODIFICATIONS 에 | — | ✅ |
-
-### 104.2 결과 (S5-P78, 2026-10-02) — `syscall_sw.c` **A**
-
-- 빌드 `s5p78-build-1`: 예측 일치(3 판 `d99442d4…`). L1 OBJECT_MATCH.
-- `.i` 표지 113 개 중 07 에 없던 헤더 3 개(`kern/syscall_subr.h`·`kern/syscall_sw.h`·`mach/mach_traps.h`)는 원문 그대로 채택했다(스테이징 사본과 SHA 같음). 원문 그대로라 07 우선 스테이징 바이트가 같으므로 회귀는 필요 없다.
-- 표: functions +2, objects_confirmed +1(A), PROVENANCE +4, MODIFICATIONS +1, 증거·diff.
-
-## 105. S5-P79 세부 계획 — `kern/task.c` 탐침 1 (u-area 복원) (코딩 전, 2026-10-02)
-
-102.2 이후 확인(capstone 이름 붙임, grep):
-- ast: `_ast_check` 차이는 BSD 신호 매크로(`SHOULDissignal`, proc 구조)와 스케줄 검사 구조다 → D020 영역이라 보류한다.
-- power: 원본이 옛 callout API(`_calloutEntryAllocate`·`_calloutDeadlineFromInterval(0, 1010000000)`·`_calloutEntryDispatchDelayed`)를 쓰고 Darwin 은 `thread_call_*` 다. 이전 보류("callout API", PCtimers 와 같음) 그대로 둔다.
-- task(원본 [0x165964, 0x166a5a) 4342 B, 21 함수, 18 간격 같음):
-  - 원본 `_task_create` 0x165a4b–0x165a5b: `zalloc(_u_task_zone)` → `[task+0x38]`(07 `kern/task.h:96` `struct utask *u_address`), `call _utask_zero(task)`.
-    - Darwin `task.c:83` 에 `extern zone_t u_task_zone; /* UNIX */` 선언만 남아 있다.
-    - NeXTMach `task.c:204`·`:206` 은 `new_task->u_address = (struct utask *) zalloc(u_zone);` / `utask_zero(new_task);` 다.
-    - 원본 심볼은 `_u_task_zone`(0x1e94ec)·`_utask_zero`(0x106de8)·`_utask_free`(0x106d44)다.
-  - 원본 `_task_terminate`(인라인 `task_deallocate` 포함)·`_task_deallocate`: `pcb_common_terminate(task)` 다음 `utask_free(task->u_address)`, 그다음 `zfree(task_zone, task)`. NeXTMach `:301` 과 같은 순서다.
-  - Darwin `task_terminate` :290–292 의 `if (task->proc) return KERN_FAILURE;`(주석 "Disallow termination of U**X proc tasks")가 원본에 없다. 원본 0x165cce–0x165cdc 에는 `!active` 검사만 있고 바로 `lea ecx,[esi+0x1c]` 다.
-
-탐침 1(스테이징만):
-- K1(복원 수정, NeXTMach :204·:206, 이름은 Darwin :83 과 원본 심볼 `_u_task_zone`): :150–151 `panic(...)` 블록 뒤에 `new_task->u_address = (struct utask *) zalloc(u_task_zone);` 와 `utask_zero(new_task);` 를 넣는다. `utask_zero` 원형이 없으면 함수 선언이 필요하다(암시적 int 선언으로도 같은 코드라면 추가 안 함, 빌드로 확인).
-- K2(NeXTMach :301): :258 `pcb_common_terminate(task);` 와 :259 사이에 `utask_free(task->u_address);` 를 넣는다.
-- K3(R1·R2): :290–292(주석 1 줄 + `if` 2 줄)를 지운다.
-- 예측: task_create 444→460, task_deallocate 160→168, task_terminate 988→980(간격). 남는 차이(task_create 의 추가 필드 0 초기화 1 개 등)는 바이트로 기록한다.
-
-### 105.1 codex 교차검토(QS23 지연 중단 → QS23b) 판정
-
-내 확인(줄 출력): K1 삽입 위치는 :151 뒤, K2 는 :258 과 :259 사이, K3 는 :290–293(주석·`if`·`return`·빈 줄)이다. `struct utask` 는 07 `task.h:96` 에서 포인터로만 쓰인다.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 정의 안 된 `struct utask` 로의 포인터 캐스트는 C89 에서 유효 | — | ✅ |
-| `utask_zero`·`utask_free` 를 선언 없이 부르면 암시적 `int` 선언이 되고, 실제 `void` 면 호환 안 됨 → 선언 추가 | NeXTMach `kern/task.c` 도 선언 없이 부른다. 정의는 `bsd/kern_fork.c:320`·`:345`(K&R, 반환형 생략 = int). 이 번역 단위에는 충돌하는 선언이 없다 | ⚖️ 기각(선언 추가 안 함). 반환값을 쓰지 않으므로 코드가 같다. 바이트로 확인한다 |
-| `utask_free` 를 두 해제 경로 모두에 | :245 의 다른 경로는 `#if NORMA_TASK` 안이고, `07_kernel/generated/norma_task.h` = 0 이다 | ⚖️ 컴파일되는 경로는 하나다 |
-| `zalloc` 뒤 생성 실패 경로의 `u_address` 소유 | `zalloc(task_zone)` 실패는 `panic`(:150) 이다. `u_task_zone` 할당 실패 검사는 원본에도 없다(0x165a52–0x165a5b) | ✅ 원본과 같게 검사 없음 |
-
-### 105.2 탐침 1 결과와 추가 계획(K4, 코딩 전)
-
-- `s5p79-probe-1`(diff `x86-task-probe1.diff`): `__text` 4350/4342. `task_deallocate`·`task_terminate` 를 포함해 20 함수의 간격이 같아졌다. `_task_create` 만 468/460 이다.
-- 정규화 diff: 빌드에만 `mov dword ptr [ebx+0x3c], 0` 이 있다. +0x3c 는 `proc`(07 `task.h:97`, `u_address` +0x38 다음)이고 Darwin `task.c:177` `new_task->proc = 0;` 이다. NeXTMach `kern/task.c` 에는 `->proc` 대입이 없다(grep). 나머지는 정렬 nop 1 개다.
-- K4(D014 R1·R2): :177 을 지운다. 예측: `_task_create` 460, `__text` 4342, L1 OBJECT_MATCH(또는 bss/common 의존).
-
-#### 105.2 codex 교차검토(QS24) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 남는 저장은 Darwin `new_task->proc = 0;` 과 일치, :177 삭제에 오류 없음 | `cat -A` :174–179(빈 줄 사이 단독 문장) | ✅ |
-| `proc` 초기화를 빼면 미초기화 위험 → 원본과 대조 | 원본 `_task_create` 에 +0x3c 저장이 없다(정규화 diff). 재현 대상은 원본 동작이고, 런타임 의미는 주장하지 않는다 | ⚖️ 원본 그대로 재현(기록만) |
-| 다시 빌드해 바이트 비교, 기록 | — | ✅ |
-
-### 105.3 결과 (S5-P79, 2026-10-02) — 탐침 2: **OBJECT_MATCH 21/21**
-
-- `s5p79-probe-2`(diff `x86-task-probe2.diff`): O3 `c7eabd7a…`, O3c `5af05a12…`, O2 `7f6a7a77…`(다름), 두 `.i` 같음(`c921df67…`).
-- L1 O3·O3c OBJECT_MATCH 21/21. O3 는 `__text`·`__data`·`__common` 모두 심볼 배치이고 바이트·참조 차이가 0 이다.
-
-## 106. S5-P80 세부 계획 — `kern/task.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python):
-- 객체 [0x165964, 0x166a5a) 4342 B, 21 함수.
-  - 앞: 0 B. 확정 `x86-syscall_sw` 가 0x165964 에서 끝난다.
-  - 뒤: 0x166a5a–0x166a5b `00 00` = 4 정렬 최소 채움 2 이고, 0x166a5c 는 Ghidra 함수 시작 `_stack_privilege` 다(원본 심볼은 위 grep 결과).
-- O3 OBJECT_MATCH 이므로 common 은 심볼 배치까지 검증되었다. 36.1 대응은 기록용으로 한다.
-- `.i` 표지 102 개 중 07 에 없는 것은 대상 파일뿐이다.
-- 수정: K1(u_address 할당 + `utask_zero`, NeXTMach :204·:206, 이름 `u_task_zone` 은 Darwin :83·원본 심볼), K2(`utask_free`, NeXTMach :301), K3(`proc` 검사 삭제), K4(`proc = 0` 삭제). 새 텍스트는 NeXTMach 문장과 Darwin 선언 이름의 조합이라 작성(D016) 표시는 하지 않는다. 다만 K1 의 `u_task_zone` 은 NeXTMach `u_zone` 대신 쓴 이름이므로 MODIFICATIONS 에 명시한다.
-
-절차: 07 = 탐침 2 본문 + `Modified` 주석. 빌드 `s5p80-build-1` 의 예측은 O3 `c7eabd7a…`·O3c `5af05a12…` 다. 이어서 L1 을 하고, 판정은 **A** 다. 표 functions +21, objects_confirmed +1, PROVENANCE·MODIFICATIONS·증거·diff.
-
-### 106.1 codex 교차검토(QS25) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| A 타당 | 105.3 L1 JSON, 경계 Python(앞 0, 뒤 `00 00`, `_stack_privilege` 0x166a5c 원본 심볼) | ✅ |
-| K1 의 식별자 치환은 authored 표시 불필요, MODIFICATIONS 에 명시 | 106 절 | ✅ |
-
-### 106.2 결과 (S5-P80, 2026-10-02) — `task.c` **A**
-
-- 빌드 `s5p80-build-1`: 예측 일치. L1 OBJECT_MATCH 21/21(참조 124). `.i` 102 개 모두 07 에 있다.
-- 표: functions +21, objects_confirmed +1(A), PROVENANCE +1, MODIFICATIONS +1, 증거·diff.
-
-## 107. S5-P81 세부 계획 — `kern/mach_header.c` 탐침 (코딩 전, 2026-10-02)
-
-사실(102.2 요약, Python, grep):
-- 원본 seq 172 [0x15c2fc, 0x15c7a2) 는 원본 심볼 14 개다. 마지막 `_getfakefvmseg` 는 `ret`(0x15c7a1) 뒤 `90 90` 이고, 다음 함수가 0x15c7a4 에서 시작한다(원본 바이트 `5e5f89ec5dc39090 5589e557`). 따라서 객체 끝은 0x15c7a4 로 추정되고, 간격 차이 240/238 은 끝 추정 문제다(91.1 의 "마지막 함수 잠정" 사례).
-- Darwin 그대로 빌드 1375 B 에는 빌드 전용 `_getsegdatafromheader`(Darwin :112–135, 주석 포함)와 static `_getsizeofmacho`(:403–423, 주석 포함)가 있다. 둘 다 원본 심볼표에 없다(grep 0). Darwin 커널 안의 다른 사용은 `mach_header.h:56` 원형 하나뿐이다.
-
-탐침(스테이징만, D014 R1·R2):
-- H1: :112–136(주석·함수·뒤 빈 줄)을 지운다.
-- H2: :403–423(주석·함수)을 지운다. :402 빈 줄과 :424 `#endif` 는 유지한다. 헤더 원형은 그대로 둔다(R2).
-- 예측: `__text` = 원본 객체 0x15c7a4 − 0x15c2fc = 1192 B(끝 `90 90` 포함, Python 으로 계산해 기록). 14 함수가 MATCH 이고 L1 OBJECT_MATCH(또는 data 의존)다.
-
-### 107.1 codex 교차검토(QS26) 판정 → H2 철회
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `getsizeofmacho` 는 같은 파일 :391(`getfakefvmseg` 안)에서 호출되고 :233 에 원형이 있음 → 107 절의 "다른 사용 없음" 은 틀림 | grep: :233 원형, :391 호출, :407 정의 | ✅ **내 오류**. 다른 파일만 grep 했다 |
-| `getsegdatafromheader` 의 파일 안 다른 호출은 없음 | grep: :32 주석, :119 정의뿐 | ✅ |
-
-추가 확인(capstone): 원본 `_getfakefvmseg` 의 호출은 `_strncmp`·`_strcmp`·**0x15c7a4**·`_strcpy` 다. 0x15c7a4 는 `90 90` 바로 뒤의 심볼 없는 함수이고, 이것이 원본의 static `getsizeofmacho` 다. 빌드도 같은 자리에서 지역 함수를 부른다. 따라서:
-- objects.tsv seq 172 의 끝 0x15c7a2 는 짧다. 객체는 `getsizeofmacho` 까지 포함한다.
-- H2 는 **철회**하고 H1(`getsegdatafromheader` 삭제)만 한다.
-- 예측: `__text` 1375 − 52 = 1323 B, 객체 [0x15c2fc, 0x15c827) 다(Python). 끝은 L1 배치로 확인한다.
-
-### 107.2 결과 (S5-P81, 2026-10-02) — 바이트 일치, `__mh_execute_header` 참조 16 개 미검증
-
-- `s5p81-probe-1`(diff `x86-mach_header-probe1.diff`): `__text` **1323 B**(예측과 같음)·재배치 49, `__data` 131 B, O3 `__common` 4 B.
-- L1 O3·O3c: 15 함수 바이트·참조 차이 0. 8 MATCH, 7 MATCH_UNVERIFIED. `__text` 는 0x15c2fc 심볼 배치, `__data` 는 0x1dee8c 에 L1d 검증, O3 common 은 심볼 배치다.
-- 미검증 16 개는 모두 `symbol __mh_execute_header not in image` 다. 링커가 정의하는 심볼(Mach-O 헤더 주소)이라 원본 심볼표에 없다. 원본 load command(Python): `__TEXT` vmaddr 0x100000, fileoff 0. 따라서 헤더 주소는 0x100000 이다.
-
-## 108. S5-P82 세부 계획 — `l1_compare.py --define-symbol` (링커 정의 심볼) (코딩 전, 2026-10-02)
-
-설계:
-- `--define-symbol NAME=ADDR`(반복 가능)을 추가한다. 이미지 심볼표에 NAME 이 없을 때만 그 값을 쓴다. 이미 있으면 오류로 멈춘다(가리기 금지).
-- 결과 JSON 에 `defined_symbols: {NAME: ADDR}` 를 기록한다. 함수·섹션 판정에는 따로 표시하지 않고 참조 검증에만 쓴다.
-- 쓰는 곳은 링커 정의 심볼뿐이다. 그 값의 근거(예: `__mh_execute_header` = fileoff 0 을 담은 세그먼트 `__TEXT` 의 vmaddr)는 계획·증거에 남긴다.
-- 시험(`test_l1_compare.py` 확장 또는 새 시험):
-  - 옵션 없이 결과가 이전과 같은지(mach_header 탐침 JSON 재현과 기존 확정 객체 몇 개의 L1 JSON 동일성).
-  - 옵션을 주면 해당 참조가 verified 가 되는지.
-  - 틀린 주소를 주면 refs_differ 가 되는지(음성 시험).
-  - 이미지에 있는 이름을 주면 오류가 나는지.
-
-### 108.1 codex 교차검토(QS27) 판정 → 설계 수정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 배치 계산 전에 정의하면 배치(그리고 L1d)가 바뀔 수 있음 | `placements_from_image` :437 이 `img.symbol` 을 쓴다 | ✅ 정의는 배치 계산 **뒤**에 적용 |
-| 충돌 검사는 SECT 비-STAB 심볼만 봄 → 모든 이미지 심볼과 비교 | `Image.__init__` :45–48 | ✅ `o['symbols']` 전체 이름과 비교 |
-| local·scattered 처리는 범위 밖이라 독립성 미확인 | grep `img.symbol`/`.symbol(`: :170(extern)·:437(배치)뿐 | ✅ local·scattered 는 영향 없음 |
-| "fileoff 0 세그먼트" 는 `__PAGEZERO` 도 해당 → 파일 바이트를 가진 세그먼트로 | load command 출력: `__PAGEZERO` fileoff 0 filesize 0, `__TEXT` fileoff 0 filesize 892928 | ✅ `__mh_execute_header` = filesize>0 이고 fileoff 0 을 포함하는 `__TEXT` 의 vmaddr 0x100000 |
-
-### 108.2 시험 중 발견 → 설계 교체(코딩 전 재계획)
-
-- 시험 `test_l1_define.py` 에서 `--define-symbol __mh_execute_header=…` 가 "이미지에 이미 있는 이름" 으로 거부되었다. 원본 심볼표(Python, symbols.tsv:400)에 `__mh_execute_header` 가 **ABS 심볼**(type 3, 값 0x100000, 외부)로 **있다**.
-- L1 의 `Image` 는 SECT 심볼만 색인한다(:45–48). 그래서 "not in image" 는 도구의 한계였다. 107.2·108 의 "원본 심볼표에 없다" 는 **내 오류**다.
-- 원본 비-STAB ABS 심볼은 100 개(모두 외부)다. ObjC `.objc_class_name_*`·`.objc_category_name_*`(값 0)와 `__mh_execute_header` 이고, SECT 심볼과 이름이 겹치는 것은 0 이다.
-
-교체 설계:
-- `--define-symbol` 을 걷어낸다(코드·시험 삭제. 아직 기록된 결과에 쓰이지 않음).
-- `Image` 에 `abs` 표(비-STAB ABS, 이름당 값 1 개)를 둔다. **extern 재배치 해석(:170)에서만** SECT 에 없을 때 ABS 값을 S 로 쓴다(링커 의미: 절대 심볼의 값). 근거 문자열은 `extern-abs NAME` 이다. 배치(:437)는 SECT 만 쓴다.
-- 기본 동작이 바뀌는 범위는 "ABS 이름을 참조하는 extern 재배치" 뿐이다. 그런 재배치는 이전에 unverified 였다. 회귀 확인:
-  - (a) 확정·부분 객체 빌드 산출물 전체를 훑어 ABS 이름을 참조하는 객체를 Python 으로 찾는다.
-  - (b) 그 객체들과 위 9 개 대표 객체의 L1 을 옛/새 도구로 비교한다. 바뀌는 것은 해당 참조의 unverified → verified/differ 뿐이어야 한다.
-- 시험: mach_header(16 참조 → 검증), 틀린 값 음성 시험(ABS 값을 바꾼 이미지 사본이 아니라 단위 시험으로 `Image.abs` 조작), 배치 불변.
-
-### 108.3 codex 교차검토(QS28) 판정 → 최종 설계
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| ABS 값을 S 로 쓰는 것은 i386 VANILLA extern(pcrel 포함)에 맞음. pcrel 보정은 별도 확인 | `l1_compare.py:173` `exp = F + S - (dP if r['pcrel'] else 0)`(위 sed) | ✅ 기존 식 그대로 쓴다 |
-| 값 0 인 ObjC ABS 심볼은 S=0 이라 F 가 그대로 맞아 MATCH 가 정보가 없음 | ABS 100 개 중 값 0 이 아닌 것은 `__mh_execute_header` 하나(108.2 Python) | ✅ **값 0 이 아닌 ABS 만** 해석한다. 값 0 인 것은 이전처럼 unverified 로 둔다 |
-| 옛/새 비교만으로는 정당성이 증명되지 않음 → 독립 기대값 | mach_header 의 16 필드는 원본 바이트에서 `F + 0x100000` 이어야 한다. 이것을 따로 Python 으로 계산해 대조한다 | ✅ |
-| 음성 시험은 `Image.abs` 조작이 아니라 ABS 값을 바꾼 이미지 사본으로 | — | ✅ nlist `n_value` 를 +4 바꾼 사본으로 시험 |
-
-구현: `--define-symbol` 을 제거하고, `Image.abs`(값≠0 인 비-STAB ABS)를 :170 의 extern 해석에서만 쓴다. 결과의 재배치 근거 문자열은 `extern-abs NAME` 이다.
-
-### 108.4 결과 (S5-P82, 2026-10-02) — ABS 해석, mach_header OBJECT_MATCH
-
-- `l1_compare.py`: `Image.abs`(값≠0 인 비-STAB ABS)를 extern 재배치 해석에만 쓴다. 근거 문자열은 `extern-abs`. `--define-symbol` 은 걷어냈다(기록된 결과에 쓰인 적 없음).
-- 회귀:
-  - 모든 빌드 산출물(`08_build/runs/*/out/*.o`)에서 `__mh_execute_header` 를 참조하는 객체는 mach_header 3 판뿐이다(Python).
-  - 대표 9 객체의 옛/새 L1 JSON 은 mach_header 를 빼고 모두 동일하다. mach_header 만 미검증 16 → 0, OBJECT_MATCH 로 바뀌었다.
-- 시험 `test_l1_abs.py` 5/5:
-  - 독립 기대값(원본 필드 = F + 0x100000, 16/16).
-  - 심볼표 값을 +4 한 이미지 사본에서 참조 차이 16.
-  - 값 0 인 ObjC 표식은 해석하지 않음.
-  - 배치 불변.
-- `test_sect_of` 7/7.
-- mach_header(`s5p81-probe-1`, 새 도구): O3·O3c **OBJECT_MATCH 15/15**. `__data` 는 L1d, O3 common 은 심볼 배치다.
-
-## 109. S5-P83 세부 계획 — `kern/mach_header.c` 채택 (코딩 전, 2026-10-02)
-
-사실(Python):
-- 객체 [0x15c2fc, 0x15c827) 1323 B, 15 함수(원본 심볼 14 + static `getsizeofmacho` 0x15c7a4).
-  - 앞 0 B: 확정 `x86-mach_factor` 가 0x15c2fc 에서 끝난다(gap_after "0 (next object starts aligned)").
-  - 뒤: 0x15c827 `00` 1 B = 최소 채움이고, `_setup_main` 0x15c828 이다.
-- common `_fvm_seg` 4/4.
-- `.i` 표지 108 개 중 07 에 없는 것: 대상 파일, Darwin `kern/mach_header.h`, 실기 SDK `nextdev/mach-o/loader.h`. SDK 쪽은 `nextdev/` 선례(D018)대로 실기 SHA 목록과 일치해야 하고, PROVENANCE 에 license TBD(D017)로 적는다.
-- objects.tsv seq 172 의 끝 추정(0x15c7a2)은 짧았다(107.1). objects.tsv 는 자동 생성 후보표이므로 고치지 않고 증거에 적는다.
-
-절차:
-1. 07 = 탐침 본문 + `Modified` 주석. 헤더 2 개를 채택한다(SHA 확인).
-2. 빌드 `s5p83-build-1`. 예측 O3·O3c = 탐침 해시.
-3. 새 L1 로 OBJECT_MATCH 를 확인하고 **A** 로 판정한다. 표 functions +15(static `getsizeofmacho` 는 `(static getsizeofmacho; Ghidra …)` 표기 — Ghidra 함수 이름을 확인해 적는다), objects_confirmed +1, PROVENANCE +3, MODIFICATIONS +1, 증거.
-
-### 109.1 codex 교차검토(QS29) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| A 타당 | 108.4 L1 JSON, 109 경계(Python) | ✅ |
-| 남은 마감(헤더 채택·표·출처) 필요 | 109 절 절차 3 | ✅ 이번에 수행 |
-
-추가 확인: static `getsizeofmacho` = Ghidra `FUN_0015c7a4`. SDK `mach-o/loader.h` sha256 `c2eb3796…` = 실기 목록이다(Python·sha256sum).
-
-### 109.2 결과 (S5-P83, 2026-10-02) — `mach_header.c` **A**
-
-- 빌드 `s5p83-build-1`: 예측 일치(탐침과 바이트 같음). L1 OBJECT_MATCH 15/15(참조 49). `.i` 108 개 모두 07 에 있다.
-- 표: functions +15, objects_confirmed +1(A), PROVENANCE +3(`mach_header.c`, Darwin `kern/mach_header.h`, SDK `nextdev/mach-o/loader.h`), MODIFICATIONS +1, 증거·diff. 헤더는 원문 그대로라 회귀는 필요 없다.
-
-## 110. S5-P84 세부 계획 — `kern/mach_init.c` 탐침 (코딩 전, 2026-10-02)
-
-사실(capstone, 원본 `_setup_main` 0x15c828, 102.2 진단):
-- 호출 순서: `_clock_timer_init`, `_rqinit`, `_sched_init`, `_vm_mem_init`, `_mach_clock_bootstrap`, `_init_timers`, `_init_timeout`, `_startup(virtual_avail)` → (`printf` 없음) → `machine_info` 대입 → `_uzone_init`, `_ipc_bootstrap`, `_cpu_up(master_cpu)`, **`_mach_net_init`**, `_task_init` … `_miniMonInit`. 앞의 다섯 호출은 인자가 없다(직전 push 없음).
-- Darwin `mach_init.c`:
-  - :82 `machine_clock_init();` 다(원본 심볼표에 `_machine_clock_init` 없음, `_clock_timer_init` 0x187a40 있음).
-  - `rqinit()` 가 없다(NeXTMach `mach_init.c:64` 에 있음, 원본 `_rqinit` 0x10ab88).
-  - `mach_clock_bootstrap()` 가 없다(원본 `_mach_clock_bootstrap` 0x15c024, 어느 참조에도 없음).
-  - :91 `printf("minimum quantum …")` 가 있다(원본에 없음).
-  - `mach_net_init()` 은 `#if MACH_NET`(:77–79, :108–110) 안에 있다.
-- `MACH_NET` 은 config 표에 없다(`mach_net.h` 생성 안 됨). C/H 사용은 `#if` 뿐이다(`#ifdef`·`defined` grep 0). 사용 파일은 ipc_kmsg·ipc_kobject·mach_net·mach_init 이고 모두 미채택이다(07 없음, 표 0). 원본이 `_mach_net_init` 을 부르므로 이 객체에서는 1 이다.
-
-탐침(스테이징만):
-- M0: 스테이징 덧붙임 `generated/mach_net.h` = `#define MACH_NET 1`(SHA 기록).
-- M1(작성 D016, 원본 심볼 이름): :82 `machine_clock_init();` → `clock_timer_init();`.
-- M2(복원 수정, NeXTMach :64): `sched_init();` 앞에 `rqinit();`.
-- M3(작성): `vm_mem_init();` 뒤에 `mach_clock_bootstrap();`.
-- M4(R1·R2): :91 `printf(...)` 삭제.
-- 선언: 암시적 선언으로 호출만 한다(반환값 미사용, NeXTMach 관행). `machine_clock_init` 의 extern 선언이 있으면 그대로 둔다(코드 영향 없음).
-- 예측: `__text` 원본 [0x15c828, 0x15c945) = 285 B(+ 끝 채움). L1 은 `_setup_main` MATCH 또는 data 의존이다. 변형 1/3.
-- 채택은 다음 회차에 한다. 채택하면 MACH_NET 을 config 에 `hypothesis` 1 로 올리고 회귀를 돌린다.
-
-### 110.1 codex 교차검토(QS30) 판정
-
-내 확인(줄 출력): M1 :82, M2 는 :83 앞, M3 은 :85 뒤, M4 는 :91 이다. MACH_NET 블록은 :77–79(extern)·:108–110(호출)이다.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 암시적 int 선언은 `void` 정의와 호환되지 않으므로 증거로 시그니처를 정해 명시 선언 | 두 함수의 정의는 참조 소스 어디에도 없어(grep 0) 반환형 근거가 없다. 원본 호출부에서 반환값을 쓰지 않는다(호출 뒤 `eax` 사용 없음, capstone) | ⚖️ 기각. 근거 없는 `void` 선언을 지어내지 않고, 이 객체의 코드는 선언과 무관하게 같다. 105.1 의 `utask_*` 와 같은 처리다. 위험은 증거에 기록한다 |
-| MACH_NET=1 은 :77–79 의 extern 선언도 켠다 → 예측에 포함 | 줄 출력 | ✅ 선언은 코드 영향 없음. :108–110 의 호출이 원본과 맞는 부분이다 |
-
-### 110.2 탐침 1 결과와 스테이징 보정
-
-- `s5p84-probe-1`: `__text` 280/285, L1 BOUNDARY. 빌드에 `call _mach_net_init` 이 없다. mach_init.c 는 `<mach_net.h>` 를 include 하지 않는다(grep 0). 옵션 매크로는 `-imacros generated/meta_features.h`(H-meta)로 들어오는데, 덧붙인 `mach_net.h` 를 거기서 import 하지 않았다. **내 탐침 설계 누락**이다.
-- 보정(탐침 2, 소스 변경 없음): 스테이징 `generated/meta_features.h` 에 `#import <mach_net.h>` 를 더한다. 이것은 채택 때 `gen_config_headers.py` 가 만들 상태와 같다(이름 정렬 위치). SHA 를 기록한다.
-
-### 110.3 결과 (S5-P84, 2026-10-02) — 탐침 2: 285 B, 남은 차이 2 B(버전 상수)
-
-- `s5p84-probe-2`(스테이징 `meta_features.h` sha `3348ebd6…`, `mach_net.h` `28dab78a…`): `__text` **285 B**(원본과 같음), `call _mach_net_init` 이 원본 자리에 생겼다.
-- 남은 바이트 차이 2 곳(오프셋 96·106)은 `machine_info.major_version`·`minor_version` 이다. 원본 4·0, 빌드 5·3 이다.
-  - Darwin `bsd/sys/version.h:79–80` 은 5·3, 실기 SDK `bsd/sys/version.h:49–50` 은 **4·0**, NeXTMach 은 2·0(tags 기록)이다.
-  - 두 판의 주석 아닌 줄 차이는 이 두 정의뿐이다(diff).
-- `bsd/sys/version.h` 를 읽은 빌드는 지금까지 mach_init 탐침 둘뿐이다(모든 `.i` 검색, Python).
-
-## 111. S5-P85 세부 계획 — `kern/mach_init.c` 채택(MACH_NET·SDK version.h 포함) (코딩 전, 2026-10-02)
-
-1. config: `mach_net` 행(macro `MACH_NET`, header `mach_net.h`, 값 1, `hypothesis`)을 추가한다. 근거는 원본 `_setup_main` 의 `call _mach_net_init`(0x15c8ac)과 Darwin `conf/files:56`·`MASTER:133` 이다. 사용은 `#if` 뿐이고 사용 파일은 모두 미채택이다. `gen_config_headers.py` 를 다시 돌리고 `--check` 한다. `meta_features.h` 는 탐침 2 스테이징과 바이트가 같아야 한다.
-2. 회귀: 확정·부분 80 객체(s5p64 73 + vm_policy·vm_fault·vm_resident·vm_pageout·syscall_sw·task·mach_header, 각 최종 빌드 명령)를 새 생성 헤더로 다시 빌드한다. 기준은 각 최종 빌드 산출물 해시이고, 바이트 동일을 기대한다.
-3. 07:
-   - `src/kern/mach_init.c` = 탐침 2 본문 + `Modified` 주석.
-   - `src/bsd/sys/version.h` = 실기 SDK `bsd/sys/version.h` 원문. 실기 SHA 목록과 대조하고, PROVENANCE `nextdev-os42`, license TBD(D017)로 적는다. D020 의 "객체별·바이트 근거" 선택이며, 사용 객체는 mach_init 하나다.
-4. 빌드 `s5p85-build-1`. 예측: 탐침 2 와 같은 `.i` 구조에서 버전 상수만 바뀐다. L1 OBJECT_MATCH 1/1(O3 common 은 심볼 배치 여부를 본다).
-   - 경계: 앞은 확정 mach_header 끝 0x15c827 + `00` 1 B, 뒤는 0x15c945–0x15c947 `00×3`(최소 3) 다음 `_fatfile_getarch` 0x15c948.
-5. 판정 **A**. 표: functions +1(`_setup_main`, authored 표시), objects_confirmed +1, config +1 행, PROVENANCE(+mach_init.c, version.h, mach_net.h), MODIFICATIONS, 증거.
-
-### 111.1 codex 교차검토(QS31) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| SDK `version.h` 를 공유 경로에 두면 이후 객체 모두에 적용됨 → D020 은 객체별 판단을 요구하므로 객체별 치환을 쓰라 | 원본 커널은 하나의 빌드다. `KERNEL_MAJOR/MINOR_VERSION` 은 같은 헤더에서 오고 객체마다 다를 수 없다. 지금 이 헤더를 읽는 객체는 mach_init 뿐이다(110.3, 모든 `.i` 검색). Darwin 판은 07 에 채택된 적이 없다 | ⚖️ 기각(공유 경로에 둔다). 다만 07 README·PROVENANCE 에 "D020 근거 객체: mach_init. 이 헤더를 새로 읽는 객체는 채택 때 `.i` 와 바이트로 다시 확인" 을 명시한다 |
-| MACH_NET=1 은 mach_init 에 대한 가설로서 충분, 전역 사실 확정은 아님 | config 표의 `hypothesis` 의미(선례 norma_ether 등) | ✅ `hypothesis` 로 둔다 |
-| 기준선은 같은 명령·입력으로 만든 해시여야 함 | s5p64 회귀 기준 73 + 각 최종 빌드(같은 cmd 줄을 그대로 씀) | ✅ 각 객체의 최종 빌드 cmd 줄을 그대로 회귀 cmd 에 넣고 기준은 그 산출 해시다 |
-| `__data` 가 비어도 객체 전체(섹션 크기·재배치·심볼·common 크기와 정렬·경계)를 기록 | — | ✅ 증거 파일에 섹션 표·common(크기·정렬·간격)을 남긴다 |
-
-### 111.2 결과 (S5-P85, 2026-10-02) — `mach_init.c` **A**
-
-- config `mach_net` 행을 추가했다(27 행, hypothesis 1). `gen_config_headers --check` 를 통과했고, `meta_features.h`·`mach_net.h` 는 탐침 2 스테이징과 바이트가 같다.
-- 회귀 `s5p85-regress-1`: 80 객체 / 86 명령 **모두 동일**(기준 `s5p85-regress-baseline.json` = s5p64 기준 + 7 객체 최종 빌드).
-- 07: `src/kern/mach_init.c`(탐침 2 + `Modified`), `src/bsd/sys/version.h`(실기 SDK 원문, SHA 목록 일치).
-- 빌드 `s5p85-build-1`: L1 O3·O3c OBJECT_MATCH(참조 43). `.i` 110 개 모두 07 에 있다.
-- 표: functions +1, objects_confirmed +1(A), PROVENANCE +3, MODIFICATIONS +1, 증거·diff.
-
-## 112. S5-P86 세부 계획 — 옵션 `MACH_DEBUG`·`HW_FOOTPRINT`·`NORMA_IPC` 진단 (코딩 전, 2026-10-02)
-
-사실(grep, Python, srcdefs):
-- 컴파일이 막힌 kern 파일(102.2): exception(`norma_ipc.h`), kernel_stack·thread(`mach_debug.h`), sched_prim·thread(`hw_footprint.h`), mach_net(`mach_net.h` — 111 에서 생성됨).
-- 세 옵션 모두 Darwin `conf/files`(:38 `hw_footprint`, :43 `mach_debug`, :77 `norma_ipc`)·`MASTER`(:117·:122·:135)에 있고, C/H 사용은 모두 `#if` 다(`#ifdef`·`defined` 0 건).
-- `MACH_DEBUG` 쪽 근거:
-  - `#if MACH_DEBUG` 안에 정의된 함수 가운데 원본 심볼표에 있는 것: thread.c `stack_usage`·`stack_init`·`stack_finalize`·`stack_statistics`·`host_stack_usage`·`processor_set_stack_usage`·`thread_stats`, zalloc.c `host_zone_info`·`host_zone_free_space_info`.
-  - 없는 것: zalloc `host_zone_collect` 하나.
-  - 전역 `_stack_check_usage`·`_stack_max_usage`·`_stack_usage_lock` 도 원본에 있다(thread.c:110–118 의 `#if MACH_DEBUG` 블록).
-  - 그래서 값은 1 로 본다. zalloc 그대로 빌드가 5685/7475 로 작았던 것도 같은 방향이다.
-- `HW_FOOTPRINT`(sched_prim:1313–1338, thread:571–593)와 `NORMA_IPC`(exception:475–477)는 바이트로 정해야 한다. 07 채택 파일 중 이 셋을 쓰는 것은 `ipc_notify.c:385`(`#if NORMA_IPC`) 하나이고, 미정의(0) 상태로 A 다. 따라서 NORMA_IPC 0 이 일관된다.
-
-진단(스테이징만, 07·config 변경 없음):
-- 스테이징 하나에 덧붙임 `generated/mach_debug.h`(1)·`norma_ipc.h`(0)를 두고, `meta_features.h` 에 두 import 를 더한다(정렬 위치).
-- `hw_footprint.h` 는 두 판(0·1)으로 스테이징을 둘 만든다.
-- 대상: exception, kernel_stack, mach_net, sched_prim, thread, zalloc(재진단). 파일마다 kr_run 실행을 하나씩, O3c 1 명령으로 돌린다.
-- 관찰: 컴파일 여부, 심볼 간격 비교, L1(102 절 방식, 요약 JSON). HW_FOOTPRINT 판정은 sched_prim/thread 두 판의 해당 함수(`thread_setrun`·`thread_create`) 바이트로 한다.
-- 다음 단계: 결과에 따라 옵션 행을 추가하고 회귀를 돌린 뒤 객체별 채택 계획을 세운다.
-
-### 112.1 codex 교차검토(QS32) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 심볼이 있다는 것만으로 MACH_DEBUG=1 은 이름. 원본 위치를 확인할 것 | Python: `_stack_usage`·`_stack_init`·`_stack_finalize`·`_host_stack_usage`·`_processor_set_stack_usage`·`_thread_stats` 는 thread 객체 범위 [0x166a5c,0x168ed4) 안, `_host_zone_info`·`_host_zone_free_space_info` 는 zalloc 범위, `_stack_statistics` 는 kernel_stack 범위 안이다. 모두 각 파일 끝의 `#if MACH_DEBUG` 블록 위치와 같다 | ⚖️ 강한 정황으로 보고, 확정은 진단 빌드의 바이트로 한다. `host_zone_collect` 부재는 후대 추가 가능성으로 기록한다(zalloc 진단에서 확인) |
-| 스테이징 `meta_features` import 는 진단용일 뿐 | — | ✅ 채택 때 생성기로 만든다 |
-| HW_FOOTPRINT 는 두 판이 서로 다른 바이트를 내야 판별 가능 | — | ✅ 해당 구간을 원본과 직접 비교한다 |
-| NORMA_IPC=0 은 일관성 관찰이지 원본 사실이 아님 | — | ✅ exception 의 :475 분기 바이트로 판정한다 |
-
-### 112.2 진단 결과 (S5-P86, 2026-10-02)
-
-| 파일 | 결과 |
-|---|---|
-| kernel_stack | 컴파일 ✅. `__text` 2408/2408. 13 함수 중 3 MATCH, 9 MATCH_UNVERIFIED(`__bss` 만), 1 DIFF(`_initKernelStacks`) |
-| zalloc | 컴파일 ✅. 7788/7475. 원본 전용 `zone_gc`·`consider_zone_gc`·`zone_reclaim`, 빌드 전용 5 개(`host_zone_collect` 포함), `zone_init` 72/1112 → 판(版) 차이가 큼, 보류 |
-| exception | ❌ `exception.c:420` `ikm_sender` 없음(07 `ipc_kmsg.h` 는 원본 배치로 복원된 판) |
-| sched_prim (hw0·hw1) | ❌ `sched_prim.c:1193` `sleep_time` 없음(07 `thread.h` 복원판) |
-| thread (hw0·hw1) | ❌ `kernobjc.h`·`kernel_stack.h` 경로 없음(:64·:129) |
-| mach_net | ❌ `mach_net.c:206` `MCLGET` 인자 수(BSD mbuf 매크로 판 차이) |
-
-- 결론: MACH_DEBUG=1 은 kernel_stack 에서 `stack_statistics`(원본 심볼, kernel_stack 범위 안)가 생기고 크기가 같아진 것으로 뒷받침된다. HW_FOOTPRINT·NORMA_IPC 는 아직 판정할 바이트가 없다(sched_prim·thread·exception 컴파일 실패).
-- kernel_stack `_initKernelStacks` 차이(오프셋 42·52·57): 원본은 `kernelStackBlock = 0x1000`, `(page_size + 0xfff) >> 12`, 빌드는 `0x2000`, `0x1fff`, `>> 13` 이다.
-  - Darwin `kernel_stack.h:63` `KERNEL_STACK_SIZE = KERNSTACK_SIZE - sizeof(struct _kernelStack)`, `mach/i386/vm_param.h:71` `KERNSTACK_SIZE (2*I386_PGBYTES)` 이다.
-  - NeXTMach `kern/kernel_stack.h:34` 는 `(4096 - sizeof(struct _kernelStack))` 다.
-
-## 113. S5-P87 세부 계획 — `kern/kernel_stack.c` 탐침(스택 크기) (코딩 전, 2026-10-02)
-
-- `KERNEL_STACK_SIZE`/`KERNSTACK_SIZE` 사용처(grep): 07 에서는 `mach/i386/vm_param.h:71`(정의)·`kern/kernel_stack.h:63`(정의)뿐이다. Darwin 에서는 kernel_stack.c·thread.c·machdep/i386/pcb.c 가 쓰고, 모두 미채택이다.
-- E1(D014, NeXTMach 값): 스테이징 사본의 `src/mach/i386/vm_param.h:71` `(2*I386_PGBYTES)` → `(I386_PGBYTES)` 다. 대안은 `kernel_stack.h:63` 을 NeXTMach :34 형태로 바꾸는 것인데, `KERNSTACK_SIZE` 를 그대로 두면 i386 정의가 원본과 어긋난 채 남으므로 vm_param 쪽을 고친다.
-- 진단 옵션: 스테이징은 112 의 hw0 판(MACH_DEBUG 1 등)이다.
-- 예측: `_initKernelStacks` MATCH, 나머지는 `__bss` 의존 MATCH_UNVERIFIED → zerofill_check 로 판정(reference-inferred 면 P, 섹션이 단일 참조면 D019).
-- 채택하려면 MACH_DEBUG 를 config 에 올리고 회귀(81 객체)가 필요하다. 이번에는 탐침까지만 한다.
-
-### 113.1 codex 교차검토(QS33) 판정과 추가 근거
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 한 함수의 일치만으로는 공유 헤더 값이 증명되지 않음 | 두 번째 독립 근거(capstone): 원본 `_stack_attach` 0x18d21c 와 `_switch_context` 0x18d3d1 이 `add edx, 0xff4` 를 쓴다. 이는 Darwin `pcb.c:87`·`:181` 의 `stack + KERNEL_STACK_SIZE` 이고, 0xff4 = 4096 − 12(`sizeof(struct _kernelStack)`)다. Darwin 판이면 0x1ff4 가 된다 | ✅ 값 4096 이 서로 다른 두 객체에서 확인되었다 |
-| `KERNEL_STACK_SIZE` 로 간접 사용하는 곳까지 확인 | 회귀 스테이징(81 소스 닫힘) 전체 grep: 사용처는 `machdep/ppc/thread.h:89` 뿐이고 i386 빌드는 읽지 않는다. 07 에서도 정의 외 사용 0 | ✅ 회귀로도 확인한다 |
-| `INTSTACK_SIZE` 등은 `I386_PGBYTES` 에 의존, 값 변화 없음 | vm_param.h :71–72 | ✅ |
-
-### 113.2 탐침 결과 (S5-P87, 2026-10-02)
-
-- `s5p87-probe-1`(MACH_DEBUG 1 덧붙임 + 스테이징 `vm_param.h` `KERNSTACK_SIZE (I386_PGBYTES)`, diff `x86-vm_param_h-probe1.diff`): O3c `__text` 2408 B 차이 0, `__data` 113 B 는 0x1ded68 에 L1d 검증. 13 함수 = 3 MATCH + 10 MATCH_UNVERIFIED(`__bss` 만).
-- zerofill(known s5p58): 참조 83, Δ 1 개, 후보 [0x1e5b98, 0x1e5ba8), 음성 검출 → **reference-inferred**(`s5p87-zerofill-check-kernel_stack-pre-20261002.json`).
-- 이 후보의 시작 0x1e5b98 은 kalloc `k_zone_name`(단일 참조, [0x1e5a98, 0x1e5b98))의 끝과 맞붙는다. `__text` 순서도 kalloc(…0x15ab9b) 바로 다음이 kernel_stack(0x15ab9c)이다. D019 의 "이웃 확정으로 위치가 독립 고정되면 재판정" 조건 중 **끝 쪽**이 이웃으로 뒷받침된다. 앞 쪽(0x1e5a98 앞)은 아직이라 kalloc 재판정은 하지 않고 기록만 한다.
-- 경계: 앞 0 B(kalloc 의 뒤 채움 `00` 이 0x15ab9b), 뒤 0 B(`_simple_lock_alloc` 0x15b504, 원본 심볼·Ghidra 시작).
-
-## 114. S5-P88 세부 계획 — `kern/kernel_stack.c` 채택(MACH_DEBUG·KERNSTACK_SIZE) (코딩 전, 2026-10-02)
-
-1. config: `mach_debug` 행(1, hypothesis)을 추가한다.
-   - 근거: 112.1 의 원본 위치 대조(thread·zalloc·kernel_stack 범위 안의 `#if MACH_DEBUG` 함수들)와 kernel_stack 의 `stack_statistics` 바이트 일치.
-   - `gen_config_headers` 로 다시 만들고 `--check` 한다.
-   - `norma_ipc`·`hw_footprint` 는 근거가 없으므로 넣지 않는다.
-2. 07 `src/mach/i386/vm_param.h:71` 을 `(I386_PGBYTES)` 로 바꾼다(복원 수정 D014). 근거는 원본 kernel_stack `0x1000` 과 pcb `0xff4` 두 곳(113.1)이다. MODIFICATIONS·PROVENANCE(`none (verbatim)` → restoration edit)·diff 를 남긴다.
-3. 회귀: 81 객체(s5p85 80 + mach_init)를 새 생성 헤더·새 vm_param 으로 빌드해 기준과 같은지 본다.
-4. 07 `src/kern/kernel_stack.c` = Darwin 원문 그대로. `.i` 표지 중 없는 파일은 원문 채택한다.
-5. 최종 빌드 `s5p88-build-1`: O3·O3c·O2·`.i` 두 개. L1, 36.1(common 이 있으면), zerofill(known s5p58)을 한다.
-   - 판정 **P**(`__bss` reference-inferred). 함수는 3 개 high, 10 개 medium. 새 알려진 범위 파일 s5p88(+1)을 만든다.
-
-### 114.1 codex 교차검토(QS34) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 계획 수준의 오류·누락 없음, 등급은 최종 확인 조건부 | README:21·24 | ✅ |
-| kalloc 재판정은 아직 아님(시작 쪽 근거 없음) | 113.2 | ✅ |
-
-### 114.2 결과 (S5-P88, 2026-10-02) — `kernel_stack.c` **P**
-
-- config `mach_debug` 1(hypothesis), 28 행이다. `gen --check` 를 통과했다. 07 `mach/i386/vm_param.h` `KERNSTACK_SIZE (I386_PGBYTES)` 에는 `Modified` 주석과 diff 가 있다.
-- 회귀 `s5p88-regress-1`: 81 객체 / 88 명령 동일.
-- 최종 `s5p88-build-1`: O3c = 탐침(`ae61855d…`). L1 3 MATCH + 10 MATCH_UNVERIFIED(`__bss`). 36.1 성립. zerofill reference-inferred [0x1e5b98, 0x1e5ba8). `.i` 90 개 모두 07 에 있다.
-- 표: functions +13(high 3, medium 10), objects_partial +1(P), PROVENANCE +2 와 vm_param 행 수정, MODIFICATIONS +1, 알려진 범위 s5p88(17 개), 증거.
-
-## 115. S5-P89 세부 계획 — thread·sched_prim 진단 2 (코딩 전, 2026-10-02)
-
-사실(grep):
-- Darwin `conf/MASTER.i386:72` RELEASE 태그 = `[intel pc mach medium event vol pst gdb kernobjc libdriver fixpri simple_clock mdebug kernserv driverkit uxpr kernstack ipc_compat ipc_debug … nbc]`.
-  - `mdebug`(MACH_DEBUG, 114 에서 1 로 둠)·`kernstack`(KERNEL_STACK, `MASTER:187`)·`kernobjc`(KERNOBJC, `:185`)가 들어 있다.
-  - `hw_foot`·`norma_ipc` 는 없다. 그래서 RELEASE 사전값은 HW_FOOTPRINT 0, NORMA_IPC 0 이다(기존 config 행들의 "RELEASE prior" 관행).
-- 사용처: `KERNEL_STACK` 은 thread.c 뿐이고, `KERNOBJC` 는 init_main.c·kern_server.c·ppc 파일(모두 미채택)이다. 둘 다 `#if`/`#import <…h>` 형식이다(`#ifdef`·`defined` 0).
-- thread.c:64 `#import <kernobjc.h>`, :129 `#import <kernel_stack.h>`, :130 `#if KERNEL_STACK` 다.
-- 07 `kern/thread.h` 는 원본 배치로 복원된 판이라 `sleep_time` 이 없다(MODIFICATIONS `src/kern/thread.h` 행). Darwin thread.c:397·:1641–1643, sched_prim.c:1193–1195 가 이 필드를 쓴다.
-
-진단(스테이징만): 112 의 hw0 스테이징 위에 덧붙임 `generated/kernobjc.h`(1)·`generated/kernel_stack.h`(1)를 두고 `meta_features.h` import 를 더한다. thread.c·sched_prim.c 를 빌드한다(O3c).
-- 예상: thread 는 `sleep_time` 에서 실패한다. 실패하면 그 오류 목록을 기록하고, 다음 계획에서 원본 바이트로 각 사용처를 판정한다(원본 `thread_template` 초기화·`thread_info` basic_info·`update_priority` 에 해당 저장이 있는지).
-
-### 115.1 codex 교차검토(QS35) 판정: RELEASE 목록은 사전값으로만, 진단 설계 타당 — 내 계획과 같다(✅). 원본 `sleep_time` 배치는 바이트로 확인한다.
-
-### 115.2 진단 결과와 116 계획(thread·sched_prim 탐침 1, 코딩 전)
-
-- `s5p89-pre-thread`·`s5p89-pre-sched-prim`: 옵션 헤더 문제는 풀렸다. 남은 오류는 07 `thread.h` 에 없는 `sleep_time` 뿐이다(thread.c:397·:1643, sched_prim.c:1193·:1195).
-- 참조:
-  - Mach4 `kern/sched_prim.c:1131–` `update_priority` 에는 `sleep_time` 블록이 없다(:1140 `assert` 다음 바로 주석).
-  - Mach4 `kern/thread.c:1544–1546`·NeXTMach `kern/thread.c:1823–1825` 의 `thread_info` 는 `basic_info->sleep_time = sched_tick - thread->sched_stamp;` 다.
-  - 원본 thread 배치(07 thread.h 복원 근거)에 이 필드가 없으므로, 이것들이 원본과 맞는 판일 가능성이 높다. 바이트로 확인한다.
-
-## 116. S5-P90 세부 계획 — thread.c·sched_prim.c 탐침 1 (코딩 전, 2026-10-02)
-
-스테이징 `s5p89-pre-stage-1` 사본 위에서:
-- S1(sched_prim, Mach4 형태, D014): :1192–1196(`if … sleep_time += …; else … = 0;` 와 뒤 빈 줄)을 지운다.
-- T1(thread): :397 `thread_template.sleep_time = 0;` 을 지운다.
-- T2(thread, Mach4 :1546·NeXTMach :1825): :1643 `basic_info->sleep_time = thread->sleep_time;` → `basic_info->sleep_time = sched_tick - thread->sched_stamp;`.
-- 빌드는 O3c 두 파일이다. 관찰: 컴파일, 심볼 간격 비교(원본 sched_prim seq 190 35 함수, thread seq 194 42 함수), L1 이다. 다음 계획 후보 순위를 정한다(채택 없음).
-
-### 116.1 codex 교차검토(QS36) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `sched_tick - sched_stamp` 는 누적 `sleep_time` 과 의미가 다를 수 있음 → 원본 동작으로 확인 | — | ✅ 의미 동등성은 주장하지 않는다. 탐침의 `_thread_info` 바이트가 판정한다 |
-| `struct thread` 에 그 필드가 남아 있으면 템플릿 초기화 삭제는 오류 | `s5p89-pre-thread` 오류 "structure has no member named `sleep_time`"(thread.c:397) — 07 `thread.h` 에 필드가 없다 | ❌ 해당 없음(필드 자체가 없다) |
-
-### 116.2 탐침 1 결과 (S5-P90, 2026-10-02)
-
-- `s5p90-probe-thread`·`s5p90-probe-sched-prim` 모두 컴파일된다(diff `x86-thread-probe1.diff`·`x86-sched_prim-probe1.diff`).
-  - thread: 9184/9336, 42 함수 중 간격 같은 것 36.
-  - sched_prim: 10097/9725, 35 함수 중 27. `__data` 차이 135 B.
-- thread 차이(정규화 diff, `08_build/…/scratchpad` 도구로 비교):
-  - `_thread_init`: 원본은 템플릿 +0x7c·+0x80 에 0 을 더 저장한다. 07 thread.h 배치상 `tmp_address`·`tmp_object` 이고 NeXTMach `thread.c:590–591` 과 같다.
-  - `_thread_create`: 원본은 u-area 할당 뒤 `call _uarea_zero(thread)`·`call _uarea_init(thread)` 를 한다(원본 심볼 0x106dcc·0x106db4). NeXTMach :710·:712 와 같다.
-  - `_thread_deallocate`: 원본은 `tmp_address` 가 있으면 `kmem_free`, `tmp_object` 가 있으면 `vm_object_deallocate` 를 한다(NeXTMach :923–926). 원본에는 Darwin :715 `thread->depress_priority = -1;`(빌드 `mov [esi+0x64],-1`)이 없다.
-  - `_reaper_thread` 12/24: 원본은 `reaper_thread_continue()` 만 부른다. Darwin :1809 `current_thread()->vm_privilege = TRUE;` 가 없다.
-  - `_thread_info` 520/544: Darwin :1605–1611 `#if SIMPLE_CLOCK` 드리프트 보정(`* 1000000 / sched_usec`)이 원본에 없다.
-  - `_thread_halt` 796/688: 구조 차이가 크다(다음 탐침 뒤 따로 본다).
-- **SIMPLE_CLOCK 충돌**: config 는 `simple_clock 1 hypothesis` 다(근거: `_sched_usec_elapsed` 0x160714 존재, Darwin 은 그 함수를 `#if SIMPLE_CLOCK` 안에 둠). 반대 근거는 다음과 같다.
-  - 원본 심볼표에 `_sched_usec` 가 없다(Darwin `sched_prim.c:99–101` 이 `#if SIMPLE_CLOCK` 아래 정의).
-  - thread_info 에 보정이 없다.
-  - sched_prim 의 `_sched_init` 228/168, `_recompute_priorities` 432/52 차이가 Darwin :226–228·:1146–1162 의 SIMPLE_CLOCK 블록과 맞아떨어질 가능성이 있다(탐침으로 확인).
-  - 07 에서 SIMPLE_CLOCK 을 쓰는 곳은 `kern/sched.h:174–181` 의 extern 선언뿐이다(코드 영향 없음).
-
-## 117. S5-P91 세부 계획 — thread·sched_prim 탐침 2 (SIMPLE_CLOCK 0 + NeXTMach 줄) (코딩 전, 2026-10-02)
-
-탐침 1 스테이징 사본 위에서:
-- C0: 스테이징 `generated/simple_clock.h` 를 `#define SIMPLE_CLOCK 0` 으로 둔다(07·config 는 그대로, 비교용).
-- T3(NeXTMach :590–591): :391 `thread_template.vm_privilege = FALSE;` 뒤에 `thread_template.tmp_address = (vm_offset_t) 0;`·`thread_template.tmp_object = VM_OBJECT_NULL;`.
-- T4(NeXTMach :710·:712): :494 `new_thread->_uthread = …zalloc(u_thread_zone);` 뒤에 `uarea_zero(new_thread);`·`uarea_init(new_thread);`(정확한 위치는 원본 호출 순서 — `zalloc` 결과 저장 직후 — 와 맞춘다).
-- T5(NeXTMach :923–926): `thread_deallocate` 의 `pset_deallocate(pset);`(:737) 뒤, `task_unlock` 다음 자리에 tmp 정리 4 줄. 위치는 NeXTMach 순서를 따른다.
-- T6(R1·R2): :715 `thread->depress_priority = -1;` 삭제.
-- T7(R1·R2): :1809 `current_thread()->vm_privilege = TRUE;` 삭제.
-- 예측: thread 의 `_thread_init`·`_thread_create`·`_thread_deallocate`·`_reaper_thread`·`_thread_info` 간격이 원본과 같아지고, `_thread_halt` 만 남는다. sched_prim 은 `_sched_init`·`_recompute_priorities` 차이가 줄어드는지 본다.
-
-### 117.1 codex 교차검토(QS37) 판정 → 설계 보정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| C0 만 바꾼 비교를 먼저 해야 옵션 효과를 분리할 수 있음 | — | ✅ 탐침 2a(C0 만)와 2b(C0+T3–T7)로 나눈다 |
-| `_sched_usec_elapsed` 존재는 SIMPLE_CLOCK=1 의 증명이 아님 | config 근거 칸에도 "body differs from Darwin" 이 있다 | ✅ config 값은 2a·2b 결과와 mach_clock 확인 전까지 그대로 둔다 |
-| T4 는 NeXTMach 의 `u_address.uthread`/`utask` 선행 대입에 기댐 → 사전조건 확인 필요 | 탐침 스테이징 thread.c :494–497 에 Darwin 자신의 주석 처리된 줄이 있다: `new_thread->_uthread = … zalloc(u_thread_zone);` / `//	uarea_zero(new_thread);		/* XXX */` / `//	uarea_init(new_thread);`. 원본 호출 순서(zalloc → 저장 → `_uarea_zero` → `_uarea_init`)와 같다 | ⚖️ T4 를 "Darwin :496–497 의 주석 해제" 로 바꾼다(Darwin 판 텍스트, 출처가 더 가깝다). helper 의 의미는 주장하지 않는다 |
-| T6·T7 근거는 제시 범위 밖이라 미확인, 예측이 과함 | T6 = Darwin :715(줄 출력), T7 = :1809(줄 출력). 근거는 원본 바이트(116.2) | ✅ 함수별 결과를 따로 기록한다 |
-
-### 117.2 탐침 2a·2b 결과 (S5-P91, 2026-10-02)
-
-- 2a(SIMPLE_CLOCK 0 만):
-  - thread `_thread_info` 544 → 512(원본 520).
-  - sched_prim `_sched_init` 228 → 220(원본 168), `_recompute_priorities` 432 → 396(원본 52).
-  - 따라서 SIMPLE_CLOCK 블록은 원본에 없는 쪽과 맞는다. 다만 sched_prim 에는 그 밖의 차이가 남는다.
-- 2b(2a + T3–T7): thread 42 함수 중 39 개 간격이 같다. 남은 것은 `_thread_deallocate` 732/740, `_thread_info` 512/520, `_thread_halt` 688/796 이다.
-- **내 오류(T6)**: 원본 `_thread_deallocate` 에도 `reset_timeout` 뒤 `mov [esi+0x64], 0xffffffff`(`depress_priority = -1`)가 있다. 정규화 비교에서 큰 상수가 N 으로 가려져 있었다. 탐침 1 diff 에서 그 줄이 빌드 쪽에만 보인 것은 위치가 어긋났기 때문이다. T6 은 철회한다.
-- `_thread_info`: 원본은 `policy == 2 || policy == 4` 를 검사한다. 07 `mach/policy.h` 에서 `POLICY_FIXEDPRI` 2, `POLICY_INTERACTIVE` 4 이고, NeXTMach `thread.c:1847–1851` 이 `#if NeXT` 아래 `|| thread->policy == POLICY_INTERACTIVE` 를 둔다(빌드에 `-DNeXT`).
-- `_thread_halt`: 원본 호출에는 `_clear_wait` 뒤 `_mach_msg_interrupt`·`_splsched`·`_splx` 가 더 있다. 이는 Mach4 `thread.c:1071–1089` 의 continuation 정리 블록이다(Darwin 에서 지워짐).
-  - 쓰는 이름은 모두 원본 심볼이다: `_mach_msg_continue` 0x153f34, `_mach_msg_receive_continue`, `_mach_msg_interrupt`, `_thread_exception_return`, `_thread_bootstrap_return`.
-  - Darwin `ipc/mach_msg.h` 에는 `mach_msg_continue` 선언이 없다(Mach4 `ipc/mach_msg.h:56–57` 에 있음).
-
-## 118. S5-P92 세부 계획 — thread 탐침 3 (코딩 전, 2026-10-02)
-
-2b 스테이징 사본 위에서:
-- T6 되돌림: `thread->depress_priority = -1;` 복원.
-- T8(NeXTMach :1847–1851): Darwin :1670 `if (thread->policy == POLICY_FIXEDPRI) {` 를 NeXTMach 의 여러 줄 조건(`#if NeXT … #endif NeXT` 포함)으로 바꾼다.
-- T9(Mach4 :1071–1089): `thread_halt` 의 `if (thread->state & TH_HALTED) { return KERN_SUCCESS; }` 뒤에 Mach4 블록(주석 포함)을 넣는다.
-- H1(Mach4 `ipc/mach_msg.h:56–57`): 스테이징 `src/ipc/mach_msg.h` 의 `mach_msg_receive_continue();` 선언 뒤에 `extern void` / `mach_msg_continue();` 를 넣는다. 선언만 하므로 다른 객체 코드에는 영향이 없다(채택 때 회귀로 확인).
-- 예측: thread 42/42 간격 같음, L1 은 data 의존을 빼면 MATCH 다. SIMPLE_CLOCK 0 은 스테이징 유지다(config 결정은 sched_prim 정리와 mach_clock 확인 뒤).
-
-### 118.1 codex 교차검토(QS38) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| T9 이름(`THREAD_INTERRUPTED`·`AST_HALT`·`thread_ast_clear`)이 Darwin 쪽에 있는지 확인 | 07 `kern/sched_prim.h:72`, `kern/ast.h:76`·`:151` | ✅ |
-| T8 `#if NeXT` 는 `-DNeXT` 로 참, 공유 헤더 선언 추가 무방(정의와 일치 확인) | Darwin `ipc/mach_msg.c:763` 이 `mach_msg_continue` 를 함수로 쓴다(원본 `_mach_msg_continue` 존재) | ✅ |
-| 채택 때 바이트 대조·출처 기록 필요 | — | ✅ 채택 계획에서 |
-
-### 118.2 탐침 3 결과 (S5-P92, 2026-10-02) — thread O3c **OBJECT_MATCH 42/42**
-
-- `s5p92-probe-thread`(diff `x86-thread_c-probe3.diff`·`x86-mach_msg_h-probe3.diff`): `__text` 9336 B 차이 0, `__data` 심볼 배치 차이 0.
-- 옵션(스테이징): MACH_DEBUG 1(config), KERNOBJC 1, KERNEL_STACK 1, **HW_FOOTPRINT 0**, **SIMPLE_CLOCK 0**, NORMA_IPC 0(thread 는 읽지 않음).
-  - HW_FOOTPRINT 0 은 `_thread_create` 가 `#if HW_FOOTPRINT` 의 `last_processor` 대입 없이 일치한 것이 근거다.
-  - SIMPLE_CLOCK 0 은 `_thread_info` 일치가 근거다(+117.2 의 sched_prim 방향).
-
-## 119. S5-P93 세부 계획 — `kern/thread.c` 채택 (코딩 전, 2026-10-02)
-
-사실: 객체 [0x166a5c, 0x168ed4) 9336 B, 42 함수.
-- 앞 0 B: 확정 `x86-task` 의 gap_after `2 x 00` 다음이 0x166a5c 다.
-- 뒤 0 B: `_swapper_init` 0x168ed4 다.
-
-1. config:
-   - 추가: `kernobjc` 1, `kernel_stack` 1, `hw_footprint` 0(모두 hypothesis, 근거 = 위 + RELEASE 태그).
-   - 변경: `simple_clock` 1 → **0**(hypothesis). 근거는 원본 `_sched_usec` 부재, `_thread_info` 바이트, sched_prim 진단 방향이다. 반대 근거 `_sched_usec_elapsed` 존재는 "원본 mach_clock 판이 SIMPLE_CLOCK 과 무관하게 이 함수를 둔 것으로 보임(mach_clock 미채택, 그때 다시 확인)" 으로 기록한다.
-   - `norma_ipc` 는 근거가 없어 넣지 않는다.
-   - `gen --check` 를 한다.
-2. 07:
-   - `src/ipc/mach_msg.h` 는 Darwin 원문 + Mach4 `ipc/mach_msg.h:56–57` 선언 2 줄이다(복원 수정, CMU 고지 파일).
-   - `src/kern/thread.c` 는 탐침 3 본문 + `Modified` 주석이다.
-3. 회귀: 82 객체(s5p88 81 + kernel_stack O3/O3c). 기대는 전부 동일이다(SIMPLE_CLOCK 0 이 sched.h extern 선언만 바꾸는지 확인하는 것이 핵심).
-4. 최종 빌드 `s5p93-build-1` 에서 L1 O3c 와 36.1(O3)을 확인한다. 경계는 0/0, `.i` 채택 검사. 판정은 **A**(조건 충족 시). 표: functions +42, objects_confirmed +1, PROVENANCE(thread.c·mach_msg.h·생성 헤더 3), MODIFICATIONS 2(thread.c 의 NeXTMach·Mach4 출처 줄 번호 포함), 증거.
-
-### 119.1 codex 교차검토(QS39) 판정과 통제 탐침
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| SIMPLE_CLOCK 1→0 은 가설 갱신으로 정당, 사용자 결정은 불필요. 다만 양쪽 근거를 모두 남길 것 | — | ✅ config 근거 칸에 찬반을 모두 적는다 |
-| KERNOBJC·KERNEL_STACK 은 값별 근거가 없음 | 통제 탐침 `s5p93-ctl-thread-ks0`(KERNEL_STACK 0): thread 가 10256 B 가 되고 빌드 전용 `_stack_alloc_try`·`_stack_alloc`·`_stack_free`·`_stack_collect`·`_stack_statistics` 가 생긴다(원본에서는 kernel_stack 객체에 있음, 113.2) | ✅ KERNEL_STACK 1 은 바이트 근거가 있다. KERNOBJC 는 thread.c 가 헤더를 import 만 하고 값을 쓰지 않으므로(grep) RELEASE 사전값 1, "바이트 근거 없음" 으로 적는다 |
-| SIMPLE_CLOCK 의 sched_prim·mach_clock 영향은 회귀만으로 못 정함 | — | ✅ sched_prim(미채택)은 다음 작업으로, mach_clock 은 채택 때 다시 확인한다고 기록 |
-
-### 119.2 결과 (S5-P93, 2026-10-02) — `thread.c` **A**
-
-- config 31 행이다(kernobjc·kernel_stack·hw_footprint 추가, simple_clock 0 으로 변경, 찬반 근거 기록). `gen --check` 를 통과했다.
-- 07: `kern/thread.c`(탐침 3 + `Modified`), `ipc/mach_msg.h`(Darwin + Mach4 선언).
-- 회귀 `s5p93-regress-1`: 82 객체 / 90 명령 동일.
-- 최종 `s5p93-build-1`: O3c = 탐침 3, L1 OBJECT_MATCH 42/42(참조 458), 36.1 성립, `.i` 110 개 모두 07 에 있다.
-- 표: functions +42, objects_confirmed +1(A), PROVENANCE +5, MODIFICATIONS +2, 증거·diff.
-
-## 120. S5-P94 세부 계획 — sched_prim 탐침 2 (Mach4 타이머 형태) (코딩 전, 2026-10-02)
-
-사실(`s5p94-probe-sched-prim`: 현재 07 config + S1, capstone 이름 붙임):
-- 35 함수 중 27 개 간격이 같다. 차이 8 개 가운데 셋은 원본 호출 구조로 설명된다.
-  - `_recompute_priorities`(원본 52 B): `sched_tick++`, `set_timeout(&recompute_priorities_timer, hz)`, `if (sched_thread_id) clear_wait(sched_thread_id, 0, 0)`. Mach4 `kern/sched_prim.c:1098–1120` 과 같다(SIMPLE_CLOCK 0). Darwin 판은 static 틱 카운터 방식이다(:1145–1170).
-  - `_sched_init`(원본 168 B):
-    - `recompute_priorities_timer.fcn = recompute_priorities; .param = 0`(Mach4 :171–172).
-    - `call _init_timeout_element(&recompute_priorities_timer)` — 참조에 없다.
-    - `min_quantum = hz / 10`(Mach4 :174).
-    - 그다음 wait_queue 초기화(인라인), `pset_sys_bootstrap`, action 큐, `sched_tick = 0`, `ast_init`.
-    - Darwin :205–219 의 `default_preemption_rate` 계산이 원본에 없다.
-  - `_thread_timeout_setup`(원본 72 B): 각 타이머의 fcn·param 대입 뒤 `init_timeout_element(&thread->timer)`·`init_timeout_element(&thread->depress_timer)` 를 부른다. 참조(Darwin·Mach4 :224–231)에는 대입만 있다.
-- 원본 심볼: `_recompute_priorities_timer` 0x1f66e0 와 `_min_quantum` 이 있다. `_default_preemption_rate` 의 존재는 grep 결과로 판단한다(위 출력).
-- 나머지 차이(`_thread_invoke`·`_sched_thread_continue`·`_do_runq_scan`·`_do_thread_scan`·`_thread_select`, `__data` 135 B)는 이번 탐침 뒤 따로 본다.
-
-탐침 2(스테이징만):
-- P1(Mach4 :86): `timer_elt_data_t recompute_priorities_timer;` 를 `min_quantum` 선언 뒤에 둔다.
-- P2(Mach4 :171–174 + 작성): `sched_init` 의 :205–219 를 Mach4 두 줄 + `init_timeout_element(&recompute_priorities_timer);`(작성 D016, W3 표시) + `min_quantum = hz / 10;` 으로 바꾼다.
-- P3(Mach4 :1098–1120): `recompute_priorities` 본문을 Mach4 형태로 바꾼다. static 카운터와 `recompute_priority_ticks = hz;` 를 지우고 `set_timeout(...)` 을 넣는다.
-- P4(작성): `thread_timeout_setup` 의 각 타이머 대입 뒤에 `init_timeout_element(&thread->timer);`·`init_timeout_element(&thread->depress_timer);` 를 넣는다(W3).
-- `default_preemption_rate` 정의(:93–94)는 원본 심볼 유무에 따라 남기거나 지운다. 지울 경우 `__data` 차이로 확인한다.
-- 예측: 위 세 함수 간격 일치. 변형 1/3.
-
-### 120.1 codex 교차검토(QS40) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| Darwin 의 `init_timeout_element` 는 `mach_clock.c` 안의 `static __inline__ void` 라 sched_prim 에서 부를 수 없음 → 보이는 선언 필요 | Darwin `mach_clock.c:232–233`(위 sed). 원본에는 전역 `_init_timeout_element` 0x15bda8 이 있다(mach_clock 범위, 미채택) | ✅ sched_prim.c 에 `extern void init_timeout_element(timer_elt_t);` 선언을 둔다(형은 Darwin 정의에서, `static __inline__` 대신 extern — 작성 D016, W3) |
-| 호출 지점은 작성, helper 본문을 쓰면 별도 출처 기록 | 본문은 mach_clock 객체 몫이다(이번 범위 밖) | ✅ |
-
-### 120.2 탐침 2 결과와 121 계획(sched_prim 탐침 3, 코딩 전)
-
-- `s5p94-probe2-sched-prim`(diff `x86-sched_prim-probe2.diff`): `_sched_init`·`_thread_timeout_setup` 간격이 같아졌다. 재배치 밖 바이트까지 같은 함수는 29/35 이다(Python 비교).
-- 남은 6 개:
-  - `_recompute_priorities` 388/52: 빌드가 `clear_wait` 를 인라인한다. 원본은 `call _clear_wait` 다. `_clear_wait` 자체는 크기·바이트가 같다. 원인은 아직 모른다(GCC 인라인 판단) — 별도 조사.
-  - `_sched_thread_continue` 184/196: 원본은 `if (sched_tick & 1) do_thread_scan();` 다(Mach4 `sched_prim.c` 의 같은 함수, 위 grep 줄).
-  - `_do_runq_scan` 296/304: 원본은 `sched_tick - thread->sched_stamp > 1`(`sub; cmp 1; jbe`)이다. Mach4 와 같고, Darwin 은 `thread->sched_stamp != sched_tick` 다.
-  - `_thread_select` 340/336: 원본은 `if (pset->runq.count == 0)` 만 검사한다. Darwin 의 `|| pset->runq.high < thread->sched_pri` 가 없다(Mach4 형태의 조건, 필드 이름은 Darwin 의 `high` 유지 — 다른 함수들이 Darwin run_queue 의미로 일치하므로).
-  - `_thread_invoke`·`_do_thread_scan` 은 다음 탐침 뒤 다시 본다.
-
-## 121. 탐침 3 편집(스테이징만, D014 R1·R2, Mach4 출처)
-
-- S2: `|| pset->runq.high < thread->sched_pri` 를 지운다(조건을 `pset->runq.count == 0` 으로).
-- S3: `do_thread_scan();` 앞에 `if (sched_tick & 1)` 을 둔다.
-- S4: `thread->sched_stamp != sched_tick` → `sched_tick - thread->sched_stamp > 1`.
-- 예측: 세 함수 간격이 같아진다.
-
-### 121.1 codex 교차검토(QS41) 판정: S2 는 앞 줄 끝의 `||` 까지 두 줄을 바꿔야 함(✅, 줄 582–583 을 `if (pset->runq.count == 0) {` 로). S3·S4 오류 없음. 추가로 내가 확인: `thread->sched_stamp != sched_tick` 은 :598(thread_select, 대상 아님)과 :1940(do_runq_scan) 두 곳이고, S4 는 :1940 만 바꾼다.
-
-### 121.2 탐침 3 결과와 122 계획(sched_prim 탐침 4, 코딩 전)
-
-- `s5p95-probe-sched-prim`(diff `x86-sched_prim-probe3.diff`): `_thread_select`·`_do_runq_scan`·`_do_thread_scan` 의 간격이 같아졌다. 남은 것은 `_thread_invoke` 1016/1028, `_recompute_priorities` 388/52(인라인), `_sched_thread_continue` 192/196, `__data` 135 B 다.
-- `_sched_thread_continue`: 원본은 `thread_invoke` 뒤 `splx` 다음에 `jmp` 로 처음으로 돌아간다. Mach4 의 `while (TRUE) { … }` 형태다. Darwin 은 끝에서 반환한다.
-- `_thread_invoke`(capstone, 원본 0x1636cb·0x1639be):
-  - 원본은 `stack_handoff` 직전과 `switch_context` 직전(`c_thread_invoke_csw++` 앞)에 `push esi; call _switch_unix_context` 를 둔다. 이 함수는 어느 참조에도 없고, 선례 `ipc_sched.c:350–351` 의 작성분과 같다.
-  - `stack_handoff` 앞에 `old_thread->swap_func = continuation;`(Darwin :717)이 없다. Mach4 :684–685 처럼 `thread_lock(old_thread);` 뒤에 있다.
-  - 원본 default 분기는 `panic("thread_invoke")` 만 한다(문자열 0x1df564, `printf` 없음 = Mach4 :735–736). Darwin :780–781 의 `printf` 가 없다.
-
-## 122. 탐침 4 편집(스테이징만)
-
-- S5(Mach4 형태): `sched_thread_continue` 본문을 `while (TRUE) { … }` 로 감싼다. 들여쓰기만 바꾸고 문장은 유지한다(Darwin 의 `thread_block_with_continuation(sched_thread_continue);` 그대로).
-- S6(Mach4 :684–685): :717 `old_thread->swap_func = continuation;` 을 :729 `thread_lock(old_thread);` 뒤로 옮긴다.
-- S7·S8(작성 D016, W3, 선례 ipc_sched): `stack_handoff(old_thread, new_thread);` 앞과 `counter_always(c_thread_invoke_csw++);` 앞에 `switch_unix_context(new_thread);`. 선언은 선례처럼 두지 않는다(암시적, 원본 함수 0x106e0c, 반환값 미사용).
-- S9(Mach4 :735–736): :780–781 `printf(...)` 두 줄을 지운다.
-- 예측: `_thread_invoke`·`_sched_thread_continue` 간격 일치. recompute 인라인과 `__data` 는 남는다.
-
-### 122.1 codex 교차검토(QS42) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| S5 의 의미 동등 주장은 근거 없음(Mach4 는 `thread_block`, Darwin 은 `thread_block_with_continuation`) | 원본 `_sched_thread_continue` 에서 인라인된 블록 경로(`thread_select` → `thread_invoke` → `splx`) 뒤에 처음으로 가는 `jmp` 가 있다(121.2 diff) | ⚖️ 의미 주장은 하지 않는다. 목적은 원본 바이트 재현이며 탐침이 판정한다 |
-| S6 은 동작을 바꿈(`stack_handoff` 뒤에 대입) | 원본 0x1636cb–0x1636d3 에서 `stack_handoff` 앞에 `[ebx+0x34]` 저장이 없다 | ✅ 원본 순서를 재현하는 의도된 변경이다(MODIFICATIONS 에 명시) |
-
-### 122.2 탐침 4 결과와 123 계획(통제 탐침, 코딩 전)
-
-- `s5p96-probe-sched-prim`(diff `x86-sched_prim-probe4.diff`): 35 함수 중 34 개 간격이 같다. 남은 것은 `_recompute_priorities` 388/52(`clear_wait` 인라인) 하나다.
-- `__data` 차이는 1 바이트다(오프셋 0). 빌드는 `_default_preemption_rate`(=100, Darwin :94)를 오프셋 0 에 두는데, 원본 심볼표에는 그 이름이 없다(grep 0). 원본 0x1df51c–0x1df51f 는 `00×4` 이고 문자열 `assert_w…` 는 0x1df520 에서 시작한다(Python). 따라서 변수를 지우면 문자열·`_wait_shift`(오프셋 104→100, 원본 0x1df584)가 원본 위치와 맞는다. sched_init 복원(120) 뒤 이 변수의 사용처는 없다(grep).
-- 인라인 가설: Darwin `conf/MASTER.i386:81` `makeoptions CCONFIGFLAGS = "-g -O3 -fno-omit-frame-pointer" # <gdb>` 이고, RELEASE 태그에 `gdb` 가 있다. GCC 2.7 의 인라인 판단은 RTL 크기(디버그 노트 포함)에 기대므로, `-g` 가 경계선의 `clear_wait` 인라인을 막았을 수 있다.
-
-## 123. 통제 탐침 (스테이징 = 탐침 4 + S10)
-
-- S10(R1·R2): :94 `int default_preemption_rate = DEFAULT_PREEMPTION_RATE;` 삭제(#define 은 유지).
-- 같은 스테이징으로 두 명령을 돌린다. (a) 지금 플래그의 O3c, (b) 같은 플래그 + `-g` 의 O3c.
-- 관찰: (a) 에서 `__data` 가 맞는지. (b) 에서 `_recompute_priorities` 가 52 B 가 되고 다른 함수가 바뀌지 않는지(재배치 밖 바이트 비교).
-- (b) 가 맞으면, 확정 객체 전체(83 개)에 `-g` 를 넣은 회귀로 기존 일치가 유지되는지 따로 확인한다. 유지되지 않거나 일부만 맞으면 "원본 빌드 플래그" 결정이 필요하다 → 사용자 판단 대상일 수 있다.
-
-### 123.1 통제 탐침 결과 (S5-P97, 2026-10-02) — `-g` 가 인라인 차이를 설명
-
-- `s5p97-ctl-1`(S10 포함):
-  - (a) `-g` 없음: `__data` 521 B 차이 0(S10 확인). `_recompute_priorities` 는 여전히 388 B 다.
-  - (b) `-g`: `__text` **9725 B = 원본**. L1 은 34 MATCH + 1 DIFF(`_thread_select`, 92 B, 정렬 nop 위치만), `__data` 일치다.
-- 해석:
-  - `-g` 는 GCC 2.7 의 인라인 판단(RTL 크기)을 바꿔 `clear_wait` 를 인라인하지 않게 한다.
-  - 원본 RELEASE 구성의 `gdb` 태그(`-g -O3 -fno-omit-frame-pointer`, `MASTER.i386:81`)와 맞는다.
-  - 지금까지 확정된 객체는 모두 `-g` 없이 일치했으므로, `-g` 가 그 객체들을 바꾸지 않는지 확인해야 한다.
-- `_thread_select` 차이: 앞부분 기본 블록 정렬 위치만 다르다. Darwin :558 은 `thread = current_thread()` 를 함수 시작에서 하고, Mach4 :514·:533 은 `count == 0` 분기 안에서 한다.
-
-## 124. S5-P98 세부 계획 — `-g` 회귀와 thread_select 변형 2 (코딩 전, 2026-10-02)
-
-1. `-g` 회귀: s5p93 회귀 명령 90 개(82 객체) + kernel_stack O3/O3c + thread O3/O3c 의 각 명령에 `-g` 를 넣고 다시 빌드한다. 기준은 각 최종 빌드다. 비교는 바이트 해시가 아니라 섹션 내용으로 한다(`-g` 는 stab 심볼·문자열이 늘어 파일 해시가 반드시 달라진다). 섹션별 크기·바이트·재배치가 같은지를 Python 으로 본다. 객체마다 "섹션 동일 / 다름" 을 기록한다.
-   - 모두 동일하면 원본 빌드 플래그를 `-g -O3`(RELEASE `gdb`)로 보는 가설이 성립하고, sched_prim 은 `-g` 로 빌드한다.
-   - 일부가 다르면 객체별 플래그가 갈린다는 뜻이고 **사용자 결정 사항**(빌드 플래그 기준)으로 보고한다.
-2. thread_select 변형 2(Mach4 :514·:533): :558 을 `register thread_t thread;` 로 바꾸고, `if (pset->runq.count == 0) {` 블록의 주석 뒤에 `thread = current_thread();` 를 둔다. `-g` 판으로 빌드한다.
-
-### 124.1 codex 교차검토(QS43) 판정 → 회귀 설계 보정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `-g` 가설이 그럴듯할 뿐 원본이 `gdb` 구성이었다는 증명은 아님 | `MASTER.i386:81–82` 는 `<gdb>`/`<!gdb>` 조건부다. RELEASE 태그에는 `gdb` 가 있다 | ✅ 가설로 기록한다 |
-| 디버그 전용 섹션·stab 은 비교에서 빼고, 추가된 비디버그 섹션은 보고 | — | ✅ |
-| 재배치는 `symbolnum` 이 아니라 해석된 대상(심볼 이름·섹션·오프셋)으로 비교 | — | ✅ extern=이름, local=섹션 번호, scattered=값과 PAIR 를 비교한다 |
-| 차이가 곧 객체별 플래그를 뜻하지는 않음 → 달라진 객체는 원본과 L1 로 다시 판정, 필요 플래그가 객체 간 충돌할 때만 사용자 결정 | — | ✅ 트리거를 이렇게 좁힌다 |
-| `gdb` 구성의 `-fno-omit-frame-pointer` 도 넣을 것 | `MASTER.i386:81` | ✅ 회귀 플래그는 `-g … -fno-omit-frame-pointer`(각 명령의 기존 -O 수준 유지) |
-
-### 124.2 `-g` 회귀 결과 (S5-P98, 2026-10-02)
-
-- `s5p98-gregress-1`: 83 객체 / 92 명령을 각 명령의 -O 수준 그대로 두고 `-g … -fno-omit-frame-pointer` 를 더해 빌드했다.
-- 기준(각 최종 빌드)과 비교한 항목: 비디버그 섹션의 크기·바이트, 재배치(주소·폭·pcrel·유형·해석된 대상), 비-stab 심볼(이름·종류·값).
-- 결과 **92/92 동일**(`09_validation/reconstruction/s5p98-gregress-compare-20261002.json`).
-- 결론:
-  - `-g -fno-omit-frame-pointer`(RELEASE `gdb` 구성)는 지금까지의 모든 확정 객체와 모순되지 않는다.
-  - sched_prim 은 이 플래그로만 원본과 맞는다(123.1).
-  - 그래서 "원본 빌드는 `gdb` 구성(-g)" 을 가설로 채택한다(08_build 기록 대상). 객체 간 플래그 충돌이 없으므로 사용자 결정 사항이 아니다(124.1 트리거 미충족).
-
-### 124.3 탐침 5 결과 (S5-P98, 2026-10-02) — sched_prim **OBJECT_MATCH 35/35**(`-g`)
-
-- `s5p98-probe-1`(thread_select 변형 2 = Mach4 :514·:533 배치, `-g … -fno-omit-frame-pointer`): `__text` 9725 B·`__data` 521 B 모두 차이 0, 35 MATCH.
-
-## 125. S5-P99 세부 계획 — `kern/sched_prim.c` 채택과 표준 플래그에 `-g` 반영 (코딩 전, 2026-10-02)
-
-사실(Python):
-- 객체 [0x162d80, 0x16537d) 9725 B, 35 함수.
-  - 앞: `_kdp_reset` 몸체 끝 `c3` 0x162d7d(Ghidra) 다음 `00 00` 2 B = 4 정렬 최소 채움이다.
-  - 뒤: `00×3` 다음 `_swtch_continue` 0x165380 이다(최소 3).
-- 수정 요약:
-  - S1(sleep_time, Mach4), P1–P4(Mach4 타이머 + 작성 `init_timeout_element` 선언·호출 3), S2–S4(Mach4 조건), S5(Mach4 while 루프), S6(swap_func 위치, Mach4), S7·S8(작성 `switch_unix_context`), S9(printf 삭제, Mach4), S10(`default_preemption_rate` 삭제), thread_select 변형 2(Mach4).
-  - 옵션은 config 그대로다(SIMPLE_CLOCK 0, HW_FOOTPRINT 0).
-
-절차:
-1. 표준 빌드 명령: 이후 최종 빌드는 `-g … -fno-omit-frame-pointer` 를 쓴다. 근거는 124.2 의 92/92 와 123.1 이다. `08_build/GCC27_COMPATIBILITY.md` 에 "원본 빌드 플래그 가설: RELEASE gdb 구성" 한 줄을 더하고, 템플릿 `08_build/runs/tools/s5p99-build.cmd` 를 새로 만든다.
-2. 07 `src/kern/sched_prim.c` = 탐침 5 본문 + `Modified`. 헤더 변경이 없으므로 회귀는 필요 없다.
-3. 최종 빌드 `s5p99-build-1`: O3·O3c(`-g`)·O2·`.i` 두 개. L1 O3c OBJECT_MATCH, 36.1(O3), `.i` 검사, 경계.
-4. 판정 **A**. 표: functions +35, objects_confirmed +1, PROVENANCE +1, MODIFICATIONS +1(Mach4·작성 줄 출처), 증거.
-
-### 125.1 codex 교차검토(QS44) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 이후 최종 빌드의 `-g` 전환은 정당, 단 "원본 = gdb 구성" 은 가설로 표기 | 124.2 | ✅ |
-| 이미 채택된 객체의 build 칸은 실제 실행 명령 그대로 두고 메모로 충분 | — | ✅ 회귀 근거 파일을 메모에 연결 |
-| A 는 최종 빌드·L1·`.i`·경계 확인 뒤에만 | — | ✅ |
-| Mach4 에서 가져온 텍스트의 고지를 파일 안에 유지, 07 README 의 빌드 명령도 갱신 | Mach4 `kern/sched_prim.c` 고지는 Darwin 판과 같은 CMU 1993–1987 문안이다. Mach4 `kern/thread.c` 는 "1994-1987" 로 연도만 다르다(sed 비교). 07 README 에는 빌드 명령이 없고 GCC27 문서를 가리킨다 | ✅ 두 파일에 Mach4 출처·고지 주석을 넣는다(thread.c 는 주석만 추가 → 재빌드로 동일 확인). GCC27 문서 "툴체인 고정" 과 07 README 에 플래그 가설 한 줄을 넣는다 |
-
-### 125.2 결과 (S5-P99, 2026-10-02) — `sched_prim.c` **A**
-
-- 템플릿 `08_build/runs/tools/s5p99-build.cmd`(`-g … -fno-omit-frame-pointer`)를 만들었다. GCC27 문서와 07 README 에 플래그 가설을 기록했다.
-- 최종 `s5p99-build-1`:
-  - sched_prim O3c OBJECT_MATCH 35/35(참조 487), 36.1 성립. `.i` 114 개 중 없던 `kern/power.h`·`mach/error.h` 는 원문 그대로 채택했다.
-  - thread(Mach4 고지 주석 추가)는 `-g` 판도 OBJECT_MATCH 42/42 다.
-- 표: functions +35, objects_confirmed +1(A), PROVENANCE +3, MODIFICATIONS +2, 증거·diff.
-
-## 126. S5-P100 세부 계획 — `-g` + 현재 config 로 미채택 후보 일괄 재진단(채택 없음) (코딩 전, 2026-10-02)
-
-계기: `-g` 는 GCC 2.7 의 인라인 판단을 바꾼다(123.1). 지금까지 "크기 다름" 으로 남은 후보 중 일부는 인라인 차이였을 수 있다. 그 사이 config 도 바뀌었다(MACH_NET 1, MACH_DEBUG 1, KERNEL_STACK 1, SIMPLE_CLOCK 0 등).
-
-대상(Darwin 원문, 07 우선 스테이징, 102·91 의 구간 seq 그대로):
-- vm: vm_kern(206)·vm_map(207)·vm_unix(215).
-- kern: ast(154)·exception(155)·ipc_kobject(158)·ipc_mig(159)·mach_clock(170)·mach_fat(174)·mach_loader(175)·mach_net(176)·mapfs(179)·miniMon(180)·ns_timer(181)·power(184)·kdp(188)·kdp_udp(189)·syscall_subr(191)·zalloc(198).
-
-설계(102.1 규칙 유지):
-- 파일마다 kr_run 실행 1 개(`s5p100-pre-<이름>`)를 돌린다. 명령은 s5p99 템플릿의 O3c 1 줄(`-g`)이다.
-- 요약 JSON 에 간격 같음/다름, 빌드·원본 전용, 마지막 함수 잠정 표시, L1 판정, 이전 결과(102.2·91.2) 대비 변화를 적는다.
-- 컴파일 실패는 첫 오류만 적는다.
-- 판정·채택은 하지 않는다. 다음 대상은 "차이가 가장 적은 것" 순으로 고른다.
-
-### 126.1 codex 교차검토(QS45) 판정: 이전 결과와의 차이를 `-g` 탓으로 돌릴 수 없음(config 도 바뀜, ✅ — 이번 진단은 후보 순위용이며 원인 귀속은 하지 않는다), O3c 만이라 다른 변형 결론은 아님(✅), 구간은 추정이므로 마지막 함수·간격은 잠정(✅, 102.1 과 같음).
-
-### 126.2 재진단 결과 (S5-P100, 2026-10-02)
-
-- `s5p100-pre-*`(`-g` O3c, 요약 `09_validation/reconstruction/s5p100-pre-summary-20261002.json`): 컴파일 15·실패 4(vm_unix `cputypes.h`, exception `norma_ipc.h`, ipc_kobject `ikm_sender`, mach_net `MCLGET` 인자). 102.2·91.2 와 간격 결과는 사실상 같다.
-- static 이 많은 모듈(kdp·mach_loader·miniMon·kdp_udp·mach_fat·ns_timer·mapfs)은 원본 전역 심볼 하나로 `__text` 를 놓고(`--place`) L1 을 돌렸다(`s5p100-place-l1-*`). 함수 대부분이 DIFF 로, Darwin 판과 원본 판의 차이가 크다. 보류한다.
-- vm_map(seq 207): 29 함수 중 25 간격이 같다.
-  - 빌드 전용 `_vm_map_find_entry`·`_vm_map_reallocate`·`_host_vm_region` 은 원본 심볼표에 없다(grep 0).
-  - `host_vm_region` 은 `#if MACH_DEBUG` 안이고, MACH_DEBUG 1 이라 생겼다. 원본의 다른 MACH_DEBUG 함수와 달리 없다 → 후대 추가로 본다.
-  - `_vm_region` 688/1348: 원본 호출(`lock_read`·`lock_done`·`lock_read`·`vm_object_name`·`lock_done`·`vm_object_name`·`lock_done`)과 `kernel_map` 비교 없음이 NeXTMach `vm_map.c:2419–` 형태와 맞는다(서브맵 분기는 `*object_name = PORT_NULL`). Darwin 은 서브맵 재귀 블록과 `VM_OBJECT_NAME` 매크로를 둔다.
-  - `_vm_map_find` 880/424: 원본은 `vm_map_insert` 를 인라인한다. `_vm_map_insert` 380/392 도 다르다(NeXTMach `temp_entry` 형태 후보).
-
-## 127. S5-P101 세부 계획 — vm_map 탐침 1 (코딩 전, 2026-10-02)
-
-스테이징(07 우선 + `-g` 템플릿)에서 Darwin `vm/vm_map.c` 를 고친다(D014 R1·R2, NeXTMach D013):
-- V1: `vm_map_find_entry`(주석 :587 부터 `}` :744 와 뒤 빈 줄까지)를 지운다.
-- V2: `vm_map_reallocate`(:1564–1671 과 뒤 빈 줄)를 지운다.
-- V3(NeXTMach :2419–): `vm_region` 을 다음과 같이 바꾼다.
-  - 지역 `inaddress` 와 `again_after_submap:` 레이블을 지운다.
-  - `VM_OBJECT_NAME` 매크로·`#undef` 를 지우고 `vm_object_name(…)` 을 직접 쓴다.
-  - 서브맵 분기를 NeXTMach 의 세 줄(`*is_shared = FALSE; *object_name = PORT_NULL; *offset_in_object = tmp_offset;`)로 바꾼다. 필드 이름은 Darwin(`vme_*`)을 유지한다.
-- V4: `#if MACH_DEBUG` 의 `host_vm_region` 블록(`#include <kern/host.h>` 포함, 끝 `#endif` 는 Python 으로 확정)을 지운다.
-- 예측: `_vm_region` 688. 빌드 전용 함수는 없어진다. `vm_map_insert`/`vm_map_find` 는 아직 다를 수 있다(다음 변형에서 NeXTMach `temp_entry` 형태).
-
-### 127.1 codex 교차검토(QS46) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| V1–V4 범위 오류 없음. V3 은 매크로 연속줄(:2819)과 서브맵 분기의 `goto`·잠금 정리를 함께 바꿔야 | Darwin :2818–2819, :2839–2867 줄 출력 | ✅ 분기 전체를 바꾼다 |
-| `host_vm_region` 은 MIG 서버 생성물이 참조할 수 있음 | 원본 심볼표에 `_host_vm_region` 이 없다(grep 0) → 원본 서버도 참조하지 않았다. MIG 서버는 아직 미채택 | ✅ 기록, 서버 채택 때 확인 |
-| 다른 파일의 `vm_map_find_entry`/`vm_map_reallocate` 호출 | 07 전체 grep 0 건. Darwin `vm_kern.c:104·186`(미채택, 원본 vm_kern 은 `vm_map_find` 를 부름 — 102 절), `vm_user.c:200`(07 판에서 이미 제거) | ✅ |
-
-### 127.2 탐침 1 결과와 128 계획(vm_map 탐침 2, 코딩 전)
-
-- `s5p101-probe-vm-map`(diff `x86-vm_map-probe1.diff`): 15653/16833 B. `_vm_region` 은 688 로 같아졌다. 빌드 전용 함수는 없다. 남은 것은 `_vm_map_insert` 392/380, `_vm_map_find` 424/880, `_vm_map_copy` 3852/4588 이다.
-- 호출 비교:
-  - `vm_map_find`·`vm_map_copy` 의 원본 호출은 빌드의 `call _vm_map_insert` 자리에 `vm_map_lookup_entry`·`vm_object_coalesce`·`zalloc`·`panic` 이 오는 것을 빼면 같다. 즉 원본은 `vm_map_insert` 를 인라인한다.
-  - `_vm_map_insert` 정규화 diff: 원본은 `prev_entry` 를 레지스터에 두고 스택은 4 B 만 쓴다(`sub esp,4`). 빌드는 8 B 다. NeXTMach `vm_map.c:321–350`(`register prev_entry`, 지역 `temp_entry` 로 조회한 뒤 `prev_entry = temp_entry;`)과 맞는다. Darwin 은 `&prev_entry` 로 주소를 넘긴다.
-
-## 128. vm_map 탐침 2 편집(스테이징만, NeXTMach D013/D014)
-
-- I1: `vm_map_insert` 의 지역 선언 두 줄을 NeXTMach :328–330(`register` 두 개 + `vm_map_entry_t temp_entry;`)으로 바꾼다.
-- I2: `if (vm_map_lookup_entry(map, start, &prev_entry))` 를 `&temp_entry` 로 바꾸고, `return(KERN_NO_SPACE);` 뒤에 빈 줄과 `prev_entry = temp_entry;` 를 둔다(NeXTMach :347–350).
-- 예측: `_vm_map_insert` 380, 그리고 인라인 판단이 바뀌어 `_vm_map_find` 880·`_vm_map_copy` 4588 이 될 수 있다. 다른 차이(VM_PROT_ALL 대 DEFAULT 등)는 바이트로 확인한다.
-
-### 128.1 codex 교차검토(QS47) 판정: I1/I2 오류 없음(✅). 이후 `&prev_entry` 사용 여부는 범위 밖이라 미확인 → 내가 함수 전체를 grep 해 `vm_map_lookup_entry(map, start, &prev_entry)` 한 곳뿐임을 확인(위 출력)했다.
-
-### 128.2 탐침 2 결과 (S5-P102, 2026-10-02)
-
-- `s5p102-probe-vm-map`(diff `x86-vm_map-probe2.diff`): `__text` **16833 B = 원본**, 28 MATCH + 1 MATCH_UNVERIFIED. `__data` 161 B 는 0x1e0a73 에서 L1d 로 검증된다.
-- 남은 미검증 1: `_vm_map_fork` 의 `_kprintf` 참조. 원본은 `call _printf`(0x177e2f)이고 원본 심볼표에 `_kprintf` 는 없다. NeXTMach `vm_map.c:1983` 이 같은 문장을 `printf(…)` 로 쓴다. Darwin 은 :2288 `kprintf(…)` 다.
-
-## 129. S5-P103 세부 계획 — `vm/vm_map.c` 채택 (코딩 전, 2026-10-02)
-
-- K1(NeXTMach :1983): Darwin :2288 `kprintf` → `printf`.
-- 07 = 탐침 2 + K1 + `Modified` 주석. 머리말 아래에 NeXTMach 출처 메모를 둔다(NeXTMach `vm_map.c` 고지는 CMU 문안, 파일 머리 확인 후 그대로 인용).
-- 최종 빌드 `s5p103-build-1`(s5p99 `-g` 템플릿). 예측: O3c OBJECT_MATCH 29/29.
-- 경계: 앞 0x174600 은 확정 `x86-vm_kern`? — 아니다. vm_kern 은 미채택이다. 원본 바이트로 앞뒤 채움을 계산한다. 뒤는 0x1787c1–0x1787c3 `00×3`(최소 3), 다음은 확정 `x86-vm_mem_region` 0x1787c4 다.
-- 판정·표: functions +29, objects_confirmed +1, PROVENANCE·MODIFICATIONS·증거.
-
-### 129.1 codex 교차검토(QS48) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 앞 경계가 미계산 | Ghidra: `_kmem_free_wakeup` 몸체 `[0x1745b4, 0x1745ff]`, 0x1745ff 는 `c3`. 0x174600 은 4 정렬(Python) | ✅ 앞 0 B(직전 ret = `_kmem_free_wakeup` 끝, vm_kern 미채택)로 기록 |
-| O3 의 36.1 과 `.i` 검사가 빠짐 | — | ✅ 최종 빌드에서 수행 |
-| NeXTMach 고지는 CMU 문안과 별도로 1985 Tevanian/Young 저작권이 있음 | NeXTMach `vm_map.c:1–11` | ✅ 두 고지를 모두 파일 안에 인용 |
-
-### 129.2 결과 (S5-P103, 2026-10-02) — `vm_map.c` **A**
-
-- 07 = 탐침 2 + K1(`printf`) + `Modified` 주석 + NeXTMach 고지 두 개.
-- 최종 `s5p103-build-1`(`-g`): O3c OBJECT_MATCH 29/29(참조 355), 36.1 성립, `.i` 50 개 모두 07 에 있다.
-- 표: functions +29, objects_confirmed +1(A), PROVENANCE +1, MODIFICATIONS +1, 증거·diff.
-
-## 130. 현황과 사용자 판단 요청 (2026-10-02)
-
-이번 연속 작업(112–129)의 채택:
-- kernel_stack(P).
-- thread·sched_prim·vm_map(A).
-- config: MACH_DEBUG 1, KERNOBJC 1, KERNEL_STACK 1, HW_FOOTPRINT 0, SIMPLE_CLOCK 1→0.
-- 빌드 플래그 가설 `-g … -fno-omit-frame-pointer`(83 객체 회귀 동일).
-
-남은 후보의 막힘(조사 결과):
-1. **BSD 의존**(pcb·ast·unix_*·bsd/ 파일·exception 의 `ikm_sender`·mach_net 의 `MCLGET`): D020(BSD 기준 = NeXTMach)을 실제로 적용할 방식이 정해지지 않았다. 83.3 에서 본 대로 이름 단위 대체는 proc → user → types 로 번지고, 이미 채택된 Darwin 헤더(`sys/types.h` 등)와 부딪친다.
-2. **대량 작성 필요**: vm_kern 의 static 도우미와 `kmem_alloc` 계열(참조에 없는 혼합 구조), kdp·kdp_udp·mach_loader·miniMon·ns_timer·mapfs(Darwin 판과 거의 모든 함수가 다름). W1 의 "최후 수단" 을 넓게 쓰게 된다.
-3. 그 밖: zalloc(원본 전용 함수 3·빌드 전용 5), power(옛 callout API), ipc_mig(`mach_msg` 이식 필요).
-
-사용자 판단이 필요한 것: 1 의 BSD 헤더 적용 방식, 2 의 대량 작성 허용 범위.
-
-## 131. S5-P104 세부 계획 — D021(BSD 헤더 묶음 교체) 1 단계: 설계와 실현성 진단 (코딩 전, 2026-10-02)
-
-사용자 결정 D021: BSD 헤더는 묶음째 NeXTMach/SDK 판으로 교체하고, 이후 기준은 NeXTMach/SDK 로 한다. Darwin 은 구조 참고용이다.
-
-사실(Python):
-- 실기 전처리 조사 `s5p104-preproc-1`: 확정·부분 객체 85 소스를 현재 플래그로 `-E` 했다. 그중 67 개가 `src/bsd/` 헤더 58 개를 읽는다(`09_validation/reconstruction/s5p104-bsd-header-use-20261002.json`).
-  - 많이 쓰이는 것: `sys/cdefs.h` 67, `machine/ansi.h` 67, `sys/types.h`·`machine/types.h`·`i386/types.h`·`machine/endian.h`·`i386/endian.h`·`machine/byte_order.h` 66.
-  - 나머지는 1–13 개 객체가 쓴다.
-- 같은 이름이 있는 곳:
-  - SDK(`/NextDeveloper/Headers/bsd/…`, include 계열은 `ansi/`): 44 개.
-  - NeXTMach(`sys/`·`net/`·`netinet/`, machine 은 68k `next/`): 33 개.
-  - **둘 다 없음 13 개**: `i386/param.h`, `i386/spl.h`, `libkern/libkern.h`, `libkern/strtol.c`, `machine/ansi.h`, `machine/byte_order.h`, `net/radix.h`, `sys/ioccom.h`, `sys/queue.h`, `sys/select.h`, `sys/syslimits.h`, `sys/ttycom.h`, `sys/ttydefaults.h`(Darwin/4.4BSD 쪽 이름).
-- 이미 아는 제약(83.1): SDK 헤더 일부는 커널 부분이 빠져 있다(`sys/ux_exception.h`, `sys/callout.h` 의 `#if NeXT` 구조체, `sys/kernel.h` 의 `boottime` 등). NeXTMach 의 `machine` 은 68k `next/` 를 가리킨다.
-
-설계 제안(이번 회차는 진단만, 07 변경 없음):
-1. `stage_headers.py --bsd-set nextos`(새 옵션, `--nextdev` 필수): 논리 경로 `src/bsd/**` 를 Darwin·07 사본 대신 다음 순서로 해석한다.
-   - (a) SDK `bsd/<경로>`(`include/X` 는 SDK `ansi/X`·`bsd/X`). machine 계열은 SDK `bsd/machine` → ARCH_INCLUDE → `bsd/i386`.
-   - (b) SDK 판이 없거나 "커널 부분 누락" 목록에 있으면 NeXTMach `sys/`·`net/`·`netinet/`.
-   - (c) 둘 다 없으면 **해석하지 않음**(Darwin 으로 돌아가지 않는다). 컴파일 실패로 드러나게 한다.
-   - 실기 SHA 와 NeXTMach 커밋 대조는 `--subst` 와 같은 검증 함수를 재사용한다. 기본 동작은 그대로 두고 회귀로 확인한다.
-   - "커널 부분 누락" 목록은 처음에는 83.1 의 세 파일로 시작해 진단 결과로 넓힌다. 각 항목에 근거를 남긴다.
-2. 진단 실행: 85 소스를 이 모드로 O3c 컴파일한다(`-g` 템플릿). 결과를 세 가지로 나눈다.
-   - (i) 컴파일되고 기존 최종 빌드와 비디버그 내용이 같은 객체.
-   - (ii) 컴파일되나 내용이 다른 객체.
-   - (iii) 컴파일 실패(첫 오류와 원인 헤더).
-3. 다음 회차: (iii)·(ii) 의 원인별로 소스 쪽 include 정리(NeXTMach 구조 기준, Darwin 구조는 참고)나 헤더 선택 규칙 보정을 계획한다. 07 반영(묶음 교체)은 모든 확정 객체가 다시 일치하거나 그렇지 않은 객체의 처리가 정해진 뒤에 한다.
-
-### 131.1 codex 교차검토(QS49) 판정 → 설계 보정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| SDK bsd 헤더가 `mach/`·`kernserv/`·`architecture/` 를 끌어오는데, 지금 해석기는 그 이름을 Darwin/07 에서 먼저 찾음 → 이름공간 정책과 `.i` 추적 필요 | SDK `bsd/**/*.h` 의 꺾쇠 include(Python): `sys` 129, 최상위 45, `bsd/` 28, `mach` 24, `architecture` 24, `kernserv` 13, `rpc` 10, `machine` 9 … | ✅ 정책 명시(아래) |
-| SDK 파일을 `src/bsd` 논리 경로에 두면 인용 include 해석이 바뀔 수 있음 | SDK bsd 헤더 중 인용 include 를 쓰는 것은 `dev/hppa/BasicConsole.h` 하나(i386 빌드와 무관) | ⚖️ 사실상 영향 없음. 기록만 한다 |
-| `#import` 의 한 번만 포함은 경로 기준이라, 같은 파일이 두 논리 이름(`src/bsd/X` 와 `nextdev/bsd/X`)으로 들어오면 중복 정의 위험 | SDK 헤더는 `<bsd/machine/…>` 처럼 `bsd/` 접두 이름도 쓴다(28 건) | ✅ 진단에서 중복 정의 오류를 별도 분류하고, `.i` 에서 같은 SHA 의 파일이 두 경로로 들어왔는지 Python 으로 검사 |
-| 07 의 수정된 bsd 사본이 사라질 위험 | PROVENANCE: `07_kernel/src/bsd/` 58 행 모두 `none (verbatim)` | ❌ 해당 없음(복원 수정 0). 교체 때는 58 개 사본을 명시적으로 물리고 기록한다 |
-| (i)/(ii)/(iii) 는 분류일 뿐, 원본 대비 판정·원인 기록이 필요 | — | ✅ (ii)·(iii) 는 원인별로 기록하고, (i)도 원본 L1 을 다시 돌린다 |
-
-이름공간 정책(D021 범위):
-- BSD 이름(`src/bsd/**` 논리 경로와 SDK 의 `bsd/…` 접두 이름)은 SDK → NeXTMach 순으로 해석한다. Darwin 이나 07 사본으로 되돌아가지 않는다.
-- 비-BSD 이름(`mach/`·`kern/`·`vm/`·`ipc/`·`kernserv/`·`architecture/`·`machdep/`·`driverkit/`·생성 헤더)은 지금처럼 07(바이트로 확인된 판) → Darwin → SDK 순이다. SDK bsd 헤더가 이 이름을 include 하면 07 판이 쓰이고, 그 사실은 `.i` 표지와 manifest 로 남는다.
-- D021 이 비-BSD 헤더까지 바꾸라는 뜻인지는 정하지 않는다. 이번에는 BSD 만 바꾼다. 비-BSD 의 SDK 교체가 필요해 보이면 그때 사용자에게 묻는다.
-
-### 131.2 codex 교차검토(QS50) 판정 → 구현 규칙
-
-- ✅ 정규화: `bsd/X`(SDK 접두 이름)와 `nextdev/bsd/X`(SDK bsd 루트로 찾은 이름)는 모두 논리 `src/bsd/X` 로 바꾼다. 실기 컴파일러도 `bsd/X` 를 `-Isrc/src` 아래 `src/src/bsd/X` 에서 찾으므로, 스테이징 위치와 컴파일러 해석이 같다.
-- ✅ NeXTMach 대체는 `load_subst` 의 커밋 blob 대조를 함수로 떼어 재사용한다. manifest 에 커밋·경로·SHA 를 남긴다.
-- ✅ 기본 동작 동일성: 옵션 없이 85 소스 스테이징을 옛/새 도구로 만들어 트리·manifest 를 비교한다.
-- ✅ 해석 못 한 BSD 이름은 `unresolved` 에 `bsd_set: true` 로 따로 표시한다.
-
-### 131.3 진단 2 결과(`s5p105-bsd-diag-2`, 2026-10-02)
-
-명령 96 개(`08_build/runs/tools/s5p105-bsd-diag2.cmd`, 스테이징 `s5p105-bsd-stage-1`), 기록 `09_validation/reconstruction/s5p105-bsd-diag2-20261002.json`:
-- (i) 86 개: 기존 최종 빌드(`s5p98-gregress-1`)와 비디버그 내용이 같다.
-- (iii) 8 개 실패, 원인 3 가지:
-  - 6 개(ddm·vm_pageout·mach_init 의 O3/O3c): SDK `bsd/machine/spl.h:11` 이 `ARCH_INCLUDE(bsd/, spl.h)` → `bsd/i386/spl.h` 를 찾는데 SDK 에 그 파일이 없다(SDK `bsd/i386/` 11 개 중 없음, 있는 것은 `kernserv/i386/spl.h`). NeXTMach 은 68k `next/spl.h` 뿐.
-  - dma: `dma_inline.h:45` 의 `#import <bsd/i386/param.h>` — SDK·NeXTMach 모두 그 이름이 없다. OPENSTEP 4.2 SDK 에서 i386 의 같은 역할은 `bsd/i386/machparam.h`(`sys/param.h:48` → `machine/machparam.h`). `dma_inline.h` 가 거기서 쓰는 것은 `DELAY`(58 행) — SDK `machparam.h` 와 Darwin `param.h` 의 정의가 같다(`us_spin(n)`, `KERNEL` 일 때).
-  - fp_support: `RB_NOFP` 미선언. SDK `bsd/i386/reboot.h` 는 "Empty file (publicly)" 주석만 남은 판이고, Darwin 판과 비교하면 저작권 머리말·끝 주석 외 차이는 `#ifdef KERNEL_PRIVATE` 블록(RB_POWERDOWN … RB_PRETTY 9 개) 하나뿐이다 → SDK 는 그 블록을 뺀 공개판으로 보인다. 원본 바이트: `0x18a333` `f6 05 36 26 1e 00 20` = `testb $0x20, _boothowto+2`(`_boothowto` 0x1e2634) → `RB_NOFP` = 0x00200000 확인.
-- (ii) 2 개(`O3__vm_machdep.o`, `O3__kdp_machdep.o`): `__text`·`__const`·`__data` 바이트와 재배치는 기준과 같고, 새 `__DATA,__common` zero-fill 섹션(496 B, 934 B)과 그 정의 심볼(`_buf`, `_bufhash`, `_bfreelist`, `_swbuf` …; `_mbutl`, `_ifnet`, `_ipq`, `_mbstat` …)이 생겼다. 원인: SDK `bsd/sys/buf.h:110–120` 등이 커널 전역을 `extern` 없이(잠정 정의) 선언한다. NeXTMach `sys/buf.h:99–103` 도 같다. Darwin 판은 `extern`.
-  - 원본에서 이 심볼들은 모두 `__DATA,__common`(섹션 6)에 있다(`_bfreelist` 0x1e8760, `_buf` 0x1e8870, `_bufhash` 0x1e8880, `_ifnet` 0x1e89e0, `_mbstat` 0x1e9160, `_swbuf` 0x1e8b0c …). `_nbuf` 만 `__data`(0x1e289c).
-
-## 132. S5-P106 세부 계획 — D021 2 단계: 실패 3 원인 수정과 잠정 정의 처리 (코딩 전, 2026-10-02)
-
-원칙(D021): NeXTMach/SDK 기준, Darwin 은 구조 참고. SDK·NeXTMach 둘 다 없는 비공개 이름은 **원본 바이트로 확인된 내용만** 작성(authored)하고 Darwin 문장을 들여오지 않는다.
-
-1. 비공개 헤더 층 `07_kernel/nextdev_private/`(새 디렉터리): `--bsd-set nextos` 에서 BSD 이름을 찾을 때 **SDK 보다 먼저** 본다. 이 층의 파일은 모두 작성 파일이고 PROVENANCE 에 근거를 남긴다. 처음 두 개:
-   - `bsd/i386/spl.h`: 가드 + `#import <kernserv/i386/spl.h>` 만(SDK `kernserv/i386/spl.h` 가 spl 함수 선언을 가진다; 구조는 Darwin `bsd/i386/spl.h` 와 같다고 기록). 함수 본문이 없으므로 바이트 근거는 "그 헤더를 쓰는 객체가 원본과 다시 일치" 로 대신한다.
-   - `bsd/i386/reboot.h`: SDK 판 본문 + `#ifdef KERNEL_PRIVATE` 블록에 `RB_NOFP 0x00200000` **하나만**(원본 0x18a333). 나머지 8 개 플래그는 바이트 근거가 생길 때 넣는다.
-2. `dma_inline.h:45` 의 `#import <bsd/i386/param.h>` → `#import <bsd/i386/machparam.h>`(OPENSTEP 4.2 SDK 이름). Darwin 트리 `bsd/i386/` 에는 `machparam.h` 가 없어(18 개 중 없음) 지금 07 을 고치면 기본 모드 빌드가 깨진다 → **07 은 이번에 고치지 않는다**. 진단 3 에서는 스테이징 사본에만 Python 으로 한 줄을 바꾸고(바꾸기 전·후 SHA 와 바뀐 줄을 기록) 07 반영은 묶음 교체 단계에서 MODIFICATIONS 와 함께 한다.
-3. 잠정 정의(common) 문제 — 원본 빌드가 `-fno-common` 이었는지가 걸린다:
-   - E1 실기 링크 실험(커널 무관, 작은 probe): `int x;` 를 둔 a.c·b.c 를 (a) `-static -fno-common`, (b) `-static`(common) 으로 컴파일하고 각각 `ld -static -r` 와 `ld -static -e _main`(최소 진입점) 으로 링크. (a) 가 "multiple definitions" 로 실패하면, SDK/NeXTMach 의 잠정 정의 헤더를 여러 객체가 쓰는 한 `-fno-common` 커널은 링크되지 않는다 → 원본은 common 빌드였다는 근거(Darwin 은 헤더를 `extern` 으로 바꾸고 `-fno-common` 을 넣었다).
-   - E2: vm_machdep·kdp_machdep 를 SDK 헤더로 O3c(`-fno-common` 없음) 빌드 → 36.1 절차(O3c OBJECT_MATCH, common 크기 ≤ 원본 간격).
-   - 최종 빌드 플래그에서 `-fno-common` 을 뺄지는 E1·E2 결과로 다음 회차에 판단한다(이번엔 기록만).
-4. 진단 3: 1·2 를 반영한 스테이징으로 96 명령 + E2 2 개를 다시 돌려 (i)/(ii)/(iii) 를 다시 센다. 기대: (iii) 0.
-5. 이번 회차에 07 의 Darwin bsd 사본 58 개는 건드리지 않는다(묶음 교체 반영은 다음 단계).
-
-### 132.1 codex 교차검토(QS51) 판정 → 구현 규칙
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 덮어쓰기 층은 타당. `canonical()` 이 SDK 별칭을 `src/bsd/X` 하나로 모은다 | `stage_headers.py:100–107` 열어 확인 | ✅ |
-| manifest 코드가 BSD 선택을 SDK 아니면 NeXTMach 로만 다룸 → 작성 파일이 `verify_nextmach` 로 감 | `stage_headers.py:332–342`: `hit[1]=='sdk'` 아니면 `verify_nextmach` | ✅ 'authored' 갈래 추가, SHA·근거 문서를 manifest 에 기록 |
-| `#import` 중복 방지는 컴파일러 경로 기준 → `.i` 에서 실제 경로 확인 | 131.1 에서 같은 검사 규칙 채택됨 | ✅ 진단 3 에서 `-E` 표지로 `bsd/i386/spl.h`·`reboot.h` 가 한 경로로만 들어오는지 확인 |
-| 07 소스의 상위 `RB_` 사용은 `fp_support.c` 의 `RB_NOFP` 뿐(그 밖은 `RB_HALT`) | `grep -rn "RB_[A-Z]*" 07_kernel/src`(bsd 제외): `fp_support.c:107`, `miniMonMachdep.c:164` 만(나머지는 `IMARB_NULL` 동명이인). `fp_support.c:68` 이 `#import <bsd/i386/reboot.h>` 를 직접 한다 — 내 첫 grep 이 놓친 것 | ✅ |
-| SDK `buf.h` 잠정 정의 시작은 112 가 아니라 110 행 | `buf.h:105–121` 열어 확인: 110 `struct buf *buf;` | ✅ 131.3 정정 |
-| E1 은 링커 동작 검사일 뿐 원본 플래그 증명은 아님. common+common, 정의+정의, 잠정+초기화(순서 둘 다) 를 시험하고 기호 형태도 볼 것 | 설계 판정형: 결론 과장 위험은 맞다 | ⚖️ 시험 조합 확대 채택. 결론은 "이 헤더·이 객체로는 `-fno-common` 링크 불가" 까지만 쓴다 |
-| `kernserv/i386/spl.h` 는 비-BSD 이름이라 07/Darwin 판이 먼저 쓰일 수 있음 | `07_kernel/src/kernserv/i386/spl.h` 존재. Darwin 판과 SDK 판 차이: 머리말, `splsoftclock`/`splstatclock` 매크로 2 줄, 끝 일부 | ✅ 131.1 의 비-BSD 정책대로 07 판을 쓰고 manifest 로 기록. ddm/vm_pageout/mach_init 가 쓰는 `splhigh`·`splx`·`splimp`·`spl0`·`splvm`(grep 확인)은 양쪽 모두 선언 |
-| 스테이징된 `dma_inline.h` 수정 뒤 manifest 의 SHA 가 컴파일된 바이트와 달라짐 | 설계상 맞음 | ✅ 수정 기록(전·후 SHA)을 진단 기록 JSON 에 별도로 남긴다 |
-| 131.3 의 원본 명령 바이트 | codex 미확인. 내가 Python 으로 `0x18a333` 7 B = `f6 05 36 26 1e 00 20` 읽음 | ✅(내 확인) |
-
-### 132.2 구현 기록(코드, 실기 실행 전)
-
-- `07_kernel/nextdev_private/bsd/i386/reboot.h`(SDK 본문 + `RB_NOFP` 블록), `bsd/i386/spl.h`(가드 + `#import <kernserv/i386/spl.h>`) 작성. PROVENANCE 2 행 추가(372 → 374 행, 모두 7 열).
-- `stage_headers.py`: `bsd_pick` 이 `07_kernel/nextdev_private/bsd/X` 를 먼저 본다(기호 링크 거부). manifest 는 'authored' 갈래로 기록. 기존 테스트 19/19. 옛/새 도구로 85 소스 `--prefer-07 --nextdev --list` 출력 동일(418 줄). `--bsd-set nextos` 에서는 3 줄만 다르다: `src/bsd/i386/reboot.h` 출처 → 작성판, `src/bsd/i386/spl.h`(작성판)·`src/kernserv/i386/spl.h`(07 판) 추가, 미해결 `bsd/i386/spl.h` 소멸.
-- 진단 3 스테이징 `08_build/runs/tools/s5p106-bsd-stage-1`(403 파일, 미해결 15). 스테이징 사본 `dma_inline.h:45` 만 Python 으로 수정, 기록 `s5p106-bsd-stage-1.dma-edit.json`(전 02bf5175…, 후 e292fbc6…).
-- 명령: `s5p106-bsd-diag3.cmd`(진단 2 의 96 + O3c vm_machdep·kdp_machdep 2 + `-E` 4 = 102), `s5p106-e1.cmd`(E1: a/b 잠정·c 초기화, C/N 컴파일 5 + 조합 8 × {`ld -r`, `ld -static -e _main`} 16 = 21). E1 은 일부 명령이 실패하는 것이 정상이므로 `collect` 대신 `stage/_log` 를 읽는다.
-
-### 132.3 결과(진단 3 `s5p106-bsd-diag-3`, E1 `s5p106-e1-1`, 2026-10-02)
-
-진단 3(102 명령, 모두 종료 0, `collect` 로 307 파일 게시):
-- 기준 비교(`09_validation/reconstruction/s5p106-bsd-diag3-compare-20261002.json`; 섹션 바이트·정렬·재배치(외부 재배치는 심볼 이름으로)·비-stab 심볼): 기준 `s5p98-gregress-1` 이 있는 92 개 중 88 개 같음, 4 개 다름. 기준 없는 6 개 중 sched_prim O3/O3c 는 `s5p99-build-1`, vm_map O3/O3c 는 `s5p103-build-1` 과 같음.
-  - 처음 비교에서 68 개가 "`__text` 다름" 으로 나왔는데, 원인은 재배치의 심볼 **번호**(stab 수가 달라 번호가 밀림)였다. 이름으로 바꿔 다시 비교한 것이 위 결과다.
-- 다른 4 개는 **모두 SDK 헤더의 잠정 정의 심볼이 더해진 것뿐**이다(다른 섹션 바이트·재배치 차이 없음):
-  - `O3__vm_machdep.o`·`O3__kdp_machdep.o`: 새 `__DATA,__common` 섹션(정의 심볼 10·16 개).
-  - `O3__ddm.o`: 기존 `__common` 섹션에 buf 계열 10 개가 더해짐.
-  - `O3c__ddm.o`: common 심볼 10 개만 더해짐.
-- 진단 2 의 실패 8 건은 모두 해소(spl.h·reboot.h 작성판, dma 스테이징 수정).
-- O3c(common 변형) L1: kdp_machdep OBJECT_MATCH(`s5p106-l1-kdp_machdep-O3c-20261002.json`), vm_machdep NOT_MATCH 이나 사유는 기존 P 등급과 같은 `__TEXT,__const` 4 B 미배치(`s5p48-build-l1-vm_machdep-O3c` 와 섹션 판정 동일).
-- 36.1 (c): O3c ddm·vm_machdep·kdp_machdep 의 common 심볼 29 개 모두 크기 ≤ 원본에서 다음 심볼까지 간격(`s5p106-common-gap-20261002.json`). 원본 위치는 `__common` 26 개, `__data` 3 개(`_nbuf`, `_bufpages`, `_nmbclusters` — 어딘가에서 초기화 정의됨).
-
-E1(`09_validation/reconstruction/s5p106-e1-20261002.json`, 21 명령 중 6 개 실패):
-- common+common, common+`-fno-common`, common+초기화(두 순서) → `ld -r`·`ld -static -e _main` 모두 성공.
-- `-fno-common`+`-fno-common`, `-fno-common`+초기화(두 순서) → 두 링크 모두 `multiple definitions of symbol _x` 로 실패(`__DATA,__common` 정의끼리, 또는 `__common` 과 `__data` 정의).
-- 해석(이 헤더·이 도구 조합에 한정): SDK/NeXTMach `sys/buf.h` 는 `int nbuf;` 등을 잠정 정의하는데 원본의 `_nbuf` 는 `__data`(초기화 정의)에 있다. 그러므로 buf.h 를 쓰는 객체가 `-fno-common` 이면 링크가 실패한다. **SDK/NeXTMach 헤더를 쓰는 한, 그 객체들은 common(= `-fno-common` 없이) 으로 컴파일되어야 링크된다.** 원본이 다른 헤더를 썼을 가능성은 이 실험으로 배제되지 않는다.
-
-## 133. S5-P107 세부 계획 — D021 3 단계: 07 반영(BSD 헤더 묶음 교체)과 최종 플래그 (코딩 전, 2026-10-02)
-
-사실(Python, 진단 3 스테이징 manifest): 확정·부분 85 소스가 읽는 `src/bsd/**/*.h` 는 63 개 — SDK 59, NeXTMach 2(`sys/kernel.h`, `sys/callout.h`), 작성 2(`i386/reboot.h`, `i386/spl.h`). 07 의 `src/bsd/` 는 58 파일(.h 57 + `libkern/strtol.c`), 모두 PROVENANCE `none (verbatim)` 이고 git 미추적. 로컬 SDK 사본(`01_resources/local_mirrors/headers`)은 저장소 밖 심볼릭 링크라 공개 트리로 빌드하려면 쓰이는 SDK 헤더가 07 에 있어야 한다(D018 때 `07_kernel/nextdev/` 6 파일을 같은 이유로 둠).
-
-1. 07 배치(출처별 배치 유지):
-   - SDK 59 → `07_kernel/nextdev/bsd/<X>`(include 계열은 SDK 경로 `ansi/X` 그대로). 바이트 동일, 실기 SHA 목록과 대조.
-   - NeXTMach 2 → `07_kernel/nextmach/sys/{kernel,callout}.h`(mk-108.1 경로). 바이트 동일, 고정 커밋 blob 과 대조, 원 notice 유지(D013).
-   - 작성 2 → 이미 `07_kernel/nextdev_private/`.
-   - PROVENANCE 61 행 추가.
-2. Darwin 사본 은퇴: `07_kernel/src/bsd/` 의 .h 57 개를 지운다(`strtol.c` 는 BSD **소스**라 남김).
-   - 지우기 전: 각 파일 SHA = Darwin 원문 SHA 확인(검증된 verbatim 이라 원문에서 재생성 가능), 목록(경로·SHA·원문) 을 `09_validation/reconstruction/` 기록으로 남기고, tar 사본을 스크래치에 둔다.
-   - PROVENANCE 57 행 제거. 행 수 기대: 374 + 61 − 57 = 378(Python 으로 확인).
-3. `stage_headers.py`: `--bsd-set nextos` + `--prefer-07` 이면 BSD 이름을 `nextdev_private` → `07_kernel/nextdev/bsd`(실기 SHA 일치 필수) → `07_kernel/nextmach`(커밋 blob 일치 필수) 순으로 찾고, 07 에 없으면 로컬 SDK/NeXTMach 사본으로 가되 manifest 에 'not adopted' 로 표시. 최종 빌드 판정 조건: 'not adopted' 0 건.
-4. `07_kernel/src/machdep/i386/dma_inline.h:45` → `#import <bsd/i386/machparam.h>`. MODIFICATIONS·PROVENANCE 갱신.
-5. 최종 플래그에서 `-fno-common` 제거 — 후보(근거: 132.3 E1 합성 실험과 36.1; 전체 커널 링크로 확인된 것은 아님). 템플릿 `08_build/runs/tools/s5p107-build.cmd`, `GCC27_COMPATIBILITY.md`·`07_kernel/README.md` 갱신. 역사적 사실로 확정한 것이 아니라 "이 헤더 묶음에서 링크 가능한 후보" 로 적는다.
-6. 회귀(실기): 85 소스를 07 만으로 스테이징(위 3, 'not adopted' 0)하고 최종 플래그로 빌드.
-   - 비교 1: 진단 3 의 O3c 출력이 있는 객체는 그것과 비-디버그 내용이 같아야 한다.
-   - 비교 2: 나머지는 진단 3 의 O3(`-fno-common`) 출력과 같아야 한다. 다르면(미초기화 전역이 있는 객체) 36.1 절차(L1 + 간격)로 판정.
-   - 등급 표(objects_confirmed/partial)의 build 칸은 바꾸지 않고, 회귀 기록과 이 절을 근거로 남긴다.
-7. 이 단계가 끝나면 D021 의 BSD 범위는 완료. 비-BSD 이름(`mach/`·`kernserv/` 등)의 SDK 교체 여부는 사용자 결정 사항으로 남긴다(131.1).
-
-### 133.1 codex 교차검토(QS52) 판정 → 계획 보정
-
-내가 틀린 것: 133 의 "07 `src/bsd/` 58 파일 모두 Darwin verbatim" 은 틀렸다. `sys/version.h` 는 SDK 판이다(PROVENANCE 360 행 `nextdev-os42`, D020·111.1 원본 바이트로 선택). Darwin 사본은 .h 56 개다.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 07 배치는 한 논리 경로 `src/bsd/X` 로 스테이징되는 한 일관. `include/X` 는 SDK `ansi/X` 로 명시 구현 필요 | `stage_headers.py:100–107`(canonical), `:115–118`(include → `ansi/X`·`bsd/X`). 진단 3 의 include 계열 6 개 모두 SDK `ansi/` 출처(Python) | ✅ include 계열 사본은 `07_kernel/nextdev/ansi/X` 에 둔다 |
-| `standards.h` 가 두 논리 경로(`src/bsd/include/standards.h`, `nextdev/ansi/standards.h`)로 스테이징됨 → `#import` 중복 방지 일반 주장은 근거 없음 | manifest 에서 같은 SHA 가 두 경로인 쌍: 이것과 Darwin `kernserv/{ppc,i386}/us_timer.h`(무관) 뿐(Python). SDK `ansi/standards.h:3–4` 는 `#ifndef _STANDARDS_H` 가드. `-E` 4 개 출력엔 standards.h 없음 | ⚖️ 이번 경우는 가드로 무해. 회귀 때 같은 SHA 다중 경로 목록을 기록하고, 가드 없는 헤더가 나오면 따로 판정 |
-| 57 개 삭제는 위험: 기본 모드는 07 → Darwin 순이라 `version.h` 가 Darwin 으로 되돌아감, SHA=Darwin 검사가 `version.h` 에서 실패 | PROVENANCE 360 행 확인, `stage_headers.py:141–147`(기본 모드 07 → Darwin) | ✅ `version.h` 는 지우지 않고 `07_kernel/nextdev/bsd/sys/version.h` 로 **옮긴다**(SDK 사본 위치). Darwin 56 개만 은퇴. 기본 모드는 이후 최종 소스를 대표하지 않는다고 README·도구 docstring 에 적는다 |
-| `test_stage_headers_subst.py:97` 은 07 의 `sys/callout.h` 사본으로 shadow 오류를 시험 → 수정 필요 | 97 행 열어 확인 | ✅ 07 에 남는 `src/bsd/libkern/strtol.c` 를 키로 쓰도록 바꾸고 19/19 재확인 |
-| `s5p99-build.cmd` 는 스테이징 방식에 의존 | 2–3 행: `src/src/bsd` -I 경로 사용(스테이징 결과에 의존) | ✅ 새 템플릿에 스테이징 명령(`--prefer-07 --nextdev --bsd-set nextos`)을 머리 주석으로 적는다 |
-| `-fno-common` 제거는 "유일한 선택" 이 아니라 후보. E1 은 합성 객체 실험 | 132.3 해석 문장 자체가 한정을 둠; 133 의 5 항 문구는 과함 | ✅ 문구를 "후보(근거 E1·36.1)" 로 고침 |
-| 6 항 회귀는 O3c 기준 없는 객체, `__bss`↔`__common` 변화, 정적 미초기화 데이터를 놓칠 수 있음 | 6 항은 O3 와 다르면 36.1 로 판정한다고 이미 적음. 다만 36.1 은 정적 데이터를 다루지 않음(1273 행 근처) | ⚖️ 비교 1·2 에서 **어떤 차이든** 나면 그 객체는 L1 전체를 다시 돌린다(섹션 이동 포함). 정적 데이터 차이는 L1 의 zero-fill 검사로 본다 |
-| 374+61−57=378 은 줄 수, 헤더 제외 항목 수는 377 | 374 는 `grep -c ""`(헤더 포함 줄 수) | ✅ 보정: 줄 374 + 61 − 56(은퇴) = 379, version.h 는 경로만 바뀜. Python 으로 확인 |
-
-보정된 단계:
-1. SDK 59 중 `include/X` 6 개는 `07_kernel/nextdev/ansi/X`, 나머지 53 은 `07_kernel/nextdev/bsd/X`. 이 중 `sys/version.h` 는 기존 07 사본을 옮긴다(바이트 동일 확인). 새 PROVENANCE 행: SDK 58 + NeXTMach 2 = 60, version.h 행은 경로만 갱신.
-2. 은퇴는 Darwin 사본 56 개(각 SHA = Darwin 원문 확인). 줄 수 기대: 374 + 60 − 56 = 378.
-
-### 133.2 구현 기록(1–5 단계, 실기 회귀 전)
-
-- 1: SDK 59(include 계열 6 개는 `07_kernel/nextdev/ansi/`, 나머지 `07_kernel/nextdev/bsd/`; `sys/version.h` 는 `07_kernel/src/bsd/sys/` 에서 옮김) + NeXTMach 2(`07_kernel/nextmach/sys/{kernel,callout}.h`) 배치. 모두 원본(실기 SHA 목록 / 고정 커밋 blob)과 바이트 동일 확인. 07 `nextdev`+`nextmach` 파일 67 개(기존 6 + 61).
-- 2: Darwin 사본 .h 56 개 은퇴(각 SHA = Darwin 원문, PROVENANCE `darwin01` + `none (verbatim` 확인). 기록 `09_validation/reconstruction/s5p107-retired-07-bsd-20261002.json`, tar 사본은 스크래치(SHA cb95fae2…). `07_kernel/src/bsd/` 에는 `libkern/strtol.c` 만 남음. PROVENANCE 374 줄 − 56 + 60 = 378 줄, 모두 7 열.
-- 3: `stage_headers.py` — `--bsd-set nextos --prefer-07` 이면 `nextdev_private` → `07_kernel/nextdev/<SDK 경로>`(실기 SHA 일치 필수) → `07_kernel/nextmach/<경로>`(blob 일치 필수) → 로컬 사본(manifest `bsd_not_adopted` 에 기록). docstring 에 기본 모드가 더 이상 복원 소스를 대표하지 않는다고 적음. 테스트 `test_stage_headers_subst.py` 의 shadow 사례 키를 `src/bsd/libkern/strtol.c` 로 바꿈, 19/19.
-  - 85 소스를 07 만으로 스테이징(`s5p107-final-stage-1`, 403 파일): `bsd_not_adopted` 0, 진단 3 스테이징과 논리 경로 집합 같음, 바이트가 다른 파일은 `dma_inline.h` 하나, 미해결 include 는 `bsd/i386/param.h` 하나가 빠진 14.
-- 4: `07_kernel/src/machdep/i386/dma_inline.h` 수정(수정 표시 주석 + `machparam.h`), diff `06_reconstruction/evidence/x86-dma_inline_h.diff`, PROVENANCE·MODIFICATIONS 갱신(객체 회귀는 6 단계 결과로 채움).
-- 5: 템플릿 `08_build/runs/tools/s5p107-build.cmd`(최종 = O3c, O3 는 36.1 진단 변형). 문서(`GCC27_COMPATIBILITY.md`, `07_kernel/README.md`) 갱신은 회귀 결과 뒤.
-- 6 준비: `s5p107-regress.cmd`(85 소스 × {F = 최종 플래그, N = `-fno-common`} = 170), 실행 디렉터리 `s5p107-regress-1` 준비 완료(실기 실행 대기).
-  - 판정: N 은 진단 3 의 같은 출력과 비-디버그 내용이 같아야 한다(dma 는 07 수정판). F 는 진단 3 O3c 가 있으면 그것과, 없으면 N 과 같아야 한다. 다르면 그 객체는 L1 전체를 다시 돌린다.
-
-### 133.3 회귀 결과(`s5p107-regress-1`, 170 명령 모두 종료 0, `collect` 511 파일)
-
-기록 `09_validation/reconstruction/s5p107-regress-compare-20261002.json`, L1 `s5p107-l1-<객체>-F-20261002.json`.
-- N(`-fno-common`) 85 개 모두 진단 3 의 같은 출력과 비-디버그 내용이 같다 — 07 의 `dma_inline.h` 수정은 객체를 바꾸지 않는다.
-- F(최종) 85 개: 65 개는 기준(진단 3 O3c 13, N 52)과 같다. 20 개는 미초기화 전역이 `__common` 정의 → 이름 있는 common 으로 바뀌어 다르다(그에 따라 섹션 번호·정적 심볼의 섹션 번호도 바뀜).
-- 20 개 L1: 등급 A 17 개(dbl_fault, dma_buf, host, ipc_entry, ipc_hash, ipc_marequest, ipc_notify, ipc_object, ipc_port, ipc_space, ipc_table, ipc_xxx, machine, processor, thread_swap, timer, vm_user) 모두 OBJECT_MATCH. 등급 P 3 개는 기존과 같은 판정:
-  - dma: MATCH 7 / MATCH_UNVERIFIED 15, `__bss` inferred — `s5p45-build-l1-dma-O3c` 와 같음.
-  - kern_notify: MATCH 4 / MATCH_UNVERIFIED 3, `__bss` inferred — `s5p25-pre-l1-kern_notify-O3c` 와 같음.
-  - intr: MATCH 3 / MATCH_UNVERIFIED 30, `__bss` inferred, `__const` 4 B 미배치 — 증거 `x86-intr.md` 의 `-O3` 결과(3/30, 같은 사유)와 같음.
-- 결론: BSD 헤더 묶음 교체(D021)와 최종 플래그 변경 후에도 확정·부분 85 소스의 등급은 그대로다. 등급 표는 바꾸지 않는다.
-- 문서: `GCC27_COMPATIBILITY.md`(툴체인 고정에 D021·`-fno-common` 단락), `07_kernel/README.md`, MODIFICATIONS(dma 행 결과) 갱신.
-- 남은 것: 비-BSD 이름(`mach/`·`kernserv/` 등)의 SDK 교체 여부(사용자 결정, 131.1), 큰 규모 작성 범위(130 2 항, 사용자 결정).
-
-## 134. S5-P108 세부 계획 — D022(비-BSD 헤더 SDK 교체, Mach 내부는 Mach4 기본 참고) 1 단계 (코딩 전, 2026-10-02)
-
-사용자 결정 D022: SDK 에 있는 비-BSD 이름은 SDK 판으로 바꾸고, SDK 에 없는 Mach 쪽 이름의 기본 참고는 Mach4, Darwin 은 구조 참고.
-
-사실(Python, `s5p107-final-stage-1` manifest, 생성 헤더·`nextdev/`·`src/bsd/` 제외): 85 소스가 읽는 비-BSD 헤더 213 개.
-- SDK 에 같은 이름이 있는 것 68 개: `mach/` 42, `architecture/` 11, `kernserv/` 9, `driverkit/` 6(`components/driverkit-1/driverkit/X` ↔ SDK `driverkit/X`).
-  - 이 중 07 에서 복원 수정한 것 4 개: `mach/port.h`, `mach/notify.h`, `mach/mach_param.h`, `mach/i386/vm_param.h`(KERNSTACK_SIZE).
-- SDK 에 없고 Mach4(`kernel/`·`include/`·`i386/` 아래 같은 경로)에 있는 것 57 개, 둘 다 없는 것 88 개(그중 22 개는 ppc 등 조건부 경로로 07 에도 없음).
-- Mach4 는 Mach 3 계열이라 `kern/`·`ipc/`·`vm/` 내부 구조체가 OPENSTEP 과 다를 수 있다 → 2 단계는 진단부터 한다.
-
-1 단계(이번): SDK 68 개.
-1. `stage_headers.py --mach-set sdk`(새 옵션, `--nextdev` 필수): 논리 경로 `src/mach/X`, `src/kernserv/X`, `components/architecture/X`, `components/driverkit-1/driverkit/X` 의 이름이 SDK 에 있으면 SDK 판(`--prefer-07` 이면 `07_kernel/nextdev/<SDK 경로>` 먼저, 실기 SHA 일치 필수)을 읽는다. SDK 에 없는 이름은 지금 규칙(07 → Darwin)을 그대로 쓴다(2 단계에서 다룸).
-   - SDK 별칭 정규화: `nextdev/mach/X` → `src/mach/X`, `nextdev/kernserv/X` → `src/kernserv/X`, `nextdev/architecture/X` → `components/architecture/X`, `nextdev/driverkit/X` → `components/driverkit-1/driverkit/X`(BSD 의 `canonical()` 과 같은 방식) — 한 헤더가 두 논리 경로로 스테이징되지 않게 한다.
-   - manifest: SDK 출처 행 표시, SDK 로 바뀐 07 수정판 4 개는 따로 목록.
-   - 기본 동작·`--bsd-set` 만 쓴 동작은 그대로(옛/새 도구 출력 비교).
-2. 진단 4(실기): 85 소스를 `--prefer-07 --nextdev --bsd-set nextos --mach-set sdk` 로 스테이징, F(최종)·N(`-fno-common`) 170 명령. 133.3 의 같은 출력과 비교(비-디버그 내용), 다르면 원인별 분류, 실패는 첫 오류.
-3. 결과에 따라 07 반영(SDK 사본을 `07_kernel/nextdev/` 에, 은퇴할 Darwin·수정판 기록)을 다음 회차에 계획한다. 수정판 4 개가 SDK 판으로 바뀌어도 객체가 같으면 SDK 판을 채택하고 수정 기록을 은퇴시킨다; 다르면 원인(원본 바이트)과 함께 보고한다.
-4. 2 단계(Mach4) 는 1 단계 회귀 뒤 따로 계획: SDK 에 없는 57 개를 Mach4 판으로 바꿔 진단만 하고 결과를 보고한다(대규모 차이가 예상되므로 채택 방식은 결과를 보고 정한다).
-
-### 134.1 codex 교차검토(QS53) 판정 → 구현 규칙
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `-I` 순서상 `src/src`·`components`·`components/architecture` 가 `src/nextdev` 보다 앞 → 정규화된 스테이징 위치를 컴파일러도 먼저 찾음 | `s5p107-regress.cmd:4` 의 `-I` 열(Python 아님, 출력 그대로): generated, src, src/bsd, src/bsd/include, src/machdep, components, components/architecture, nextdev, nextdev/bsd, nextdev/ansi. 도구 `ROOTS` `stage_headers.py:68–70` 같은 순서 | ✅ |
-| 현 manifest 의 `nextdev/kernserv/printf.h`, `nextdev/architecture/ARCH_INCLUDE.h` 도 정규 경로로 옮겨야 함 | manifest `nextdev/` 행 14 개 중 위 2 개가 해당(나머지 objc·ansi·mach-o) | ✅ 정규화 대상에 포함, 진단에서 두 경로 스테이징 0 확인 |
-| SDK `mach/machine/vm_param.h` 의 `ARCH_INCLUDE(mach/, vm_param.h)` 두 번째 홉은 인용 include 로 처리됨 | SDK 파일 9–11 행, 도구 `ARCH_INC` 처리 | ✅ |
-| **SDK `kernserv/lock.h` 와 07 `kern/lock.h` 가 같은 가드 `_KERN_LOCK_H_`** 이고 `lock_t` 정의가 다름(`void *` vs `struct lock *`) → 포함 순서에 따라 한쪽이 조용히 빠짐 | SDK `kernserv/lock.h` 24–31 행(`typedef void *lock_t`), 07 `kern/lock.h:58–59,146` | ✅ 진단 전에 소스별 closure 로 두 헤더를 모두 읽는 소스를 찾고, 그 소스는 `-E` 로 실제 포함 순서를 기록. 객체 일치만으로 07 판 은퇴 근거로 삼지 않는다 |
-| SDK `mach/port.h` 에 `mach_port_name_t` 등 07 판의 일부 타입이 없음(85 소스에서 실패는 미입증) | diff 로 확인(07 판에만 `mach_port_name_t`, `mach_port_limits_t` …) | ✅ 진단 컴파일 실패로 드러나게 둔다 |
-| `MACH_SEND_SWITCH` 값이 다름(SDK 0x20000, 07 0x80000), 85 소스 사용 미발견 | 두 파일 grep(SDK 340, 07 455), `07_kernel/src` .c grep 0 건 | ✅ 기록. 원본이 쓰는 곳이 나오면 원본 바이트로 판정 |
-| 수정판 4 개의 복원 값이 SDK 판에 모두 있음 | 직접 확인: SDK `vm_param.h:47` KERNSTACK 1 쪽, `mach_param.h` 4·16, `port.h:194–203`, `notify.h:90–122` | ✅ |
-| 134 의 수(68 등)·85 소스·170 명령 맞음 | Python 재계산(134 정정 후) | ✅ |
-
-### 134.2 구현과 사전 분류(코드, 실기 전)
-
-- `stage_headers.py --mach-set sdk` 구현(`MACH_MAP`, `mach_pick`, `canonical()` 정규화, manifest `mach-set:` 행·`mach_replaced_07`·`mach_not_adopted`). 옛/새 도구 `--list` 출력 동일: 기본(419 줄), `--bsd-set`(417), `--bsd-set` 비-07(418). 테스트 19/19.
-- 85 소스 closure 에서 SDK 로 바뀌는 이름 70 개(68 + 정규화된 `kernserv/printf.h`, `architecture/ARCH_INCLUDE.h`). 주석·공백을 뺀 본문 비교(Python, `difflib`): 같음 34, 다름 36.
-  - 다른 36 개의 성격(내 판독):
-    - 아키텍처 분기 표기만 다름(`#if __ppc__ … #include "mach/i386/X"` ↔ `ARCH_INCLUDE`), `#endif` 꼬리표 등: `mach/machine/*` 7, `kernserv/machine/us_timer.h`, `driverkit/machine/driverTypes.h`, `architecture/byte_order.h`, `kernserv/macro_help.h`, `mach/vm_policy.h` 등.
-    - **공개판(커널 비공개 분기 삭제)**: `kernserv/lock.h`(KERNEL_PRIVATE 이면 `kern/lock.h` 를 쓰는 분기), `mach/mach_types.h`(`_KERNEL` 분기의 `kern/task.h`… import), `mach/std_types.h`(`ipc/ipc_port.h` import), `mach/mach_traps.h`(KERNEL_PRIVATE 선언), `kernserv/clock_timer.h`·`ns_timer.h`(KERNEL_PRIVATE 이면 `kern/clock.h`·`kern/time_stamp.h`), `kernserv/prototypes.h`(양쪽 모두 다름).
-    - 판 차이: `mach/message.h`(308 줄; Darwin 판은 기술자(descriptor)형 메시지 추가, SDK 는 typed 메시지와 `msgh_kind`), `mach/port.h`, `mach/machine.h`, `mach/boolean.h`(TRUE/FALSE 형변환), `mach/notify.h`(`mach/ndr.h` import), `mach/mach_param.h`, `mach/error.h` 등.
-  - 46 소스가 `kernserv/lock.h` 와 `kern/lock.h` 를 모두 closure 에 둔다(조건부 분기 포함 집계).
-- 진단 4 는 **SDK 그대로**(공개판 포함) 돌려 실패·차이를 원인별로 센다. 공개판 처리(비공개 분기를 어떤 본문으로 되살릴지: Mach4 기본 참고, 원본 바이트로 확인)는 결과를 보고 다음 계획에서 정한다.
-
-### 134.3 진단 4 결과(`s5p108-diag-4`, SDK 그대로, 2026-10-02)
-
-기록 `09_validation/reconstruction/s5p108-diag4-compare-20261002.json`(기준 `s5p107-regress-1`). 170 명령: 같음 122, 다름 4, 실패 44(22 소스: PCemulatePROT, PCemulateREAL, PCinit, PCresume, catch, dbl_fault, dma_buf, fault_copy, fp_support, gdt, idt, intr, ipc_xxx, kdp_machdep, kern_notify, machine, sched_prim, syscall_sw, vm_policy, vm_resident, vm_synchronize, vm_user).
-- 실패 첫 오류(빈도): `mach/mach_types.h` `task_t` 충돌 8, `TSS_SEL` 미선언 6, `ipc/ipc_types.h` `ipc_space_t` 충돌 4, `kern/kern_types.h` `task_t` 충돌 4, `BYTE_SIZE` 미선언 4, `KERNEL_LINEAR_BASE`·`KCS_SEL`·`PAGE_SIZE`·`thread_saved_state_t`·`task_by_pid` 미선언 각 2, 구문 오류 4 종 각 2.
-  - `BYTE_SIZE`(SDK `mach/i386/vm_param.h:17` 에 있음), `PAGE_SIZE`(SDK `mach/vm_param.h` 는 07 판과 본문 동일) 등은 정의 자체는 SDK 에도 있다 → 원인은 **포함 경로가 끊긴 것**: 공개판 `mach/mach_types.h`·`std_types.h` 가 비공개 분기의 `kern/task.h`·`kern/thread.h`·`vm/vm_object.h`·`ipc/ipc_port.h` import 를 잃었다.
-  - `task_by_pid` 는 공개판 `mach/mach_traps.h` 에서 KERNEL_PRIVATE 선언이 빠진 것.
-- 다른 4 개: ddm(F·N) — SDK `kernserv/printf.h` 가 `sys/tty.h` 를 가져와 잠정 정의 `_tthiwat`·`_tthog`·`_ttlowat` 추가, 정적 지역 이름 번호(`_xxx.100` → `_xxx.86`) 변화, 섹션 바이트는 같음. dma(F·N) — `dma_xfer`·`dma_xfer_done` 이 20 B 씩 커짐: `pmap_phys_to_kern` 이 매크로(`machdep/i386/pmap.h:121`)가 아니라 함수 호출로 컴파일됨 → 같은 포함 경로 문제.
-
-### 134.4 진단 5 계획 — 공개판 헤더를 빼고 SDK 교체 (코딩 전)
-
-가설: 실패·차이는 비공개 분기가 빠진 공개판 헤더 몇 개에서 온다. 확인 방법: 공개판으로 판단한 7 개(`mach/mach_types.h`, `mach/std_types.h`, `mach/mach_traps.h`, `kernserv/lock.h`, `kernserv/clock_timer.h`, `kernserv/ns_timer.h`, `kernserv/prototypes.h`)를 `--mach-set` 에서 제외(현재 07 판 유지)하고 나머지 SDK 교체로 85 소스를 다시 빌드한다.
-1. `stage_headers.py`: `MACH_KERNEL_STRIPPED`(BSD 의 `KERNEL_STRIPPED` 와 같은 구실) 목록을 두고, 그 이름은 `mach_pick` 이 고르지 않는다. 각 항목에 근거(134.2 diff) 기록.
-2. 진단 5(실기 170 명령), 기준 `s5p107-regress-1` 과 비교.
-3. 기대: 실패 0, 차이는 ddm 의 잠정 정의(printf.h → tty.h) 정도. 남는 차이가 있으면 원인별로 기록.
-4. 진단 5 가 깨끗하면 남는 결정: 공개판 7 개의 비공개 분기를 어떤 본문으로 둘지(SDK 본문 + 비공개 분기 작성; 분기 내용의 참고 판). 사용자 결정 사항으로 보고한다.
-
-### 134.5 codex 교차검토(QS54) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 원인 가설이 실패들과 맞음: `TSS_SEL`(seg.h ← machdep/i386/thread.h ← kern/thread.h ← 07 mach_types.h 비공개 분기), dbl_fault `thread_saved_state_t`, ipc_xxx(07 `std_types.h:64–66` 의 `ipc/ipc_port.h`), `task_by_pid`(공개판 mach_traps.h) | `grep` 으로 `seg.h` 를 import 하는 헤더는 `machdep/i386/thread.h` 뿐; `std_types.h:64–66` 열어 확인; `62.err` 1 행 = `dbl_fault.c:46: parse error before dbf_state` | ✅ 단, 개별 실패 모두를 증명한 것은 아님(진단 5 로 확인) |
-| `PCpublic.h` 는 `!KERNEL` 일 때만 `mach/vm_param.h` 를 import → `BYTE_SIZE` 도 같은 끊긴 경로 | `PCpublic.h:36–38` 열어 확인 | ✅ |
-| 7 개 목록은 "비공개 분기 삭제" 기준으로 완전해 보임; message.h·machine.h·kalloc.h·printf.h 는 커널 분기 유지, port.h 는 분기 없음 | 134.2 diff 와 일치(내 집계도 같은 7 개) | ✅ |
-| 진단 5 가 깨끗해도 85 소스 범위의 결과일 뿐; Darwin `ipc_kmsg.c:288` 등은 SDK message.h 에 없는 descriptor 를 씀 | `ipc_kmsg.c:286–288` 확인. ipc_kmsg.c 는 07 에 없음(미복원) | ⚖️ 범위 한정을 기록. 원본은 typed 메시지 시대(SDK `message.h`)이므로 ipc_kmsg 복원 때는 SDK 판 + Mach4 `ipc_kmsg.c` 가 기준 후보가 된다(D022) |
-
-### 134.6 진단 5 결과(`s5p108-diag-5`, 2026-10-02)
-
-170 명령 모두 종료 0, `collect` 511 파일. 기준 `s5p107-regress-1` 과 170/170 비-디버그 내용 같음(`09_validation/reconstruction/s5p108-diag5-compare-20261002.json`). → 공개판 7 개를 뺀 SDK 63 개 교체는 85 소스(F·N)에 영향 없음. 진단 4 의 실패·차이는 모두 공개판 7 개에서 왔다는 가설과 일치(ddm 의 tty 잠정 정의도 사라짐 — SDK `prototypes.h` → `printf.h` 경로가 없어졌기 때문).
-- 범위 한정(134.5): 85 소스에 대한 결과다.
-- 공개판 7 개의 처리는 사용자 결정으로 보고한다(Mach4 에도 같은 구조가 있음: `include/mach/mach_types.h:56–85` `MACH_KERNEL` 분기, `std_types.h:44–46`, `mach_traps.h:36–38`).
-
-## 135. S5-P109 세부 계획 — D022 SDK 63 개 07 반영 (코딩 전, 2026-10-02)
-
-사실(Python, `s5p108-mach-stage-2.manifest.json`): `--mach-set` 이 SDK 판을 고른 논리 경로 63 개. 그중 07 에 같은 논리 경로 사본이 있던 것 60 개(PROVENANCE: Darwin verbatim 56, 복원 수정 4 — `mach/port.h`(darwin01+mach4), `mach/notify.h`, `mach/mach_param.h`, `mach/i386/vm_param.h`). 07 사본 없음 3 개(`kernserv/printf.h`, `architecture/ARCH_INCLUDE.h`(이미 `07_kernel/nextdev/` 에 있음), `kernserv/kalloc.h`). `mach_not_adopted` 62.
-
-1. SDK 62 개를 `07_kernel/nextdev/<SDK 경로>` 에 복사(실기 SHA 일치 확인). PROVENANCE 62 행 추가.
-2. 대체된 07 사본 60 개 은퇴:
-   - verbatim 56: 각 SHA = Darwin 원문 확인 후 삭제, 목록 기록, tar 사본.
-   - 복원 수정 4: SDK 판이 같은 값을 가짐(134.1 확인)과 진단 5 동일을 근거로 은퇴. 파일·diff 는 기록으로 남기고(tar + 기록 JSON), MODIFICATIONS 에 "2026-10-02 retired: SDK 판으로 대체(D022, 계획 135)" 행 추가(기존 행은 이력으로 유지).
-   - PROVENANCE 60 행 제거. 줄 수 기대: 378 + 62 − 60 = 380(Python 으로 확인).
-3. 확인(로컬): 같은 85 소스를 반영 뒤 07 로 스테이징 → `mach_not_adopted` 0, `bsd_not_adopted` 0, 스테이징 결과가 `s5p108-mach-stage-2` 와 논리 경로·SHA 모두 같음(비-BSD/Mach 의 Darwin·SDK 출처 파일은 그대로 남는다). 같으면 진단 5(170/170 동일)가 이 07 트리의 회귀 결과가 된다(실기 재실행 불필요). 다르면 실기 회귀를 요청한다.
-4. 문서: 템플릿 머리 주석·README·GCC27 문서에 스테이징 명령 `--mach-set sdk` 추가, `stage_headers.py` docstring 에 기본 모드 한계 추가.
-5. 공개판 7 개는 이번에 건드리지 않는다(07 판 유지, 사용자 결정 대기).
-
-### 135.1 codex 교차검토(QS55) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 기본 모드(`--mach-set` 없음)는 07 사본을 읽으므로 은퇴 뒤 Darwin 으로 돌아감 | `stage_headers.py` select(07 → Darwin) | ✅ BSD 때와 같이 기본 모드는 복원 소스를 대표하지 않는다고 docstring·README 에 적는다 |
-| 남기는 공개판 7 개(07 판)가 은퇴 대상 이름을 import(`mach_types.h` 가 `mach/port.h` 등) → `--mach-set` 에서는 SDK 판으로 해석 | 07 `mach_types.h` 89 행 `#import <mach/port.h>`(codex 의 85 행은 `host_info.h`; 줄 번호 틀림, 주장은 맞음) | ✅ 진단 5 가 이 조합을 이미 빌드함 |
-| 과거 증거 파일이 옛 경로를 적고 있음(`x86-pagesize.files.json:3`) | 3 행 `07_kernel/components/architecture/i386/desc.h` 확인 | ✅ 이력 기록이므로 고치지 않는다. 은퇴 기록 JSON 이 옛 경로 → 새 출처를 잇는다 |
-| `srcdefs.py`·`struct_compare.py` 는 이 07 사본에 직접 의존하지 않음 | 미확인(codex 인용만) | ⏭️ 행동 불변 — 이후 그 도구로 07 경로를 넘기면 오류로 드러남 |
-| 수정판 4 개 은퇴는 85 소스에 대해 안전; `mach_port_name_t` 등 옛 판에만 있는 이름은 07 에서 옛 `port.h` 안에만 있음, 옛 `notify.h` 만 `mach/ndr.h` import | 내 grep 동일(다른 사용처 0), `notify.h:86` `#include <mach/ndr.h>`(codex 84 행은 `mach/port.h`; 줄 번호 틀림) | ✅ 이후 복원 코드가 이 이름을 쓰면 원본 바이트로 재검토 |
-| 3 단계 판정은 같은 명령·플래그·도구일 때 객체 내용에 한해 이전된다 | — | ✅ 문구 보정 |
-| 380 은 줄 수(헤더 포함), "07 만으로 스테이징" 은 과장 — 비-BSD/Mach 이름은 여전히 Darwin·SDK 에서 옴 | manifest 의 비-07 출처 행 존재(133.2 에서도 31 개) | ✅ 3 단계 조건을 "`bsd_not_adopted`·`mach_not_adopted` 0, 논리 경로·SHA 동일" 로 고친다 |
-
-### 135.2 구현 기록(2026-10-02)
-
-- 1: SDK 62 개를 `07_kernel/nextdev/` 에 복사(실기 SHA 일치), `07_kernel/nextdev` 파일 65 → 127.
-- 2: 07 사본 60 개 은퇴(verbatim 56: SHA = Darwin 원문; 복원 수정 4: Darwin 원문 + evidence diff 로 `patch` 재현이 바이트 동일함을 확인). 기록 `09_validation/reconstruction/s5p109-retired-07-mach-20261002.json`, tar 사본 스크래치(SHA dbdfae89…). PROVENANCE 378 − 60 + 62 = 380 줄, 7 열. MODIFICATIONS 에 은퇴 행 4 개(62 → 66 줄).
-  - 07 에 남은 Mach 쪽 헤더: `src/mach/{clock_types,features,mach_traps,mach_types,ndr,std_types}.h`, `src/kernserv/{clock_timer,lock,ns_timer,prototypes,kern_notify}.h`(+ `kern_notify.c`).
-- 3: 반영 뒤 스테이징 `s5p109-final-stage-1`(393 파일): `bsd_not_adopted`·`mach_not_adopted`·`mach_replaced_07` 모두 0, `s5p108-mach-stage-2` 와 논리 경로·SHA·미해결 목록 동일 → 진단 5(170/170 동일)가 이 07 트리의 85 소스 회귀 결과다(같은 명령·도구, 객체 내용 한정).
-- 4: 템플릿 `s5p107-build.cmd` 머리 주석, `07_kernel/README.md`, `GCC27_COMPATIBILITY.md`, `stage_headers.py` docstring 갱신. 테스트 19/19.
-- 남은 결정(사용자): 공개판 7 개의 비공개 분기 본문.
-
-## 136. S5-P110 세부 계획 — D023: 공개판 7 개의 비공개 분기 작성 (코딩 전, 2026-10-02)
-
-사용자 결정 D023(A): SDK 본문은 그대로, 비공개 분기만 작성해 `07_kernel/nextdev_private/<SDK 경로>` 에 둔다. 분기 내용은 Mach4 구조를 기본 참고, 원본 바이트로 확인되는 최소만.
-
-원칙: 각 파일 = SDK 파일 바이트를 그대로 두고 **분기 줄만 끼워 넣는다**(SDK 줄 삭제·수정 없음; 끼워 넣은 줄은 주석 `/* plan 136: … */` 로 표시). 분기 조건은 현재 07 판(=진단 5 에서 객체 동일이 확인된 동작)과 같게 한다. `MACH_USER_API` 는 Darwin `conf/Makefile.template:689–691` 에서 커널 안의 Mach 사용자 API 객체가 정의하므로 조건에서 뺄 수 없다.
-
-| 헤더 | 끼워 넣을 비공개 분기(조건) | 참고 |
-|---|---|---|
-| `mach/mach_types.h` | SDK 의 typedef 14 줄과 `*_NULL` 5 줄을 `#else` 쪽에 두고, 앞에 `#if _KERNEL && !MACH_USER_API` + `kern/task.h`·`kern/thread.h`·`kern/processor.h`·`vm/vm_user.h`·`vm/vm_object.h` import + `typedef vm_map_t vm_task_t;` | Mach4 `include/mach/mach_types.h:56–85`(`MACH_KERNEL` 분기에 같은 3 import); vm 2 import 와 `vm_task_t` 는 현재 07 판 동작 |
-| `mach/std_types.h` | 끝에 `#if _KERNEL && !MACH_USER_API` `#import <ipc/ipc_port.h>` | Mach4 `include/mach/std_types.h:44–46`(`MACH_KERNEL`) |
-| `mach/mach_traps.h` | 끝에 `#if defined(KERNEL_PRIVATE)` 선언: `host_priv_self`, `device_master_self`, `_event_port_by_tag`, `_lookupd_port`, `task_by_pid`, `init_process`, `mach_swapon`, `kern_timestamp`(+ `kern/time_stamp.h` import). SDK 처럼 K&R 선언 | 8 개 모두 원본 심볼표에 있음(`symbols.tsv` grep); 07 판의 `_lookupd_port1` 은 원본에 없어(syscall_sw 수정 근거와 같음) 넣지 않음 |
-| `kernserv/lock.h` | 전체를 `#ifdef KERNEL_PRIVATE` `#import <kern/lock.h>` `#else` … `#endif` 로 감쌈(`#warning` 은 넣지 않음) | 현재 07 판 구조; Mach4 는 `kern/lock.h` 만 있음 |
-| `kernserv/clock_timer.h` | `ns_time_t` typedef 뒤의 SDK 공개 선언(chrono·`clock_types_t`·함수 3 개)을 `#else` 쪽에, 앞에 `#if KERNEL_PRIVATE` `#import <kern/clock.h>` — 07 `kern/clock.h` 가 같은 열거자 `Calendar`·`System` 을 정의하므로 둘 다 두면 충돌 | 현재 07 판 동작 |
-| `kernserv/ns_timer.h` | 끝에 `#if KERNEL_PRIVATE` `#import <kern/time_stamp.h>` | 현재 07 판 구조 |
-| `kernserv/prototypes.h` | `#ifdef KERNEL` 블록의 SDK 두 묶음(`kernserv/kalloc.h`·`mach/message.h` import 와 `assert_wait` … `thread_sleep`; `current_task` … `msg_send_from_kernel`)을 `#ifndef KERNEL_PRIVATE` 로 감쌈 | 현재 07 판 구조(KERNEL_PRIVATE 이면 두 묶음 없음) |
-
-- SDK 쪽에만 있는 줄은 그대로 남는다(예: `prototypes.h` 의 `kernserv/printf.h` import → 진단 4 에서 ddm 에 tty 잠정 정의 3 개를 더했다; `std_types.h` 의 `EXPORT_BOOLEAN`; `mach_types.h` 의 `vm_region_t`·`vm_region_array_t`·`vm_page_data_t`; `HOST_NULL` 은 `#else` 쪽이라 커널에서는 꺼짐). 이 차이는 진단으로 판정한다.
-1. 작성 7 개 + PROVENANCE 7 행(출처 SDK 파일 SHA, 끼워 넣은 줄 목록).
-2. `stage_headers.py`: `MACH_KERNEL_STRIPPED` 이름은 `nextdev_private/<SDK 경로>` 가 있으면 그것을, 없으면 지금처럼 07 → Darwin. manifest 'authored' 표시.
-3. 진단 6(실기, 170 명령) → 기준 `s5p107-regress-1`(= 진단 5) 과 비교. 다르면 원인 분석(특히 printf.h 경로).
-4. 같으면 07 의 `src/mach/{mach_types,std_types,mach_traps}.h`, `src/kernserv/{lock,clock_timer,ns_timer,prototypes}.h` 7 개를 은퇴(135 와 같은 절차).
-
-### 136.1 codex 교차검토(QS56) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `kernserv/lock.h` 의 KERNEL_PRIVATE 분기는 SDK 가드 `_KERN_LOCK_H_` **바깥(앞)** 에 둬야 한다 | 07 판도 바깥 구조; 안쪽이면 가드가 `kern/lock.h`(같은 가드)를 막음 | ✅ 바깥에 둔다 |
-| `HOST_NULL` 은 `#else` 로 가면 커널에서 꺼지므로 "SDK 쪽에만 남는 줄" 예시와 모순 | 136 본문 확인 | ✅ 문구 정정(위). 07 `kern/host.h:70` 의 정의와 충돌 없음 |
-| `prototypes.h` 첫 묶음에 `kernserv/kalloc.h`·`mach/message.h` import 도 들어가야 07 동작과 같음 | 07 판: 두 import 가 `#ifdef KERNEL_PRIVATE #else` 안 | ✅ 표 정정(위) |
-| SDK `prototypes.h` 의 `printf.h` import 는 남아 tty 잠정 정의를 더함 | 진단 4 의 ddm 결과와 같음 | ✅ 진단 6 에서 판정(남기는 것이 SDK 본문 원칙) |
-| `bcopy`/`bzero` 프로토타입이 libc `memcpy.c`·`memset.c` 의 `unsigned long` 과 충돌할 수 있음(포함 여부 미확인) | 두 파일에 include/import 0 건(grep) | ❌ 해당 없음 |
-| `suser(void)` 는 현재 무인자 호출(`ipc_xxx.c:73` `if (!suser())`)과 맞고 07 판 2 인자 선언과는 안 맞음 | 73 행 확인 | ✅ 기록(SDK 판이 호출 형태와 일치) |
-| `mach_traps.h` 공개 선언이 K&R 이고 07 판의 `mach/message.h` import 가 없음 | SDK·07 비교 | ✅ 진단 6 에서 판정 |
-| 14·5 줄 수, `Makefile.template:689–691` 맞음 | Python 재계산·파일 확인 | ✅ |
-
-### 136.2 구현과 진단 6 결과(2026-10-02)
-
-- 작성 7 개 `07_kernel/nextdev_private/{mach/mach_types.h, mach/std_types.h, mach/mach_traps.h, kernserv/lock.h, kernserv/clock_timer.h, kernserv/ns_timer.h, kernserv/prototypes.h}`: SDK 파일 줄을 하나도 지우거나 바꾸지 않고(Python `difflib` 로 equal/insert 만 확인) 표시 주석과 분기 줄만 넣음(추가 줄 12·6·14·7·7·6·8). `#if`/`#endif` 균형 확인. `prototypes.h` 는 첫 생성에서 두 번째 묶음 닫는 줄이 빠져 지우고 다시 만들었다(배포 전 발견).
-- `stage_headers.py`: `mach_pick` 이 `nextdev_private/<SDK 경로>` 를 먼저 본다; manifest `mach-set: authored …`. 테스트 19/19.
-- 진단 6(`s5p110-diag-6`, 170 명령 모두 종료 0, `collect` 511): 기준 `s5p107-regress-1` 과 168 같음, 2 다름(`F__ddm.o`·`N__ddm.o`): SDK `prototypes.h` → `kernserv/printf.h` → `sys/tty.h` 의 잠정 정의 `_tthiwat`·`_tthog`·`_ttlowat`(64 B 씩) 추가, 섹션 바이트·재배치 같음(F). 원본에서 세 심볼은 `__data`(초기화 정의, 0x1dae6c·0x1daeec·0x1daeac, 간격 64 = 크기) → common + 초기화 정의는 링크됨(132.3 E1). ddm L1(F): 이전(`s5p107`)과 같은 판정(MATCH 4 / MATCH_UNVERIFIED 3, `__bss` inferred, `__const` 미배치 — 기존 P 사유). 기록 `09_validation/reconstruction/s5p110-diag6-compare-20261002.json`, `s5p110-l1-ddm-F-20261002.json`.
-- 반영: 07 의 Darwin verbatim 사본 7 개 은퇴(SHA = Darwin 원문; 기록 `s5p110-retired-07-private-20261002.json`, tar 스크래치). `#ifdef m68k` 분기로만 닿는 SDK `bsd/dev/m68k/autoconf.h` 를 `07_kernel/nextdev/` 에 채택(스테이징이 07 밖 BSD 파일을 요구하지 않도록). PROVENANCE 380 − 7 + 8 = 381 줄, 7 열.
-- 반영 뒤 스테이징 `s5p110-final-stage-1`: `bsd_not_adopted`·`mach_not_adopted`·`mach_replaced_07` 모두 0, 진단 6 스테이징과 경로·SHA·미해결 동일 → 진단 6 이 이 07 트리의 회귀 결과(객체 내용 한정).
-- 07 에 남은 비-SDK Mach 쪽 헤더: `src/mach/{clock_types,features,ndr}.h`, `src/kernserv/kern_notify.h`(+ `.c`) — SDK 에 없는 이름.
-
-## 137. S5-P111 세부 계획 — Mach4 기본 참고로 미복원 Mach 객체 후보 진단 (코딩 전, 2026-10-02)
-
-배경: D022 — SDK 에 없는 Mach 쪽 이름의 기본 참고는 Mach4. 헤더 묶음은 SDK/NeXTMach/작성판으로 정리됨(133–136). 이제 미복원 객체를 Mach4 를 먼저 보는 방식으로 진단한다.
-
-사실(Python, `06_reconstruction/objects.tsv` 362 개 중 확정·부분 86 개 제외): Mach4 `kernel/` 에 같은 이름 .c 가 있는 미복원 객체 중 크기 있는 Mach 쪽 12 개 —
-ipc_kmsg(0x146f38–0x14a0d6), ipc_mqueue(0x14a634–0x14af42), mach_msg(0x1525a8–0x154b28), ast(0x156694–0x1568d8), exception(0x1568d8–0x157956), ipc_kobject(0x1581a8–0x15846a), ipc_mig(0x15846c–0x158fff), mach_clock(0x15bc30–0x15c023), queue(0x161e5c–0x161f4b), syscall_subr(0x165380–0x165949), zalloc(0x16a490–0x16c1c3), vm_kern(0x173ad4–0x174600). (vm_object·ipc_tt 의 작은 조각 행, cons·disk_label 은 제외.) 여러 개는 이전에 Darwin 판으로 시도해 판 차이로 보류됐다(예 ipc_mqueue 의 `ith_rcv_option`, plan 25.x).
-
-1. `stage_headers.py --source-override LOGICAL=KIND:PATH`(진단 전용, 여러 번 가능): 소스 `src/<X>.c` 를 Mach4(`mach4:kernel/...`, 고정 커밋) 또는 NeXTMach(`nextmach:...`, 고정 커밋) 파일로 읽어 같은 논리 경로에 스테이징. 헤더는 지금 규칙(07·SDK·작성판) 그대로 — 즉 "소스 본문은 후보, 구조체는 검증된 헤더". manifest 에 override 기록. 기본 동작 불변(옛/새 출력 비교).
-2. 진단 7(실기): 후보 3 벌 × 12 소스, 최종 플래그(F): Mach4 판 12, Darwin 판 12, NeXTMach 판 5(ast, queue, syscall_subr, zalloc, vm_kern — `objects.tsv` 후보에 NeXTMach 이 있는 것). 스테이징 3 개(후보별).
-3. 판정: 컴파일 실패는 첫 오류와 원인(빠진 설정 헤더 등), 성공하면 L1(원본 구간은 위 범위, `--place-from-image`) 으로 후보별 MATCH 함수 수·바이트 차이 수를 표로. 이번 회차는 진단만 — 07 변경 없음. 결과로 객체별 채택 계획(어느 판을 바탕으로 할지)을 세운다.
-4. Mach4 고유 설정 헤더(`mach_ipc_compat.h` 등)가 없어 실패하면 기록만 하고, 값 결정은 원본 바이트 근거와 함께 다음 회차에 `config_options.tsv` 로.
-
-### 137.1 codex 교차검토(QS57) 판정 → 구현 규칙
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 인용 include 는 **스테이징된 논리 경로** 기준으로 해석(`stage_headers.py` closure) → Mach4 `ast.c` 의 `"cpu_number.h"` 는 07/Darwin `kern/cpu_number.h` 를 읽음 | Mach4 `kern/ast.c:44` `#include "cpu_number.h"`, Mach4 에도 `kern/cpu_number.h` 있음 | ✅ 의도한 동작(구조체·헤더는 검증된 07 판). manifest 로 기록 |
-| Mach4 `vm_kern.c:38` `"vm_param.h"` 는 스테이징된 `vm/` 에 없음 | 38 행 확인; Mach4 `kernel/vm/vm_param.h` 도 없음(Mach4 빌드는 -I 경로로 찾음) | ✅ 실패하면 기록, 대응은 결과 뒤 |
-| `norma_ipc.h` 가 없어 실패; `mach_ipc_compat.h`·`mach_kdb.h` 는 생성판 있음 | 12 소스의 include 집계(Python): `norma_ipc.h` 5 회, 07/생성/SDK/Darwin 어디에도 없음; codex 가 든 `ipc_kmsg.c:37` 은 실제로는 `#include <cpus.h>`(줄 번호 틀림) | ⚖️ 아래 설정 4 개 추가로 대응(실패를 숨기는 것이 아니라 원본 근거가 있는 값) |
-| override 키·소스 경로를 고정 revision 으로 검증, 선택 파일·해시 기록 | `--subst` 검증은 BSD 전용(`load_subst`) | ✅ 별도 검증 함수 |
-| 12 대상·범위 맞음, 확정/부분과 겹치지 않음; seq 161 ipc_tt·209 vm_object 는 **같은 시작 주소로 이미 확정**, 조각은 166·164 | `objects.tsv` 재확인(Python) — 내 앞선 설명("다른 시작 주소")이 틀렸고 codex 가 맞음 | ✅ 정정 |
-| Darwin `kern/queue.c` 가 있는데 `objects.tsv` seq 187 후보에 빠짐 | Darwin 파일 존재 확인 | ✅ Darwin 후보도 빌드(표는 이번에 고치지 않고 기록) |
-| L1 `--ranges` 는 심볼→구간 JSON 이고 OBJECT_MATCH 를 제한하지 않음; 정적 함수는 따로 봐야 함(zalloc·vm_kern) | `l1_compare.py` 사용법(지금까지 `cmpobj.py` 가 ghidra 함수 경계로 JSON 생성) | ✅ 표 구간은 포함 검사로만 쓰고, 정적 함수(build-only)는 `cmpobj` 의 gapdiff/build-only 출력으로 따로 기록 |
-| NeXTMach `ast.c`·`zalloc.c` 는 m68k 쪽 헤더를 씀 | NeXTMach `ast.c:59` `#import <machine/cpu.h>`, `zalloc.c:154` `#import <sys/printf.h>`(codex 가 든 `machine/pcb.h`·`next/spl.h` 는 그 줄이 아님 — 줄 번호 틀림) | ⚖️ NeXTMach 후보 실패는 "i386 부적합" 일 수 있음을 판정에 반영 |
-
-설정 4 개 추가(가설, `config_options.tsv`): `norma_ipc`(NORMA_IPC 0), `mach_pcsample`(0), `mach_ipc_test`(0), `mach_machine_routines`(0). 근거: 원본 심볼표에 `norma_*`(유일한 일치 `_timer_normalize` 는 무관)·`pc_sample`·`machine_routines`·`ipc_test` 0 건; Darwin 0.1 에 이 옵션 없음. 07·Darwin·Mach4 대상 소스에 `#ifdef`/`defined()` 사용 0 건 → `meta_features.h` 를 통해 모든 컴파일에 들어가도 기존 85 소스 동작 불변 예상 — 진단 7 에 85 소스 F 회귀(85 명령)를 함께 넣어 확인한다.
-
-### 137.2 구현과 진단 7 결과(`s5p111-diag-7`, 2026-10-02)
-
-- `stage_headers.py --source-override`(고정 커밋 blob 검증 `verify_pinned`, manifest `source_override`). 옵션 없을 때 옛/새 `--list` 출력 동일(기본 423 줄, `--bsd-set --mach-set` 411 줄), 테스트 19/19. 설정 4 개 추가로 생성 헤더 4 개 + `meta_features.h` 갱신(`gen_config_headers.py --check` 통과).
-- 85 소스 F 회귀(같은 실행): `s5p110-diag-6` F 와 85/85 같음(`s5p111-regress-compare-20261002.json`) → 설정 4 개 추가는 기존 객체에 영향 없음.
-- 후보 컴파일(`s5p111-diag7-candidates-20261002.json`): Darwin 12 중 5 성공(mach_clock, queue, syscall_subr, zalloc, vm_kern), 실패 7 은 Darwin 이후 메시지 형식(`mach_msg_descriptor_t`, `MACH_MSGH_BITS_OLD_FORMAT`, `mach_msg_trailer_t`, `MAX_TRAILER_SIZE`, `ikm_sender`)과 `sys/signalvar.h`. Mach4 12 중 1 성공(ipc_kobject); 실패는 함수 인자 수(`thread_block`, `ipc_kmsg_get`, `ipc_mqueue_receive`) 등 OPENSTEP 헤더와의 판 차이, 구조체 필드(`chain`, `type`), `IKM_BOGUS`, `device/device_types.h`, `vm_param.h`, `queue.h` 와 중복 정의. NeXTMach 5 중 1 성공(queue, 그러나 `__text` 0 B — m68k 쪽 조건).
-- L1(`s5p111-l1-<객체>-<후보>-20261002.json`):
-  - **queue (Darwin): OBJECT_MATCH**, 7 함수 MATCH, 239 B = 원본. Darwin `kern/queue.c` 는 `#define _KERN_QUEUE_FUNCTION_SCOPE_` + include 뿐이고 함수 본문은 이미 07 에 있는 `kern/queue.h` 에서 온다. Mach4 `queue.c` 는 같은 함수를 .c 에 정의해 07 `queue.h` 와 중복 정의.
-  - **syscall_subr (Darwin)**: 9 함수 MATCH(1028 B), 원본 1481 B 에는 `_map_fd` 가 더 있다(빠진 함수 1 개).
-  - ipc_kobject (Mach4): 694 vs 706 B, `_ipc_kobject_server` 516/500, `_ipc_kobject_destroy` 48/76 — 가까우나 다름.
-  - mach_clock·zalloc·vm_kern (Darwin): 함수 구성·크기가 크게 다름(배치 실패).
-
-## 138. S5-P112 세부 계획 — queue(A 후보)·syscall_subr(Darwin + NeXTMach `map_fd`) 채택 (코딩 전, 2026-10-02)
-
-사실:
-- queue: 진단 7 에서 Darwin `kern/queue.c`(본문은 `#define _KERN_QUEUE_FUNCTION_SCOPE_` + `#include <kern/queue.h>`, 함수 본문은 이미 07 에 있는 `kern/queue.h`) 가 OBJECT_MATCH(7 함수, 239 B). Mach4 판은 07 `queue.h` 와 중복 정의(137.2).
-- syscall_subr: 원본 [0x165380, 0x165949) 1481 B = Darwin 9 함수(1028 B, 모두 MATCH, 같은 순서) + 마지막 `_map_fd` 0x165784 453 B(+ 채움 3 B). 원본 `_map_fd` 호출 순서(capstone): `_getf`, `_vm_allocate`, `_copyout`, `_vm_deallocate`, `_copyin`, `_vm_map_check_protection`, `_vnode_pager_setup`, `_pmap_create`, `_vm_map_create`, `_vm_allocate_with_pager`, `_vm_map_copy`, `_vm_deallocate`, `_vm_map_deallocate`, 끝에 `_active_u` 두 번 — NeXTMach `mk-108.1/kern/syscall_subr.c:637–` 의 `map_fd`(vnode·`vm_allocate_with_pager`·`crhold(u.u_cred)`)와 같은 순서. Darwin 의 `map_fd` 는 `bsd/kern/kern_mman.c`(다른 위치).
-- `map_fd` 가 쓰는 BSD 정의는 SDK 에 있다: `bsd/sys/vnode.h:40` `vm_info`, `bsd/sys/file.h:59` `getf()`, `bsd/sys/ucred.h:29` `crhold`, `bsd/sys/user.h:350` `u` → `active_u[cpu_number()]`.
-
-1. `07_kernel/src/kern/queue.c` = Darwin verbatim. 경계 검사(앞뒤 틈, 다른 확정 객체와 겹침 없음) 후 objects_confirmed A, functions 7 행, 증거 `x86-queue.md`.
-2. `07_kernel/src/kern/syscall_subr.c` = Darwin 판 + 파일 끝에 NeXTMach `map_fd` 블록(같은 블록의 import 포함, 출처 줄 범위와 NeXTMach 저작권 표시 유지, D013). NeXTMach 의 import 중 우리 트리에 없는 이름은 같은 정의를 가진 이름으로 바꾼다(예: `sys/kern_return.h` → `mach/kern_return.h`, `vm/vm_param.h` → `mach/vm_param.h`) — 바꾼 줄은 MODIFICATIONS 에 기록. Darwin 9 함수는 손대지 않는다.
-3. 빌드(실기): F/N, L1. 목표: OBJECT_MATCH. 다르면 함수별 diff 로 원인(헤더 판·인자 형태) 분석.
-4. 통과하면 PROVENANCE(2 파일), MODIFICATIONS(syscall_subr), functions(10 행), objects_confirmed, 증거 문서·diff.
-
-### 138.1 codex 교차검토(QS58) 판정 → 구현 규칙
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| queue A 는 경계 확인 뒤 타당: 앞 2 B `00 00`(processor 끝 0x161e5a), 뒤 0x161f4b 1 B 가 `_kdp_packet`(0x161f4c) 앞 채움인지 | 원본 바이트(Python): 0x161e58 `5d c3 00 00`, 0x161f4b `00` 뒤 0x161f4c `55 89 e5`; 심볼표 0x161e40 `_processor_set_threads` … 0x161f4c `_kdp_packet` | ✅ 두 틈을 행에 기록 |
-| `map_fd` 는 453 B(456 은 다음 심볼까지) | Python `0x165949 − 0x165784 = 453`, 남는 3 B 는 채움 | ✅ 정정 — 내 오류 |
-| NeXTMach 블록 import(620–635)만으론 `u`/`active_u` 를 주는 `sys/user.h`(NeXTMach 165 행)가 빠짐 | 165 행 `#import <sys/user.h>` 확인 | ✅ 추가 |
-| `struct vm_info` 정의가 07 트리에 없음(SDK `vnode.h:40` 은 포인터만) | grep: 정의는 NeXTMach `kern/mfs.h:49–69` 에만. 원본 `_map_fd` 끝 0x16591f `cmp [eax+0x30],0` = `vm_info->cred`; 원본 심볼표에 `_mfs_get`·`_mfs_cache_trim` 등 mfs 함수 존재 | ✅ NeXTMach `kern/mfs.h` 를 07 에 verbatim 채택(D013), 블록에 `#import <kern/mfs.h>`(NeXTMach 170 행, `#if NeXT`) |
-| `sys/file.h` 가 `kernserv/queue.h` 를 가져오며 `kern/queue.h` 와 가드 공유 가능 | SDK `file.h:35` 확인; 07 `kern/queue.h:59` 가드 `_KERN_QUEUE_H_` | ⚖️ 빌드 오류로 드러남 — 결과로 판정 |
-| `map_fd` 반환형을 명시하라(SDK 선언 `kern_return_t`) | i386 `kern_return_t` = int | ❌ NeXTMach 본문 그대로(묵시 int 는 같은 코드). 저작 줄을 늘리지 않는다 |
-| `vm_allocate_with_pager` 6 인자·`vm_map_copy` 7 인자는 07 구현과 같음 | `vm_user.c:83`, `vm_map.c:1618` | ✅ |
-
-`vm/vm_param.h`(NeXTMach 전용 이름, 07/Darwin 에 없음)는 `mach/vm_param.h` 로 바꾼다(`round_page`·`trunc_page` 출처) — MODIFICATIONS 기록.
-
-### 138.2 결과(2026-10-02)
-
-- `s5p112-build-1`: syscall_subr 실패 — NeXTMach `sys/kern_return.h:57` 이 `machine/kern_return.h`(m68k 식) 요구 → 블록의 import 를 `mach/kern_return.h` 로 바꿈(138.1 의 `vm_param.h` 와 같은 처리).
-- `s5p112-build-2`(F·N·`-E`, 6 명령 모두 0, collect 19 파일): queue F·N OBJECT_MATCH 7/7; syscall_subr F OBJECT_MATCH 10/10(1481 B), N 은 10 함수 MATCH 이나 `__data`·`__common` 미배치(최종 플래그 아님).
-- 채택: `07_kernel/src/kern/queue.c`(Darwin verbatim), `src/kern/syscall_subr.c`(Darwin + NeXTMach `map_fd`), `src/kern/mfs.h`(NeXTMach verbatim). objects_confirmed 76 → 78 줄(A 2), functions 759 → 776 줄(17 행 high, id 중복 0), PROVENANCE 381 → 384, MODIFICATIONS 66 → 67. 증거 `x86-queue.md`, `x86-syscall_subr.md`, `x86-syscall_subr.diff`.
-- 새로 안 사실: 원본에 NeXTMach 의 mapped-file 계층(`_mfs_get`, `_mfs_cache_trim`, `_mfs_fsync` … 원본 심볼표)이 있다 → NeXTMach `kern/mfs.c` 가 다음 후보.
-
-## 139. S5-P113 세부 계획 — NeXTMach `kern/mfs_prim.c` 복원 (코딩 전, 2026-10-02)
-
-사실:
-- 원본 객체는 [0x15dfe4, 0x1600ca) — `objects.tsv` 의 seq 178 `mfs_prim.c`(…0x15fe6e)와 seq 179 `mapfs.c`(0x15fe70…)는 **한 객체**: 원본 함수 32 개(`_mfs_init` … `_vmp_push_all`, `_vm_info_free` … `_vm_set_error`)가 NeXTMach `mk-108.1/kern/mfs_prim.c` 의 정의 순서와 같고(Python 비교), 원본에만 2 개가 더 있다: `_mfs_fsync_invalidate`(0x15f78c, 308 B, `mfs_fsync` 뒤)와 `_vmp_push_all`(0x15fe70, 460 B, `vmp_push` 뒤). 둘은 NeXTMach·Mach4·SDK 에 없고 Darwin `kern/mapfs.c` 에 `mapfs_fsync_invalidate`(:1532)·`vmp_push_all`(:1930)로 있다(Darwin 은 mfs 를 mapfs 로 개명한 후대 판).
-- 진단(`s5p113-diag-2`, 스테이징 사본만 수정 — `vm/vm_param.h` → `mach/vm_param.h`, `blkflush(vp, btodb(offset), bsize)` → `blkflush(vp, btodb(offset, VOP_DEVBLOCKSIZE(vp)))`, `-Isrc/components/driverkit-1` 추가): 컴파일 성공, 7330 B(원본 [0x15dfe4,0x15fe6e) 7818 B). 크기가 다른 함수 5 개(`_mfs_init` 180/208, `_mfs_io` 972/1164, `_mfs_fsync` 328/340, `_vmp_invalidate` 220/304, `_vmp_push` 528/534), 나머지는 크기 같음.
-  - `blkflush` 형태 근거: 원본 0x15f378·0x15f41c 에서 `v_op` 의 +0x80(SDK `vnode.h:114` `vn_devblocksize`, `:160` `VOP_DEVBLOCKSIZE`) 호출 → `div` → 인자 2 개로 `_blkflush` 호출.
-
-1. `07_kernel/src/kern/mfs_prim.c` = NeXTMach verbatim 에서 시작(notice 유지, D013). 수정은 모두 원본 바이트 근거와 함께 MODIFICATIONS 에 기록:
-   - include 이름(`vm/vm_param.h` → `mach/vm_param.h`), `blkflush` 2 곳(원본 호출 형태).
-   - 빠진 2 함수: Darwin `mapfs_fsync_invalidate`·`vmp_push_all` 본문을 후보로 같은 위치에 넣는다(이름은 원본 심볼 `mfs_fsync_invalidate`, `vmp_push_all`; Darwin 식 이름 변경분은 NeXTMach 이름으로 되돌림). Darwin 출처·APSL 표시.
-   - 크기가 다른 5 함수는 함수별 disasm 비교로 원인을 찾아 최소 수정(NeXTMach → 원본 판 차이).
-2. 빌드 셋: `--source-override` 대신 07 파일을 직접 스테이징(`--prefer-07`). 명령에 `-Isrc/components/driverkit-1` 포함(ddm 명령과 같은 -I 열).
-3. 판정: L1 [0x15dfe4, 0x1600ca) 범위 OBJECT_MATCH 를 목표. 데이터·common 은 36.1 절차.
-4. 단계마다 실기 빌드 → 함수 diff → 수정 반복. 각 반복의 수정과 근거를 기록.
-
-### 139.1 codex 교차검토(QS59; 첫 요청은 900 s 시간 초과, 범위를 줄여 재요청) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| Darwin 두 함수의 NeXTMach 에 없는 식별자: `mapfs_fsync_invalidate`, `MFS_NOFLUSH`/`MFS_NOINVALID`(Darwin `mapfs.h:106–107` 값 1·2), `v_vm_info`(NeXTMach `vm_info`), 페이지 필드 `nfspagereq`·`dry_vp`, `SCRUBVM3`, `vm_page_completeio`, `vm_info` 필드 `nfsdirty`·`filesize`·`vnode`, `current_proc` | Darwin `mapfs.c:1526–1574`, `1928–2039` 직접 읽음; 07 `vm/vm_page.h:145` 에 `nfspagereq` 있음, `dry_vp` 는 `SCRUBVM3` 분기 안(미정의 → 꺼짐) | ✅ `vmp_push_all` 은 Darwin 판 `vm_info` 필드·4.4BSD `VOP_GETATTR` 를 써서 원본 판과 다를 가능성이 큼 → 원본 바이트로 별도 복원(마지막 단계) |
-| 두 함수 모두 Darwin 에서 `#if 0`(dead code elimination) 안 | 1525·1927 행 | ✅ Darwin 에서는 죽은 코드, OPENSTEP 원본에는 살아 있음 |
-| NeXTMach 의 `btodb(`/`blkflush(` 는 899 행 하나, `dbtob(`·`DEV_BSIZE` 없음 | 내 grep 동일 | ✅ 단 원본 `_mfs_io`(0x15efdc–0x15f468)에는 `_blkflush` 호출이 **두 곳**(0x15f38d, 0x15f430) → mfs_io 구조 차이(크기 972/1164)와 함께 분석 |
-
-진행 순서: (1) NeXTMach + include·`blkflush` 형태 수정으로 07 파일 생성(진단 2 와 같은 내용), (2) 크기가 다른 5 함수를 Darwin `mapfs.c` 의 같은 함수와 원본 바이트로 비교해 최소 수정, (3) 빠진 2 함수.
-
-### 139.2 결과(2026-10-02)
-
-- 반복 `s5p113-it1`–`it6`(07 파일), 변형 `s5p113-v1`(7 형태), `s5p113-v2`(Darwin 식 3 형태). 수정 내용과 근거는 MODIFICATIONS·증거 문서. 요지:
-  - 크기가 다른 5 함수: `mfs_fsync`(반환 위치), `vmp_invalidate`·`vmp_push`(Darwin 의 `nfspagereq`·`wire_count` 등), `mfs_init`(Darwin `mapfs_init` 의 `long long` 식만 바이트 동일), `mfs_io`(Darwin 의 `vmp->error = 0`, `blkflush` 3 인자, `nmfsbuf` 블록은 어느 참고 판에도 없어 바이트에서 작성).
-  - 빠진 2 함수: Darwin `#if 0` 안의 `mapfs_fsync_invalidate`·`vmp_push_all` 을 원본에 없는 줄만 빼고 채택.
-- 최종 `s5p113-it6`: OBJECT_MATCH 32/32(8422 B), common 8 개 간격 안. 등급 A.
-- 기록: objects_confirmed 78 → 79 줄, functions 776 → 808 줄(32 행 high), PROVENANCE 384 → 385, MODIFICATIONS 67 → 68, 증거 `x86-mfs_prim.md`·`.diff`.
-- 정정: 138 의 "원본 `blkflush` 인자 2 개" 판독은 틀렸다 — `bsize` 를 먼저 push 하는 3 인자 호출이다(139 반복 4 에서 발견).
-
-## 140. S5-P114 세부 계획 — NeXTMach 후보 일괄 진단 (BSD 계층 포함, 코딩 전, 2026-10-02)
-
-근거: D020(BSD 소스 기준 판 = NeXTMach), D021(BSD 헤더 = SDK/NeXTMach 묶음), D022(Mach 내부 기본 참고 = Mach4). 137–139 에서 "NeXTMach 바탕 + 원본 바이트로 확인한 최소 수정" 방식이 queue·syscall_subr·mfs_prim 에서 A 를 냈다.
-
-사실(Python, `objects.tsv` 에서 확정·부분과 겹치지 않는 275 객체 중 후보에 NeXTMach 가 있는 것): 149 개(대부분 `bsd/`·`net/`·`netinet/`·`nfs/`·`rpc/`·`ufs/`·`specfs/`·`next/`).
-
-1. 진단 8: NeXTMach 후보 파일이 하나로 정해지는 객체를 `--source-override src/<논리 경로>=nextmach:<경로>` 로 하나씩 스테이징(논리 경로는 Darwin 판이 있으면 그 경로, 없으면 `src/bsd/<NeXTMach 디렉터리>/<파일>`), 최종 플래그로 컴파일. `next/`(68k 기계 의존)는 제외하고, 여러 파일이 후보인 행(`a.c,b.c`)은 첫 진단에서 제외.
-2. 성공한 것은 L1(원본 구간은 `objects.tsv` 의 text_start/text_end, 경계는 포함 검사로만 사용). 결과 표: 객체별 컴파일 여부·첫 오류·함수 수(빌드/원본)·MATCH 수·크기.
-3. 07 변경 없음. 결과로 다음 회차의 객체별 채택 순서를 정한다(MATCH 비율이 높은 것부터). 같은 첫 오류가 여러 객체에 공통이면(예: 헤더 판 차이) 그 원인을 먼저 다룬다.
-
-### 140.1 codex(QS60) 판정과 NeXTMach config 헤더
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| NeXTMach BSD 소스는 `"../h/x.h"` 가 아니라 `#import <...>`; `kern_xxx.c:64` `<cputypes.h>`·`<quota.h>`, `if.c:28` `<ether.h>` 같은 config 생성 헤더를 바로 씀 | 두 파일 줄 확인 | ✅ 아래 설정 추가 |
-| NeXTMach `bsd/X.c` 를 `src/bsd/<dir>/X.c` 로 두면 `src/bsd/bsd/X.c` 가 됨 | 규칙 확인 | ✅ NeXTMach `bsd/X.c` 는 `src/bsd/kern/X.c`(Darwin 의 같은 역할 디렉터리)로 |
-
-config 헤더(NeXTMach `conf/Makefile.template:459` 의 FEATURES 계열, `conf/MASTER.next` RELEASE 태그가 1차 후보, 원본 심볼로 확인; Python grep 결과):
-- 1: `NFS_SERVER`(`_rfsdisptab`, `_nfs_svc`), `NFS_CLIENT`(`_nfs_vnodeops`, `_async_daemon`), `SUN_RPC`(`_svckudp*`, `_clntkudp*`), `NETHER`(`_arpinput`), `NLOOP`(`_loattach`), `NEN`(`_en_recv_pkt`, `_en_send_pkt`; 가설).
-- 0: `QUOTA`(`_chkdq`·`_getinoquota`·`_quotactl` 0), `SUN_LOCK`(`_lockf`·`_klm_*` 0), `SECURE_NFS`(`_authdes*` 0), `NNFSMEAS`(0), `NIMP`(`_impopen` 0), `NHY`(0), `NOD`(`_odattach` 0), `DLI`(0), `GDB`(`_gdb*`/`_kgdb*` 0; i386 은 kdp — 가설).
-- `NPTY` 32: `MASTER.next:118` 값(가설, `tty_pty` 복원 때 데이터 크기로 확인).
-- `cputypes.h`: config 의 `cpu "i386"` 줄에서 생기는 헤더지만 생성 규칙 원문이 없다. 대상 BSD 파일에 cpu 매크로 조건이 없음(grep) → **빈 헤더**(가설). 생성기에 매크로 `-` = 정의 없는 헤더 허용.
-- 07 의 기존 파일에서 이 이름들은 주석에만 나옴(grep: SDK `errno.h`·`signal.h`·`mbuf.h`·`if_arp.h` 의 주석) → 기존 객체 영향 없음 예상, 진단 8 에 85 소스 F 회귀 포함.
-
-### 140.2 codex 교차검토(QS61) 판정 — 순서 기록: 설정 추가(140.1)는 이 검토 전에 코드에 반영했다(진단 실행 전). 이후로는 검토 뒤 반영을 지킨다.
-
-내가 틀린 것: 140.1 의 심볼 근거 검색이 좁았다.
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `QUOTA=0` 은 원본 `_dquot`·`_dquotNDQUOT`(NeXTMach `conf/param.c:144–146` 의 `#if QUOTA`)과 충돌 | symbols.tsv grep: `_dquot` 0x1e8cc4, `_dquotNDQUOT` 0x1e8cc8, 더해 `_ndquot`·`_ndqb` 있음; quota 함수는 여전히 0 | ⚖️ 0 유지(가설)·반대 근거 기록. param.c 계열 객체를 다룰 때 판정 |
-| `SUN_LOCK=0` 은 `_spec_lockctl`(NeXTMach `spec_vnodeops.c:732` `#if SUN_LOCK`)·`_lf_lockctl` 과 충돌 | grep: `_spec_lockctl` 0x13a4c4, `_lf_lockctl` 0x142008, `_lf_svnode_hash`, `_flock` | ✅ 1 로 정정 |
-| `SECURE_NFS` 는 반증 없음(`_svcauth_des` 없음) | grep: `_xdr_des_block` 만 있음(xdr 기본 타입) | ✅ 0 유지 |
-| 07 트리에 이 이름의 조건문 사용 0 | 내 grep 동일 | ✅ |
-
-### 140.3 진단 8 결과(`s5p114-diag-8`, 2026-10-02)
-
-- 201 명령: 85 소스 F 회귀 85/85 종료 0 이고 `s5p110-diag-6` 과 85/85 같음(설정 17 개 추가 영향 없음). NeXTMach 후보 116 소스 중 54 개 컴파일.
-- 실패 첫 오류(상위): `bsd/i386/reg.h` 없음 12, `vm/vm_param.h` 6, `machine/boolean.h` 4, 구조체 필드/인자 차이 다수 — NeXTMach(68k·Mach 2.5)와 OPENSTEP 헤더 판 차이.
-- L1(`09_validation/reconstruction/s5p114-diag8-l1-summary-20261002.json`, 개별 `s5p114-l1-*-NM-*.json`):
-  - **NeXTMach 그대로 OBJECT_MATCH 8 개**: xdr_mbuf(11 함수), xdr_mem(9), kern_acct(3), subr_kudp(2), svc_auth(2), svc_auth_unix(2), uipc_pipe(1), clnt_perror(1). (in.c·tcp_debug 는 빌드 `__text` 0 B 라 판정에서 제외.)
-  - 대부분 MATCH: netbuf 12/13, xdr 12/15, svc_kudp 8/11, rpc_prot 6/7, route 5/6 등 — 다음 회차 후보.
-- 8 개 실제 경계(빌드 심볼 위치가 원본과 한 Δ 로 일관, Python): xdr_mbuf [0x138230,0x1385f3), xdr_mem [0x1385f4,0x138773)(objects.tsv 의 41 B 는 틀림 — 383 B), kern_acct [0x103088,0x10349c), subr_kudp [0x136c00,0x136dd9), svc_auth [0x137340,0x13739d), svc_auth_unix [0x1373a0,0x137528), uipc_pipe [0x114b8c,0x114bd4), clnt_perror [0x135dbc,0x135df1). 앞뒤는 정렬 채움 `00`(≤3 B, 2^2) 이거나 앞 함수 코드 끝.
-
-### 140.4 채택(코딩) — 8 개 NeXTMach verbatim
-
-1. NeXTMach 파일을 논리 경로 그대로 `07_kernel/src/...` 에 verbatim 복사(D013: 출처·notice 유지).
-2. 07 만으로 다시 스테이징·빌드(실기, 최종 플래그) → 8 개 L1 OBJECT_MATCH 재확인(소스 override 없이).
-3. 기록: PROVENANCE 8, functions 31, objects_confirmed 8(A), 증거 `x86-nextmach-batch1.md`.
-
-### 140.5 채택 결과(2026-10-02)
-
-- 8 개 NeXTMach 파일을 `07_kernel/src/bsd/{kern,rpc}/` 에 verbatim. 07 만으로 빌드한 `s5p114-adopt-1`(8 명령, collect 25 파일)에서 8/8 OBJECT_MATCH(`s5p114-adopt-l1-*-F-20261002.json`).
-- 이 빌드가 07 밖에서 읽은 BSD 헤더 20 개(모두 SDK 판: `sys/{vnode,vfs,acct,socketvar,unpcb,syslog}.h`, `rpc/*` 13 개, `ansi/{stdio,stdarg}.h`)를 `07_kernel/nextdev/` 에 채택(실기 SHA 일치). 다시 스테이징하니 `bsd_not_adopted` 0, 스테이징 바이트 동일.
-- common 심볼(acct·mbuf·route 계열) 모두 원본 간격 안.
-- 기록: objects_confirmed 79 → 87 줄(A 8), functions 808 → 839 줄(31 행; 정적 함수는 `(static 이름)`), PROVENANCE 385 → 413 줄(헤더 20 + 소스 8), 증거 `x86-nextmach-batch1.md`.
-
-## 141. S5-P115 세부 계획 — 근접 4 객체(af·netbuf·rpc_prot·rpc_callmsg)와 `-DINET`, 작성판 `rpc/types.h` (코딩 전, 2026-10-02)
-
-사실(진단 8 L1, fndiff, 원본 바이트):
-- netbuf `_nb_free`: 원본 `call _m_freem`(0x120a73), NeXTMach `net/netbuf.c:86` `m_free((struct mbuf *)nb)` → 빌드 `_m_free`. 나머지 12 함수 MATCH.
-- rpc_prot `_xdr_replymsg`, rpc_callmsg `_xdr_callmsg`: 원본 `_kalloc`, 빌드 `_malloc`. 원인: SDK `bsd/rpc/types.h:36–41` 은 `mem_alloc` = `malloc`(공개판); NeXTMach `rpc/types.h:26–34` 는 `#ifndef KERNEL … #else #import <kern/kalloc.h> mem_alloc = kalloc, mem_free = kfree #endif`.
-- af `afswitch` 데이터: 원본 0x1db790 의 34 워드 = 칸 2·3 `inet_hash/inet_netmatch`, 칸 6 `null_*`(NS 없음) → `INET` 정의, `NS` 미정의. 빌드는 `INET` 미정의라 참조 4 개 다름. NeXTMach·Darwin `conf/MASTER` 의 `options INET`(헤더 태그 없음 = config 가 `-DINET` 으로 넘기는 옵션).
-- 07 의 기존 파일에 `INET` 조건 사용 0(grep).
-
-1. 최종 빌드 플래그에 `-DINET` 추가(템플릿 `s5p107-build.cmd` 와 반복 스크립트). 근거 위 afswitch. 확정·부분 객체 전체(85 + 11) 회귀.
-2. `07_kernel/nextdev_private/bsd/rpc/types.h`: SDK 본문 + `#ifndef KERNEL … #else #import <kern/kalloc.h> + kalloc/kfree 정의 #endif`(NeXTMach `rpc/types.h:26–34` 의 분기 줄; D023 방식, BSD 쪽은 NeXTMach 가 분기 출처). 이미 채택한 rpc 6 객체 회귀.
-3. `07_kernel/src/bsd/net/netbuf.c` = NeXTMach + `nb_free` 의 `m_free` → `m_freem`(근거 0x120a73).
-4. af.c·rpc_prot.c·rpc_callmsg.c 를 NeXTMach verbatim 으로 07 에 두고 빌드·L1·경계, 통과하면 기록.
-
-### 141.1 codex 교차검토(QS62) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `netbuf.c:86` 은 `nb_free` 안의 유일한 `m_free` | 83–87 행 열어 확인 | ✅ |
-| 07 에 `INET` 조건 직접 사용 0, 그래도 전역 `-DINET` 은 전체 회귀 필요 | 내 grep 동일 | ✅ 회귀 포함 |
-| SDK `rpc/types.h` 35–41 행 블록 전체(`#include <stdlib.h>` 포함)를 감싸야 함 | 35–41 행 `cat -A` 확인 | ✅ 블록 전체를 `#ifndef KERNEL` 쪽에 둔다 |
-
-### 141.2 결과(2026-10-02)
-
-- `s5p115-build-1`(100 명령, `-DINET`): 기존 확정 96 객체 96/96 이전 최종 빌드와 같음; 새 4 객체(af, netbuf, rpc_prot, rpc_callmsg) 모두 OBJECT_MATCH, 경계 일관(rpc_callmsg 끝 = rpc_prot 시작 0x1365cc).
-- 이 빌드의 07 밖 헤더 8 개 채택: SDK `sys/{dir,quota,file,mount,fcntl}.h`, `net/af.h`, `mach/thread_switch.h`, 그리고 `kernserv/queue.h` 는 SDK 판이 `KERNEL_PRIVATE` 분기 없는 공개판(Darwin 판과 diff: 분기 5 줄) → `lock.h` 와 같은 작성판을 `nextdev_private/` 에 두고 SDK 사본은 넣지 않음. 앞서 syscall_subr·mfs_prim 채택 때 이 헤더 확인을 빠뜨렸다(이번에 보완).
-- `s5p115-build-2`(작성판 queue.h 반영): 100/100 이 build-1 과 같음.
-- 기록: objects_confirmed 87 → 91 줄(A 4), functions 839 → 863 줄(24 행), PROVENANCE 413 → 426 줄, MODIFICATIONS 68 → 69(netbuf), 증거 `x86-nextmach-batch2.md`·`x86-netbuf.diff`. 템플릿 `s5p107-build.cmd`·README·GCC27 문서에 `-DINET`.
-
-## 142. S5-P116 — 진단 9 결과와 3 객체 채택(140.4 와 같은 절차, 2026-10-02)
-
-- 진단 9(`s5p116-diag-9`, 남은 NeXTMach 후보 103 소스, `-DINET`·작성판 `rpc/types.h` 반영): 42 컴파일. 새 OBJECT_MATCH: nfs_export(8 함수), xdr_array(1), xdr_reference(1) — 진단 8 에서는 `mem_alloc`(malloc/kalloc) 차이로 BOUNDARY·DIFF 였다. 요약 `09_validation/reconstruction/s5p116-diag9-l1-summary-20261002.json`.
-- 채택 절차를 스크립트로 묶음(스크래치 `adopt_batch.py`; 07 배치 → 07 만으로 빌드 → 심볼 Δ 일관성·L1 OBJECT_MATCH 필수 → common 간격 → 07 밖 헤더 채택 → 재스테이징 동일 확인 → 기록). 실패 조건이면 기록하지 않고 멈춘다.
-- 다음 근접 후보: xdr(12 MATCH + 3 MATCH_UNVERIFIED, `__bss` 추정), svc_kudp(3 DIFF), uipc_domain(1 DIFF), route(1 DIFF), tcp_timer·kern_subr·vfs_lookup·authunix_prot(BOUNDARY).
-
-### 142.1 결과 / 143. 근접 3 객체 수정 채택 (2026-10-02)
-
-- 142 채택(`s5p116-adopt-1`): nfs_export·xdr_array·xdr_reference 3/3 OBJECT_MATCH, SDK 헤더 3 개(`sys/pathname.h`, `nfs/nfs.h`, `nfs/export.h`) 채택, 재스테이징 동일. objects_confirmed 91 → 94, functions 863 → 873, PROVENANCE 426 → 432.
-- 143 수정(모두 원본 바이트 근거, 파일에 `plan 143` 표시):
-  - svc_kudp: `kmem_alloc`/`kmem_free` 7 곳 → `kalloc`/`kfree`(원본 `_svckudp_create`·`_svckudp_destroy`·`_svckudp_dupsave` 가 `_kalloc`/`_kfree` 호출; 남은 3 DIFF 의 전부).
-  - uipc_domain `pfctlinput`: `(*pr->pr_ctlinput)(cmd, sa, (caddr_t)0)`(원본은 0 을 하나 더 push; Darwin `uipc_domain.c:226` 과 같은 형태).
-  - route `rtrequest`: `register struct rtentry *rt = 0;`(원본 0x121db9 `xor esi,esi`, esi 는 이후 `rt = mtod(m, …)`).
-- 절차는 142 의 스크립트(OBJECT_MATCH 아니면 기록 없이 멈춤).
-
-### 143.1 결과(2026-10-02)
-
-- `s5p117-adopt-1`: svc_kudp(11 함수, 실제 객체 1165 B — objects.tsv 1052 B 는 짧음), uipc_domain(6), route(6) 모두 OBJECT_MATCH, A. objects_confirmed 94 → 97.
-- authunix_prot(`s5p117-adopt-2`): `xdr_authkern` 이 `time.tv_sec` 대신 `getthetime(&now)` 의 지역 `timeval` 을 인코딩(원본 0x1352b7 `_getthetime`, 프레임: groups −0x40, timeval −0x48, name −0x4c) → 지역 선언 위치와 호출 두 줄 수정으로 OBJECT_MATCH, A. objects_confirmed 97 → 98, functions 896 → 898.
-- 스크립트 보완: 빌드·L1·common 검사 실패 시 07 에 복사한 파일을 지우고 멈춘다(기록 전).
-
-## 144. S5-P118 — SDK 에 없는 i386 BSD 비공개 헤더 (2026-10-02)
-
-사실(Python): SDK `bsd/machine/*.h` 가 `ARCH_INCLUDE(bsd/, X)` 로 찾는 `bsd/i386/X` 중 SDK 에 없는 것 5 개 — `spl.h`(132 에서 작성), `reg.h`, `psl.h`, `cons.h`, `unix_traps.h`. NeXTMach 은 68k `next/` 판뿐. Darwin 은 `reg.h`·`psl.h`·`spl.h` 를 가진다(모두 `KERNEL_PRIVATE` 전용).
-- 진단 9 실패 1 위(12 건)가 `bsd/i386/reg.h`. → `07_kernel/nextdev_private/bsd/i386/{reg,psl}.h` 를 Darwin 본문 그대로(설명 주석 + `KERNEL_PRIVATE` 본문) 둔다 — SDK·NeXTMach 어디에도 i386 판이 없는 경우라 Darwin 을 쓰고 기록(D021 메모 원칙). 매크로를 쓰는 객체는 채택 때 원본 바이트로 확인.
-- 진단 10(`s5p118-diag-10`, BSD kern 12 소스): reg.h 뒤 다음 오류는 `bsd/i386/psl.h` 6, NeXTMach 이름(`vm/vm_param.h`, `machine/vm_types.h`, `machine/exception.h`, `next/cons.h`) 4, 필드 차이 1. kern_time 은 컴파일되나 원본에 `getthetime`·`inittodr` 가 더 있고 6 함수 크기가 달라(판 차이 큼) 미룬다.
-### 144.1 codex 교차검토(QS63; 순서 기록: 작성판 두 파일은 이 검토 전에 만들었다 — 진단 실행 전) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 두 파일의 `KERNEL_PRIVATE` 본문은 Darwin 과 바이트 동일 | 생성 스크립트가 Darwin 파일의 해당 부분을 그대로 이어 붙였음(`D[D.index(...):]`) | ✅ |
-| import 대상 `machdep/i386/thread.h`(07), `architecture/i386/frame.h`(07 SDK 사본) 존재 | `ls` 확인 | ✅ |
-| 07 소스·SDK 사본에서 `bsd/machine/reg.h`·`psl.h` include 0 → 확정 객체 영향 없음 | 다음 전체 회귀로 다시 확인 | ✅ |
-
-### 144.2 진단 11 계획 — NeXTMach 이름 shim(진단 전용)
-
-NeXTMach BSD 소스는 Mach 2.5 시절 이름(`vm/vm_param.h`, `machine/{vm_types,exception,boolean,kern_return}.h`)을 쓴다. 채택 때는 파일별 include 수정으로 처리하되(138·139 와 같음), 근접도 측정을 위해 **스테이징 사본에만** 다음 shim 을 넣는다: `src/vm/vm_param.h` → `<mach/vm_param.h>`, `src/machine/X.h` → `<mach/machine/X.h>`(X = vm_types, exception, boolean, kern_return). 07 에는 넣지 않는다. 남은 NeXTMach 후보 전체 재진단 + L1.
-
-## 145. S5-P119 세부 계획 — `bsd/kern_time.c` 복원 (D024, 코딩 전, 2026-10-02)
-
-사실(원본 [0x10abb0, 0x10b460) 13 함수, Python·capstone; NeXTMach `mk-108.1/bsd/kern_time.c` 진단 빌드 `s5p118-diag-10`):
-- 크기 같음 5: `gettimeofday` 60, `settimeofday` 72, `itimerfix` 64, `itimerdecr` 132, `timevaladd`/`timevalsub` 32. (`timevalfix` 44/43 은 끝 채움 차이일 가능성.)
-- 원본에만: `_getthetime` 0x10ac84(48 B) — `_mtime`(0x1dee50, 매핑된 시간 구조 포인터)의 seconds·microseconds·check_seconds 를 일치할 때까지 읽는 루프(Mach4 `kern/mach_clock.c` host_get_time 의 루프와 같은 구조) 후 `tv` 에 저장. `_inittodr` 0x10ad3c(368 B) — 문자열 5 개(`WARNING: preposterous time in file system` 등)와 흐름이 Darwin `bsd/kern/kern_time.c:227–293` 의 inittodr 와 같고, `time` 대신 지역 timeval(`microtime(&tv)`), `setthetime(&tv)` 가 두 곳에 인라인.
-- `setthetime` 72→80: `suser()` → `getthetime(&now)` → `boottime.tv_sec += tv->tv_sec - now.tv_sec; boottime.tv_usec = 0` → `host_set_time(realhost.host_priv_self, *tv)`(`[realhost+4]`, 07 `kern/host.h:61–64` 두 번째 필드; 인자는 time_value 값 전달).
-- `adjtime` 252→136: tickdelta 계산이 없어지고 `copyin` → `host_adjust_time(realhost.host_priv_self, atv, &oadj)` → `olddelta` 가 있으면 oadj 를 timeval 로 옮겨 `copyout`(Mach4 `mach_clock.c:432` host_adjust_time 이 tickdelta 계산을 맡음).
-- `getitimer`·`setitimer`·`realitexpire`: NeXTMach 논리 그대로이되 전역 `time` 을 쓰던 곳이 인라인된 getthetime 의 지역 timeval 로 바뀜(각각 mtime 루프 1·3·1 회).
-
-방법(D024 작성 범위, 파일에 `plan 145 (authored)` 표시, 근거 주소는 MODIFICATIONS):
-1. `07_kernel/src/bsd/kern/kern_time.c` = NeXTMach 바탕. `getthetime` 을 `setthetime` 앞(원본 순서: setthetime 0x10ac34 → getthetime 0x10ac84 이므로 getthetime 은 setthetime **뒤**에 정의하고 앞에 선언) — 순서는 원본 주소 순서를 따른다: settimeofday, setthetime, getthetime, adjtime, inittodr, getitimer….
-2. `inittodr` 는 Darwin 구조(문자열·분기 동일)로 작성, `time` → 지역 timeval.
-3. 불확실한 C 형태(getthetime 루프의 저장 방식, setthetime·inittodr 의 boottime 재적재 등)는 진단 전용 변형 컴파일로 바이트 일치하는 형태를 고른다(139 의 mfs_init 와 같은 방법).
-4. 목표 OBJECT_MATCH 13/13. 통과하면 adopt 스크립트로 기록(헤더 채택 포함).
-
-### 145.1 codex 교차검토(QS64) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `mapped_time_value_t` 는 SDK `mach/time_value.h:107–` 에 seconds·microseconds·check_seconds 순서로 정의; `mtime` 선언은 헤더에 없음 → `extern mapped_time_value_t *mtime;` 필요 | 116–120 행 확인. 같은 헤더 주석(108–113 행)이 원본과 같은 읽기 루프(`secs`·`usecs` 지역, `check_seconds` 비교)를 적어 둠. 07 소스에 `mtime` 선언 0(grep) | ✅ 작성 선언 1 줄, 루프는 헤더 주석 형태 |
-| `host_set_time` 둘째 인자는 time_value_t 값 전달; `struct timeval`(long)과 `time_value_t`(integer_t)는 다른 타입 → 변환 필요 | Mach4 `mach_clock.c:394–396` | ✅ 형태는 변형 컴파일로 결정(지역 time_value_t, 캐스트) |
-| 145 의 "앞(… 뒤)" 표현 모순 — 주소 순서상 getthetime 은 setthetime 뒤, 호출 전 선언 | 145 본문 | ✅ 정정: 뒤에 정의, 앞에 선언 |
-| `realhost.host_priv_self` 는 port 인데 Mach4 host_set_time 은 host_t — 원래 callee 타입 미확인 | 07 `kern/host.h:61–64`; 원본은 `[realhost+4]` 값을 넘김 | ⚖️ 프로토타입 없이 호출(K&R)하면 코드 같음. 바이트로 판정 |
-
-### 145.2 결과(2026-10-02)
-
-- 반복: it1(setthetime·adjtime·inittodr 크기 일치, getthetime 36/48) → 변형 `s5p119-v1`·`v2`(getthetime: `extern volatile mapped_time_value_t *mtime` + `time_value_t` 지역만 바이트 일치) → it2(13 MATCH, `__data` 차이: NeXTMach 의 `bigadj` 정의 — 원본에서 tickadj·tickdelta·timedelta·bigadj 는 0x1dee40–0x1dee4c 로 이 객체 데이터와 떨어져 있음) → it3 OBJECT_MATCH 14/14.
-- 객체 [0x10abb0, 0x10b463)(objects.tsv 의 끝 0x10b460 은 3 B 짧음). A. objects_confirmed 98 → 99 줄, functions 898 → 912, PROVENANCE +2(파일, SDK `bsd/machine/reg.h`), MODIFICATIONS +1, 증거 `x86-kern_time.md`·`.diff`.
-- 기록용 스크래치 스크립트 `record_object.py`: 07 파일이 이미 있는 객체를 OBJECT_MATCH·Δ 일관·common 간격·07 밖 헤더 채택·재스테이징 동일을 확인한 뒤 기록.
-
-## 146. S5-P120 — `bsd/kern_subr.c`(2026-10-02)
-
-사실: 원본 [0x10a384, …) 3 함수 uiomove 196·ureadc 144·uwritec 176, NeXTMach 진단 빌드 uwritec 155. 원본 uwritec 은 첫 panic 문자열 `"uwritec"`(0x1daa55, NeXTMach)와 `return (c & 0377)`(0x10a56f `movzx eax, dl`, NeXTMach)을 그대로 두고, switch 에 Darwin `kern_subr.c` 의 `default: c = 0; panic("uwritec: bogus uio_segflg");`(0x10a554–0x10a55b, 문자열 0x1daa5d)가 더해진 판. 수정 1 곳(Darwin 줄 출처 표시). 채택 스크립트로 빌드·L1·기록.
-
-### 146.1 결과 / 147. `rpc/xdr.c` P 채택 계획 (2026-10-02)
-
-- 146: kern_subr OBJECT_MATCH 3/3(`s5p120-adopt-1`), A. PROVENANCE 행에 Darwin 줄 출처 보완, 채택 스크립트에 `darwin_lines` 항목 추가.
-- 147 사실(진단 11 L1): NeXTMach `rpc/xdr.c` 그대로 15 함수 크기·바이트 일치, `__TEXT,__text` 차이 0·참조 60 모두 일치, `__data` 412 B L1d 검증. 남은 것은 `__DATA,__bss` 16 B(정적 버퍼, 심볼 없음) 위치가 "inferred" 뿐이라 `_xdr_opaque`·`_xdr_bytes`·`_xdr_string` 이 MATCH_UNVERIFIED.
-- 방법: 07 에 verbatim → 07 만으로 빌드(iter) → `zerofill_check.py`(known = `zerofill-known-s5p88`, 그 뒤 채택 객체에 `__bss` 없음 확인 — Python) → reference-inferred 면 등급 P(46 절·D019 규칙), 의존 3 함수 medium·나머지 high, known 목록 갱신.
-
-### 147.1 결과(2026-10-02)
-
-- `s5p121-it1`(07 의 verbatim xdr.c): L1 12 MATCH + 3 MATCH_UNVERIFIED(`__bss` 만). `zerofill_check` → reference-inferred [0x1e5a20, 0x1e5a30)(3 참조, Δ 1 개, 음성 검사 검출). 등급 P(objects_partial +1), functions 15 행(12 high, 3 medium), PROVENANCE +1, known 목록 `zerofill-known-s5p121-20261002.json`(18 개). 07 밖 헤더 없음.
-
-## 148. S5-P122 — `bsd/subr_xxx.c` (2026-10-02)
-
-사실: 원본 [0x10cca4, …) 9 함수(nodev, nulldev, errsys, nullsys, **nosys** 48 B, imin, imax, min, max), NeXTMach 진단 빌드는 nosys 없이 8 함수(크기 같음). 원본 `_nosys` 0x10ccd4: `u_signal[SIGSYS]` 가 1(SIG_IGN) 또는 3(SIG_HOLD) 이면 `u_error = 0x16`(EINVAL), 그리고 `_exception_from_kernel(5, 0x10000, 0)` — NeXTMach `next/trap.c:1072–1078` 의 nosys 와 같은 논리, 단 `thread_doexception(current_thread(), …)` 대신 `exception_from_kernel`(EXC_SOFTWARE=5, EXC_UNIX_BAD_SYSCALL=0x10000: NeXTMach `sys/ux_exception.h:45`).
-방법: NeXTMach `bsd/subr_xxx.c` 에 nullsys 뒤로 nosys 를 옮겨 넣고(출처·변경 표시) mach/exception.h·sys/ux_exception.h import. 채택 스크립트.
-
-### 148.1 첫 시도 실패와 `sys/ux_exception.h` 작성판 (2026-10-02)
-
-- `s5p122-adopt-1` 실패: NeXTMach `sys/ux_exception.h`(KERNEL_STRIPPED 규칙으로 선택)가 Mach 2.5 `sys/port.h` → `mach_ipc_xxxhack.h` 를 요구. 스크립트가 07 사본을 지우고 멈춤(기록 없음).
-- codex(QS65) 판정: 원본에 `_ux_exception_port` 있음, `_ux_handler_init_lock` 없음(✅, 단 없음은 추론), 07 `mach/port.h:225` 에 `port_t` 있음(✅), 07 에서 이 헤더를 include 하는 곳 0(✅ 기존 객체 영향 없음), `bsd_pick` 은 `nextdev_private` 를 KERNEL_STRIPPED 보다 먼저 봄(✅ `stage_headers.py` 160–173).
-- 작성판 `07_kernel/nextdev_private/bsd/sys/ux_exception.h` = SDK 본문 + `#ifdef KERNEL` `#import <mach/port.h>` `extern port_t ux_exception_port;`(D023 방식). PROVENANCE +1. subr_xxx 재시도.
-
-## 149. S5-P123 세부 계획 — 명령행 `-DMACH` (코딩 전, 2026-10-02)
-
-사실:
-- raw_usrreq `raw_input` 끝(원본 0x121640–0x121645): `push _soft_net_wakeup; call _wakeup` = SDK `bsd/net/netisr.h` 의 `#ifdef MACH` 분기 `setsoftnet() (wakeup((caddr_t)&soft_net_wakeup))`. 우리 빌드는 `MACH` 미정의라 `setsoftnet()` 가 암묵 함수 호출로 컴파일됨(인자 0 개). 원본 심볼 `_soft_net_wakeup` 0x1ea9e4, `_netisr` 0x1ea9e0.
-- NeXTMach `rpc/svc_kudp.c:117–125, 153–161, 381–385` 는 `#if MACH` 분기에서 이미 `kalloc`/`kfree` 를 쓴다. 143 에서 내가 고친 `kmem_alloc` 줄은 `#else`(비-MACH) 분기였다 — `-DMACH` 이면 NeXTMach 원문 그대로가 원본과 같은 호출이 된다. **143 의 svc_kudp 수정은 잘못된 분기에 한 것**이다.
-- `MACH` 는 생성 헤더가 없다(`<mach.h>` import 0; Darwin·NeXTMach `conf/MASTER` 의 `options MACH`) → config 가 명령행 `-DMACH` 로 넘기는 옵션(INET 과 같은 경우, 141).
-- 07 에서 `MACH` 조건을 쓰는 파일(grep): svc_kudp.c(3 곳), SDK `sys/vnode.h:57–60`(`#if MACH` 이면 `v_text` 필드 없음 — 구조체 끝 필드), SDK `sys/vfs.h`(2 곳).
-
-방법:
-1. 최종 플래그에 `-DMACH`(템플릿·스크립트·문서).
-2. svc_kudp.c 를 NeXTMach 원문 그대로로 되돌림(143 수정 철회, MODIFICATIONS 에 철회 기록).
-3. 확정·부분 전 객체 회귀(현재 07 전체): 기존 빌드와 비-디버그 내용 비교, 다르면 L1. svc_kudp 은 verbatim 으로 OBJECT_MATCH 여야 함.
-4. raw_usrreq 등 net 객체 재진단은 그다음.
-
-### 149.1 codex 교차검토(QS66) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| 07 에 `net/netisr.h` 없음 → SDK 판 사용, `MACH` 분기가 `setsoftnet() = wakeup(&soft_net_wakeup)` | 위 SDK 본문 출력(grep -v 주석) 확인 | ✅ |
-| svc_kudp 의 `#if MACH` 3 곳은 kalloc/kfree, `#else` 에 내 143 수정 | 115–125·150–162·379–386 행 출력 확인 | ✅ 143 수정 철회 |
-| `MACH` 는 `struct vnode` 끝 필드 `v_text` 와 `vfsops` 끝 `vfs_swapvp` 만 없앰 → 앞 필드 위치 불변, sizeof 는 바뀜 | vnode.h 55–61, vfs.h 98–114 출력 확인 | ✅ 전체 회귀로 확인 |
-| SDK `nfs/rnode.h`·`sys/bootconf.h` 도 `MACH` 분기 — 현재 스테이징에 들어오는지는 미확인 | 07 에 둘 다 없음(지금 채택 객체 closure 밖) | ⚖️ 나중 객체에서 다룸 |
-
-### 149.2 결과(2026-10-02)
-
-- `s5p123-regress-1`(111 명령, `-DMACH`): 확정·부분 111 객체 모두 이전 최종 빌드와 비-디버그 내용 같음(`s5p123-regress-compare-20261002.json`). svc_kudp 는 NeXTMach 원문 그대로로도 같은 객체 → 143 수정 철회(PROVENANCE·functions·objects_confirmed·MODIFICATIONS 갱신).
-- 템플릿 `s5p107-build.cmd`(6 줄), 스크래치 스크립트(iter·adopt_batch·variants)에 `-DMACH`. 문서(README·GCC27) 갱신은 아래.
-
-### 149.3 진단 12 와 raw_usrreq 채택 (2026-10-02)
-
-- 진단 12(`s5p123-diag-12`, `-DMACH`, 남은 NeXTMach 후보 92): 38 컴파일. raw_usrreq 가 NeXTMach 원문 그대로 OBJECT_MATCH(5 함수) — 진단 11 의 `raw_input` 차이는 `MACH` 미정의(`setsoftnet`) 때문이었다. 채택 스크립트로 기록.
-
-## 150. S5-P124 세부 계획 — 명령행 `-DMULTICAST` 와 `net/raw_cb.c` (코딩 전, 2026-10-02)
-
-사실:
-- 원본 `_raw_detach`(raw_cb 객체, 0x121300– 범위)에는 NeXTMach `net/raw_cb.c` 에 없는 블록이 있다: `rcb_options` 해제 뒤 `if (so == ip_mrouter) ip_mrouter_done();`(0x121408–0x121410, `_ip_mrouter` 0x1dbf54) 와 `if (rp->rcb_proto.sp_family == AF_INET) ip_freemoptions(rp->rcb_moptions);`(`cmp word [ebx+0x2c],2`, `[ebx+0x50]`, 0x121420). `_raw_disconnect` 는 raw_detach 를 인라인해 같은 블록을 한 번 더 가짐(+32 B 씩).
-- `rcb_moptions` 는 SDK `bsd/net/raw_cb.h:47–49` 의 `#ifdef MULTICAST` 필드이고, 오프셋 계산(next 0, prev 4, socket 8, faddr 0xc, laddr 0x1c, proto 0x2c, pcb 0x30, options 0x34, route 0x38(20 B), flags 0x4c, moptions 0x50)이 원본 0x50 과 맞는다. SDK BSD 헤더는 "MULTICAST 1.0" 패치판(`raw_cb.h:27`, `if.h:8`, `ip_var.h:17`).
-- 원본 심볼에 `_ip_mrouter`, `_ip_mrouter_done`, `_ip_freemoptions` 존재. Darwin `conf/MASTER:148` `options MULTICAST`(헤더 태그 없음 → 명령행 `-D`). Darwin raw_cb.c(4.4)에는 이 블록이 없다 → 작성(D024).
-- `MULTICAST` 조건을 쓰는 07 파일: SDK `net/raw_cb.h`(필드), `netinet/ip_var.h`(86–98, 118–120), `sys/ioctl.h`(주석뿐). `rcb_moptions` 뒤 필드 `rcb_cc`·`rcb_mbcnt` 는 NeXTMach 코드에서 쓰는 곳 0(grep) — raw_usrreq(149.3 채택) 영향 없음 예상.
-
-방법:
-1. 최종 플래그에 `-DMULTICAST`. 확정·부분 전 객체 회귀(112).
-2. `07_kernel/src/bsd/net/raw_cb.c` = NeXTMach + raw_detach 의 위 블록(`#ifdef MULTICAST`, 작성 표시) + `extern struct socket *ip_mrouter;` 선언(SDK 헤더에 없음).
-3. 빌드·L1·기록.
-
-### 150.1 codex 교차검토(QS67) 판정
-
-| codex 주장 | 내 검증 | 판정 |
-|---|---|---|
-| `MULTICAST` 로 바뀌는 활성 분기는 `net/raw_cb.h`(rcb_moptions, 뒤 필드 이동·크기 변화)와 `netinet/ip_var.h`(struct ip_moptions·IP_MULTICASTOPTS 정의 추가, 기존 구조체 불변); `in_pcb.h` 의 `inp_moptions` 는 무조건, `if.h` 는 분기 없음 | 내 grep 결과와 같음(07 의 MULTICAST 조건 3 파일) | ✅ |
-| raw_usrreq 가 쓰는 전역 `struct rawcb rawcb`(raw_cb.h:84–85)의 common 크기가 바뀜 → 전체 회귀 필요 | Python: 원본 `_rawcb` 0x1ea9f0, 다음 심볼까지 92 B; MULTICAST 이면 sizeof(rawcb) = 0x5c(92 B) | ✅ 회귀와 36.1 (c) 간격 검사 |
-| rcb_moptions 0x50 은 SDK 필드·크기와 일치 | 위 Python 계산과 같음 | ✅ |
-| SDK `netinet` 헤더에 ip_mrouter·ip_mrouter_done·ip_freemoptions 선언 없음 | 내 grep 0 건 | ✅ 선언 작성 |
-
-### 150.2 결과(2026-10-02)
-
-- raw_cb: it1 4 MATCH + `raw_attach` 1 B(수신 버퍼 예약 0x810 대 원본 0x824 = 2048 + 36 = `sizeof(struct raw_header)`, Python), it2 OBJECT_MATCH 5/5. A. 기록 `x86-raw_cb.md`·`.diff`.
-- 회귀 `s5p124-regress-1`(112, `-DMULTICAST`): 111 같음, raw_usrreq 는 common `_rawcb` 크기만 88 → 92(원본 간격 92 B 와 일치). 템플릿·스크립트·README·GCC27 문서에 `-DMULTICAST`.
-
-## 151. S5-P125 세부 계획 — `netinet/tcp_timer.c` (D024, 코딩 전, 2026-10-02)
-
-사실(진단 13, fndiff 필터 없이): 원본 [0x12a8cc, …) 4 함수 중 tcp_fasttimo·tcp_slowtimo·tcp_canceltimers 크기 같음, `tcp_timers` 528/515. 차이:
-1. 재전송 간격: 원본 `sar ax,3; cwde; add t_rttvar; imul tcp_backoff` = SDK `tcp_var.h:149` `TCP_REXMTVAL(tp)`(`(t_srtt >> TCP_RTT_SHIFT) + t_rttvar`) × backoff. NeXTMach 은 `((t_srtt >> 2) + t_rttvar) >> 1`.
-2. 하한: 원본은 `t_rxtcur` 를 `[tp+0x64]`(`t_rttmin`, SDK `tcp_var.h:108`)와 비교, NeXTMach 은 `TCPTV_MIN`(2).
-3. 원본은 cwnd 재설정 뒤 `mov word [ebx+0x16], 0`(`t_dupacks`, SDK `tcp_var.h:56`).
-4. keepalive `tcp_respond` 에 원본은 인자 하나(`push 0`)가 더 있음 = 4.4/Reno 의 `(struct mbuf *)NULL` 인자.
-이 네 형태는 Darwin `bsd/netinet/tcp_timer.c` tcp_timers 에 같은 모양으로 있다(4.4BSD, 구조 참고). 그 밖(losing 블록의 shift 등)은 빌드 결과로 확인.
-방법: NeXTMach 바탕 + 위 4 곳 수정(작성 표시, 형태는 Darwin 줄을 참고) → iter 빌드 → L1 → 기록.
-
-151 보충(직접 역어셈블 `objdump -D -b binary -mi386 --start-address=0x2a9fc --stop-address=0x2ac0c`, 파일 오프셋 = vaddr−0x100000):
-- SDK 경로 정정: "SDK `tcp_var.h`" 는 실기 `/NextDeveloper/Headers/bsd/netinet/tcp_var.h`(스테이징 bsd-set nextos 가 가져오는 것, sha256 7d7dffbf…) — :56 `t_dupacks`, :108 `t_rttmin`, :132 `TCP_RTT_SHIFT 3`, :149 `TCP_REXMTVAL` 직접 열어 확인.
-- losing 블록: 원본 `sar $0x2,%ax; add %ax,0x62(%ebx)` = NeXTMach :191 `t_srtt >> 2` 그대로(Darwin :383 의 `>> TCP_RTT_SHIFT` 아님). 바꾸지 않는다.
-- TCPT_PERSIST: 원본은 `tcp_setpersist` → `t_force=1` → `tcp_output` → `t_force=0` 뿐 — Darwin :441 의 idle 초과 drop 검사 없음. NeXTMach 그대로.
-- keepalive: push 순서 `0, snd_una-1, rcv_nxt(감소 없음), 0, t_template, tp` → `tcp_respond(tp, tp->t_template, (struct mbuf *)0, tp->rcv_nxt, tp->snd_una - 1, 0)`, 즉 NeXTMach `#else`(TCP_COMPAT_42 아님) 분기의 셋째 자리에 mbuf 인자. 두 분기 모두 같은 자리에 넣는다.
-
-151 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| SDK tcp_var.h :56/:108/:149 | 실기 SDK 사본 grep (위 보충) | ✅ |
-| t_dupacks 0x16, t_rttmin 0x64 | 역어셈블 `movw $0x0,0x16(%ebx)`, `mov 0x64(%ebx),%cx` | ✅ |
-| losing 블록은 >>2 유지 | 역어셈블 `sar $0x2,%ax` | ✅ (이미 보충에 기재) |
-| PERSIST 에 drop 검사 없음 | 역어셈블 case 1 → setpersist/t_force/output | ✅ |
-| tcp_respond 6 인자, 셋째가 0 | 역어셈블 push 순서 | ✅ |
-| 계획 경로 07_kernel/nextdev/bsd/netinet/tcp_var.h 없음 | `find` 0건 — 계획 본문이 아니라 codex 질의문의 내 오기 | ✅ (보충에서 정정) |
-
-151 결과: run `s5p125-it1` 첫 빌드 OBJECT_MATCH(4/4 MATCH, 빌드 831 B / 원본 구간 832 B, 끝 0x12ac0b 의 `00` 은 객체 사이 패딩). 등급 A 로 기록(`06_reconstruction/evidence/x86-tcp_timer.md`, `.diff`). SDK `netinet/{tcp,tcp_fsm,tcp_seq,tcp_timer,tcp_var,tcpip}.h` 를 `07_kernel/nextdev` 로 채택(PROVENANCE 6 행). 절차 메모: iter.py 실행 전에 scratchpad 도구를 `10_tools/reconstruction/` 에 잘못 복사했다가(새 파일 2 개, 이전 존재 없음 확인) 지우고 scratchpad 에서 실행했다.
-
-## 152. S5-P126 세부 계획 — `netinet/tcp_debug.c` (D024, 코딩 전, 2026-10-02)
-
-진단 13 의 tcp_debug "OBJECT_MATCH" 는 공허한 일치다: NeXTMach 파일 전체가 `#if DEBUG`(:22–:138)라 빌드 텍스트 0 B 인데 원본 objects.tsv seq 84 는 [0x1284c0, 0x128579) `_tcp_trace` 를 갖는다.
-사실(역어셈블 `--start-address=0x284c0 --stop-address=0x2857c`, 심볼 표 전수):
-1. 원본 `tcp_trace` 는 기록부만: `td = &tcp_debug[tcp_debx++]`(항목 164 B = `lea` 41×4), `cmpl $0x64` → TCP_NDEBUG 100, `iptime()`(0x125d18), act/ostate/tcb, `*tp`(0x1b×4 = 108 B) 또는 `bzero(…,0x6c)`, `*ti`(0xa×4 = 40 B) 또는 `bzero(…,0x28)`, `td_req` 저장 후 반환. `tcpconsdebug` 검사와 printf 부분 없음.
-2. 원본 심볼에 `_tanames`·`_tcpstates`·`_prurequests`·`_tcptimers`·`_tcpconsdebug` 없음(비디버그 3751 개 전수 0 건) → TANAMES/TCPSTATES/TCPTIMERS/PRUREQUESTS 정의 없이, tcpconsdebug 없이 빌드.
-3. `_tcp_debug` 0x1ead50, `_tcp_debx` 0x1eed60(간격 0x4010 = 100 × 164), `_tcp_iss` 0x1eed64 — SDK `tcp_debug.h`:63–65(`TCP_NDEBUG 100`, 정의) 와 맞음(빌드에서는 SDK 헤더의 tentative 정의 → common).
-이 형태는 Darwin `bsd/netinet/tcp_debug.c`(4.4, `#ifdef TCPDEBUG` 가 이름 표·tcpconsdebug·출력부를 감쌈) 와 같은 구조다(구조 참고).
-방법: NeXTMach 바탕. 바깥 `#if DEBUG`/`#endif DEBUG` 를 없애고, `#define` 이름 표 넷과 `tcpconsdebug`, `if (tcpconsdebug == 0) return;` 이하 출력부를 `#ifdef TCPDEBUG` … `#endif` 로 감싼다(작성 표시). 함수 반환형 등 나머지는 NeXTMach 그대로. iter → L1 → 기록.
-
-## 153. S5-P127 세부 계획 초안 — `net/netif.c` (D024, 코딩 전, 2026-10-02)
-
-사실(원본 심볼 표·역어셈블):
-1. objects.tsv seq 69 `netif.c` [0x120b98,0x120e14), seq 70 `if.c` [0x120e30,0x120ff3), seq 71 `netif.c` [0x120ff4,0x12125c) 는 한 객체로 본다: `if_detach`(0x120e30)가 0x12125c·0x121268 의 정적 함수 두 개(원본 심볼 없음)를 함수 포인터로 넣고, 이 둘이 `if_output_mbuf` 뒤 `netisr_thread_continue`(0x121274) 앞에 있다. 즉 netif 객체 = [0x120b98, 0x121274). seq 70 의 `if.c` 라벨은 이 객체의 일부(`if_detach`, `if_attach`)로 정정 대상(objects.tsv 는 분석 산출물이므로 정정은 기록으로 남김).
-2. NeXTMach `net/netif.c` 순서에 원본은 넷이 더 있다: `if_class`(0x120d40, `if_mtu` 뒤; `mov 0x14(%eax)`), `iflist_first`(0x120e14; `mov ifnet`), `iflist_next`(0x120e20; `mov 0x5c(%eax)` = if_next), `if_detach`(0x120e30, `if_attach` 앞). 선언은 SDK `bsd/net/netif.h`:114,116,117,126.
-3. `if_detach`: if_name·if_type(오프셋 0,4) ← 문자열 `"null"`(0x1d1271), 오프셋 8/0xa/0xc short ← 0, 0x28 ← 0, 0x30/0x34/0x38/0x3c ← 스텁 A(0x12125c: `return 5`), 0x40 ← 스텁 B(0x121268: `return 0`), 0x58 ← 0. 필드 이름은 SDK `net/if.h` 배치로 확정한다(코딩 전에 오프셋 계산).
-4. `pingvirtuals` 는 원본 `if_attach` 안에 인라인(`call *%eax` 루프) — NeXTMach 그대로.
-방법(초안): NeXTMach 바탕 + 네 함수와 스텁 둘 작성(작성 표시). 스텁 이름·문자열 정의 위치는 빌드 바이트로 확정. 하나씩 iter.
-153 보충(오프셋은 SDK `net/if.h`:48–96 `struct ifnet` 을 python 으로 배치, 크기 0x60): `if_detach` 저장 = if_name(0)·if_type(4) ← `"null"`, if_unit(8)·if_mtu(0xa)·if_flags(0xc) ← 0, if_snd.ifq_maxlen(0x28) ← 0, if_init(0x30)·if_output(0x34)·if_control(0x38)·if_input(0x3c) ← 스텁 A(`return 5`), if_getbuf(0x40) ← 스텁 B(`return 0`), if_private(0x58) ← 0. 순서가 NeXTMach `if_attach`(:324–:335) 대입 순서와 같다. 두 스텁은 원본 심볼이 없는 static 이라 이름은 작성자가 정하고 바이트에 영향 없음(표시). `if_class` 0x14, `iflist_next` 0x5c(if_next), `iflist_first` = `ifnet`(0x1e89e0).
-
-152 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| 주소·크기·164/108/40·100·스텁 없음 | 역어셈블(계획 152 사실 1), symbols.tsv 전수 | ✅ |
-| td_req 는 16 비트 저장 | 역어셈블 `mov %cx,0x34(%ebx)` | ✅ |
-| _tcp_debug/_tcp_debx 는 `__common`(섹션 6) | macho.json :163–166 index 6 `__common` | ✅ |
-| "0 B" 는 DEBUG 거짓일 때만 | NeXTMach tcp_debug.c :22 `#if DEBUG` | ✅(최종 플래그에 DEBUG 없음) |
-| SDK tcp_debug.h 는 include·KERNEL 가드 없음 | grep 0 건 | ✅ — NeXTMach 의 include 순서를 유지 |
-| NeXTMach tcp_debug.h 는 10 개·DEBUG 가드 | :31 `#if DEBUG`, :37 `TCP_NDEBUG 10` | ✅ — 스테이징이 SDK 헤더를 고르는지 manifest 로 확인한다 |
-| GCC27 문서 :20 의 -fno-common 위험 | 해당 줄 확인 | ✅(최종 빌드는 -fno-common 없음) |
-| Darwin `void` 는 :102 | :101 이 `void`, :102 는 `tcp_trace(` | ⚖️ 줄 오차. 반환형은 바이트로 정할 수 없으므로 NeXTMach 암묵 int 유지 |
-
-152 결과: run `s5p126-it1` 첫 빌드 OBJECT_MATCH(1/1, 185 B; 0x128579–0x12857b 는 `00` 객체 사이 패딩). 스테이징 manifest 상 `netinet/tcp_debug.h` 는 실기 SDK 사본. 등급 A 로 기록(`06_reconstruction/evidence/x86-tcp_debug.md`, `.diff`), SDK `tcp_debug.h` 1 개를 `07_kernel/nextdev` 로 채택.
-
-153 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| 한 객체 [0x120b98,0x121274) 는 강한 추론이나 증명은 아님; if.c(seq 65 0x11edac–0x11f43a)에 if_attach/if_detach 없음 | 심볼 표 0x11f000–0x120ba0 목록, NeXTMach if.c :90–:128 `#if NeXT … #else` | ✅ (객체 경계는 추론으로 기록) |
-| 네 함수·스텁 배치 | 역어셈블·심볼 주소 | ✅ |
-| 스텁 정의 순서: return-5 다음 return-0, if_output_mbuf 뒤 | 0x12125c(`mov $5`), 0x121268(`xor eax`) | ✅ (선언 위치는 빌드로 시험) |
-| `"null"` 은 `__cstring` 이 아니라 `__TEXT,__const`(0x1d10bc–) | macho.json `__const` 0x1d10bc 크기 0x58f4, `__cstring` 0x1d69b0; 0x1d1209–0x1d1284 바이트 덤프 | ✅ — 계획 153 사실 3 의 "문자열" 은 리터럴이 아니라 이름 없는(static) `const char` 배열로 정정 |
-| 원본 IFCONTROL 상수 9 개(RCVPROMISCUOUS·RCVPROMISCOFF·ADDMULTICAST·RMVMULTICAST 추가) | symbols.tsv :115–:123, 바이트 `promiscuous-on`·`promiscuous-off`·`add-multicast`·`rmv-multicast` | ✅; SDK netif.h :58–:64 는 ADD/RMV 까지 7 개만 선언 |
-| if_ioctl 에 SIOCADDMULTI/SIOCDELMULTI(0x80206931/2) → ADD/RMV, data 그대로 | 역어셈블 0x120be8–0x120cb8 | ✅; 본문 배치 순서 AUTOADDR·SIFADDR·GIFADDR·SIFFLAGS·ADD·DEL·default = 원문 case 순서 뒤에 두 case 추가 |
-| if_ierrors_set 은 0x48(if_ierrors) 저장, NeXTMach :279 는 if_oerrors | 역어셈블 0x120df4, NeXTMach :279 | ✅ |
-| if_attach 확장(분리 항목 재사용, metric·addrlist·통계 0, 새 항목만 삽입, REAL 일 때 hostid) | 역어셈블 0x120e8c–0x120ff3 | ✅; hostid 경로는 인라인된 `if_control()`(NULL → 건너뜀) 과 `ea[2]^=ea[0]; ea[3]^=ea[1]; hostid = ntohl(*(long *)&ea[2])` 꼴. 참고 원문에 같은 코드 없음(grep `hostid` 전수) → 작성 |
-| if_output_mbuf 확장 루프는 인라인 가능, 변경 증거 아님 | 빌드로 확인 | ⏭️ 빌드 결과로 판정 |
-
-153 방법(확정): NeXTMach 바탕. 작성(표시): IFCONTROL 상수 4 개 추가, `static const char` "null" 배열, if_ioctl 두 case, if_ierrors_set 필드 정정, if_class, iflist_first/next, if_detach, if_attach 재작성(위 구조), 스텁 둘(이름 작성). `hostid` 는 `extern long hostid;`. 결과에 따라 순서·형태 조정, OBJECT_MATCH 까지 반복. objects.tsv seq 69–71 정정은 기록(objects_confirmed 범위)으로 남긴다.
-
-153 결과: run `s5p127-it1` 첫 빌드에서 `__text` 1753 B·`__TEXT,__const` 109 B 바이트 차이 0, 원본 31 함수 MATCH(2 개는 `__bss` 참조 때문에 MATCH_UNVERIFIED). `__DATA,__bss` 4 B(`if_dispatchers`)는 `zerofill_check.py` 로 0x1e58d8 참조 추정(`09_validation/reconstruction/s5p127-zerofill-check-netif-20261002.json`) → 등급 **P**(`objects_partial.tsv`). known 배치는 `zerofill-known-s5p127-20261002.json`(19 항목)으로 갱신. 기록 도구는 scratchpad `record_partial.py`(record_object.py 에서 판정·행 형식만 바꾼 사본).
-
-## 154. S5-P128 세부 계획 — `net/netisr.c` (D024, 코딩 전, 2026-10-02)
-
-사실(역어셈블 0x121274–0x1212fe, 심볼 표): 원본 객체 [0x121274, 0x1212fe) 는 `netisr_thread_continue`(0x121274) 다음 `netisr_thread`(0x1212d0).
-1. `netisr_thread_continue`: `splnet()`; `while (netisr != 0)` 안에서 bit 4(NETISR_IP=2) → clear, `ipintr()`(0x126058); bit 1(NETISR_RAW=0) → clear, `rawintr()`(0x121654); 루프 뒤 `assert_wait(&soft_net_wakeup(0x1ea9e4), 0)`, `thread_block_with_continuation(netisr_thread_continue)`. IMP·NS·ARP 처리 없음.
-2. `netisr_thread`: `current_thread()`(= `active_threads[0]` 0x1e8b54 읽기), `stack_privilege(self)`(0x166a5c), `thread_bind(self, master_processor(0x1ea9dc))`(0x163450), `thread_block_with_continuation(netisr_thread_continue)`. 우선순위 설정 없음.
-3. NeXTMach `net/netisr.c`(:36–:91)는 continuation 이전 형태(우선순위 31, `master_cpu`, `thread_block` 루프). Darwin `bsd/net/netisr.c` 는 위 1·2 와 같은 continuation 구조(구조 참고; ARP·NETAT 등은 원본에 없음).
-4. `netisr`·`soft_net_wakeup` 는 SDK `net/netisr.h`:65·:31 의 잠정 정의(원본 `__common`).
-방법: NeXTMach 바탕. `netisr_thread` 본문을 두 함수(continue 먼저)로 다시 작성(작성 표시, Darwin 구조), NIMP/INET/NS 조건부와 RAW 처리 블록은 NeXTMach 형태 유지. `stack_privilege`·`thread_bind` 는 함수 안 `extern` 선언(07 헤더에 선언 없음: `grep` 0 건). iter → L1 → 기록.
-
-154 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| 주소·호출 대상·비트·우선순위 설정 없음 | 역어셈블·심볼 해석(계획 154 사실) | ✅ |
-| `netisr` 는 volatile 아님으로 먼저 시도(비트마다 한 번 읽기) | 역어셈블 0x121285–0x121290 `mov netisr; test; and; mov` | ✅ — SDK 헤더 :65 `int netisr` 그대로 |
-| `assert_wait` 는 `event_t`(void *) 인자 | 07 sched_prim.h :76 typedef, NeXTMach :61 `(int)` 캐스트 | ✅ — `(event_t)&soft_net_wakeup` 로 쓴다(작성) |
-| master_processor 는 전역 포인터 | 07 processor.h :192 | ✅ |
-| current_thread() = active_threads[0] | 07 thread.h :345, cpu_number.h :65, generated/cpus.h NCPUS 1 | ✅ |
-| stack_privilege/thread_bind 형 | 07 thread.c :337, sched_prim.c :546 | ✅ |
-| NIMP 0 | 07 generated/imp.h | ✅ |
-| Darwin :58 volatile·추가 분기는 복사하지 말 것 | Darwin :58 `volatile int netisr;` | ✅ |
-
-154 결과: it1(함수 안 `stack_privilege`/`thread_bind` 원형 선언)은 `netisr_thread` 45/46 B(`master_processor` 를 `%eax` 로 읽음, 원본 `%edx`). it2(그 선언 제거 → 암묵 int 선언) OBJECT_MATCH 2/2, 138 B. 등급 A 로 기록(`06_reconstruction/evidence/x86-netisr.md`, `.diff`). 원형 선언이 없었다는 것은 바이트로 확인된 사실(레지스터 선택)이며, 이후 같은 꼴의 호출에서 참고한다.
-
-## 155. S5-P129 세부 계획 — 명령행 `-DPOSIX_KERN` 과 `kern/sys_socket.c` (코딩 전, 2026-10-02)
-
-사실:
-1. 원본 `_soo_rw`(0x10d850, 68 B; NeXTMach 빌드 44 B)는 호출 전에 `active_u[0].utask->uu_procp`(0x1e8758 → `+0`)의 `+0x16` 바이트 bit 2 와 `fp->f_flag & 0x2000` 을 검사하고, 둘 다 참이면 `uio->uio_fmode`(+0x10, 16 비트)에 `f_flag` 를 저장한다.
-   - SDK `sys/proc.h` `struct proc`: 포인터 4 개(0x10) 뒤 char 6 개(p_usrpri…p_nice, 0x10–0x15), 0x16 의 비트필드 `p_debugger:1`, `p_posix:1` → bit 2 = `p_posix`.
-   - 0x2000 = 020000 = SDK `sys/file.h`:85 `FPOSIX_PIPE` — `#if POSIX_KERN`(:74–:86) 안에서만 정의.
-   - SDK `sys/uio.h` `uio_fmode`(short) 오프셋 0x10(iov 0, iovcnt 4, offset 8, segflg 0xc, fmode 0x10).
-2. 원본 심볼에 SDK `proc.h` 의 `#if POSIX_KERN` 블록(:226–:281) 기능이 있다: `_pgfind` 0x1074d8, `_enterpgrp` 0x107504, `_leavepgrp` 0x10765c, `_setsid` 0x108474, `_setpgid` 0x1084d0, `_delete_posix_proc` 0x1079b8.
-3. `POSIX_KERN` 을 쓰는 07 헤더: SDK `sys/{file,proc,tty,fcntl}.h`(grep). `tty.h`:179–182 는 `struct nty` 에 `t_session`·`t_posix_pgrp` 필드를 넣어 배치가 바뀐다. `proc.h` 는 별도 구조체·선언·플래그(SCTTY, SEXEC)만 추가하고 `struct proc` 배치는 바꾸지 않는다(코딩 전 확인). 참고 원문(NeXTMach mk-108.1, Darwin conf/MASTER)에는 `POSIX_KERN` 이 없다(grep 0 건) → 명령행 `-DPOSIX_KERN`(헤더 태그 없음, 값 1).
-방법:
-1. 최종 플래그에 `-DPOSIX_KERN`. 확정·부분 전 객체 회귀(`s5p124-regress.cmd` 112 + tcp_timer·tcp_debug·netif·netisr = 116). 비교는 직전 최종 빌드(`s5p124-regress-1` 과 s5p125–128 it 결과)와 비-디버그 내용(`nd_cmp`).
-2. 다르면 원인을 분석해 사용자 결정 필요 여부 판단(객체 간 충돌이면 결정 사항).
-3. 같으면 `bsd/kern/sys_socket.c`(NeXTMach `bsd/sys_socket.c`; objects.tsv seq 40 [0x10d850, 0x10daf0)) = NeXTMach + soo_rw 의 위 검사(작성, `#if POSIX_KERN`). 빌드·L1·기록. 템플릿·iter·README·GCC27 문서에 플래그 추가.
-
-155 codex 검토 판정(코딩 전; 첫 질의는 900 s 시간 초과로 실패, 범위를 줄여 재질의):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| `#if POSIX_KERN` 7 블록, 구조체 배치 변화는 tty.h:179 `struct nty` 뿐, 잠정 정의 없음(proc.h 는 extern 선언 `pgrphash[]`·`posix_proc_hash[]`) | awk 로 07 sys/{proc,file,tty,fcntl}.h 블록 전수 출력 | ✅ |
-| 07 src·nextdev_private·nextmach 사용 0 건 | 내 grep -rln 0 건 | ✅ → 기존 객체 비-디버그 내용 불변 예상 |
-| p_posix = 0x16, 마스크 0x02 | proc.h :292 p_link, :313 p_debugger, :315 p_posix; Python 4×4+6 = 22 = 0x16, 1<<1 = 2 | ✅ |
-
-## 156. S5-P130 세부 계획 초안 — `bsd/kern/tty_tty.c` (D024, `-DPOSIX_KERN` 전제, 코딩 전, 2026-10-02)
-
-사실(역어셈블 0x113814–0x1138c5, 심볼): 객체 [0x113748, 0x113912) 5 함수 중 `syioctl` 만 다르다(원본 180 B / NeXTMach 빌드 136 B, 진단 13 NM 객체 함수 크기). 원본 `syioctl` 의 TIOCNOTTY(0x20007471) 처리:
-1. `p = u.u_procp`(active_u[0].utask +0), `px = get_posix_proc(p->p_pid)`(0x107898, 인자 `movswl 0x30(p)`).
-2. `px->p_posix_pgrp(+0x10)->pg_session(+8)->s_leader(+4) == p` 이면(SDK proc.h `SESS_LEADER`, `p_session` 매크로) `s_ttyp(+8) = 0`, `s_ttyd(+0xc, short) = 0`(같은 경로를 다시 읽음).
-3. `p->p_flag(+0x28) &= ~SCTTY`(0xbfffffff = ~0x40000000, SDK proc.h:568).
-4. `u.u_ttyp(utask +0x168) = 0`, `u.u_ttyd(+0x16c) = 0`, `return 0`. NeXTMach :74 `u.u_procp->p_pgrp = 0` 은 없다.
-나머지(ENXIO 6, `cdevsw[major(u_ttyd)].d_ioctl` 호출)는 NeXTMach 와 같은 꼴.
-방법(초안): NeXTMach 바탕, TIOCNOTTY 블록을 `#if POSIX_KERN` 형태로 작성(표시). `get_posix_proc` 선언은 SDK proc.h:277. 필드 오프셋은 코딩 전 Python 으로 SDK 구조체에서 계산해 확인한다. 회귀(155)가 같음일 때만 진행.
-156 보충(Python, SDK sys/types.h :139 `pid_t` int, :121–:123 dev_t·gid_t·uid_t short): `struct posix_proc` p_pid 0, p_ruid 4, p_svuid 6, p_svgid 8, p_pgrpnxt 0xc, p_posix_pgrp 0x10; `struct pgrp` pg_session 8; `struct session` s_leader 4, s_ttyp 8, s_ttyd 0xc — 원본 오프셋과 모두 맞음.
-
-### 155.1 회귀 결과(2026-10-02)
-
-- `s5p129-regress-1`(116, `-DPOSIX_KERN`): 112 같음, 4 컴파일 실패(authunix_prot, ddm, kern_time, subr_xxx: SDK `proc.h`:246·258 `pid_t` 미정의 — SDK `sys/types.h`:136–:141 은 `_POSIX_SOURCE` 일 때만 `pid_t` 정의). collect 는 EXPECT 실패로 중단돼 `stage/` 의 객체로 비교(`09_validation/reconstruction/s5p129-regress-compare-20261002.json`).
-- 진단 `s5p129-diaga-1`(116, `-DPOSIX_KERN -D_POSIX_SOURCE`): 116 모두 컴파일, 116/116 이전 최종 빌드와 비-디버그 내용 같음(`s5p129-diaga-compare-20261002.json`). 첫 시도는 실행 ID 대문자(`diagA`)로 `kr_run` 이 거부(ID 규칙 `^[a-z0-9][a-z0-9._-]{2,60}$`).
-- 판단: 대안은 `nextdev_private/bsd/sys/types.h` 에 커널용 `pid_t` 분기를 작성하는 것(D023 방식)이나, SDK 본문 그대로 컴파일되는 쪽(전역 `-D_POSIX_SOURCE`)을 택한다. 근거: SDK `types.h` 가 `!KERNEL && _POSIX_SOURCE` 일 때만 `standards.h` 를 포함(커널에서 `_POSIX_SOURCE` 를 정의하는 경우를 전제한 형태), 객체 간 충돌 없음(124.1 트리거 미충족 → 사용자 결정 사항 아님). 역사적 사실로 확정된 것은 아니다(가설).
-- 최종 플래그에 `-DPOSIX_KERN -D_POSIX_SOURCE`(iter 도구, README, GCC27 문서 갱신). 다음: 155 방법 3(sys_socket).
-155 결과: `bsd/kern/sys_socket.c` run `s5p129-it1` 첫 빌드 OBJECT_MATCH 5/5(672 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-sys_socket.md`, `.diff`).
-
-156 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| TIOCNOTTY = `_IO('t',113)` = 0x20007471 | ioctl.h :167 IOC_VOID, :292; Python 0x20000000\|('t'<<8)\|113 | ✅ |
-| ~SCTTY = 0xbfffffff | proc.h :568, Python | ✅ |
-| p_pid short +0x30, p_flag +0x28 | proc.h :325 p_flag, :328 short p_pid; 원본 `movswl 0x30`, `andl 0x28` | ✅(오프셋은 빌드로 재확인) |
-| posix_proc/pgrp/session 오프셋 | 156 보충의 내 Python 계산 | ✅ |
-| u_ttyp/u_ttyd = utask +0x168/+0x16c | user.h :178–:179 필드, :429–:430 매크로 확인; 오프셋은 직접 계산하지 않음 | ⚖️ 빌드 결과로 판정 |
-| SESS_LEADER 매크로(KERNEL) | proc.h :253–:255 | ✅ |
-| 제안 C(세션 저장 둘은 leader 분기 안, `px->p_session` 두 번 씀) | 원본 0x113837–0x11384f 재읽기 | 채택, 빌드로 판정 |
-156 결과: run `s5p130-it1` 첫 빌드 OBJECT_MATCH 5/5(458 B) — utask 오프셋 0x168/0x16c 도 일치로 확인. 등급 A 로 기록(`06_reconstruction/evidence/x86-tty_tty.md`, `.diff`).
-
-## 157. S5-P131 세부 계획 — `bsd/kern/vfs_pathname.c` (D024, 코딩 전, 2026-10-02)
-
-사실(진단 13 NM 객체 함수 크기, 역어셈블 0x11c9a0–0x11ca33): 객체 [0x11c97c, 0x11cba8) 8 함수 중 `pn_get` 만 다르다(원본 148 B / NeXTMach 빌드 120 B; 나머지는 끝 패딩 차이뿐). 원본 `pn_get` 은 copyinstr/copystr 뒤, `pn_pathlen--` 앞에 다음 검사를 갖는다: `error == 0 && pnp->pn_pathlen == 0x400(MAXPATHLEN) && pnp->pn_path[0x3ff] != 0` 이면 `error = 0x3f`(63). 그 밖은 NeXTMach :69–:88 과 같은 꼴(pn_alloc 인라인, seg 분기, 실패 시 pn_free 0x11cb84).
-방법: NeXTMach 바탕 + 위 검사(작성 표시, `ENAMETOOLONG`·`MAXPATHLEN` 이름은 SDK 값과 대조해 사용). 빌드·L1·기록.
-
-157 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| 조건 순서 error → pn_pathlen == 0x400 → pn_path[0x3ff] != 0, error = 0x3f | 역어셈블 0x11c9fc–0x11ca15 | ✅ |
-| pn_buf/pn_path/pn_pathlen = +0/+4/+8, 색인은 pn_path | pathname.h :17–:20; 원본 `mov 0x4(%esi)` | ✅ |
-| MAXPATHLEN 1024(param.h :251), ENAMETOOLONG 63(errno.h :141) | param.h :251 맞음; errno.h 정의는 :142(:141 은 `#if`) | ⚖️ 줄 오차 1 |
-| 다른 명령 차이 없음 | 빌드로 판정 | ⏭️ |
-157 결과: run `s5p131-it1` 첫 빌드 OBJECT_MATCH 8/8(553 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-vfs_pathname.md`, `.diff`).
-
-## 158. S5-P132 세부 계획 — `bsd/rpc/auth_kern.c` (D024, 코딩 전, 2026-10-02)
-
-사실(진단 13 NM 객체와 fndiff, 원본 [0x134f94, 0x1351d4)): 6 함수 중 `authkern_marshal` 만 다르다(원본 452 B / NeXTMach 빌드 440 B; authkern_destroy 의 20/18 은 끝 패딩). 차이:
-1. 원본 프레임 `sub esp,0x28`(빌드 0x20) — 8 B(struct timeval) 지역 추가; gidlen·credsize 슬롯이 -0x24·-0x28 로 이동.
-2. `ptr != NULL` 분기 첫머리에 `getthetime(&now)`(지역 -0x20), 세 번째 IXDR_PUT_LONG 이 전역 `time` 대신 `now.tv_sec`(-0x20) — NeXTMach :120 `time.tv_sec`.
-같은 수정을 계획 143.1 `authunix_prot.c`(07 :58 선언, :72 호출)에서 이미 했다(getthetime 은 kern_time.c 의 작성 함수, 계획 145).
-방법: NeXTMach 바탕 + `struct timeval now;` 지역 선언(위치는 슬롯 배치로 반복 확인)과 위 호출·인자 변경(작성 표시). 빌드·L1·기록.
-
-158 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| `_authkern_marshal` 0x134fe4, 다음 0x1351a8, 452 B | symbols.tsv grep, Python 0x1351a8−0x134fe4 = 452 | ✅ |
-| `ptr` 검사(0x13504d) 뒤, AUTH_UNIX put(0x135061) 앞에 `getthetime(-0x20)` | 역어셈블 0x13504d–0x135061 | ✅ |
-| 세 번째 put 값만 바뀜 | fndiff(계획 158 사실 2) | ✅ |
-| getthetime 선언 헤더 없음, 정의는 암묵 int(kern_time.c :135) | grep 07 nextdev·nextdev_private·nextmach 0 건, kern_time.c :135 | ✅ — 원형 추가 안 함(계획 154 에서 원형 유무가 레지스터를 바꾼 전례) |
-| `now` 를 `ptr` 선언 뒤에 | 빌드로 판정 | 채택 |
-
-### 158.1 결과 1 과 헤더 계획(코딩 전)
-
-- it1(`s5p132-it1`): 5 MATCH, `authkern_marshal` 도 명령 순서 같음; `authkern_create` 1 바이트(오프셋 23): 원본 `movl $auth_kern_ops,0x20(%ebx)`, 빌드 `0x18(%ebx)`. `kalloc`/`bzero` 크기는 둘 다 0x28.
-- 원인: SDK `rpc/auth.h`(07 nextdev 사본)의 `AUTH` 는 `#ifndef __NeXT__` 일 때만 `ah_key`(8 B) 를 `ah_ops` 앞에 두고, `__NeXT__` 이면 끝으로 옮긴다. NeXT cc 는 `__NeXT__` 를 미리 정의 → ah_ops 0x18. 원본 커널은 0x20 = NeXTMach `rpc/auth.h` 배치(ah_cred, ah_verf, ah_key, ah_ops, ah_private).
-- 07 소스 중 AUTH 필드를 쓰는 것은 auth_kern.c 뿐(grep `ah_ops|ah_private|AUTH_DESTROY|AUTH_MARSHALL|auth->`).
-- 방법(D023 A 와 같은 방식): `07_kernel/nextdev_private/bsd/rpc/auth.h` = SDK 본문 + 커널 분기 작성: `#ifndef __NeXT__` → `#if !defined(__NeXT__) || defined(KERNEL)`, `#ifdef __NeXT__` → `#if defined(__NeXT__) && !defined(KERNEL)`(작성 표시, PROVENANCE). 확정·부분 객체 중 이 헤더를 스테이징하는 것은 회귀로 확인.
-
-158.1 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| SDK(__NeXT__) ah_ops 0x18, NeXTMach 0x20, 둘 다 0x28 B | 두 헤더 본문(위 158.1 사실), opaque_auth 12 B·des_block 8 B | ✅ |
-| 0x134fa9 `movl $0x1dcd88,0x20(%ebx)` | 역어셈블(158.1 결과 1) | ✅ |
-| 원본 0x13576a·0x1359f1·0x12eb41 도 +0x20 읽기 | 역어셈블 세 곳 `mov 0x20(%reg)` 확인; 포인터가 AUTH 인지는 직접 추적하지 않음 | ⚖️ 보강 근거로만 |
-| rpc/auth.h 를 쓰는 07 소스 10 개, AUTH 의 ah_verf 뒤 필드 사용은 auth_kern 뿐 | grep -rln 10 건 | ✅ — 나머지 9 개는 회귀 |
-| 두 조건을 짝으로 바꾸는 것이 types.h overlay 방식과 일치 | nextdev_private/bsd/rpc/types.h diff | ✅ |
-158.1 결과: it2(`s5p132-it2`, overlay 사용) OBJECT_MATCH 6/6(574 B). rpc/auth.h 를 쓰는 나머지 9 확정 객체 회귀 `s5p132-rg-1` 9/9 같음(`09_validation/reconstruction/s5p132-rg-compare-20261002.json`). auth_kern 등급 A, overlay 는 PROVENANCE·MODIFICATIONS 에 기록.
-
-## 159. S5-P133 세부 계획 — `bsd/kern/vfs_vnode.c` (D024, 코딩 전, 2026-10-02)
-
-사실(진단 13 NM 객체 fndiff, 원본 [0x11de7c, 0x11eaa4)): 10 함수 중 `vn_rdwr` 만 다르다(원본 216 / 빌드 204; vn_open 616/612 는 끝 패딩과 재배치 표기 차이뿐). 원본 `vn_rdwr` 은 `MACH_NBC` 블록의 조건이 `vp->v_type == VREG`(`cmp [esi+0x28],1`) 다음에 `active_u[0].utask->uu_procp` 의 0x16 bit 2(`p_posix`, 계획 155) 가 0 일 때만 map_vnode/mfs_io/unmap_vnode 경로, 아니면 VOP_RDWR. NeXTMach :71 은 `if (vp->v_type == VREG)`.
-방법: NeXTMach 바탕, :71 조건을 `#if POSIX_KERN` 아래 `(vp->v_type == VREG && !u.u_procp->p_posix)` 로(작성 표시), `struct proc` 정의를 위해 `#import <sys/proc.h>`(조건부). 빌드·L1·기록.
-
-159 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| VREG == 1 | vnode.h :37 enum(VNON, VREG, …, VFIFO = 8) | ✅ |
-| p_posix 검사 0x11ded3–0x11dede, 설정 시 0x11df08(VOP_RDWR) 로 | 역어셈블 0x11decd–0x11dede; vnode.h :124 VOP_RDWR | ✅ |
-| 다음 심볼 `_vn_rele` 0x11df54 | symbols.tsv | ✅ |
-| 헤더가 sys/proc.h 를 가져오지 않음 | grep user.h·vnode.h·vfs.h 0 건 | ✅ — 조건부 import |
-| 그 밖 같음 | fndiff(계획 159 사실) | ✅ |
-
-### 159.1 정정(it1 결과, 코딩 전)
-
-- it1(`s5p133-it1`): vn_rdwr 216/216 일치, 그러나 객체 unplaced — `vn_open` 612/616(원본). 계획 159 의 "vn_open 차이는 끝 패딩뿐" 은 **틀렸다**(vn_open 은 마지막 함수가 아님).
-- 원본 vn_open 은 truncate 의 VOP_SETATTR 뒤 `test ebx,ebx; jne` 로 `error == 0` 을 먼저 보고, 그 다음 `filemode & 0x40000000`(SDK fcntl.h:60 `O_NO_MFS`), `v_type == VREG` 일 때 map_vnode. NeXTMach :264 는 `(filemode & O_NO_MFS) == 0 && vp->v_type == VREG`.
-- 수정: :264 조건 앞에 `error == 0 &&`(작성 표시).
-159.1 codex 판정: error(ebx) → O_NO_MFS → VREG 순서(0x11e18a–0x11e19d), map_vnode 0x11e1a0 — 내 역어셈블과 같음 ✅; "그 밖 의미 차이 없음" — 빌드로 판정.
-
-### 159.2 정정 2(it2 결과, 코딩 전)
-
-- it2(`s5p133-it2`, vn_open 수정): 9 MATCH, `vn_create` 1 바이트(분기 거리 0x47 / 0x52) — 원본 0x11e2a0–0x11e2a4: `VFS_RDONLY` 이고 `*vpp == NULL` 이면 바로 `error = EROFS`(0x11e2ed); `*vpp` 가 VCHR/VBLK(`v_type−3 <= 1`) 이면 else 쪽(0x11e2f8); 그 밖이면 VN_RELE 뒤 EROFS. 빌드(NeXTMach :358 `&& *vpp != (struct vnode *)0 && …`)는 `*vpp == NULL` 이면 else 쪽.
-- 수정: :358–:359 조건을 `&& (*vpp == (struct vnode *)0 || ((*vpp)->v_type != VCHR && (*vpp)->v_type != VBLK))` 로(작성 표시). 본문 `if (*vpp) VN_RELE(*vpp);` 는 그대로.
-159.2 codex 판정: 세 경로(0x11e29a–0x11e2ea) — 내 역어셈블(위 0x11e29c–0x11e2f8 출력)과 같음 ✅, VBLK 3·VCHR 4(vnode.h :37) ✅.
-159 결과: it3(`s5p133-it3`) OBJECT_MATCH 10/10(3110 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-vfs_vnode.md`, `.diff`). 교훈: 마지막이 아닌 함수의 크기 차이는 패딩이 아니다(fnsizes 의 "orig" 는 다음 원본 심볼까지).
-
-## 160. S5-P134 세부 계획 — `bsd/kern/vfs_io.c` (D024, 코딩 전, 2026-10-02)
-
-사실(진단 13 NM 객체 fndiff, 원본 [0x11b984, 0x11c0f8)): 8 함수 중 `vno_rw`(원본 208 / 빌드 192)·`vno_stat`(284 / 220) 이 다르다.
-1. `vno_rw`: (a) iomode 계산 뒤 `vp->v_type == VFIFO`(8, vnode.h :37) 이면 `uiop->uio_fmode = fp->f_flag`(short 저장, uio +0x10) — 계획 155 의 soo_rw 와 같은 FIFO/POSIX 처리; (b) mfs_io 조건에 `!u.u_procp->p_posix`(0x16 bit 2) 추가: `v_type == VREG && vm_info->mapped && !p_posix`. 소스 위치·조건부(`#if POSIX_KERN`)는 빌드로 확정.
-2. `vno_stat`(원본 0x11bc50, 역어셈블 0x11bd1e–0x11bd5c): NeXTMach :228 `st_spare4[0] = st_spare4[1] = 0`(0x3c, 0x38 순 저장) 뒤에
-   - `vp->v_op == &ufs_vnodeops`(0x1de480) 이면 `st_spare4[0] = 0xfeedface`, `st_spare4[1] = VTOI(vp)->i_gen`(v_data +0xd0);
-   - 아니고 `vp->v_op == &nfs_vnodeops`(0x1dca20) 이며 `rnode +0x4c == sb->st_ino`(stat +4) 이면 `st_spare4[0] = 0xfeedface`, `st_spare4[1] = rnode +0x50`.
-   오프셋(Python, SDK 헤더): vnode `v_op` 0x1c·`v_type` 0x28·`v_data` 0x30·크기 0x34; inode `i_ic` 0x64 → `ic_gen` 0xd0(ufs/inode.h :133 "108"); rnode `r_vnode` 0xc → `r_fh` 0x40; NFS_SERVER(생성 헤더 1) 이면 `fhandle_t = struct svcfh`(nfs.h :115–:137): `fh_len` 0x48, `fh_data[10]` 0x4a; `(struct ufid *)&r_fh.fh_len`(ufs/inode.h :365–:368: len 0, ino 4, gen 8) → ino 0x4c, gen 0x50.
-   참고 원문(NeXTMach, Darwin)에 0xfeedface 를 stat 에 쓰는 코드 없음(grep: MH_MAGIC 뿐) → 작성. 식의 꼴은 바이트로 정할 수 없어 위 이름으로 쓴다(표시).
-방법: NeXTMach 바탕 + 1·2(작성 표시). 필요한 헤더: `<nfs_server.h>`, `<ufs/inode.h>`, `<nfs/nfs.h>`, `<nfs/rnode.h>`(스테이징 manifest 로 SDK 사본 확인), `extern struct vnodeops ufs_vnodeops, nfs_vnodeops;`. 빌드·L1·기록(헤더 추가가 잠정 정의를 끌어오면 common 간격 36.1 검사).
-
-160 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| vno_rw: iomode 뒤 VFIFO→uio_fmode(0x11b9dc–0x11b9e2), 그 뒤 VREG→mapped→!p_posix(0x11b9e6–0x11b9ff) | 내 역어셈블 같은 구간 | ✅ |
-| p_posix 는 0x16 의 마스크 0x02("bit 2" 표현 정정) | 155 의 Python(1<<1 = 2) | ✅ 표현 정정 |
-| stat st_ino 4, st_spare4 0x38/0x3c, 0x3c 먼저 0 | 역어셈블 0x11bd10–0x11bd17, 160 사실 | ✅ |
-| 0xd0·0x4c·0x50 경로 | 160 의 내 Python 계산 | ✅ |
-| 헤더 추가 시 잠정 정의 2 개: inode.h :202 `inode_list`, :287 `iuniqtime` | SDK inode.h 두 줄 확인; 원본 `_inode_list` 0x1e978c·`_iuniqtime` 0x1e9790 섹션 6(__common) | ✅ — 기록 도구의 common 간격 검사로 확인 |
-| ufs_vnodeops 는 inode.h :204 에 extern, nfs_vnodeops 는 선언 없음 | grep | ✅ |
-
-### 160.1 결과와 추가 수정 계획(코딩 전)
-
-- it1: `nfs/nfs.h` 가 `bool_t` 를 써 컴파일 실패 → `<rpc/types.h>` 를 nfs.h 앞에(nfs_export.c 와 같은 순서). it2(`s5p134-it2`): vno_rw·vno_stat 포함 7 MATCH, `vno_bsd_lock` DIFF(진단 13 에서도 같은 차이, 크기가 같아 목록에서 빠졌던 것).
-- 원본 vno_bsd_lock(역어셈블): `priority` 를 [ebp-4] 에 두고 `if ((cmd & LOCK_EX) == 0) priority++` 를 읽기·inc·쓰기·다시 읽기로 수행. 빌드는 상수 0x24 를 바로 저장.
-- 진단 변형(스테이징 사본만 수정): v1 `setjmp` → `set_label`(같은 주소 0x186f88 의 별칭; vno_ioctl 도 바뀌어 더 멀어짐) → 기각. v2 `register int priority` → `volatile int priority` → **OBJECT_MATCH 8/8**(`s5p134-v2`).
-- 수정: 07 vfs_io.c 의 vno_bsd_lock 선언을 `volatile int priority;` 로(작성 표시). 그 뒤 빌드·기록.
-160.1 codex 판정: priority 읽기·inc·쓰기·재읽기(0x11bef0–0x11bef7), sleep 인자 재읽기(0x11bf69) — volatile 과 일치 ✅(내 역어셈블 앞부분 비교, 0x11bf69 확인); set_label/setjmp 같은 주소 ✅(symbols.tsv). 바이트만으로 원래 선언이 정해지지는 않음(가설, 변형 v2 일치가 근거).
-160 결과: it3(`s5p134-it3`) OBJECT_MATCH 8/8(1905 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-vfs_io.md`, `.diff`); SDK `ufs/inode.h`·`nfs/rnode.h` 07 nextdev 채택.
-
-## 161. S5-P135 세부 계획 — `bsd/kern/uipc_usrreq.c` (D024, 코딩 전, 2026-10-02)
-
-사실(원본 [0x118118, 0x118d54); 진단 13 NM 객체와 점프 테이블을 건너뛰는 비교 도구 scratchpad `jtdiff.py`): 16 함수 중 `uipc_usrreq`(1248 / 1232)·`unp_attach`(132 / 104) 가 다르다.
-1. `uipc_usrreq` PRU_SENSE(원본 0x11856e–0x118589): `getthetime(&tv)`(지역 -8, 프레임 +8 B) 뒤 st_atime·st_mtime·st_ctime(+0x18/+0x20/+0x28) 에 `tv.tv_sec` — NeXTMach :260–:262 는 `time.tv_sec` 세 번(계획 143.1·158 과 같은 꼴).
-2. `uipc_usrreq` PRU_ACCEPT: 원본은 주소가 있을 때 m_len 복사 뒤 공유 bcopy 꼬리로 jmp, 빌드는 PRU_PEERADDR 본문으로 통째로 jne(코드 공유 차이). 원본 PEERADDR 에 `m_len = 0` else 없음(Darwin 4.4 형태 아님). 1 을 고친 뒤 빌드 결과로 판단.
-3. `unp_attach`: switch 에 `default:` 가 있어 `error = 0`(xor ebx) 뒤 `panic("unp_attack: bad so_type")`(원본 문자열 0x1db3ec, 오타 그대로); sb_hiwat 검사(Darwin :351) 없음. 시도: `int error = 0;` + `default: panic("unp_attack: bad so_type");`.
-방법: NeXTMach 바탕 + 1·3(작성 표시), 빌드 후 2 판단·반복. 기록.
-
-161 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| PRU_SENSE: getthetime(ebp-8) 뒤 +0x18/+0x20/+0x28 | 내 역어셈블 0x11856e–0x118589 | ✅ |
-| ACCEPT 0x118248: 있으면 m_len 복사 후 공유 bcopy 꼬리 0x1185ad 로 jmp, 없으면 sun_noname; PEERADDR 0x118590 는 자기 검사 뒤 같은 꼬리로; else 없음 | 정규화 비교(161 사실 2), 0x1826f `movw $0x10` | ✅ — 1 수정 뒤 빌드로 판단, 안 되면 goto 시도 |
-| unp_attach default: xor ebx, push 0x1db3ec, panic 0x10ca6c; 문자열 오타 | 내 역어셈블 0x118640–0x118647, 바이트 덤프 | ✅; `int error = 0` 인지 default 안 대입인지는 바이트로 미정 |
-161 결과: it1 uipc_usrreq 일치(ACCEPT 배치는 PRU_SENSE 수정으로 해결 — goto 불필요), unp_attach 128/132(`int error = 0` 은 진입부로 올라감); it2 `default:` 안 `error = 0` → OBJECT_MATCH 16/16(3130 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-uipc_usrreq.md`, `.diff`).
-
-## 162. S5-P136 세부 계획 — `bsd/kern/uipc_mbuf.c` (D024, 코딩 전, 2026-10-02)
-
-사실(원본 [0x113b5c, 0x114b8c), 진단 13 NM 객체, jtdiff): 17 함수 중 `mbinit` 만 다르다(116 / 112). `mcldup` 196/176 은 원본에서 이름 없는 정적 함수(빌드의 `buffree` 19 B, kfree 호출)가 뒤에 붙어 커 보인 것 — 명령 차이 없음. 원본 mbinit(역어셈블 0x113b5c–0x113bce): initcl 계산·splimp 뒤 `ebx = ebx*9 + ebx`(×10)을 두 m_clalloc 호출(MPG_MBUFS 0, MPG_CLUSTERS 1) 모두의 첫 인자로 씀; panic 문자열 "mbinit"(0x1db1cc). NeXTMach :56·:58 은 `initcl`. Darwin `bsd/kern/uipc_mbuf.c`:115 는 `m_clalloc(max(4096/CLBYTES, 1) * 10, …)`(4.4 이후 형태, 구조 참고).
-방법: NeXTMach 바탕, :56·:58 첫 인자를 `initcl * 10` 으로(작성 표시). 빌드·L1·기록.
-162 codex 판정: mbinit ×10 과 두 호출 같은 값(0x113b90–0x113ba7) ✅(내 역어셈블); mcldup 뒤 0x114b78–0x114b8a 이름 없는 정적 함수 = NeXTMach :528 buffree(kfree) ✅(역어셈블·소스 줄 확인).
-162 it1: `vm/vm_param.h` 가 스테이징에 없어 컴파일 실패 → 계획 138·139 와 같은 방식으로 `<mach/vm_param.h>` 로 바꿈(표시).
-162 결과: it2(`s5p136-it2`) OBJECT_MATCH 18/18(4143 B, 정적 buffree 포함). 등급 A 로 기록(`06_reconstruction/evidence/x86-uipc_mbuf.md`, `.diff`).
-
-## 163. S5-P137 세부 계획 — `netinet/tcp_usrreq.c` (D024, 코딩 전, 2026-10-02)
-
-사실(원본 [0x12ac0c, …) objects.tsv seq 89; 진단 13 NM 객체, jtdiff 정규화 비교): 5 함수 중 `tcp_usrreq`(1108 / 1036)·`tcp_attach`(136 / 124) 가 다르다(`tcp_usrclosed` 116/114 는 마지막 함수 끝 패딩).
-1. `tcp_usrreq`: 원본은 `ostate = tp->t_state`(지역 -8) 를 보관하고, `tp = tcp_disconnect/close/usrclosed/drop/timers(…)` 의 반환값을 ebx 에 받으며, PRU_SLOWTIMO 에서 `req |= (int)nam << 8`, 끝에서 `if (tp && (so->so_options & SO_DEBUG)) tcp_trace(TA_USER, ostate, tp, 0, req)`(push 2 = TA_USER). NeXTMach :321–:324 는 이 호출을 `#if DEBUG` 로 감싸 빌드에서 빠지고 ostate·tp 대입이 죽은 코드가 됨. 원본에 `_tcp_trace` 존재(계획 152 에서 tcp_debug.c 를 DEBUG 가드 없이 복원).
-2. `tcp_attach`: soreserve 를 `if (so->so_snd.sb_hiwat == 0 || so->so_rcv.sb_hiwat == 0)`(원본 `cmp word [esi+0x3e]`, `[esi+0x26]`) 안에서만 — Darwin `bsd/netinet/tcp_usrreq.c`:493–:497 과 같은 꼴(구조 참고). NeXTMach :403–:405 는 무조건.
-방법: NeXTMach 바탕, 1 은 `#if DEBUG`/`#endif` 를 없앰(작성 표시, 계획 152 와 같은 판단), 2 는 조건 추가(작성 표시). 빌드·L1·기록.
-
-163 codex 검토 판정(코딩 전):
-| codex 주장 | 내 검증 | 결과 |
-|---|---|---|
-| 끝의 tcp_trace(TA_USER 2, ostate, tp, 0, req), tp·SO_DEBUG 조건(0x12b029–0x12b048) | 역어셈블 같은 구간, 정규화 비교 | ✅ |
-| PRU_SLOWTIMO 의 tp = tcp_timers, req \|= nam << 8 | 정규화 비교의 `shl eax,8; or [ebp+0xc]` | ✅ |
-| tcp_attach: snd(0x3e) → rcv(0x26) hiwat 검사 | 내 Python 배치(sockbuf 0x18, rcv.hiwat 0x26, snd.hiwat 0x3e) | ✅ |
-| 그 밖 의미 차이 없음 | 빌드로 판정 | ⏭️ |
-163 결과: 첫 빌드(`s5p137-it1`) OBJECT_MATCH 5/5(1686 B). 등급 A 로 기록(`06_reconstruction/evidence/x86-tcp_usrreq.md`, `.diff`).
-
-## 164. S5-P138 세부 계획 — `bsd/kern/vfs.c` (D024, 코딩 전, 2026-10-02)
-
-사실(objects.tsv seq 53, 진단 13 NM 객체, 비교 도구 scratchpad `ndiff2.py`/`shapediff.py`): 20 함수 중 `smount`(1344 / 1212)·`vfs_mountroot`(604 / 592) 가 다르다.
-1. `smount`(원본 역어셈블 0x118dbf–0x118e5e): NeXTMach :114–:148 의 검사들 뒤 VROOT 검사(:144)에서, VROOT 이고 M_REMOUNT 가 아니면 EBUSY(그대로); **VROOT 가 아니면** `error = VOP_ACCESS(vp, 0x80 = VWRITE(vnode.h :205), u.u_cred)`(v_op +0x1c = vn_access, vnode.h :88 여덟째) 를 부르고, 0 이 아니면 `VN_RELE(vp)`(vn_rele 0x11df54) 뒤 `u.u_error = error` 하고 반환. NeXTMach 에 없음.
-2. `vfs_mountroot`(원본 0x119538–): 진입부 `xor esi,esi`(`error = 0` 초기화), `if (error)` 안에서 panic 전에 `printf("vfs_mountroot: error=%d\n", error)`(문자열 0x1db48d, _printf 0x10c0d8); NeXTMach :644–:646 은 panic 만.
-방법: NeXTMach 바탕 + 1(VROOT 검사 뒤 `if (!(vp->v_flag & VROOT))` 블록, `error` 지역 추가 — 꼴은 빌드로 확정), 2(`register int error = 0;` 와 printf). 작성 표시. 빌드·L1·기록.
-164 codex 판정: smount VROOT/M_REMOUNT 분기와 비-VROOT 의 VOP_ACCESS(vp, VWRITE, cred) 및 오류 경로(0x118e08–0x118e5e) ✅(내 역어셈블); vnode.h :88 vn_access 여덟째, :205 VWRITE ✅; vfs_mountroot xor esi·printf 문자열 ✅(내 바이트 덤프). 중첩 if 형태를 채택.
-
-### 164.1 it2 결과와 추가 수정 계획(코딩 전)
-
-- it1 `vm/vm_param.h` 컴파일 실패 → `<mach/vm_param.h>`(계획 138·139·162 와 같음). it2(`s5p138-it2`): vfs_mountroot 일치, smount 1280/1344, 객체 unplaced, `__data` 차이(문자열 추가 때문으로 예상).
-- 원본 smount(역어셈블 0x119101–0x1191b2, 호출 목록): (a) 가상 마운트가 아닌 경로(else)에서도 ufs 잠금 검사 **전에** `strncpy(vfsp->vfs_name, pn.pn_path, MAXNAMLEN)`(0x119130–0x11913d, 0xff); (b) 두 경로가 합류한 뒤 `if (vfsp->vfs_name && strncmp(vfsp->vfs_name, "/Net/AppleShare", 15) == 0) vfsp->vfs_flag |= 0x100;`(0x119186–0x1191a1; 문자열 0x1db47d; `lea eax,[esi+0x20]; test eax` 은 배열 주소의 NULL 검사). 0x100 은 SDK vfs.h 에 이름이 없다(VFS_ 정의는 0x80 까지) → 숫자 그대로(작성). NeXTMach :328–:338 의 else 에 strncpy 없음, AppleShare 블록 없음.
-- 수정: (a)·(b) 를 :329 앞·:339 뒤(nosuid 검사 앞)에 작성 표시로 넣고 빌드로 위치 확정.
-164.1 codex 판정: (a) strncpy(0x119130–0x11913d) 가 ufs_vnodeops 비교(0x119148)·ILOCK 루프보다 앞 ✅, (b) AppleShare 블록(0x119186–0x1191a1) 이 vfs_uid 검사(0x1191a8) 앞 ✅ — 내 역어셈블과 같음. codex 의 "파일 오프셋 0x190130" 은 오기(0x19130) ⚖️.
-
-### 164.2 it3 결과와 추가 수정(코딩 전)
-
-- it3(`s5p138-it3`): smount 1336/1344. 남은 차이: 원본 0x119078 `movl $0x0,-0x1c(%ebp)` — 새 마운트(else, NeXTMach :296) 경로 첫머리, pn_get 앞. -0x1c 는 `saved_flag`(원본 0x119067 저장 = NeXTMach :280 `saved_flag = vfsp->vfs_flag`, 0x11925a 복원 = :390).
-- 수정: :296 `} else {` 다음에 `saved_flag = 0;`(작성 표시).
-164.2 codex 판정: -0x1c = saved_flag(0x119067 저장, 0x11925a 복원), 0x118f8b 의 M_REMOUNT 분기가 0x119078 로 — 내 역어셈블(위 출력)과 같음 ✅.
-164 결과: it4(`s5p138-it4`) `__text` 3637 B·`__data` 차이 0, 20 함수 MATCH(2 개는 `__bss` 참조로 MATCH_UNVERIFIED). `__bss` 16 B(static devmap) 는 0x1e58c8 로 참조 추정(`s5p138-zerofill-check-vfs-20261002.json`) → 등급 **P**(`objects_partial.tsv`), known 배치 `zerofill-known-s5p138-20261002.json`(20 항목).
-
-## 165. S5-P139 세부 계획 — `netinet/tcp_subr.c` (D024, 4.3-Reno 형태, 코딩 전, 2026-10-02)
-
-사실(원본 [0x12a434, 0x12a8cc) objects.tsv seq 87; 진단 13 NM 객체, jtdiff/shapediff, 원본 역어셈블): 10 함수 중 tcp_init·tcp_template·tcp_drain·tcp_quench 는 같고 다음이 다르다. 형태는 4.3-Reno(Darwin `bsd/netinet/tcp_subr.c` 4.4 판을 구조 참고, 4.4 고유분은 원본에 없음).
-1. `__data`: 원본 `_tcp_ttl` 0x1dbe8c(60), `_tcp_mssdflt` 0x1dbe90(512 = SDK tcp.h :82 TCP_MSS), `_tcp_rttdflt` 0x1dbe94(3 = TCPTV_SRTTDFLT(6)/PR_SLOWHZ(2)) — NeXTMach :49 는 tcp_ttl 만. Darwin :113–:114 와 같은 정의를 추가.
-2. `tcp_respond`(0x12a504): 인자 `(tp, ti, m, ack, seq, flags)`(m = 셋째, 0x10(%ebp)); `if (m == 0)`(NeXTMach :88 `if (flags == 0)`) 에서 m_get·복사·`flags = TH_ACK`(0x1c(%ebp) 에 0x10); else 에서 `m = dtom(ti)` 없이 m_freem(m->m_next)…; tlen 0(TCP_COMPAT_42 없음); 끝의 `ip_output(m, 0, ro, 0, 0)` 5 인자(0x12a640–0x12a64b; MULTICAST 판의 ip_moptions 자리로 봄).
-3. `tcp_newtcpcb`(0x12a65c): `t_maxseg = tcp_mssdflt`, `t_rttvar = tcp_rttdflt * PR_SLOWHZ << 2`(`shl $3`), `t_rttmin = TCPTV_MIN`(0x64 ← 2), t_rxtcur 0xc(Python ((0>>2)+(6<<2))>>1 = 12), `snd_cwnd = snd_ssthresh = TCP_MAXWIN`(0xffff, tcp.h :84) — NeXTMach 은 TCP_MSS, `TCPTV_SRTTDFLT << 2`, sbspace, 65535.
-4. `tcp_drop`: `if (errno == ETIMEDOUT && tp->t_softerror) errno = tp->t_softerror;`(tcp_var.h :116 short) — Darwin 과 같은 줄.
-5. `tcp_close`: 재조립 큐에서 `m = REASS_MBUF((struct tcpiphdr *)t->ti_prev)`(tcp_var.h :160, +0x14) — NeXTMach `dtom(t->ti_prev)`; soisdisconnected 뒤 `if (inp == tcp_last_inpcb) tcp_last_inpcb = &tcb;`(원본 `_tcp_last_inpcb` 0x1dbe44, SDK 선언 없음 → extern 작성).
-6. `tcp_notify`(0x12a7d8): NeXT 오류 무시 블록 뒤 `((struct tcpcb *)inp->inp_ppcb)->t_softerror = error`(+0x6a, error = so_error, 블록 밖에서 먼저 읽음).
-7. `tcp_ctlinput`(0x12a83c): Reno 형태 `tcp_ctlinput(cmd, sa, ip)`: notify = tcp_notify, PRC_QUENCH(4) 이면 tcp_quench, 아니면 `(unsigned)cmd > PRC_NCMDS(21) || inetctlerrmap[cmd] == 0` 이면 반환; ip 가 있으면 th = ip + ip_hl<<2, `in_pcbnotify(&tcb, sa, th->th_dport, ip->ip_src, th->th_sport, cmd, notify)`, 없으면 `(…, 0, zeroin_addr, 0, cmd, notify)`(_zeroin_addr 0x1eab2c). Darwin 의 PRC_IS_REDIRECT 검사 없음.
-방법: NeXTMach 바탕 + 1–7 작성(표시). 호출 원형은 두지 않음(계획 154 교훈: 암묵 선언 유지). 빌드 반복·L1·기록.
-
-165 codex 검토 판정(코딩 전): 7 항목 모두 원본 주소로 뒷받침(내 역어셈블: tcp_respond 0x12a504–0x12a659, tcp_newtcpcb, tcp_drop 0x12a70a–0x12a71b, tcp_close 0x12a74c–0x12a7a0, tcp_notify, tcp_ctlinput 0x12a83c–0x12a8ad 와 같음) ✅. 변경 없는 4 함수 ✅(진단 13 크기 같음). t_rttvar·t_rxtcur 식의 꼴과 ip_output 다섯째 인자 이름은 바이트로 미정 — Darwin/Reno 식을 쓴다.
-165 결과: 첫 빌드(`s5p139-it1`) OBJECT_MATCH 10/10(1173 B, `__data` 일치). 등급 A 로 기록(`06_reconstruction/evidence/x86-tcp_subr.md`, `.diff`).
-
-## 166. S5-P140 세부 계획 — `netinet/in_pcb.c` (D024, 4.3-Reno + MULTICAST 1.0 형태, 코딩 전, 2026-10-02)
-
-사실(원본 [0x124e10, 0x125554) objects.tsv seq 79; 진단 13 NM 객체, shapediff, 원본 역어셈블; Reno 원문은 참고 자료에 없음 → 원본 바이트로 작성, Darwin `bsd/netinet/in_pcb.c`(4.4) 는 구조 참고): 11 함수 중 in_pcbbind·disconnect·setsockaddr·setpeeraddr·losing·rtchange 는 같고 다음이 다르다.
-1. `insque`/`remque` 가 원본에서 인라인(in_pcballoc, in_pcbdetach) — 07 `kern/queue.h`:201·:213 의 인라인 함수와 같은 꼴(tcp_subr.c 는 이 헤더를 가져와 tcp_close 의 remque 가 인라인). → `#import <kern/queue.h>` 추가.
-2. `in_pcbconnect`: (a) 진입부 `xor ebx,ebx` → `struct sockaddr_in *ifaddr = 0;`; (b) `if (ia == 0) {…}` 블록 뒤(0x125143–0x125182) MULTICAST 블록 — `IN_MULTICAST(ntohl(sin->sin_addr.s_addr)) && inp->inp_moptions` 이면 `imo = mtod(inp->inp_moptions, struct ip_moptions *)`(SDK in_pcb.h :40 `struct mbuf *inp_moptions`), `imo->imo_multicast_ifp`(ip_var.h :92) 가 있으면 in_ifaddr(0x1eaa60) 에서 ia_ifp 가 같은 ia 를 찾고 없으면 EADDRNOTAVAIL(49) — Darwin :444 이하와 같은 구조(Darwin 은 mtod 없음); (c) in_pcblookup 뒤(0x1251cc–0x1251fd) `if ((inp->inp_socket->so_proto->pr_flags & PR_CONNREQUIRED) && sin->sin_port == inp->inp_lport && (inp->inp_laddr.s_addr ? inp->inp_laddr.s_addr : ifaddr->sin_addr.s_addr) == sin->sin_addr.s_addr) return (ECONNREFUSED);`(61) — 참고 원문에 없음, 작성.
-3. `in_pcbdetach`: rtfree 뒤 remque 앞 `ip_freemoptions(inp->inp_moptions)`(0x128190, MULTICAST).
-4. `in_pcbnotify(head, dst, fport, laddr, lport, cmd, notify)`(0x125340): cmd > PRC_NCMDS 또는 dst 가 AF_INET 아님 또는 faddr ANY 면 반환; `PRC_IS_REDIRECT(cmd) || cmd == PRC_HOSTDEAD || cmd == PRC_ROUTEDEAD` 면 fport·lport·laddr 0, `cmd != PRC_HOSTDEAD` 면 notify = in_rtchange; errno = inetctlerrmap[cmd]; 루프(faddr·socket·lport·laddr·fport 검사) 에서 `if (errno) oinp->inp_socket->so_error = errno; if (notify) (*notify)(oinp);`(인자 1 개) — Reno 형태, Darwin 의 `(*notify)(oinp, errno)` 아님, PRC_ROUTEDEAD 추가는 원본 고유.
-5. `in_pcblookup`: faddr 비교 쪽에서 `inp->inp_fport != fport || IN_MULTICAST(ntohl(inp->inp_faddr.s_addr)) || inp->inp_faddr.s_addr != faddr.s_addr` 이면 continue(0x1254f4–0x125511 순서) — multicast 제외는 원본 고유.
-방법: NeXTMach 바탕 + 1–5 작성(표시). 빌드 반복·L1·기록.
+## 보관된 세부 계획 색인 (§11–373)
+
+§11–244 는 절 번호·내용을 바꾸지 않고 `02_plan/plans/` 의 보관 파일 세 개로 옮겼다(2026-10-03, 사용자 결정 D026). §245–320 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-245-320.md` 로 옮겼다(2026-10-05, 사용자 지시 “완료된 작업은 완료 문서로 분리”). 기존 인용 "RECONSTRUCTION_PLAN.md N"(N = 11–244)은 아래 색인의 보관 파일에서 같은 번호 절을 찾는다. §321–373 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-321-373.md` 로 옮겼다(2026-10-07, 사용자 지시 “완료된 작업은 완료 문서로 분리해도 됩니다”; 이 묶음 안의 진단 메모 §341·365·369·371 도 함께 옮김 — 이어지는 진단은 §374). §374 부터는 이 파일 끝에 이어 쓴다. 옮김 검증: 보관 파일 본문을 이어 붙이면 원래 줄과 같음(Python, 아래 숫자).
+
+- §11 S1-A 세부 계획 — 빌드 왕복과 툴체인 probe (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §12 S1-B 세부 계획 — L1·L1d 비교 도구 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §13 S1-C 세부 계획 — 컴파일 옵션 표본 시험 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §14 S1-D 세부 계획 — Objective-C 목적 파일 대조 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §15 S2-A 세부 계획 — 목적 파일 경계와 링크 순서 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §16 S2-B 세부 계획 — 함수 단위 후보 대응 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §17 S5-P1 세부 계획 — 첫 시범 파일 `memcmp.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §18 S5-P2 세부 계획 — `kern_machdep.c` 와 첫 헤더 환경 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §19 S5-P3 세부 계획 — "복원 수정" 규칙과 첫 적용 `kern_machdep.c` (코딩 전, 2026-10-01, **사용자 결정 대기**) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §20 S5-P4 세부 계획 — `pagesize.c` 와 Mach 커널 헤더 확장 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §21 S4-A 사전 조사 — 설정 옵션과 생성 헤더 (조사만, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §22 S4-A1 세부 계획 — 공통 Mach 헤더가 요구하는 설정 옵션 6 개와 생성 헤더 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §23 S4-A2 세부 계획 — 미정의로 남은 설정 옵션 9 개 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §24 S4-B 세부 계획 — 헤더 판 차이: 구조체 배치 복원, 시범 `struct vm_object` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §25 S4-B2 세부 계획 — `struct thread` 배치 복원 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §26 S2-C 세부 계획 — 후보 소스 선택: Darwin 0.1 대 NeXTMach (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §27 S2-D 세부 계획 — 정의 파서(조건부 함수 머리)·결정성 수정과 재실행 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §28 S5-P5 세부 계획 — `vm_pager.c`: Darwin 바탕 + NeXTMach 구조 복원 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §29 S5-P6 세부 계획 — `ipc/ipc_thread.c`(Darwin 단일 후보) 와 스테이징 개선 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §30 S5-P7 세부 계획 — libc `memcpy.c`·`memmove.c` 의 `bcopy` 위치 복원 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §31 S5-P8 세부 계획 — libc `memchr.c`(그대로)·`memset.c`(뒷부분 삭제) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §32 S5-P9 세부 계획 — libc 두 번째 묶음 11 파일(`-O4 -funroll-all-loops`) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §33 S5-P10 세부 계획 — `kern/timer.c`(옵션 `STAT_TIME`·`NCPUS` 확정 시험) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §34 S4-C 조사와 S5-P11 세부 계획 — BSD 헤더 공백의 범위, `kern/mach_factor.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §35 S5-P12 세부 계획 — `ipc/ipc_table.c`(데이터 값 복원) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §36 S1-E 세부 계획 — `__common`(zero-fill) 의 심볼별 검증 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §37 S5-P13 세부 계획 — `kern/host.c`(`MACH_HOST` 확정 시험) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §38 S5-P14 세부 계획 — `kern/priority.c` `_thread_quantum_update` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §39 S5-P15 세부 계획 — `vm/vm_init.c` `_vm_mem_init` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §40 S4-C 사실 조사(2026-10-01) — 결정 없음, 기록만 → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §41 S5-P16 세부 계획 — machdep/i386 작은 세 파일 `bios.c`, `checksum_16.c`, `ldt.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §42 S5-P17 세부 계획 — `machdep/i386/gdt.c`, `idt.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §43 S5-P18 세부 계획 — `machdep/i386/dma_buf.c`, `dbl_fault.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §44 S5-P19 세부 계획 — `vm/vm_mem_region.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §45 S5-P20 세부 계획 — `kern/thread_swap.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §46 S1-F 세부 계획 — 정적 zero-fill 의 참조 기반 배치 판정, 참조 없는 영역의 등급 처리; S5-P21 `intr.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §47 S5-P22 세부 계획 — IPC 네 파일 `ipc_space.c`, `ipc_hash.c`, `ipc_pset.c` (+ `ipc_object.h`), `ipc_sched.c` 보류 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §48 새 코드 작성 규칙(D016)과 첫 적용 — `kern/time_stamp.c`, `kern/ipc_sched.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §49 S5-P24 세부 계획 — 일괄 진단 결과, `kern/lock.c`·`ipc/ipc_splay.c` 확정 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §50 S4-B3 세부 계획 — `struct task` 배치 복원(24 절 방법) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §51 S5-P25 세부 계획 — `kernserv/kern_notify.c` 를 P 로 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §52 S5-P26 세부 계획 — `ipc/ipc_marequest.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §53 S5-P27 세부 계획 — `ipc/ipc_object.c` + `ipc_entry.h`·`ipc_port.h` 원형 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §54 S5-P28 세부 계획 — `ipc/ipc_entry.c` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §55 S5-P29 세부 계획 — `ipc/ipc_port.c` + `ipc_port.h`·`ipc_kmsg.h` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §56 S5-P30 세부 계획 — `ipc/ipc_notify.c`·`mach/notify.h` 를 Mach4 판으로 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §57 S5-P31 세부 계획 — `ipc/ipc_right.c` = Mach4 판 + Darwin 의 `ipc_hash_delete` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §58 S5-P32 세부 계획 — `ipc/mach_port.c` + `mach/port.h` + 옵션 `MACH_OLD_VM_COPY` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §59 S5-P33 세부 계획 — `ipc/mach_debug.c` = Darwin 판 + 크기 변수 0 초기화 4 곳(작성, D016) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §60 S5-P34 세부 계획 — `kern/ipc_tt.c` = Darwin 판에서 `retrieve_task_self`·`retrieve_thread_self` 삭제 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §61 S5-P35 세부 계획 — `kern/kalloc.c` = Darwin 판 + NeXTMach malloc 계열 + 작성 3 곳(D016) (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §62 S5-P36 세부 계획 — `kern/ipc_xxx.c` = Darwin 판에서 나중 추가분 제거 + `suser()` (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §63 S5-P37 세부 계획 — `vm/vm_user.c` = Darwin 판에서 `vm_reallocate`·`vm_wire` 삭제 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §64 S5-P38 세부 계획 — `machdep/i386/pc_support/PCinit.c`·`machdep/i386/fault_copy.c` 를 Darwin 판 그대로 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §65 S5-P39 세부 계획 — `kern/processor.c` 를 Darwin 판 그대로 채택(36.1 common 절차) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §66 S5-P40 세부 계획 — `machdep/i386/pc_support/PCresume.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §67 S5-P41 세부 계획 — 옵션 `MACH_KDB`·`NORMA_ETHER` 추가와 `kern/machine.c` 원문 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §68 S5-P42 세부 계획 — `machdep/i386/miniMonMachdep.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §69 S5-P43 세부 계획 — `pc_support/PCemulateREAL.c`·`PCemulatePROT.c` 를 Darwin 판 그대로 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §70 S5-P44 세부 계획 — `machdep/i386/dma.c` 를 Darwin 판 그대로 채택(등급 P) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §71 S5-P45 세부 계획 — `l1_compare.py` 의 크기 0 섹션 처리 수정 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §72 S5-P46 세부 계획 — 기록 정합성 점검, `07_kernel/README.md` 정정, 64 객체 최종 회귀 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §73 S5-P47 세부 계획 — D018(S4-C 안 B) 1 단계: 실기 헤더 확인·기록과 스테이징 루트 추가(선택 플래그) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §74 S5-P48 세부 계획 — `vm/vm_synchronize.c` 채택과 첫 NeXT 헤더 채택(D018) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §75 S5-P49 세부 계획 — `kern/timer.c`(A)·`machdep/i386/vm_machdep.c`(P) 를 Darwin 판 그대로 채택(`--nextdev`) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §76 S5-P50 세부 계획 — 옵션 `PC_SUPPORT`·`FP_EMUL`·`MACH_NBC` 추가, 67 객체 회귀, `machdep/i386/catch.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §77 S5-P51 세부 계획 — `machdep/i386/fp_support.c` 채택(등급 P)과 `FP_EMUL=0` 확정 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §78 S5-P52 세부 계획 — 첫 BSD 쪽 일괄 진단과 `bsd/libkern/strtol.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §79 S5-P53 세부 계획 — BSD 쪽 기준 판 조사: 구조체 비교 도구(NeXT SDK·NeXTMach·Darwin) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §80 S5-P54 세부 계획 — `machdep/i386/kdp_machdep.c` = Darwin 판 + 래퍼 2 개 작성(D016) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §81 S5-P55 세부 계획 — 옵션 `UXPR`·`XPR_DEBUG` 추가, Darwin `driverkit-1` 헤더 루트 추가, 70 객체 회귀 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §82 S5-P56 세부 계획 — `driverkit/ddm.c` 채택(등급 P) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §83 S5-P57 세부 계획 — D020(BSD 기준 = NeXTMach) 적용 1 단계: `stage_headers.py --bsd-next` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §84 S5-P58 세부 계획 — D019 를 `zerofill_check.py` 에 반영하고 `kern/kalloc.c`(61 절 보류분) 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §85 S5-P59 세부 계획 — `vm/vm_object.c` 진단(옵션 `NORMA_VM`·`MACH_PAGEMAP` 헤더) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §86 S5-P60 세부 계획 — MIG 생성 헤더 `mach/memory_object_user.h`·`mach/memory_object_default.h` 를 게스트 `mig` 로 만들고 vm_object 재진단 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §87 S5-P61 세부 계획 — SDK 판 `.defs` + `mig -newipc` 로 MIG 헤더 생성, vm_object 탐침 2 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §88 S5-P62 세부 계획 — vm_object.c 복원 수정(탐침 3) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §89 S5-P63 세부 계획 — vm_object 탐침 4: `vm_object_deactivate_pages` NeXTMach 본문, `vm_object_name` 작성 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §90 S5-P64 세부 계획 — `vm/vm_object.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §91 S5-P65 세부 계획 — vm/ 미채택 7 파일 일괄 진단(채택 없음) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §92 S5-P66 세부 계획 — `vm/vm_policy.c` 채택(Darwin 그대로) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §93 S5-P67 세부 계획 — `vm/vm_fault.c` 탐침(복원 수정 1 곳) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §94 S5-P68 세부 계획 — `vm/vm_fault.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §95 S5-P69 세부 계획 — `vm/vm_resident.c` 탐침(복원 수정 2 곳) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §96 S5-P70 세부 계획 — vm_resident 탐침 2 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §97 S5-P71 세부 계획 — `vm/vm_resident.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §98 S5-P72 세부 계획 — `vm/vm_pageout.c` 탐침 1: `vm_pageout()` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §99 S5-P73 세부 계획 — `vm_pageout_scan` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
+- §100 S5-P74 세부 계획 — vm_pageout 탐침 4 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §101 S5-P75 세부 계획 — `vm/vm_pageout.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §102 S5-P76 세부 계획 — vm_kern 판단 보류, kern/ 미채택 파일 일괄 진단(채택 없음) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §103 S5-P77 세부 계획 — `kern/syscall_sw.c` 탐침(트랩 표 4 항목) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §104 S5-P78 세부 계획 — `kern/syscall_sw.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §105 S5-P79 세부 계획 — `kern/task.c` 탐침 1 (u-area 복원) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §106 S5-P80 세부 계획 — `kern/task.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §107 S5-P81 세부 계획 — `kern/mach_header.c` 탐침 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §108 S5-P82 세부 계획 — `l1_compare.py --define-symbol` (링커 정의 심볼) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §109 S5-P83 세부 계획 — `kern/mach_header.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §110 S5-P84 세부 계획 — `kern/mach_init.c` 탐침 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §111 S5-P85 세부 계획 — `kern/mach_init.c` 채택(MACH_NET·SDK version.h 포함) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §112 S5-P86 세부 계획 — 옵션 `MACH_DEBUG`·`HW_FOOTPRINT`·`NORMA_IPC` 진단 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §113 S5-P87 세부 계획 — `kern/kernel_stack.c` 탐침(스택 크기) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §114 S5-P88 세부 계획 — `kern/kernel_stack.c` 채택(MACH_DEBUG·KERNSTACK_SIZE) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §115 S5-P89 세부 계획 — thread·sched_prim 진단 2 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §116 S5-P90 세부 계획 — thread.c·sched_prim.c 탐침 1 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §117 S5-P91 세부 계획 — thread·sched_prim 탐침 2 (SIMPLE_CLOCK 0 + NeXTMach 줄) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §118 S5-P92 세부 계획 — thread 탐침 3 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §119 S5-P93 세부 계획 — `kern/thread.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §120 S5-P94 세부 계획 — sched_prim 탐침 2 (Mach4 타이머 형태) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §121 탐침 3 편집(스테이징만, D014 R1·R2, Mach4 출처) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §122 탐침 4 편집(스테이징만) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §123 통제 탐침 (스테이징 = 탐침 4 + S10) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §124 S5-P98 세부 계획 — `-g` 회귀와 thread_select 변형 2 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §125 S5-P99 세부 계획 — `kern/sched_prim.c` 채택과 표준 플래그에 `-g` 반영 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §126 S5-P100 세부 계획 — `-g` + 현재 config 로 미채택 후보 일괄 재진단(채택 없음) (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §127 S5-P101 세부 계획 — vm_map 탐침 1 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §128 vm_map 탐침 2 편집(스테이징만, NeXTMach D013/D014) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §129 S5-P103 세부 계획 — `vm/vm_map.c` 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §130 현황과 사용자 판단 요청 (2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §131 S5-P104 세부 계획 — D021(BSD 헤더 묶음 교체) 1 단계: 설계와 실현성 진단 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §132 S5-P106 세부 계획 — D021 2 단계: 실패 3 원인 수정과 잠정 정의 처리 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §133 S5-P107 세부 계획 — D021 3 단계: 07 반영(BSD 헤더 묶음 교체)과 최종 플래그 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §134 S5-P108 세부 계획 — D022(비-BSD 헤더 SDK 교체, Mach 내부는 Mach4 기본 참고) 1 단계 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §135 S5-P109 세부 계획 — D022 SDK 63 개 07 반영 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §136 S5-P110 세부 계획 — D023: 공개판 7 개의 비공개 분기 작성 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §137 S5-P111 세부 계획 — Mach4 기본 참고로 미복원 Mach 객체 후보 진단 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §138 S5-P112 세부 계획 — queue(A 후보)·syscall_subr(Darwin + NeXTMach `map_fd`) 채택 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §139 S5-P113 세부 계획 — NeXTMach `kern/mfs_prim.c` 복원 (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §140 S5-P114 세부 계획 — NeXTMach 후보 일괄 진단 (BSD 계층 포함, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §141 S5-P115 세부 계획 — 근접 4 객체(af·netbuf·rpc_prot·rpc_callmsg)와 `-DINET`, 작성판 `rpc/types.h` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §142 S5-P116 — 진단 9 결과와 3 객체 채택(140.4 와 같은 절차, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §144 S5-P118 — SDK 에 없는 i386 BSD 비공개 헤더 (2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §145 S5-P119 세부 계획 — `bsd/kern_time.c` 복원 (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §146 S5-P120 — `bsd/kern_subr.c`(2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §148 S5-P122 — `bsd/subr_xxx.c` (2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §149 S5-P123 세부 계획 — 명령행 `-DMACH` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §150 S5-P124 세부 계획 — 명령행 `-DMULTICAST` 와 `net/raw_cb.c` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §151 S5-P125 세부 계획 — `netinet/tcp_timer.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §152 S5-P126 세부 계획 — `netinet/tcp_debug.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §153 S5-P127 세부 계획 초안 — `net/netif.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §154 S5-P128 세부 계획 — `net/netisr.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §155 S5-P129 세부 계획 — 명령행 `-DPOSIX_KERN` 과 `kern/sys_socket.c` (코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §156 S5-P130 세부 계획 초안 — `bsd/kern/tty_tty.c` (D024, `-DPOSIX_KERN` 전제, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §157 S5-P131 세부 계획 — `bsd/kern/vfs_pathname.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §158 S5-P132 세부 계획 — `bsd/rpc/auth_kern.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §159 S5-P133 세부 계획 — `bsd/kern/vfs_vnode.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §160 S5-P134 세부 계획 — `bsd/kern/vfs_io.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §161 S5-P135 세부 계획 — `bsd/kern/uipc_usrreq.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §162 S5-P136 세부 계획 — `bsd/kern/uipc_mbuf.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §163 S5-P137 세부 계획 — `netinet/tcp_usrreq.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §164 S5-P138 세부 계획 — `bsd/kern/vfs.c` (D024, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §165 S5-P139 세부 계획 — `netinet/tcp_subr.c` (D024, 4.3-Reno 형태, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §166 S5-P140 세부 계획 — `netinet/in_pcb.c` (D024, 4.3-Reno + MULTICAST 1.0 형태, 코딩 전, 2026-10-02) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §167 사용자 공간 libsys(libc·cthreads) 분석 준비 — 원본 수집 계획 (2026-10-02, 사용자 지시) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §168 S5-P141 세부 계획 — `netinet/raw_ip.c` (D024, MULTICAST 1.0 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §169 S5-P142 세부 계획 — `netinet/udp_usrreq.c` (D024, 4.3-Reno + MULTICAST 1.0 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §170 S5-P143 세부 계획 — `netinet/ip_icmp.c` (D024, Reno + MULTICAST 1.0 + NeXT 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §171 S5-P144 세부 계획 — `netinet/in.c` (D024, MULTICAST 1.0 + NeXT 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §172 S5-P145 세부 계획 — `net/if.c` (D024, Reno + MULTICAST 1.0 + NeXT 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §173 S5-P146 세부 계획 — `netinet/if_ether.c` (D024, NeXTMach + MULTICAST 1.0 + NeXT 정렬 복사 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §174 S5-P147 세부 계획 — `netinet/tcp_output.c` (D024, 4.3-Reno + MULTICAST 1.0 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §175 S5-P148 세부 계획 — `netinet/ip_output.c` (D024, MULTICAST 1.x(4.3, mbuf 보관) + NeXT netbuf 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §176 S5-P149 세부 계획 — `net/if_venip.c` (D024, NeXT MULTICAST 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §177 S5-P150 세부 계획 — `bsd/vfs_lookup.c` (D024, NeXT POSIX 경로 처리, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §178 S5-P151 세부 계획 — `ufs/ufs_bmap.c` (D024, NeXT i386 빅엔디언 UFS 간접 블록, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §179 S5-P152 세부 계획 — `bsd/vfs_syscalls.c` (D024, NeXT POSIX 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §180 S5-P153 세부 계획 — `bsd/uipc_syscalls.c` (D024, NeXT u_ofile 등록·POSIX pipe 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §181 S5-P154 세부 계획 — `bsd/subr_log.c` (D024, NeXT callout·스레드 select 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §182 S5-P155 세부 계획 — `bsd/sys_generic.c` (D024, NeXT continuation select·스레드 캐시 형태, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §183 S5-P156 세부 계획 — `bsd/tty_subr.c` (D024, 4.3-Reno 꼴 quote 비트 cblock, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §184 S5-P157 세부 계획 — `bsd/vfs_dnlc.c` (D024, 인라인 큐 조작·NeXT 심볼릭 링크 캐시 수정, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §185 S5-P158 세부 계획 — `nfs/nfs_xdr.c` (D024, 정적 XDR 보조 루틴, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §186 S5-P159 세부 계획 — `nfs/nfs_subr.c` (D024, 정적 보조 함수·NeXT 수정, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §187 S5-P160 세부 계획 — `bsd/uipc_socket2.c` (D024, 스레드 select 캐시, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §188 S5-P161 세부 계획 — `specfs/fifo_vnodeops.c` (D024, 스레드 select 캐시·vn_devblocksize, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §189 S5-P162 세부 계획 — `bsd/kern/tty_pty.c` (D024, pty 표 지연 할당·스레드 select 캐시·POSIX, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §190 S5-P163 세부 계획 — `bsd/rpc/pmap_kgetport.c`·`bsd/rpc/pmap_prot.c` (커널용 `rpc/pmap_prot.h`, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §191 S5-P164 세부 계획 — `bsd/rpc/clnt_kudp.c` (D024, cred 참조 계수·getthetime, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §192 S5-P165 세부 계획 — `bsd/rpc/svc.c` (커널용 `rpc/svc.h`, 기록 객체 6 개 회귀 확인, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §193 S5-P166 세부 계획 — `bsd/nfs/nfs_common.c` (D024, NFSTSIZE·-1 uid/gid, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §194 S5-P167 세부 계획 — `bsd/kern/vfs_xxx.c` (D024, ustat 블록 단위 상수, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §195 S5-P168 세부 계획 — `bsd/kern/kern_xxx.c` (D024, RB_COMMAND·command 초기화, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §196 S5-P169 세부 계획 — `bsd/kern/mach_signal.c` (thread 의 uthread 필드 이름, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §197 S5-P170 세부 계획 — `bsd/kern/mach_process.c` (import 경로·`_uthread`, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §198 S5-P171 세부 계획 — `kern/ast.c` (D024, NeXTMach 기준 + Mach 3 식 ast_on, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §199 S5-P172 세부 계획 — `bsd/nfs/nfs_client.c` (D024, flag 인자·getthetime·NBC 크기, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-100-199.md](plans/RECONSTRUCTION_PLAN-100-199.md)
+- §200 S5-P173 세부 계획 — `bsd/kern/kern_mman.c` (import·vm_map_entry 필드 이름, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §201 S5-P174 세부 계획 — `bsd/kern/kern_resource.c` (import·사용자 스택 주소, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §202 S5-P175 세부 계획 — `bsd/kern/kern_fork.c` (D024, POSIX 프로세스·u 영역 zone, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §203 S5-P176 세부 계획 — `bsd/kern/cmu_syscalls.c` (D024, table() 의 NeXT 변경, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §204 S5-P177 세부 계획 — `bsd/kern/kern_descrip.c` (D024, FPINPROGRESS 예약·재검사·POSIX 잠금, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §205 S5-P178 세부 계획 — `bsd/kern/kern_synch.c` (D024, continuation sleep, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §206 S5-P179 세부 계획 — `bsd/ufs/ufs_dsort.c` (고전 disksort·thread NULL 검사, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §207 S5-P180 세부 계획 — `bsd/ufs/ufs_subr.c` (bufstats 가변 배열·update getthetime, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §208 S5-P181 세부 계획 — `bsd/vfs/vfs_bio.c` (D024, vn_devblocksize·brelvp_wakeup·btrash, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §209 S5-P182 세부 계획 — `bsd/kern/uipc_socket.c` (mach/exception.h·POSIX EAGAIN·selthreadclear, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §210 보류 메모 — `bsd/kern/kern_exec.c` (분석만, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §211 S5-P185 세부 계획 — `bsd/kern/kern_proc.c` (D024, POSIX 프로세스 그룹·세션·posix_proc, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §212 S5-P186 세부 계획 — `bsd/kern/kern_prot.c` (D024, *_from_thread·POSIX setuid/setgid·setsid/setpgid, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §213 S5-P187 세부 계획 — `bsd/kern/kern_exit.c` (D024, continuation wait·waitpgrp·POSIX 세션, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §214 S5-P190 세부 계획 — `bsd/ufs/ufs_alloc.c` (D024, 실린더 그룹 byte swap·btodb 2 인자, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §215 S5-P191 세부 계획 — `bsd/ufs/ufs_inode.c` (D024, inode byte swap·inode_cache_clear·btodb 2 인자, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §216 S5-P194 세부 계획 — `bsd/ufs/ufs_vfsops.c` (D024, superblock byte swap·장치 블록 크기, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §217 S5-P195 세부 계획 — `bsd/ufs/ufs_vnodeops.c` (D024, 장치 블록 크기·POSIX·디렉터리 byte swap, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §218 S5-P196 세부 계획 — `bsd/ufs/ufs_dir.c` (D024, 디렉터리 블록 byte swap, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §219 S5-P197 세부 계획 — `uxkern/ux_exception.c` (D024 전면 작성, Mach 3 호환 포트 API, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §220 S5-P198 세부 계획 — `bsd/kern/subr_prf.c` (D024, stdarg·vlog·_printf, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §221 S5-P199 세부 계획 — `vm/vm_unix.c` (D024, Mach 3 u 영역·gc_control, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §222 S5-P202 세부 계획 — `bsd/specfs/spec_vfsops.c` (NeXTMach 원문 그대로, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §223 S5-P201 세부 계획 — `bsd/specfs/spec_vnodeops.c` (D024, set_blocksize·s_size 블록 크기·getthetime, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §224 S5-P203 세부 계획 — `bsd/specfs/spec_subr.c` (D024, set_blocksize, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §225 S5-P204 세부 계획 — `bsd/netinet/ip_input.c` (D024, MULTICAST·bootp.h·icmp_error 5 인자, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §226 S5-P206 세부 계획 — `rpc/bootparam_xdr.c`·`rpc/mountxdr.c`·`net/if_loop.c` (D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §227 S5-P207 세부 계획 — `next/ufs_machdep.c`·`next/dkbad.c` (NeXTMach 그대로, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §228 S5-P208 세부 계획 — physio·physstrat 객체 `bsd/kern/kern_physio.c` (NeXTMach 두 파일 조합, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §229 S5-P212 세부 계획 — boot·unmount_all·kill_tasks·proc_shutdown·fd_shutdown 객체 `bsd/kern/kern_shutdown.c` (NeXTMach 두 파일 조합 + 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §230 S5-P214 세부 계획 — core() 객체 `bsd/kern/kern_core.c` (NeXTMach kern_sig.c 의 core + 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §231 S5-P215 세부 계획 — kern_sig 본체 `bsd/kern/kern_sig.c` (NeXTMach + POSIX·4.2 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §232 S5-P216 세부 계획 — `bsd/kern/init_main.c` (NeXTMach + main·init_task·lightning_bolt 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §233 S5-P218 세부 계획 — `bsd/kern/kern_clock.c` (NeXTMach + 4.2 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §234 S5-P219 세부 계획 — 나노초 타이머 객체 `kern/ns_timer.c` (전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §235 S5-P220 세부 계획 — `kern/mach_clock.c` (Mach4 + 4.2 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §236 S5-P221 세부 계획 — `rpc/pmap_krmt.c` (NeXTMach, pmap_krmtcall 제거, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §237 S5-P222 세부 계획 — uname 객체 `bsd/kern/kern_uname.c` (전면 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §238 S5-P223 세부 계획 — `kern/power.c` (전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §239 S5-P224 세부 계획 — `kern/miniMon.c` (전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §240 S5-P225 세부 계획 — i386 시스템 시계 `machdep/i386/machine_clock.c` (전면 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §241 S5-P226 세부 계획 — i386 `machdep/i386/machdep.c` (작성 + NeXTMach addupc, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §242 S5-P227 세부 계획 — `vm/vnode_pager.c` (NeXTMach 원문 + 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §243 S5-P228 세부 계획 — `vm/vm_kern.c` (NeXTMach 원문 + Mach4 copyinmap + 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §244 S5-P229 세부 계획 — i386 `machdep/i386/io_prim.c` (전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-200-244.md](plans/RECONSTRUCTION_PLAN-200-244.md)
+- §245 S5-P230 세부 계획 — `bsd/kern/tty.c` (NeXTMach 원문 + POSIX termios 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §246 S5-P231 세부 계획 — i386 `bsd/dev/i386/mem.c`(/dev/mem·kmem·null; 전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §247 S5-P232 세부 계획 — i386 `machdep/i386/in_cksum.c` (전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §248 S5-P233 세부 계획 — i386 `machdep/i386/i386_init.c` (전면 작성 + getargs 계열, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §249 S5-P234 세부 계획 — i386 `machdep/i386/pc_support/PCtimers.c` (전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §250 S5-P235 세부 계획 — `bsd/netinet/ip_mroute.c` 멀티캐스트 라우팅 없는 판(스텁 3 개, 전면 작성, D024, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §251 S5-P236 세부 계획 — `bsd/netinet/igmp.c` (MULTICAST 1.x 꼴, 전면 작성, D024, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §252 S5-P237 세부 계획 — i386 `machdep/i386/pc_support/PCexception.c` (전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §253 S5-P238 — machine_clock.c 재시도(plan 240 작업본 it8, 2026-10-03) — 보류 유지 → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §254 S5-P239 세부 계획 — i386 `machdep/i386/APM_i386.c` (전원 관리 PM*, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §255 S5-P240 세부 계획 — i386 `machdep/i386/bios_asm.s`(`__bios32`, 첫 어셈블리 소스, 전면 작성, D024·D027, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §256 S5-P241 세부 계획 — `kern/callout.c`(callout 계열 14 기호, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §257 S5-P242 세부 계획 — `kern/kdp.c`(원격 디버거 프로토콜 + UDP, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §258 S5-P243 세부 계획 — i386 `machdep/i386/unix_signal.c` (sendsig·sigreturn·machine_exception, 작성 + NeXTMach 신호 로직, D024·D013, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §259 S5-P244 세부 계획 — i386 `machdep/i386/unix_startup.c` (startup_early·startup, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-03) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §260 S5-P246 세부 계획 — `kern/mach_fat.c`(fatfile_getarch, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §261 S5-P247 세부 계획 — `kern/mach_net.c`(IP 데이터그램의 Mach 메시지 전달, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §262 S5-P248 세부 계획 — `kern/mach_loader.c`(Mach-O 적재, 전면 작성, D024·D027, Darwin 은 구조만, 코딩 전, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §263 S5-P249 세부 계획 — `kern/exception.c`(Mach4 원문 + 바이트가 요구하는 수정) 와 `ipc/ipc_mqueue.h` 원형 복원(코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §264 S5-P250 세부 계획 — `kern/ipc_kobject.c`(Mach4 원문 + 바이트가 요구하는 수정, 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §265 S5-P251 세부 계획 — `kern/ipc_mig.c`(Mach4 원문 + 구 IPC 진입점 작성) 와 `ipc/ipc_kmsg.h` 원형 2 개 복원(코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §266 S5-P252 세부 계획 — `ipc/ipc_mqueue.c`(Mach4 원문 + 바이트가 요구하는 수정, 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §267 S5-P253 세부 계획 — `ipc/ipc_init.c`(Mach4 원문 + 바이트가 요구하는 수정, 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §268 S5-P254 세부 계획 — `ipc/mach_msg.c`(Mach4 원문 + 바이트가 요구하는 수정) 와 `ipc/ipc_kmsg.h` 원형 2 개 복원(코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §269 S5-P256 세부 계획 — `ipc/ipc_kmsg.c`(Mach4 원문 + MACH_OLD_VM_COPY 등 바이트가 요구하는 수정) 와 `ipc/ipc_kmsg.h` ipc_kmsg_copyout_body 원형 복원(코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §270 S5-P260 세부 계획 — `bsd/kern/qsort.c`(참조 원문 없음, 원본 바이트로 작성 D024; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §271 S5-P261 세부 계획 — `bsd/ufs/ufs_byte_order.c`(참조 원문 없음, 원본 바이트로 작성 D024; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §272 S5-P262 세부 계획 — `machdep/i386/sys_machdep.c`(NeXTMach next/sys_machdep.c + resuba; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §273 S5-P263 세부 계획 — `machdep/i386/trap.c`(원본 바이트로 작성 D024, Darwin 구조·NeXTMach u 영역 관용구) 와 Darwin `machdep/i386/machdep_call.h` 채택(코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §274 S5-P264 세부 계획 — `machdep/i386/pcb.c`(D024·D027: 바이트가 요구하는 문장 = Darwin 0.1 pcb.c 의 문장; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §275 진행 메모 — `machdep/i386/pmap.c`(D029: Darwin 0.1 바탕 + 수정; 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §276 S5-P266 세부 계획 — `machdep/i386/cons.c`(NeXTMach next/cons.c + POSIX 제어 터미널 작성; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §277 S5-P267 세부 계획 — `machdep/i386/rtc.c`(Mach4 i386at/rtc.c 바탕 + 원본 바이트 수정; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §278 S5-P268 세부 계획 — `machdep/i386/kdasm.s`(Mach4 i386at/kdasm.S 바탕; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §279 S5-P269 세부 계획 — `bsd/nfs/nfs_server.c`(NeXTMach nfs/nfs_server.c 바탕; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §280 S5-P270 세부 계획 — 확정 P 객체 `bsd/nfs/nfs_subr.c` 의 끝 보완: rlock_timeout(작성; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §281 S5-P271 세부 계획 — `bsd/nfs/nfs_vfsops.c`(NeXTMach nfs/nfs_vfsops.c 바탕 + 원본 바이트 수정; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §282 S5-P272 세부 계획 — `bsd/nfs/nfs_vnodeops.c`(NeXTMach nfs/nfs_vnodeops.c 바탕 + 원본 바이트 수정; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §283 S5-P273 세부 계획 — `machdep/i386/ev.c`(이벤트 드라이버 기계 의존부, 원본 바이트에서 작성 D024·D027; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §284 S5-P274 세부 계획 — `driverkit/memcpy.c`(_IOCopyMemory, 원본 바이트에서 작성 D024·D027; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §285 S5-P275 세부 계획 — `driverkit/label_subr.c`(checksum16·check_label, 원본 바이트에서 작성 D024·D027, libDriver 빌드 플래그; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §286 S5-P276 세부 계획 — `driverkit/disk_label.c` + 작성 헤더 `driverkit/diskstruct.h`(원본 바이트에서 작성 D024·D027, libDriver 빌드 플래그; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §287 S5-P277 세부 계획 — `driverkit/audio_mulaw.c`(원본 바이트·데이터에서 작성 D024·D027, libDriver 빌드 플래그; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §288 S5-P278 세부 계획 — `driverkit/audio_peak.c`(원본 바이트에서 작성 D024·D027·D030, libDriver 빌드 플래그; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §289 S5-P279 세부 계획 — `driverkit/audio_mix.c`(원본 바이트에서 작성 D024·D027·D030, libDriver 빌드 플래그; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §290 S5-P280 세부 계획 — `driverkit/snd_reply.c`(원본 바이트에서 작성 D024·D027·D030) + `driverkit/snd_msgs.h`(NeXTMach nextdev/snd_msgs.h 바탕 + 수정); 코딩 전 — 스크래치 진단만, 2026-10-04 → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §291 S5-P281 세부 계획 — `bsd/kern/kern_exec.c`(NeXTMach bsd/kern_exec.c 바탕 + 원본 바이트 수정·작성; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §292 S5-P282 세부 계획 — `machdep/i386/start.s`(Darwin 0.1 원문 바탕, D029; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §293 S5-P283 세부 계획 — `driverkit/IOMallocLow.c`·`driverkit/machdepFuncs.c`(원본 바이트에서 작성 D024·D027·D030; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §294 S5-P284 세부 계획 — `driverkit/generalFuncs.c`(원본 바이트에서 작성 D024·D027·D030; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §295 S5-P285 진단 — `bsd/ufs/ufs_lockf.c`(lf_lockctl, 원본 바이트에서 작성 D024; 스크래치 진단만, 2026-10-04) — 보류 → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §296 S5-P286 진단 — 첫 ObjC 객체 `NXSpinLock.m`(libDriver Kernel/NXSpinLock.m; 스크래치 진단만, 2026-10-04) — 모듈 이름 방식 결정 대기 → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §297 S5-P287 세부 계획 — ObjC 빌드 경로(D031 “빌드 디렉터리 재현”)와 첫 객체 `NXSpinLock.m`(코딩 전, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §298 S5-P288 세부 계획 — `libDriver/Kernel/NXConditionLock.m`·`NXLock.m`(D024·D027·D030·D031; 코딩 전 — 스크래치 진단만, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §299 S5-P289 세부 계획 — `libDriver/Kernel/generalFuncsPrivate.m`(D024·D027·D030·D031) + l1_compare 의 메서드 없는 ObjC 모듈 처리(코딩 전, 2026-10-04) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §300 S5-P290 세부 계획 — libDriver ObjC 분류(진단)와 `Kernel/IONetbufQueue.m`·`Kernel/kernelDiskMethods.m`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §301 S5-P291 세부 계획 — `Kernel/IOBufDevice.m`·`Kernel/IOEventSource.m`·`Kernel/KeyMap.m`(A)·`i386/IOVPCodeDisplay.m`(P)(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §302 S5-P292 세부 계획 — zerofill_check 의 ObjC 참조 섹션 배치(`--place-from-l1`)와 `i386/IOVPCodeDisplay.m`(P)(코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §303 S5-P293 세부 계획 — 커널 BSD 비공개 머리 6 개(작성, D030) + `Kernel/IOTokenRing.m`·`IODisplay.m`·`EventDriver.m`·`EventInput.m`·`EventIO.m`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §304 S5-P294 세부 계획 — 절대 모듈 이름 빌드(D033, kr_run `ABSROOT`)와 첫 객체들(코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §305 S5-P295 세부 계획 — `src/driverkit/KernBus.m`(P)·`src/driverkit/KernDevice.m`(A)(D024·D027·D030·D033; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §306 S5-P296 세부 계획 — `src/driverkit/KernBusMemory.m`·`KernDeviceDescription.m`(D024·D027·D030·D033; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §307 S5-P297 세부 계획 — `libDriver/Kernel/SCSIGeneric.m`(D024·D027·D030·D031) + 객체별 빌드 정의 `-DMACH_USER_API`(코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §308 S5-P298 세부 계획 — `libDriver/IODirectDevice.m`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §309 S5-P299 세부 계획 — `libDriver/IODeviceDescription.m`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §310 S5-P300 세부 계획 — `libDriver/Kernel/IOEthernetDebugger.m` + 머리 `driverkit/IOEthernetPrivate.h`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §311 S5-P301 세부 계획 — `libDriver/IOLogicalDisk.m` + 머리 `driverkit/SCSIDisk.h`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §312 S5-P302 세부 계획 — `libDriver/Kernel/SCSIDiskPrivate.m` + 머리 `driverkit/SCSIDiskPrivate.h`·`SCSIDiskTypes.h`·`SCSIDiskThread.h`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §313 S5-P303 진단 — `libDriver/IODisk.m`(결정 대기, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §314 S5-P304 세부 계획 — `libDriver/Kernel/SCSIDisk.m` + `nextdev_private/driverkit/SCSIDisk.h` 수정(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §315 S5-P305 — libDriver 객체별 빌드 꼴 `-DMACH_USER_API -UKERNEL_PRIVATE`(plan 307 확장; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §316 S5-P306 세부 계획 — `libDriver/IODiskPartition.m`(D024·D027·D030·D031·D032, plan 315 꼴; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §317 S5-P307 세부 계획 — `libDriver/volCheck.m`(D024·D027·D030·D031·D032, plan 315 꼴; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §318 S5-P308 세부 계획 — `libDriver/Kernel/SCSIDiskThread.m` + 머리 `driverkit/SCSIStructInlines.h`(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §319 S5-P309 세부 계획 — `libDriver/Kernel/IONetwork.m` 작성(D024·D027·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §320 S5-P310 세부 계획 — `libDriver/Kernel/IOSCSIController.m`(D024·D027·D030·D031, plan 315 꼴; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-245-320.md](plans/RECONSTRUCTION_PLAN-245-320.md)
+- §321 S5-P311 세부 계획 — `libDriver/IODevice.m`(D024·D027·D030·D031, plan 315 꼴; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §322 S5-P312 세부 계획 — `libDriver/Kernel/IOEthernet.m` 작성(D024·D027·D030·D031; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §323 S5-P313 세부 계획 — `libDriver/Kernel/IOConfigTable.m`(D024·D027·D030·D031·D035; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §324 S5-P314 세부 계획 — 커널 트리 `machdep/i386/swapgeneric.m`(D024·D027·D033·D035; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §325 S5-P315 세부 계획 — 커널 트리 `driverkit/i386/autoconf_i386.m`(D024·D027·D030·D033·D035; 코딩 전, 2026-10-05) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §326 S5-P316 세부 계획 — 커널 트리 `bsd/dev/i386/km.m`(D013·D024·D029·D033·D035·D037; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §327 S5-P317 세부 계획 — 커널 트리 `bsd/dev/i386/kmDevice.m`(D024·D027·D030·D032·D033·D035; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §328 S5-P318 세부 계획 — 커널 트리 `bsd/dev/SCSIDiskKern.m`(D024·D027·D030·D033; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §329 S5-P319 세부 계획 — 커널 트리 `bsd/dev/SCSIGenericKern.m`(D024·D027·D030·D033; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §330 S5-P320 세부 계획 — 커널 트리 `bsd/dev/i386/EventSrcPCKeyboard.m`(D024·D027·D030·D032·D033; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §331 S5-P321 세부 계획 — 커널 트리 `bsd/dev/i386/PCPointer.m`(D024·D027·D030·D033; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §332 S5-P322 세부 계획 — 커널 트리 `driverkit/autoconfCommon.m`(D024·D027·D030·D033; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §333 S5-P323 세부 계획 — 커널 트리 `driverkit/driverServerXXX.m`(D024·D027·D030·D033, D035 와 같은 지역 정의; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §334 S5-P324 세부 계획 — 커널 트리 `bsd/dev/vol.c`(D013·D029·D036·D038; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §335 S5-P325 세부 계획 — `dev/busvar.h` 를 NeXTMach 판으로(D039) + autoconfCommon 마무리(plan 332; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §336 S5-P326 세부 계획 — 커널 트리 `bsd/dev/i386/kmGraphics.m`(D024·D027·D030·D032·D033·D040; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §337 S5-P327 세부 계획 — 커널 트리 `bsd/dev/i386/BasicConsole.c`(D024·D027·D030·D035; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §338 S5-P328 세부 계획 — 커널 트리 `bsd/dev/i386/VGAConsole.c`(D024·D027·D030·D032, ohlfs12.h 는 D013·D021·D039 방식; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §339 S5-P329 세부 계획 — zerofill_check `--place-from-l1` 이 L1d 추정 배치를 받도록(D041) + kmGraphics 기록(plan 336; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §340 S5-P330 세부 계획 — 커널 트리 `bsd/dev/i386/kmLocalized.c`(D024·D027·D030; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §341 진행 메모 — 커널 트리 `bsd/dev/i386/FBConsole.c`(진단만, 07 아님; 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §342 S5-P331 세부 계획 — libDriver 오디오 9 모듈(`Kernel/IOAudio.m` 외 8; D024·D027·D030·D031·D032·D042·D043; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §343 S5-P332 세부 계획 — libDriver MIG 생성 C 3 개(EventServer.c·audioServer.c·audioReplyUser.c; D030·D017; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §344 S5-P333 세부 계획 — 커널 트리 `driverkit/driverServerServer.c`(MIG 생성, driverServer.defs 4.2 판; D024·D030·D017; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §345 S5-P334 세부 계획 — libDriver 버스·디스플레이 5 모듈(`eisa/IOEISADirectDevice.m`·`eisa/IOEISADeviceDescription.m`·`pcmcia/IOPCMCIADeviceDescription.m`·`pcmcia/IOPCMCIATuple.m`·`Kernel/IOSVGADisplay.m`) + 쓰는 Darwin·SDK 머리 채택(D024·D027·D030·D031; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §346 S5-P335 세부 계획 — 기록된 객체가 Darwin 대체 경로로 읽는 나머지 머리 25 개를 07 에 둠(자기 완결; D013·D021·D030; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §347 S5-P336 세부 계획 — libDriver `Kernel/IOFrameBufferDisplay.m`(D024·D027·D030·D031·D032; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §348 S5-P337 세부 계획 — 커널 MIG 서버 4 개(`mach/exc_server.c`·`mach_host_server.c`·`mach_port_server.c`·`mach_server.c`; 4.2 SDK .defs; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §349 S5-P338 세부 계획 — 커널 MIG 서버 `mach_debug/mach_debug_server.c`(처음 제안은 Darwin 0.1 판 — 아래 “349 수정 계획”(Mach4 바탕)으로 대체됨; D013·D022·D024; 코딩 전, 2026-10-06) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §350 S5-P339 세부 계획 — 커널 `kern/zalloc.c`(Mach4 바탕, D044·D022·D024; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §351 S5-P340 세부 계획 — 커널 MIG 출력 `kernserv/kern_server_handler.c`·`kern_server_reply_user.c`(4.2 SDK .defs; D022; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §352 S5-P341 세부 계획 — 커널 `kernserv/kern_server.c`(NeXTMach 바탕, D024·D013·D022; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §353·354 진단 메모(코딩 전, 2026-10-07) — `bsd/netinet/tcp_input.c`, `bsd/specfs/spec_vnodeops.c` → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §356 S5-P342 세부 계획 — 커널 ObjC 런타임 9 모듈(`objc/*.m`, `except.c`; D045·D046·D047·D030·D022; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §357 S5-P343 세부 계획 — 도구 `10_tools/reconstruction/stage_headers.py`: `components/` 의 Darwin 대응을 architecture·driverkit-1 로 한정(D046 참고 트리 objc-1 배제; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §358 S5-P344 세부 계획 — ObjC 런타임 클래스 모듈 `List.m`·`Protocol.m`(D047·D030; plan 356 과 같은 꼴; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §359 S5-P345 세부 계획 — ObjC 런타임 `HashTable.m`(D049 별도 디렉터리; D047·D030; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §360 S5-P346 세부 계획 — ObjC 런타임 남은 조각 `objc-globaltext.m`·`objc-msg.s`·zone 층(D047·D030·D024; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §361 S5-P347 세부 계획 — Mach 사용자 API 스텁 14 개(`mach/<routine>.c`, `mig -i`, `<routine>_EXTERNAL`; 4.2 SDK mach.defs; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §362 S5-P348 세부 계획 — libgcc `__muldi3`·`__udivdi3`(D050 참고 원문 확보; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §363 S5-P349 세부 계획 — `bsd/dev/i386/EventShmemLock.s`(+`.h`)·`bsd/dev/i386/kbd_entries.m`(D030·D032; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §364 S5-P350 세부 계획 — `machdep/i386/locore.s`(D029; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §365 진단 메모 — `machdep/i386/machine_clock.c` 남은 3 B(plan 240.1 이어서; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §366 S5-P351 세부 계획 — `bsd/netinet/in_bootp.c`(NeXTMach 바탕 + 작성, D013·D022·D024·D027; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §367 진단 메모 — `bsd/ufs/ufs_lockf.c`(plan 295 이어서, D052 Net/2 원문 확보 뒤; 07 손대지 않음) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §368 S5-P352 세부 계획 — `bsd/netinet/tcp_input.c`(4.3BSD-Net/2 바탕, D048·D013·D024; plan 353 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §369 진단 메모 — `bsd/dev/i386/FBConsole.c`(plan 341 이어서; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §370 S5-P353 세부 계획 — `bsd/specfs/spec_vnodeops.c`·`bsd/ufs/ufs_dir.c` 남은 레지스터 차이 해결(plan 354·355 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §371 진단 메모 — plan 370 방법(암시적 int ↔ void 반환형)을 남은 차이에 적용(07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §372 S5-P354 세부 계획 — `bsd/ufs/ufs_lockf.c`(Net/2 바탕 D052 + 작성 D024; plan 295·367 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §373 S5-P355 세부 계획 — `machdep/i386/pmap.c`(D029: Darwin 0.1 바탕 + 수정; plan 275 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+
+## 374. 진단 메모 — plan 373 뒤 남은 레지스터·식 차이(07 손대지 않음, 2026-10-07)
+
+- ip_output(D028): 남은 4 B 는 조각 루프의 체크섬 저장 한 곳 — 원본 0x12781a 가 `mov eax,[ebp-0x4c]; add eax,0xa` 로 주소를 먼저 만들고 `[eax]`·`[eax+1]` 에 씀(첫 조각 자리는 07 꼴 `map[10]`·`map[11]` 그대로 맞음). 변형(`s5p371-ipv1`–`ipv6`, scratchpad `ipv/`): `&mhip->ip_sum` 바이트 대입(v1), 지역 포인터 `cp`(v2·v3·v6), memcpy(v4, 1580 B), 2 바이트 구조체 대입(v5, 빌드 실패) — 모두 1584 B 또는 더 나쁨. 원인 미확정.
+- FBConsole DrawRect: 원본은 [0x19e23c, +1424)(Init 끝, python). ColorTable 지역 선언 순서 바꾸기(`s5p369-fbda`–`fbdd`)는 DrawRect·EraseRect 정렬 차이 수 그대로(fmatch·alf 기준); x·y 를 `km_rect->` 로 읽기(`fbde`)는 나빠짐. 관찰: 원본은 table 을 ebx, bits 를 스택, i 를 esi, bBits 를 edi 에 두고 B 시프트(bits − bPos − bBits)를 루프 안에서 매번 계산, `width − 640` 을 스택에 내렸다 다시 읽음; 작업본은 B 시프트를 루프 밖으로 옮김. 다음 후보: ColorTable 를 함수가 아니라 DrawRect·EraseRect 안 같은 글로(인라인 경계 차이), 루프 꼴. 추가: `static inline`(`fbdi`)은 같음, `-O2`(+inline `fbdj`, 인라인 없음 `fbdk`)는 다른 함수까지 바뀜(Init 704→528 B) → 원본은 -O3 꼴. EraseRect 원본 0x19e7e4–0x19e7f6: `width − 640` 을 ecx 에 만들고 [ebp−0x4c] 에 저장 뒤 다시 읽음(작업본은 eax 에 둠) — 남는 레지스터가 있는데도 내려 놓은 꼴이라, reload 가 어떤 명령 때문에 하드 레지스터 하나를 함수 전체에서 비운 흔적으로 보임(가설). [ebp−0x4c] 는 인라인된 ColorTable 의 console 사본과 같은 칸.
+
+### 373.2 기록 정정 — ObjC 기록 도구가 남긴 "authored" 출처(2026-10-07)
+- 찾음(python): ObjC 객체 행 67 개가 출처 칸에 "authored from the original bytes, D024" 를 가짐. PROVENANCE 종류가 authored 가 아닌 것은 둘 — swapgeneric.m(darwin01, D036; plan 324)·km.m(darwin01+nextmach, D037; plan 326). 두 계획은 PROVENANCE·MODIFICATIONS 만 고치고 objects_partial·functions 행은 도구 기본값 그대로 둠.
+- 고침: objects_partial 두 행 출처 문구; functions 25 행(swapgeneric 5, km 20) — Darwin 정의 줄 인용(`darwin01/…:N (edited file :M)`), kmselect 는 nextmach km.c:310, kmopen·kmstart·kmoutput 은 darwin01+nextmach(07 파일의 plan 326 주석과 PROVENANCE 의 km.c:262-273·320-348·350-388). kmstart 의 07 줄은 원형 선언 :88 이던 것을 정의 :352 로.
+- 검사(python): 인용 53 개를 원문·07 정의 줄과 대조 — Darwin·NeXTMach 정의 줄 28(kmopen 의 NeXTMach 은 정의 :183 + 범위), 07 정의 줄 25 모두 맞음. 행 수 그대로(functions 4679, objects_partial 70 줄).
+- machine_clock(plan 365 이어서, scratchpad `mcv/`, run `s5p365-mvm1`–`mvm9`): 크기 1957 B 는 원본과 같고, 남은 것은 두 곳(정렬): ① clock_timer_init 0x187b4e 원본 `mov eax,esi; mov [reload],ax`(작업본은 `mov [reload],si`) ② us_spin_calibrate 원본은 프레임 0x10, elapsed 를 [ebp−8] 에 두 번 저장(timer_read 결과, `0xffff − elapsed`)하고 나눗수 ecx·피제수 ebx 순; 작업본은 프레임 0xc, timer_read 바이트를 [ebp−4] 에 word 로 저장. ① 시도: `reload = last_count`(m1)·순서 바꿈(m2)·형변환(m3·m5·m8·m9) 그대로; 지역 `unsigned short r = count` 를 먼저(m4)는 `mov eax,esi; mov [..],ax` 가 나오나 두 저장 모두 ax 이고 r 이 스택에 남음(1953 B); r 을 last_count 저장 뒤(m7)는 r 이 전역을 다시 읽음(1961 B). ② 는 reload 가 하드 레지스터를 비운 흔적으로 보임(가설). 보류.
+
+## 375. S5-P356 세부 계획 — `driverkit/libDriver/Kernel/devswAndVfssw.m`(D030 작성, Darwin 0.1 과 거의 같음; plan 364 조사 메모 이어서; 코딩 전, 2026-10-07)
+
+0. 원본(ObjC 모듈 기록 없음 — 이름은 Darwin 0.1 같은 이름 파일을 따름): `__text` [0x1a9ad4, 0x1a9f19) 1093 B + `00` 3 B → 다음 IOEthernet 0x1a9f1c; 앞은 IONetbufQueue(끝 0x1a9ad3, `c3` 뒤 `00` 1 B). 함수 9(IOAddToBdevswAt·IOAddToBdevsw·IORemoveFromBdevsw·IOAddToCdevswAt·IOAddToCdevsw·IORemoveFromCdevsw·IOAddToVfsswAt·IOAddToVfssw·IORemoveFromVfssw — 원본 기호). `__data` 68 B [0x1e5100, 0x1e5144)(static no_cdev 44 B·no_bdev 24 B; no_bdev 0x1e512c 는 원본 memcmp 의 `mov edi,0x1e512c` 와 같음).
+1. 참조: 같은 이름 파일은 Darwin 0.1 driverkit-1/libDriver/Kernel/devswAndVfssw.m 뿐(`find 01_resources/upstream -name 'devswAndVfssw*'`) → Darwin 전용 libDriver 파일 = D030(작성 유지, 머리·PROVENANCE·MODIFICATIONS 에 "nearly the same as Darwin 0.1 …").
+2. 4.2 에 맞춘 차이(근거): Darwin 은 vfssw 함수 3 개를 `#if 0` 으로 뺐으나 원본에 기호가 있음 → 넣음; 4.2 SDK `<driverkit/devsw.h>` 의 IOAddToBdevsw(At) 는 ioctl 인자 없음, SDK `<bsd/sys/conf.h>` bdevsw 는 d_ioctl 없고 `d_flags`(Darwin d_type), 테이프 표시는 원본 `mov [edx+0x14],0x400` = SDK buf.h B_TAPE; strategy_fcn_t·putc_fcn_t 형변환 없음(SDK 에 없는 형); NO_CDEVICE 의 seltrue 가 SDK 머리에 선언되지 않아 파일 안 `extern int seltrue();`.
+3. 진단(scratchpad `devsw/`, 새 도구 `diag_objc.py` = diag_k07 의 07 사본 무대 + iter_objc 의 libDriver 꼴): `s5p375-dv0`(Darwin 원문 + vfssw) seltrue 미선언으로 실패; `s5p375-dv1`(2 항 수정) **OBJECT_MATCH**(9); `s5p375-dv2`(07 후보 = dv1 + D030 머리, Darwin 고지 뺌) **OBJECT_MATCH**(9), text 0·data 0(참조 46·15 같음).
+4. 07 `src/driverkit/libDriver/Kernel/devswAndVfssw.m` 배치 → iter_objc(ROOT driverkit/libDriver, MODULE Kernel/devswAndVfssw.m) → relcheck → 실기 cc -M → 기록(authored, D030 문구) → A.
+5. codex 교차검토(ktqp4rleg, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| "원본 모듈 Kernel/devswAndVfssw.m" 은 근거 없음 — 원본에 이 모듈 기록 없음, 빌드 객체에도 module_info 없음 | `grep -rl devswAndVfssw 03_original/x86/`(objc.json 등) 0 건; 빌드 객체 절은 `__text`·`__data` 뿐(python) | ✅ 채택: 07 머리를 "원본에 ObjC 모듈 기록 없음, 이름·자리는 Darwin 0.1 같은 이름 파일을 따름" 으로, 0 항 문구도 같은 뜻 |
+| `<bsd/sys/buf.h>` 가 공통 기호 10 개 496 B 를 더함; 원본에 이름이 있고 크기가 맞음 — 기존 공통 기호 규칙상 허용, 대안은 지역 B_TAPE | python: `_bfreelist` 272·`_bufhash` 192·나머지 8 개 4 B, 합 496 | ✅ buf.h 유지(B_TAPE 는 SDK 이름 그대로가 덜 지어냄), 머리에 출처(buf.h, 원본 0x1a9b7a) 적음; 기록 때 공통 기호 검사 결과 남김 |
+| 0–3 항 수치·Darwin 차이 근거·D030 문구·373.2 정정 25 행 53 인용 | 앞서 내 python·L1·diff 결과와 같음 | ✅ |
+- 결과: 07 `src/driverkit/libDriver/Kernel/devswAndVfssw.m`(= cand.m, 머리 고침 뒤). `s5p375-it1` **OBJECT_MATCH**(9), relcheck 0, 실기 cc -M `s5p375-dep1` 21 헤더 모두 07(객체 = it1). 기록: record_object(authored, D030 문구; ObjC 모듈 기록이 없어 record_objc 대신) → objects_confirmed +1(311 줄), functions +9(4688), PROVENANCE +1(1020), MODIFICATIONS +1(491); 함수 9 행의 07 줄 모두 정의 줄(python). 기록기가 gap_after 를 다음 C 기호(0x1aace0)로 잡아 "3527 x 00" 이라 쓴 것을 "3 x 00, 다음 객체 IOEthernet 0x1a9f1c" 로 고침(바이트 `00 00 00`·`55 89 e5`, python). 공통 기호 중 _bufpages·_nbuf 는 원본에서 `__data` 정의(기록기 규칙대로 크기 검사 제외).
+- 범위(python): 이번 1093 B. A 310 obj 599065 B (70.36%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 96.57%, A+P+L 96.61%, rem 28878.
+
+## 376. S5-P357 세부 계획 — `driverkit/objc_support.m`(D054 ④, D030 꼴 작성; 코딩 전, 2026-10-07)
+
+0. 원본: `__text` [0x17e1e8, 0x17e231) 73 B + `00` 3 B → autoconfCommon 0x17e234; 앞은 vnode_pager(P, 끝 0x17e1e8, 채움 없음). 함수 3: NXFlush(0 반환), NXPrintf(splhigh → vlog(3, format, &args) 0x17e20a → splx), abort(panic "objc: fatal error\n", 0x1e0f36). `__data` 19 B [0x1e0f36, 0x1e0f49)(그 문자열, -fwritable-strings). 공통 NXArgv(원본 기호 0x1f7484, `__common`). ObjC 모듈 기록 없음.
+1. 참조: Darwin 0.1 kernel/driverkit/objc_support.m 의 앞 세 함수(+ `char **NXArgv;`) — 같은 이름 파일은 Darwin 에만. 그 파일의 zone 부분은 4.2 에서 objc-runtime/objc-zone.c(plan 360)로 따로 기록됨. 이름·자리: D054(Darwin conf/files 순서 vm/vnode_pager.c → driverkit/objc_support.m → driverkit/autoconfCommon.m 이 원본 링크 순서와 같음).
+2. Darwin 과 다른 곳(근거): `log(LOG_ERR, format, ap)` → `vlog(LOG_ERR, format, ap)`(원본이 _vlog 를 3·format·&args 로 부름); `<bsd/stdarg.h>` → `<stdarg.h>`(SDK 에 bsd/stdarg.h 없음, ansi/stdarg.h 있음); zone 부분 없음; Darwin 고지 빼고 D030 머리.
+3. 진단(scratchpad `objs/`, diag_k07 커널 C 꼴): `s5p376-os1` bsd/stdarg.h 없음으로 실패, `s5p376-os2` **OBJECT_MATCH**(3; text 73 B·data 19 B 0 차이).
+4. 07 `src/driverkit/objc_support.m` → iter_k07(커널 C 꼴, .m 이라 L1 --place-from-objc) → relcheck → 실기 cc -M → record_object(authored, D030/D054 문구) → A.
+5. codex 교차검토(k8kj5opso, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| PROVENANCE 에 비교한 Darwin 원문(판·해시·`objc_support.m:36–71`)을 남겨야 함 — record_object 의 authored 기본값은 "no reference text" | Darwin objc_support.m :36 `#import <streams/streams.h>`, :71 panic 줄, :72 `}`(sed) | ⚖️ 채택: 범위는 36–72 로(닫는 괄호 포함); 기록 뒤 PROVENANCE 4 칸에 비교 원문 적음 |
+| "zone 부분은 4.2 에서 objc-zone.c" 는 원래 이름처럼 읽힘 — plan 360 은 재구성 선택 | 보관 plan 360(:1156) "objc-zone.c(D024 작성…)" | ✅ 머리를 "따로 재구성(objc-runtime/objc-zone.c)" 로 |
+| NXArgv 4 B 는 원본 0x1f7484 `__common`, 다음 _IOTask 0x1f7488 | symbols.tsv awk | ✅ |
+| 0–3 항 수치·vlog·stdarg.h·D030 머리 | 내 앞선 python·빌드 결과와 같음 | ✅ |
+- 결과: 07 `src/driverkit/objc_support.m`(= cand.m). `s5p376-it1` **OBJECT_MATCH**(3), relcheck 0, 실기 cc -M `s5p376-dep1` 25 헤더 모두 07(객체 = it1). record_object(authored, D030/D054 문구) → objects_confirmed +1(312 줄), functions +3(4691), PROVENANCE +1(1021; 4 칸에 비교 원문 darwin01 objc_support.m:36–72·판 해시), MODIFICATIONS +1; 함수 3 행 07 정의 줄 확인(python).
+- 범위(python): 이번 73 B. A 311 obj 599138 B (70.37%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 96.58%, A+P+L 96.62%, rem 28805.
+
+## 377. 진단 메모 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정; 07 손대지 않음, 2026-10-07)
+
+- 원본 [0x11fb84, 0x1209e9) 3685 B + `00` 3 B(netbuf 0x1209ec): SRHash·SRIsEqual(전역), 정적 output 0x11fbdc·input 0x11fddc·attach 0x120458, 전역 vtrip_config 0x120614, 정적 control 0x120648·getbuf 0x12075c, 전역 nullsap_input 0x1207bc, 정적 0x120950·0x120968. `__const` [0x1d11d8, 0x1d1209) 49 B(SRTablePrototype 16 B = {SRHash, SRIsEqual, NXNoEffectFree, 0}, "Internet Protocol", "802.2 Null Sap"), `__data` [0x1db870, 0x1db940) 208 B(add_sr 문자열 두 벌, LLC/SNAP 머리 aa aa 03 00 00 00 + 형, ARP 하드웨어 형 00 01·00 06, 기본 MTU 8100, "4/16Mb Token-Ring", printf 문자열 둘). 참조 원문 없음 — D024 작성; 07 tokensr.h(Darwin 꼴) 주석 "Used by if_vtrXX modules".
+- 4.2 의 원천 경로 표는 MAC 키: 항목 32 B = MAC 6 B(+0, RII 끔) · ipAddr(+8) · ri(+12); SRHash 는 앞 4 B 와 뒤 2 B 를 NXPtrHash 해 XOR; add_sr 내보내기 조건은 `at == NULL || ipAddr == 0`, 한도 500. 07 tokensr.h 의 srtable_t·find_sr·add_sr·get_src_route·save_src_route 를 이 꼴로 바꾼 scratch 사본(`vtrip/tokensr2.h`, add_sr 의 지역 ifp 없앰)으로 진단. 07 에서 이 함수들을 쓰는 다른 기록 객체 없음(IOTokenRing 은 get_8025_hdr_len 만).
+- 진단(scratchpad `vtrip/`, run `s5p377-vt1`–`vt18`, `b*`, `d*`): 11 함수 중 **10 일치**(SRHash·SRIsEqual·output·attach·config·control·getbuf·nullsap_input·정적 둘). 맞춘 꼴: venip 처럼 접근 함수를 인라인으로 하되 `static inline`(원본엔 VTRIP_* 기호 없음; 스택 정리 시점이 인라인 꼴), output 은 `struct ether_header *eh = (…)dst->sa_data` 를 선언 때 초기화, attach 는 `mtu = if_mtu(rifp) − 8; vmtu = vp->vmtu ? vp->vmtu : 기본; mtu = MIN(vmtu, mtu)`, kalloc(32) & ~3, LLC 보조 함수 둘은 nullsap_input 뒤에 정의(앞에 두면 인라인됨).
+- 남은 것: vtrip_input(크기 1660 같음, 레지스터 배정 다름). 원본은 rifp→ebx, th→edi 이고 ifp 는 매번 [ebp+8] 에서 읽으며, 인라인 add_sr 의 netif 인자를 따로 사본([ebp−0x54])으로 둠(작업본은 ifp→esi 로 사본 없이 씀). `&ifp` 진단(y1)은 더 나빠짐. 원인 미확정 — GCC 2.7 인라인 인자 복사 조건(매개변수가 본문에서 바뀌면 복사)과 관련된 4.2 머리 꼴로 추정.
+
+## 378. 진단 메모 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정; 07 손대지 않음, 2026-10-07)
+
+- 원본 [0x13a588, 0x13b714) 4492 B, 함수 18(전역 logswap·compress_data·uncompress_data, 정적 15 — 기호 없음). 정적 함수 이름은 `__data` 의 연산 표로 정함: `_swapfs_vfsops` 0x1dd8bc(SDK vfsops 7 칸: mount 0x13b2ec·unmount·root·statfs·sync·vget/mountroot = EINVAL 함수), 이어서 이름 없는 vnodeops 0x1dd8d8(getattr·setattr·inactive·pagein 0x13a9dc·pageout 0x13ac9c·nlinks·devblocksize, 나머지 EINVAL 0x13b6fc, prepagein·apageout 0). 0x13b580 은 mount 가 sysent[21] 에 꽂는 통계 조회(100 B copyout). 노드 124 B = vnode 0x34 + swapfs 자료 0x48(조각 크기 page/8, 지도 항목 수, 실제 vnode, 지도 {블록 24 bit·조각 수 4·위치 4}, 비트맵, hipage·hint, 읽기·쓰기 캐시, 압축 버퍼, 참조·잠금 바이트). `__data` [0x1dd7b4, 0x1dd95c)(전역 7 + 문자열 + swpgotcha + 표), bss 통계 100 B 0x1e5a34, 공통 logswp·logswapindex·compress_backoff_*·maxswapdevice·swapfs_*_map.
+- 작업본(scratchpad `swapfs/cur.c`, run `s5p378-sf2`–`sf31`, 채점 `swapfs/score.py`): `__data` 0 차이(문자열 순서는 인라인 함수 정의 순서를 따름). 18 함수 중 **15 일치**(pagein 은 재배치 바이트만 다름). 맞춘 꼴: 성공 시 `return (0)` 따로, logswap(int type, …, char nfrag, char pos), compress/uncompress 는 지역 포인터와 `for (i = 0; i <= 7 && n < nwords; i++, n++)`·`&dst[(size + 3) / 32 + 4]`, 잠금·해제·지도 조회·읽기 캐시·쓰기 캐시·무효화·쓰기를 인라인 함수로(원본의 인자 사본 칸과 문자열 순서가 그 꼴), 쓰기 캐시 안에 쓰이지 않는 `struct vm_page`(원본 프레임 48 B), mount 는 SDK `VN_INIT`·`VN_HOLD`.
+- 남은 것: alloc(찾기 루프 비교 — 원본은 movzx 뒤 레지스터 0xff 와 int 비교, 작업본은 바이트 비교), pageout(압축 호출 앞뒤 짧은 임시값 레지스터 이름 3 곳, 4 B), mount(원본은 vp→edi·sn 스택, 작업본은 sn 이 블록 지역 의사로 edi).
+- 함께 찾은 것: 07 `machdep/i386/pmap.c` 의 compress_data_from_phys·uncompress_data_to_phys 인자 이름(plan 373)이 실제 쓰임과 다름 — compress_data(src, size, dst)·uncompress_data(src, srcsize, dst, size, …)이고 감싸개는 첫(압축)·셋째(복원) 인자에 pmap_phys_to_kern 을 써야 맞음. pmap_phys_to_kern 이 항등이라 바이트는 같음. swapfs 를 07 에 넣을 때 함께 고칠 것(기록 SHA 갱신).
+- 이어서(같은 날): alloc **일치** — 찾기 루프는 `int full = 0xff;` 지역과 비교하는 꼴(상수 비교는 앞단이 바이트 비교로 좁혀 버림; 변수면 movzx 후 레지스터 비교, 루프 불변으로 0xff 가 esi 에 남음). 18 중 **16 일치**(pagein 은 재배치 바이트만). 남은 것: pageout(압축 호출 앞뒤 reload 레지스터 이름 3 곳 — reload 스필 순서 차이로 보임), mount(원본은 sn 이 넘친 의사, 작업본은 sn 이 edi).
+- GCC 동작 근거: 실기 `/NextDeveloper/Source/GNU/gcc/`(cc-744.13 의 원문, 302 파일)에서 integrate.c·local-alloc.c·global.c·reload1.c 등 21 개를 읽기만 하려고 scratchpad 로 복사(SHA-256 = 실기 krsha256, 저장소 밖 임시 디렉터리는 지움; 01_resources 에 들이지 않음 — 들이려면 D050 범위 확장 결정 필요). integrate.c:1305–1327: 인라인 함수 인자는 그 매개변수가 본문에서 값이 바뀔 때(또는 반환 대상과 겹칠 때)만 새 레지스터로 복사. vtrip_input 의 원본 [ebp−0x54](add_sr 진입의 netif 사본)는 4.2 판 add_sr 가 netif 를 고치는 꼴임을 뜻함 — 진단 `s5p377-vtd2`(본문 끝에 `netif = 0` 진단용 대입)에서 원본처럼 add_sr 진입에 `mov esi,[ebp+8]` 사본이 생김(배정은 아직 다름). 4.2 판에서 무엇이 netif 를 바꿨는지는 바이트로 알 수 없음.
+
+## 379. S5-P358 세부 계획 — 커널 `bsd/dev/i386/FBConsole.c`(D024·D030, Darwin 0.1 바탕; plan 341·369·374 진단 이어서; 코딩 전, 2026-10-07)
+
+0. 원본(L1 `s5p369-fbe4` 기록, python): `__text` [0x19ba18, 0x19f09d) 13957 B + `00` 3 B → EventSrcPCKeyboard 0x19f0a0(A); 앞은 VGAConsole(P, 끝 0x19ba15, 틈 3 B). `__data` [0x1e4704, 0x1e488b) 391 B(정적 표 셋 + 문자열, -fwritable-strings). 함수 16: 정적 FlipCursor·Erase·BltChar·FBPutC·SetTitle·InitWindow·Init·DrawRect·EraseRect·Free·Restore·PutC·GetSize, 외부 FBAllocateConsole(0x19ec24)·FBAllocateVBEConsole(0x19ecb8)·VBEModeInfo2IODisplayInfo(0x19ed8c). 원본 기호표에는 이 범위의 외부 기호 3 개만 있음(정적 이름은 Darwin 것, 정적 ColorTable·table2Bit·table8Bit·colorTable 은 이 프로젝트가 붙인 추정 이름).
+1. 참조: Darwin 0.1 `kernel/bsd/dev/i386/FBConsole.c` 만(같은 이름은 Darwin i386·ppc 에만, NeXTMach·Mach4 에 없음 — find). D030: 파일 머리는 프로젝트 작성(Apple·NeXT 고지와 HISTORY 없음, VGAConsole.c plan 338 선례), 본문은 Darwin 과 거의 같고 다른 줄은 plan 표시. 머리 `bsd/dev/i386/FBConsPriv.h`(SDK 에 없음)는 D032 로 `07_kernel/nextdev_private/bsd/dev/i386/FBConsPriv.h` 에 Darwin 본문 그대로(VGAConsPriv.h 선례). 진단에서 쓰던 param.h·ohlfs12.h 덧붙임은 필요 없음(`s5p369-fbe4`: FBConsPriv.h 하나로 OBJECT_MATCH).
+2. Darwin 과 다른 곳(모두 원본 바이트 근거, 이미 진단에서 함수별 0 차이 확인):
+   - plan 341: FBPutC 첫머리 `window_type == SCM_GRAPHIC` 이면 return; InitWindow save-under 의 `if (save)` 없음; Init 색 상수(8 비트·15 비트·24 비트)·화면 지우기 조건(이전 window_type)·TEXT 창 디스플레이 3/4·SCM_GRAPHIC 갈래·ALERT save-under 1; VIDEO_W/H 640×480; ColorTable(2·8 비트 정적 표, 그 밖 pixelEncoding 으로 4 색) 인라인.
+   - plan 369: FBAllocateVBEConsole·VBEModeInfo2IODisplayInfo(D024, 부트 매개변수 블록 지역 정의 D035 꼴); Restore(`if (save)` 없음, IOFree, saveBits = 0 없음).
+   - plan 341·379 DrawRect·EraseRect 본문(원본 바이트로 작성, D024): Darwin 의 `return -1` 없음, 지역 x·y(rect 는 width 만 고침), 주소는 rowBytes 로(Darwin 은 totalWidth 로 pixel 을 만들고 `size <= 0` 검사), EraseRect 는 깊이별 채우기 루프(Darwin 은 2 비트/그 밖 둘), Darwin 의 Description·Preconditions 주석(1132×832 화면 설명)은 두지 않음 — 함수 앞 묶음 표시 주석 하나로 표시.
+   - plan 379(이번): (a) ColorTable 두 번째 루프는 R·G·B 최댓값·시프트를 변수로 미리 두지 않고 루프 본문 식으로 — 원본은 i = 0(0x19e946 `xor esi, esi`)을 마스크 계산보다 먼저 두고 B 시프트(bits − bPos − bBits)를 루프 안에서 매번 계산(0x19e9de–0x19e9e6): loop.c 가 본문 불변식을 루프 앞(초기화 뒤)으로 옮기고 레지스터 한도로 마지막 것은 남긴 꼴. (b) DrawRect 의 x·y 식만 인자 `km_rect->x`·`km_rect->y` 를 읽음(원본 0x19e3fd·0x19e41f `mov ecx, [ebp+0xc]`, 나머지는 rect 사본 [ebp−0x14]). (c) InitWindow save-under 할당이 `kalloc_noblock` 아닌 `IOMalloc`(원본 호출 0x19d3ac → _IOMalloc 0x1a5448).
+3. 진단(diag_k07 커널 C 꼴, 07 손대지 않음): `s5p369-fbe1`(a) 16 중 14 일치(EraseRect 일치), `fbe2`(+b) 15, `fbe3`(+c) **OBJECT_MATCH**(16), `fbe4`(덧붙임 FBConsPriv.h 만) **OBJECT_MATCH**(16; text 13957 B·data 391 B 0 차이).
+4. 07 배치: `src/bsd/dev/i386/FBConsole.c`(= scratchpad `fbc/v8.c` 에 D030 머리와 빠진 plan 표시를 덧붙인 것; 코드 바이트는 바꾸지 않음), `nextdev_private/bsd/dev/i386/FBConsPriv.h`(D032) → iter_k07(커널 C 꼴) → relcheck → 실기 cc -M(모든 헤더 07) → record_object(authored, D024/D030 문구) → A. PROVENANCE 2 행(.c·.h), MODIFICATIONS, functions 16 행 정의 줄 확인, 범위 갱신.
+5. codex 교차검토(kz1qbap6g, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| DrawRect `size <= 0` 검사 삭제·totalWidth → rowBytes·EraseRect 깊이별 루프·Description 주석 삭제가 2 항에 열거되지 않음 | Darwin FBConsole.c :1134–1144(Description), :1172–1175(pixel·totalWidth·size), EraseRect :1300–1324(sed); 작업본 v8.c 에 `size <= 0` 없음, totalWidth 는 다른 함수(:316·:326·:335·:368·:1497)에만(grep) | ✅ 채택: 2 항에 한 줄 추가, 07 본의 함수 앞 표시 주석에도 적음 |
+| 작업본에 plan 표시 없는 변경 덩어리(531–532, 926, 932, 1040–1098, 1120–1128, 1183–1187, 1206–1207, 함수 본문) | difflib 덩어리 48 개 중 표시 있는 것 2 개(python) | ✅ 사실 — 4 항에 이미 예정. 07 후보본(scratchpad `fbc/cand.c`)에 줄 표시 13 곳 + DrawRect·EraseRect 앞 묶음 주석 |
+| D030/D032 머리 처리는 VGAConsole.c·VGAConsPriv.h 선례와 같음 | VGAConsole.c :1–9, VGAConsPriv.h :1–8, DECISIONS :34·:36 (sed·grep) | ✅ |
+| 0–4 항 범위·함수·추정 이름·경로 모순 없음 | 앞서 L1 json·원본 기호표 python 집계(text 13957 B, data 391 B, 외부 기호 3) | ✅ |
+| pmap.c 지역 KERNBOOTSTRUCT 와 충돌 없음, FBConsPriv.h 는 ohlfs12 를 extern 으로만 | 번역 단위 지역 typedef(pmap.c :350 typedef); Darwin FBConsPriv.h :41 `extern char ohlfs12[96][CHAR_H];`(grep) | ✅ |
+| objects_partial VGAConsole 의 gap_after "12815 x 00 … next symbol at 0x19ec24" 는 FBConsole 인정 뒤 3 B 로 고쳐야 함 | objects_partial.tsv 63 줄 11 칸(awk); 0x19ba18 − 0x19ba15 = 3, 0x19ec24 − 0x19ba15 = 12815(python) | ✅ 채택: 기록 때 "3 x 00 (next object FBConsole 0x19ba18)" 로 정정 |
+- 결과: 07 `src/bsd/dev/i386/FBConsole.c`(= scratchpad `fbc/cand.c`, v8.c 에 D030 머리·plan 표시만 더함), `nextdev_private/bsd/dev/i386/FBConsPriv.h`(D032, 본문 Darwin 그대로). `s5p379-it1` **OBJECT_MATCH**(16), relcheck 불일치 1 은 도구 한계 — `_ohlfs12` 가산값 −0x180(원본 단어 0x1e407c = _ohlfs12 0x1e41fc − 0x180, 작업본 가산값 0xfffffe80; python), L1 refs 차이 0. 실기 cc -M `s5p379-dep1` 25 헤더 모두 07(객체 = it1). record_object(authored, D024/D027/D030) → objects_confirmed +1, functions +16(4707; 16 행 07 정의 줄 확인 python), PROVENANCE +2(1023; FBConsole.c 4 칸에 비교 원문 darwin01 FBConsole.c·판 해시, FBConsPriv.h 행), MODIFICATIONS +2. 기록 도구가 gap_after 를 다음 C 기호(0x1a0ac8)로 계산한 것을 "3 x 00 … EventSrcPCKeyboard 0x19f0a0" 로, VGAConsole(objects_partial) gap_after 를 "3 x 00 … FBConsole 0x19ba18" 로 고침(원본 바이트 00 00 00 확인, python); 두 증거 .md 의 next symbol 문구도 함께.
+- 범위(python): 이번 13957 B. A 312 obj 613095 B (72.01%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 98.22%, A+P+L 98.26%, rem 14848 B; 겹침 없음.
+
+## 380. 진단 메모 — plan 379 뒤 남은 레지스터 차이(swapfs·vtrip·ip_output; 07 손대지 않음, 2026-10-07)
+
+- swapfs_mount(원본 0x13b2ec, 660 B): 원본은 `page_size / 4` 를 ebx 에 둔 채 호출 넷을 건너 bzero 크기(`shl ebx, 2`)로 다시 씀 → 지역 변수(`nmap`) 꼴(호출 뒤 메모리 필드를 재사용할 수 없음). 그 꼴(`s5p378-sfm5`, scratchpad `swapfs/m1.c`)은 656 B(원본 660). 원본 sn 은 0xa2–0xa6 `push ecx; mov [ebp−0x20], ecx; call bzero` — 저장이 인자 push 뒤·호출 바로 앞이라 GCC 2.7 caller-save(복원은 첫 사용 앞)의 꼴로 보임: sn 이 callee-saved 레지스터를 못 받고 `4 × 호출수 < 참조수`(global.c:1085 CALLER_SAVE_PROFITABLE)로 ecx 를 받은 것. 작업본(`-dl -dg` `s5p378-sfmd`)은 sn(의사 28, 40 회·102 insn·호출 11)이 우선순위 1 위로 edi. 원본에서 vp 가 edi 를 먼저 받은 까닭은 미확정. sn 을 버퍼 뒤에 선언(`sfm2`·`sfm3`)은 효과 없음.
+- vtrip_input(원본 0x11fddc, 1660 B): 원본 갈래는 `cmp cx,0x800; je; cmp cx,0x806; je; jmp 기본`(0xd4–0xe6), IP·ARP·기본(nullsap_input, 0x65c) 순 — switch 꼴. switch 변형(`s5p377-vs1`, `vtrip/w30.c`)은 분기·호출 배치는 원본과 같으나 1572 B(레지스터: 원본 rifp→ebx·th→edi 를 처음부터, 작업본은 th 를 매번 [ebp+0x14] 에서). add_sr 첫머리 `ifp = netif` 사본은 원본 [ebp−0x54]·작업본(tokensr3) [ebp−0x58] 로 둘 다 있음.
+- ip_output(원본 0x127280, 1588 B, 작업본 1584): 루프의 체크섬 두 바이트 저장 — 원본은 `mov eax,[ebp−0x4c](map); add eax,0xa` 뒤 `[eax]`·`[eax+1]`. 지역 포인터(v3·v6)·인라인 보조 함수(`s5p371-ipv7`)도 CSE 가 `[map+0xa]` 로 접음(인라인은 스택 정리 시점까지 바뀜). 원인 미확정.
+- machine_clock clock_timer_init(원본 0x187a40): 남은 것은 원본 0x187b4e `mov eax, esi` 뒤 `mov [reload], ax`(작업본 `mov [reload], si`, 1 B 차이 + 정렬 nop). `reload = last_count = count`(`s5p365-mvm10`)는 last_count 값을 스택 임시로 두어 나빠짐, `reload = count & 0xffff`(`mvm11`)는 m1 과 같음.
+- (이어서) swapfs 진전 — 작업본 scratchpad `swapfs/p9.c`(= `cur2.c`), run `s5p378-sfq9`: 18 함수 중 mount 만 남음(이후 함수의 DIFF 는 mount 크기 차이로 밀린 것).
+  - pageout **일치**(`sfq1`): `offset >= sd_nmap * page_size` 갈래를 `goto out` 대신 `swapfs_unlock(vp); return (error);` 로. 근거(GCC 원문): reload 레지스터는 함수 전체에서 spill 레지스터를 돌아가며 고름(reload1.c allocate_reload_reg 의 round-robin, last_spill_reg); 이 함수의 spill 레지스터는 eax·edx 둘(`-dg`)이라 앞쪽 reload 할당 수의 홀짝이 0x1f0·0x208·0x275 의 eax/edx 를 정함. 그 갈래의 꼬리는 교차 점프로 out: 과 합쳐져 최종 코드는 같고 reload 수만 달라짐.
+  - pagein **일치**(`sfq9`): swapfs_getmap 이 csize 를 `*csizep` 로 쓰지 않고 값으로 돌려줌(`csize = swapfs_getmap(sd, offset, &foff, &fragoff)`). 근거: 원본 csize 는 [ebp−0x40](맨 아래 칸) — 주소를 받는 지역은 선언 때 칸을 받지만 원본은 reload 의 spill 칸(마지막)에 있음; 작업본은 [ebp−0xc] 이고 나머지 칸이 4 씩 밀림(L1 11 B).
+  - mount: 원본은 sn 이 caller-save ecx(저장이 호출 바로 앞), vp 가 edi(local-alloc 이 cbuf 에 준 edi 를 vp 가 밀어냄). global.c 순서(1076–1092 caller-save 판단이 1096– 밀어내기보다 먼저)로 보면 원본 sn 은 `4 × 호출수 < 참조수` 가 참이어야 함; 작업본 sn 은 참조 40·호출 11 이라 거짓 → 밀어내기로 edi. 진단(원본 꼴 아님): VN_INIT 를 `do { } while (0)` 로 감싸 참조를 50 으로 올리면(`sfq6`) sn→ecx·vp→edi 로 바뀌고 나머지는 rbuf 임시 레지스터와 루프 시작 스택 정리만 다름 → 메커니즘 확인. 자연스러운 원본 꼴(참조 +5 또는 호출 −1)은 미확정: sd 포인터(`sfq5`)·인라인 할당 보조 함수(`sfqa`)는 효과 없음.
+  - mount 추가 시도(효과 없음): `register struct swapnode *sn`(`sfrpb`·`pd`), nmap 결합(`sfrpc`), vnode 포인터 사본 `svp = &sn->sn_vnode`(`sfrpe`·`pf`, 참조 41).
+- vtrip_input 추가 단서(`s5p377-vsd`, `-dl -dg`): 원본은 호출 결과마다 `mov ecx, eax`(if_private·nb_size·bcmp·nullsap_input 뒤)로 다른 레지스터에 옮기고, 매개변수 재읽기 reload 가 eax·edx·esi 를 돌아가며 씀 → 원본은 eax 가 spill 레지스터(그래서 호출 결과 의사가 eax 에 못 앉음). 작업본(switch 꼴)은 insn 408(GENERAL 2 개 필요) 때문에 edx·edi 를 spill 하고 th→ebx·rifp→esi(원본 rifp→ebx·th→edi). 원본에서 eax 를 spill 하게 만든 명령(AREG/AD_REGS 필요)이 무엇인지 미확정.
+- machine_clock 추가(`s5p365-mvm12`–`mvm19`, `mvd1`·`mvd2` 덤프): 작업본의 `reload = last_count` 는 메모리→메모리 이동이라 reload 가 같은 값을 가진 esi 를 바로 씀(reload1.c 5290–5350). 원본의 `mov eax, esi` 는 별도 HI 임시 의사가 eax 에 배정되고 esi 에서 복사된 꼴로 보임; `r = last_count`(m12)·`r = count`(m14)는 CSE 가 last_count 메모리에서 읽게 바꿈, `reload = last_count = (u_short)count`(m15)는 두 저장 모두 ax, volatile(m18·m19)은 효과 없음.
+- ip_output 추가(`s5p371-ipv8`·`ipv9`): 2 바이트 구조체 대입·memcpy 는 i386 에서 HImode 한 번 저장(`mov [edi+0xa], ax`)이 되어 원본(바이트 둘) 꼴 아님; `cp = map; cp += 10;` 도 CSE 가 `[map+0xa]` 로 접음. 근거(GCC 원문): i386 ADDRESS_COST 는 REG+상수 0 < REG 1(config i386.h 1506–1511)이라 cse.c find_best_addr 가 같은 값 부류에 `map + 10` 이 있으면 늘 그 꼴로 바꿈 → 원본의 `eax = map + 10` 은 CSE 가 그 값을 모르는 경로(다른 확장 블록에서 만든 값 등)에서 나온 것으로 보임. 미확정.
+
+## 381. S5-P359 세부 계획 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정, D024 작성) + `nextdev_private/bsd/net/tokensr.h` 4.2 꼴(plan 377·380 이어서; 코딩 전, 2026-10-07)
+
+0. 원본(L1 `s5p377-v4s4`, python): `__text` [0x11fb84, 0x1209ea) 3686 B, 앞 if_venip(끝 0x11fb81, `00` 3 B)·뒤 netbuf(0x1209ec, `00` 2 B); `__const` [0x1d11d8, 0x1d1209) 49 B(SRTablePrototype 16 B, "Internet Protocol" 18 B, "802.2 Null Sap" 15 B); `__data` [0x1db870, 0x1db91b) 171 B(L1d). 함수 11: SRHash·SRIsEqual·vtrip_config·nullsap_input(원본 기호 있음), 정적 vtrip_output·vtrip_input·vtrip_attach·vtrip_control·vtrip_getbuf·llc_reply·llc_send(이름 추정). 원본 기호는 그 밖에 _SRTablePrototype 뿐(정적 IFTYPE_IP·IFTYPE_NULLSAP 이름 추정).
+1. 참조 원문 없음(같은 이름 파일 없음 — plan 377). 07 tokensr.h(Darwin 0.1 꼴, plan 303 D032)는 Darwin 의 IP 키 원천 경로 표; 원본 if_vtrip 바이트는 MAC 키 표(항목 32 B: MAC 6 B·ipAddr +8·ri +12)를 요구 → tokensr.h 의 srtable_t·find_sr·add_sr·get_src_route·save_src_route 를 4.2 꼴로(D024, 줄마다 plan 381 표시, 머리 문구 갱신). 이 머리를 쓰는 다른 07 파일은 libDriver Kernel/IOTokenRing.m 뿐(grep) — 새 머리로 진단 `s5p381-tr1`·`tr2` **OBJECT_MATCH**(41) 그대로.
+2. plan 380 뒤 이번에 맞춘 것(근거):
+   - switch 꼴(원본 0xd4–0xe6 `cmp cx,0x800; je; cmp cx,0x806; je; jmp 기본`).
+   - `short etype`(부호 있음): C 앞단은 switch 식을 부호가 같을 때만 좁혀 16 비트 비교(원본 `cmp cx`), u_short 이면 int 로 넓혀 32 비트 비교(작업본 `movzx ecx,si; cmp ecx`).
+   - add_sr 의 ARPTAB_LOOK 에 지역 `ipa` 없이 `sourceRouteEntry->ipAddr` 직접: 원본 ARP 갈래 0x54c·0x54f `mov eax,[ebp−0x4c]; mov [ebp−0x4c],eax`(안쪽 루프 0x554 바로 앞, 같은 칸 읽기·쓰기). 루프 안 비교용 읽기를 loop.c 가 루프 밖으로 옮긴 꼴로 해석함(해석; 원본 RTL 로 확정한 것은 아님) — 이 꼴로 바꾸면 ipa 가 edi 를 받고 reload 가 eax·edx·esi 를 비워(호출 결과 `mov ecx,eax` 들) 작업본이 원본과 일치함.
+   - `__const` 순서: IFTYPE_IP·IFTYPE_NULLSAP 정적 배열을 SRTablePrototype 정의 뒤에(앞에 두면 문자열이 먼저 나와 52 B, vtrip_attach 의 참조 1 건 다름).
+3. 진단: `s5p377-v4s1`(switch+tokensr4) vtrip_input 1664 B, `v4s3`(+short) text 0 차이·const 순서만 다름, `v4s4`(+const 순서) **OBJECT_MATCH**(14); 07 후보(scratchpad `vtrip/cand.c`·`vtrip/tokensr_cand.h`, 표시 주석만 더함) `s5p381-vc1` **OBJECT_MATCH**(14), IOTokenRing `s5p381-tr2` **OBJECT_MATCH**(41).
+4. 07 배치: `src/bsd/net/if_vtrip.c`(= cand.c), `nextdev_private/bsd/net/tokensr.h`(= tokensr_cand.h) → iter_k07(if_vtrip) → iter_objc(IOTokenRing 재확인) → relcheck → 실기 cc -M(모든 헤더 07) → record_object(authored, D024/D054) → A; tokensr.h PROVENANCE·MODIFICATIONS 갱신(plan 381), gap 칸 확인(앞 3 B·뒤 2 B), 범위 갱신.
+5. codex 교차검토(kdl3xjpay, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 후보 tokensr.h 에 "ipAddr must be the first element" 옛 주석이 남음(MAC 키와 모순) | 후보 :36–39(sed) | ✅ 채택: plan 381 표시로 MAC 키 설명으로 바꿈 |
+| 0 항 범위·크기·틈·원본 기호 구분은 맞음 | 앞서 L1 json·원본 기호표 python(이번 세션) | ✅ |
+| plan 377 의 3685 B·뒤 3 B·data 208 B, D054 의 3691 B 는 틀림(python 3688 B) | DECISIONS :58 `0x11fb84–0x1209ec 3691 B`(grep), python 0x1209ec−0x11fb84 = 3688, 0x1209ea−0x11fb84 = 3686; plan :569(sed) | ✅ 내 기록 오류 — 정정 메모(아래), D054 칸에 정정 덧붙임 |
+| 머리 외 표시 없는 바뀐 줄은 빈 줄 하나뿐 | 후보 :229–233(cat -A) | ✅ 행동 변화 없음 |
+| 다른 소비자 없음(IOTokenRing 만, get_8025_hdr_len) | 07 전수 grep(이번 세션): IOTokenRing.m·tokensr.h·기록 파일뿐 | ✅ |
+| 2 항 관찰은 맞으나 loop.c 원인은 추정으로 써야 함 | 원본 역어셈블 0x54c·0x54f·0x554(이번 세션 출력) | ⚖️ 채택: 해석임을 밝힘 |
+| PROVENANCE·MODIFICATIONS 의 "body verbatim" 문구 갱신 필요 | PROVENANCE :737(grep) | ✅ 4 항 예정대로 기록 때 반영 |
+- 정정(plan 377 메모): 원본 if_vtrip 는 `__text` [0x11fb84, 0x1209ea) 3686 B + `00` 2 B(netbuf 0x1209ec), `__data` 171 B(L1d) — plan 377 의 3685 B·`00` 3 B·208 B 는 이전 추정치.
+- 결과: 07 `src/bsd/net/if_vtrip.c`(= scratchpad `vtrip/cand.c`), `nextdev_private/bsd/net/tokensr.h`(= `vtrip/tokensr_cand.h`, codex 지적 주석 반영). `s5p381-it1` **OBJECT_MATCH**(14), relcheck 0; IOTokenRing 을 07 에서 다시 빌드 `s5p381-tok` **OBJECT_MATCH**(41); 실기 cc -M `s5p381-dep1` 48 헤더 모두 07(객체 = it1). record_object(authored, D024/D054) → objects_confirmed +1(gap 앞 3 B·뒤 2 B 맞음), functions +11(4718; 11 행 07 정의 줄 확인 python), PROVENANCE +1(if_vtrip) 및 tokensr.h 행 갱신(plan 381, 새 해시), MODIFICATIONS +2.
+- 범위(python): 이번 3686 B. A 313 obj 616781 B (72.44%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 98.65%, A+P+L 98.69%, rem 11162 B; 겹침 없음.
+
+## 382. 진단 메모 — `machdep/i386/machine_clock.c`(plan 365·380 이어서; 07 손대지 않음, 2026-10-07)
+
+- us_spin_calibrate **일치**(`s5p365-mvm28`, scratchpad `mcv/m28.c` = `mcv/cur.c`): Darwin 0.1 꼴처럼 `timer_cnt_val_t leftover` 하나에 읽고 `splx(s)` 뒤 식 안에서 `(int)(TIMER_COUNT_MAX - leftover)` 로 나눔. 근거: 원본은 timer 값(bx)을 splx 너머로 들고 가서 splx 뒤 [ebp−8] 에 두 번 저장(0 확장 값, `0xffff − 값`) — 같은 임시 의사가 두 번 쓰이고 idiv 의 reload 때문에 스택 칸으로 밀린 꼴; 작업본(`elapsed = timer_read()` 를 splx 앞에서)은 elapsed 가 레지스터. `mvm26`·`mvm27`(지역 count + splx 뒤 대입)은 코드는 같고 칸 배치만 달랐음.
+- machine_clock L1(`mvm28`): 11 함수 중 clock_timer_init 만 DIFF(45 B = `mov eax, esi` 1 B 와 그 뒤 밀림), 나머지는 bss 배치 미확정으로 MATCH_UNVERIFIED.
+- clock_timer_init: panic 문구 "clock_timer_constant 1/2/3" 과 Darwin `system_timer_constant()` 로 보아 4.2 에는 상수를 돌려주는 정적 함수 clock_timer_constant 가 인라인된 것으로 추정. 그 꼴(`mvm30`–`mvm39`): 반환형 timer_cnt_val_t 이고 함수 안에서 `last_count = count;` 를 한 뒤 `reload = clock_timer_constant();`(`mvm34`)면 `[last]=si; mov eax,esi; [reload]=ax` 가 원본과 같아지지만, CSE 가 반환값 의사를 last_count 메모리와 같은 값으로 보아 timer_write 인자가 스택 임시가 됨(원본은 last_count 메모리를 두 번 읽음); 반환형 unsigned int/int(`mvm36`·`mvm37`)는 timer_write 는 맞으나 반환값 복사가 combine 에 흡수(si). volatile reload 결합(`mvm38`·`mvm39`) 효과 없음. 미확정.
+- (이어서, 2026-10-07) ip_output: 원본 커널 `__text` 전체에서 "주소를 레지스터로 더해 만든 뒤 `[r]`·`[r+1]` 바이트 저장" 꼴을 python 으로 찾으면 ip_output 의 0x12781a 한 곳뿐 — 이미 맞춘 객체에서 같은 관용구의 소스를 빌려 올 수 없음. 덤프(`s5p371-ipd3`, `-dr … -dl`)로는 지역 포인터 `cp = map + 10` 이 CSE 단계에서 `(plus map 10)` 주소로 접힘을 확인.
+- machine_clock: 인라인 clock_timer_constant 꼴(`mvm34`)에서 반환값 의사가 last_count 메모리와 이어지는 것은 인라인 반환 레이블이 jump1 에서 지워져 CSE 가 한 블록으로 보기 때문(`s5p365-mvd5` rtl·cse 덤프). timer_write 를 ANSI 원형으로 바꾼 진단(`s5p365-tim34`)은 효과 없음.
+- swapfs_mount: kalloc 결과를 임시 포인터로 받아 bzero 뒤 sn 에 대입(`s5p378-sfpt1`·`pt2`)해도 CSE 가 둘을 한 의사로 합쳐 참조 40·호출 11 그대로.
+- 컴파일 옵션 가설 배제(2026-10-07, scratchpad `flagsweep.sh`·`flagsweep.log`, run `s5p383-fs1`–`fs14` × {swapfs `pc.c`, machine_clock `m28.c`, 07 ip_output}): -fno-caller-saves, -fno-expensive-optimizations, -fno-rerun-cse-after-loop, -fno-cse-follow-jumps, -fno-cse-skip-blocks, -fno-force-mem, -fno-defer-pop, -fno-strength-reduce, -fthread-jumps, -fno-inline-functions, -fkeep-inline-functions, -fno-function-cse, -m486, -fomit-frame-pointer 를 하나씩 더해도 swapfs_mount(656 B)·clock_timer_init(4 줄)·ip_output(9 줄) 잔여는 그대로이거나, 이미 일치하던 함수가 깨짐. 세 잔여는 옵션이 아니라 소스 꼴 차이로 판단.
+- machine_clock 인라인 clock_timer_constant 조합 전수(`s5p384-t{0..4}{in,before,after}`, scratchpad `mcv/sw/`): 반환형 timer_cnt_val_t·unsigned short·int·unsigned int·long × last_count 대입 위치(함수 안/호출자에서 지역 사본으로/호출자에서 reload 뒤) 15 개. 함수 안·reload 뒤 꼴(int·unsigned int·long)은 m28 과 같은 잔여(`mov eax, esi` 없음), 나머지는 10 줄(timer_write 인자 스택 임시)로 더 나쁨. us_spin_calibrate 는 모두 0.
+- 컴파일러 판 가설(사실과 추정 구분): 원본 커널 문자열 `NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386`(strings) — 1999-01 의 4.2 패치 빌드. 실기의 컴파일러는 `/bin/cc`·`/lib/i386/*` 1997-04-23 날짜의 cc-744.13 하나(gcds ls). 원본 커널을 만든 cc 판은 바이너리에 문자열이 없어 알 수 없음. 313 객체가 cc-744.13 으로 바이트 일치하므로 같은 계열이지만, 1999 빌드 기계의 cc 가 744 계열의 후속 패치판이었다면 남은 세 곳(caller-save 판단·CSE 등가·combine)의 드문 차이를 설명할 수 있음(추정). 확인하려면 다른 판의 NeXT cc 가 필요 — 들여오기는 사용자 결정 사항.
+- ip_output 변형 조사(`s5p385-a1`·`a2`·`b1`·`c1`·`c2`, scratchpad `ipv/sw/`): 포인터를 bcopy 앞에서 만들기(a1·a2), 원천·대상 포인터 둘(c1·c2)은 기준과 같은 9 줄(CSE 가 접음). 포인터를 루프 첫머리(map 대입 직후)에서 만들기(b1)는 다른 확장 블록이라 접히지 않아 `[r]`·`[r+1]` 꼴이 나오지만, 포인터가 호출들을 건너 스택 칸([ebp−0x50])에 저장·재적재되어 원본(저장 직전 `[ebp−0x4c]`+0xa 재계산)과 다르고 프레임도 4 B 큼. 원본은 "같은 자리에서 계산하면서도 CSE 가 접지 않는" 경우인데 그 조건을 아직 못 찾음.
+- 2026-10-07 사용자 답: 다른 판 NeXT cc 는 구할 수 없음 → cc-744.13 으로 소스 탐색 계속.
+- swapfs_mount 진전(2026-10-07, scratchpad `swapfs/`): 루프 가중(flow 의 loop_depth)으로 sn 참조가 문턱을 넘는 꼴을 찾음 — 함수 본문 전체를 `do { … } while (0)` 로 감싼 `s5p378-sfpw1`(`pw1.c`, nmap 지역 포함)은 sn→caller-save ecx·vp→edi·뒤쪽(0xd9 이후) 전부가 원본과 같고, 앞쪽만 다름(data 인자가 ecx 를 받음, getvnodefp 인자 재적재 레지스터, rbuf 를 kalloc 결과 임시(원본 ecx) 없이 바로 저장, &max 를 스택에 내림). 루프 시작 위치 조사(`sfwl0`·`l0b`·`l1`·`l2`·`l3`): getvnodefp(L0b)·vp 대입(L1)부터면 크기 660 B 로 같지만 루프 안 ENOTDIR 반환 블록을 jump 최적화가 루프 앞으로 옮김; copyin(L0)부터면 data 가 레지스터를 받음; VN_HOLD(L2)·rbuf(L3)부터 또는 sd_rbuf 에서 끝나는 부분 루프(`sfpe1`–`pe3`)는 vp 가 스택으로 밀림. 조기 반환을 break 로 쓴 꼴(`sfpbc`·`pbd`·`pbe`)은 더 나쁨. 연쇄 대입 `wbuf = (rbuf = kalloc(..)) + page_size`(`sfpr*`)·SDK `<kernserv/kalloc.h>`(07 머리와 kalloc 선언 충돌로 컴파일 안 됨)도 rbuf 꼴 아님. 해석: 원본에는 vp 를 쓰는 구간 전체를 덮는 루프(가중) 구조가 있고 그 모양은 아직 미확정(추정).
+- swapfs_mount(이어서): 루프 구문 `for (;;)`·`while (1)`(`sfgbf`·`gbw`·`gwf`·`gww`)은 do-while(0) 과 같은 결과. L2(VN_HOLD 부터) 덤프(`sfwl2d`): sn 은 caller-save ecx 로 원본과 같으나 rbuf(참조 8/56 insn, 우선순위 3·8/56)가 vp(15/121, 3·15/121)보다 앞서 edi 를 가져가 vp 가 스택으로 밀림 — 원본처럼 vp 가 앞서려면 vp 참조 16 이상(floor_log2 4) 또는 rbuf 참조 7 이하가 필요. 루프 안 ENOTDIR 반환 블록은 jump.c 의 "if (foo) bar; else break;" 범위 교환(jump.c 1800–1913)으로 옮겨지는 것으로 보임. kalloc 결과 형 변환(`sfpt*`)·별도 지역 buf(`sfpb*`)는 CSE 가 접어 효과 없음.
+- **swapfs_mount 큰 진전**(`s5p378-sfpz1`, scratchpad `swapfs/pz1.c` = `cur3.c`): 두 번째 kmem_suballoc 문장(`swapfs_rem_map = …`)부터 함수 끝까지를 `do { … } while (0)` 로 감싸면, 앞쪽 rbuf·wbuf·cbuf 계산 7 명령(원본 0x7e–0x94, 크기 656 대 660 B)만 빼고 원본과 같음. 근거(GCC 원문): loop.c 는 루프 안 "조건 점프 뒤 루프 밖으로 나가는 블록"을 반환 레이블과 같은 깊이의 barrier 로 옮기므로(loop.c 2300–2420) ENOTDIR 반환 블록은 루프 밖이어야 하고, expand_start_loop 는 루프 시작에서 대기 스택 정리를 내보내므로(stmt.c expand_start_loop) 루프는 원본에 스택 정리가 있는 자리(0xcb `add esp,0x24`)에서 시작해야 함; 그 자리에서 시작하면 rbuf 참조 일부만 가중을 받아 vp 가 rbuf 보다 앞서 edi 를 받고, sn 은 caller-save ecx. 남은 7 명령: 원본은 kalloc 결과를 임시(ecx)에 받아 rbuf 에 저장하고 page_size 를 메모리 피연산자로 두 번 더함(`add ecx,[page_size]`); 작업본은 page_size 를 한 번 읽어 재사용. 시도: caddr_t 형(`sfpz3`·`pz4`), `+=`·연쇄·피연산자 순서(`sfpz6`–`pz8`) 효과 없음; 주소 잡기(`sfpz5`, 진단)는 칸 순서가 바뀌어 원본과 다름. 루프 꼴의 원본 소스 의미(왜 루프인지)는 미확정.
+- swapfs_mount 남은 7 명령(원본 0x7e–0x94) 분석(`s5p378-sfpz1d` cse·lreg·greg 덤프): 작업본은 page_size 를 한 의사(REG_EQUIV `(mem page_size)`)로 CSE 해 두 덧셈이 공유하고 local-alloc 이 eax 를 줌; 원본은 두 덧셈 모두 `add r,[page_size]` 메모리 피연산자이고 kalloc 결과가 임시(ecx)를 거쳐 rbuf 칸에 저장됨 → 원본에서는 page_size 읽기가 둘로 나뉘어(각각 한 번 쓰이는 REG_EQUIV 의사라 local-alloc update_equiv_regs 가 메모리로 바꿈) CSE 가 합치지 않은 것으로 보임(해석). 선언 순서·형·register 조합 8 개(`s5p386-b1`–`b8`)는 효과 없음.
+- swapfs_mount(이어서): update_equiv_regs 는 참조가 정확히 2(설정·사용 하나씩)인 의사만 메모리 등가로 바꿈(local-alloc.c `reg_n_refs[regno] == 2`) — 원본은 page_size 읽기가 둘로 나뉜 꼴이 맞음. kalloc 을 감싼 인라인 함수(`sfpi1`·`pi2`)는 인라인 끝에서 대기 스택 정리(`add esp,4`)가 생겨 원본 꼴 아님.
+- machine_clock(이어서): 인라인 clock_timer_constant 에 반환 경로 둘(panic 갈래 안에서도 `last_count = count; return (count);`)을 두면(`s5p365-mvm43`·`mvm44`) 반환 레이블이 CSE 단계까지 남아 반환값 복사가 살아남고 timer_write 는 원본처럼 last_count 메모리를 읽음 — 다만 두 꼬리가 교차 점프로 합쳐지지 않아 `jmp`·중복 코드가 남고 복사 레지스터가 ecx(원본 eax). 방향 단서로 기록.
+- machine_clock(이어서): K&R 꼴 인라인 `set_reload(val) timer_cnt_val_t val; { reload = val; }` 를 `last_count = count; set_reload(count);`(`mvm45`)·`set_reload(last_count)`(`mvm46`)로 부르면 reload 저장이 별도 의사를 거치고 timer_write 는 메모리를 읽어 원본 꼴에 가장 가까움 — 남은 차이는 그 의사의 원천이 `mov ax,[last_count]`(작업본) 대 `mov eax,esi`(원본). 16 비트 지역 사본(`mvm47`)·`set_reload(last_count = count)`(`mvm48`)는 timer_write 인자가 스택 임시가 되어 더 나쁨.
+
+## 383. S5-P360 세부 계획 — `bsd/netinet/ip_output.c` 루프 체크섬 저장(plan 175.1·380 이어서; D024 작성; 코딩 전, 2026-10-07)
+
+0. 원본(objects.tsv seq 82): `__text` [0x127280, 0x12823f) 4031 B(python), ip_output 1588 B. 07 `src/bsd/netinet/ip_output.c`(plan 175) 는 남은 차이가 이 저장 하나라 표에 넣지 않았음(175.1).
+1. 남은 차이(원본 [0x12781a, 0x12782b), 17 B, python): `mov eax,[ebp−0x4c](map); add eax,0xa; mov cl,[ebp−0x1e]; mov [eax],cl; mov cl,[ebp−0x1d]; mov [eax+1],cl`. 07 은 `[map+0xa]`·`[map+0xb]` 로 접힘(i386 ADDRESS_COST, cse.c find_best_addr — plan 380).
+2. 진단(07 손대지 않음, scratchpad `ipv/`):
+   - codex 브레인스토밍 후보 중 빈 `__asm__` 로 `cp` 를 불투명하게 한 꼴(`s5p387-c5`) **OBJECT_MATCH** → 메커니즘 확인(별도 의사 레지스터에 `map + 10`). asm 은 원본 꼴로 보기 어려워 채택하지 않음.
+   - 순수 C: `cp = map + 10; map = 0; mhip = 0;`(`c6`) text 3 B 차이(0x4a7·0x4aa·0x4c5: map 의 두 칸 −0x4c/−0x34 저장 순서와 ip_optcopy 인자 읽기 칸이 바뀜); `cp = map + 10; mhip = 0; map = 0;`(`c7`)·`cp = map + 10; map = 0;`(`c8`) **OBJECT_MATCH**(9); `cp = (char *)mhip + 10`(`c9`)·`cp = map + 10; mhip = 0;`(`c10`)·`map += 10` 꼴 둘(`c11`·`c13`)·`map = (char *)&mhip->ip_sum`(`c14`)·`mhip = (struct ip *)(map + 10)`(`c15`)는 크기가 달라 불일치.
+   - 해석(GCC 원문 근거는 plan 380 의 cse 메모): `map` 에 새 값이 들어가면 cse 가 `cp` 를 `map + 10` 으로 되돌려 접을 수 없어 cp 가 따로 레지스터에 남음. 원본 소스 꼴은 모름 — c8 은 시험한 일치 꼴 중 가장 짧은 꼴(죽은 저장 `map = 0` 은 생성 코드에 남지 않음: OBJECT_MATCH).
+3. 07 변경(c8 + 표시 주석, scratchpad `ipv/cand383.c`): 루프의 `map[10]`·`map[11]` 두 줄을 블록 `{ char *cp; cp = map + 10; map = 0; cp[0] = …; cp[1] = …; }` 로, plan 383 주석(원본 주소, 원본 꼴 모름) 포함. 첫 조각(0x1276bc, 접힌 꼴)은 그대로. 후보 진단 `s5p383-ic1` **OBJECT_MATCH**(9).
+4. 이어서: iter_k07 → relcheck → 실기 cc -M(모든 헤더 07) → record_object(NeXTMach 바탕 + D024 작성; plan 175·383) → A; PROVENANCE·MODIFICATIONS·functions·evidence(x86-ip_output.md/.diff), 틈 칸(앞 0x12727e·뒤 0x128240, objects.tsv) 확인, 범위 갱신. plan 175.1 "기록 보류" 해제를 175 쪽(보관 문서)에 한 줄 덧붙임.
+5. codex 교차검토(k4fso0nd6, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `map = 0` 뒤 map 을 읽는 곳 없음(다음 쓰기는 루프 첫머리) | 후보 전수 grep `\bmap\b`(82·293–302·319–336·351–352 행), done:/bad: 362–368 행(sed) | ✅ |
+| 0x12781a·0x12782b·17 B 맞음, 끝은 배타 표기로 | python 0x127280+0x59a, +0x5ab, 0x5ab−0x59a | ✅ 표기 `[ , )` 로 고침 |
+| c6 차이는 저장 순서만이 아니라 뒤 읽기도(0x4a7·0x4aa·0x4c5) | `s5p387-c6` L1 json first_differences 1191·1194·1221, python 파일 오프셋−244; c5/c6 objdump diff(0x4c3 `mov ecx,[ebp−0x34]`) | ✅ 문구 고침 |
+| c9·c10·c14·c15 4027 B, c11·c13 4091 B | python macho_obj 로 각 목적 파일 `__text` 크기 | ✅ |
+| "가장 짧은 꼴" 은 "시험한 꼴 중" 으로 | — | ✅ 문구 고침 |
+| 4 항: 첫 기록이므로 파일 전체 출처(NeXTMach URL·커밋·경로, CMU/Berkeley 고지 유지), 175·175.1·383 전체 diff, 함수별 출처 구분 필요 | 06_reconstruction/README.md :15·:26–27(sed), PROVENANCE·MODIFICATIONS 에 ip_output 행 없음(grep 0 건) | ✅ 채택 |
+| 더 자연스러운 꼴: `cp = map + 10; map = (char *)&iph.ip_sum; cp[0] = map[0]; cp[1] = map[1];` | 빌드 `s5p387-c16` **OBJECT_MATCH**(9) | ✅ 채택 — 죽은 저장이 없어 c8 대신 이 꼴 |
+
+- 결정: 07 변경은 c16 꼴(+ plan 383 주석). 후보 `s5p383-ic2` **OBJECT_MATCH**(9). 3 항의 c8 꼴은 대안 기록으로 남김.
+- 진단 덤: machine_clock 에 같은 원리(복사 뒤 원 변수 죽이기) `s5p387-k1`–`k4` 는 효과 없음(원본 0x187b4e `mov eax, esi` 여전히 없음); codex 의 빈 asm 꼴 `b3` 은 `mov ecx,eax; mov [reload],cx` 로 다름.
+- 결과: 07 `src/bsd/netinet/ip_output.c`(= scratchpad `ipv/cand383.c`, c16 꼴 + plan 383 주석; 이전 본 `ipv/ip_output.pre383.c`). `s5p383-it1` **OBJECT_MATCH**(9), relcheck 0; 실기 cc -M `s5p383-dep1` 48 헤더 모두 07(객체 = it1). record_object(nextmach 바탕 + 복원 수정, 멀티캐스트 넷은 authored D024) → objects_confirmed +1(앞 `00`×2·뒤 `00`×1, 원본 바이트 python 확인), functions +9(4727; 인용 18 개 모두 정의 줄, python), PROVENANCE +1, MODIFICATIONS +1, evidence `x86-ip_output.md/.diff`.
+- 범위(python): 이번 4031 B. A 314 obj 620812 B (72.91%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 99.12%, A+P+L 99.16%, rem 7131 B; 겹침 없음.
+
+## 384. 진단 메모 — plan 383 뒤 남은 둘(swapfs_mount·machine_clock; 07 손대지 않음, 2026-10-07)
+
+- 도구 주의: scratchpad `alf.sh`(→ `tcp/al.py`)는 `ebp−0x30/0x34/0xc/0x10` 칸을 `S` 로 정규화하므로 그 칸이 바뀐 차이를 못 보임(ip_output `c6` 의 3 B 차이가 alf 에 안 나옴). 일치 판정은 diag 도구의 L1 결과로만 함.
+- machine_clock(`s5p387-k1`–`k4`): 복사 뒤 원 변수 죽이기(`i = count; count = 0; reload = i;` 등) 4 개 모두 기준과 같음(원본 0x187b4e `mov eax, esi` 없음). 인라인 setter 변형(`s5p387-j1`–`j6`): last_count·reload 를 한 인라인에서 쓰기(j1·j3·j5·j6)는 last_count 가 스택 임시가 되어 나빠짐, `unsigned int` 매개변수(j2)는 기준과 같음, ANSI 원형 `set_reload(timer_cnt_val_t)` 를 `last_count = count;` 뒤에서(j4)는 m45 와 같음(`mov ax,[last_count]` 대 원본 `mov eax,esi`).
+- swapfs_mount 남은 7 명령(원본 0x13b36a–0x13b383) RTL 근거(`s5p378-sfpz1d` lreg·greg): 작업본은 두 page_size 읽기를 CSE 가 의사 48(REG_EQUIV `(mem page_size)`, 사용 2)로 합치고 global alloc 이 eax(0)를 줌; 이 함수의 spill 레지스터는 esi(4)·edx(1)(greg "Spilling reg 4/1"); rbuf·wbuf·cbuf(의사 29·30·31)는 스택. 원본은 두 덧셈이 모두 `add r,[page_size]` 이고 reload 레지스터가 ecx·edx — 해석(미확정): 원본에서는 의사 48 이 spill 레지스터에 놓였다가 밀려나 reload 가 REG_EQUIV 메모리를 두 사용처에 넣은 꼴, kalloc 결과는 별도 임시(ecx)를 거침. cse.c 원문 근거: 두 읽기를 합치지 않게 하는 조건(note_mem_written 7555–7592 의 가변 주소 비구조체 저장·BLKmode 저장, 호출)이 원본 명령열에는 없음; 0x1e0d0c 의 기호는 `_page_size` 하나(symbols.tsv).
+- swapfs_mount 덧셈 꼴(`s5p388-q1`–`q5`: `rbuf + page_size + page_size`, `rbuf + 2 * page_size`, 연쇄, 지역 변수에 page_size 먼저, 피연산자 순서)은 효과 없음(656 B 그대로 또는 더 나쁨).
+- codex 브레인스토밍(kv9e2s3s0, gpt-6.1-sol; 근거 아님) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| spill_hard_reg 는 밀어낸 의사를 global 재할당에 다시 넣음(reload1.c:3498) | reload1.c 3490–3502(sed): `reg_renumber[i] = -1; something_changed = 1; if (global)` | ✅ — 원본의 page_size 의사는 밀려난 뒤 재할당도 못 받았어야 함 |
+| 하드 레지스터 없는 의사의 메모리 등가가 사용처에 들어감(reload1.c:852), 초기화 insn 삭제(:1917) | reload1.c 852–856·1916–1919(sed) | ✅ |
+| local-alloc 이 바뀌지 않는 MEM 적재에 REG_EQUIV 를 붙임(local-alloc.c:1051) | local-alloc.c 1045–1055(sed) | ✅ |
+| 값이 쓰이는 메모리 대입은 store_expr 가 레지스터로 복사(expr.c:2767) | expr.c 2760–2770(sed) | ✅(원문 맞음; ecx 가 된다는 근거는 아님 — codex 도 그렇게 씀) |
+| 후보 1: `rp = &rbuf; wbuf = (*rp = kalloc(..)) + page_size;` | `s5p388-x1`: 664 B, rbuf 가 [ebp−4] 칸을 받아 스택 배치 전체가 밀림 | ❌ 원본 꼴 아님 |
+| 후보 2: 출력 포인터 셋을 받는 보조 함수 | `s5p388-x2`: 656 B, 차이 더 많음 | ❌ |
+| 후보 3: 지역 구조체 buffers | `s5p388-x3`: 652 B | ❌ |
+- machine_clock m45 덤프(`s5p388-m45d`, `-dr -ds -dc -dl -dg`): rtl 의 인라인 매개변수 적재 insn 192 `(set (reg:HI 43) (subreg:HI (reg/v:SI 26) 0))` 를 CSE 가 `(mem:HI last_count)` 로 바꿈(cse 덤프). 근거(GCC 원문): i386 `MODES_TIEABLE_P` 는 같은 모드만 참(config_i386_i386.h:439), cse.c rtx_cost 는 묶을 수 없는 SUBREG 에 `COSTS_N_INSNS (2)`(cse.c 735–739) → 메모리가 더 쌈. 원본의 `mov eax, esi; mov [reload], ax` 는 그 값의 등가 부류에 HImode 레지스터가 있었다는 뜻(해석). mvm34(인라인 clock_timer_constant 가 timer_cnt_val_t 반환)는 그 꼴이지만 같은 HI 레지스터가 timer_write 의 last_count 읽기까지 대신해 스택 임시가 생김 — 원본은 timer_write 에서 last_count 를 두 번 메모리에서 읽으므로, reload 저장 뒤 timer_write 앞에서 그 HI 레지스터 등가가 끊겨야 함(미확정).
+- machine_clock `s5p388-v1`(mvm34 꼴 + `volatile` last_count): 더 나쁨(last_count 가 스택 임시, 크기 달라짐).
+- swapfs 메커니즘 진단(원본 꼴 아님): `-fcall-saved-cx`(`s5p388-fxdcx`)는 640 B 로 멀어짐; `-ffixed-ax`(`s5p388-fxdax`)는 실기 컴파일 실패(상태 1, 로그 없음) — eax 를 빼는 진단은 이 도구로 불가.
+- machine_clock mvm34 꼴 + `do { } while (0)` 블록 경계(`s5p388-w1` timer_write 감쌈, `w2` reload 대입 감쌈, `w3` 둘 다): 모두 mvm34 와 같음(timer_write 인자 스택 임시). 근거: toplev.c 3129 의 jump_optimize 가 3167 cse_main 앞에서 돌아 코드 없는 레이블은 CSE 전에 사라짐(해석). mvm43·44 에서 레이블이 남은 것은 실제 점프(panic 갈래의 반환)가 있었기 때문.
+- swapfs `s5p388-x4`(x1 + rbuf 를 min·max 뒤에 선언): x1 과 같음(664 B, rbuf 가 [ebp−4]). 해석: 주소를 잡는 지역은 처음 `&` 가 나올 때 칸을 받음(put_var_into_stack, 문장 단위 확장) — 원본 칸 순서(fname −4·fp −8·min −0xc·max −0x10·rbuf −0x14)에서 min·max(&는 kmem_suballoc 에서)가 rbuf 보다 앞이므로 원본 rbuf 는 주소 잡힌 변수가 아니라 spill 칸 → codex 후보 1 갈래 종료. 원본 꼴의 해석(미확정): kalloc 값이 먼저 임시 의사(T, ecx)에 들어가 rbuf(스택)에 저장되고, wbuf 는 T 가 죽는 자리에서 같은 reload 레지스터 ecx 로, cbuf 는 상속된 ecx 를 edx 로 옮겨 계산 — page_size 의사는 하드 레지스터 없이 메모리 등가로 대입됨.
+- swapfs 호출 결과 임시 의사 가설: expr.c 의 CALL_EXPR 처리(5211–5222)는 preexpand_calls(8822) 로 미리 확장된 호출이면 그 결과를 돌려주고, 미리 확장할 때는 target 이 없어 calls.c 2238 `copy_to_reg (valreg)` 로 새 의사가 생깁니다. 원본의 `mov ecx, eax` 임시가 이 경로라는 해석으로, pz1 기준 연쇄 대입 `wbuf = (rbuf = kalloc(..)) + page_size`(`s5p388-y1`), 세 겹 연쇄(`y2`), 피연산자 순서를 바꾼 꼴(`y3`)을 시험했습니다. 세 개 모두 기준과 같았습니다(656 B, 차이 391). 정정: preexpand_calls 원문(expr.c 8822–8885)은 대입식(부류 'e')의 피연산자까지 내려가므로 y1 에서도 호출은 target 없이 미리 확장됩니다. 결과가 같은 것은 그 임시 의사가 뒤 단계에서 rbuf 와 합쳐지기 때문으로 보이며(해석, 덤프 미확인), 남은 차이를 정하는 것은 page_size 의사의 할당입니다. 덤프 확인(`s5p388-y1d`, `-dr -ds -dc -dl -dg`): rtl 에는 호출 결과 임시 의사 48 과 `29 = 48` 이 있으나 cse 덤프에서 `29 = 48` 이 사라지고 rbuf 사용이 48 로 바뀌어, 임시가 곧 rbuf(스택)가 됩니다. page_size 의사 49 는 두 사용으로 합쳐진 채 eax(greg dispositions `49 in 0`)를 받고, spill 레지스터는 esi·edx("Spilling reg 4/1")로 기준과 같습니다. 원본 꼴이 되려면 page_size 의사가 끝내 하드 레지스터를 받지 못해야 하는데, 이 함수에서 그렇게 만드는 소스 조건은 아직 찾지 못했습니다.
+- swapfs 다른 해석과 최적화 수준 진단: local-alloc.c 1056–1081 원문을 보면, 합쳐지지 않은 page_size 읽기는 설정 1·사용 1 이면 combine 이 덧셈에 바로 접습니다(원문 주석 "this can't succeed or combine would have done it"). 따라서 원본은 "두 읽기를 CSE 가 합치지 않음"으로도 설명됩니다. 이를 최적화 수준으로 시험했으나 원인이 아니었습니다. `-O`(`s5p388-oo1`)는 대부분의 함수가 깨졌고, `-O2`(`oo2`)는 자동 인라인이 빠져 pageout 이 1344 B(원본 1616 B)가 되었으며, mount 는 둘 다 648 B 였습니다.
+- machine_clock 추가: 인라인 clock_timer_constant 가 `return (last_count = count);`(`s5p388-n1`), 호출자 `reload = (last_count = clock_timer_constant());`(`n2`)는 mvm34 와 같았습니다(timer_write 인자가 스택 임시).
+- codex 브레인스토밍(ks6kpn03c, gpt-6.1-sol; 근거 아님) 판정:
+
+| codex 후보 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 1. 인라인 안 last_count 저장만 `*(volatile timer_cnt_val_t *)&last_count = count;` | 빌드 `s5p388-cx1` | ❌ timer_write 는 원본처럼 메모리를 읽지만 reload 복사가 사라져 기준과 같은 1 B 차이(`mov [reload], si`) |
+| 2. unsigned int 매개변수 setter | 앞서 시험한 m49·m50·j2 와 같은 꼴(§382·§384) | ⏭️ 새 시험 없음 — 기준과 같음 |
+| 3. 매개변수에 `val &= TIMER_COUNT_MAX` | 빌드 `s5p388-cx3` | ❌ 기준과 같음 |
+| 4. 두 저장을 한 unsigned int setter 에서 | j2(§384)와 같은 꼴 | ⏭️ 기준과 같음 |
+| 5. union 으로 하위 반쪽 고르기 | 빌드 `s5p388-cx5` | ❌ 기준과 같음 |
+- machine_clock cx1 덤프(`s5p388-cx1d`): reload 복사가 사라지는 곳은 combine 이 아니라 local-alloc update_equiv_regs 입니다. lreg 덤프에서 반환값 의사 31 의 설정 insn 184 에 `REG_EQUIV (mem:HI reload)` 가 붙고, greg 에서는 `(set (mem:HI reload) (subreg:HI (reg esi)))` 하나가 됩니다. 원문 조건(local-alloc.c 980–996): 저장 원천 의사가 한 기본 블록 안에서만 쓰이고(`reg_basic_block >= 0`), 설정 insn 이 하나이며(`reg_equiv_init_insn != 0`), validate_equiv_mem 이 성립해야 합니다. 원본은 `mov eax, esi` 복사가 남았으므로 이 조건 중 하나가 깨진 꼴로 해석됩니다. mvm43·44(반환 경로 둘)가 복사를 남긴 것도 설정 insn 이 둘이기 때문으로 보입니다(해석). 다만 그 꼴은 jmp·중복 코드를 남기므로, 코드를 늘리지 않고 이 조건을 깨는 소스 꼴은 아직 찾지 못했습니다.
+- machine_clock 루프 변수 `i` 를 거치는 꼴(`s5p388-z1` `reload = i = count;`, `z2` `i = count;` 를 last_count 저장 앞에)은 둘 다 기준과 같았습니다(CSE 가 i 를 count 로 바꿔 씀).
+- codex 브레인스토밍(k1dy5kkqh, gpt-6.1-sol; 근거 아님) 판정 — swapfs page_size 두 읽기:
+
+| codex 주장·후보 | 내 검증 방법 | 결과 |
+|---|---|---|
+| cse 의 MEM 해시·동치는 모드·주소만 보며 RTX_UNCHANGING·MEM_IN_STRUCT 는 무효화 분류에만 쓰임 | cse.c 1942–1957(sed) | ✅ — 같은 모드·주소의 page_size 를 다른 MEM 으로 만드는 선언·매크로 꼴은 없음 |
+| union 생성자는 초기화 전에 CLOBBER 를 냄(expr.c 3026–3029), cse 는 MEM CLOBBER 를 쓰기로 처리(cse.c 6256–6262) | 두 곳 sed | ✅ |
+| 정적 `&&label` 초기화는 forced_labels 로 레이블을 남김(expr.c 4170–4172, jump.c 234–235) | 두 곳 sed | ✅ |
+| 후보 2: 정적 `&&label` 로 블록 경계(진단 전용 — 원본에 없는 정적 데이터를 더함) | 빌드 `s5p388-lb`: 672 B. 두 덧셈이 `add edx,[page_size]`·`add esi,[page_size]` 메모리 피연산자가 됨. 다만 레이블 자리에서 대기 스택 정리 `add esp,4` 가 나옴 | ⚖️ 메커니즘 확인(읽기를 나누면 메모리 피연산자), 원본 꼴 아님 |
+| 후보 1: cbuf 를 BLKmode union 초기화로 | 빌드 `s5p388-un2`(첫 `un` 은 제 변환 실수로 컴파일 실패, 같은 ID 재빌드는 이전 결과가 남아 새 ID 사용): 676 B. 스택 정리 없이 두 덧셈이 메모리 피연산자가 되지만 union 칸·복사 명령이 늘고 프레임이 바뀜 | ⚖️ 메커니즘 확인(코드 없는 메모리 무효화가 있으면 원본 방향), 원본 꼴 아님 |
+
+- 정리: 원본의 7 명령은 "두 page_size 읽기 사이에 코드를 남기지 않는 메모리 무효화(또는 블록 경계)" 가 있었다는 해석과 맞습니다. 이를 만드는 원본 소스 꼴은 아직 찾지 못했습니다.
+
+### 383.1 기록 점검 — ip_output 의 비활성 원문 복원과 hunk 표시(코딩 전, 2026-10-07)
+
+0. 점검 결과: 기록본(07 SHA 8fe86788…, NeXTMach 대비 diff 11 hunk) 중 6 hunk 에 plan 표시가 없습니다. 그중 셋은 plan 175(2026-10-03)가 NeXTMach 의 `#if NeXT` 블록 셋(참조 69–73 선언, 186–190 if_output_mbuf, 208–328 단편화)에서 `#if/#else/#endif` 와 `#else NeXT` 쪽 비활성 코드(mbuf 단편화 경로 약 60 줄)를 지운 것입니다. NeXT 가 정의되어 있어 바이트에는 영향이 없으므로 원본 바이트가 요구한 수정이 아니며, 2026-10-04 사용자 지시("비활성 코드를 정리하지 말 것", 메모리 no-feature-additions)에 맞지 않습니다. plan 175 는 그 지시보다 먼저 쓰였습니다.
+1. 변경(주석·전처리 줄만, 후보 scratchpad `ipv/cand383_1.c`):
+   - 참조 69–73: `nb`·`map`·`mhlen` 선언을 `#if\tNeXT` … `#endif\tNeXT` 로 다시 감쌉니다.
+   - 참조 186–190: `if_output_mbuf` 줄을 참조 원문(`#if NeXT` / `#else NeXT` 의 `(*ifp->if_output)` / `#endif NeXT`)으로 되돌립니다.
+   - 참조 208: 단편화 앞 `#if\tNeXT\t` 줄을 되살리고, 그 아래 iph 설명 주석에 plan 175 표시를 답니다.
+   - 참조 264–328: 루프 뒤 `m_freem(m0);` 다음에 `#else NeXT` 쪽 원문과 `#endif NeXT` 를 그대로 넣습니다.
+   - 표시 없는 나머지 hunk 에 plan 175 표시 주석(ROUTETOIF 블록·소스 주소 블록의 `ia` 함수 범위, 멀티캐스트 블록 0x12742c–0x127534, `sendit:`, 첫 조각 `iph = *ip;`)을 답니다.
+2. 결과 예측과 진단: 참조 대비 diff 10 hunk 모두 plan 표시 있음(python 전수 검사), 지운 줄 21(python). 진단 `s5p383-ic3` **OBJECT_MATCH**(9), `__text` 4031 B·`__data` 10 B 의 SHA 와 재배치 수 87 이 기록본 `s5p383-it1` 과 같음(python).
+3. 이어서: 07 반영 → iter_k07 → relcheck → 실기 cc -M(모든 헤더 07) → 기록 갱신(PROVENANCE 의 파일 SHA, MODIFICATIONS 행 문구에 비활성 원문 유지와 plan 383.1, evidence `.md` 의 SHA·run, `.diff` 재생성, functions.tsv 의 07 줄번호 인용 9 행 갱신과 정의 줄 검사). objects_confirmed 의 build 칸 run 이름도 확인합니다.
+4. 같은 점검에서 본 것(이번 범위 밖, 사용자 판단 대상): 이미 기록된 tcp_input(참조 `#else` 3 → 07 1)·tcp_output(1 → 0)·netisr(1 → 0)·if_ether(42 → 41)도 참조보다 `#else` 가 적습니다. 원본 바이트가 요구한 것인지(빌드에 필요한 삭제였는지)는 아직 확인하지 않았습니다.
+5. codex 교차검토(kmowxtxjg, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 되살린 블록이 참조 69–73·186–190·208·264–328 과 바이트 단위로 같고(`#if\tNeXT\t` 포함) 짝이 맞음 | python: 참조 블록 셋의 바이트열이 후보에 정확히 1 번씩 있음, `#if\tNeXT\t` 줄 1 개, 조건부 지시문 짝 검사 통과 | ✅ |
+| NeXT 쪽 `m_freem(m0);` 는 `#else` 앞, `done:` 은 `#endif` 뒤(후보 373·374·438·439) | python 으로 후보 374·438·439 행 출력 | ✅ |
+| 07 대비 바뀐 것은 주석·전처리 줄·비활성 갈래뿐 | 07→후보 diff 의 더한 줄 80 중 71 이 참조 원문, 나머지 9 는 표시 주석·`#if\tNeXT\t`·표시 붙은 두 줄; 지운 줄 4 는 표시 주석으로 바뀐 줄(python 분류) | ✅ |
+| 10 hunk 모두 plan 표시, 멀티캐스트 범위는 plan 175 3 항과 같음 | python 전수 검사(표시 없음 0); RECONSTRUCTION_PLAN-100-199.md:2216(grep) | ✅ |
+| functions.tsv 9 행의 검증 JSON 경로(`s5p383-it1`)도 갱신 필요, 후보 정의 줄은 62·454·494·527·600·708·943·994·1012 | python: functions.tsv 4719–4727 행의 run 이름 집합 {s5p383-it1}; 후보 정의 줄 계산 결과 같음 | ✅ 채택 — 3 항 기록 갱신에 포함 |
+- 결과: 07 `src/bsd/netinet/ip_output.c` = scratchpad `ipv/cand383_1.c`(이전 본 `ipv/ip_output.pre383_1.c`), 파일 SHA-256 6d81e9770dacaa4c7ca82439d925650b478fb59acb51a43c6ada7d0ab46b4172. iter_k07 `s5p383-it2` **OBJECT_MATCH**(9), relcheck 0; 실기 cc -M `s5p383-dep2` 48 헤더 모두 07, 목적 파일 = it2(SHA 같음). 기록 갱신: PROVENANCE(파일 SHA), MODIFICATIONS(비활성 원문 유지 문구, plan 383.1), functions.tsv 9 행(07 정의 줄 62·454·494·527·600·708·943·994·1012, 검증 JSON `s5p383-it2`), objects_confirmed(build 칸 dep2·it2), evidence `.md`(SHA·run·경위)와 `.diff` 재생성. 갱신 뒤 python 검사: 인용 18 개 모두 정의 줄, 검증 JSON 9 개 존재, diff 10 hunk 모두 plan 표시, 표 행 수 변화 없음(PROVENANCE 1026·functions 4728·objects_confirmed 316·MODIFICATIONS 497).
+- 4 항 확인 결과(사용자 판단 대상 아님): netisr(plan 154)·tcp_output(plan 174, `#if DEBUG`·`#if BSD>=43`)·if_ether(표시 있는 hunk)의 조건부 삭제는 모두 표시된 작성·복원 수정 안에 있습니다. tcp_input 은 바탕이 Net/2(plan 368, PROVENANCE `net2+nextmach`)라 NeXTMach 와 `#else` 수를 비교한 것이 맞지 않았습니다.
+- 같은 점검을 이번 세션에 기록한 다른 파일에도 했습니다(python, 참조 대비 diff hunk 의 plan 표시). `nextdev_private/bsd/net/tokensr.h`(Darwin 대비 10 hunk)·`FBConsPriv.h`(1 hunk)는 모두 표시가 있습니다. `src/bsd/dev/i386/FBConsole.c` 는 Darwin 대비 13 hunk 중 6 개의 hunk 안에 표시가 없지만, 모두 같은 함수·블록의 표시 주석이 설명합니다. 15·24 비트 색 값은 1015 행 `plan 341: 4.2 colour values for 8, 15 and 24 bit` 가, DrawRect 의 화면 주소 계산·루프 변수와 EraseRect 본문은 DrawRect 앞 1175–1182 행 블록 주석(plan 341·379, 본문을 원본 바이트로 작성)이 설명합니다. Darwin 의 Description·Preconditions 주석을 뺀 것도 그 주석에 적혀 있으며, 지워진 비활성 원문은 없습니다. 그래서 07 은 바꾸지 않았습니다. `if_vtrip.c` 는 전부 작성한 파일이라 참조 대비 검사 대상이 아닙니다.
+- swapfs(이어서): cse.c 8054–8072 원문상 loop.c 전의 CSE 는 기본 블록을 CODE_LABEL 외에 `NOTE_INSN_LOOP_END` 에서도 끊습니다. 그러나 두 page_size 읽기 사이에서 루프가 끝나는 꼴은 원본이 될 수 없다고 판단합니다. stmt.c 의 expand_loop_continue_here(2202)·expand_end_loop(2250 근처)가 대기 스택 정리를 내보내는데, 원본은 kalloc 인자 4 B 정리를 0xcb 의 `add esp,0x24` 에 합치고 있어 그 사이에 `add esp` 가 없습니다(레이블도 expand_label 643 에서 같은 이유로 제외). 확인 빌드 `s5p388-le1`(kalloc 과 wbuf 계산을 `do { } while (0)` 로 감쌈): 루프 끝 뒤의 두 번째 덧셈은 `add esi,[page_size]` 메모리 피연산자가 되었지만 0x92 에 `add esp,4` 가 나오고 684 B 가 되어 판단과 같았습니다.
+- swapfs 원본 7 명령의 할당 해석(덤프·원본 대조, 미확정): kalloc 결과 임시 의사 T 가 global alloc 에서 ecx 를 받고, rbuf 는 T 와 다른 스택 의사입니다(`mov [ebp−0x14], ecx` 는 `rbuf = T`). wbuf 는 T 가 죽는 자리라 reload 가 ecx 를 그대로 출력 레지스터로 쓰고, cbuf 는 상속된 ecx 값을 spill 레지스터 edx 로 옮겨 계산합니다. 이 해석은 함수의 spill 레지스터 {esi, edx}(작업본 greg)와 모순되지 않습니다. y1 에서는 CSE 가 rbuf 사용을 T 로 바꿔 써서 둘이 합쳐졌으므로, 남은 조건은 "rbuf 가 T 와 합쳐지지 않고 page_size 의사가 레지스터를 받지 않는 꼴"입니다. 진단 `s5p388-y5`(y1 + `volatile` rbuf): rbuf 가 선언 때 [ebp−4] 칸을 받아 스택 배치가 밀렸습니다(672 B).
+- swapfs 원본 점프 확인(python, capstone): 원본 swapfs_mount 의 점프는 0x10·0x17·0x30·0x48·0x58·0x65 의 여섯이고 뒤로 가는 점프는 없습니다. 대상 레이블은 0x1c·0x6c·0x28a 뿐이라 0x6c 뒤로는 끝까지 레이블이 없습니다. 그래서 CSE 경계로 남은 후보는 루프 끝 메모이며, 그 정리가 원본 0xcb `add esp,0x24` 와 겹치도록 "첫 루프가 0xcb 에서 끝나고 바로 pz1 의 둘째 루프가 시작"하는 꼴을 시험했습니다. `s5p388-t1`(rbuf 부터 swapfs_bit_map 까지 감쌈), `t2`(VN_HOLD 부터), `t3`(t1 + 연쇄 대입) 모두 680 B 였습니다. t3 은 두 번째 page_size 읽기가 메모리 피연산자가 되었지만, 첫 루프의 가중으로 rbuf 가 edi 를 받고 vp 가 [ebp−0x14] 로 밀렸으며 프레임이 4 B 커졌습니다(`sub esp,0x28`).
+- D055(2026-10-07, 사용자 결정) 참고 원문 확보: 4.3BSD-Net/2·4.4BSD-Lite 의 `sys/vm` `swap_pager.c/.h`·`vm_swap.c`·`vnode_pager.c/.h` 를 TUHS 에서 받아 `01_resources/upstream/net2/sys/vm/`·`upstream/bsd44lite/sys/vm/` 에 두었습니다(Lite 는 배포처 cksum 5/5 일치, 매니페스트 `net2-vm-swap.json`·`bsd44lite-vm-swap.json`). 비교 결과: BSD 스왑은 스왑 장치 블록 지도(`rmalloc(swapmap, …)`)와 vm_pager 구조(`malloc(…, M_VMPAGER, …)`)를 쓰고, 4.4BSD-Lite swapon 은 블록 장치만 받습니다(`v_type != VBLK` → `ENOTBLK`, vm_swap.c). swapfs_mount 의 꼴(정규 파일 vnode·`ENOTDIR`, kalloc 버퍼 셋, `kmem_suballoc` 지도 둘, vfs_data)과 같은 원문이나 관용구는 없습니다. 남은 7 명령의 소스 꼴을 정하는 근거로는 쓸 수 없다고 판단합니다. 이 판단은 grep 결과와 두 swapon 원문을 직접 읽어 확인했습니다.
+- swapfs 조합 탐색(2026-10-07, 사용자 선택 "1 탐색 계속"; scratchpad `swapfs/sw389/gen.py`·`run.sh`·`log`, run `s5p389-a?b?c?`): 할당식 꼴 6(a0 기본·a1 연쇄 대입·a2 임시 buf·a3 `buf +=`·a4 wbuf 연쇄·a5 피연산자 순서) × 루프 구조 3(b0 pz1·b1 첫 루프 rbuf 부터·b2 첫 루프 VN_HOLD 부터) × 선언 위치 2(c0 기존·c1 nmap 뒤) = 36 개(a0b0c0 = pz1 확인 뒤 35 개 빌드). 빌드 35 개 모두 상태 0, mount 크기·차이 바이트(python 집계): 656 B·391 이 9 개, 660 B·400 이 2 개, 676 B·396 이 4 개, 680 B·417 이 20 개. OBJECT_MATCH 는 없었습니다. a3b0c0·a3b0c1 은 크기만 660 B 로 원본과 같고, buf 가 스택으로 가고 vp 가 [ebp−0x14] 로 밀리는 등 배정은 기준보다 멉니다. 선언 위치(c)는 결과에 영향이 없었습니다.
+
+## 385. 진단 메모 — 일치 객체를 증거로 쓰는 관용구 탐색과 machine_clock 의 RTL 추적(07 손대지 않음, 2026-10-07 밤)
+
+- 방법 전환(사용자 질문 "남은 문제를 어떻게 추적해야 할까요?"): 소스 꼴 추측 대신, 이미 바이트가 맞은 객체에서 같은 명령 꼴을 찾아 그 07 소스로 "이 컴파일러에서 그 꼴을 내는 C 형태"를 확인합니다(scratchpad `idiom390.py`·`idiom390b.py`, 함수 경계마다 capstone 역어셈블, 기본 블록 단위).
+  - swapfs 꼴(같은 전역을 한 블록에서 두 번 읽음, 둘 다 덧셈에 접힘): 일치 객체 안에는 없습니다. qsort(A) 의 1 건은 루프 경계를 사이에 둔 읽기라 다른 경우입니다. 넓힌 검색(같은 전역 두 번 읽기 29 건)은 모두 첫 읽기 레지스터가 그 사이에 망가진 경우(cse 가 합칠 수 없음)라 증거가 아닙니다.
+  - machine_clock 꼴(32 비트 레지스터 복사 직후 16 비트 저장): 일치 객체에 4 건 — rewhence(kern_descrip, `switch (ld->l_whence = newwhence)`), tcp_input, unix_syscall(trap), initDmaLock(IOSVGADisplay). 네 건 모두 복사 레지스터가 저장 뒤에도 쓰입니다(cmp/add). 원본 machine_clock 은 저장 뒤 eax 를 쓰지 않으므로, "cse 뒤에 죽은 두 번째 쓰임" 가설로 이어졌습니다.
+- machine_clock 변형(scratchpad `mcv/`, run `s5p390-*`): n3(`reload = count; timer_write(..., count)`)·n6(SI 사본 c)·n13·n4·n5(SI 반환 인라인의 반환값을 두 곳에)·cx·k·j 류는 기준과 같았습니다(SI 사본은 cse 가 count 로 되돌려 복사가 사라짐). n7(HI 사본 c 를 reload·timer_write 양쪽에)·q4(인라인이 `return (last_count)`)는 timer_write 는 원본과 같고 복사 출처만 `mov ax,[last_count]`(원본 `mov eax, esi`). n11·q2·q10·q7 은 m34 와 같거나 더 나빴습니다(앞단이 `& 0xffff`·`+ 0` 을 접음).
+- RTL 추적(덤프 `s5p365-mvd5`(m34)·`s5p390-n7d`·`q4d`, GCC 원문):
+  - `mov eax, esi` 는 HImode 레지스터 간 복사입니다. i386.md movhi 템플릿은 두 피연산자가 레지스터면 `movl %k1,%k0` 을 냅니다.
+  - m34 의 복사: 인라인 반환값이 `39 = zero_extend:SI(subreg:HI count)` 와 `(subreg:SI (reg:HI 31)) = 39` 두 insn 으로 나옵니다. 앞단이 반환형 unsigned short 를 unsigned int 로 승격했고(zero_extend), integrate.c 1642–1662 가 arriving_mode(SI) ≠ departing_mode(HI) 라 대상을 `(subreg:SI (reg:HI 31))` 로 만듭니다. PROMOTE_FUNCTION_RETURN 은 i386/next 설정에 없습니다.
+  - m34 가 timer_write 를 그르치는 이유: cse.c 7401–7450 의 "넓은 SUBREG 대상 기록" 규칙이 reg 31 을 `lowpart(39 의 부류)` = `(subreg:HI count)` = `(mem:HI last_count)` 부류에 넣고, 그래서 timer_write 의 `last_count` 적재가 reg 31 로 치환되어 바이트 읽기가 스택 임시가 됩니다. cse.c 7340–7352 는 원천이 ZERO_EXTEND/SIGN_EXTEND 이면 대상을 기록하지 않지만, m34 의 원천은 reg 39 라 적용되지 않습니다.
+  - n7·q4 가 복사 출처를 메모리로 만드는 이유: `(set X (subreg:HI count))` 의 원천을 cse 가 더 싼 `(mem:HI last_count)` 로 바꾸고(비묶음 SUBREG 비용 cse.c 735–739), 그 X 는 REG_EQUIV 메모리를 받아 하드 레지스터 없이 남아 reload 가 `mov ax,[last_count]` 와 바이트 메모리 읽기를 냅니다.
+  - 따라서 원본은 "`(set (subreg:SI X) (zero_extend:SI (subreg:HI count)))` 한 insn" 꼴로 해석됩니다. 그러면 7340–7352 규칙으로 X 가 last_count 부류에 들어가지 않아 timer_write 는 메모리를 읽고, combine 은 SUBREG 대상 insn 을 흡수하지 않아 복사가 남으며, 하위 16 비트만 쓰이므로 `mov eax, esi` 가 됩니다(해석). 이 한 insn 꼴이 어떤 C 소스에서 나오는지는 아직 찾지 못했습니다. stmt.c expand_return 은 `cleanups = 1`(#if 0 로 고정)이며 반환값을 먼저 의사 레지스터에 계산하는 경로가 보이는데, 최종 분기 조건(expand_return 뒷부분)은 아직 읽지 않았습니다.
+- 사용자 지시(2026-10-07 밤): 이 작업까지 끝내고 잠시 대기. codex 모델은 이 작업의 분석·교차검토에 한해 `gpt-6-astra` 도 허용(메모리 기록).
+
+## 386. 진단 메모 — machine_clock clock_timer_init: 원본 바이트를 내는 구조를 찾음, 남은 것은 레지스터 순서(07 손대지 않음, 2026-10-08)
+
+0. 방법: 소스 꼴 추측 대신 RTL 단계별 덤프(`-dr -ds -dc -dl -dg -df`)와 GCC 원문(실기 cc 의 원문과 해시 일치 확인: i386.c·local-alloc.c·cse.c)으로 거꾸로 추적했습니다. 모든 run 은 `s5p390-*`·`s5p391-*`(scratchpad `mcv/`).
+1. 사실(덤프·원문):
+   - `mov eax, esi` 는 HImode 레지스터 간 복사입니다(i386.md movhi 는 레지스터 둘이면 `movl %k1,%k0`).
+   - X 가 HI REG 여야 reload 저장이 레지스터에서 옵니다. SI 반환(m36)이면 저장 원천 `(subreg:HI X)`(비용 16)를 cse 가 메모리(비용 4)로 바꿔 `mov [reload], si` 가 됩니다(`s5p391-m36d` cse 덤프 insn 191).
+   - HI 반환 인라인(m34)은 X 를 `(set (subreg:SI X) 39)`, `39 = zero_extend(subreg:HI count)` 두 insn 으로 만들고, cse.c 7401–7450 의 넓은 SUBREG 대상 기록 규칙이 X 를 `last_count` 메모리 부류에 넣습니다(gen_lowpart_common 이 zero_extend 의 피연산자를 돌려줌 — 실기 emit-rtl.c 567– 확인). 그래서 timer_write 의 `last_count` 적재가 X 로 치환되어 바이트 읽기가 스택 임시가 됩니다.
+   - 복사가 combine 에 흡수되지 않는 조건은 "X 의 쓰임 둘 또는 설정 둘"입니다(w4f: 블록 경계로 치환만 막으면 쓰임이 하나가 되어 흡수됨; d1: 죽은 두 번째 대입은 delete_dead_from_cse 가 지워 역시 흡수).
+   - 두 꼬리 구조(반환 둘)에서 mvm43 이 실패한 원인은 panic 호출의 인자 정리 `add esp,4` 가 return 까지 미뤄져 꼬리가 달라진 것입니다. 저장을 인라인 helper 호출로 하면 integrate.c 의 `do_pending_stack_adjust` 가 호출 직후 정리를 내보내 꼬리가 같아지고 최종 jump pass 의 cross-jump 가 합칩니다(e1·e3: 남은 차이는 복사 레지스터 ecx).
+   - e1 의 X 는 전역(두 설정)이라 reload 의 eax spill(udivmodsi4 의 AREG 수요, `-dg` "Spilling reg 0")에 밀려났습니다. reload1.c 3480–3495: 블록 지역 pseudo 는 그 블록에 수요가 없으면 밀려나지 않습니다. 호출점을 둘로 나누어 꼬리마다 다른 pseudo 를 두면(g1: `if (count > 0xffff) { panic(...); reload = set_counts(count); } else reload = set_counts(count);`, set_counts 는 `last_count = count; return (count);` 인라인) X 가 꼬리 블록 지역이 되어 밀려나지 않습니다. **g1 은 복사 레지스터(edx, 원본 eax) 하나만 다릅니다.**
+   - `-mreg-alloc=adcbSDB`(eax 우선, 진단 전용)로 g1 을 빌드하면 clock_timer_init 의 바이트가 원본과 같습니다(`s5p391-g1a`, alf 차이 재배치 자리뿐). 그러나 같은 옵션은 set_timer 를 바꾸므로(원본 set_timer 는 기본 순서) 빌드 옵션은 아닙니다.
+   - edx 가 먼저인 이유: i386.c order_regs_for_local_alloc 은 함수 안에 SET_SRC 가 DImode 인 insn 이 있으면 순서를 edx·ecx·eax 로 바꿉니다(use_dca). clock_timer_init 에는 `time_of_boot` 의 DI 저장과 `__udivdi3` 인자·결과가 있어 원본에서도 참이었을 것입니다.
+2. 남은 문제(한 가지): 꼬리 블록 지역 X 에 local-alloc 이 edx 대신 eax 를 주려면, X 의 생존 구간(복사→저장 2 insn)에 edx 와 ecx 가 살아 있거나(find_free_reg 의 regs_live_at), X 가 local-alloc 대상에서 빠져 global 이 할당해야 합니다(local_alloc 조건: `reg_basic_block >= 0 && reg_n_deaths == 1 && (alternate == NO_REGS || !CLASS_LIKELY_SPILLED_P(pref))`). g1·g5(조건 반전)·g3(timer_write 중복)·g6(HI 매개변수)은 모두 edx 또는 더 나쁨. 꼬리 블록 시작의 live 레지스터는 ebp·esp·s·count 뿐(flow 덤프)이라 현재 꼴에서는 edx 가 비어 있습니다. 어떤 자연스러운 C 구문이 그 조건을 만드는지는 아직 찾지 못했습니다.
+3. 판단: 소스 구조는 거의 확정(두 호출점 + 인라인 helper, 혹은 그와 같은 RTL 을 내는 꼴)이고, 마지막 1 바이트는 local-alloc 의 레지스터 선택입니다. 다음은 그 선택을 바꾸는 자연스러운 구문 탐색입니다.
+4. codex 브레인스토밍(k3vl6061t, gpt-6-astra; 근거 아님) 판정:
+
+| codex 주장·후보 | 내 검증 방법 | 결과 |
+|---|---|---|
+| global.c 도 같은 reg_alloc_order 를 쓰므로 X 를 global 로 보내는 것만으로는 부족 | global.c find_reg 원문(`regno = reg_alloc_order[i]`, 앞서 읽음) | ✅ |
+| 인라인 반환값은 eax 정체성을 잃음(integrate.c 1652·1666), REG_EQUIV(reload) 는 메모리 등가일 뿐 | integrate.c 1666–1667·1713–1717·2184–2196(앞서 읽음) | ✅ |
+| 1 안: 두 꼬리에 각각 `x = set_counts(count); reload = x; timer_write(TIMER_CNT0_SEL, x);` | 빌드 `s5p391-cv1`: T = X 가 되어 바이트 읽기가 스택 임시, 꼬리도 합쳐지지 않음(jmp·중복) | ❌ |
+| 2·3 안: 함수 범위 `x` 를 두 꼬리에서 설정하고 timer_write 에 넘김 | 1 안과 같은 T = X 구조(m34·n11·cv1 에서 모두 실패) | ❌(빌드 생략) |
+| 더미 사용으로 edx·ecx 를 묶어 둘 수 없음(최적화·할당을 지나 남지 않음) | d1·k1–k4 결과와 일치 | ✅ |
+
+5. 현재 결론: 원본 바이트를 내는 소스 구조(두 호출점 + `last_count` 저장·반환 인라인 helper, 꼬리 cross-jump)는 찾았고, 남은 1 바이트는 local-alloc 이 꼬리 블록의 HI pseudo 에 edx(DI 함수 순서) 대신 eax 를 준 이유입니다. 바이트 순서상 포트 적재가 reload 저장 뒤라 ecx 를 X 와 겹치게 할 지역 pseudo 는 보이지 않고, 자연스러운 C 구문으로 그 조건을 만드는 방법은 아직 없습니다. 사용자 판단 대상으로 보고합니다.
+
+## 387. 계획 — 잔여 둘의 다음 탐색(codex 영어 질의 kgmj50qsl·k6t2bclxs 취합; 코딩 전, 2026-10-08)
+
+0. 취합(모두 원문으로 확인한 사실만 적습니다):
+   - machine_clock: 인라인 인자는 왼쪽부터 평가되나 수정되지 않는 매개변수의 MEM 인자는 모든 인자 평가 뒤 복사됩니다(integrate.c 1259–1304, 1480–1494; 수정되는 매개변수는 1306–1327 에서 즉시 복사). 포트 적재는 바이트상 reload 저장 뒤라 ecx 점유를 설명할 수 없습니다. sched 패스 없음(toplev.c 547–548, i386 설정에 OPTIMIZATION_OPTIONS 없음). 새 저비용 후보는 `timer_write(TIMER_CNT0_SEL, reload = set_counts(count))`(X 가 AREG 선호를 얻어 local-alloc 에서 제외되면 global 이 eax; local-alloc.c 472–477, config_i386_i386.h 744–751) 하나이며, T = X 가 되어 바이트 읽기가 레지스터가 될 위험이 큽니다.
+   - swapfs: cse2 는 LOOP_END 를 무시하므로 do-while 경계는 되돌려집니다(cse.c 8067–8072). 원본의 `add r,[page_size]` 둘은 "합쳐진 pseudo 가 하드 레지스터를 못 받아 reload 가 메모리로 치환"(reload1.c 852–859·1910–1928·1958–1987)으로도 설명됩니다. y1 덤프: kalloc 임시 T 가 cse 의 정규형 규칙(cse.c 840–862)으로 rbuf 사용 전부를 흡수해 T 가 곧 rbuf(호출 6 개 교차)가 됩니다. 원본은 T(ecx) 가 짧게 살고 rbuf 는 메모리이므로, rbuf·wbuf·cbuf 는 pseudo 가 아닌 메모리 변수(집합체 또는 주소를 잡은 변수)로 해석됩니다. expand_decl(stmt.c)은 주소를 잡거나 BLKmode 인 지역을 선언 시점에 선언 순서대로 스택에 두므로, fname·fp·min·max(−4…−0x10) 뒤에 선언된 집합체가 −0x14 부터 받습니다. pz1·y1 의 spill 레지스터는 esi·edx 뿐이라, T 가 ecx 가 되려면 원본에서는 eax 도 spill 되었어야 합니다(진단 대상).
+1. swapfs 변형(pz1 바탕, min·max 뒤에 선언, kalloc 임시 `buf`):
+   - h1: `struct { vm_offset_t cbuf, wbuf, rbuf; } b;` + `buf = kalloc(page_size * 3); b.rbuf = buf; b.wbuf = buf + page_size; b.cbuf = b.wbuf + page_size;`
+   - h2: h1 의 대입을 체인 `b.wbuf = (b.rbuf = kalloc(page_size * 3)) + page_size;` 로
+   - h3: `vm_offset_t buf[3];`(rbuf = buf[2], wbuf = buf[1], cbuf = buf[0]) — 진단용
+   확인: mount 크기·차이, 0x7e–0x94 명령열, `-dl -dg` 로 T 의 레지스터와 spill 레지스터.
+2. machine_clock 변형(g1 바탕): c1: 두 갈래 모두 `timer_write(TIMER_CNT0_SEL, reload = set_counts(count));`.
+3. 결과에 따라 다음을 정합니다. 어느 쪽도 맞지 않으면 사용자 보고.
+4. 결과(2026-10-08): 커널 진단 빌드 h1·h2·h3(집합체 버퍼)은 652 B 로 pz1 보다 멀고, c1 은 T = X 라 더 나쁨. 집합체는 선언 시점에 첫 칸([ebp−4…])을 받아(GCC 2.7 C 는 문장 단위 전개; 주소를 잡는 스칼라는 `&` 가 처음 나올 때 칸을 받음) 원본 칸 순서와 맞지 않습니다.
+5. **탐침 환경**(08_build/runs/tools/probe, git 무시; `run.sh`: 독립 C 파일을 실기 cc-744.13 으로 `-O3 -fno-omit-frame-pointer -traditional-cpp -S`, `runk.sh`: 커널 헤더 스테이징(s5p388-y1)으로 커널 소스 파일을 `-S`). 축약 탐침 p1(swapfs 꼴)·p2(machine_clock 꼴)는 커널 빌드의 해당 구간을 그대로 재현했습니다(p1 = pz1 꼴, p2 = g1 꼴). 건당 수 초.
+   - p2a(DImode 연산 제거): 꼬리가 원본과 **정확히 같음**(`movl %esi,%eax; movw %ax,_reload`). p2b(time_of_boot 만 DI)·p2c(res 루프만 DI): 둘 다 edx. → 순서 가설 확정. 원본 함수에는 DI 가 있으므로 "edx·ecx 점유" 조건이 남습니다. q2(지역 사본)·q3·q4(포트를 미리 지역에) 는 edx 그대로이거나 asm 레지스터가 바뀜.
+   - swapfs 탐침: v01(임시 buf)·v02(volatile)·v04(char * 반환)·v05(체인)·v08(구조체)·v14(+=)·v16(char * 버퍼) 모두 pz1 꼴 또는 더 멂. 강제 레이블(l0·l1·l5, 진단) 도 변화 없음 → "버퍼 계산 뒤 블록 경계" 가설 기각. **d1–d4(64 비트 복사 한 줄 추가 → edx 우선 순서)**: `movl %eax,-rbuf; movl _page_size,%edx; movl %eax,%ecx; addl %edx,%ecx; …` 로 원본 쪽(ecx·edx)으로 이동하지만 rbuf 저장 원천과 page_size 레지스터는 아직 다릅니다. 원본 swapfs_mount 바이트에 64 비트 쌍 저장·적재는 없습니다(python 검사).
+6. 결과(2026-10-08, 전체 커널 문맥 탐침 `runk.sh` sw0–sw5; 덤프 `-dr -dl -dg`; gcc 소스 10 파일은 실기 `/NextDeveloper/Source/GNU/gcc` 와 BSD `sum` 일치 확인 — i386.md·i386.h·reload1.c·reload.c·caller-save.c·expr.c·calls.c·optabs.c·local-alloc.c·global.c):
+   - 원본 0x7e–0x94 를 내는 RTL·할당은 다음으로 설명됩니다. (a) `-O2` 이상은 `-fforce-mem`(toplev.c 3718–3726) 이라 `page_size` 가 pseudo 로 적재되고(expand_binop, optabs.c 371–374), REG_EQUIV 메모리 등가를 받습니다(local-alloc.c 1049–1054); 하드 레지스터를 못 받으면 reload 가 `[page_size]` 로 치환합니다. (b) rbuf·wbuf·cbuf(pseudo 29·30·31)는 호출을 건너 살아 spill 되며 칸 −0x14·−0x18·−0x1c 는 우리 출력과 **같은 칸**입니다(sw0: −20·−24·−28; sn 의 caller-save 칸 −32 도 원본 −0x20 과 같음). 뒤쪽 읽기도 원본·우리 모두 같은 칸(원본 0x165·0x180·0x198). 따라서 메모리 변수(집합체·주소 취득) 가설은 기각(§387.4 와 일치). (c) 남은 차이는 두 가지뿐: 원본은 kalloc 값 복사 임시 T 가 **ecx**(우리는 eax 로 묶임), 합쳐진 page_size pseudo 가 **할당되지 않음**(우리는 eax/edx). 두 add 의 reload 는 inherit(`mov edx,ecx`)·in/out 규칙으로 원본과 같은 꼴이 됩니다.
+   - T 가 생기는 경로 확인: expand_assignment 의 "call-first" 경로(expr.c 2587–2598: 좌변이 REG 인 VAR_DECL 이 아닐 때 `expand_expr(from, NULL)` 뒤 복사), expand_call 은 target 이 없을 때 `copy_to_reg(valreg)`(calls.c 2238; target 이 있으면 2157–2163 직접 이동), preexpand_calls(이항식 안의 호출). 단순 출력 reload 는 선택 reload 를 만들지 않으므로(reload.c 3527–3545 "Optional output reloads don't do anything") `mov ecx,eax; mov [-0x14],ecx` 는 반드시 실제 pseudo T 입니다.
+   - 탐침: sw2·sw3(인라인 helper 로 `&rbuf` — put_var_into_stack fixup, RTL 243–258)·sw4(배열 `buf[3]`, call-first 경로 확인: RTL 113 `(set 45 eax)`·115 저장)·sw5(중첩 대입 체인) 모두 T = eax, page_size = 레지스터. 즉 T 를 만드는 구문은 여럿이지만 **eax 를 피하게 하는 조건**(T 수명 [113,121] 동안 eax 가 살아 있거나 설정됨)과 page_size pseudo 가 레지스터를 못 받는 조건은 아직 자연스러운 C 로 만들지 못했습니다. DI 순서는 원본에 64 비트 쌍이 없어 제외.
+   - 다음 후보(미실행): kalloc 반환값이 두 번 읽히는 꼴(eax 수명 연장), 또는 T 수명 안에 eax 를 쓰는 짧은 식. 사용자 지시로 분석 중단(2026-10-08).
+7. 결과(2026-10-08 재개분, 탐침 sw6–sw10; codex gpt-6-astra 영어 질의 k0j4dpyoo — 회신의 1 순위 "sn 의 pseudo 재사용"은 제가 독립적으로 먼저 도달한 가설과 같았고, 아래 탐침으로 검증했습니다):
+   - 복사 임시 T 가 cse 를 살아남는 조건을 원문으로 확정: cse.c 7467–7520 은 `(set T eax)(set 29 T)` 에서 29 가 T 의 qty 정규 레지스터일 때 두 insn 을 맞바꿔 `(set 29 eax)` 로 만들고(sw6 덤프 116/118 로 확인), 반대로 T 가 정규이면 canon_reg 가 29 의 뒤 사용을 모두 T 로 바꿉니다(sw5: 29 사용 245·249 → 48). 정규 선택은 make_regs_eqv(cse.c 840–862)의 "마지막 사용이 더 늦은 쪽" 규칙입니다. 또 local-alloc 의 optimize_reg_copy_1(local-alloc.c 700–830)이 pseudo 간 복사를 합칩니다. 따라서 T 가 남으려면 **T 가 뒤에서 다른 값으로 다시 설정되는 변수**여야 합니다(sw8/sw9: 재사용 임시 `buf` → lreg 에서 `(set 30 29)` 가 29 의 REG_DEAD 와 함께 남음; 그러나 T = eax).
+   - **sw10(`sn = (struct swapnode *)kalloc(page_size * 3); rbuf = (vm_offset_t)sn;` 뒤에 기존 `sn = kalloc(0x7c)`)**: `movl %eax,%ecx; movl %ecx,-20(%ebp)` 로 원본 0x7e–0x80 과 같아졌습니다. 이유: sn 의 pseudo 28 은 호출을 건너므로 global 에서 eax 와 충돌(call 이 eax 를 설정)하고 ebx·esi·edi 가 없어 caller-save 로 ecx 를 받으며(우리 빌드의 sn 과 같은 할당), 그 첫 구간이 kalloc 값의 짧은 복사가 됩니다. 남은 차이는 page_size pseudo 48 하나뿐: 우리는 global 이 eax 를 주고(통과 0: eax 는 regs_used_so_far 에 있고 아무도 선호하지 않음, global.c 946–990), 원본은 edx(reload 의 spill 레지스터 — 우리 덤프 "Spilling reg 4./Spilling reg 1." 즉 esi·edx; eax 는 spill 레지스터가 아님)를 받아 reload 가 REG_EQUIV 메모리로 치환했어야 합니다. 그러려면 48 보다 우선순위가 낮고 48 과 겹치는 allocno 가 eax 를 선호하거나(regs_someone_prefers, prune_preferences global.c 829–880), 48 의 수명 안에 eax 가 살아 있어야 합니다(set_preference 는 하드 레지스터 또는 local 할당 pseudo 와의 복사만 기록, global.c set_preference).
+   - 기각: 선언 초기화(sw6·sw7), 배열(sw4), 중첩 대입(sw5), 단순 재사용 임시(sw8·sw9)는 T 가 eax. `-mreg-alloc=dcabSDB` 진단(sw10d)은 sn 이 edi 로 바뀌어 비교 무의미. fsid 복사는 원본·우리 모두 SI 조각(move_by_pieces, 교차 적재/저장)이라 DImode 순서(use_dca, i386.c 253–285) 근거가 없습니다.
+   - 다음(미실행): sw10 구조에서 48 의 eax 를 막는 자연 구문 — (a) 첫 덧셈이 sn 을 직접 쓰는 꼴 `wbuf = (vm_offset_t)sn + page_size`(28 과 48 충돌; 단 28 의 선호는 call 교차로 가지치기됨), (b) rbuf 가 하드 레지스터/local pseudo 에서 복사되어 eax 선호를 갖는 꼴, (c) 48 수명 안에 eax 를 쓰는 식. 사용자 지시로 대기(2026-10-08).
+8. 결과(2026-10-08 재개 2, 탐침 sw11–sw14, 객체 채점 `runko.sh`+`scoreo.py`(swapfs/score.py 를 객체 경로로 바꾼 사본)):
+   - **sw11 = sw10 + `wbuf = (vm_offset_t)sn + page_size;`(기본 플래그)**: 원본과 다른 곳은 0x83–0x94 의 5 명령뿐입니다(우리 `movl _page_size,%eax; movl %ecx,%edx; addl %eax,%edx; movl %edx,-24(%ebp); addl %edx,%eax; movl %eax,-28(%ebp)`, 원본 `add ecx,[page_size]; mov [ebp-0x18],ecx; mov edx,ecx; add edx,[page_size]; mov [ebp-0x1c],edx`). 앞 두 명령(`mov ecx,eax; mov [ebp-0x14],ecx`)은 이제 일치합니다. 나머지 17 함수는 기존과 같이 일치(scoreo 차이 0).
+   - **진단(소스 아님)**: 같은 sw11 을 `-fno-force-mem -fno-expensive-optimizations` 로 컴파일하면 swapfs_mount 가 **원본과 바이트 일치(차이 0)** 합니다. 그러나 이 두 플래그는 같은 파일의 다른 함수 8 개를 깨뜨리고(각 플래그 단독으로도 깨짐), 따라서 파일 플래그가 원인이 아니라 두 메커니즘을 소스가 비켜 가야 합니다.
+     (1) expensive-optimizations: local-alloc.c 1004–1007 의 optimize_reg_copy_1(700–830)이 `(set rbuf sn)` 뒤의 덧셈 입력 sn 을 rbuf 로 바꿔(lreg 덤프 `(plus 29 48)`) 덧셈 입력이 죽는 하드 레지스터 ecx 가 아니게 되므로 find_dummy_reload(reload.c) 로 `add ecx,…` 가 나오지 못합니다. 이 변환은 복사와 sn 의 죽음 사이에 CODE_LABEL·JUMP_INSN·LOOP_BEG/END 노트, sn·rbuf 의 재설정, sn 의 USE 가 있을 때만 멈춥니다. 루프 노트는 expand_start_loop/expand_end_loop(stmt.c 2145–2275)가 대기 스택 조정을 내보내 원본의 0xcb `add esp,0x24`(kalloc·kalloc·bzero·kmem_suballoc 인자 4+4+8+20)와 어긋나므로 제외.
+     (2) force-mem: 두 page_size 읽기가 pseudo 로 적재되고 cse 가 하나로 합쳐 두 번 쓰이므로 combine 이 메모리 피연산자로 되돌리지 못합니다. 두 읽기 사이에 cse 가 "all" 무효화(note_mem_written cse.c 7555–7590: 구조체·배열이 아닌 가변 주소 저장, BLKmode 저장, 호출)를 하거나 합쳐진 pseudo 가 하드 레지스터를 잃어야(eax 를 받지 않고 spill 레지스터 edx/esi 를 받은 뒤 그 블록의 reload 요구로 쫓겨남) 원본이 됩니다.
+   - 기각: 버퍼를 주소 취득 변수로 둔 sn 재사용(sw13·sw14, 인라인 helper): sn 이 edi, vp 가 스택으로 바뀌어 더 멂.
+9. **결과(2026-10-08 재개 2): swapfs.c 전체 text 일치 탐침.** codex(gpt-6-astra) 영어 질의 kw8ku9epm 의 1 순위 "sn 을 커서로 파괴적 갱신"을 탐침으로 검증했습니다(codex 회신은 근거가 아니며, 아래 결과만 근거입니다).
+   - sw18(sw0 = pz1 바탕): `sn = (struct swapnode *)kalloc(page_size * 3); rbuf = (vm_offset_t)sn; sn = (struct swapnode *)((vm_offset_t)sn + page_size); wbuf = (vm_offset_t)sn; cbuf = wbuf + page_size;` 뒤에 기존 `sn = (struct swapnode *)kalloc(sizeof (struct swapnode));`.
+   - 실기 cc-744.13 `-O3`(runko.sh, s5p388-y1 헤더)로 객체를 만들어 scoreo.py 로 비교: **swapfs.c 의 18 함수 모두 차이 0(재배치 가림), text 4492 = 원본 4492.** sw19(`cbuf = (vm_offset_t)sn + page_size;`)도 객체가 sw18 과 바이트 동일(cmp)이라 두 꼴은 바이트로 구별되지 않습니다.
+   - 메커니즘(원문 대조): `(set rbuf sn)` 다음 insn 이 sn 을 다시 설정하므로 optimize_reg_copy_1(local-alloc.c 721–735 의 `reg_set_p (src, p)`)이 멈추고, `sn = sn + page_size` 의 입력 sn 이 그 insn 에서 죽는 ecx 라 reload 가 `add ecx,[page_size]` 를 만듭니다. page_size 가 메모리 피연산자가 되는 경로(합쳐진 pseudo 의 할당·reload 치환 또는 combine)는 덤프로 아직 확인하지 않았습니다(배치 계획에서 확인할 항목).
+   - 남은 일: 07 에 배치(swapfs 는 아직 07 에 없음 — 새 파일 `bsd/swapfs/swapfs.c` 와 관련 헤더·기록), 데이터·cstring·bss 절 비교, iter_k07·relcheck·cc -M·기록. 별도 계획(§388)으로 세우고 codex 교차검토 뒤 코딩합니다.
+10. **확인 빌드 s5p393-k1(2026-10-08, 진단, 07 아님)**: s5p392-h1 의 커널 형식 스테이지(`-g -O3 -fno-omit-frame-pointer`, 전체 -D/-I)를 복사해 swapfs.c 만 sw18 로 바꿈. L1(`09_validation/reconstruction/s5p393-k1-l1-swapfs-20261008.json`): `__TEXT,__text` 4492 B 바이트 차이 0·참조 183 중 차이 0, `__DATA,__data` 432 B 차이 0·참조 40 중 차이 0, 함수 MATCH 14·MATCH_UNVERIFIED 4(swapfs_alloc·swapfs_pagein·swapfs_pageout·swapfs_getstats, 미검증 의존은 `__bss` 뿐) [정정 2026-10-08 plan 388 검토: 처음에 "18 함수 모두 MATCH" 로 잘못 적음]. 객체 판정은 `__DATA,__bss`(100 B, 추정 배치) 미검증 하나로 NOT_MATCH — zerofill 확인과 07 배치는 §388 에서 계획합니다.
+
+## 388. S5-P361 세부 계획 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정, D024 작성) 07 배치(plan 378·387 이어서; 코딩 전, 2026-10-08)
+
+0. 원본(L1 `s5p393-c1`, python): `__text` [0x13a588, 0x13b714) 4492 B — 앞 spec_vnodeops 끝 0x13a588(틈 0 B), 뒤 ufs_alloc 시작 0x13b714(틈 0 B, objects_confirmed); `__data` [0x1dd7b4, 0x1dd964) 432 B(plan 378 의 끝 0x1dd95c(424 B)는 이전 추정 — 정정); `__bss` 100 B 는 객체 쪽 크기이고 원본 안 자리는 참조로 추정한 것(정적 통계, 기호 없음; 3 항 — 소유를 증명하지 않음). 함수 18(전역 logswap·compress_data·uncompress_data, 정적 15 — plan 378 의 이름 추정). 원본 기호 중 이 구간 `__data` 의 것: _swapfs_cangrow·_swapfs_enabled·_compress_window_size·_compress_threashold·_compress_enable·_compress_backoff_on·_compress_backoff_off·_swpgotcha·_swapfs_vfsops(python 기호표 조회).
+1. 참조 원문 없음(D054 ①; D055 의 BSD 스왑 원문은 설계가 달라 쓰지 않음 — plan 387 기록). 파일 전체 D024 작성.
+2. 후보 = scratchpad `swapfs/cand388.c` = 탐침 sw21 + 머리 문구 갱신 + 표시 주석 2 곳(findblock 의 `int full`(plan 378 근거), mount 버퍼 꼴(plan 388)). sw21 = plan 387 의 sw18 에서 mount 의 `do { … } while (0)` 감싸개를 뺀 것 — 감싸개는 이전 레지스터 배정 우회용이었고, sn 커서 꼴에서는 있든 없든 객체가 바이트 동일(sw18·sw19·sw21 `.o` SHA-256 모두 1623ab6a…9c33, 재배치 포함; `__bss` 는 크기·배치만 비교 가능). 원본 바이트가 감싸개의 유무를 정하지 못하므로, 처음 작성하는 D024 파일에는 더 단순한 꼴(감싸개 없음)을 고른 것이며 "원본이 감싸개가 없었다" 는 주장은 아님. 반대로 `int full` 을 상수 비교로 바꾸면(sw23) alloc 이 660 B 로 달라져 필요함을 다시 확인. 마지막 줄 `cbuf = wbuf + page_size;` 는 `cbuf = (vm_offset_t)sn + page_size;` 와 객체가 바이트 동일(sw18·sw19 cmp) — 바이트로 가를 수 없음을 기록에 적음.
+3. 진단(07 아님): `s5p393-k1`(sw18), `s5p393-c1`(cand388) 둘 다 `__text` 0 차이(참조 183 중 0), `__data` 0 차이(참조 40 중 0), 판정 사유는 `__DATA,__bss: unverified` 하나. zerofill_check(c1, known = `zerofill-known-s5p373b-20261007.json`): reference-inferred, 참조 19, Δ 하나 0x1e46f8, 후보 [0x1e5a34, 0x1e5a98)(100 B), 정렬·zero-fill 안·기호 없음·겹침 없음, 음성 검사 검출.
+4. 07 배치: `src/bsd/swapfs/swapfs.c`(= cand388.c) → iter_k07(`s5p393-it1`, 커널 C 꼴) → relcheck(원본 text 0x13a588) → 실기 cc -M(`s5p393-dep1`, 모든 헤더 07 확인) → zerofill_check(it1 객체; 결과 json 저장, known 목록에 [0x1e5a34, 0x1e5a98) 추가한 새 판) → record_partial(authored, D024/D054, 등급 **P**: bss 만 미검증 — xdr·intr 선례; 함수 compared/high 14·medium 4; 앞뒤 틈 0 B 경계 증명; zerofill 은 직전 known 판으로 검사한 뒤 새 판에 [0x1e5a34, 0x1e5a98) 추가; PROVENANCE 에 D054 이름 추정 문구·원본 주소·파일 SHA-256·전체 D024 작성, 증거 md 에 최종 L1·zerofill json·명령·cc -M·sw18/sw19/sw21 동등성·page_size 메커니즘은 해석임을 적음) → objects_partial +1, functions +18(정의 줄 python 확인), PROVENANCE +1, MODIFICATIONS +1, 증거 md·diff, 범위(python).
+5. 범위 밖(이번에 하지 않음): ① plan 378 메모의 07 `machdep/i386/pmap.c` compress_data_from_phys·uncompress_data_to_phys 매개변수 이름·변환 인자 — 바이트가 같아 원본 바이트가 요구하는 수정이 아니므로 별도 계획에서 판단. ② machine_clock 잔여(plan 386·387).
+   - ① 의 내용(codex 검토로 보탬): uncompress_data_to_phys 는 둘째 인자(swapfs 가 넘기는 압축 크기)에 pmap_phys_to_kern 을 적용하고 셋째(물리 주소)는 그대로 넘기며, 다섯째 매개변수는 `int *result` 인데 swapfs 는 `(int)foff / 8192` 정수를 넘김. VM_MIN_KERNEL_ADDRESS = 0 이라 지금 바이트는 같음. plan 378 메모의 "swapfs 를 넣을 때 함께 고칠 것" 은 이 계획에서 "별도 계획" 으로 바꿈(이 줄이 유효한 지시).
+6. codex 교차검토(kmd7gf1mo, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| §387.10 "18 함수 모두 MATCH" 는 틀림 — k1·c1 모두 MATCH 14·MATCH_UNVERIFIED 4 | k1·c1 L1 json 의 functions 판정을 python Counter 로 집계(alloc·pagein·pageout·getstats) | ✅ 내 기록 오류 — §387.10 정정 |
+| §388.0·3 의 수(text 4492 B·data [0x1dd7b4, 0x1dd964) 432 B·bss 후보 [0x1e5a34, 0x1e5a98) 100 B·참조 19·Δ 0x1e46f8·앞뒤 틈 0 B·data 기호 9 개)는 맞음 | 이번 세션 python: L1 json 절 주소·크기, zf-c1.json, objects_confirmed spec_vnodeops 끝 0x13a588·ufs_alloc 시작 0x13b714, symbols.tsv 조회 | ✅ |
+| bss 100 B 를 "원본" 사실로 쓰면 안 되고 참조 추정 자리로 써야 함 | L1 json `__bss` placement "inferred"·"zero-fill (not comparable)"(앞서 출력) | ✅ 채택: 0 항 문구 고침 |
+| cand388.c 와 sw21.c 의 차이는 주석뿐, 표시 주석 주소 [0x13b35c, 0x13b383) 맞음 | diff 출력(머리·`full` 주석·mount 4 줄 주석), python 0x13b2ec+0x70·+0x97 | ✅ |
+| sw18·sw19·sw21 `.o` 는 바이트 동일 | sha256sum 셋 = 1623ab6a…9c33 | ✅ 2 항을 객체 SHA 로 고침 |
+| 감싸개 제거는 "원본 바이트가 요구" 가 아니라 바이트 중립 선택 — 그렇게 적어야 함 | 위 SHA 동일; DECISIONS D024(작성 파일) | ✅ 채택: 2 항에 명시 |
+| `__bss` 는 "내용" 비교가 아니라 크기·배치 | 위 L1 json | ✅ 2 항 고침 |
+| P 등급·흐름은 xdr 선례(objects_partial :13, 증거 x86-xdr.md :6–8)와 맞음, 함수 high 14·medium 4 | objects_partial :13·x86-xdr.md :6–8(sed), README :20–23 compared/high·medium 정의(sed) | ✅ 4 항에 반영 |
+| zerofill 은 이전 known 목록으로 검사한 뒤 새 구간을 덧붙인 새 판을 만들어야 함(자기 구간을 넣고 검사하면 겹침) | zerofill_check.py :191–194 `overlaps` 검사(sed) | ✅ 4 항에 순서 명시(이미 그렇게 적었으나 분명히 함) |
+| 경계 증명서(앞뒤 0 B) 기록 필요 | README :25 P 정의·§381 4 항(sed) | ✅ 4 항에 반영 |
+| PROVENANCE·MODIFICATIONS 에 D054 이름 추정 문구·원본 주소·파일 SHA·전체 작성 표기 | PROVENANCE :1024·MODIFICATIONS :496 if_vtrip 선례(grep) | ✅ 4 항에 반영 |
+| 범위는 P 에 text 4492 B 더하고 bss 는 세지 않음 | §381 범위 줄·README 정의 | ✅ |
+| §387.9 의 page_size 메커니즘 확인이 4 항에 없음 | §387.9 문장(sed) | ⚖️ 채택: 해석으로 남김(바이트 일치가 근거) — 4 항에 적음 |
+| pmap 은 이름만이 아니라 uncompress 감싸개가 둘째 인자(csize)에 pmap_phys_to_kern 을 씀, 다섯째 매개변수 `int *result` 인데 swapfs 는 `(int)foff / 8192` 정수를 넘김; 지금은 VM_MIN_KERNEL_ADDRESS = 0 이라 바이트 같음 | pmap.c :1889–1898(앞서 grep), pmap.h :121 `((phys) + VM_MIN_KERNEL_ADDRESS)`, nextdev/mach/i386/vm_param.h :44 `0x00000000`, cand388.c :387–388 | ✅ 사실 — 5 항 ① 에 내용 추가, plan 378 메모("함께 고칠 것")는 이번 결정으로 대체 |
+- 결과(2026-10-08): 07 `src/bsd/swapfs/swapfs.c`(= cand388.c, SHA-256 cc29d0e0…a311). `s5p393-it1`(iter_k07): `__text` 0 차이(참조 183 중 0)·`__data` 432 B 0 차이(참조 40 중 0), 함수 MATCH 14·MATCH_UNVERIFIED 4(`__bss` 만), 객체 판정 사유 `__DATA,__bss: unverified` 하나; relcheck 0; 실기 cc -M `s5p393-dep1` 125 헤더 모두 07(객체 = it1, cmp). zerofill(직전 known `s5p373b`로 검사) reference-inferred [0x1e5a34, 0x1e5a98)(참조 19·Δ 0x1e46f8·음성 검사 검출) → 새 known `zerofill-known-s5p393-20261008.json`(70 → 71 행). 기록: record_partial 의 이번 판(scratchpad `record_partial388.py` — 함수별 판정으로 high/medium, 객체 행 문구를 spec 으로)으로 objects_partial +1(P, 앞뒤 0 B), functions +18(high 14·medium 4; 18 행 모두 07 정의 줄 확인 python), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-swapfs.md`·`.diff`(줄 수 4727→4745, 70→71, 1025→1026, 497→498 — wc 확인).
+- 범위(python): 이번 4492 B. A 314 obj 620812 B (72.91%), P 70 obj 227645 B (26.74%), L 2 obj 340 B; A+P 99.65%, A+P+L 99.69%, rem 2639 B; 겹침 없음.
+
+## 389. 진단 메모 — machine_clock clock_timer_init 잔여 1 바이트(복사 레지스터) 재탐색(07 손대지 않음, 2026-10-08)
+
+0. 탐침: `08_build/runs/tools/probe` 의 `runk2.sh`(STAGE 환경변수로 헤더 스테이지 선택; machine_clock 은 `STAGE=s5p391-g1`), mc0 = scratchpad `mcv/g1.c`(대조: 복사 `movl %esi,%edx`, 원본 `mov eax,esi`).
+1. 플래그 진단(mc0, 각 1 개 끔): -fno-expensive-optimizations·-fno-force-mem·-fno-cse-follow-jumps·-fno-cse-skip-blocks·-fno-rerun-cse-after-loop·-fno-strength-reduce·-fno-caller-saves·-fno-defer-pop·-fno-thread-jumps·-O2 모두 edx 그대로 → 남은 원인은 플래그가 아닌 레지스터 순서·점유(§386 의 use_dca)로 다시 확인.
+2. 원본 꼬리(python 역어셈블 0x187b32–0x187b7d): panic 블록이 0x187b47 로 흘러들고, 그 뒤 저장·포트·out 두 번이 레이블 없는 한 블록. 0x187b47 `mov [last_count],si` → 0x187b4e `mov eax,esi` → 0x187b50 `mov [reload],ax` → 0x187b56 `mov cx,[port]` → `mov bl,[last_count]` …
+3. 새 해석(덤프로 확인한 부분): `mov eax,esi` 는 X 가 eax 를 받은 것이 아니라 **reload 의 입력 reload**(reload 레지스터 eax = 첫 spill 레지스터, 값은 find_equiv_reg 로 esi 에서 가져옴)일 수 있습니다.
+   - mc1·mc3·mc4·mc5·mc6·mc9(한 꼬리 꼴): `movl %esi,%eax; movw %ax,_reload` 가 나옴(eax!). 다만 값 pseudo 가 스택 칸 −20 을 받아 `movw %si,-20(%ebp)`·`movb -20(%ebp),%bl` 이 생김(cse 가 뒤의 last_count 읽기를 그 pseudo 로 바꿔 수명이 asm 까지 늘고, 저장 등가 규칙 local-alloc.c 987–1000 이 성립하지 않음).
+   - mc11(두 갈래 끝에 `set_counts(count)` = `last_count = count`, 합류 뒤 `reload = last_count;`): 원본과 다른 곳은 `movw _last_count,%ax` 한 명령뿐(원본 `mov eax,esi`). 합류 레이블 때문에 reload 의 find_equiv_reg 가 앞 저장(esi)을 보지 못함.
+   - mc12(한 꼬리, `last_count = count; reload = last_count;`): RTL 은 `(set (mem reload) (mem last_count))`, reload 가 find_equiv_reg(reload1.c 5279–5345)로 esi 를 찾아 **esi 를 reload 레지스터로 직접** 써서 `movw %si,_reload`.
+   - 따라서 원본은 "같은 블록에서 esi 가 같은 값을 갖지만 esi 를 reload 레지스터로 직접 쓰지 못해(5279–5345 의 거부 조건) eax 로 복사" 한 꼴이거나, §386 의 "X 가 eax" 꼴 중 하나입니다. 아직 어느 쪽인지 정하지 못했습니다.
+4. codex(ktwfb4l6s, gpt-6-astra) 1 순위 "합류를 건너는 공유 결과 pseudo"(mc13·mc14·mc15): 전역 pseudo 가 되어 edx 를 받고 reload 가 edx 를 spill 하자 retry_global_alloc 이 ecx 를 줌(`movl %esi,%ecx; movw %cx,_reload`, -dg "Spilling reg 1 … Register 39 now in 2") → 기각.
+5. 꼴 24 가지 일괄 탐침(`probe/mcs/`, 도움 함수 8 × 꼬리 6, 결과 `mcs/result.txt`): 일치 없음. 묶음별 결과: 두 갈래 꼴은 edx(지역)·ecx(전역) 또는 si 직접; 한 꼬리 꼴은 `movl %esi,%eax; movw %ax,_reload` 가 나오나 값 pseudo Y 가 스택 칸을 받음.
+6. 덤프로 확정한 reload 경로(mcs01 = 한 꼬리 `reload = set_counts(count)`): Y 는 asm 이 있는 블록에서 DREG 수요로 밀려나 스택 칸 −20 을 받고, Y 의 초기화 insn 이 `(set (mem −20) (subreg:HI esi))` 저장으로 바뀜; `reload = Y` 의 입력 reload 는 reload 레지스터 eax 를 받고 값은 그 저장에서 esi 로 가져옴(`(set (reg:HI ax) (subreg:HI esi))`). 즉 **원본은 Y 의 집이 스택 칸이 아니라 `last_count` 이고 초기화 insn 이 그 저장으로 남은 꼴**로 설명됩니다 = local-alloc.c 987–1000 의 저장 등가(Y 가 `last_count = Y` 에서 죽어야 함).
+   - mc16(`last_count = count; return (last_count);` 도움 함수): Y 가 적재 규칙(1044–1054)으로 `last_count` 등가를 얻지만 초기화가 적재라 reload 가 지우고, reload 입력은 메모리에서 적재(`movw _last_count,%ax`) → 원본과 한 명령 다름.
+   - 저장 규칙의 걸림돌: Y 가 저장에서 죽으려면 뒤의 timer_write 가 `last_count` 를 메모리로 읽어야 하는데, 같은 블록이면 cse 가 그 읽기를 Y 로 바꿔 Y 의 수명이 늘어남.
+7. codex(k3u3n22bk, gpt-6-astra) 회신 검증과 결과: s01 의 eax 복사는 그 pseudo 의 선호 부류 Q_REGS(mcs01.c.lreg :946 "Register 39 used 4 times across 7 insns in block 15; 2 bytes; pref Q_REGS, else GENERAL_REGS.")로 reload 부류가 esi 를 빼고(reload.c find_reloads 의 선호 부류 좁힘), emit_reload_insns 가 ALL_REGS 로 찾은 esi 를 원천으로 쓴 결과라는 해석 — 덤프와 일치. 제안 "`last_count` 를 timer_write 뒤에 대입" 을 탐침: mc18(HI 매개변수 인라인 `reload = c; timer_write(SEL, c); last_count = c;`), mc19(HI 지역 `c = count; reload = c; timer_write(TIMER_CNT0_SEL, c); last_count = c;`), mc20(`reload = c = count; timer_write(SEL, reload); last_count = c;`) **세 꼴 모두 꼬리가 원본과 같음**. 커널 형식 `s5p394-m18`·`m19`·`m20`: `__text` 1957 B 0 차이(참조 98 중 0)·`__const`·`__data` 0 차이, 셋의 절 내용 동일(python). 저장 등가: local-alloc.c 984–1000 이 c 의 초기화 insn 에 REG_EQUIV `(mem last_count)` 를 달고, c 가 asm 블록 수요로 레지스터를 잃으면 reload 가 c 의 쓰임을 그 메모리로 바꾸며(reload1.c 586–595 가 끝의 저장을 등가 insn 으로 기록, 1910–1928 이 그 저장을 지움) 초기화 insn 이 `last_count` 저장으로 남음 [codex 검토로 단계 구분; 최종 명령 순서가 근거이고 각 단계의 분기 선택은 덤프로 직접 보지 않은 해석].
+
+## 390. S5-P362 세부 계획 — `machdep/i386/machine_clock.c`(plan 240 작성, D024) 07 배치(plan 386·389 이어서; 코딩 전, 2026-10-08)
+
+0. 원본(L1 `s5p394-c1`, python): `__text` [0x187844, 0x187fe9) 1957 B — 앞 checksum_16 끝 0x187842(`00 00` 2 B), 뒤 dkbad 시작 0x187fec(`00 00 00` 3 B); `__const` [0x1d14a0, 0x1d14dc) 60 B(L1d), `__data` [0x1e17f8, 0x1e1841) 73 B; `__bss` 40 B 는 객체 쪽 크기이고 원본 자리는 참조 추정(4 항). 함수 14(L1 은 `__const` 기호 `__timer_cnt_port_`·`_clock_attrs`·`_timer_attrs` 도 함께 나열해 17 행; 함수 14 중 MATCH 5·MATCH_UNVERIFIED 9).
+1. 참조 원문 없음(plan 240: 전면 작성, D024). 07 에 아직 없음(plan 240·253·365 에서 보류).
+2. 후보 = scratchpad `mclk/cand390.c` = 탐침 mc21 + 머리 문구(plan 240·386·389·390, 원본 범위) + 꼬리 표시 주석 하나(plan 390). mc21 = g1(scratchpad `mcv/g1.c`, §386)에서 clock_timer_init 꼬리를 `if (count > 0xffff) panic(...); c = count; reload = c; timer_write(TIMER_CNT0_SEL, c); last_count = c;` 로 바꾸고 쓰이지 않게 된 인라인 set_counts 를 뺀 것(뺀 뒤 `s5p394-m21` 절 내용이 m19 와 같음, python) — 바이트 중립 선택으로 처음 작성하는 D024 파일에 단순한 꼴을 고른 것이며 원본이 그랬다는 주장은 아님(swapfs 선례). mc18·mc19·mc20 은 절 내용·배치·재배치가 같아(객체 파일 해시는 디버그 정보로 다름) 바이트로 가를 수 없음 — 가장 단순한 지역 변수 꼴을 고름(원본이 그 꼴이었다는 주장은 아님).
+3. 진단(07 아님): `s5p394-c1`: `__text`·`__const`·`__data` 0 차이·참조 차이 0, 판정 사유 `__DATA,__bss: unverified` 하나, L1 17 행 MATCH 8·MATCH_UNVERIFIED 9(그중 함수 14: MATCH 5·MATCH_UNVERIFIED 9).
+4. zerofill(c1 이 아니라 07 빌드 객체로 다시; 진단 m21 결과: known `zerofill-known-s5p393-20261008.json` 로 검사 → reference-inferred, 참조 45, Δ 0x1e6d94, 후보 [0x1e75c4, 0x1e75ec) 40 B, 겹침 없음, 음성 검사 검출).
+5. 07 배치: `src/machdep/i386/machine_clock.c`(= cand390.c) → iter_k07(`s5p394-it1`) → relcheck(원본 text 0x187844) → 실기 cc -M(`s5p394-dep1`, 헤더 모두 07) → zerofill(직전 known `s5p393` 판으로 검사, 새 판 `zerofill-known-s5p394-20261008.json` 에 추가) → record_partial388(authored, D024, 등급 **P**: bss 만 미검증, `__const` 는 L1d 로 검증; 함수 high 5·medium 9; 기록 도구는 bss 절 번호를 L1 json 에서 읽도록 고친 판(이 객체의 `__bss` 는 index 2); 앞 2 B·뒤 3 B `00` 경계) → objects_partial +1, functions +14(정의 줄 python 확인), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-machine_clock.md`·`.diff`, 범위(python).
+6. 범위 밖: 없음(이것이 마지막 잔여). 
+7. codex 교차검토(kgq96v8ez, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| record_partial388.py 는 bss 절 번호를 3 으로 고정 — 이 객체의 `__bss` 는 index 2, 함수 의존도 "2" 라 실패 | L1 json 절 index 출력(text 1·bss 2·const 3·data 4), 도구 :96–97(grep) | ✅ 채택: 도구가 L1 의 bss index 를 쓰도록 고침 |
+| 함수 14 중 MATCH 5·MATCH_UNVERIFIED 9(나머지 MATCH 3 은 `__const` 기호), 기호 이름은 `__timer_cnt_port_` | python: 객체 text 기호 14 와 L1 판정 교차 집계, 비-text 3 행 이름 출력 | ✅ 내 기록 부정확 — 0·3·5 항 고침 |
+| §389.7 "local-alloc 이 저장을 옮김" 은 단계 압축 — REG_EQUIV 표시(local-alloc) 뒤 reload 가 등가 메모리로 바꾸고 나중 저장을 지움 | reload1.c 576–595(등가 insn 기록), 1910–1928(삭제) sed | ✅ 채택: 문구 고침 |
+| 저장 등가 코드는 local-alloc.c 1009 까지 | local-alloc.c 1001–1009 sed: optimize_reg_copy_1 부분 | ❌ 기각: 저장 등가는 984–1000(987–1000 에서 984–1000 으로만 넓힘) |
+| set_counts 제거·mc19 꼴 선택은 바이트 중립 선택으로 적어야 함, 객체 해시는 서로 다름 | sha256sum m18·m19·m20 서로 다름(앞서 출력), 절 비교 같음 | ✅ 2 항 고침 |
+| 범위·크기·틈 바이트·zerofill 수치는 맞음 | 이번 세션 python(L1 json 절, 원본 틈 `00 00`·`00 00 00`, zf-m21) | ✅ |
+| 후보는 mc21 과 주석만 다르고 주석 주소 [0x187b47, 0x187b56) 맞음; "plan 240.1 … variant d5" 주석은 옛 계획 근거가 있어 남겨도 됨 | diff 출력, 원본 역어셈블 0x187b47–0x187b56(앞서 출력) | ✅ |
+- 결과(2026-10-08): 07 `src/machdep/i386/machine_clock.c`(= cand390.c, SHA-256 3aabbc41…fa04d). `s5p394-it1`(iter_k07): `__text` 0 차이(참조 98 중 0)·`__const` 60 B L1d 0 차이·`__data` 73 B 0 차이, 함수 MATCH 5·MATCH_UNVERIFIED 9(`__bss` 만), 객체 판정 사유 `__DATA,__bss: unverified` 하나; relcheck 0; 실기 cc -M `s5p394-dep1` 116 헤더 모두 07(객체 = it1, cmp). zerofill(직전 known `s5p393` 로 검사) reference-inferred [0x1e75c4, 0x1e75ec)(참조 45·Δ 0x1e6d94·음성 검사 검출) → 새 known `zerofill-known-s5p394-20261008.json`(71 → 72 행). 기록(record_partial388.py, bss index 를 L1 에서 읽도록 고친 판): objects_partial +1(P, 앞 `00 00`·뒤 `00 00 00`), functions +14(high 5·medium 9, subsystem machdep; 14 행 모두 07 정의 줄 확인 python), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-machine_clock.md`·`.diff`(줄 수 4745→4759, 71→72, 1026→1027, 498→499).
+- 범위(python): 이번 1957 B. A 314 obj 620812 B (72.91%), P 71 obj 229602 B (26.97%), L 2 obj 340 B; A+P 99.88%, A+P+L 99.92%, rem 682 B; 겹침 없음.
+
+## 391. 진단 메모 — 마지막 미기록 구간 [0x15a628, 0x15a67c) 84 B(D054 ③; 사용자 지시로 다룸; 07 손대지 않음, 2026-10-08)
+
+0. 사용자 지시(2026-10-08): "이제는 하나밖에 없으니 그것만 해결하면 끝나는게 아닌가요? 그럼 취급하는게 맞을거 같습니다." — D054 ③ 의 "계속 보류" 를 풀고 다룸.
+1. 범위 계산(python): plan 390 뒤 미배정 `__text` 682 B 중 0 이 아닌 바이트가 있는 구간은 [0x15a628, 0x15a67c) 84 B 하나뿐(나머지는 객체 사이 0 채움).
+2. 원본(python capstone): `_ds_notify` 0x15a628(`xor eax,eax` 반환), `_vm_object_pager_wakeup` 0x15a634(빈 함수), `_send_notification` 0x15a63c(msg_id ≠ 0x42 이면 반환, `task_get_special_port(task, 2, &tnotify)` 성공이면 `ipc_notify_msg_accepted_compat(tnotify, name)`), `_task_secure` 0x15a670(`return 1`). 함수 사이 채움은 `90`(목적 파일 안의 함수 정렬 채움과 같은 값 — 네 함수가 한 목적 파일이라는 해석의 근거일 뿐 증명은 아님; 커진 ipc_xxx 경계는 D056 의 재구성 결정), 앞 ipc_xxx 끝 0x15a628·뒤 kalloc 시작 0x15a67c 로 틈 0 B. 원본 기호표는 이름순이라 목적 파일 소속을 알려 주지 않음.
+3. 참조: send_notification 은 Darwin 0.1 `kern/ipc_xxx.c:271`(port_release 바로 뒤, 본문이 원본 바이트와 같은 꼴)과 NeXTMach `kern/ipc_basics.c:593`(옛 IPC, 다른 본문); ds_notify 는 Mach4 `device/ds_routines.c:1371`(다른 본문); vm_object_pager_wakeup 는 Mach4 `vm/vm_object.c:683`(다른 본문); task_secure 는 NeXTMach `kern/ipc_tt.c:618`(다른 본문). 4.2 의 빈 꼴 셋은 어느 참조에도 없음. 07 `kern/ipc_xxx.c` 는 Darwin 바탕에서 send_notification 을 지운 판(PROVENANCE :161, "send_notification removed")이고 객체 A [0x15a39c, 0x15a628).
+4. 진단 `s5p395-nt0`(diag_k07, 07 복사본에 `kern/notify_stubs.c` 임시 이름): `ds_notify`(FALSE 반환)·`vm_object_pager_wakeup`(빈 몸)·`send_notification`(Darwin 본문과 같은 꼴)·`task_secure`(TRUE 반환) 네 함수로 **OBJECT_MATCH**(`__text` 0 차이, 함수 4 MATCH).
+5. 사용자 결정이 필요한 것: (a) 이 84 B 를 어느 07 파일에 둘지 — 07 `kern/ipc_xxx.c` 끝에 붙여 ipc_xxx 객체를 [0x15a39c, 0x15a67c) 로 넓힐지(2026-10-04 "Darwin 의 파일 배치는 기준 근거가 아님, ipc_xxx 경계 그대로" 지시를 바꾸는 것) 또는 새 파일(이름 추정, D054 방식)로 둘지; (b) send_notification 본문이 Darwin 과 같은 꼴이므로 D027(작성 처리) 적용 여부.
+
+## 392. S5-P363 세부 계획 — D056: [0x15a628, 0x15a67c) 84 B 를 07 `kern/ipc_xxx.c` 끝에 붙여 ipc_xxx 객체를 [0x15a39c, 0x15a67c) 로 다시 기록(코딩 전, 2026-10-08)
+
+0. 원본(python): ipc_xxx 의 기존 A 범위 [0x15a39c, 0x15a628) 652 B(함수 8) + 이번 84 B(함수 4) = [0x15a39c, 0x15a67c) 736 B, 함수 12; 앞 ipc_tt 끝 0x15a39c(0 B), 뒤 kalloc 시작 0x15a67c(0 B, task_secure `ret` 0x15a67b). `__data` 23 B 0x1ded00, common `_lookupd_port` 는 그대로.
+1. 후보 = scratchpad `nt/ipc_xxx_cand392.c` = 07 `kern/ipc_xxx.c` + 끝에 표시 주석 묶음(plan 392, D024, D056) + `ds_notify`(FALSE 반환)·`vm_object_pager_wakeup`(빈 몸)·`send_notification`(Darwin 0.1 ipc_xxx.c 의 본문을 공백까지 그대로 — python 으로 Darwin 파일의 그 함수 시작부터 끝까지 잘라 붙임)·`task_secure`(TRUE 반환). 순서는 원본 주소순.
+2. 진단 `s5p395-x1`(diag_k07, 07 복사본): **OBJECT_MATCH**(함수 12 MATCH, `__text`·`__data` 0 차이). 앞서 새 파일 꼴 `s5p395-nt0` 도 OBJECT_MATCH(함수 4) — 바이트로는 두 배치를 가를 수 없고 배치는 D056 사용자 결정.
+3. 07 편집: `kern/ipc_xxx.c` = 후보. → iter_k07(`s5p395-it1`) OBJECT_MATCH 확인 → relcheck(0x15a39c) → 실기 cc -M(`s5p395-dep1`) → 기록 갱신(기존 행을 고침, 새로 덧붙이지 않음):
+   - objects_confirmed `x86-ipc_xxx` 행: 끝 0x15a628 → 0x15a67c, 빌드 칸에 이번 run·cc -M, 뒤 경계 칸 "0 bytes (ret at 0x15a67b; _kalloc_init 0x15a67c)".
+   - functions +4(ds_notify·vm_object_pager_wakeup·task_secure 는 authored D024, send_notification 은 darwin01 `kern/ipc_xxx.c:271` 바탕 D027 취지; 정의 줄 python 확인). 기존 8 행의 검증 json·근거 칸을 새 run 으로 바꿀지는 선례(plan 383.1) 대로 새 L1 경로로 갱신.
+   - PROVENANCE `kern/ipc_xxx.c` 행: 파일 SHA, "send_notification removed" 문구를 "send_notification kept (D056); ds_notify·vm_object_pager_wakeup·task_secure authored (plan 392, D024)" 로.
+   - MODIFICATIONS +1(2026-10-08, plan 392), 증거 `x86-ipc_xxx.md` 에 plan 392 절 덧붙임, `.diff` 다시 만듦(Darwin 대비).
+   - 범위(python): 미배정 0 이 아닌 구간 0 이 되는지 확인.
+4. codex 교차검토(k0im34j3r, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 후보에 `<ipc/ipc_notify.h>` 가 없어 ipc_notify_msg_accepted_compat(void) 선언이 보이지 않음 | 07 ipc_notify.h :117–123(sed, MACH_IPC_COMPAT 안 extern void), 07 ipc_xxx.c 가져오기 :38–41 | ✅ 채택: `#import <ipc/ipc_notify.h>`(plan 392 표시) 추가 → 진단 `s5p395-x2` OBJECT_MATCH(12), 절 내용 x1 과 같음(python); 실기 cc -E 로 선언이 보임(줄 14900 `ipc_notify_msg_accepted_compat( );`) |
+| D056 의 "원본 바이트로 쓴 결과가 Darwin 과 같음" 은 잘라 붙인 사실과 다름 → "Darwin 원문 복원, 바이트로 검증" 으로 | 1 항 문구, D027 정의(DECISIONS :31) | ✅ D056 문구 정정 |
+| MODIFICATIONS :44 의 "to be handled with those objects" 와 증거 md :7·:15·:24(밖에 있음·남은 의무)·`kern_server.c:1149`(지금은 :1118) 가 낡음 → 명시적으로 대체 표시 | MODIFICATIONS :44(sed), 증거 md :24 grep, kern_server.c :1116–1118 sed | ✅ 기록 때 옛 행·절에 "plan 392 로 대체" 덧붙임 |
+| `90` 채움은 한 목적 파일의 증명이 아님 | 원본 역어셈블(앞서) | ✅ 391.2 문구 고침 |
+| 미배정 682 B → 이번 뒤 598 B(모두 0) | python(앞서 682 B, 84 B) | ✅ 결과 줄에 적음 |
+| D054 ③ "보류"·plan 245–320 :621·011–099 :1996·321–373 :1313 이 낡게 됨, objects.tsv :164·source_choice.tsv :165 는 역사적 탐색 출력이라 그대로 둠 | 각 줄 sed/grep(321–373 :1313 에 "0x15a628 의 84 B 는 … 보류 유지" 확인) | ✅ 계획 파일들 끝 메모·D054 칸에 "D056 으로 해제" 덧붙임, tsv 둘은 고치지 않음 |
+| 빌드 칸의 옛 `-fno-common`·`-O3 = -O2` 문구는 옛 빌드 설명 → 새 빌드로 바꿔 적음 | objects_confirmed 행(앞서 출력) | ✅ |
+- 결과(2026-10-08): 07 `kern/ipc_xxx.c`(= 후보 + `<ipc/ipc_notify.h>`, SHA-256 f6830c24…1cbe). `s5p395-it1`(iter_k07) **OBJECT_MATCH**(함수 12, `__text` 736 B 0 차이·참조 34 중 0, `__data` 23 B 0 차이); relcheck 0; 실기 cc -M `s5p395-dep1` 103 헤더 모두 07(객체 = it1). 기록: objects_confirmed `x86-ipc_xxx` 행 고침(끝 0x15a67c, 빌드 칸 새 run, 뒤 경계 "ret at 0x15a67b; _kalloc_init 0x15a67c"; 행 수 315 그대로), functions 기존 8 행 고침(07 정의 줄이 import 한 줄로 1 씩 밀림, 검증 칸 새 L1) + 4 행(ds_notify·vm_object_pager_wakeup·task_secure authored D024, send_notification darwin01 :271; 12 행 정의 줄 python 확인), PROVENANCE 행 고침(파일 SHA, send_notification kept), MODIFICATIONS 옛 행에 "superseded … plan 392" 덧붙이고 +1 행, 증거 md 에 plan 392 절(옛 경계·의무·:1149 대체), `.diff` 다시 만듦(send_notification 제거 hunk 없음). D054 칸과 옛 계획 세 줄(245–320 :621, 011–099 :1996, 321–373 :1313)에 "D056 으로 해제" 덧붙임; objects.tsv·source_choice.tsv 는 역사적 탐색 출력이라 그대로.
+- 범위(python): 이번 84 B(A 객체 확장). A 314 obj 620896 B (72.92%), P 71 obj 229602 B (26.97%), L 2 obj 340 B; A+P 99.89%, A+P+L 99.93%, rem 598 B(모두 `00` 채움 — 0 이 아닌 미배정 구간 없음); 겹침 없음.
+
+## 393. S6-1 세부 계획 — L2 링크(사용자 지시 2026-10-08 "L2 링크 작업을 진행합니다"; 코딩 전)
+
+0. 사실(python, 원본 `03_original/x86/binaries/mach_kernel` 1,117,920 B, `macho.json`):
+   - 명령 7: LC_SEGMENT 5(`__PAGEZERO` 0/4096, `__TEXT` 0x100000/892,928, `__DATA` 0x1da000/122,880(파일 49,152), `__OBJC` 0x1f8000/73,728, `__LINKEDIT` 0x780000/102,112), LC_SYMTAB, LC_UNIXTHREAD(eip 0x1860dc = `_start`). 파일 크기 = `__LINKEDIT` 파일 위치 1,015,808 + 102,112.
+   - 절 26: `__text` 0x1012d0 851,436(파일 위치 4,816 = Mach 머리 28 + 명령 2,152 + `00` 채움 2,636; 채움의 원인 — headerpad 인자 또는 링커의 절 배치 — 은 정해지지 않음), `__const` 22,772, `__cstring` 13,892, `__data` 46,782, `__bss` 12,432, `__common` 62,464, `__OBJC` 20 절.
+   - 기호 3,751(디버그 없음): 외부 정의(type 0xf) 3,651 = 절 1 `__text` 2,916 + 절 2 `__const` 18 + 절 4 `__data` 300 + 절 6 `__common` 417, 절대(type 0x3) 100(그중 99 가 `.objc_category_name_*`/`.objc_class_name_*` 꼴). 로컬 기호 없음. 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386" 은 `__data`(vers.o 로 추정).
+   - Darwin 0.1 링크 꼴(참고, 근거 아님): `conf/Makefile.template:380–387` `${LD} -static ${LDFLAGS} ${FVMFILE_LDFLAGS} ${LDOBJS} $(MACH_OFILES) vers.o ${LDFLAGS2} ${LIBS}`(FVMFILE_LDFLAGS 의 실제 값은 확인 전), `:269–272` `strip -x -o mach_kernel mach_kernel.sys`, `conf/Makefile.i386:55–69` `LDFLAGS=-e _start -segaddr __TEXT ${RELOC} -segaddr __LINKEDIT ${SYMADDR} -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3`, `LIBS=-lcc`, `LDOBJS_PREFIX= libc 객체`, `LDOBJS_SUFFIX= libDriver·libobjc`. 실기 `/bin/ld`(853,564 B, 1997-04-23, VM 과 해시 같음 — `08_build/toolchains/real-i386-20261001`).
+   - 07 쪽: 기록된 객체 387(A 314·P 71·L 2), 컴파일 꼴이 여럿(빌드 칸 문구 그대로 184 가지, run id·숫자를 지워 묶으면 122 가지: 커널 C 꼴 `-fwritable-strings`·`-fno-common` 유무·`-O3`/`-O4 -funroll-all-loops`, libDriver(`-fwritable-strings` 없음, `-DMACH_USER_API`), ObjC 런타임 꼴(RUNIN), ABSROOT 절대 경로 ObjC, `.s`, libgcc). 객체 id `x86-memcpy` 가 둘(libc memcpy.c 와 DriverKit __IOCopyMemory)이라 객체는 (07 소스, 원본 범위)로 식별해야 함; 등급 A* 1(kdp_machdep).
+1. 판정(L2, 1 절): 링크가 성공하고, 절 크기·외부 기호 집합을 원본과 python 으로 비교한다. 더 나아가 기호 주소·절 내용(재배치 해결 뒤)을 비교해 원본과의 차이를 목록으로 남긴다(원본 전체 바이트 동일은 1 절의 별도 목표 — 이번 판정 조건 아님). 성공을 돌려주는 임시 stub 금지(1 절).
+2. 단계(각 단계 뒤 기록·보고, 다음 단계 전 계획 보강):
+   - **L2-A 목록(빌드 없음)**: 도구 `10_tools/reconstruction/l2_inventory.py` → `06_reconstruction/l2_objects.tsv`: 객체마다 등급·`__text` 범위·07 소스·마지막 run id·그 run 의 `.cmd` 의 RUN/RUNIN 줄·`out/*.o` 경로와 SHA-256·L1 json. 자동으로 못 찾은 것은 증거 md 를 읽어 손으로 채우고 근거를 적음. 같은 도구가 원본 모든 절(`__text` 밖 포함)에 대해 객체들의 L1 배치를 모아 **배정 안 된 바이트**(데이터만 있는 객체: vers.o·ioconf.o 꼴, MIG, 링커가 만드는 것)를 목록으로 냄. 링크 순서 = `__text` 주소순(데이터만 있는 객체는 그 데이터 주소로 끼움) — 이것은 추정이며 절마다 객체 순서가 같은지 python 으로 확인.
+   - **L2-B 기록된 객체로 첫 링크**: 각 객체의 기록된 `out/*.o`(해시 확인)를 L2-A 순서로 실기 `/bin/ld` 에 넘김. 링크 명령은 원본 배치(세그먼트 주소 0x100000·`__LINKEDIT` 0x780000·`-segalign 0x1000`·`-e _start`·`-lcc`)에 맞춤; 빠진 객체(L2-A 의 미배정)는 미해결 기호 목록으로 남기고 stub 을 만들지 않음 — 미해결이 있으면 링크 실패를 기록하고 멈춤(`-undefined` 경고 옵션으로 진단 링크만 따로 할지 그때 계획). 비교 도구 `10_tools/reconstruction/l2_compare.py`: 명령·세그먼트·절 주소/크기, 외부 기호 이름·형·절·주소, 절 내용 바이트 차이(원본 대비, 구간 목록).
+   - **L2-C 현재 07 로 전체 다시 빌드**: L2-A 의 객체별 명령으로 한 run 에 모든 객체를 07 에서 다시 컴파일(L0 전체 빌드), 각 객체가 기록된 객체와 절 내용이 같은지(L1 판정 유지) 확인한 뒤 다시 링크·비교. 07 이 그동안 바뀌어 달라진 객체는 목록으로 남겨 따로 계획.
+3. 하지 않는 것: 원본에 없는 기능·stub·임시 대체 객체; 07 소스 수정(차이가 나오면 별도 계획); 실기 커널 교체·재부팅(사용자 몫); QEMU 부팅(L3, 별도 단계).
+4. 이번 첫 작업: L2-A 도구와 표(07 과 원본은 읽기만).
+5. codex 교차검토(kzih9fbbc, gpt-6.1-sol) 판정과 계획 보강:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 4,816 B 는 머리·명령 크기가 아니라 `__text` 까지의 위치(28 + 2,152 + 0 채움 2,636) | python: 머리 `(magic,7,3,2,7,2152,1)`, 0x884–0x12d0 바이트 모두 0 | ✅ 0 항 고침 |
+| Darwin 링크 줄에서 `${FVMFILE_LDFLAGS}` 를 빠뜨림, 마무리 `strip -x` 있음 | Makefile.template :386·:401 grep, :269–272 sed(앞서) | ✅ 0 항 고침 |
+| 빌드 칸 문구는 184 가지(122 는 정규화 값), "337" 은 재현 방법이 없음 | python: 세 표의 빌드 칸 고유 184 | ✅ 고침; 자동 추정 숫자는 버림 |
+| 객체 id `x86-memcpy` 중복, A* 1 | python: 중복 id·등급 집계 | ✅ 식별은 (07 소스, 원본 범위) |
+| 링크 입력은 "마지막 run" 추정이 아니라 **채택된 L1 json 의 inputs(객체 경로·SHA-256)** 로 정해야 함; 한 run 에 변형(-fno-common/common)이 섞인 예(dma) | (내 확인) iter_k07 L1 json 에 `inputs` 키가 객체 경로·해시를 가짐(앞서 if_vtrip json 출력) | ✅ L2-A 의 근거로 채택 |
+| OBJECT_MATCH 는 공통 기호 정의·중복 정의·전역 공통 배치를 보증하지 않음 → 링커 탐침 필요 | macho_obj.py·l1_compare.py 구조(codex 인용; 이 판정은 설계 판단) | ✅ L2-B 앞에 링커 탐침 단계 추가 |
+| 데이터만 있는 내용: 커널 판(`_version*` 0x1e5650–), `_objc_VERS_STRING` 0x1d6754·`_objc_VERS_NUM` 0x1d67f4, `_pseudo_inits` 0x1e4f80(ioconf 꼴), DriverKit 판 문자열 | python: 기호표 조회(값 일치) | ✅ L2-A 에서 모두 목록화 |
+| libDriver 는 Darwin 에서 `ld -r … $(OFILES) vers.o` 중간 링크 | driverkit-1/libDriver/Makefile :610–631 sed | ✅ 직접 링크와 `ld -r` 중간 링크를 탐침으로 비교 |
+| 링크 후보에 `-static -force_cpusubtype_ALL -u __muldi3`; L 객체는 넘기지 말고 `-lcc` 로 | Makefile.i386 :55–64, D051 | ✅ |
+| UNIXTHREAD 전체(flavor −1, count 16, eip·cs 0xf·ss/ds/es 0x17)와 LINKEDIT(symoff 1015808, nsyms 3751, stroff 1060820, strsize 57100), 기호 이름순·문자열 표를 비교 | python: SYMTAB 디코드·이름순 확인 | ✅ 비교 도구 항목에 넣음 |
+| `__mh_execute_header` 도 절대 기호 | python | ✅ |
+| D007 은 "원문 텍스트 일치와 기능 재구성 구분" — 전체 바이트 목표는 1 절 | DECISIONS :11 grep | ✅ 고침 |
+| L2-C 는 객체별 작업 디렉터리·ABSROOT·ObjC 런타임 꼴·MIG 이름 바꿈을 지켜야 함; 선택한 객체는 새 run 입력으로 복사·해시 | D033·D047·MIG run cmd(codex 인용) | ✅ 원칙으로 채택(세부는 L2-C 계획에서 검증) |
+
+6. 보강한 단계:
+   - **L2-A 목록(빌드 없음)**: (a) 객체마다 채택 L1 json(기록의 검증 칸·증거 md 에서) → 그 json 의 `inputs` 로 정확한 `.o` 경로·SHA-256 → 그 run 의 `out/run.json`·`run.cmd` 로 명령·작업 디렉터리; 파일 해시가 지금도 같은지 확인. 못 찾은 객체는 목록으로 남겨 하나씩 증거로 채움. (b) 원본 모든 절의 배정: 정규 절(연속 배치)·리터럴 절(`__cstring` 내용 대응)·zero-fill 추정을 따로 집계, 외부 정의 기호 중 어느 객체도 정의하지 않는 것, 판·ObjC 판·`_pseudo_inits` 등 데이터만 있는 내용. (c) 순서 가설: `__text` 주소순과 각 데이터 절 안의 앞뒤 관계를 맞춰 보고 모순을 목록화(조용히 바꾸지 않음).
+   - **L2-A2 링커 탐침**(작은 시험 객체, 07 아님): 입력 순서 뒤집기, 공통 기호 배치 규칙, 공통 vs 절 정의, 중복 강정의, 정렬, 직접 링크 vs `ld -r`, `-headerpad`·`-segaddr`·`-segalign` 이 머리 채움 2,636 B 와 세그먼트 주소에 주는 영향, `strip -x` 결과. 링커 옵션 가설 표(근거·선택 인자·탐침 결과)를 남김 — "원래 명령" 이라 부르지 않음.
+   - **L2-B·L2-C**: 위 결과로 다시 세부 계획 → codex 검토 → 진행. kr_run 에 `ld`·`strip` 허용이 필요하면 그때 도구 변경 계획.
+7. L2-A 첫 탐침(2026-10-08, 도구 아님 — python 한 번): 객체 387 중 "기록(functions 검증 칸·증거 md)에 적힌 L1 json 이 `inputs` 를 갖고, 그 입력 `.o` 가 지금도 같은 SHA-256 으로 남아 있는" 것은 **130**, 나머지 **257** 은 옛 형식(초기 plan 의 L1 json 에 `inputs` 가 없거나 증거에 json 경로가 없음 — 예: libc memcmp·memcpy·kern_machdep·vm_pager·ipc_thread·host·priority·vm_init …). 기록된 옛 객체를 고고학적으로 다시 찾는 비용이 큼.
+   - 대안(판단 필요): L2-B(기록된 객체로 링크)를 건너뛰고 **L2-C(현재 07 로 전체 다시 빌드)를 먼저** 함 — 객체마다 명령 꼴(기록된 빌드 칸의 꼴: 커널 C 꼴·`-fno-common` 유무·`-O3/-O4`·libDriver·ObjC 런타임·ABSROOT·`.s`·MIG)을 정하고 한 번에 다시 컴파일한 뒤 원본에 L1 을 다시 돌려 **기록된 판정(A/A*/P)과 같은지** 확인. 같으면 그 객체들이 링크 입력(새 run 의 해시가 근거), 다르면 목록으로 남겨 하나씩 기록을 대조. 장점: 링크 입력이 모두 현재 07 에서 나와 L0 전체 빌드도 함께 확인됨. 단점: 객체마다 명령 꼴을 정하는 작업이 필요(기록 문구 184 가지 → 꼴 몇 개로 묶기).
+
+## 394. S6-2 세부 계획 — D057: 현재 07 로 전체 재빌드(L0)와 객체별 L1 재판정, 링크 입력 확정(코딩 전, 2026-10-08)
+
+0. 결정 D057(사용자): 링크 입력은 현재 07 로 다시 빌드한 객체. 객체 387(식별은 (07 소스, 원본 범위); `x86-memcpy` 두 개).
+1. 컴파일 꼴 분류(python, 빌드 칸 문구의 낱말로 거칠게; 확정 전): c 기본 187, c + 옛 common 명령 41, c + `-O4` + 옛 common 38, libDriver ObjC(`-fwritable-strings` 없음) 22, 커널 트리 ObjC 절대 경로(ABSROOT, D033) 19, libDriver ObjC + `-DMACH_USER_API` 19, c + `-DMACH_USER_API`(MIG 사용자 쪽) 14, ObjC 런타임 꼴(D047) 13, libDriver c 12, libDriver ObjC + MIG 9, `.s` 5, c `-O4` 2, ObjC 기타 2, libgcc(L, 다시 빌드하지 않음 — `-lcc`) 2, ObjC 런타임 c·`.s` 각 1.
+2. 단계:
+   a. **꼴 표 확정**(도구 `10_tools/reconstruction/l2_forms.py`, 빌드 없음): 객체마다 (07 소스, 원본 범위, 등급, 꼴, 컴파일 명령 원형, stage_headers 선택지, 작업 디렉터리, 출력 이름)을 `06_reconstruction/l2_build_forms.tsv` 로. 명령 원형은 꼴마다 대표 run 의 `.cmd`(지금도 남아 있는 것) 에서 가져오고, 객체별 추가 정의(`-DMACH_USER_API`·`-UKERNEL_PRIVATE`·RUNIN 디렉터리·ABSROOT 경로·MIG 이름 바꿈)는 그 객체의 기록(빌드 칸·증거 md·마지막 cmd)에서 읽어 근거 칸에 적음. 옛 "common 명령"(`-fno-common`) 꼴 객체는 기록에 "common 변형도 OBJECT_MATCH" 가 있는 것이 대부분 — 원본 `__common` 417 기호와 맞는 쪽(공통 기호를 내는 변형)을 고르는 규칙을 이 단계에서 객체별 근거로 정함.
+   b. **묶음 스테이징 검사**: 같은 stage_headers 선택지를 쓰는 객체끼리 한 스테이지에 모을 때, 각 객체 단독 스테이지와 파일 대응(논리 경로 → 출처·해시)이 충돌하지 않는지 python 으로 확인(충돌하면 그 객체는 따로 run).
+   c. **다시 빌드**: 묶음마다 kr_run 하나(RUN 줄 여럿), 실기 cc-744.13, 07 은 읽기만. 실패한 컴파일은 목록.
+   d. **L1 재판정**: 새 객체마다 l1_compare(+ P 는 zerofill_check, 직전 known 판)로 판정해 기록된 등급과 비교 → `09_validation/reconstruction/s6-l0-<날짜>.json`(객체별 결과·해시). 같지 않은 객체는 원인 조사 목록(07 이 그 뒤 바뀜·명령 꼴 잘못 정함·기록 오류).
+   e. 결과 보고 후 링크 단계(L2-A2 링커 탐침 → 링크) 계획.
+3. 하지 않는 것: 07 수정(차이는 별도 계획), 기록 표 고침(이번은 판정 결과 파일만), libgcc 다시 빌드.
+4. 비용 추정: kr_run 한 번 몇 분 × 묶음 수(꼴 15 안팎 + 따로 run 객체). 실기 장시간 사용은 nohup(기존 kr_run 방식).
+5. codex 교차검토(kf5uzhmfn, gpt-6.1-sol) 판정과 보강:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 빌드 칸 낱말 검색으로는 꼴을 가를 수 없음(채택 옵션과 "같은 객체" 대안이 섞임, 예 vm_pager `-O3`(대안 `-O4`), kern_machdep `-O2`) | 표 행 읽기(앞서 출력한 묶음 문구) | ✅ 1 항 분류는 선별용으로만; 꼴 표는 객체별 근거(마지막 최종 cmd·증거)로 |
+| 최종 빌드는 `-fno-common` 을 쓰지 않음(GCC27_COMPATIBILITY.md :18–22, 템플릿 s5p107 "final object = O3c__"); `-fno-common` 만 맞는다는 기록은 없음 | GCC27_COMPATIBILITY.md :18–22 sed, s5p107-build.cmd :2 grep | ✅ 재빌드는 공통 기호 변형(=`-fno-common` 없음) |
+| `-g` 는 sched_prim 인라인 판단을 바꾸므로 유지 | x86-sched_prim.md :20 sed | ✅ |
+| libc 는 `-O4 -funroll-all-loops` 따로(`-O4`·`-O3` 이면 9 개 다름) | x86-libc-unroll.md :14 sed | ✅ |
+| 꼴 표에는 순서 있는 argv·작업 디렉터리·소스 철자·stage 선택지(`--public-sdk`·`--subst`·COMPANION)·출력 이름을 넣어야 함; 예외: IOMallocLow·SCSIDiskThread(`--public-sdk kernserv/queue.h`), 오디오 ObjC(+`-DMACH_USER_API`), `-UKERNEL_PRIVATE` 는 객체별, 런타임 objc-runtime.m 의 NXString.h COMPANION·HashTable 의 별도 디렉터리, port_allocate 류 `-D<routine>=<routine>_EXTERNAL`(kern_server_reply_user.c 는 일반 꼴) | (codex 인용 — 각 객체 꼴을 정할 때 해당 cmd 로 확인 예정; 지금은 원칙만 채택) | ⚖️ 원칙 채택, 사례는 꼴 표 작성 때 하나씩 검증 |
+| 묶음 스테이징은 선택지가 같으면 결정적이나, 다른 객체의 파일이 검색 경로에 끼어드는 문제·대소문자 충돌·`--subst` 결합 문제 → 단독/묶음 스테이지를 실제 `cc -M` 과 해시로 비교해야 함 | stage_headers 우선순위(앞서 --help 확인) | ✅ 2b 를 "실기 cc -M 비교"로 강화 |
+| 등급만 같으면 부족 — 함수 범위·바이트·참조 차이·절 결과·미검증 사유·zerofill 결론까지 기준과 비교; A* 는 L1 판정이 아님; P 가 모두 zerofill 대상은 아님(vm_machdep const 미참조, bios bss 미참조, kalloc D019 단일 참조); `--place-from-l1`(kmGraphics) 유지 | objects_partial :2 bios "0 references" sed | ✅ 2d 보강 |
+| 최신 known 목록에는 이미 그 객체 자신(swapfs 등)이 있어 그대로 다시 쓰면 겹침 실패 → 그 객체 자신의 구간을 뺀 목록으로 검사 후 기록된 후보와 비교, 마지막에 전체 겹침 검사 | zerofill-known-s5p394 :85 "swapfs" grep, zerofill_check.py :191–194 | ✅ |
+| L1 은 NOT_MATCH 여도 종료 코드 0, kr_run 은 명령 하나라도 실패하면 전체 거부 → 상태를 하나씩 확인 | (설계 사실; 기존 도구 사용 경험과 일치) | ✅ |
+| MIG 생성 C 는 07 에 있음 — 이번에는 그대로 컴파일, 재생성 검증은 별도 | (확인 예정) | ⚖️ |
+| 객체 재빌드 완료를 커널 호환·링크 입력 완비로 보고하지 말 것(데이터만 있는 입력 남음) | §393 6 항 | ✅ |
+
+6. 기존 자원: 같은 성격의 일괄 재빌드가 이미 있었음 — `08_build/runs/tools/s5p129-regress.cmd`(RUN 116, 최종 템플릿 꼴), 비교 결과 `09_validation/reconstruction/s5p*-regress-compare-*.json`, scratchpad `regress.py`(객체별 iter 재빌드). 꼴 표의 출발점으로 그 회귀 명령(초기 객체)과 이후 plan 들의 최종 run cmd(뒤 객체)를 씀.
+7. 다음 작업: 꼴 표 도구(`l2_forms.py`) — 객체마다 근거 cmd 를 찾아 argv 를 뽑고, 근거가 없는 객체는 목록으로 남김(빌드 없음).
+8. 꼴 표 초안(2026-10-08, 도구 `10_tools/reconstruction/l2_forms.py` 첫 판, 결과는 scratchpad `l2_forms_draft.tsv` — 아직 저장소 표로 내지 않음):
+   - 근거: 끝난 run 마다 실제로 실행한 `08_build/runs/<run>/run.cmd`(도구 쪽 `.cmd` 이름과 run id 가 다른 경우가 있어서 — 예 `s4a1-regress.cmd` → run `s4a1-regress-1`)의 `-c` 줄을 소스별로 모으고, 객체 기록(빌드 칸·증거 md)에 이름이 나온 run 중 가장 늦은 것을 고름. 결과: 객체 385 중 기록에 이름이 나온 run 으로 384, 이름 없는 최근 run 1(memcmp → `s5p129-diaga-1`, 확인 필요).
+   - 고른 명령을 지금 커널 C 템플릿(`s5p395-it1`)과 비교해 묶으면 85 묶음: 템플릿과 같음 174, libDriver ObjC(RUNIN·`@R` 절대 -I·`-fwritable-strings` 없음) 25, 그 + `-DMACH_USER_API` 20, libDriver C 12, ObjC 런타임 12, libc `-O4 -funroll-all-loops -fno-common` 11, 템플릿보다 -D 가 적은 옛 최종(xdr 류 `-DINET` 만 11, xdr_mem 류 0 개 9, netif 류 6, authunix_prot 류 4) 등.
+   - 문제(다음 단계에서 정할 것): (i) 이름이 나온 run 이 초기(s5p3–s5p19)의 `-fno-common`·옛 헤더(스테이지 선택지 없음) 명령인 객체가 있음 — 그 뒤 일괄 회귀(s5p129·s5p171·s5p227·s5p249·s5p256 등)가 지금 템플릿으로 다시 확인했으나 기록에 그 run 이름이 없는 경우. 이런 객체의 재빌드 명령은 "기록된 최적화 수준 + 지금 템플릿(공통 기호)" 으로 하고 L1 로 확인. (ii) 한 run 에 변형 여러 줄(F/N, O2/O3/O3c/O4, U/O4u)이 있어 출력 이름 규칙(F·O3c·U 우선)으로 골라야 함. (iii) 템플릿보다 -D 가 적은 옛 최종 명령은 그대로 둘지(기록 존중) 지금 템플릿으로 맞출지 — L1 결과로 판단.
+9. 꼴 표 확정(2026-10-08): `06_reconstruction/l2_build_forms.tsv`(도구 `l2_forms.py` 고친 판, 385 행 + 머리). 고르는 규칙(도구 머리 주석): ① 끝난 run 의 `run.cmd` 줄 중 그 run 의 입력 사본(`08_build/runs/<run>/src/src/<소스>`) SHA-256 이 지금 07 파일과 같은 것만(진단 run 의 scratch 사본·옛 본문 제외) ② `-fno-common` 없는 줄 우선 ③ D021/D022 헤더 묶음(bsd_set nextos·mach_set sdk)으로 스테이징한 run 우선 ④ 기록에 이름이 나온 run(295), 없으면 가장 늦은 run(90) ⑤ 출력 이름 F > O3c > U > O4u > O3d. 결과: 385 모두 지금 07 소스·지금 헤더 묶음·공통 기호·출력 이름 `F__`(385; 처음 적은 "F 330/O3c 55" 는 앞 초안 값 — codex 검토로 정정). 쓰인 플래그 전체 집계(python): 진단용 플래그(`-mreg-alloc`·`-d*`) 없음; `-O3` 353, `-O4` 16(그중 `-funroll-all-loops` 11), `-O` 15(ObjC 런타임), `-O2` 1(kern_machdep); `-DMACH_USER_API` 54, `-UKERNEL_PRIVATE` 5, MIG `-D<r>=<r>_EXTERNAL` 14(정정, python); `-DINET` 없는 것 11 등 옛 최종 명령의 -D 차이는 기록대로 둠.
+   - 묶음(작업 디렉터리·public-sdk·ABSROOT 기준): 커널 C 300, libDriver RUNIN 40, ABSROOT ObjC 19, ObjC 런타임 RUNIN 14, public-sdk `kernserv/queue.h` 11(libDriver 10 + C 1), HashTable RUNIN 1.
+10. 재빌드 실행 설계(코딩 전):
+   - 묶음마다 stage_headers 한 번(같은 선택지, 소스 = 묶음의 모든 소스 + 각 행 stage 의 companion), kr_run 하나: 객체마다 `-M` 줄(같은 argv 에서 `-c … -o …` 를 `-M` 로)과 `-c` 줄. 출력 이름 `L2__<이름>.o`(같은 basename 충돌 — memcpy 둘 등 — 은 python 으로 미리 검사해 다른 이름).
+   - 묶음 안전 검사(python): 객체마다 실기 `cc -M` 의존 목록의 각 파일이 그 소스 하나만 스테이징했을 때의 정적 closure(`stage_headers.py --list` 같은 선택지)에 있고 같은 출처·해시인지 확인; 아니면 그 객체는 따로 run.
+   - 판정(python, `l2_verdict.py`): 객체마다 l1_compare(`.m` 은 `--place-from-objc`, 기록에 `--place-from-l1` 이 있는 것은 그대로) → A·A*: OBJECT_MATCH, P: object_reasons 가 그 행의 미검증 절과 같음, 함수 MATCH/MATCH_UNVERIFIED 수가 기록과 같음(functions.tsv). zerofill 은 P 중 기록이 reference-inferred 인 것만, 그 객체 자신의 구간을 뺀 최신 known 목록으로 검사해 기록된 후보와 같은지. 결과 `09_validation/reconstruction/s6-l0-rebuild-<날짜>.json`.
+   - 하지 않는 것: 07·기록 표 수정, 링크(다음 단계).
+11. codex 교차검토(k2ckbb8k1, gpt-6.1-sol) 판정과 설계 고침:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 출력 이름은 모두 `F__`(385), `_EXTERNAL` 14 | python 집계 | ✅ 9 항 정정 |
+| 함수 수를 functions.tsv 와 비교하는 규칙은 못 씀: L1 `functions` 에 `__const` 기호도 들어감(kmGraphics·port_allocate·netif), functions.tsv 에 L1 과 다른 행(netif `_if_attach`·`_if_registervirtual`, `L1 ?` 행 IOAudio·objc_runtime) | (판단 근거는 codex 인용 줄; 함수 수 규칙은 버리므로 사실 여부와 무관하게 설계에서 뺌 — functions.tsv 불일치는 따로 확인할 목록으로 남김) | ✅ 규칙 바꿈 |
+| `--place-from-l1` 은 l1_compare 가 아니라 zerofill_check 의 선택지, 새 L1 json 을 넘겨야 함(입력 해시 검사) | l1_compare.py :467(선택지 목록), zerofill_check.py :123·:143 grep | ✅ |
+| 묶음 안전 검사의 단독 기준은 "소스 + 그 객체의 companion"(objc-runtime.m·objc-load.m 의 NXString.h, HashTable.m 의 objc-private.h) | (확인 예정: 선택 run 의 manifest `sources`) | ⚖️ 채택, 구현 때 manifest 로 검증 |
+| P 는 object_reasons 만으로 부족 — 절 목록·크기·정렬·배치·검증된 절의 0 차이까지 | l1_compare 결과 구조(앞서 사용) | ✅ |
+| 이름 충돌: `memcpy.c` 둘, `hashtable.m`/`HashTable.m`(대소문자) | python: 출력 이름 소문자 중복 `f__memcpy.o`·`f__hashtable.o` | ✅ 식별은 (소스, 원본 범위), 출력 이름은 고유하게 |
+| "named" 는 "채택된" 이 아니라 "언급된" — 선택 전에 채택 L1 을 확인하지 않음; codex 가 90 개 current-source 행의 기존 객체로 L1 을 다시 돌려 A·A* 는 OBJECT_MATCH, P 13 은 NOT_MATCH(DIFF 없음) | (내가 같은 검사를 도구로 다시 할 것 — 아래 새 기준) | ⚖️ 채택: 아래 기준선 단계 |
+| kr_run: RUN 수 제한 없음, wait 기본 1800 초, EXPECT 는 stage 기준 이름, 명령 하나 실패면 게시 안 됨 | (kr_run 사용 경험과 일치; 구현 때 코드로 확인) | ⚖️ |
+
+12. 고친 판정 설계: **기준선 = 고른 run 의 기존 객체(해시 확인)에 지금 원본으로 다시 돌린 L1**(도구 `l2_baseline.py`, 빌드 없음). 기준선이 기록 등급과 맞는지 먼저 확인(A·A*: OBJECT_MATCH, P: NOT_MATCH 이고 DIFF/BOUNDARY 없음 + 기록의 미검증 절과 같은 절). 그다음 재빌드 객체의 L1 을 기준선과 **구조적으로** 비교: 절마다(이름·크기·배치·바이트/참조 차이·미검증), 함수마다(원본 주소·판정·참조 수), object_reasons. zerofill 은 기록이 reference-inferred(·-single) 인 P 만, 새 L1 로 `--place-from-l1`(kmGraphics) 포함, 그 객체 자신의 구간을 뺀 known 목록, 결론·후보 구간이 기록과 같은지.
+13. 다음 작업: `l2_baseline.py`(빌드 없음, 07·기록 읽기만) → 결과 보고 → 재빌드 도구.
+14. 기준선 결과(2026-10-08, `l2_baseline.py`, 요약 `09_validation/reconstruction/s6-l2-baseline-20261008.json`, 객체별 L1 `…/s6-l2-baseline-20261008/`): 385 객체 모두 고른 run 의 객체가 해시대로 있고, 기록 등급과 일치(A 313 OBJECT_MATCH, A* 1 OBJECT_MATCH, P 71 NOT_MATCH — 함수 판정은 MATCH/MATCH_UNVERIFIED 뿐, 사유는 모두 "…: unverified"). P 의 미검증 절을 objects_partial 의 9 열 문구와 대조(python): 70 같음, **1 다름 — `x86-vol`(bsd/dev/vol.c) 은 L1 사유 `__DATA,__bss: unverified` 인데 기록 9 열이 비어 있음**(기록 결함으로 보임; 이번 계획은 기록을 고치지 않으므로 별도 확인 목록).
+15. 재빌드 도구 설계(코딩 전, `10_tools/reconstruction/l2_rebuild.py`):
+   - `prepare GROUP RID`: 묶음 G1 커널 C(RUN, public-sdk 없음, ABSROOT 아님) · G2 libDriver RUNIN · G3 ABSROOT ObjC · G4 ObjC 런타임 RUNIN · G5 public-sdk `kernserv/queue.h` · G6 HashTable RUNIN 중 하나. 행마다 companion = 고른 run 의 stage manifest `sources` 중 `.h`(다른 번역 단위는 넣지 않음). stage_headers `--prefer-07 --nextdev --bsd-set nextos --mach-set sdk`(+ G5 `--public-sdk kernserv/queue.h`)로 묶음 스테이징 → `bsd_not_adopted`·`mach_not_adopted` 가 비어야 함. 명령 파일: 행마다 고른 argv 를 그대로 쓰되 `-o` 만 `stage/L2_<행번호>__<이름>.o`(행번호로 대소문자·동명 충돌 방지), 그 앞에 같은 argv 에서 `-c … -o …` 를 `-M <소스>` 로 바꾼 의존 줄; RUNIN 행은 같은 디렉터리로; G3 은 맨 앞에 `ABSROOT`; 행마다 `EXPECT L2_<n>__<이름>.o`. kr_run prepare/launch, wait 는 넉넉한 시간.
+   - `check RID`: (a) 모든 명령 상태 0·게시 확인, (b) 행마다 `-M` 출력(로그)을 파싱 — 의존 파일 각각을 run 디렉터리 기준 경로(RUNIN 은 그 디렉터리, `@R`·ABSROOT 는 실제 경로로 풀어)로 바꿔 묶음 manifest 의 (논리 경로, 출처, 해시)에 대응; 같은 선택지로 `stage_headers.py --list <소스+companion>`(단독 closure)에 그 논리 경로가 있고 출처가 같아야 함 — 아니면 그 행은 "묶음 위험" 으로 표시, (c) 새 객체마다 l1_compare(+`.m` 은 `--place-from-objc`) 를 돌려 기준선 L1 과 구조 비교: object_verdict·reasons, 절마다(이름·placement·주소·크기·byte_differences·references·refs_differ·refs_unverified), 함수마다(names·image_range·verdict·byte_differences·refs·refs_differ). (d) 기록이 reference-inferred(·single) 인 P 는 zerofill_check(그 객체 자신의 구간을 뺀 known 목록, kmGraphics·volCheck 등 기록에 `--place-from-l1` 이 있는 것은 새 L1 로) → 결론·후보 구간이 기록과 같은지. 결과 `09_validation/reconstruction/s6-l0-<GROUP>-<RID>.json`.
+   - 순서: G6(1)·G4(14)·G5(11) 처럼 작은 묶음부터 → G2(40) → G3(19) → G1(300).
+16. codex 교차검토(kq46r1ckp, gpt-6.1-sol) 판정과 설계 고침:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| RUNIN 행의 출력은 `@R/stage/…` 로 써야 함(RUNIN 은 그 디렉터리에서 실행, `@R/` 는 RUNIN 에서만 풀림) | kr_run.py :244–250 sed, 기존 RUNIN run `s5p287-it1` 의 `-o @R/stage/F__NXSpinLock.o` grep | ✅ |
+| G2(libDriver 40) 묶음에 `nextdev/objc/hashtable.h`(IOTokenRing)와 `HashTable.h`(IODirectDevice 등) 대소문자 충돌 → kr_run 거부 | python: s5p296-it1·s5p306-it1 manifest 의 해당 경로 | ✅ G2 를 둘로 나눔(소문자 hashtable.h 를 쓰는 행 / 나머지) |
+| G4·G6 의 정적 closure 에 `mach_not_adopted` 3(`src/mach/cthreads.h` 등) — 옛 채택 run 에도 같음 | python: s5p356-r2rt·s5p359-r1ht manifest `mach_not_adopted` | ✅ "목록이 비어야 함" 규칙을 "**실기 `cc -M` 실제 의존이 모두 07(또는 07 에 들인 SDK 사본)이어야 함**; 정적 목록에만 있고 읽히지 않는 항목은 기록" 으로 바꿈 |
+| `--list` 는 해시를 주지 않음 → 묶음 안전 검사는 closure()/sha 로 해시까지 | (stage_headers 코드 확인 예정) | ⚖️ 구현 때 확인 |
+| 의존 경로는 run 디렉터리 기준으로 어휘적으로 풀고(ABSROOT 는 링크가 지워지므로 realpath 금지) Make 이어짐 줄 처리 | (설계 판단) | ✅ |
+| L1 json 키: 객체는 `object_reasons`, 절은 `"SEG,SECT"` 키 사전, 조건부 키 주의; 정렬은 L1 에 없음(객체에서 읽어야); `methods` 대응도 비교; `object`·`inputs` 는 비교에서 빼고 해시는 따로 확인 | (구현 때 l1_compare 출력으로 확인) | ⚖️ |
+| zerofill 재실행 대상은 9 열만으로 부족: `vol`(9 열 빈칸, 증거는 reference-inferred), `objc_runtime`(옛 `--place-from-l1` 사용이 9 열에 없음) | x86-vol.md :6·:8(앞서 grep) | ✅ 객체별 채택 zerofill 보고서를 명시적으로 대응시켜 씀 |
+| 회신 묶음 수치(G1 300 → closure 821 등) | (참고; 구현 뒤 실제 manifest 로 확인) | ⏭️ |
+
+17. P 등급 메모(사용자 질문 2026-10-08 "P 등급의 경우 다시 원본 분석 및 수정을 해야 하는건 아닌가요?" 에 대한 답): P 는 코드·초기화 데이터는 일치하고 기호 없는 정적 `__bss` 의 원본 위치만 참조 추정인 상태라 소스 수정 대상이 아님. **L2 링크 뒤 비교에서 각 객체 `__bss` 가 놓인 주소와 코드 속 참조 값이 원본과 같으면 P 의 위치가 확인됨**(L2 비교 항목으로 명시). 참조가 없는 bss(bios 등 7)·위치 못 정한 작은 `__const`(intr 등)는 링크 배치로만 판단.
+18. 재빌드 결과(2026-10-08, D057, 도구 `l2_rebuild.py`; run `s6l0-g6a`·`g4a`·`g5a`·`g2aa`·`g2ba`·`g3a`·`g1a`, 결과 `09_validation/reconstruction/s6-l0-<묶음>-<run>.json`):
+   - **385 객체 모두 현재 07 에서 다시 컴파일됨(실패 0), 새 객체의 원본 대비 L1 이 기준선과 절·함수·참조 단위로 완전히 같음(385/385)**; 묶음 스테이징과 단독 스테이징의 실제 의존(`cc -M`) 차이 0. 첫 시험에서 결과 경로 `.o.o` 버그를 고침.
+   - 실제로 읽힌 07 밖 입력 4 객체(자족 빌드의 남은 틈): (a) `nextdev/mach-o/fat.h` 를 07 이 아닌 로컬 SDK 사본에서 읽음 — mach_fat(184)·mach_loader(185)·kern_exec(208); 07 `nextdev/mach-o/` 에는 ldsyms.h·loader.h·rld.h 만 있음. (b) EventSrcPCKeyboard(244)는 `src/bsd/dev/i386/PCKeymap.c` 를 **Darwin 원문**에서 읽음 — 07 의 작성본 `nextdev_private/bsd/dev/i386/PCKeymap.c`(SHA 613e80cf…, Darwin f79d4ede… 와 다름; PROVENANCE :815 은 이 작성본을 쓴다고 적음)가 쓰이지 않음(stage_headers 의 private 선택이 `.h` 에만 적용되는 것으로 보임 — codex kq46r1ckp 지적과 같음). 객체는 일치하므로 두 본문이 같은 바이트를 내거나 작성본이 쓰인 적이 없는 것 — 확인 필요.
+   - 후속(별도 계획, 07·도구 변경이라 codex 검토 필요): (a) SDK `mach-o/fat.h` 를 07 `nextdev/mach-o/` 로 들임(기존 들임 절차·실기 해시 목록 확인); (b) PCKeymap.c 선택 규칙과 PROVENANCE 기록을 바로잡고 작성본으로 EventSrcPCKeyboard 일치 확인.
+
+## 395. S6-3 세부 계획 — L0 자족 빌드의 남은 틈 둘: SDK `mach-o/fat.h` 들이기, `PCKeymap.c` 작성본 선택(plan 394 항목 18; 코딩 전, 2026-10-08)
+
+0. 사실(python·grep):
+   - (a) `nextdev/mach-o/fat.h`: mach_fat·mach_loader·kern_exec 의 실기 `cc -M` 의존이 로컬 SDK 사본(`…/ref/openstep/headers/NextDeveloper/Headers/mach-o/fat.h`, SHA-256 1147faac…773f)에서 읽힘. 이 SHA 는 실기 목록 `09_validation/reconstruction/s4c-nextdev-headers-20261002.json` 의 `/NextDeveloper/Headers/mach-o/fat.h`(1,467 B)와 같음. 07 `nextdev/mach-o/` 에는 ldsyms.h·loader.h·rld.h 만 있음. 선례: `nextdev/mach-o/loader.h` PROVENANCE :236(nextdev-os42, 실기 목록, license TBD D017, "none (verbatim; file SHA-256 …)", 증거 x86-mach_header.md).
+   - (b) `PCKeymap.c`: EventSrcPCKeyboard.m:37 `#import <bsd/dev/i386/PCKeymap.c>`. 07 작성본 `nextdev_private/bsd/dev/i386/PCKeymap.c`(PROVENANCE :815, D030·D032) 와 Darwin 원문의 차이는 머리 주석뿐(diff: 머리 주석 블록 교체, 나머지 동일 — 키맵 데이터 같음). stage_headers.py `select()`(:279–302)는 `--bsd-set` 에서 `src/bsd/…` 의 `.h` 만 `bsd_pick`(private 먼저)으로 보내고, `.c` 는 07 `src/` → Darwin 순이라 작성본이 선택되지 않음. nextdev_private 에서 `.h` 가 아닌 파일은 이것 하나(find).
+1. 고침:
+   - (a) SDK `mach-o/fat.h` 를 07 `nextdev/mach-o/fat.h` 로 그대로 복사(실기 목록 SHA 확인), PROVENANCE +1(loader.h 행과 같은 꼴), 증거는 x86-mach_fat.md 에 한 줄.
+   - (b) stage_headers.py `select()`: `--bsd-set` 이고 논리 경로가 `src/bsd/…` 의 `.h` 가 아닌 파일이며 07 `src/` 에 그 파일이 없고 `nextdev_private/bsd/<rel>` 이 있으면 그 작성본을 고름(plan 395 표시; 번역 단위인 BSD `.c` 는 07 `src/` 에 있으므로 영향 없음). manifest 의 출처 표기가 작성본으로 나오는지 확인. 시험 `test_stage_headers_private_data.py` 추가(작성본이 선택되고, 07 `src/` 에 같은 이름이 있으면 그것이 선택됨).
+2. 확인: 영향 객체 4(mach_fat 184·mach_loader 185·kern_exec 208·EventSrcPCKeyboard 244)를 l2_rebuild 로 다시 빌드(행 지정 묶음 기능 추가: `prepare-rows`) → L1 이 기준선과 같고 실제 의존이 모두 07. 또 07 의 다른 `.c` 가 바뀌지 않음을 보이려고 stage_headers 고침 전후로 기존 묶음 manifest 를 다시 만들어 차이가 PCKeymap.c 한 줄뿐인지 python 으로 비교.
+3. 하지 않는 것: 다른 SDK 헤더 일괄 들이기(실제로 읽힌 것만), 기록 표(objects·functions) 변경.
+4. codex 교차검토(kp3yz0sin, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 0 항 사실은 맞음(fat.h 해시·소비 객체 3·PCKeymap 머리 주석만 다름·`.h` 조건·private 의 비헤더 파일 하나) | 이번 세션 python·grep(앞서 출력) | ✅ |
+| PROVENANCE :815 "used by EventSrcPCKeyboard (s5p330-it1)" 는 틀림 — 그 run 의 stage manifest :48 은 Darwin 파일 | s5p330-it1-stage.manifest.json 의 PCKeymap 행 python 출력(origin darwin01, f79d4ede…) | ✅ 기록 정정 |
+| 비헤더 규칙은 범위가 넓음 → 명시 목록(PRIVATE_DATA)으로, `_no_symlink` 유지, `--prefer-07` 없을 때 동작 정의 | (설계 판단) | ✅ PRIVATE_DATA = (`dev/i386/PCKeymap.c`,) |
+| 작성본 행에 private 주석을 달되 `.h` 조건을 넓히지 말 것 | stage_headers.py :553 근처 bsd_pick assert(앞서 sed) | ✅ 별도 분기로 주석 |
+| fat.h 는 loader.h 처럼 들이면 `--prefer-07` 일반 규칙이 07 사본을 고름; 들인 파일의 해시·크기·링크 여부를 직접 확인 | (구현 후 확인) | ✅ |
+| `prepare-rows` 면 check 도 같은 부분집합을 써야 함; fat 소비자는 G1, EventSrcPCKeyboard 는 G3(ABSROOT) | l2_rebuild.py check 의 dep 로그 색인(앞서 작성) | ✅ `RID.rows.json` 으로 묶음·순서 기록 |
+| 시험 보강·기존 시험 실행 | — | ✅ 아래 |
+
+5. 결과(2026-10-08):
+   - stage_headers.py: `PRIVATE_DATA` 명시 목록과 `private_data()`(select 와 manifest 행에 plan 395 표시) 추가. 고침 전 사본(scratchpad `stage_headers.before395.py`)과 고친 판으로 기존 7 묶음의 `--list` 를 비교(python): 6 묶음 동일, G3 은 PCKeymap.c 한 줄의 출처만 Darwin → 07 private 로 바뀜(선택만 바뀐 비교; fat.h 는 들이기 전이라 차이 없음).
+   - 시험 `test_stage_headers_private_data.py` 15 통과(선택·prefer07 유무·07 src 사본 우선·사본 없음·심볼릭 링크 거부·`--bsd-set` 없을 때 끔·실제 스테이징과 manifest 주석); 기존 components 11·rename 12·soundkit 13·subst 19 모두 통과.
+   - 07 `nextdev/mach-o/fat.h` 들임(SDK 원문 그대로, SHA-256·크기 1,467 B 실기 목록과 같음, 링크 아님).
+   - l2_rebuild.py: 행 지정 묶음(`prepare GROUP RID N1,N2`, `RID.rows.json`) 추가.
+   - 다시 빌드: `s6l0-p395a`(mach_fat 184·mach_loader 185·kern_exec 208), `s6l0-p395b`(EventSrcPCKeyboard 244): 넷 다 OBJECT_MATCH, L1 이 기준선과 같음, 실제 의존 모두 07(64·116·132·153 파일), 묶음/단독 차이 0.
+   - 기록: PROVENANCE +1(fat.h) 및 PCKeymap 행 정정, MODIFICATIONS +1, 증거 x86-mach_fat.md·x86-EventSrcPCKeyboard.md 덧붙임. → **L0: 385 객체 모두 07 만으로 다시 빌드되고 원본 L1 판정 유지.**
+
+## 396. S6-4 세부 계획 — L2-A: 링크 입력의 빈 곳 찾기(원본 절별 배정·기호 대조; 빌드 없음, 코딩 전, 2026-10-08)
+
+0. 입력: plan 394–395 재빌드 객체 385(행 → 최신 run: `s6l0-*`, 행 184·185·208·244 는 `s6l0-p395a/b`)와 그 L1 json, 원본 `macho.json`·`symbols.tsv`, libgcc 행(objects_toolchain 2: `__muldi3` 등, `-lcc` 로 링크). 재빌드 L1 의 절 배치 종류(python 집계): 정규 배치(`given by symbol`·`given by objc metadata`·`inferred, verified by L1d`), zero-fill 추정(`__bss` inferred 64), 배치 못 함(`unplaced`: `__bss` 3, `__TEXT,__const` 9, 빈 ObjC 절들), 내용 대조만 한 리터럴 절(`__TEXT,__cstring`·ObjC `__class_names`·`__meth_var_names`·`__meth_var_types`·`__message_refs`·`__cls_refs`).
+1. 도구 `10_tools/reconstruction/l2_coverage.py`(읽기만) → `09_validation/reconstruction/s6-l2-coverage-<날짜>.json`:
+   - 정규 절: 객체마다 배치된 [주소, 주소+크기) 를 원본 절별로 모아 겹침 검사, 배정 안 된 구간과 그 구간의 0 아닌 바이트 수(정렬 채움 `00`·`90` 과 구별).
+   - zero-fill(`__bss`·`__common`): `__bss` 는 추정 구간 합집합과 빈 곳; `__common` 은 원본 기호(절 6, 417)와 객체들의 공통 기호(이름·크기) 대조 — 원본에 있는데 어느 객체도 공통/정의로 내지 않는 이름, 크기가 원본 간격보다 큰 이름.
+   - 리터럴 절: 원본 절을 NUL 단위 문자열 목록으로, 객체들의 같은 절 문자열 집합과 대조 — 원본에만 있는 문자열(어느 객체도 내지 않음) 목록. (링커가 같은 문자열을 합치므로 순서·위치는 L2 링크 뒤 비교.)
+   - 기호: 원본 외부 정의 3,651(절 1·2·4·6)과 절대 100 을 객체들의 외부 정의(SECT·COMMON·ABS)·libgcc 구성원과 대조 → 정의되지 않은 이름 목록(이것이 데이터만 있는 객체·판 객체 후보), 둘 이상이 강하게 정의하는 이름(중복) 목록.
+   - 0 아닌 미배정 구간마다 그 구간을 가리키는 기호·재배치 출처(어느 객체가 참조하는지)를 붙여 다음 단계(누락 객체 작성 계획)의 근거로.
+2. 하지 않는 것: 07·기록 변경, 링크.
+3. codex 교차검토(kjkjsfhu0, gpt-6.1-sol) 판정과 계획 고침:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| **`__bss` 가 맞지 않음**: 원본 12,432 B, 추정 64 구간 합 12,402 B(겹침 없음) → 남은 30 B, 배치 못 한 bss 3 개(bios 16·rtc 14·SCSIGenericKern 4) 34 B, 선택 객체 bss 합 12,436 B → 정렬 전에도 4 B 초과 | python(이번 세션): 행 → 최신 run(184·185·208·244 는 p395) 객체의 `__bss` 크기 합 12,436, L1 inferred 합집합 12,402·겹침 0, unplaced (315,16)(354,14)(371,4) | ✅ **새 발견** — §394 항목 17 의 "P 는 위치만 미확정" 은 이 셋(참조 없는 bss)에는 맞지 않을 수 있음; 원인 조사 대상(07 에 원본에 없는 정적 변수가 있거나 크기가 다를 가능성) |
+| `__message_refs`·`__cls_refs` 는 S_LITERAL_POINTERS(0x5) — NUL 로 나누면 안 되고 재배치로 가리키는 문자열 내용으로 비교 | (도구 구현 때 macho.json 절 flags 로 확인) | ✅ 계획 고침 |
+| 원본 `__cstring` 에 객체가 내지 않는 비어 있지 않은 문자열 51(DMA/SCSI 상태·명령 설명) | (도구로 다시 셀 것) | ⚖️ 도구 결과로 확인 |
+| `00`/`90` 만으로 채움 판정 금지 — 다음 객체의 정렬 요구로 판정; text 미배정 598 B·282 구간 중 281 은 정렬로 설명, `[0x1c88f4, 0x1c8900)` 12 B(HashTable 앞)는 설명 안 됨 | (도구로 다시 셀 것) | ⚖️ |
+| 공통 기호: 이름별 최대 요청 크기, 강정의가 이기는 경우, 원본 다음 주소는 상한일 뿐; 원본 `__data` 에 정의된 16 이름(`_hz`·`_tick`·`_time` 등)의 공통 요청은 오류 아님 | (도구 구현) | ✅ |
+| 기호 비교는 `ext`·kind 로, `N_PEXT` 따로; `__mh_execute_header` 는 링커 정의; ObjC 절대 표지 99 는 객체가 정의; libgcc `__udivdi3` 의 지역 `___clz_tab` 256 B 도 덮음 | (도구 구현) | ✅ |
+| 원본 이름 중 정의 없는 것 89(`__data` 56·`__common` 30·`__const` 3) | (도구로 다시 셀 것) | ⚖️ |
+| 미배정 구간의 참조는 "소비자" 이지 정의 객체가 아님; 재배치는 PC 상대·SECTDIFF/PAIR 까지 풀어야 | l1_compare 재배치 해석 재사용 | ✅ |
+| 행 선택은 명시적으로(184·185·208→p395a, 244→p395b), memcpy 두 행(6·201) 유지; unplaced 는 "있는 내용, 위치 모름" 으로 따로(`__bss` 34 B, `__const` 44 B) | python 행 선택 출력(위) | ✅ |
+
+4. 고친 도구 범위(`l2_coverage.py`): 행 선택 명시 → 정규 절 배치 목록(배치 방법·해시·포함·정렬·겹침 검사) → text/정규 데이터 미배정 구간(다음 객체 정렬로 설명되는지) → `__bss`(zerofill 결과와 L1 대조, 크기 합 모순 보고) → `__common`(이름별 최대 요청·강정의·상한) → 리터럴 문자열 절(문자열·참조 오프셋)·리터럴 포인터 절(재배치로 가리키는 내용) → 기호(정의 없음·중복·추가·N_PEXT·링커 정의) → 미배정 구간의 참조 소비자. 숫자는 codex 값과 독립으로 다시 구해 대조.
+5. 결과(2026-10-08, 도구 `l2_coverage.py`, `09_validation/reconstruction/s6-l2-coverage-20261008.json`; 숫자는 codex 회신 값과 독립으로 다시 구해 일치):
+   - `__text`: 미배정 598 B 모두 `00`; 다음 객체 정렬로 설명 안 되는 것은 `[0x1c88f4, 0x1c8900)` 12 B(HashTable 앞) 하나. 배치 문제(겹침·포함·정렬) 0.
+   - `__TEXT,__const`: 미배정 1,589 B 중 0 아닌 1,036 B, 정렬로 설명 안 되는 구간 9: `0x1d68b0` 256 B(libgcc `__udivdi3` 의 지역 `___clz_tab` 자리로 보임 — 도구가 libgcc 의 const 를 아직 넣지 않음), `_IODMAStatusStrings`, `_objc_VERS_NUM`·`_objc_VERS_STRING`, 기호 없는 892 B(0x1d58e4)·160 B·작은 12–14 B 넷(배치 못 한 const 44 B 후보).
+   - `__DATA,__data`: 미배정 6,960 B 중 0 아닌 4,157 B, 구간 18 — `_sysent`/`_nsysent`, `_linesw`, `_unixsw`/`_unixdomain`, `_vfssw`, `_inetsw`/`_inetdomain`, `_fragtbl*`/`_around`/`_inside`, param 꼴(`_max_proc`·`_ncallout`·copyright 문자열 등), `_machdep_call_table`, `_bdevsw`/`_cdevsw`, `_pseudo_inits`, `_IOSCSI*Strings`, ObjC `__alloc` 등 훅, 판(`_version*`) — Darwin conf 류 "데이터만 있는" 파일(init_sysent·tty_conf·uipc_proto·vfs_conf·in_proto·param·conf·ioconf·ufs_tables·vers 등)의 내용으로 보임(이름은 가설).
+   - 기호: 원본 정의 중 객체가 정의하지 않는 이름 89(`__data` 56·`__common` 30·`__const` 3), 강정의 중복 0, 원본에 없는 추가 정의 0, N_PEXT 0. 공통 기호: 요청이 상한을 넘는 것 0, 아무 객체도 요청·정의하지 않는 원본 공통 30(`_master_cpu`·`_active_u`·`_kernel_map`·`_cons`·`_file`·`_nmi_*` 등), 원본에서 `__data` 에 정의된 이름의 공통 요청 16(정상).
+   - `__bss`: 객체 합 12,436 B > 원본 12,432 B(추정 합 12,402 + 배치 못 한 bios 16·rtc 14·SCSIGenericKern 4) — 정렬 전에도 4 B 초과(조사 필요).
+   - 리터럴: `__cstring` 원본 문자열 중 객체가 내지 않는 51(DMA/SCSI 설명 문자열 — 위 `_IOSCSI*Strings` 표의 내용), ObjC 문자열 세 절은 차이 0; `__message_refs` 725·`__cls_refs` 32 슬롯이 가리키는 내용 집합이 객체와 같음(객체 쪽 슬롯 1,393·90 은 링커가 합침).
+6. 판단: 링크 전에 **데이터만 있는 누락 객체**를 먼저 다시 만들어야 함(링크가 미정의 기호로 실패할 것). 다음 계획(§397)에서 구간마다 원본 바이트·참조 소스(Darwin conf·NeXTMach)·객체 경계를 정하고 07 에 둘 파일 이름은 D054 처럼 사용자 결정이 필요한 곳을 묻기로 함. 함께 조사: bss 4 B 초과, text 12 B 틈, 이름 없는 const 구간.
+
+## 397. S6-5 세부 계획 — L2-B: 링크 입력의 빈 곳 메우기(구간별 출처 정하기, 링커 규칙 탐침, 데이터만 있는 객체 작성; 코딩 전, 2026-10-08)
+
+0. 사실(이번 세션 python, `09_validation/reconstruction/s6-l2-coverage-20261008.json` 과 객체·원본 바이트 직접 대조):
+   - (a) **배치 못 한 `__const` 44 B 는 빈 곳이 아닙니다.** 객체 9 개의 4·12 B const(intr·PCresume·vm_machdep·fp_support·i386_init·PCexception·trap·pmap 은 `18 00 20 00`, ddm 은 `40 00 00 00 41 00 00 00 42 00 00 00`)가 링크 순서대로 원본 빈 곳 `0x1d13e8`(ddm 12 B)·`0x1d14dc`(fp_support·i386_init·intr)·`0x1d163c`(pmap·trap·vm_machdep)·`0x1d5c56`(PCexception·PCresume, 정렬 2 B; plan 397 항목 4 에서 고침)과 바이트가 같습니다. `__const`·`__data`·`__bss` 의 배치 순서는 `__text` 순서와 어긋남이 0 입니다(배치된 const 48·data 217·bss 64).
+   - (b) **`__const` 0x1d58e4 892 B** = 키맵 882 B(EventSrcPCKeyboard 의 `PCDefaultKeymap`, 원본 0x1d554a 의 것과 882 B 모두 같음) + 위 (a)의 8 B(0x1d5c56) + `00` 2 B 입니다(항목 4 에서 고침). 이 둘째 사본을 가리키는 참조는 원본에 없습니다(4 B 주소 검색 0 건). 링크 순서로 EventSrcPCPointer 와 PCexception 사이의 객체(PCPointer.m·EventShmemLock.s·kbd_entries.m·PCinit.c) 하나가 키맵을 한 번 더 들인 것으로 보입니다(어느 것인지는 아직 모릅니다).
+   - (c) **`__DATA,__data` 0x1db91b 37 B** "add_sr: source route table overflow\n" 은 plan 377 기록(if_vtrip 원본 `__data` 208 B, add_sr 문자열 두 벌)의 둘째 벌입니다. 07 if_vtrip 객체는 171 B 이므로 37 B 가 모자랍니다. 참조 0 건입니다.
+   - (d) **`__const` 0x1d1276 14 B** = "swapfs\0" + `00` 3 B + `04 00 00 00`(0x1d1280)입니다. 참조 0 건이고, 링크 순서로 netif 와 kern_server 사이(그 사이 객체 121 개 중 const 를 내는 것 0)에 있습니다. 참조 원문에 `"swapfs"` 문자열 0 건(grep)입니다. 주인을 아직 모릅니다.
+   - (e) **판 문자열**: `0x1d647c` 160 B "@(#)LIBRARY:libDriver  PROJECT:driverkit-94.16.2 …" (strlen 105, 기호 없음), `_objc_VERS_STRING` 160 B(strlen 87)·`_objc_VERS_NUM` "170"(다음 객체까지 12 B, `char[10]` 이면 0x1d67fe 에서 끝나고 다음 const 정렬 4 로 0x1d6800), `__data` 끝 `_version_major` 4·`_version_minor` 2·`_version_variant` ""·`_version` "NeXT Mach 4.2: … RELEASE_I386\n"(101 B, `__data` 끝 0x1e56be 와 맞음). vers_string 꼴 `char[160]`·`char[10]` 은 가설입니다.
+   - (f) **`__text` 12 B 틈 `[0x1c88f4, 0x1c8900)`**: 바로 뒤 HashTable 은 ObjC 런타임의 첫 객체이고 0x1c8900 은 16 B 정렬입니다. ObjC 런타임 객체 중 `objc-msg.s` 만 text 정렬 4(16 B)이므로, libobjc 를 `ld -r` 로 한 객체로 묶어 링크했다면 묶음 전체의 정렬이 16 B 가 되어 이 틈이 설명됩니다(가설, 탐침 필요).
+   - (g) **`__bss` 4 B 초과의 원인은 rtc 입니다.** 빈 곳 6 개 합 30 B 중 bios(16 B)는 0x1e75a4(miniMonMachdep·APM_i386 사이), SCSIGenericKern(4 B)은 0x1e7570(SCSIDiskKern·ddm 사이)에 정확히 맞고, 나머지 넷(2·2·3·3 B)은 다음 객체의 정렬 채움입니다(합 20 + 10 = 30). rtc 의 자리(autoconf_i386 끝 0x1e7749 ~ kmDevice 0x1e774c)는 3 B 이므로, 07 rtc.c 의 참조 없는 `static unsigned char rtc[RTC_NREG]`(14 B, x86-rtc 증거에 "unreferenced")는 원본에 없던 것으로 보입니다.
+   - (h) **데이터만 있는 객체 후보**(빈 곳의 링크 순서 위치·이름·참조 원문 grep): init_sysent(`_sysent`·`_nsysent`, init_main 과 kern_acct 사이), tty_conf(`_linesw`·`_nldisp`), uipc_proto(`_unixsw`·`_unixdomain`), vfs_conf(`_vfssw`·`_vfsNVFS`, 이름 문자열 "swapfs" "spec" "nfs" "4.3" 이 `__data` 안), in_proto(`_inetsw`·`_inetdomain`), ufs_tables(`_around`·`_inside`·`_fragtbl124`·`_fragtbl8`·`_fragtbl`), param(copyright 셋·`_max_proc`·`_nchsize`·`_ncallout`·`_nclist`·`_nmbclusters`·`_nport`·`_ncsize`·`_ndquot`·`_cfreelist`·`_cfreecount`·`_fifoinfo`; NeXTMach conf/param.c 의 순서와 같음), counters(`_c_thread_*` 5, ast·exception 사이), machdep_call(`_machdep_call_table`·`_count`, machdep·pcb 사이), conf(`_bdevsw`·`_nblkdev`·`_cdevsw`·`_nchrdev`, autoconf_i386·cons 사이), ioconf(`_pseudo_inits` = {32, pty_init}, {1, venip_config}, {0, 0}; NeXTMach config mkioconf.c 가 만드는 꼴), libDriver dma.c(`_IODMAStatusStrings` 7×8 B = 56 B, Darwin driverkit-1 libDriver/dma.c:35, 파일 44 줄), SCSIGlobals.m(`_IOScStatusStrings`·`_IOSCSISenseStrings`·`_IOSCSIOpcodeStrings`, Darwin libDriver/Kernel/SCSIGlobals.m), objc-globaldata.m(훅 11×4 B = 44 B, Darwin objc/objc-globaldata.m; objc-errors 와 objc-globaltext 사이), 판 객체 셋(위 e).
+   - (i) **이미 있는 객체 끝에 붙는 것으로 보이는 이름**: `_pmsgbuf`(qsort·subr_prf 사이 = subr_log 자리, 값 0; NeXTMach bsd/subr_log.c:45), `_nrnode`(nfs_server·nfs_subr 사이, 값 0; NeXTMach next/machdep.c:173·175), `_active_mfsbufs`(mfs_prim 끝, 값 0; Darwin kern/mapfs.c:1081 `int active_mfsbufs = 0;`).
+   - (j) **`__common` 배치 규칙(가설, 강한 근거)**: 원본 `__common` 417 이름을 주소 순으로 보면 이름이 알파벳 오름차순인 구간들로 나뉩니다. "링크 순서에서 그 이름을 처음 언급(UNDF 또는 COMMON)한 객체 순, 객체 안에서는 기호표 순" 으로 재빌드 객체 385 를 흉내 내면, 언급되는 406 이름 중 최장 증가 부분열이 400 입니다. 어긋나는 6 중 5(`_boottime` init_main·`_callout` kern_clock·`_inode_list`·`_iuniqtime` vfs·`_in_interfaces` in.c)는 07 객체가 **잠정 정의(COMMON)** 로 언급하는 것이고, 원본에서는 그 객체가 언급하지 않았거나(또는 UNDF 로) 다른 곳이 정의한 것으로 보입니다. `_master_cpu` 는 원본에서 맨 앞(0x1e8750)인데 재빌드 객체 중 처음 언급은 kern_sig(UNDF)입니다. 아무 객체도 언급하지 않는 11(`____xxx_state`·`_file`·`_mfsbuf_lock`·`_nmi_*` 8)은 그 이름을 정의하는 객체의 링크 위치를 알려 줍니다(예: `_callout`·`_file` 은 ufs_vfsops 구간 뒤 = param 자리).
+1. 단계(차례대로; 각 단계 끝에 기록):
+   - **B1 도구 고침**(07 변경 없음): `l2_coverage.py` 가 (a)의 배치 못 한 const 를 링크 순서·바이트 일치로 배치하고, libgcc 구성원의 const(`___clz_tab` 256 B, 0x1d68b0)를 넣고, (j)의 공통 기호 흉내(처음 언급 순)를 보고에 더합니다. 결과를 다시 만들어 숫자가 위와 같은지 확인합니다.
+   - **B2 링커·컴파일러 탐침**(실기, gcds, 저장소 밖 임시 디렉터리; 결과 json 은 `09_validation/reconstruction/`):
+     1. 공통 기호 배치 순서: 작은 객체 둘~셋(UNDF·COMMON·정의를 섞고 이름 순서를 바꿈)을 `ld` 로 링크해 `__common` 주소 순서가 "처음 언급 순, 객체 안 기호표 순" 인지, 객체 안에서 COMMON 과 UNDF 를 따로 처리하는지 확인합니다(in.c 의 `_in_interfaces`·`_ipintrq` 순서가 이 질문입니다).
+     2. `ld -r` 묶음의 정렬: text 정렬 4 인 `.s` 와 정렬 2 인 `.c` 를 `ld -r` 로 묶어 묶음 `__text` 정렬이 4 가 되는지, 묶음을 링크했을 때 앞에 채움이 생기는지 확인합니다(f).
+     3. GCC 2.7(cc-744.13) 동작: 참조 없는 `static const` 배열이 `.c`(cc1)와 `.m`(cc1obj)에서 객체에 남는지(b·d), `-fwritable-strings` 여부에 따라 인라인 함수의 문자열이 두 벌 나오는 조건(c).
+     4. vers_string: 실기의 vers_string(있으면) 내용·출력 꼴을 읽기만 합니다(e의 `char[160]`·`char[10]`·기호 없는 libDriver 판 문자열의 꼴).
+   - **B3 데이터만 있는 객체 작성**(h): 파일마다 참조 원문 후보(Darwin 0.1·NeXTMach·Mach4, 같은 이름 파일을 세 나무 모두에서 찾음)를 원본 바이트(재배치는 원본 기호 주소로 풀어서)와 대조해 고르고, 맞지 않는 줄은 D024 로 고칩니다. 객체별 확인은 "데이터 L1": 객체 `__data`·`__const`·`__cstring` 을 원본 빈 곳에 놓고 바이트·재배치 대상 주소가 모두 같은지 python 으로 봅니다. 출처·라이선스는 D013·D030 규칙대로 PROVENANCE·MODIFICATIONS 에 적습니다. 판 객체 셋은 원본 문자열(바이트 사실)로 작성합니다.
+   - **B4 이미 있는 객체의 남은 바이트**(b·c·d·g·i): 각 객체를 따로 진단합니다(scratch 사본만; 07 은 결과가 바이트로 확정될 때만 고침). rtc 는 참조 없는 정적 배열을 빼면 원본 자리(3 B 이하)와 맞는지, 그때 rtc 객체가 L1 에서 A 가 되는지 확인합니다. pmsgbuf·nrnode·active_mfsbufs 는 값 0 초기화 정의가 그 객체의 `__data` 끝에 오면 원본 주소와 맞는지 확인합니다.
+   - **B5 공통 기호 맞추기**(j): B2-1 규칙이 확정되면 재빌드 객체 + B3 객체로 흉내 내어 원본 417 순서와 같아질 때까지 07 의 잠정 정의/extern 선언을 고칩니다(text·data 바이트는 바뀌지 않음을 L1 로 확인). `_master_cpu`·`____xxx_state`·`_nmi_*` 처럼 정의하는 곳이 바이트로 정해지지 않는 이름은 사용자에게 묻습니다.
+2. 사용자 결정이 필요한 곳(코딩 전에 묻지 않고, 해당 단계에 이르면 바이트로 정해지지 않는 것만 묶어서 묻습니다): 데이터만 있는 객체의 07 파일 이름·경로(특히 ioconf·판 객체 셋·counters), 키맵 둘째 사본·"swapfs" const 의 주인 파일이 바이트로 정해지지 않을 때, 정의 위치가 바이트로 정해지지 않는 공통 기호.
+3. 하지 않는 것: 링크 자체(B1–B5 뒤 다음 계획), 등급 표 변경(B4 의 결과가 나오면 따로 계획), 01_resources·03_original 변경.
+4. codex 교차검토(k6bny7aag, gpt-6.1-sol) 판정과 계획 고침(코딩 전):
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| (a)의 PCexception·PCresume 는 0x1d5c58 이 아니라 **0x1d5c56·0x1d5c5a**(정렬 2 B)이고 끝 `00` 2 B 가 뒤에 옴 | python: 키맵 끝 0x1d58e4+882 = 0x1d5c56, 원본 0x1d5c56 의 10 B = `18002000 18002000 0000` | ✅ **내 계획이 틀렸습니다.** 0 (a)·(b)를 "키맵 882 B + const 8 B(0x1d5c56) + `00` 2 B" 로 고칩니다. 나머지 일곱(ddm·fp_support·i386_init·intr·pmap·trap·vm_machdep) 위치는 그대로입니다 |
+| 키맵 둘째 사본 882 B 일치, 그 주소를 가리키는 4 B 값 0 건 | python: `B(0x1d58e4,882)==B(0x1d554a,882)` → True (이번 세션 두 번째 확인) | ✅ |
+| add_sr 문자열은 원본 파일에 세 군데(0x1d74d8 `__cstring`, 0x1db870 근처, 0x1db91b) | python 파일 검색: 파일 오프셋 0xd74d8·0xdb870·0xdb91b(= 주소 +0x100000) | ✅ (plan 377 기록과 같음) |
+| `___clz_tab` 256 B = `bit_length(i)` 표 | python: `B(0x1d68b0,256)==bytes(i.bit_length() for i in range(256))` → True | ✅ B1 에 넣습니다 |
+| rtc 14 B 를 두면 kmDevice 가 0x1e7758 로 12 B 밀림, 빼면 12,422 + 10 = 12,432 | python: 0x1e7749+14 = 0x1e7757 → 4 B 정렬 0x1e7758 | ✅ |
+| 공통 기호 흉내: 417·406·LIS 400, 어긋남 6 같음. in.c 두 이름을 바꾸면 401, UNDF 먼저 367, COMMON 먼저 372 → "원본이 UNDF 였다" 만으로는 설명 안 됨 | python 흉내(이번 세션, 내 스크립트로 네 방식): symtab (406,400)·swap (406,401)·undf_first (406,367)·common_first (406,372) | ✅ 규칙은 가설로 두고 B2 탐침으로 정합니다. in.c 문제는 미해결로 기록합니다 |
+| init_sysent: NeXTMach·Darwin 어느 쪽도 그대로는 184 항목이 아님(codex 182·234) | grep: 표 본문의 항목 줄 수(전처리 전, `#if` 양쪽 포함) NeXTMach 199·Darwin 218 — 전처리 뒤 수는 아직 안 셈 | ⚖️ "그대로 맞지 않음" 은 받아들이되, 정확한 수는 B3 에서 실기 `cc -E` 로 셉니다 |
+| vfs_conf: 원본은 20 항목(NeXTMach 10) | python: `_vfsNVFS` 값 0x1db6e0, (0x1db6e0−0x1db640)/8 = 20; NeXTMach vfs_conf.c:48–79 항목 10 | ✅ D024 고침이 필요합니다 |
+| param: 참조 전체는 248 B, `hz`·`tick`·`tickadj` 를 빼면 236 B; 이 셋은 재빌드 mach_clock.c 가 이미 정의 | 객체 기호: mach_clock.c `_hz`·`_tick`·`_tickadj` SECT; 원본 `_hz` 0x1dee30·`_tick` 0x1dee34·`_tickadj` 0x1dee48(`__data`, mach_clock 자리) | ✅ (248 은 B3 에서 빌드로 확인) |
+| tty_conf: 참조 파일의 `nullioctl` 은 이미 tty.c 가 정의(원본 0x111bf4) | 객체 기호: tty.c `_nullioctl` SECT; symbols.tsv `_nullioctl` 0x111bf4 | ✅ 표만 옮깁니다 |
+| in_proto·conf 는 참조 크기와 다름(원본 377·2,476 B) | (구조 크기 미측정) | ⏭️ B3 에서 빌드·측정으로 정합니다. 계획 숫자로 옮기지 않습니다 |
+| dma.c 선언 줄은 44 가 아니라 35 | dma.c:35 `const IONamedValue IODMAStatusStrings[] = {`; `wc -l` 44 | ❌ 계획의 "44 줄" 은 파일 길이(44 줄)였습니다. 오해가 없도록 "dma.c:35, 파일 44 줄" 로 적습니다 |
+| objc-globaldata.m 은 SHLIB 를 끄고 빌드해야 함(켜면 468 B 덧붙음) | Darwin objc-globaldata.m 끝 `#ifdef SHLIB char _objc_global_data_pad[468]` (이번 세션 읽음) | ✅ |
+| 원본 ObjC 모듈 76, SCSIGlobals·globaldata 이름 없음 | python: `__module_info` 1,216/16 = 76; 원본 파일에 "SCSIGlobals"·"globaldata"·"objc-globaltext" 0 건(재빌드 objc-globaltext.m 도 모듈 없음) | ✅ 데이터만 있는 `.m` 이 모듈 정보를 내는지 B2 탐침에 넣습니다 |
+| 참조 빌드는 libDriver·libobjc 를 `ld -r` 로 묶음: Darwin `driverkit-1/libDriver/Makefile:631`, `objc/Makefile.postamble:155` | 파일 열어 확인: Makefile:631 `$(LD) -r -o $@ $(OFILES) vers.o`(vers.o 가 끝); postamble:155 `$(LD) -r -o …/libk$(NAME).o …/static_obj/$${architecture}/*.o` | ✅ **중요한 근거입니다.** libDriver 판 문자열이 libDriver 끝(IOVPCodeDisplay 뒤)에 오는 것과, libobjc 구성원 순서(HashTable·List·Object·Protocol·except·hashtable… = `*.o` 의 ASCII 순)가 원본 text 순서와 맞습니다. 공통 기호 흉내는 묶음을 넣은 뒤 다시 합니다 |
+| 객체 재배치 41,357 개를 풀어도 (b)–(d) 구간 대상 0 | (내 재배치 해석은 안 함) | ⏭️ 행동이 바뀌지 않습니다. 계획에 옮기지 않습니다 |
+| 순서 권고: B1 고침 → B2 넓힘 → B3/B4 → 묶음 넣고 다시 흉내 → B5 | 위 확인들 | ✅ 받아들입니다 |
+
+5. 고친 단계:
+   - B1: 작은 const 아홉은 "링크 순서로 뒷받침되는 조건부 배치" 로 표시합니다(같은 바이트 `18002000` 이 여럿이라 유일 일치가 아님). `___clz_tab` 을 libgcc 행으로 넣습니다.
+   - B2: (1) 공통 기호 순서, (2) `ld -r` 정렬, (3) 참조 없는 static const·인라인 문자열 두 벌, (4) vers_string 에 더해 (5) **libDriver·libobjc 를 참조 빌드처럼 `ld -r` 로 묶은 중간 객체**의 기호 순서·정렬·COMMON 처리·문자열 합침을 봅니다. (6) 데이터만 있는 `.m`(SCSIGlobals·objc-globaldata) 이 ObjC 모듈 정보를 내는지 봅니다.
+   - B3: 참조 원문은 실기 `cc -E` 로 전처리한 뒤 항목 수·구조 크기를 재고, 이름이 바뀐 대응 파일(ufs_tables ↔ Darwin ffs_tables)도 찾습니다. 객체가 내는 모든 절과 COMMON 기호를 봅니다(목표 구간만 보지 않음). param 에서 `hz`·`tick`·`tickadj` 는 빼고, tty_conf 는 표만, objc-globaldata 는 SHLIB 없이 만듭니다.
+   - B5: 묶음과 B3 객체를 넣은 뒤에만 합니다. 판정 기준은 LIS 가 아니라 공통 기호 주소·크기·정렬이 원본과 같고 L1 결과가 바뀌지 않는 것입니다.
+6. B1 결과(2026-10-08, 고친 `l2_coverage.py` → `09_validation/reconstruction/s6-l2-coverage-20261008-b1.json`; 이전 결과 파일은 그대로 둠):
+   - 조건부 배치 7 개가 바이트와 맞았습니다: ddm 0x1d13e8, fp_support 0x1d14dc·i386_init 0x1d14e0·intr 0x1d14e4, pmap 0x1d163c·trap 0x1d1640·vm_machdep 0x1d1644. PCexception·PCresume 는 앞의 키맵 둘째 사본(주인 미정)이 자리를 차지하고 있어 이 규칙으로는 배치되지 않습니다(바이트는 0x1d5c56·0x1d5c5a 에서 맞음, 항목 4). 키맵 주인이 정해지면 다시 돌립니다.
+   - libgcc `__const` 256 B(0x1d68b0)가 `bit_length` 표와 같아 넣었습니다.
+   - `__TEXT,__const` 남은 빈 곳: 1,297 B 중 0 아닌 766 B, 정렬로 설명 안 되는 구간 5(0x1d1276 14 B, 0x1d58e4 892 B, `_IODMAStatusStrings` 56 B, libDriver 판 160 B, objc 판 172 B; python 합 7+541+23+105+90 = 766). `__text`·`__data`·`__bss`·기호·문자열 숫자는 plan 396 결과와 같습니다.
+   - 공통 기호 흉내(처음 언급 순): 원본 417, 언급 406, LIS 400, 어긋남 6(`_boottime`·`_callout`·`_master_cpu`·`_inode_list`·`_iuniqtime`·`_in_interfaces`), 언급 없음 11 — 항목 0 (j)·4 와 같습니다.
+7. B2 결과(2026-10-08, 실기 gcds, `/bin/cc`(cc-744.13)·`/bin/ld`; 원문·스크립트·출력 `08_build/runs/tools/probe/l2b2/`(run.sh), 해석은 호스트 python `macho_obj`):
+   - **B2-1 공통 기호 순서: 가설과 같습니다.** c1a.o(기호표: `_za` COMMON·`_zb` UNDF·`_zc` COMMON·`_zd` UNDF), c1b.o(`_zd` 정의·`_yy`·`_zb`·`_zz` COMMON), c1c.o(`_ww` COMMON·`_zz` UNDF)를 a·b·c 순으로 링크하면 `__common` 이 za 0x4010·zb 0x4014·zc 0x4018·yy 0x401c·zz 0x4020·ww 0x4024, c·b·a 순이면 ww·zz·yy·zb·za·zc 입니다. 곧 "링크 순서에서 처음 언급(UNDF·COMMON 가리지 않음)한 객체, 그 객체 안에서는 기호표 순" 이고, 강하게 정의된 `_zd` 는 `__data` 에 남습니다. (in.c 의 `_in_interfaces`·`_ipintrq` 순서는 이 규칙으로 설명되지 않아 미해결로 남깁니다.)
+   - **B2-2 `ld -r` 묶음 정렬: 가설과 같습니다.** `ld -r` 로 a2c.o(정렬 2)·a2m.o(`.align 4`)를 묶은 lib2.o 의 `__text` 정렬은 4 이고, a2x.o(9 B) 뒤에 묶음을 링크하면 묶음이 0x3fe0 으로 가며 `00` 7 B 가 끼입니다(따로 링크하면 a2c 가 0x3fdc). 원본 HashTable 앞 12 B 틈과 같은 꼴입니다.
+   - **B2-3 GCC 2.7:** 참조 없는 `static const` 는 `.c` 와 `.m` 모두 객체에 남습니다(s3.o `__const` 정렬 2 = "swapfs\0" + `00` + `04 00 00 00`, int 가 오프셋 8; s3m.o `__const` 정렬 0 = 6 B). 원본 0x1d1276 은 "swapfs\0" 뒤 int 가 오프셋 10 이고 시작이 4 B 정렬이 아니므로, 한 C 파일의 두 static const 로는 이 꼴이 나오지 않습니다(두 객체이거나 다른 꼴; 미정). 호출되지 않는 `static __inline__` 함수의 문자열도 객체에 남습니다(t3n.o: 본문 없이 문자열만; `-fwritable-strings` 이면 `__data`, 아니면 `__cstring`). 한 번 인라인된 경우 문자열은 한 벌입니다(t3·t3w).
+   - **B2-4 vers_string(실기 `/usr/bin/vers_string`, 1,607 B, 읽기만):** `-l` → `static const char SGS_VERS[160] = "@(#)LIBRARY:…\n";`, `-c` → `const char SGS_VERS[160] = "@(#)PROGRAM:…\n";` 와 `const char VERS_NUM[10] = "<rev>";`. 원본의 기호 없는 libDriver 160 B(정적)·`_objc_VERS_STRING` 160 B·`_objc_VERS_NUM`(10 B + 다음 객체 정렬 2 B)과 맞습니다(objc 쪽 이름은 바꾼 꼴).
+   - **B2-6 데이터만 있는 `.m`:** d6.m(클래스 없음)은 `__OBJC` 절을 내지 않고 `__data`·`__cstring` 만 냅니다 — 원본 모듈 76 에 SCSIGlobals·globaldata 가 없는 것과 맞습니다.
+   - 다음: B3(데이터만 있는 객체). 참조 빌드처럼 libDriver(끝에 vers.o)·libobjc(`*.o` 순)를 `ld -r` 로 묶는 것은 링크 계획에서 정합니다.
+8. B3 진단 결과(2026-10-08, 07 손대지 않음; scratch 사본을 07 사본 경로에 두고 이웃 객체의 l2_build_forms 꼴로 빌드 — scratchpad 도구 `diag_form.py`·`diag_k07.py`; L1 json `09_validation/reconstruction/s6p397-*-l1-*.json`). 모두 **OBJECT_MATCH**:
+
+| 객체(진단 경로) | run | 바탕 | 고친 것 |
+|---|---|---|---|
+| ufs_tables (bsd/ufs/ufs_tables.c) | s6p397-ut1 | NeXTMach ufs/ufs_tables.c | 없음 |
+| counters (kern/counters.c) | s6p397-ct2 | Mach4 kern/counters.c | `#include <mach_counters.h>` 한 줄(07 에 없음; MACH_COUNTERS 는 `<kern/counters.h>` → `<mach/features.h>`) |
+| machdep_call (machdep/i386/machdep_call.c) | s6p397-mc1 | Darwin machdep/i386/machdep_call.c | 없음 |
+| dma (driverkit/libDriver/dma.c) | s6p397-dm1 | Darwin driverkit-1 libDriver/dma.c | 없음 |
+| SCSIGlobals (driverkit/libDriver/Kernel/SCSIGlobals.m) | s6p397-sg1 | Darwin driverkit-1 libDriver/Kernel/SCSIGlobals.m | 없음 |
+| objc-globaldata (objc-runtime/objc-globaldata.m) | s6p397-gd1 | Darwin objc/objc-globaldata.m | 없음(SHLIB 정의 안 함) |
+| tty_conf (bsd/kern/tty_conf.c) | s6p397-tc1 | NeXTMach bsd/tty_conf.c | `nullioctl` 함수 뺌(07 tty.c 가 정의, 원본 0x111bf4) |
+| uipc_proto (bsd/kern/uipc_proto.c) | s6p397-up1 | NeXTMach bsd/uipc_proto.c | 없음 |
+| vfs_conf (bsd/vfs/vfs_conf.c) | s6p397-vc1 | NeXTMach bsd/vfs_conf.c | 6 번 "swapfs"·`swapfs_vfsops`, 빈 항목 7–19(20 항목) |
+| in_proto (bsd/netinet/in_proto.c) | s6p397-ip1 | NeXTMach netinet/in_proto.c | ICMP 와 raw 사이 IGMP 항목(Darwin in_proto.c:132 꼴) |
+| param (conf/param.c) + confdep.h | s6p397-pm2 | NeXTMach conf/param.c | `hz`·`tick`·`tickadj` 와 `<machine/param.h>` 뺌(07 mach_clock.c 가 정의), `nclist = 216`(식 모름), 생성 머리 confdep.h `MAXUSERS 8`(nport 42·ncallout 184·nchsize 308·ncsize 140 과 맞음) |
+| init_sysent (bsd/kern/init_sysent.c) | s6p397-is3 | NeXTMach bsd/init_sysent.c | 항목 23·52·139·147–154·174–183 을 원본대로, 끝 181 항목 뺌(184 항목) |
+| conf (bsd/dev/i386/conf.c) | s6p397-cf1 | 원본 바이트로 작성(D024); 칸 배치·주석은 Darwin bsd/dev/i386/conf.c, 구조는 SDK `<sys/conf.h>`(6·11 필드) | Darwin 의 isdisk·chrtoblk 등 함수는 원본에 없음 |
+| ioconf (conf/ioconf.c) | s6p397-io1 | NeXTMach config mkioconf.c 의 `pseudo_inits` 꼴 | {32, pty_init}, {1, venip_config}, {0, 0} |
+| vers (conf/vers.c) | s6p397-vk1 | 원본 문자열; 꼴은 Darwin conf/tools/newvers 와 같은 네 정의 | — |
+| objc_vers (objc-runtime/objc_vers.c) | s6p397-vo1 | vers_string -c + Darwin objc common.make:201–203 의 sed | — |
+| libDriver vers (driverkit/libDriver/vers.c) | s6p397-vd1 | vers_string -l(Darwin libDriver Makefile:612) | 기호가 정적이라 `--place __TEXT,__const=0x1d647c` 로 비교 |
+
+   진단 경로는 임시입니다. 07 에 둘 경로·이름(특히 param·ioconf·vers·confdep.h 같은 config 생성물, conf.c 의 출처 표기)은 바이트로 정해지지 않으므로 사용자에게 묻습니다. 링크 위치는 원본 데이터 순서로 정해집니다(예: init_sysent 는 init_main 과 kern_acct 사이, objc_vers 는 libobjc `*.o` 의 끝, libDriver vers 는 libDriver 묶음 끝).
+9. B4 진단 결과(2026-10-08, 07 손대지 않음, scratch 사본 + `diag_form.py`):
+   - **rtc**(s6p397-rt1): 07 rtc.c 에서 참조 없는 `static unsigned char rtc[RTC_NREG];` 한 줄을 빼면 **OBJECT_MATCH**(text 1,800 B·data 52 B, 함수 8 MATCH, `__bss` 없음). 기준선은 P(`__bss` unverified)였습니다. 원본 `__bss` 자리(3 B)와도 맞습니다.
+   - **active_mfsbufs·mfsbuf_lock**(s6p397-mf1): 07 mfs_prim.c 에 Darwin kern/mapfs.c:132 `lock_data_t mfsbuf_lock;`(MACH_NBC 묶음 첫 줄)과 :1081 `int active_mfsbufs = 0;`(07 의 `extern int nmfsbuf;` 앞, Darwin 과 같은 자리)을 넣으면 **OBJECT_MATCH**, `__data` 97 → 104 B 로 `_active_mfsbufs` 가 0x1defb4 에 옵니다. 둘 다 Darwin 에서도 정의만 있고 쓰이지 않습니다.
+   - **pmsgbuf**(s6p397-sl1): 07 subr_log.c 의 `struct msgbuf *pmsgbuf;` 를 `= 0` 으로 초기화하면 **OBJECT_MATCH**, `__data` 4 B 가 0x1dac14.
+   - **nrnode**: nfs_subr.c 의 `extern int nrnode;` 를 `int nrnode = 0;` 로 바꾸는 꼴(s6p397-nr1: `__data` 0x1dc2c0 부터 671 B, 기준선과 같은 P 상태)과 nfs_server.c 끝에 `int nrnode = 0;` 을 붙이는 꼴(s6p397-nr2: OBJECT_MATCH, 868 B) 둘 다 원본 바이트와 맞습니다 — **바이트로 정해지지 않습니다**(NeXTMach 은 next/machdep.c 에 정의).
+   - **키맵 둘째 사본**(882 B, 0x1d58e4): `#import <bsd/dev/i386/PCKeymap.c>` 를 kbd_entries.m(s6p397-kp2)이나 PCinit.c(s6p397-kp3)에 넣으면 둘 다 `--place __TEXT,__const=0x1d58e4` 로 **OBJECT_MATCH** 입니다. PCPointer.m(s6p397-kp1)에 넣으면 `__OBJC,__class_names` 가 115 → 81 B 로 바뀌어 맞지 않습니다. 둘 중 어느 것인지는 **바이트로 정해지지 않습니다**.
+   - **"swapfs" const 14 B**(0x1d1276): B2-3 대로 한 C 파일의 두 static const 로는 이 꼴(int 가 오프셋 10)이 나오지 않으므로, 정렬 0 인 char 배열을 내는 객체 하나와 정렬 2 인 int 4 를 내는 객체 하나로 보입니다. 둘 다 참조가 없고, 이름·주인을 알려 주는 원문이 없습니다 — **바이트로 정해지지 않습니다**.
+   - **if_vtrip add_sr 둘째 문자열 37 B**(0x1db91b, `__data` 끝): B2-3 대로 호출되지 않는 `static __inline__` 함수의 문자열은 남고, 한 번 인라인된 함수의 문자열은 한 벌입니다. 원본은 참조되는 첫 벌(`__data` 처음)과 참조 없는 둘째 벌(끝)을 가지므로, 같은 문자열을 가진 두 번째 정의가 파일 뒤쪽에 있었던 것으로 보이나 그 꼴은 **바이트로 정해지지 않습니다**. 이 37 B 가 없으면 링크에서 뒤 객체(raw_usrreq 등)의 `__data` 주소가 37 B 앞당겨집니다.
+10. 사용자 결정이 필요한 것(B3·B4 결과로 좁힘; 07 반영과 B5 는 결정 뒤):
+   1. 데이터만 있는 객체 17 개의 07 경로·이름, 특히 config 생성물(param.c·confdep.h·ioconf.c·vers.c)과 판 객체(objc_vers.c·libDriver vers.c), 그리고 conf.c(원본 바이트로 작성, Darwin 칸 배치)의 출처 표기.
+   2. nrnode: nfs_subr.c 정의 또는 nfs_server.c 끝.
+   3. 키맵 둘째 사본: kbd_entries.m 또는 PCinit.c.
+   4. "swapfs" const 14 B 와 if_vtrip add_sr 둘째 문자열 37 B: 근거 없는 꼴로 작성할지(어느 파일에, D024 표시), 아니면 링크 단계에서 빈 곳으로 남기고 비교에서 따로 다룰지.
+11. B5 미리 보기(scratch, 기록·07 변경 없음; scratchpad `commonsim3.py`): 재빌드 객체 385 에 B3 진단 객체 17 을 원본 데이터 순서 자리에 넣고 rtc·mfs_prim·subr_log 를 B4 사본으로 바꿔 "처음 언급 순" 을 흉내 내면 언급 408/417, LIS 402 입니다. `_file`(param)·`_mfsbuf_lock`(mfs_prim)이 제자리에 들어오고, 어긋남은 그대로 6(`_boottime`·`_callout`·`_master_cpu`·`_inode_list`·`_iuniqtime`·`_in_interfaces`), 언급 없음 9(`____xxx_state`·`_nmi_*` 8)가 남습니다. libDriver·libobjc 묶음은 아직 넣지 않았습니다.
+12. 사용자 질문(2026-10-08 "4가지는 mach 2.0 이나 darwin 을 참고해서 배치할 수는 없나요?")과 지시("근거없는 두조각도 작성은 해야죠") 뒤 확인:
+   - **경로·링크 위치는 Darwin 빌드 목록으로 정해집니다.** Darwin `kernel/conf/files`(:361–363 init_main·init_sysent·kern_acct, :396–399 tty·tty_compat·tty_conf·tty_pty, :403–404 uipc_mbuf·uipc_proto, :131·:134 vfs_bio·vfs_conf, :220–222 in_pcb·in_proto·ip_icmp, :410 conf/param.c, :431–433 ast·counters·exception)과 `files.i386`(:36–38 machdep_call·pcb, :47·:49·:50 autoconf_i386·conf·cons)의 차례가 원본 데이터 순서와 같습니다. Darwin `Makefile.template:232` `LDOBJS=${LDOBJS_PREFIX} ${OBJS} subr_prof.o ioconf.o ${LDOBJS_SUFFIX}`, `Makefile.i386:68–69`(PREFIX = libc 객체, SUFFIX = libDriver·libobjc 묶음), `Makefile.template:381–387`(newvers 로 vers.c 를 만들어 `${LDOBJS} $(MACH_OFILES) vers.o ${LIBS}` 순으로 링크)은 원본 순서(libc → 커널 객체 → ioconf → libDriver → libobjc → mach 사용자 스텁 → vers → libcc)와 같습니다. 그래서 07 경로: `bsd/kern/init_sysent.c`·`bsd/kern/tty_conf.c`·`bsd/kern/uipc_proto.c`·`bsd/vfs/vfs_conf.c`·`bsd/netinet/in_proto.c`·`kern/counters.c`·`machdep/i386/machdep_call.c`·`bsd/dev/i386/conf.c`·`conf/param.c`(Darwin·NeXTMach 모두 conf/param.c), `bsd/ufs/ufs_tables.c`(07 의 ufs 는 NeXTMach 처럼 평평; Darwin 은 ffs/ffs_tables.c), libDriver `driverkit/libDriver/dma.c`·`driverkit/libDriver/Kernel/SCSIGlobals.m`, `objc-runtime/objc-globaldata.m`. 빌드 생성물(config 의 ioconf.c·confdep.h, newvers 의 vers.c, vers_string 의 objc_vers.c·libDriver vers.c)의 07 위치는 plan 398 에서 정합니다(`07_kernel/generated/` 최상위는 gen_config_headers.py 가 쓰는 머리 자리이므로 그대로 쓰지 않음).
+   - **nrnode·키맵 둘째 사본은 참조로 정해지지 않습니다.** Darwin 에는 nrnode 가 없고 NeXTMach 은 next/machdep.c 에 정의하나 4.2 machdep.c 의 `__data`(0x1e227c)는 다른 자리입니다. 키맵은 Darwin·NeXTMach 어디에서도 EventSrcPCKeyboard.m 밖에서 PCKeymap.c 를 들이지 않습니다(grep). Darwin files.i386 :68–72 차례(PCPointer.m·EventShmemLock.s·kbd_entries.m·PCinit.c)도 둘 다 같은 자리라 가르지 못합니다.
+   - **근거 없는 두 조각의 꼴(실기 탐침, `l2b2/run2.sh`)**: 단독 `static const char x[] = "swapfs";` 는 `__const` 7 B 정렬 0, 단독 `static const int y = 4;` 는 4 B 정렬 2 → 원본 14 B 는 "char 배열을 낸 객체" 다음 "int 를 낸 객체" 꼴과 정확히 맞습니다(7 + 채움 3 + 4). 데이터 뒤에 호출되지 않는 `static __inline__` 함수(문자열 포함)를 두면 `-fwritable-strings` 에서 그 문자열이 `__data` 끝에 옵니다(t6w.o: `01 00 00 00` 뒤 "add_sr: …") → if_vtrip 끝 37 B 꼴과 맞습니다. 링크 순서상 char 배열은 netif 뒤 첫 const 자리, int 는 그 뒤 kern_server 앞(사이 객체 중 swapfs.c 가 이름과 맞음; swapfs.c 뒤 kern_server 앞 객체 66).
+
+## 398. S6-6 세부 계획 — L2-B 07 반영: 데이터만 있는 객체 17 과 기존 객체 8 고침(plan 397·D058; 코딩 전, 2026-10-08)
+
+0. 근거: plan 397 항목 8(B3 진단 17 OBJECT_MATCH), 9(B4), 12(Darwin 빌드 목록), D058(nrnode = nfs_subr.c, 키맵 = PCinit.c, 근거 없는 두 조각 = swapfs.c·ufs_alloc.c·if_vtrip.c 끝). 추가 진단(이번 세션, 07 손대지 않음): if_vtrip 끝에 호출되지 않는 static inline(문자열 하나) → `__data` 208 B **OBJECT_MATCH**(s6p397-vt1); swapfs.c 에 `static const char swapfs_const_name[] = "swapfs";` → `--place __TEXT,__const=0x1d1276` 에서 바이트 0 차이, 등급 P 그대로(`__bss` 만 미확정, s6p397-sw1); ufs_alloc.c 의 `#endif QUOTA` 뒤에 `static const int ufs_alloc_const_4 = 4;` → `--place …=0x1d1280` **OBJECT_MATCH**(s6p397-ua2; 처음 시도 ua1 은 `#if QUOTA` 안에 넣어 빠졌음).
+1. 새 07 파일(내용 = plan 397 진단 사본; 머리·출처는 D013·D030·D024 규칙):
+
+| 07 경로 | 바탕·라이선스 처리 | 비고 |
+|---|---|---|
+| src/bsd/kern/init_sysent.c | NeXTMach bsd/init_sysent.c, 고지 유지, 고친 줄 plan 397 표시 | 184 항목 |
+| src/bsd/kern/tty_conf.c | NeXTMach bsd/tty_conf.c(표 부분만), 고지 유지 | nullioctl 뺌 |
+| src/bsd/kern/uipc_proto.c | NeXTMach bsd/uipc_proto.c 그대로 | |
+| src/bsd/vfs/vfs_conf.c | NeXTMach bsd/vfs_conf.c, 고지 유지 | swapfs 항목·20 항목 |
+| src/bsd/netinet/in_proto.c | NeXTMach netinet/in_proto.c, 고지 유지 | IGMP 항목 |
+| src/bsd/ufs/ufs_tables.c | NeXTMach ufs/ufs_tables.c 그대로 | |
+| src/conf/param.c | NeXTMach conf/param.c, 고지 유지 | hz·tick·tickadj·machine/param.h 뺌, nclist 216 |
+| src/kern/counters.c | Mach4 kern/counters.c, 고지 유지 | include 한 줄 |
+| src/machdep/i386/machdep_call.c | Darwin kernel/machdep/i386/machdep_call.c, APSL 고지 유지 | 그대로 |
+| src/bsd/dev/i386/conf.c | 원본 바이트로 작성(D024); 칸 배치·주석 꼴만 Darwin bsd/dev/i386/conf.c | 프로젝트 작성 |
+| src/driverkit/libDriver/dma.c | Darwin driverkit-1 libDriver/dma.c — D030(Darwin 전용, kernel/machdep 밖, Mach4·NeXTMach 짝 없음): 프로젝트 작성, "nearly the same as Darwin 0.1 …" | 그대로 |
+| src/driverkit/libDriver/Kernel/SCSIGlobals.m | 위와 같음(D030) | 그대로 |
+| src/objc-runtime/objc-globaldata.m | Darwin objc/objc-globaldata.m — D030·D047 프로젝트 작성, "nearly the same as Darwin 0.1 objc-1 objc-globaldata.m", 머리 주석 교체·Darwin 고지 없음(선례: PROVENANCE 의 objc-globaltext.m·objc-errors.m 행) | 그대로(SHLIB 없음) |
+| src/conf/ioconf.c, src/conf/vers.c | 빌드 생성물(config·newvers 출력 꼴)을 원본 바이트로 씀; 07_kernel/generated/README 에 MIG C 파일처럼 "src 옆에 둔 생성물" 로 적음 | |
+| src/objc-runtime/objc_vers.c, src/driverkit/libDriver/vers.c | vers_string 출력 꼴(실기 /usr/bin/vers_string 확인)을 원본 바이트로 씀 | |
+| generated/confdep.h | `06_reconstruction/config_options.tsv` 에 `maxusers MAXUSERS confdep.h 8 confirmed`(근거: param 값) 행 → gen_config_headers.py 로 생성 | meta_features.h 도 confdep.h 를 들이게 됨(아래 3) |
+
+2. 기존 07 파일 고침(줄마다 plan 397/398 표시): rtc.c(참조 없는 `rtc[RTC_NREG]` 뺌), mfs_prim.c(Darwin mapfs.c:132·:1081 두 줄), subr_log.c(`pmsgbuf = 0`), nfs_subr.c(`int nrnode = 0;`, D058), PCinit.c(`#import <bsd/dev/i386/PCKeymap.c>`, D058; 마지막 #import 뒤), swapfs.c·ufs_alloc.c·if_vtrip.c(D058 근거 없는 조각, "no evidence" 머리 주석).
+3. 빌드·확인:
+   - confdep.h 가 meta_features.h(모든 컴파일의 `-imacros`)에 들어가 `MAXUSERS` 가 모든 번역 단위에 정의되므로(07·참조 머리 grep 으로 MAXUSERS 쓰는 곳 확인), **385 객체 전체를 다시 빌드**해(plan 394 l2_rebuild 묶음) L1 이 기준선과 같은지 봅니다. 바뀌어야 하는 객체(위 2 의 8 개)만 기대한 대로 바뀌어야 합니다(rtc P→A, 나머지 등급 그대로).
+   - 새 17 객체는 이웃 객체의 l2_build_forms 꼴로 07 에서 빌드(진단과 같은 꼴), L1 OBJECT_MATCH(libDriver vers 는 `--place`), `cc -M` 의존이 모두 07(plan 395 기준).
+   - 그 뒤 `l2_coverage.py` 를 새 객체까지 넣어 다시 돌려 `__const`·`__data` 빈 곳이 정렬 채움만 남는지, 정의 없는 원본 이름이 공통 기호(B5 대상)만 남는지 봅니다.
+4. 기록: PROVENANCE(새 17 + 고친 8), MODIFICATIONS, 증거 파일(새 객체마다 x86-<name>.md·.diff, 고친 객체는 기존 파일에 덧붙임), 데이터만 있는 객체는 text 범위가 없으므로 새 표 `06_reconstruction/objects_data.tsv`(object·arch·binary_sha256·sections(절=시작+크기)·source·build·grade·evidence)를 만들고 l2_forms·l2_coverage 가 읽게 고칩니다. rtc 의 등급 변경은 objects_partial → objects_confirmed 이동으로 기록합니다.
+5. 하지 않는 것: B5(공통 기호 선언 고침)와 링크 — 이 반영 뒤 다음 계획.
+6. codex 교차검토(kj95ge9b3, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 진단 37 보고를 다시 계산해 모두 같음, B3 17 OBJECT_MATCH | (재계산은 codex 쪽; 나는 각 run 직후 L1 json 을 직접 읽어 이 세션 기록에 적음) | ⏭️ 행동 바뀌지 않음; 숫자 37 은 계획에 옮기지 않음 |
+| in_proto.c 의 IGMP 항목은 Darwin in_proto.c:132 꼴이므로 출처는 NeXTMach+Darwin 섞임으로, in_bootp 선례(PROVENANCE:1011)처럼 | PROVENANCE.tsv 1011 행 읽음: `nextmach+darwin01`, Darwin 부분 줄 범위·APSL 고지 | ✅ (내 줄은 Darwin 의 `rip_usrreq` 대신 원본 바이트대로 `raw_usrreq` 이지만 꼴은 Darwin 에서 옴) → in_proto.c 는 섞임 출처, IGMP 줄에 Darwin 표시, APSL 고지 추가 |
+| conf.c 는 D030 아님(두 참조에 짝 있음), D024 작성으로 됨 | 계획 표에 이미 D024 작성으로 적음 | ✅ 그대로 |
+| generated/confdep.h 도 PROVENANCE 행 필요 | PROVENANCE 의 `07_kernel/generated/` 행 31, 예 mach_kdb.h 행(`generated` · gen_config_headers.py) | ✅ 추가 |
+| MAXUSERS·confdep 를 쓰는 곳이 07·기준선 스테이징에 없음 | `grep -rln "MAXUSERS\|confdep" 07_kernel` 0 건; SDK rusers.h `#define MAXUSERS 100` 은 07 이 쓰지 않음(grep "rusers" 07 0 건) | ✅ 전체 재빌드는 확인용으로 그대로 함 |
+| 빌드 대상 402(385+17) | python 385+17 = 402 | ✅ |
+| objects_* 표를 직접 읽는 도구는 l2_forms.py:128 뿐 | `grep -rn "objects_confirmed\|objects_partial" 10_tools --include=*.py` → l2_forms.py:6·:128 | ✅; 간접 소비자(l2_baseline·l2_rebuild·l2_coverage)도 고쳐야 함 |
+| 대안: 새 표 대신 기존 표에 text 범위 빈 칸 | (기존 표를 읽는 coverage·기록 도구가 text 범위를 숫자로 쓰는지 전수 확인 안 함) | ⚖️ 받지 않음 — 기존 A/P/L 집계가 text 범위로 계산되므로 빈 칸이 다른 도구를 깨뜨릴 위험이 있어 **새 표 `objects_data.tsv`** 유지, 대신 l2 도구 넷을 명시적으로 고침 |
+| 명시 배치가 넷 필요: PCinit 0x1d58e4, swapfs 0x1d1276, ufs_alloc 0x1d1280, libDriver vers 0x1d647c | 이 세션 진단에서 넷 모두 `--place` 로만 확인됨(kp3·sw1·ua2·vd1) | ✅ 재빌드 확인 도구에 행별 배치 넣음 |
+| l2_coverage.py:54 가 `same_as_baseline` 을 요구해 의도한 변경을 거부 | l2_coverage.py:54 `assert x.get('same_as_baseline') and not x.get('problem'), n` | ✅ 새 재빌드 결과를 읽도록 선택 규칙 고침 |
+| rtc 를 표 사이로 옮기면 행 번호 40 개가 바뀜 | python: rtc 는 forms 354 행(objects_partial), confirmed 314 행 → 315 로 넣으면 315–354 의 40 행이 밀림 | ✅ 새 재빌드부터는 행 번호가 아니라 **object 이름**으로 잇고, 이전 결과 파일은 그대로 둠 |
+| `x86-dma` 는 이미 machdep DMA 객체·증거 이름 | objects_partial.tsv `x86-dma` 행, 06_reconstruction/evidence/x86-dma.md 있음 | ✅ 새 이름 `x86-libDriver_dma` |
+| 선언 순서 유지: nrnode 는 nfs_subr `__data` 오프셋 0, active_mfsbufs 는 100 | python: s6p397-nr1 객체 `_nrnode` 오프셋 0; 0x1defb4−0x1def50 = 100 | ✅ 진단 사본의 줄 자리를 그대로 옮김 |
+| 생성 .c 는 "생성기 출력 꼴을 원본 바이트로 다시 쓴 것" 으로 적고 gen_config_headers.py --check | generated/README 의 MIG 문구는 실제 도구 출력용 | ✅ |
+
+7. 고친 순서(코딩): (a) 07 새 파일 17·고친 파일 8·config_options.tsv 행 → gen_config_headers.py 로 confdep.h·meta_features.h, `--check`; (b) 새 표 objects_data.tsv 와 l2 도구 고침(object 이름 키, 행별 명시 배치, 데이터만 있는 객체의 링크 자리); (c) 402 객체 재빌드·L1·`cc -M` 의존 확인; (d) l2_coverage 다시; (e) 기록(PROVENANCE·MODIFICATIONS·증거·objects 표·README). 각 단계 끝에 결과를 이 절에 적습니다.
+8. 단계 (a) 결과(2026-10-08): 07 새 파일 17(위 표 경로; 내용 = plan 397 진단 사본, 머리만 선례대로: D030·D047 파일은 머리 교체, conf.c·생성물 꼴 넷은 프로젝트 머리, in_proto.c 는 in_bootp 선례대로 NeXTMach 머리 뒤에 Darwin APSL 고지와 "plan 397 (Darwin)" 표시), 고친 파일 8(백업 scratchpad `bak398/`; diff 로 바뀐 줄 수 rtc 2·mfs_prim 2·subr_log 2·nfs_subr 2·PCinit 1·if_vtrip 13·swapfs 7·ufs_alloc 7 — 진단 사본에서 주석 문구만 다듬음). config_options.tsv 에 `maxusers MAXUSERS confdep.h 8 confirmed` 행(53 → 54 줄; python: NPROC 84, nport 42, ncallout 184, NINODE 280, nchsize 308, ncsize 140), gen_config_headers.py 로 `generated/confdep.h`(`#define MAXUSERS 8`)와 meta_features.h(`#import <confdep.h>` 한 줄 추가) 생성, `--check` 0.
+9. 단계 (b)·(c) 결과(2026-10-08):
+   - (b) 도구: `10_tools/reconstruction/l2_forms_s6p398.py` → `06_reconstruction/l2_build_forms-s6p398.tsv`(402 행: 1–385 행은 기존 forms 와 같음(python 비교 True), 386–402 행 = 새 17 객체, 이웃 템플릿 꼴에서 -c·-o 만 바꿈)와 `06_reconstruction/l2_expect-s6p398.json`(기대 25: 바뀐 8 + 새 17, 명시 배치 PCinit 0x1d58e4·swapfs 0x1d1276·ufs_alloc 0x1d1280·libDriver vers 0x1d647c). `l2_rebuild.py` 에 env `L2_FORMS`·`L2_EXPECT`(기대 행은 `--place` 를 주고 판정·이유를 기대와 비교, 나머지는 기준선 L1 과 비교) 추가(백업 scratchpad `bak398/l2_rebuild.py`, 306 → 331 줄). 데이터만 있는 객체 표(`objects_data.tsv`)와 l2_coverage 고침은 (d)·(e) 에서.
+   - (c) 재빌드(07 에서, run s6l1-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a; 결과 `09_validation/reconstruction/s6-l1-<G>-<run>.json`): 객체 402(행 1–402 모두), 기준선과 같음 377, 기대와 맞음 25(새 17 모두 OBJECT_MATCH, rtc P→OBJECT_MATCH, mfs_prim·subr_log·if_vtrip·PCinit·ufs_alloc OBJECT_MATCH, nfs_subr·swapfs 는 `__bss: unverified` 만), 실패 0, 문제 0, 묶음 대 단독 스테이징 의존 차이 0, **`cc -M` 의존이 07 밖인 객체 0**(python 집계). confdep.h 가 모든 컴파일에 들어갔지만 기존 377 객체는 바뀌지 않았습니다.
+10. 단계 (d) 결과(2026-10-08): `l2_coverage.py` 에 env `L2_COVER=s6l1`(plan 398 재빌드 402 행을 읽고 기준선과 같거나 기대와 맞는 행만 받음)과 데이터만 있는 객체의 링크 자리(같은 절에서 바로 앞에 놓인 text 객체 뒤)를 넣음(백업 `bak398/l2_coverage.py`, 353 → 383 줄). 옛 모드로 다시 돌린 결과는 `s6-l2-coverage-20261008-b1.json` 과 키마다 같음(새 키 `link_keys_data_only` 만 빈 값). 새 결과 `09_validation/reconstruction/s6-l2-coverage-20261008-s6p398.json`:
+   - `__TEXT,__const` 빈 곳 10 B 모두 `00`, 정렬로 설명 안 되는 구간 **0**(조건부 배치 9 개 모두 바이트 일치 — PCexception 0x1d5c56·PCresume 0x1d5c5a 포함). `__DATA,__data` 빈 곳 168 B 모두 `00`, 구간 **0**. `__text` 는 그대로 HashTable 앞 12 B 하나(libobjc `ld -r` 묶음 정렬, B2-2).
+   - `__bss`: 객체 합 12,422 B, 원본 12,432 B, 차이 10 B = 정렬 채움(python: 12,402 + bios 16 + SCSIGenericKern 4 = 12,422).
+   - 기호: 정의 없는 원본 이름 **25**(모두 `__common`), 중복·추가·N_PEXT 0. `__cstring` 원본 문자열 중 객체가 내지 않는 것 **0**. ObjC 리터럴 절 차이 0.
+   - 공통 기호 흉내: 언급 408/417, LIS 402, 언급 없음 9(`____xxx_state`·`_nmi_*` 8) — B5 대상.
+11. 단계 (e) 기록(2026-10-08; 백업 scratchpad `bak398/`):
+   - `06_reconstruction/objects_data.tsv` 새 표 17 행(재빌드 L1 의 절 배치, build 열에 run·행·`--place`). `06_reconstruction/README.md` 에 표 설명 한 단락.
+   - rtc: objects_partial(72 → 71 줄) → objects_confirmed(315 → 316 줄), 등급 A. functions.tsv 의 rtc 8 행 검증 문구를 A(`s6l1-g1a-l1-354.json`)로. functions.tsv 의 07 줄 번호 인용 68 개를 옮김(mfs_prim·PCinit·swapfs·ufs_alloc 줄이 늘어서; 옛 줄과 새 줄 내용이 모두 같음을 python 으로 확인, 행 수 4,763 그대로).
+   - PROVENANCE 1,028 → 1,046 행(새 17 + confdep.h; 바뀐 8 행은 SHA-256 과 plan 398 고침을 적음; in_proto.c 는 `nextmach+darwin01`, APSL 고지). MODIFICATIONS 501 → 526 줄(25 항목). 증거: 새 객체마다 `x86-<name>.md`·`.diff`(17 쌍), 바뀐 8 객체는 증거 끝에 "plan 397·398 고침" 절, diff 다시 만듦(PCinit 은 새 `x86-PCinit.diff`). `07_kernel/generated/README` 에 생성물 꼴 C 파일 넷과 confdep.h 설명.
+   - text 커버리지(python): A 622,696 B 73.13 %, P 227,802 B 26.76 %, L 340 B 0.04 %, 합 99.93 %, 남은 598 B(모두 정렬 `00`).
+12. 다음: B5(공통 기호) — 남은 원본 공통 이름 25 개의 정의 자리와 어긋남 6·언급 없음 9 를, libDriver·libobjc `ld -r` 묶음을 넣은 링크 순서로 다시 흉내 낸 뒤 정합니다(별도 계획, codex 검토 먼저).
+
+## 399. S6-7 세부 계획 — L2 시험 링크(진단; 실제 `__common` 배치를 얻어 B5 를 정하기 위함, 07 변경 없음; 코딩 전, 2026-10-08)
+
+0. 사실(이번 세션 python·실기 읽기):
+   - 원본 Mach-O(python): filetype 2(EXECUTE), cpu 7 sub 3, flags 0x1, ncmds 7, sizeofcmds 2,152; 세그먼트 `__PAGEZERO` 0–0x1000, `__TEXT` 0x100000 크기 0xda000(파일 0–892,928), `__DATA` 0x1da000 0x1e000, `__OBJC` 0x1f8000 0x12000, `__LINKEDIT` 0x780000 0x18ee0(파일 1,015,808, 102,112 B); SYMTAB symoff 1,015,808 nsyms 3,751 stroff 1,060,820 strsize 57,100; UNIXTHREAD flavor 0xffffffff count 16, eip 0x1860dc(`_start`), cs 0xf, ss·ds·es 0x17; 파일 1,117,920 B. 기호는 외부 3,651(구역) + 절대 100 뿐이고 이름순(지역 기호 없음).
+   - Darwin 0.1 링크 꼴: `conf/Makefile.i386:55–59` `LDFLAGS=-e _start -segaddr __TEXT ${RELOC} -segaddr __LINKEDIT ${SYMADDR} -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3`, `LIBS= -lcc`; `Makefile.template:386–387` `${LD} -static ${LDFLAGS} ${FVMFILE_LDFLAGS} ${LDOBJS} $(MACH_OFILES) vers.o ${LDFLAGS2} ${LIBS}`; `LDOBJS = libc 객체 + OBJS + subr_prof.o + ioconf.o + libDriver 묶음 + libobjc 묶음`(plan 397 항목 12). libDriver 묶음 = `$(LD) -r -o … $(OFILES) vers.o`(driverkit-1/libDriver/Makefile:631; OFILES 의 MD 목록 끝이 IOMallocLow·machdepFuncs, :177–178), libobjc 묶음 = `ld -r -o libkobjc.o …/*.o`(objc/Makefile.postamble:155). 실기 `/lib/libcc.a` SHA-256 = 원본 보관본(bccd689e…2fda5, 77,600 B).
+   - 링크 순서(python, plan 398 재빌드 402 객체): text 객체는 원본 text 주소 순. 데이터만 있는 객체 17 중 9 는 원본 데이터 위치로 자리가 하나(init_sysent·vfs_conf·in_proto·ufs_tables·counters·machdep_call·objc_vers 등), 8 은 후보가 여럿이라 Darwin 목록 차례로 정함: tty_conf → tty.c 뒤(files:396–399), uipc_proto → uipc_mbuf 뒤(:403–404), param → ufs_vnodeops 뒤 = ipc_entry 앞(files:410–412 "conf/param.c" 다음 ipc), conf → autoconf_i386 뒤(files.i386:47–50), ioconf → PCemulatePROT 뒤(OBJS 끝, Makefile.template:232; files.i386:77), dma → disk_label 뒤(libDriver KERNEL_CFILES 차례 disk_label·dma·label_subr), SCSIGlobals → SCSIGeneric 뒤(KERNEL_MFILES), objc-globaldata → objc-errors 뒤(`*.o` 이름 차례), libDriver vers → machdepFuncs 뒤(묶음 끝), vers → mach 스텁 끝(vm_write) 뒤.
+1. 도구 `10_tools/reconstruction/l2_link.py`(새로; 읽기·준비만):
+   - `prepare RID`: plan 398 재빌드 결과(402 행, SHA 확인)와 위 순서 규칙(데이터만 있는 객체 8 개의 자리 표는 도구 안에 근거와 함께 명시)으로 링크 목록을 만들고, 객체를 `08_build/runs/tools/RID-src/objs/` 에 복사(SHA 재확인), `RID.cmd` 를 씀: (1) `/bin/ld -r -o stage/libDriver_kern.o <libDriver 묶음: ioconf 다음부터 machdepFuncs 까지 + libDriver vers>`, (2) `/bin/ld -r -o stage/libkobjc.o <objc-runtime 객체, 원본 text 순 + objc_vers>`, (3) `/bin/ld -static -e _start -segaddr __TEXT 0x100000 -segaddr __LINKEDIT 0x780000 -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3 -o stage/mach_kernel <libc·OBJS·ioconf> stage/libDriver_kern.o stage/libkobjc.o <mach 스텁> <vers.o> -lcc`. 링크 목록·묶음 구성은 json 으로 남김.
+   - 묶음 경계: libDriver 묶음은 ioconf 다음 객체(IODevice.m)부터 machdepFuncs.c 까지(원본 text 연속 구간), libobjc 묶음은 HashTable.m 부터 objc-sel.m + objc_vers, mach 스텁은 그 뒤 port_allocate … vm_write.
+2. 도구 `10_tools/reconstruction/l2_compare.py`(새로; 읽기만): 링크 결과와 원본을 비교 — Mach-O 머리·로드 명령(세그먼트·절 주소·크기·정렬·플래그, UNIXTHREAD), 절마다 바이트(같지 않은 구간 목록), 기호(이름·값·종류; 원본에 없는 지역 기호는 따로 셈), `__common` 이름별 주소 차이, LINKEDIT(기호·문자열 표 크기). 결과 json `09_validation/reconstruction/s6-l2-link-<RID>.json`.
+3. 실행: kr_run 진단 run `s6p399-ln1`(allow-list `/bin/ld` 이미 있음). 링크가 실패하면(미정의 기호 등) 메시지를 그대로 기록하고 멈춥니다.
+4. 판단에 쓰는 기대: text·const·data·ObjC 절 바이트는 plan 398 결과대로 같아야 함(재배치 해석은 링크 결과가 실제 값). 다를 것으로 예상하는 곳: `__common` 순서(B5 대상 6+9 이름), 지역 기호(원본은 없음 → `-x` 류 처리 여부는 결과를 보고 다음 계획에서), `__cstring` 문자열 합침 순서. 예상 밖 차이는 모두 목록으로 남김.
+5. 하지 않는 것: 07·기록 표 변경, 결과 커널 부팅, B5 고침(이 결과를 근거로 다음 계획).
+6. codex 교차검토(klip8umee, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| **어떤 객체도 정의하지 않고 참조만 하는 전역 16 개** 때문에 최종 링크가 미정의 기호로 멈춤 | python: 빠진 원본 공통 이름 25 중 객체가 UNDF 로만 언급 16(`_active_u`·`_cons`·`_cons_tp`·`_cpu_config`·`_kernel_map`·`_master_cpu`·`_mem_region`·`_mem_size`·`_nfsslowlink`·`_num_regions`·`_pgrphash`·`_posix_proc_hash`·`_u_task_zone`·`_u_thread_zone`·`_virtual_avail`·`_virtual_end`), 아무도 언급하지 않음 9(`____xxx_state`·`_nmi_*` 8), COMMON/SECT 로 정의하는 객체 0 | ✅ **계획을 고칩니다**: B5(공통 정의)를 시험 링크 앞의 선행 단계로 |
+| 머리 값·Darwin 인용은 맞으나 "자리 하나 9 / 여럿 8" 은 틀림(절 배치만 7/10, 문자열 순서까지 8/9) | 내 계산(ranges399.py, 절 배치만): 하나 7(init_sysent·vfs_conf·in_proto·ufs_tables·counters·machdep_call·objc_vers), 여럿 10 | ✅ 내 숫자가 틀렸습니다(7/10). 고른 자리는 모두 허용 범위 안 |
+| files:410–412 는 "param 이 ipc_entry 앞" 만 말하고 ufs_vnodeops 바로 뒤를 말하지 않음; files.i386:77 은 OBJS 끝이 아님(fp_emul 이 뒤) | files 405–412 읽음(uipc_usrreq 뒤 param, 그 뒤 ipc), files.i386 74–80(PCemulatePROT 뒤 fp_emul optional) | ✅ 문구 고침: param 은 원본 데이터 허용 범위(ufs_vnodeops / ipc_init) 안에서 ipc 앞, ioconf 는 Makefile.template:232 `${OBJS} … ioconf.o` 로 OBJS 뒤 |
+| libDriver 묶음 안의 strtol(커널 files:127)·IOTokenRing 은 Darwin libDriver 목록에 없음 → 묶음 소속은 추론 | (strtol 의 원본 text 위치가 묶음 구간 안임은 링크 순서 표에서 확인) | ⚖️ 바이트 순서상 그 자리여야 하므로 묶음 안에 둠, "추론" 으로 기록 |
+| libobjc 의 objc-zone 은 `*.o` ASCII 순과 다름 | 원본 text: objc-globaltext 0x1cde40 → objc-zone 0x1cdeb0 → objc-load 0x1cdf30 | ✅ 원본 순서를 그대로 씀(이름 순 가정 안 함) |
+| 묶음별로 리터럴 포인터 목록을 뒤집으면 메시지 참조 725·클래스 참조 32 슬롯이 맞음 | (계산 안 함) | ⏭️ 시험 링크 결과로 확인 |
+| `-lcc` 가 고른 라이브러리는 kr_run 이 해시하지 않음 | kr_run.py ALLOWED_TOOLS·hash 는 도구만 | ✅ 실행 기록에 /lib/libcc.a 해시를 남김(이번 세션 실기 krsha256 = 보관본) |
+| EXPECT 는 `stage/` 없이 | kr_run.py:21 "EXPECT <path under stage/>", collect 가 stage/ 를 붙임 | ✅ |
+| 앞 RUN 출력을 뒤 RUN 입력으로 쓸 수 있음; RUN 실패해도 다음 RUN 계속, collect 가 거부 | kr_run.py parse_cmdfile(인자는 ARG_RE 만 검사) · 실행 스크립트(상태만 기록) | ✅ |
+| 비교 도구: 묶음 중간물도 비교, zero-fill 은 파일 바이트 없음, STAB·지역 기호 구별, LINKEDIT 구조, macho_obj 보강, 공통 주소가 바뀌면 재배치 칸이 바뀌므로 바이트 비교는 조건부 | (설계 판단) | ✅ 비교 도구 범위에 넣음 |
+
+7. **공통 기호 정의(B5) — 근거 조사(이번 세션, python·grep, 07 변경 없음)**: plan 397 B2-1 규칙(처음 언급 순)에서 **머리 파일의 잠정 정의**는 그 머리를 들이는 모든 객체를 COMMON 언급자로 만듭니다. 재빌드 402 객체의 `cc -M` 기록으로 각 머리를 링크 순서상 처음 들이는 객체를 구했습니다:
+   - `_master_cpu`: 원본 `__common` 맨 앞(0x1e8750). 07 `kern/cpu_number.h`(Darwin 판 `extern int master_cpu;`)를 처음 들이는 객체는 libc **pagesize.c**(cmu_syscalls 보다 앞). Mach4 `kernel/kern/cpu_number.h:36` 은 `int master_cpu;`(잠정 정의) → 4.2 가 Mach4 꼴이면 맨 앞이 설명됩니다(Darwin 은 extern 으로 바꾸고 i386_init.c:77 에서 정의).
+   - `____xxx_state`: 원본은 cmu_syscalls 덩어리(`_total`) 뒤, init_main 덩어리(`_active_threads` …) 첫 이름. 07 `nextdev_private/bsd/i386/reg.h`(`extern thread_saved_state_t *___xxx_state;`)를 처음 들이는 객체가 **init_main.c**(13 객체 중 첫째; Darwin conf/files 360–361 에서 cmu_syscalls 와 init_main 사이 파일 없음) → reg.h 의 잠정 정의 꼴이면 정확히 맞습니다(Darwin 은 extern + i386_init.c:103 "Just a placeholder" 정의).
+   - `_nmi_*` 8: 원본 순서 `_glLanguage, _nmi_big, _nmi_cont, _nmi_gdb, _nmi_halt, _nmi_help, _nmi_mon, _nmi_msg, _nmi_reboot, _nmi_stay, _prettyShutdown` 는 07 machdep.c(이미 `_glLanguage` UNDF·`_nmi_stay` COMMON 을 처음 언급)의 이름순 한 덩어리 → Darwin machdep/i386/machdep.c:109–110 `int nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg, nmi_stay, nmi_reboot, nmi_big;` 을 07 의 `int nmi_stay;` 자리에 쓰면 맞습니다.
+   - 나머지 UNDF 만 15(`_master_cpu` 제외): 처음 언급자가 이미 원본 덩어리와 맞으므로(예: `_kernel_map`·`_pgrphash`·`_posix_proc_hash` = init_main 덩어리, `_cons` = subr_prf, `_cpu_config` = fp_support), **정의를 그 처음 언급자와 같거나 뒤의 객체에 두면 배치가 바뀌지 않습니다**(B2-1 규칙). 참조가 정의 파일을 알려 주는 것: Darwin i386_init.c:78·83·85·86·88(`cpu_config`, `virtual_avail`·`virtual_end`, `mem_region`, `num_regions`, `mem_size`) → 07 machdep/i386/i386_init.c; Mach4 kernel/vm/vm_kern.c:55·Darwin vm_kern.c:70(`kernel_map`) → 07 vm/vm_kern.c; Darwin bsd/kern/kern_proc.c:95(`pgrphash`) → 07 bsd/kern/kern_proc.c; Darwin bsd/kern/kern_fork.c:346(`u_thread_zone`) → 07 bsd/kern/kern_fork.c; Darwin bsd/dev/i386/cons.c:47(`cons`) → 07 machdep/i386/cons.c. 참조 정의가 없는 것: `_active_u`·`_posix_proc_hash`·`_u_task_zone`·`_nfsslowlink`, 그리고 `_cons_tp`(NeXTMach 은 next/cons.h 에 잠정 정의).
+   - 크기: 공통 크기는 요청 중 최댓값이므로 정의의 형이 원본 간격(다음 주소까지)을 넘지 않는지 시험 링크로 확인합니다(원본 nlist 에 크기는 없음).
+8. 고친 순서: (B5-1) 07 고침 계획 — cpu_number.h·reg.h 잠정 정의, machdep.c nmi 줄, 참조가 알려 주는 정의 위치 다섯 파일, 참조 없는 다섯 이름의 정의 위치(사용자 결정) → codex 검토 → 고침 → 영향 객체 재빌드(머리 고침은 들이는 모든 객체; text·data 는 바뀌지 않아야 함) → (L2-1) 시험 링크 → 비교.
+
+## 400. S6-8 세부 계획 — B5: 원본 공통 기호 25 개의 정의(07 고침; plan 399 항목 7·D059; 코딩 전, 2026-10-08)
+
+0. 근거: plan 399 항목 7(머리 잠정 정의·처음 언급 규칙), D059. 형 크기(진단 객체 s6p399-sz1, 07 머리로 컴파일, python 으로 `__data` 값 읽음): `struct _u_address` 8, `struct pgrp *` 4·PIDHSZ 64(→ 256), `struct tty` 136, `struct mem_region` 28(×2 = 56), `cpu_conf_t` 4, `vm_map_t`·`struct zone *`·`vm_size_t`·`vm_offset_t`·`thread_saved_state_t *` 각 4. 원본 간격(다음 공통 주소까지, 상한): active_u 8, pgrphash 256, posix_proc_hash 256, cons 136, mem_region 56, 그 밖 4–16 — 모두 형 크기 이상입니다. `-fno-common` 으로 컴파일하는 행 0(머리 잠정 정의가 실제 정의로 바뀌는 객체 없음).
+1. 07 고침(줄마다 plan 400 표시; text·data 바이트는 바뀌지 않아야 함):
+
+| 파일 | 고침 | 근거 |
+|---|---|---|
+| src/kern/cpu_number.h | `extern int master_cpu;` → `int master_cpu;` | Mach4 kernel/kern/cpu_number.h:36; 처음 들이는 객체 pagesize.c → `__common` 맨 앞 |
+| nextdev_private/bsd/i386/reg.h | `extern thread_saved_state_t *___xxx_state;` → 잠정 정의 | Darwin i386_init.c:103 "Just a placeholder"; 처음 들이는 객체 init_main.c |
+| src/machdep/i386/machdep.c | `int nmi_stay;` → `int nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg, nmi_stay, nmi_reboot, nmi_big;` | Darwin machdep/i386/machdep.c:109–110 |
+| src/machdep/i386/i386_init.c | `extern vm_offset_t virtual_avail, virtual_end;`·`extern vm_size_t mem_size;` → 정의, `cpu_conf_t cpu_config;`·`struct mem_region mem_region[2];`·`int num_regions;` 추가 | Darwin i386_init.c:77–88 |
+| src/vm/vm_kern.c | `vm_map_t kernel_map;` | Mach4 vm_kern.c:55 |
+| src/bsd/kern/kern_proc.c | `struct pgrp *pgrphash[PIDHSZ];`, `struct posix_proc *posix_proc_hash[PIDHSZ];` | Darwin kern_proc.c:95; posix_proc_hash 는 D059 |
+| src/bsd/kern/kern_fork.c | `extern struct zone *u_task_zone, *u_thread_zone;` → 정의, `struct _u_address active_u[NCPUS];` | Darwin kern_fork.c:346; u_task_zone·active_u 는 D059 |
+| src/machdep/i386/cons.c | `extern struct tty cons, *cons_tp;` → 정의 | Darwin bsd/dev/i386/cons.c:47; cons_tp 는 D059 |
+| src/bsd/nfs/nfs_vnodeops.c | `extern int nfsslowlink;` → `int nfsslowlink;` | D059 |
+
+   cpu_number.h 는 Darwin 원문 그대로였던 파일(PROVENANCE `none (verbatim)`) → 고침 기록 새로; reg.h 는 nextdev_private 작성본.
+2. 확인: 머리 고침 둘이 많은 객체(cpu_number.h 178·reg.h 13 들임)에 들어가므로 **402 객체 전체 재빌드**(plan 398 도구 그대로, 새 run), L1 이 plan 398 결과(377 기준선 + 25 기대)와 모두 같아야 함(고친 9 파일의 객체도 text·data 같음 — 공통 요청만 늘어남). 그 뒤 공통 기호 흉내(l2_coverage)로 25 이름이 모두 정의되고 처음 언급 순 LIS 가 늘어나는지 봄(묶음 없는 근사; 실제는 plan 399 시험 링크로).
+3. 기록: PROVENANCE(바뀐 9 행 SHA·고침), MODIFICATIONS 9 항목, 해당 증거 파일 끝에 덧붙임·diff 다시, functions.tsv 줄 번호 인용 다시 맞춤(plan 398 remap 방식). 
+4. 하지 않는 것: 링크(plan 399 로 이어짐).
+5. codex 교차검토(k2dzgnv73, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 고친 뒤 흉내: 언급 417/417, LIS 412, 어긋남 5(`_boottime`·`_callout`·`_inode_list`·`_iuniqtime`·`_in_interfaces`) | 내 흉내(scratchpad `sim400.py`, 머리 잠정 정의 = 들이는 모든 객체에 COMMON, 객체 안 이름순): mentioned 417, LIS 412, 같은 5 이름 | ✅ 이 다섯은 별도 계획(B5b) |
+| **정렬 규칙**: 이름별 최대 요청 크기 + 2 의 거듭제곱 정렬(최대 16) 로 원본 순서대로 놓으면 417 주소와 끝 0x1f7b50 이 모두 맞음 | python: 객체 COMMON 최대 요청 + 계획 정의 크기로 같은 규칙 → 불일치 0, 끝 0x1f7b50 = 원본(0x1e8750 + 62,464) | ✅ 크기는 모두 맞고 순서만 남음 |
+| vm_kern.c:351 의 `extern vm_map_t kernel_map;` 은 kmem_init 함수 안 — extern 만 지우면 지역 변수가 되어 코드가 바뀜; 파일 범위에 정의를 따로 둘 것 | vm_kern.c 345–351 읽음(`void kmem_init(start, end) … { vm_offset_t addr; extern vm_map_t kernel_map;`) | ✅ 계획 고침: 파일 범위 정의 추가, 함수 안 선언은 그대로 |
+| kern_proc.c:61 이 `struct proc *pidhash[PIDHSZ];` | kern_proc.c 55·58 행이 pidhash(55 `struct proc *pidhash[PIDHSZ];`, 58 `short pidhash[PIDHSZ];`), 61 은 주석 줄 | ❌ 줄 번호 틀림(정의는 55·58); 행동은 바뀌지 않음(새 정의는 그 근처 파일 범위) |
+| NCPUS 는 meta_features.h → cpus.h(`NCPUS 1`)로 정의됨 | (형 크기 진단 s6p399-sz1 이 같은 꼴로 컴파일되어 `active_u[0]` 8 B) | ✅ |
+| `_master_cpu` 만 처음 언급자가 앞당겨짐(의도), 나머지 정의 위치는 모두 처음 언급자와 같거나 뒤 | 내 흉내에서 `_master_cpu` 가 pagesize.c 로, 다른 정의 파일은 바깥 목록에 없음 | ✅ |
+| libDriver 묶음은 이 417 이름의 처음 언급을 하나도 주지 않고 libobjc 는 `__NXUncaughtExceptionHandler` 하나 | (계산 안 함) | ⏭️ 시험 링크로 확인 |
+| 받아들임 기준은 LIS 가 아니라 정확한 공통 주소; 기호 추가로 객체 해시·디버그 기록·재배치 기호 번호가 바뀔 수 있으니 절 바이트와 풀린 재배치 대상으로 확인 | l2_rebuild check 는 L1(절 바이트·재배치 대상 해석) 구조 비교 | ✅ 재빌드 확인은 L1 구조 비교(객체 해시 비교 아님) |
+
+6. 고친 계획: 표의 vm_kern.c 는 "파일 범위에 `vm_map_t kernel_map;` 추가(함수 안 extern 유지)". 나머지 그대로. B5b(어긋남 5)는 시험 링크 결과를 본 뒤 따로 계획합니다 — 원본 순서 `_in_interfaces, _ip_id, _ipq, _ipstat, _udb` 한 덩어리, `_inode_list, _iuniqtime, _reaper_queue, _rootdir, _rootvfs` 한 덩어리는 4.3BSD 식 머리 잠정 정의(ip_var.h·udp_var.h 등)의 흔적으로 보이며, 07 머리는 SDK 판이라 신중히 다뤄야 합니다.
+7. 결과(2026-10-08): 9 파일 고침(백업 scratchpad `bak400/`; vm_kern.c 는 파일 범위 정의 추가). 402 객체 재빌드(s6l2-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a; 결과 `09_validation/reconstruction/s6-l1-<G>-s6l2-*.json`): 기준선과 같음 377, 기대와 맞음 25, 실패 0, `cc -M` 의존이 07 밖 0 — 공통 요청만 늘고 절 바이트·재배치 해석은 그대로입니다. 기록: functions.tsv 07 줄 번호 인용 66 개를 옮김(옛·새 줄 내용 같음, 4,763 행 그대로), PROVENANCE 9 행(SHA·plan 400), MODIFICATIONS 9 항목(526 → 535 줄), 증거 7 파일 끝에 절 덧붙임, diff 7 다시·새 diff 둘(`x86-cpu_number_h.diff`, `x86-reg_h.diff`). machdep.c 의 nmi 줄은 원본 기호 이름으로 정해지는 선언이며 Darwin 0.1 machdep.c:109–110 과 같은 줄이라 출처 판단(APSL 고지 여부)은 사용자 판단 사항으로 남깁니다.
+9. **시험 링크 결과**(2026-10-08, 진단 run `s6p399-ln1`, 도구 `l2_link.py`·`l2_compare.py`(원본 대 원본 시험: 같음 0 차이); 입력 plan 400 재빌드 402 객체; 결과 `09_validation/reconstruction/s6-l2-link-s6p399-ln1.json`):
+   - `ld -r` 둘과 최종 `ld` 모두 상태 0, 경고·오류 출력 없음.
+   - **Mach-O 머리 같음**(filetype·cpu·flags·ncmds 7·sizeofcmds 2,152). 세그먼트·절은 **모두 원본과 같은 주소·크기**(`__PAGEZERO`·`__TEXT`·`__DATA`·`__OBJC` 세그먼트 명령 같음, UNIXTHREAD 같음).
+   - 절 바이트: `__text` 만 1,222 B 다름(1,066 구간), 나머지 `__const`·`__cstring`·`__data`·ObjC 절은 모두 같음. `__text` 의 다른 바이트는 **모두** 주소가 달라진 공통 기호 75 개를 가리키는 4 B 칸으로 설명됩니다(python: 설명 안 되는 바이트 0).
+   - 외부 기호 3,751 이름 집합이 원본과 같고, 값이 다른 75 개는 모두 `__common`(공통 417 중 342 같음). 어긋남 5(`_boottime`·`_callout`·`_inode_list`·`_iuniqtime`·`_in_interfaces`)가 순서를 밀어 75 주소가 달라진 것입니다.
+   - 로드 명령 차이 2: `__LINKEDIT` 크기(13,418,496 대 102,112 B)와 SYMTAB(nsyms 400,586 대 3,751) — 링크 결과에는 디버그 STAB 394,059 개와 지역 기호 2,776 개가 있고 원본에는 없습니다.
+   - 남은 일: (1) B5b — 어긋남 5 의 처음 언급 자리 고침(4.3BSD 식 머리 잠정 정의 가설, 별도 계획·codex 검토), (2) 기호표: 원본처럼 STAB·지역 기호를 뺀 꼴 만들기(strip 류; kr_run allow-list 에 도구 추가가 필요하면 도구 해시 기록 포함, 별도 계획), (3) 그 뒤 파일 전체 비교.
+
+## 401. S6-9 세부 계획 — B5b: 공통 기호 어긋남 5 개 고침(plan 399 항목 9; 코딩 전, 2026-10-08)
+
+0. 사실(이번 세션 python·grep; 링크 순서 = `08_build/runs/tools/s6p399-ln1.link.json`, 의존 = plan 400 재빌드 `cc -M`):
+   - 원본 `__common` 의 오름차순 덩어리: `[_all_psets, _all_psets_lock, _default_pset, _inode_list, _iuniqtime, _reaper_queue, _rootdir, _rootvfs]`(나머지는 지금 kern_shutdown 이 처음 언급), `[_boottime, _realhost]`(realhost 는 kern_time), `[_in_ifaddr, _ipintrq]` 다음 `[_in_interfaces, _ip_id, …]`, `[_callout, _file, …]`(file 은 param).
+   - `_inode_list`·`_iuniqtime`: 07 SDK `nextdev/bsd/ufs/inode.h:202·287` 에 잠정 정의가 이미 있음. 이 머리를 처음 들이는 객체는 vfs.c(링크 순서 뒤쪽). Darwin `bsd/kern/kern_shutdown.c:61–62` 는 `ufs/ufs/quota.h`·`ufs/ufs/inode.h` 를 들임, 07 kern_shutdown.c(링크 31 번째) 는 들이지 않음 → 07 kern_shutdown 이 `ufs/inode.h` 를 들이면 처음 들이는 객체가 되어 원본 덩어리와 맞습니다.
+   - `_in_ifaddr`·`_ipintrq`: 07 SDK `nextdev/bsd/netinet/in_var.h:56·58`(KERNEL) 잠정 정의. 처음 들이는 객체가 in.c(82 번째). Darwin `bsd/netinet/if_ether.c:85` 는 `netinet/in_var.h` 를 들임, 07 if_ether.c(81 번째)는 들이지 않음 → 들이면 in.c 앞에서 두 이름이 언급되어 `_in_interfaces` 가 원본처럼 그 뒤로 갑니다.
+   - `_boottime`: 07 init_main.c:182 `struct timeval boottime;` 는 07 코드에서 쓰이지 않는 잠정 정의(grep: 그 줄뿐). kern_time.c(35 번째)가 UNDF 로 참조. NeXTMach init_main.c:188·Darwin init_main.c:275 는 init_main 에 정의하지만, 원본 배치는 4.2 init_main 이 이 이름을 언급하지 않았음을 보여 줍니다 → init_main 의 정의를 빼고 kern_time 이상의 자리에 정의(위치는 사용자 결정).
+   - `_callout`: 07 kern_clock.c:101 `struct callout *callout;` 는 쓰이지 않는 잠정 정의(grep: 그 줄과 주석뿐); 07 conf/param.c:135 가 정의(NeXTMach param.c 와 같음); NeXTMach sys/callout.h:48 은 `extern` → kern_clock 의 줄을 `extern` 으로 바꾸면 처음 언급자가 param 이 되어 원본과 맞습니다.
+1. 07 고침(줄마다 plan 401 표시): kern_shutdown.c 에 `#import <ufs/inode.h>`(필요하면 quota 머리도 — 스테이징으로 확인), if_ether.c 에 `#import <netinet/in_var.h>`, init_main.c:182 를 extern 으로, boottime 정의를 새 자리에, kern_clock.c:101 을 extern 으로.
+2. 확인: 바뀌는 5 객체(+ 머리를 들이게 된 두 객체의 text·data 가 바뀌지 않는지)를 포함해 402 객체 재빌드 → L1 이 plan 400 결과와 같음, 흉내로 공통 417 순서 전부 일치(정렬 규칙으로 417 주소 일치), 그 뒤 시험 링크 다시 → `__text` 차이 0 기대.
+3. codex 교차검토(k3amx92ab, gpt-6.1-sol) 판정과 결정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 항목 0 사실(inode.h:202·287, in_var.h:56·58, Darwin kern_shutdown.c:61–62·if_ether.c:85, init_main.c:182 유일, kern_clock.c:101 유일·param.c:135, NeXTMach callout.h:48 extern) 모두 맞음 | 이번 세션 grep·sed 로 같은 줄을 열어 확인(위 항목 0 의 근거 출력) | ✅ |
+| 링크 위치 "31·35·81·82 번째" 는 0 부터 센 색인 — 서수로 32·36·82·83 번째 | 내 계산은 python `list.index`(0 부터) | ✅ **내 표기가 틀렸습니다**: 항목 0 의 "n 번째" 는 0 부터 센 색인으로 읽어야 합니다 |
+| 고친 뒤 흉내: 417 이름 순서·주소 모두 원본과 같음(끝 0x1f7b50), 묶음 입력으로도 같음 | (재빌드·재링크로 직접 확인할 것) | ⚖️ 재링크 결과로 확인 |
+| 두 머리에는 함수 본문·정적 객체·초기화 데이터·`#undef` 없음 → text·data 영향 없을 것 | (재빌드 L1 로 확인) | ⚖️ 재빌드로 확인 |
+| quota 머리는 필요 없음(inode.h 는 불완전형 `struct dquot *` 만), Darwin 경로 `ufs/ufs/quota.h` 는 07 에 없음 | (컴파일로 확인) | ⚖️ quota 는 넣지 않고 컴파일로 확인 |
+| inode.h 는 vnode 등 앞선 머리 뒤에, in_var.h 는 net/if.h·netinet/in.h 뒤에 | 07 if_ether.c 96–100 행(net/if.h → netinet/in.h → in_systm → ip → if_ether.h) | ✅ |
+
+   결정 D060(사용자, 2026-10-08): boottime 은 kern_time.c 에 정의.
+
+## 402. S6-10 세부 계획 — L2 링크 마무리: `strip -x` 단계와 도구 등록(코딩 전, 2026-10-08)
+
+0. 사실(이번 세션):
+   - Darwin `conf/Makefile.template:272` `SYS_RULE_2=strip -x -o $@ $@.sys` — 커널 이미지는 링크 결과(`.sys`)를 `strip -x` 한 것.
+   - 탐침(07·기록 변경 없음; `08_build/runs/tools/probe/l2b3/run.sh`, 시험 링크 s6p399-ln1 출력의 사본): `strip -x` 결과는 파일 크기 1,117,920 B(원본과 같음), 로드 명령 차이 0, 기호 외부 3,751·STAB 0·지역 0. `strip -S` 는 지역 2,776 이 남아 1,219,072 B, `strip -x -S` 는 `-x` 와 같은 결과. 남은 차이는 공통 기호 75 값과 그 참조 칸(plan 401 로 고침 중)뿐.
+   - 도구: 실기 `/bin/strip` 378,240 B, SHA-256 `80cb973b6092ab955f4843be0ef08a63b192779c6b32941bf21647e640c812d7`(krsha256). i386 VM 디스크(`09_validation/images/i386/openstep42-i386-hdd.raw`)의 scratch 사본을 nextufs 로 읽기 전용 마운트해 잰 `/bin/strip` 도 같은 값(대조: VM `/bin/ld` = 기록값 4c6dae19…, 저장소 디스크 SHA 전후 같음, 사본은 지움). 지금 kr_run allow-list 와 `sha256-vs-vm.json` 에 `/bin/strip` 이 없음.
+1. 고침:
+   - `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 에 `/bin/strip` {real, vm, size} 추가(측정 방법은 계획에 기록), `kr_run.py` ALLOWED_TOOLS 에 `/bin/strip`.
+   - `l2_link.py`: 최종 `ld` 출력을 `stage/mach_kernel.sys` 로, 이어서 `RUN /bin/strip -x -o stage/mach_kernel stage/mach_kernel.sys`(EXPECT 둘); 문서 문자열에 Darwin 근거.
+2. 실행: plan 401 재빌드(s6l3-*) 결과로 `l2_link.py prepare s6p402-ln1 s6l3` → kr_run → `l2_compare.py`(stripped 대 원본). 기대: 파일 전체 같음(SHA-256 33469393…). 다르면 차이를 그대로 기록.
+3. 하지 않는 것: 결과 커널 부팅(사용자·VM 계획 따로), 기록 표 등급 변경.
+4. codex 교차검토(k4blnua6s, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| Makefile.template:272 인용 맞음(원래 명령의 증명은 아님) | 이번 세션 grep 출력 | ✅ |
+| 탐침: mk.x·mk.xS 크기·로드 명령 원본과 같음, 둘은 같은 파일; mk.S 는 지역 2,776 남음 | `cmp mk.x mk.xS` → 같음; l2_compare 출력(위 항목 0) | ✅ |
+| mk.x 의 다른 바이트 1,306 = `__text` 1,222(공통 기호 참조 칸) + 기호표 n_value 84(75 기호), 문자열 표 57,100 B 같음, 그 밖 0 | python 분류(이번 세션): text 1,222·symtab 84(필드 오프셋 8–10 만)·strtab 0·기타 0 | ✅ |
+| `/bin/strip` 은 ALLOWED_TOOLS 와 TOOLS_JSON(real = vm)에 넣고 REAL_ONLY 에는 넣지 않음; 해시 검사는 실기 실행 스크립트에서 빌드 전에 | kr_run.py tool_hashes()(:157–171: real ≠ vm 이면 die), 실행 스크립트 `tools.actual`/`tools.expected` cmp | ✅ |
+| l2_link.py: 최종 출력 `stage/mach_kernel.sys` + `RUN /bin/strip -x -o stage/mach_kernel stage/mach_kernel.sys`, EXPECT 둘 | (설계 판단) | ✅ |
+5. 결과(2026-10-08):
+   - plan 401 고침 5 파일(백업 `bak401/`) 뒤 402 객체 재빌드(s6l3-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a): 기준선과 같음 377, 기대와 맞음 25, 실패 0, 07 밖 의존 0.
+   - 도구: `sha256-vs-vm.json` 에 `/bin/strip`(real = vm = 80cb973b…, 378,240 B; 15 → 16 도구), `kr_run.py` ALLOWED_TOOLS 에 `/bin/strip`, `l2_link.py` 에 `mach_kernel.sys` → `strip -x` 단계(백업 `bak402/`).
+   - **L2 링크(run `s6p402-ln1`, `l2_link.py prepare s6p402-ln1 s6l3`; 명령 4 개 모두 상태 0, 출력 없음): 07 에서 다시 빌드한 402 객체 + `-lcc` 를 링크하고 `strip -x` 한 `mach_kernel` 이 원본과 바이트 단위로 같습니다** — SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`, 1,117,920 B; 머리·로드 명령 차이 0, 외부 기호 3,751 모두 같음, 공통 기호 417/417 같음(`09_validation/reconstruction/s6-l2-link-s6p402-ln1.json`).
+   - 기록: functions.tsv 07 줄 번호 인용 30 개 옮김(4,763 행 그대로), PROVENANCE 5 행·MODIFICATIONS 5 항목(535 → 540 줄), 증거 5 파일 덧붙임·diff 다시.
+   - 남은 것: 07 트리 밖 입력은 libcc(`-lcc`, 등급 L, D051)와 실기 도구뿐. 결과 커널의 부팅 확인(L3)은 원본과 같은 바이트이므로 원본과 같은 동작이 기대되나, VM 부팅은 별도 계획(사용자 지시 시).
+
+## 403. 진단 메모 — L3(부팅) 확인 방법 조사(07·기록 변경 없음, 2026-10-08)
+
+- 실기(읽기만, gcds): `/mach_kernel` SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`, 1,117,920 B(krsha256) = plan 402 의 07 재빌드·링크 결과(run s6p402-ln1)와 같음. `hostinfo` 의 실행 중 커널 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386" = 원본 바이트 안의 `_version` 문자열(python), `uptime` 7 일 21 시간.
+- 판단: 실기는 디스크의 `/mach_kernel`(07 결과와 같은 바이트)과 같은 판 문자열의 커널로 7 일 넘게 돌며 이 작업의 모든 빌드를 수행했습니다. 실행 중 이미지가 그 파일에서 부팅됐다는 것은 기본 부팅 파일 경로에 따른 추론이며, 07 결과 파일 자체로 새로 부팅한 시험은 아닙니다.
+- VM 쪽: `09_validation/images/i386/kernels/mach_kernel.183.34.4.pic`(같은 크기, SHA 304cb696…)·`extracted/mach_kernel`(1,113,724 B, SHA 00e49892…)은 07 결과와 다른 파일입니다. VM 으로 07 결과 파일을 직접 부팅하려면 디스크 사본에 커널을 넣고 `--snapshot` 으로 부팅하는 별도 계획이 필요합니다(실기 커널 교체·재부팅은 사용자 몫).
+
+## 404. S6-11 세부 계획 — D061: 이번에 넣은 Darwin·Mach4 줄에 고지 붙이기(주석·기록만; 코딩 전, 2026-10-08)
+
+0. 대상(plan 397–401 에서 넣은 줄, grep 으로 확인할 것):
+
+| 07 파일 | 줄 | 출처 | 고지 |
+|---|---|---|---|
+| src/machdep/i386/machdep.c | nmi 선언(plan 400) | Darwin 0.1 machdep/i386/machdep.c:109–110 | Darwin 그 파일 머리 APSL |
+| src/kern/mfs_prim.c | mfsbuf_lock·active_mfsbufs(plan 397) | Darwin kern/mapfs.c:132·:1081 | 〃 |
+| src/machdep/i386/i386_init.c | 정의 5 줄(plan 400) | Darwin machdep/i386/i386_init.c:77–88 | 〃 |
+| src/bsd/kern/kern_proc.c | pgrphash(plan 400) | Darwin bsd/kern/kern_proc.c:95 | 〃 |
+| src/bsd/kern/kern_fork.c | u_task_zone·u_thread_zone 줄(plan 400; u_thread_zone 부분) | Darwin bsd/kern/kern_fork.c:346 | 〃 |
+| src/machdep/i386/cons.c | cons 정의 줄(plan 400) | Darwin bsd/dev/i386/cons.c:47 | 〃 |
+| src/bsd/kern/kern_shutdown.c | `#import <ufs/inode.h>`(plan 401) | Darwin bsd/kern/kern_shutdown.c:62 | 〃 |
+| src/bsd/netinet/if_ether.c | `#import <netinet/in_var.h>`(plan 401) | Darwin bsd/netinet/if_ether.c:85 | 〃 |
+| src/vm/vm_kern.c | `vm_map_t kernel_map;`(plan 400) | Mach4 kernel/vm/vm_kern.c:55 | Mach4 그 파일 머리(CMU·Utah) |
+| src/kern/cpu_number.h | `int master_cpu;`(plan 400) | Mach4 kernel/kern/cpu_number.h:36 | 같은 CMU 고지가 이미 파일에 있음 → 출처 기록만 |
+
+1. 꼴(in_bootp.c 선례, PROVENANCE:1011): 파일의 기존 머리 주석 뒤, 첫 `#import` 앞에 `/* Parts marked "plan NNN (Darwin)" follow Darwin 0.1 kernel/<path> (kernel-1), whose notice is: */` + 그 Darwin 파일의 첫 주석 블록(고지) 그대로. 해당 줄 주석의 "plan NNN" 을 "plan NNN (Darwin)"(Mach4 는 "(Mach4)")으로. 코드 줄은 바꾸지 않음.
+2. 확인: 주석만 바뀌므로 객체 절 바이트는 같아야 함 — 바뀐 10 파일의 객체가 든 묶음 재빌드(cpu_number.h 는 178 객체가 들이므로 사실상 전체)로 L1 이 plan 401 결과와 같음을 확인, 그 뒤 링크·strip 한 커널이 다시 원본과 같은지(SHA) 확인. functions.tsv 줄 번호 인용 다시 맞춤(옛·새 줄 내용 같음 검사).
+3. 기록: PROVENANCE 10 행(source_id 에 +darwin01 / +mach4, 개정·원본 경로·고지 칸, SHA), MODIFICATIONS 항목, 증거 덧붙임·diff 다시.
+4. 교차검토 전 내 확인과 codex(kgauj4tp3, gpt-6.1-sol) 판정:
+
+| 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| (내 발견, codex 도 같음) Darwin kern_proc.c:95 는 `u_long pgrphash;` — 07 의 `struct pgrp *pgrphash[PIDHSZ];` 와 다른 선언 | `sed -n 95p` Darwin kern_proc.c → `u_long pgrphash;` | ✅ **내 인용이 틀렸습니다**(plan 399 항목 7·400 표·07 주석·증거·MODIFICATIONS). 07 줄의 형은 SDK `sys/proc.h:250` extern 선언에서 온 것 → kern_proc.c 는 고지 대상 아님, 인용 정정 |
+| machdep 의 Darwin 줄은 110–111(109 는 주석) | Darwin machdep.c 108–111 출력(108 빈 줄, 109 `/* nmi mini-monitor */`, 110–111 선언) | ✅ 인용을 110–111 로 정정 |
+| reg.h:17 `___xxx_state` 는 Darwin i386_init.c:103 과 같은 선언; reg.h 는 PROVENANCE:437 에서 darwin01·APSL 로 적혀 있는데 파일에 APSL 고지가 없음 | PROVENANCE 437 행(“KERNEL_PRIVATE body of the Darwin file verbatim”, APSL-1.0.txt), reg.h 1–9 행 머리(작성 문구만), Darwin i386_init.c:103 | ✅ reg.h 에 APSL 고지 추가(plan 144 부터 있던 누락도 함께 고침) |
+| init_sysent.c 334·345·373 행(`syss(setsid,0)`·`sysp(setprivexec,1)`·`syss(add_profil,4)`)이 Darwin init_sysent.c 457·467·495 와 같은 글자 | Darwin 457 행 = 07 334 행(주석 `/* 147 = setsid */` 까지 같음) | ✅ 원본 바이트로 쓴 줄이지만 글자가 같으므로 D061("모두 붙임")에 따라 "같은 글자" 로 표시하고 고지 추가 |
+| kern_fork·cons 는 줄의 일부만(u_thread_zone, cons) Darwin 과 같음; kern_shutdown·if_ether 는 경로·지시어를 바꾼 꼴(`ufs/ufs/inode.h`, `#include`) | Darwin 346·47·62·85 행 출력 | ✅ 표시 문구에 "일부"·"꼴을 바꿈" 을 적음 |
+| cpu_number.h 의 CMU 고지가 Mach4 cpu_number.h 고지와 글자 그대로 같음 | (python 비교는 codex; 나는 두 블록을 출력해 눈으로 대조 — 25 행 같음) | ⚖️ 출처 기록만(고지 이미 있음) |
+| machdep_call.c(APSL 그대로)·counters.c(CMU 그대로)·in_proto.c(APSL 블록 있음)·D030/D047 파일은 이미 처리됨 | 이번 세션 plan 398 기록 | ✅ |
+| 주석 추가는 -g 줄 정보(STAB)만 바꾸고 L1·strip 결과는 그대로일 것; 단 `__LINE__` 은 바이트를 바꿀 수 있음(kern/assert.h, MACH_ASSERT 0 이라 꺼짐) | generated/mach_assert.h `#define MACH_ASSERT 0`(config_options) | ✅ 재빌드 L1 + 링크·strip SHA 비교로 확인 |
+
+5. 고친 대상: Darwin APSL 고지 — machdep.c(110–111), mfs_prim.c(132·1081), i386_init.c(78·83·85·86·88), kern_fork.c(346 의 u_thread_zone 부분), cons.c(47 의 cons 부분), kern_shutdown.c(62, 경로 바꿈), if_ether.c(85, 지시어 바꿈), init_sysent.c(457·467·495 와 같은 글자 세 줄), reg.h(Darwin 본문·i386_init.c:103 선언); Mach4 고지 — vm_kern.c(55); 출처 기록만 — cpu_number.h; 인용 정정 — kern_proc.c.
+
+## 405. S7-1 세부 계획 — L3 준비: 07 에서 만든 커널로 QEMU(i386) 부팅 시험 준비(부팅은 하지 않음; 코딩 전, 2026-10-08)
+
+0. 사실(이번 세션):
+   - plan 402 의 07 링크 결과(run s6p402-ln1) = 원본(SHA-256 33469393…); plan 404(고지 주석) 뒤의 재빌드·재링크(s6l4-*·s6p404-ln1)로 현재 07 도 같은지 확인 중.
+   - `11_emulation/QEMU_VM_CONFIGURATIONS.md` 3.4·4 절: 원본 그대로의 mk-183.34.4 커널은 이 QEMU 에서 IDE 인터럽트가 잠겨 부팅되지 않음; `_intr_handler` 12 B 를 고친 `.pic` 판(`10_tools/runtime/make_i386_pic_kernel.py`, 출력 SHA 304cb696…)으로 `boot:` 에서 `hd()mach_kernel.183.34.4.pic -v` 부팅, `hostinfo` 로 판 확인.
+   - VM 디스크(`09_validation/images/i386/openstep42-i386-hdd.raw`)의 scratch 사본을 nextufs 로 읽기 전용 마운트(저장소 디스크 SHA 전후 같음, 사본은 지움): `/mach_kernel.183.34.4` = 33469393…(07 결과와 같은 바이트), `/mach_kernel.183.34.4.pic` = 304cb696…, `/mach_kernel` = 1997 판(00e49892…).
+   - `vm-common.sh:69–79`: 디스크 경로는 고정(`openstep42-ARCH-hdd.raw`), `--snapshot` 이면 디스크에 쓰지 않음. 다른 디스크를 고르는 옵션은 없음.
+1. 준비(부팅 없음):
+   1. 현재 07 의 링크 결과가 원본과 같음을 확인(s6p404-ln1; 같지 않으면 멈춤).
+   2. `make_i386_pic_kernel.py` 에 `--in PATH`(선택, 기본은 지금처럼 03_original) — 입력 SHA 가 기준 SHA 와 같아야 하고 출력 SHA 가 304cb696… 이어야 쓰는 검사는 그대로. 07 결과(`08_build/runs/s6p404-ln1/out/mach_kernel`)에 적용해 `09_validation/images/i386/kernels/mach_kernel.l2.pic` 를 만들고 SHA 를 디스크의 `.pic` 파일과 대조.
+   3. 시험 디스크: 저장소 디스크의 **사본** `09_validation/images/i386/openstep42-i386-hdd.l2test.raw`(원본 디스크는 건드리지 않음, 사본 전후 SHA 기록)에 nextufs `mkfile` 로 `/mach_kernel.l2`(07 결과 그대로)와 `/mach_kernel.l2.pic`(위 2)를 넣고, 넣은 뒤 읽기 전용 마운트로 두 파일 SHA 확인·`fsck -n` 으로 파일 시스템 확인.
+   4. `vm-common.sh`/`vm-i386.sh` 에 부팅 모드 전용 `--disk PATH` 옵션(시험 디스크 선택; `--snapshot` 과 함께일 때만 허용)을 넣고 README·QEMU_VM_CONFIGURATIONS 에 적음. 문법 검사(`bash -n`)와 옵션 오류 경로만 확인(QEMU 는 실행하지 않음).
+2. 부팅 시험(다음 단계, 사용자 지시 뒤): `vm-i386.sh boot-nocd --disk …l2test.raw --snapshot` → `boot:` 에서 `hd()mach_kernel.l2.pic -v` → `hostinfo` 판 문자열 확인; 대조로 `hd()mach_kernel.l2 -v`(원본과 같은 IDE 잠김이 기대됨).
+3. 하지 않는 것: 저장소 VM 디스크 쓰기, 실기 커널 교체.
+4. codex 교차검토(kywj6mg32, gpt-6.1-sol) 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| s6p402-ln1 = 원본, s6p404-ln1 은 아직 없음(현재 07 확인 대기) | 이번 세션 `cmp`·sha256sum(같음); s6p404 재빌드 G1 진행 중 | ✅ 단계 1 은 그 결과로 판정 |
+| `--disk` 는 기존 드라이브의 파일만 바꾸는 꼴로, i386 부팅 모드 + `--snapshot` 일 때만; raw 형식 확인, `-w` 요구 대신 읽기 가능 검사; `--` 로 드라이브를 더 넣는 방식은 IDE 제약에 어긋남 | vm-i386.sh 18–30 행(`-drive "file=$disk,if=ide,index=0,…,format=raw"`, `-display gtk -monitor stdio`), vm-common.sh 69–79 행(`[[ -w "$disk" ]]`) | ✅ 계획 고침 |
+| 바이너리는 `mkfile --from-file SRC PATH HOSTFILE`, 이어서 권한 `0444`; 기본 `mkfile` 은 문자열을 씀 | nextufs.1 man(301 행 `source path contents` = 문자열, `--from-file` 항목) | ✅ 계획 고침; 권한·소유자·그룹·해시를 넣은 뒤 확인 |
+| make_i386_pic_kernel.py `--in`: 기존 검사 유지, 출력이 입력·원본과 같은 파일(심볼릭·하드 링크)이면 거부 | 도구 44–64 행 읽음(입력 SHA·원본 바이트·12 B·출력 SHA 검사, 마지막 `open(..., 'wb')`) | ✅ 별칭 거부 추가 |
+| 부팅 증거: `/mach -> $BOOTFILE` 유지, BootHelp 의 10 초 입력 창, 실제 부팅 명령·`-v` 화면·게스트 `hostinfo` 전체 기록; i386 은 직렬을 쓰지 않으므로 화면 기록 방법 필요; 시간 제한·실패 기준·종료·시험 뒤 디스크 해시 | vm-i386.sh(직렬 없음, GTK·monitor stdio) | ✅ 부팅 시험 계획(다음 단계)에 넣음: QEMU 모니터 `screendump` 로 화면을 PPM 으로 남김 |
+
+5. 고친 준비 단계: (1) s6p404-ln1 = 원본 확인; (2) `make_i386_pic_kernel.py --in`(+ 출력 별칭 거부) → `09_validation/images/i386/kernels/mach_kernel.l2.pic`, SHA 304cb696… 확인; (3) QEMU 가 꺼진 상태에서 저장소 디스크 사본 `openstep42-i386-hdd.l2test.raw` 를 만들고(원본·사본 SHA 기록, `fsck -n` 전후), `mkfile --from-file` 로 `/mach_kernel.l2`·`/mach_kernel.l2.pic` 를 넣고 `--chmod … 0444`, `-o ro` 마운트로 형·권한·소유자·해시 확인; (4) `--disk PATH`(i386 `boot`/`boot-nocd` 와 `--snapshot` 일 때만, 일반 파일·raw 크기 확인) — `bash -n` 과 가짜 실행 파일로 인자 구성만 확인.
+6. plan 404 확인(2026-10-08): 고지 주석을 넣은 현재 07 로 402 객체 재빌드(s6l4-*: 기준선과 같음 377·기대와 맞음 25·실패 0) → 링크·strip(run s6p404-ln1) → **원본과 바이트 단위로 같음**(`cmp` 차이 0, SHA-256 33469393…, l2_compare: 머리·로드 명령·기호 3,751·공통 417 모두 같음; `09_validation/reconstruction/s6-l2-link-s6p404-ln1.json`).
+7. 준비 결과(2026-10-08; QEMU 실행 안 함):
+   - (1) 현재 07 = 원본(항목 6 의 plan 404 확인, run s6p404-ln1).
+   - (2) `make_i386_pic_kernel.py --in`(백업 `bak405/`): 출력 별칭 거부(원본 파일을 출력으로 주면 STOP), 해시가 다른 입력 거부, 기본 모드 출력이 예전과 같음, s6p402·s6p404 결과에 적용하면 12 B 바뀐 304cb696…(기존 `.pic` 과 `cmp` 같음). 파일: `09_validation/images/i386/kernels/mach_kernel.l2`(33469393…)·`mach_kernel.l2.pic`(304cb696…).
+   - (3) QEMU 꺼짐 확인 → 저장소 디스크(SHA 36e437f6…) 사본 `09_validation/images/i386/openstep42-i386-hdd.l2test.raw`(사본 SHA 같음) → `fsck -n`(NO WRITE, 오류 없음, 37,675 파일) → `mkfile --from-file` 두 파일 + `--chmod 0444` → `fsck -n`(오류 없음, 37,677 파일; 로그 `09_validation/images/i386/logs/l2test-fsck-{before,after}-20261008.log`) → `-o ro` 마운트 확인: `/mach_kernel.l2`·`/mach_kernel.l2.pic` 일반 파일, 0444, uid/gid 0/0, 크기 1,117,920, 해시 위와 같음; 기존 `/mach_kernel`·`.183.34.4`·`.pic`·`/mach -> $BOOTFILE` 그대로. 시험 디스크 SHA dec0572b…. 저장소 디스크 SHA 전후 같음.
+   - (4) `vm-common.sh`·`vm-i386.sh` 에 `--disk RAW`(백업 `bak405/`): `bash -n` 통과, QEMU 없이 vm_parse·vm_disk 만 부른 시험 8 가지(정상·--snapshot 없음·install·qcow2·512 배수 아님·없는 파일·sparc·옵션 없음) 모두 기대대로. README·QEMU_VM_CONFIGURATIONS 에 적음.
+8. 부팅 시험 절차(다음 단계, 사용자 지시 뒤): `bash 11_emulation/scripts/vm-i386.sh boot-nocd --disk 09_validation/images/i386/openstep42-i386-hdd.l2test.raw --snapshot` → BootHelp 의 10 초 안에 `boot:` 에 `hd()mach_kernel.l2.pic -v` → 부팅 화면을 QEMU 모니터 `screendump` 로 PPM 저장 → 로그인 뒤 게스트 `hostinfo` 전체를 화면으로 남김(기대: "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386") → 정상 종료(모니터 `quit`) → 시험 디스크 SHA 가 dec0572b… 그대로인지 확인. 대조 시험: `hd()mach_kernel.l2 -v`(원본과 같은 IDE 인터럽트 잠김이 기대됨, 시간 제한 두고 종료). 둘 다 `--snapshot`.
+
+## 406. S7-2 세부 계획 — L3 부팅 시험(QEMU i386; 사용자 시작 확인 뒤 실행, 2026-10-08)
+
+0. 준비 상태: plan 405 항목 7(시험 디스크 `09_validation/images/i386/openstep42-i386-hdd.l2test.raw` SHA dec0572b…, `/mach_kernel.l2`·`/mach_kernel.l2.pic`, `--disk` 옵션). QEMU 실행 파일 SHA 6b12d00f…(QEMU_VM_CONFIGURATIONS 표와 같음), 화면은 사용자 X 세션(DISPLAY :1)에 GTK 창으로. 사용자 지시: 시작 전에 확인을 받음, QEMU 는 사용자가 볼 수 있게 실행.
+1. 실행(확인 뒤):
+   1. 시험 디스크 SHA 확인(dec0572b…), QEMU·i386 소켓 없음 확인.
+   2. `tail -f /dev/null | bash 11_emulation/scripts/vm-i386.sh boot-nocd --disk 09_validation/images/i386/openstep42-i386-hdd.l2test.raw --snapshot` 를 셸을 막지 않게 띄움(표준 입력은 열어 둔 채, QEMU 모니터 출력은 로그로) — GTK 창은 사용자 화면에 보임.
+   3. scratchpad `qmp_boot.py`(QMP 로 VGA 텍스트 버퍼 0xb8000 을 읽어 "boot:" 를 감지 → `sendkey` 로 `hd()mach_kernel.l2.pic -v` + Enter → 5 초마다 `screendump` 를 PNG 로; VM 을 끄거나 재설정하지 않음)로 입력·기록. 기록 위치 `09_validation/images/i386/logs/l3-boot-<날짜>/`(무시 대상).
+   4. 부팅이 끝나면 화면을 보고 로그인·`hostinfo` 는 사용자와 상의해 진행(로그인 계정은 기록에 남기지 않음). 기대 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386".
+   5. 종료: QEMU 모니터 `quit`(QMP `quit`), 시험 디스크 SHA 가 그대로인지 확인(--snapshot).
+   6. 대조 시험(`hd()mach_kernel.l2 -v`, IDE 잠김 기대)은 사용자가 원할 때 같은 절차로 따로.
+2. 판정: 화면 기록과 `hostinfo` 판 문자열로 L3 를 기록. 실패하면 화면·로그를 그대로 남기고 원인을 따로 조사.
+3. 문서·검토(2026-10-08, 사용자 지시 "HOWTOCOMPILE 문서… git ignore 의 update 가 필요한지 검토"):
+   - `HOWTOCOMPILE.md`(저장소 최상위, 새 파일): 준비물·연결·컴파일 꼴·스테이징·kr_run·전체 빌드·링크·strip·비교·QEMU 판·주의. codex 사실 확인(kvw7rlx32) 지적을 하나씩 확인해 고침 — 실행 시 해시 검사 범위(ALLOWED_TOOLS 9 개, libcc·cc1obj 제외; kr_run.py:39–41, sha256-vs-vm.json 키 16 개), G3 의 ABSROOT 실기 링크(kr_run.py:241–244, plans/RECONSTRUCTION_PLAN-245-320.md:1638), nextdev_private 도 로컬 전용(.gitignore:71), gen_config_headers 실행, 이전 기록·krsha256 필요, pagesize `-O3`(forms 4 행), RID 정규식, wait 1,800 초(kr_run.py:364), check 는 판정하지 않음, Darwin LDOBJS 의 `subr_prof.o`(Makefile.template:232; files:391 주석 처리). 사이트 주소·계정 없음.
+   - `.gitignore` 검토: 추적 외 4,976 파일 47 MB, 50 MB 넘는 파일 없음, 이번에 만든 큰 파일(시험 디스크·커널 사본·runs)은 기존 규칙으로 무시됨. 결정 필요 둘: (a) 최상위 `--help/`·`--help.manifest.json`(2026-10-03 `stage_headers.py --help` 가 만든 스테이징 부산물) 삭제, (b) kr_run 이 요구하는 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json`(해시만)을 예외로 추적할지.
+4. codex 교차검토(kaoc0gg7s, gpt-6.1-sol) 판정과 고침:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `xp /2000bx` 는 2,000 B = 1,000 칸(12.5 줄)만 읽음; 80×25 화면은 4,000 B | python: 80×25×2 = 4000, 2000/2/80 = 12.5 | ✅ `/4000bx` 로, 읽은 바이트 수 검사 |
+| 프롬프트 글자는 "boot: "(디스크 0x109b2·0x209b2), BootHelp 의 10 초; 60 초 감시로는 놓칠 수 있음 → 멈춘 채 띄우고 붙은 뒤 시작 | QEMU_VM_CONFIGURATIONS 3.3("`boot:` 에서 `hd()커널이름 -v`"), vm-common.sh `--gdb-wait` → `-S` | ✅ `--gdb-wait` 로 띄우고 driver 가 `cont`, 감시 30 초 |
+| QMP 응답·오류·HMP 문자 오류를 버리고 있음, 읽기 시간 제한 없음 | qmp_boot.py(옛 판) 읽음 | ✅ 인사·오류·이벤트·HMP 출력 검사, 소켓 10 초 제한 |
+| `screendump` 는 QEMU 작업 디렉터리 기준 상대 경로·덮어씀 → 절대 경로·실행마다 새 디렉터리 | (QEMU 소스 인용은 codex; 행동 바꿀 만함) | ✅ QMP `screendump` 에 절대 경로, 출력 디렉터리 새로 만듦(있으면 멈춤) |
+| `commit` 은 스냅숏 내용을 디스크에 씀 → 금지; 정지는 QMP stop → quit, QEMU PID 확인, `tail` PID 정리, 두 디스크 해시 비교 | vm-common.sh(`-snapshot`) | ✅ qmp_stop.py(stop·quit 만), 실행 전후 해시 |
+| vm-common.sh 의 512 배수 검사가 셸 산술 — 계산은 python 원칙 | vm-common.sh 해당 줄 | ✅ python 한 줄로 바꿈(`bash -n` 통과) |
+| 키 이름(US 배열) `shift-9`·`shift-0`·`shift-minus`·`dot`·`minus`·`spc`·`ret` 맞음 | (QEMU qapi 인용은 codex) | ⚖️ 실제 입력 결과를 화면 기록으로 확인 |
+5. **부팅 시험 결과**(2026-10-08, 사용자 시작 확인 "지금 시작"; 기록 `09_validation/images/i386/logs/l3-boot-20261008/`(무시 대상)):
+   - 시작 전 해시: 시험 디스크 dec0572b…, 저장소 디스크 36e437f6…; QEMU·소켓 없음.
+   - `tail -f /dev/null | vm-i386.sh boot-nocd --disk …l2test.raw --snapshot --gdb-wait`(GTK 창, 사용자 화면) → `qmp_boot.py`: 상태 prelaunch 에서 `cont`, 0.8 초 뒤 "boot:" 감지, `hd()mach_kernel.l2.pic -v` 입력(로그 `run1/driver.log`).
+   - 첫 화면(`run1/shot-001.png`): "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386", PCI·PnP·DriverKit 420, hc0/hd0(QEMU HARDDISK 1023 MB) 인식.
+   - 사용자 보고: 로그인 화면 → 로그인 → Workspace 구동 성공. 게스트 Terminal 의 `hostinfo`(`run1/hostinfo.png`): 위와 같은 판 문자열, 단일 프로세서 I386(Intel 486), 메모리 64 MB, 34 tasks·67 threads.
+   - 판정: **07 에서 다시 만든 커널(QEMU 용 12 B PIC 판)이 QEMU i386 에서 부팅해 Workspace 까지 동작(L3)**. PIC 판은 원본·07 결과와 `_intr_handler` 12 B 만 다르며(plan 405), 원본 그대로의 판은 이 QEMU 에서 IDE 인터럽트가 잠기는 것으로 기록돼 있음(QEMU_VM_CONFIGURATIONS 4 절; 대조 시험은 아직).
+   - 정리: 사용자 결정에 따라 최상위 `--help/`·`--help.manifest.json` 삭제(추적되지 않던 부산물); 도구 해시 기록은 로컬 유지.
+   - 종료(사용자 "확인은 끝났습니다"): `qmp_stop.py`(qmp_capabilities → stop → quit; 이벤트 STOP·SHUTDOWN), QEMU PID 1179582 종료 확인, `tail` 은 파이프가 닫혀 스스로 끝남, 시험 디스크·저장소 디스크 SHA 가 시작 전과 같음(dec0572b…, 36e437f6…).
+6. `HOWTOUSE.md`(저장소 최상위, 새 파일, 사용자 지시 2026-10-08): 결과물·원본 대조·QEMU 용 PIC 판·시험 디스크·부팅·끄기·실기 시험(사용자 작업)·디버깅 참고. codex 사실 확인 지적 넷을 확인해 고침 — Workspace 부팅은 PIC 판(대조 시험 없음), `.sys` 는 `__LINKEDIT`·LC_SYMTAB 이 다름(plan 402 탐침 비교에서도 그 둘), 실기 시험은 "새 정보 없음" 이 아니라 결과 파일로 새로 부팅한 적 없음(plan 403), gdb 소켓은 `/tmp/kr-<arch>-gdb.sock`(vm-common.sh:54).
+7. README 갱신(2026-10-08, 사용자 지시): 제목·현재 상태(x86 바이트 일치, QEMU Workspace 부팅, 객체·등급·커버리지 표)·스크린샷(`docs/images/qemu-i386-reconstructed-kernel-hostinfo-20261008.png`, 사용자 제공 화면 사본, SHA 원본과 같음, 801×661)·HOWTOCOMPILE/HOWTOUSE 안내·출처와 라이선스·도구·디렉터리 구성·저장소에 없는 것. codex 사실 확인(k1ig0efbh) 지적 다섯을 확인해 고침 — P 등급 설명(06_reconstruction/README.md:26, objects_partial 의 kern_notify·PCresume 행), PROVENANCE 가 모든 파일을 담지 않음(생성 머리 21–22·문서 제외; 내 python 대조에서 `src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 도 행 없음 — 이번 세션 전부터의 누락, 사용자에게 보고), 라이선스 TBD(PROVENANCE 364 곳)·Darwin 파일 중 BSD 고지(ansi.h, PROVENANCE:3), 입력 해시 없는 보고서(l1-sectof-diff-20261002.json).

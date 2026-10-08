@@ -1,0 +1,99 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_lookup.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_lookup.c	2026-10-03 09:49:28.018028563 +0900
+@@ -19,6 +19,7 @@
+ 
+ #import <sys/param.h>
+ #import <sys/user.h>
++#import <sys/proc.h>		/* plan 177: p_posix */
+ #import <sys/uio.h>
+ #import <sys/vfs.h>
+ #import <sys/vnode.h>
+@@ -110,6 +111,15 @@
+ 			vp = rootdir;
+ 		VN_HOLD(vp);
+ 	}
++#if	POSIX_KERN
++	/*
++	 * plan 177 (authored, D024; original 0x11c1d0-0x11c1e6): an empty
++	 * pathname is an error for POSIX processes.  (The hold on vp is
++	 * not dropped, as in the original.)
++	 */
++	else if (pn_peekchar(pnp) == 0 && u.u_procp->p_posix)
++		return (ENOENT);
++#endif	/* POSIX_KERN */
+ 
+ next:
+ 	/*
+@@ -256,6 +266,29 @@
+ 		return (0);
+ 	}
+ 	/*
++	 * If this vnode is mounted on, then we
++	 * transparently indirect to the vnode which 
++	 * is the root of the mounted file system.
++	 * Before we do this we must check that an unmount is not
++	 * in progress on this vnode. This maintains the fs status
++	 * quo while a possibly lengthy unmount is going on.
++	 */
++mloop:
++	while (vfsp = cvp->v_vfsmountedhere) {
++		while (vfsp->vfs_flag & VFS_MLOCK) {
++			vfsp->vfs_flag |= VFS_MWAIT;
++			(void) sleep((caddr_t)vfsp, PVFS);
++			goto mloop;
++		}
++		error = VFS_ROOT(cvp->v_vfsmountedhere, &tvp);
++		if (error)
++			goto bad;
++		VN_RELE(cvp);
++		cvp = tvp;
++	}
++
++	/* plan 177.1 (original 0x11c4ac-0x11c5cf): mount points are crossed before symbolic links are followed */
++	/*
+ 	 * If we hit a symbolic link and there is more path to be
+ 	 * translated or this operation does not wish to apply
+ 	 * to a link, then place the contents of the link at the
+@@ -284,29 +317,23 @@
+ 		goto begin;
+ 	}
+ 
++skip:
++#if	POSIX_KERN
+ 	/*
+-	 * If this vnode is mounted on, then we
+-	 * transparently indirect to the vnode which 
+-	 * is the root of the mounted file system.
+-	 * Before we do this we must check that an unmount is not
+-	 * in progress on this vnode. This maintains the fs status
+-	 * quo while a possibly lengthy unmount is going on.
++	 * plan 177 (authored, D024; original 0x11c5d4-0x11c614): for POSIX
++	 * processes, trailing slashes after a directory end the pathname.
+ 	 */
+-mloop:
+-	while (vfsp = cvp->v_vfsmountedhere) {
+-		while (vfsp->vfs_flag & VFS_MLOCK) {
+-			vfsp->vfs_flag |= VFS_MWAIT;
+-			(void) sleep((caddr_t)vfsp, PVFS);
+-			goto mloop;
++	if (pn_pathleft(pnp) && u.u_procp->p_posix) {
++		register char *cp = pnp->pn_path;
++
++		while (*cp == '/')
++			cp++;
++		if (*cp == 0 && cvp->v_type == VDIR) {
++			*pnp->pn_path = 0;
++			pnp->pn_pathlen = 0;
+ 		}
+-		error = VFS_ROOT(cvp->v_vfsmountedhere, &tvp);
+-		if (error)
+-			goto bad;
+-		VN_RELE(cvp);
+-		cvp = tvp;
+ 	}
+-
+-skip:
++#endif	/* POSIX_KERN */
+ 	/*
+ 	 * Skip to next component of the pathname.
+ 	 * If no more components, return last directory (if wanted)  and

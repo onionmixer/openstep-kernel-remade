@@ -1,0 +1,257 @@
+--- 01_resources/upstream/darwin01/kernel/driverkit/objc_support.m	1999-03-17 01:54:27.000000000 +0900
++++ 07_kernel/src/objc-runtime/objc-zone.c	2026-10-07 13:16:39.991380970 +0900
+@@ -1,223 +1,71 @@
+ /*
+- * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ * objc-zone.c (plan 360).
+  *
+- * @APPLE_LICENSE_HEADER_START@
+- * 
+- * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
+- * Reserved.  This file contains Original Code and/or Modifications of
+- * Original Code as defined in and that are subject to the Apple Public
+- * Source License Version 1.0 (the 'License').  You may not use this file
+- * except in compliance with the License.  Please obtain a copy of the
+- * License at http://www.apple.com/publicsource and read it before using
+- * this file.
+- * 
+- * The Original Code and all software distributed under the License are
+- * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+- * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
+- * License for the specific language governing rights and limitations
+- * under the License."
+- * 
+- * @APPLE_LICENSE_HEADER_END@
+- */
+-
+-/* Copyright (c) 1992 NeXT Computer, Inc.  All rights reserved.
+- * 
+- *	File:	driverkit/objc_support.m
+- *
+- *	Run-time support for kernel ObjC library.
++ * The NXZone interface of the kernel Objective-C runtime, written for
++ * this project from the OPENSTEP 4.2 kernel bytes (D024, D027; original
++ * text 0x1cdeb0-0x1cdf30, KernelZone table 0x1e55e4-0x1e55f4).  The
++ * original file name and the names of the four static functions are not
++ * known (they are not in the original symbol table); both are
++ * reconstruction choices.
+  *
+- * HISTORY
+- * 31-Jan-92	Doug Mitchell at NeXT
+- *	Created.
+- */
+-
+-#import <streams/streams.h>
+-#import <bsd/sys/syslog.h>
+-#import <bsd/stdarg.h>
+-#import <bsd/machine/spl.h>
+-
+-/*
+- * FIXME - what the heck is this?
+- */
+-char **NXArgv;
+-
+-int NXFlush(NXStream *s)
+-{
+-	/*
+-	 * Nothing to do for now.
+-	 */
+-	return 0;
+-}
+-
+-void NXPrintf(NXStream *s, const char *format, ...)
+-{
+-	register sp = splhigh();
+-	va_list ap;
+-
+-	va_start(ap, format);
+-	log(LOG_ERR, format, ap);
+-	va_end(ap);
+-	splx(sp);
+-}
+-
+-/*
+- * This should never be called...
++ * kern_destroy, the KernelZone initializer, NXDefaultMallocZone,
++ * NXZoneFromPtr, NXCreateZone and NXNameZone are nearly the same as
++ * Darwin 0.1 kernel/driverkit/objc_support.m.  kern_realloc, kern_malloc,
++ * kern_free and NXZoneCalloc differ from it: in the 4.2 bytes they call
++ * the kernel malloc family (realloc, malloc, free, calloc) instead of
++ * kalloc/kfree; they are written from the original bytes (plan 360).
+  */
+-void abort()
+-{
+-	panic("objc: fatal error\n");
+-}
+ 
++#import <stdlib.h>
+ #import <objc/zone.h>
+ 
+-#import <kern/kalloc.h>
+-
+-#define	MDECL(reqlen)					\
+-union {							\
+-	struct	_mhead hdr;				\
+-	char	_m[(reqlen) + sizeof (struct _mhead)];	\
+-}
+-
+-struct _mhead {
+-	size_t	mlen;
+-	char	dat[0];
+-};
+-
+-static __inline__
+-void *kern_malloc(
+-	struct _NXZone	*zonep,
+-	size_t		size)
++static void *kern_realloc(NXZone *zonep, void *ptr, size_t size)
+ {
+-	MDECL(size)	*mem;
+-	size_t		memsize = sizeof (*mem);
+-
+-	if (size == 0)
+-		return (0);
+-
+-	mem = (void *)kalloc(memsize);
+-	if (!mem)
+-		return (0);
+-
+-	mem->hdr.mlen = memsize;
+-	(void) memset(mem->hdr.dat, 0, size);
+-
+-	return  (mem->hdr.dat);
++	return realloc(ptr, size);
+ }
+ 
+-static __inline__
+-void kern_free(
+-	struct _NXZone	*zonep,
+-	void		*addr)
++static void *kern_malloc(NXZone *zonep, size_t size)
+ {
+-	struct _mhead	*hdr;
+-
+-	if (!addr)
+-		return;
+-
+-	hdr = addr; hdr--;
+-	kfree((vm_offset_t)hdr, hdr->mlen);
++	return malloc(size);
+ }
+ 
+-static
+-void *kern_realloc(
+-        struct _NXZone	*zonep,
+-	void		*addr,
+-	size_t		nsize)
++static void kern_free(NXZone *zonep, void *ptr)
+ {
+-	struct _mhead	*ohdr;
+-	MDECL(nsize)	*nmem;
+-	size_t		nmemsize, osize;
+-	
+-	if (!addr)
+-		return (kern_malloc(zonep, nsize));
+-
+-	ohdr = addr; ohdr--;
+-	osize = ohdr->mlen - sizeof (*ohdr);
+-	if (nsize == osize)
+-		return (addr);
+-
+-	if (nsize == 0) {
+-		kfree((vm_offset_t)ohdr, ohdr->mlen);
+-		return (0);
+-	}
+-
+-	nmemsize = sizeof (*nmem);
+-	nmem = (void *)kalloc(nmemsize);
+-	if (!nmem)
+-		return (0);
+-
+-	nmem->hdr.mlen = nmemsize;
+-	if (nsize > osize)
+-		(void) memset(&nmem->hdr.dat[osize], 0, nsize - osize);
+-	(void) memcpy(nmem->hdr.dat, ohdr->dat,
+-					(nsize > osize) ? osize : nsize);
+-	kfree((vm_offset_t)ohdr, ohdr->mlen);
+-
+-	return (nmem->hdr.dat);
++	if (ptr)
++		free(ptr);
+ }
+ 
+-static void kern_destroy(struct _NXZone *zonep) 
++static void kern_destroy(NXZone *zonep)
+ {
+ }
+ 
+-NXZone	KernelZone = {
++NXZone KernelZone = {
+ 	kern_realloc,
+ 	kern_malloc,
+ 	kern_free,
+ 	kern_destroy,
+ };
+ 
+-NXZone *NXDefaultMallocZone()
++NXZone *NXDefaultMallocZone(void)
+ {
+-	return &KernelZone; 
++	return &KernelZone;
+ }
+ 
+ NXZone *NXZoneFromPtr(void *ptr)
+ {
+-	return(&KernelZone);
+-}
+-
+-
+-NXZone *NXCreateZone(size_t startsize, size_t granularity, int canfree)
+-{
+-	return(&KernelZone);
+-}
+-
+-void NXNameZone(NXZone *z, const char *name)
+-{
+-	/* EMPTY */
+-}
+-
+-void *
+-NXZoneCalloc(NXZone *zonep, size_t numElems, size_t byteSize)
+-{
+-	return kern_malloc(zonep, numElems*byteSize);
+-}
+-
+-void *malloc(
+-	size_t		size)
+-{
+-	return kern_malloc(&KernelZone, size);
++	return &KernelZone;
+ }
+ 
+-void free(
+-	void		*addr)
++NXZone *NXCreateZone(size_t startSize, size_t granularity, int canFree)
+ {
+-	kern_free(&KernelZone, addr);
++	return &KernelZone;
+ }
+ 
+-void *calloc(
+-	size_t		num,
+-	size_t		size)
++void NXNameZone(NXZone *zonep, const char *name)
+ {
+-	return kern_malloc(&KernelZone, num*size);
+ }
+ 
+-void *realloc(
+-	void		*addr,
+-	size_t		size)
++void *NXZoneCalloc(NXZone *zonep, size_t numElements, size_t byteSize)
+ {
+-	return kern_realloc(&KernelZone, addr, size);
++	return calloc(numElements, byteSize);
+ }

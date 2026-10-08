@@ -1,0 +1,27 @@
+--- 01_resources/upstream/darwin01/kernel/machdep/i386/start.s	1999-03-17 01:55:31.000000000 +0900
++++ 07_kernel/src/machdep/i386/start.s	2026-10-04 10:16:51.992023919 +0900
+@@ -35,7 +35,12 @@
+  
+ #import <architecture/i386/asm_help.h>
+ 
+-#import <assym.h>
++/* plan 292: the generated assym.h is not part of this tree; the four
++   selectors used below, with the values of the original bytes */
++#define	LCODESEL	0x48
++#define	LDATASEL	0x50
++#define	KCSSEL		0x08
++#define	KDSSEL		0x10
+ 
+ 	TEXT
+ 	/*
+@@ -48,8 +53,8 @@
+ LEAF(_start, 0)
+ 
+ // BIOS/DOS hack			// this says don''t test memory
+-//	movw	$0x1234, %ax		// on reboot/reset
+-//	movw	%ax, 0x472		// pretty obscure
++	movw	$0x1234, %ax		// on reboot/reset	(plan 292: active in the original)
++	movw	%ax, 0x472		// pretty obscure
+ // BIOS/DOS hack
+ 	cld
+ 

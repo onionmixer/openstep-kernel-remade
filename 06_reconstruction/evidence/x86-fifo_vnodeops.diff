@@ -1,0 +1,221 @@
+--- 01_resources/upstream/nextmach/mk-108.1/specfs/fifo_vnodeops.c	2026-09-11 10:02:49.620218947 +0900
++++ 07_kernel/src/bsd/specfs/fifo_vnodeops.c	2026-10-03 11:24:48.577856736 +0900
+@@ -56,6 +56,7 @@
+ static	int fifo_invalop();
+ static	int fifo_cmp();
+ static	int fifo_badop();
++static	int fifo_devblocksize();	/* plan 188 (authored) */
+ 
+ extern int spec_setattr();
+ extern int spec_access();
+@@ -106,6 +107,9 @@
+ 	fifo_badop,	/* pageout */
+ 	fifo_badop,	/* nlinks */
+ #endif	MACH
++#if	NeXT
++	fifo_devblocksize,	/* plan 188 (authored; original table 0x1dd534) */
++#endif	NeXT
+ };
+ 
+ 
+@@ -195,11 +199,21 @@
+ 				curpri = PPIPE;
+ #endif	MACH
+ 				selwakeup(fp->fn_xsel, fp->fn_flag&FIFO_XCOLL);
++				thread_deallocate(fp->fn_xsel);	/* plan 188 (0x138c72) */
+ 				fp->fn_flag &= ~FIFO_XCOLL;
+ 				fp->fn_xsel = (struct proc *)0;
+ 			}
+ 		}
+ 	}
++	/* plan 188 (authored, D024; original 0x138c88-0x138cb3): drop cached selectors */
++	if (fp->fn_wsel) {
++		thread_deallocate(fp->fn_wsel);
++		fp->fn_wsel = (struct proc *)0;
++	}
++	if (fp->fn_rsel) {
++		thread_deallocate(fp->fn_rsel);
++		fp->fn_rsel = (struct proc *)0;
++	}
+ 
+ 	if (flag & FWRITE) {
+ 		if ((--fp->fn_wcnt == 0) && (fp->fn_flag & FIFO_RBLK)) {
+@@ -278,7 +292,8 @@
+ 			goto rdwrdone;
+ 		}
+ 
+-		while (count = uiop->uio_resid) {
++		count = uiop->uio_resid;	/* plan 188.2 (variant w1) */
++		while (count) {
+ 			if (fp->fn_rcnt == 0) {
+ 				/* no readers anymore! */
+ 				psignal(u.u_procp, SIGPIPE);
+@@ -299,8 +314,15 @@
+ 						 * EWOULDBLOCK, otherwise
+ 						 * return 0.
+ 						 */
+-						if (uiop->uio_fmode & FNDELAY)
+-							rval = EWOULDBLOCK;
++						/* plan 188.1 (authored; original 0x138e01 -> 0x13906f) */
++						if (uiop->uio_fmode & FNDELAY) {
++#if	POSIX_KERN
++							if (u.u_procp->p_posix)	/* plan 188.2 (variant t2; original 0x13906f) */
++								rval = EAGAIN;
++							else
++#endif	/* POSIX_KERN */
++								rval = EWOULDBLOCK;
++						}
+ 						goto rdwrdone;
+ 					} else if (fp->fn_size >= PIPE_BUF) {
+ 					    /*
+@@ -311,9 +333,15 @@
+ 					     * succeeded.  If so, uio_resid
+ 					     * reflects this.
+ 					     */
+-						if ((uiop->uio_fmode & FNDELAY)
+-						    && (ocnt == uiop->uio_resid))
+-							rval = EWOULDBLOCK;
++						/* plan 188.1 (authored; original 0x138e0e -> 0x13906f): no ocnt test */
++						if (uiop->uio_fmode & FNDELAY) {
++#if	POSIX_KERN
++							if (u.u_procp->p_posix)	/* plan 188.2 (variant t2; original 0x13906f) */
++								rval = EAGAIN;
++							else
++#endif	/* POSIX_KERN */
++								rval = EWOULDBLOCK;
++						}
+ 						goto rdwrdone;
+ 					}
+ 				} else {
+@@ -419,12 +447,14 @@
+ 				curpri = PPIPE;
+ #endif	MACH
+ 				selwakeup(fp->fn_rsel, fp->fn_flag&FIFO_RCOLL);
++				thread_deallocate(fp->fn_rsel);	/* plan 188 (0x138fed) */
+ 				fp->fn_flag &= ~FIFO_RCOLL;
+ 				fp->fn_rsel = (struct proc *)0;
+ 			}
+ 
+-wrloop: 		/* bottom of write 'while' loop */
+ 			continue;
++wrloop: 		/* bottom of write 'while' loop */
++			count = uiop->uio_resid;
+ 		}
+ 
+ 	} else {					/* UIO_READ */
+@@ -445,7 +475,12 @@
+ 			 * if S5-style, return 0.
+ 			 */
+ 			if (uiop->uio_fmode & FNDELAY) {
+-				rval = EWOULDBLOCK;
++#if	POSIX_KERN
++				if (u.u_procp->p_posix)	/* plan 188.2 (variant t2; original 0x13906f) */
++					rval = EAGAIN;
++				else
++#endif	/* POSIX_KERN */
++					rval = EWOULDBLOCK;
+ 				goto rdwrdone;
+ 			}
+ 			fp->fn_flag |= FIFO_RBLK;
+@@ -520,6 +555,7 @@
+ #else	MACH
+ 			curpri = PPIPE;
+ #endif	MACH
++			wakeup((caddr_t) &fp->fn_wcnt);	/* plan 188 (authored; original 0x139251) */
+ 		}
+ 
+ 		/* wake up any sleeping write selectors */
+@@ -530,6 +566,7 @@
+ 			curpri = PPIPE;
+ #endif	MACH
+ 			selwakeup(fp->fn_wsel, fp->fn_flag&FIFO_WCOLL);
++			thread_deallocate(fp->fn_wsel);	/* plan 188 (0x139274) */
+ 			fp->fn_flag &= ~FIFO_WCOLL;
+ 			fp->fn_wsel = (struct proc *)0;
+ 		}
+@@ -583,32 +620,24 @@
+ 	case FREAD:
+ 		if (fp->fn_size != 0)		/* anything to read? */
+ 			return (1);
+-		if (fp->fn_rsel &&
+-		    ((thread_t)fp->fn_rsel)->wait_event == (int)&selwait)
++		/* plan 188 (authored, D024; original 0x13935a-0x1393bd) */
++		if (selthreadcache(&fp->fn_rsel))
+ 			fp->fn_flag |= FIFO_RCOLL;
+-		else
+-			fp->fn_rsel = u.u_procp;
+ 		break;
+ 
+ 	case FWRITE:
+ 		/* is there room to write? (and are there any readers?) */
+ 		if ((fp->fn_size < PIPE_BUF) && (fp->fn_rcnt > 0))
+ 			return (1);
+-		if (fp->fn_wsel &&
+-		    ((thread_t)fp->fn_wsel)->wait_event == (int)&selwait)
++		if (selthreadcache(&fp->fn_wsel))
+ 			fp->fn_flag |= FIFO_WCOLL;
+-		else
+-			fp->fn_wsel = u.u_procp;
+ 		break;
+ 
+ 	case 0:
+ 		if (fp->fn_rcnt == 0)		/* no readers anymore? */
+ 			return (1);		/* exceptional condition */
+-		if (fp->fn_wsel &&
+-		    ((thread_t)fp->fn_wsel)->wait_event == (int)&selwait)
++		if (selthreadcache(&fp->fn_xsel))
+ 			fp->fn_flag |= FIFO_XCOLL;
+-		else
+-			fp->fn_xsel = u.u_procp;
+ 		break;
+ 	}
+ 	return (0);
+@@ -668,6 +697,7 @@
+ 	register struct fifonode *fp;
+ {
+ 	register struct fifo_bufhdr *bp;
++	vm_offset_t addr;	/* plan 188.1 */
+ 
+ 	if (fifo_alloc >= PIPE_MNB) {
+ 		/*
+@@ -684,13 +714,15 @@
+ 
+ 	fifo_alloc += FIFO_BUFFER_SIZE;
+ #if	MACH
+-	bp = (struct fifo_bufhdr *)kmem_alloc(kernel_map,
+-					      (u_int)FIFO_BUFFER_SIZE);
++	/* plan 188.1 (authored; original 0x1394c8-0x1394e3) */
++	(void) kmem_alloc_wired(kernel_map, &addr, (vm_size_t)FIFO_BUFFER_SIZE);
++	fp->fn_nbuf++;
++	return ((struct fifo_bufhdr *) addr);	/* plan 188.2 (0x1394e5) */
+ #else	MACH
+ 	bp = (struct fifo_bufhdr *)kmem_alloc((u_int)FIFO_BUFFER_SIZE);
+-#endif	MACH
+ 	fp->fn_nbuf++;
+ 	return ((struct fifo_bufhdr *) bp);
++#endif	MACH
+ }
+ 
+ /*
+@@ -705,6 +737,7 @@
+ 
+ #if	MACH
+ 	fp = (struct fifonode *)kalloc(sizeof (*fp));
++	bzero((caddr_t)fp, sizeof (*fp));	/* plan 188 (authored; original 0x139507) */
+ #else	MACH
+ 	fp = (struct fifonode *)kmem_zalloc(sizeof (*fp));
+ #endif	MACH
+@@ -758,3 +791,13 @@
+ 	return (nbp);
+ }
+ 
++/*
++ * plan 188 (authored, D024; original 0x1395cc, reached only through the
++ * vn_devblocksize slot of fifo_vnodeops): the name of the original
++ * constant is not known.
++ */
++static int
++fifo_devblocksize()
++{
++	return (1024);
++}

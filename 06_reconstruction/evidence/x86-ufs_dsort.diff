@@ -1,0 +1,74 @@
+--- 01_resources/upstream/nextmach/mk-108.1/ufs/ufs_dsort.c	2026-09-11 10:02:49.644219242 +0900
++++ 07_kernel/src/bsd/ufs/ufs_dsort.c	2026-10-03 14:00:23.973436109 +0900
+@@ -46,14 +46,13 @@
+ #import <sys/disksort.h>
+ #import <kern/assert.h>
+ #import <kern/kalloc.h>
+-#import <next/spl.h>
++#import <machine/spl.h>	/* plan 206: NeXTMach next/spl.h */
+ #import <kern/xpr.h>
+ #import <kern/sched.h>
+ #import <kern/thread.h>
+ #endif	NeXT
+ 
+-#if	NeXT
+-#else	NeXT
++#if	1	/* plan 206: the classic disksort is in the original (0x13f90c) */
+ disksort(dp, bp)
+ 	register struct buf *dp, *bp;
+ {
+@@ -389,7 +388,11 @@
+ 	int s;
+ 
+ 	ds_dbg(("enter buf 0x%x in queue 0x%x with pri %d\n", bp, dsq, pri));
++#if	NeXT
++	s = splbio();	/* plan 206.1 (original calls _splbio) */
++#else	NeXT
+ 	s = spldma();
++#endif	NeXT
+ 	simple_lock(&dsq->lock);
+ 
+ 	if (queue_empty(&dsq->activeq)) {
+@@ -525,6 +528,8 @@
+ 
+ void disksort_enter(ds_queue_t *dsq, struct buf *bp)
+ {
++	thread_t th = current_thread();	/* plan 206 (authored; original 0x140174) */
++
+ 	disksort_check_default(dsq);
+ 
+ 	if (dsq->indirect)
+@@ -533,7 +538,8 @@
+ 		/*
+ 		 * Pull the guy's prioirty out of the current thread.
+ 		 */
+-		bp->b_rtpri = current_thread()->priority;
++		if (th)			/* plan 206 (original 0x1401dc) */
++			bp->b_rtpri = th->priority;
+ 		ds_enter_common(dsq, bp);
+ 	}
+ }
+@@ -587,7 +593,11 @@
+ 	if (dsq->indirect)
+ 		return (*ds_call.first)(dsq);
+ 
++#if	NeXT
++	s = splbio();	/* plan 206.1 (original calls _splbio) */
++#else	NeXT
+ 	s = spldma();
++#endif	NeXT
+ 	simple_lock(&dsq->lock);
+ 	if (queue_empty(&dsq->activeq)) {
+ 		simple_unlock(&dsq->lock);
+@@ -618,7 +628,11 @@
+ 	if (dsq->indirect)
+ 		return (*ds_call.remove)(dsq, bp);
+ 
++#if	NeXT
++	s = splbio();	/* plan 206.1 (original calls _splbio) */
++#else	NeXT
+ 	s = spldma();
++#endif	NeXT
+ 	simple_lock(&dsq->lock);
+ 
+ 	if (queue_empty(&dsq->activeq)) {

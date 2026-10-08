@@ -61,7 +61,7 @@ bash 11_emulation/scripts/build-qemu.sh
 ## Run
 
 ```sh
-bash 11_emulation/scripts/vm-i386.sh  install|boot|boot-nocd [--cd ISO|KEY] [--snapshot] [--gdb-wait] [-- QEMU args]
+bash 11_emulation/scripts/vm-i386.sh  install|boot|boot-nocd [--cd ISO|KEY] [--disk RAW --snapshot] [--snapshot] [--gdb-wait] [-- QEMU args]
 bash 11_emulation/scripts/vm-sparc.sh install|boot [--qemu62] [--cd ISO|KEY] [--snapshot] [--gdb-wait] [--serial] [-- QEMU args]
 bash 11_emulation/scripts/vm-m68k.sh  install|boot [--cd ISO|KEY] [--snapshot] [--gdb-wait] [-- QEMU args]
 ```
@@ -69,3 +69,6 @@ bash 11_emulation/scripts/vm-m68k.sh  install|boot [--cd ISO|KEY] [--snapshot] [
 Copy `scripts/site.conf.example` to `11_emulation/site.conf` and set the media
 paths first. `--cd` (boot mode only) puts another CD in the machine's CD
 position; it takes a path or a `site.conf` key such as `OS42_DEV_ISO`.
+`--disk RAW` (i386 `boot`/`boot-nocd`, only together with `--snapshot`) boots a
+raw test disk image instead of `09_validation/images/i386/openstep42-i386-hdd.raw`;
+the image is never written (plan 405).

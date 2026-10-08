@@ -1,0 +1,8 @@
+# x86 `src/bsd/kern/kern_sig.c` (plan 231 (S5-P215), 2026-10-03)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 231 (S5-P215). Final run `s5p215-it4`; 07 file SHA-256 `faa77695cc3fb1e5456ef5cc30b81e8b68b63e57c07152f9acdad5847217b4fa`; diff `x86-kern_sig.diff`.
+
+- Object [0x109128, 0x10a382) 4698 B, 17 functions (_sigvec, _setsigvec, _sigblock, _sigsetmask, _sigcont, _sigpause, _sigstack, _kill, _killpg, _killpg1, _gsignal, _pgsignal, _psignal, _issig, _stop, _psig, _sigpending). Front `ec 5d c3 00`, back `00 00 55 89`, next symbol 0x10a384.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p215-it4-l1-kern_sig-F-20261002.json`). Grade **A**.
+
+Object extent [0x109128, 0x10a384) 4700 B, 17 functions, after the confirmed kern_shutdown, 0x00 fill at the end. Diagnosis s5p215-d1 (NeXTMach with core removed and SIGMSG cases dropped, staging copy): killpg, killpg1, sigstack, stop matched; the rest differed as listed in plan 231. Diagnosis s5p215-d2 (plan 231 applied, staging copy): 16 functions matched in size and shape; kill differed by register allocation. The codex review of plan 231 confirmed facts 0-10 and found one more difference (sigvec rejects 32: original 0x109141 cmp edx,0x1e), which was adopted after a byte check. Kill variants s5p215-kv1..kv5 (declarations, register, inline helper, condition shape, declaration order) failed; kv6 (the POSIX branch with its own psignal call and return) matched. it1 differed only in kill; it2 had one extern name difference (thread_exception_abort vs _mach_msg_abort_rpc at 0x1584d4); it3/it4 (s5p215-it4): OBJECT_MATCH, relcheck 0. Compiles without POSIX_KERN (s5p215-noposix2) after guarding gsignal/pgsignal.

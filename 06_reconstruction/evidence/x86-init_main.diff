@@ -1,0 +1,444 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/init_main.c	2026-09-11 10:02:49.484217275 +0900
++++ 07_kernel/src/bsd/kern/init_main.c	2026-10-08 18:59:33.997794339 +0900
+@@ -128,26 +128,20 @@
+ 
+ #import <kern/thread.h>
+ #import <kern/task.h>
+-#import <sys/machine.h>
++#import <mach/machine.h>	/* plan 232: NeXTMach sys/machine.h */
+ #import <kern/timer.h>
+ #import <sys/version.h>
+ #import <machine/pmap.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 232: NeXTMach vm/vm_param.h */
+ #import <vm/vm_page.h>
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+ #import <vm/vm_object.h>
+-#import <sys/boolean.h>
++#import <mach/boolean.h>	/* plan 232: NeXTMach sys/boolean.h */
+ #import <kern/sched_prim.h>
+-#import <kern/ipc_globals.h>
+ #import <kern/zalloc.h>
+-#import <kern/ipc_globals.h>
+-#if	MACH_XP
+-#import <vm/vnode_pager.h>
+-#import <vm/device_pager.h>
+-#endif	MACH_XP
+ 
+-#import <sys/task_special_ports.h>
++#import <mach/task_special_ports.h>	/* plan 232: NeXTMach sys/task_special_ports.h */
+ #import <sys/ux_exception.h>
+ 
+ extern void	ux_handler();
+@@ -185,11 +179,9 @@
+ char	domainname[MAXDOMNAMELEN];
+ int	domainnamelen;
+ 
+-struct	timeval boottime;
++extern struct	timeval boottime;	/* plan 401 (D060): defined in kern_time.c; the original init_main does not mention it */
+ struct	timeval time;
+-struct	timezone tz;			/* XXX */
+ int	hz;
+-int	phz;				/* alternate clock's frequency */
+ int	tick;
+ int	lbolt;				/* awoken once a second */
+ 
+@@ -197,6 +189,13 @@
+ vm_map_t	mb_map;
+ 
+ int	cmask = CMASK;
++
++#if	POSIX_KERN
++/* plan 232: process 0 POSIX state (commons in the original) */
++struct posix_proc	*px;
++struct pgrp	pgrp0;
++struct session	session0;
++#endif	POSIX_KERN
+ /*
+  * Initialization code.
+  * Called from cold start routine as
+@@ -233,52 +232,37 @@
+ 
+ extern thread_t first_thread;
+ 
++/*
++ * plan 232 (authored, D024; original _main 0x102974-0x102e2c): the
++ * NeXTMach main() shape with the OPENSTEP 4.2 start-up sequence.
++ */
+ main()
+ {
+ 	register int i;
+ 	register struct proc *p;
+ 	extern struct ucred *rootcred;
+ 	int s;
+-	port_t		dummy_port;
+ 	thread_t	th;
+ 	extern void	idle_thread(), init_task(), vm_pageout();
+-	extern void	reaper_thread(), swapping_thread();
++	extern void	reaper_thread(), swapin_thread();
+ 	extern void	netisr_thread(), sched_thread();
+-#if	NCPUS > 1
+-	extern void	 action_thread();
+-#endif	NCPUS > 1
+-#if	MACH_XP
+-	thread_t	inode_th;
+-	thread_t	device_th;
+-#endif	MACH_XP
+-	thread_t	exc_th;
+-#if	NeXT
+-	task_t		exc_task;
+-	extern thread_t	softint_thread;
+-	extern void	softint_th(void);
+-#endif	NeXT
++	extern void	lightning_bolt();
+ 	extern thread_t	newproc();
++	static int	classHandler();
+ 
+ 	/*
+ 	 * set up system process 0 (swapper)
+ 	 */
+-
+-#if	NeXT
+ 	pqinit();
+ 	p = kernel_proc;
+ 	kernel_task->proc = kernel_proc;
+ 	p->p_pid = 0;
+ 	pidhash_enter(p);
+-#else	NeXT
+-	p = &proc[0];
+-#endif	NeXT
+ 	p->task = kernel_task;
+-	/*
+-	 *	Now in thread context, switch to thread timer.
+-	 */
+ 	s = splhigh();
+-	timer_switch(&current_thread()->system_timer);
+ 	splx(s);
++	calloutInitialize();
++	switch_unix_context(current_thread());
+ 
+ 	p->p_stat = SRUN;
+ 	p->p_flag |= SLOAD|SSYS;
+@@ -300,6 +284,36 @@
+ 	u.u_rlimit[RLIMIT_DATA] = vm_initial_limit_data;
+ 	u.u_rlimit[RLIMIT_CORE] = vm_initial_limit_core;
+ 
++#if	POSIX_KERN
++	/*
++	 * POSIX process group and session of process 0
++	 * (original 0x102aa4-0x102b6e).
++	 */
++	for (i = 0; i < 64; i++) {
++		pgrphash[i] = 0;
++		posix_proc_hash[i] = 0;
++	}
++	px = new_posix_proc(0);
++	px->p_posix_pgrp = &pgrp0;
++	px->p_pgrpnxt = 0;
++	px->p_ruid = u.u_ruid;
++	px->p_svuid = u.u_uid;
++	px->p_svgid = u.u_gid;
++	px->p_lockf_chan = 0;
++	px->p_posix_utime = 0;
++	px->p_posix_noctty = 0;
++	pgrphash[0] = &pgrp0;
++	pgrp0.pg_mem = p;
++	pgrp0.pg_session = &session0;
++	pgrp0.pg_hforw = 0;
++	pgrp0.pg_jobc = 0;
++	session0.s_count = 1;
++	session0.s_leader = p;
++	session0.s_ttyp = 0;
++	session0.s_ttyd = 0;
++#endif	/* POSIX_KERN */
++
++	gc_init();
+ 	/*
+ 	 *	Allocate a kernel submap for pageable memory
+ 	 *	for temporary copying (table(), execve()).
+@@ -311,11 +325,8 @@
+ 						&min, &max,
+ 						512*1024,
+ 						TRUE);
+-#if	MACH_OLD_VM_COPY
+-#else	MACH_OLD_VM_COPY
+-	    kernel_pageable_map->wait_for_space = TRUE;
+-#endif	MACH_OLD_VM_COPY
+ 	}
++	ns_hardclock_init();
+ 
+ 	mfs_init();
+ 	u_cred_lock_init(&u.utask->uu_cred_lock);
+@@ -324,35 +335,19 @@
+ 	for (i = 1; i < NGROUPS; i++)
+ 		u.u_groups[i] = NOGROUP;
+ 
+-#if	QUOTA
+-	qtinit();
+-#endif	QUOTA
+-	timestamp_init();
+-
+-	startrtclock();
+-
+ 	/*
+ 	 * Initialize tables, protocols, and set up well-known inodes.
+ 	 */
+ 	mbinit();
+ 	cinit();
+-#import <loop.h>
+-#if NLOOP > 0
+-	loattach();			/* XXX */
+-#endif
+ 	/*
+ 	 * Block reception of incoming packets
+ 	 * until protocols have been initialized.
+ 	 */
+-	s = splimp();
++	s = splnet();
+ 	ifinit();
+ 	domaininit();
+ 	splx(s);
+-#if	NeXT
+-	/* done above */
+-#else	NeXT
+-	pqinit();
+-#endif	NeXT
+ 	bhinit();
+ 	dnlc_init();
+ 	/*
+@@ -368,166 +363,69 @@
+ 			continue;
+ 		(void) thread_create(kernel_task, &th);
+ 		thread_bind(th, cpu_to_processor(i));
+-		thread_start(th, idle_thread, THREAD_SYSTEMMODE);
++		thread_start(th, idle_thread);
++		thread_doswapin(th);
+ 		(void) thread_resume(th);
+ 	}
+ 
+ 	binit();
+-#ifdef GPROF
+-	kmstartup();
+-#endif
+ 
+ /* kick off timeout driven events by calling first time */
+ 	recompute_priorities();
+-#if	!NeXT
+-	schedcpu();
+-#endif	!NeXT
++	lightning_bolt(0, 0);
+ 
+-	/*
+-	 * Start up netisr thread now in case we are doing an nfs_mountroot.
+-	 */
+-	(void) kernel_thread(kernel_task, reaper_thread);
+-	(void) kernel_thread(kernel_task, netisr_thread);
++	(void) kernel_thread(kernel_task, reaper_thread, 0);
++	(void) kernel_thread(kernel_task, swapin_thread, 0);
++	(void) kernel_thread(kernel_task, sched_thread, 0);
++	(void) kernel_thread(kernel_task, netisr_thread, 0);
++
++	_objcInit();
++	objc_setClassHandler(classHandler);
++	kmEnableAnimation();
++	autoconf();
++	setconf();
++	loattach();
+ 
+ 	/*
+ 	 * mount the root, gets rootdir
+ 	 */
+ 	u.u_error = 0;
+ 	vfs_mountroot();
+-/*
+- * This is now handled by the mach_swapon program:
+-	vnode_pager_default_init();
+- */
+-	boottime = time;
+ 
+ 	/*
+ 	 *  Default to pausing process on these errors.
+ 	 */
+ 	u.u_rpause = (URPS_AGAIN|URPS_NOMEM|URPS_NFILE|URPS_NOSPC);
+ 
+-#if	NeXT
+-	/*
+-	 * NeXT has a thread for running things in a thread context
+-	 * via softint_sched().
+-	 */
+-	softint_thread = kernel_thread(kernel_task, (int(*)())softint_th);
+-#endif	NeXT
+ 	file_init();
+ 
+ 	/*
+ 	 * make init process
+ 	 */
+-
+ 	th = newproc(0);
+-	th->task->kernel_privilege = FALSE;	/* XXX cleaner way to do this?
+-							*/
+-#if	NeXT
++	th->task->kernel_privilege = FALSE;
+ 	init_proc = pfind(1);			/* now that it is set */
+-#endif	NeXT
+-	/*
+-	 *	After calling start_init,
+-	 *	machine-dependent code must
+-	 *	set up stack as though a system
+-	 *	call trap occurred, then call
+-	 *	load_init_program.
+-	 */
+-#if	MACH_XP
+-	/*inode_pager*/ {
+-	thread_t	inode_th;
+-	vm_offset_t	min, max;
+-
+-	simple_lock_init(&inode_pager_init_lock);
+-
+-	vm_pager_default = PORT_NULL;
+-	inode_th = newproc(0);
+-	inode_th->task->map =
+-		kmem_suballoc(kernel_map, &min, &max,
+-				8 * PAGE_SIZE, FALSE);
+-
+-
+-	/*
+-	 *	Wait for default pager to become available
+-	 */
+-
+-	simple_lock(&inode_pager_init_lock);
+-	while (vm_pager_default == PORT_NULL)  {
+-		thread_sleep((int) &vm_pager_default,
+-			&inode_pager_init_lock, FALSE);
+-		simple_lock(&inode_pager_init_lock);
+-	}
+-	simple_unlock(&inode_pager_init_lock);
+-
+-	/*inode_pager*/ }
+-
+-	/*device_pager*/ {
+-	thread_t	device_th;
+-	vm_offset_t	min, max;
+-
+-	device_th = newproc(0);
+-	device_th->task->map =
+-		kmem_suballoc(kernel_map, &min, &max,
+-				8 * PAGE_SIZE, FALSE);
+-
+-	device_th->ipc_kernel = TRUE;
+-	device_th->task->kernel_only = TRUE;
+-	thread_swappable(device_th, FALSE);
+-	thread_start(device_th, device_pager, THREAD_SYSTEMMODE);
+-	(void) thread_resume(device_th);
+-	/*device_pager*/ }
+-#endif	MACH_XP
+ 
+ 	/*
+ 	 *	Default exception server
+ 	 */
+-
+-	simple_lock_init(&ux_handler_init_lock);
+-	ux_exception_port = PORT_NULL;
+-#if	NeXT
+-	(void) task_create(kernel_task, FALSE, &exc_task);
+-	(void) kernel_thread(exc_task, ux_handler);
+-#else	NeXT
+-	exc_th = newproc(0);
+-	exc_th->task->kernel_vm_space = TRUE;
+-	thread_start(exc_th, ux_handler, THREAD_SYSTEMMODE);
+-	(void) thread_resume(exc_th);
+-#endif	NeXT
+-	simple_lock(&ux_handler_init_lock);
+-	if (ux_exception_port == PORT_NULL) 
+-		thread_sleep((int) &ux_exception_port,
+-			simple_lock_addr(ux_handler_init_lock), FALSE);
+-	else
+-		simple_unlock(&ux_handler_init_lock);
+-	(void) task_set_exception_port(th->task, ux_exception_port);
++	ux_handler_init();
+ 	port_reference(ux_exception_port);
+-	object_copyout(th->task, (kern_obj_t) ux_exception_port,
+-		       MSG_TYPE_PORT, &dummy_port);
++	(void) task_set_special_port(th->task, TASK_EXCEPTION_PORT,
++				     ux_exception_port);
+ 
+-	thread_start(th, init_task, THREAD_SYSTEMMODE);
++	thread_start(th, init_task);
+ 	(void) thread_resume(th);
+ 
+-	/*
+-	 *	Kernel daemon threads that don't need their own tasks
+-	 */
++	power_init();
++	pageoutThread = kernel_thread(kernel_task, vm_pageout, 0);
+ 
+-#if	NeXT
+-	pageoutThread = kernel_thread(kernel_task, vm_pageout);
+-#else	NeXT
+-	(void) kernel_thread(kernel_task, vm_pageout);
+-#endif	NeXT
+-	(void) kernel_thread(kernel_task, swapping_thread);
+-#if	NCPUS > 1
+-	(void) kernel_thread(kernel_task, action_thread);
+-#endif	NCPUS > 1
+-	(void) kernel_thread(kernel_task, sched_thread);
+-	
+ 	/*
+ 	 * 	vol driver and notification server startup
+ 	 */
+-#if	NeXT
+ 	vol_start_thread();
+ 	pnotify_start();
+-#endif	NeXT
+-	
++
+ 	u.u_procp->p_flag |= SLOAD|SSYS;
+ 	task_name("kernel idle");
+ 	(void) thread_terminate(current_thread());
+@@ -538,7 +436,29 @@
+ void init_task()
+ {
+ 	task_name("init");
+-	start_init();
++	/* plan 232 (authored, D024; original 0x102e6b-0x102e98) */
++	u.u_ar0 = (int *) USER_REGS(current_thread());
++	load_init_program();
++	thread_exception_return();
++}
++
++/*
++ * plan 232 (authored, D024; original _lightning_bolt 0x102ea4):
++ * wake lbolt sleepers once a second.
++ */
++void
++lightning_bolt(arg, entry)
++	void	*arg;
++	void	*entry;
++{
++	extern void	*calloutEntryAllocate();
++	extern unsigned long long	calloutDeadlineFromInterval();
++
++	thread_wakeup((event_t)&lbolt);
++	if (entry == 0)
++		entry = calloutEntryAllocate(lightning_bolt, 0);
++	calloutEntryDispatchDelayed(entry,
++	    calloutDeadlineFromInterval(1000000000LL));
+ }
+ 
+ /*
+@@ -616,5 +536,12 @@
+ 	}
+ }
+ 
+-
+-
++/*
++ * plan 232 (authored, D024; original 0x10307c, no symbol): the
++ * Objective-C class handler installed by main(); it accepts nothing.
++ */
++static int
++classHandler()
++{
++	return (0);
++}

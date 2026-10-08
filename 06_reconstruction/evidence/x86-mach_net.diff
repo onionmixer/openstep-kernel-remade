@@ -1,0 +1,404 @@
+--- /dev/null	2026-09-16 12:58:03.398972062 +0900
++++ 07_kernel/src/kern/mach_net.c	2026-10-04 00:16:44.258935127 +0900
+@@ -0,0 +1,401 @@
++/*
++ * kern/mach_net.c -- IP datagrams carried as Mach messages (plan 261).
++ *
++ * Written for this project from the OPENSTEP 4.2 x86 kernel object
++ * [0x15d6b8, 0x15de68) (D024).  Darwin 0.1 kern/mach_net.c, a later
++ * form of this file, was consulted for structure only (the NeXTMach
++ * text uses the old IPC); the control flow is fixed by the bytes and
++ * may resemble Darwin's (D027).  Differences from Darwin 0.1: the
++ * super-user test reads u.u_uid, no unix_master/unix_release, port
++ * references through ipc_object_reference/release, ip_output with
++ * four arguments.
++ */
++
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <sys/mbuf.h>
++#import <sys/socket.h>
++#import <sys/user.h>
++
++#import <net/if.h>
++#import <net/route.h>
++
++#import <netinet/in.h>
++#import <netinet/in_systm.h>
++#import <netinet/ip.h>
++#import <netinet/in_pcb.h>
++#import <netinet/ip_var.h>
++
++#import <mach/mach_types.h>		/* after the BSD network headers (ip_timestamp) */
++#import <kern/zalloc.h>
++#import <kern/ipc_kobject.h>
++#import <ipc/ipc_kmsg.h>
++#import <ipc/ipc_mqueue.h>
++#import <ipc/ipc_object.h>
++#import <vm/vm_kern.h>
++
++#import <machine/spl.h>
++
++#define IP_MSG_ID	1959
++
++/*
++ * Send the IP datagram in a message: only for the super-user, and only
++ * a simple message holding a whole IP header and the length it gives.
++ */
++static
++void
++mach_net_output(
++    ipc_kmsg_t		kmsg
++)
++{
++	struct ip_msg {
++		mach_msg_header_t	header;
++		struct ip		ip;
++	} *ip_msg = (struct ip_msg *) &kmsg->ikm_header;
++	struct mbuf		*top;
++	register struct mbuf	**mp;
++	register int		size;
++	register caddr_t	cp;
++	static struct route	cached_route = { 0 };
++
++	if (!(u.u_uid == 0))
++		return;
++
++	kmsg->ikm_header.msgh_size += kmsg->ikm_delta;
++
++	if ((ip_msg->header.msgh_bits & MACH_MSGH_BITS_COMPLEX) ||
++	    (ip_msg->header.msgh_size < sizeof (struct ip_msg)))
++		return;
++
++	size = ip_msg->ip.ip_len;
++	if ((size <= sizeof(struct ip)) ||
++	    (size > (ip_msg->header.msgh_size - sizeof(mach_msg_header_t))))
++		return;
++
++	/*
++	 * Copy the datagram into a chain of mbufs.
++	 */
++	top = 0;
++	mp = &top;
++	cp = (caddr_t) &ip_msg->ip;
++	while (size > 0) {
++		register struct mbuf *m;
++		register unsigned int len;
++
++		MGET(m, M_WAIT, MT_DATA);
++		if (m == 0) {
++			m_freem(top);
++			return;
++		}
++		if (size >= NBPG/2) {	/* worth a cluster */
++			MCLGET(m);
++			if (m->m_len != CLBYTES)	/* plan 261: CLBYTES, not MCLBYTES */
++				m->m_len = len = MIN(MLEN, size);
++			else
++				m->m_len = len = MIN(CLBYTES, size);
++		} else
++			m->m_len = len = MIN(MLEN, size);
++		bcopy(cp, mtod(m, caddr_t), len);
++		cp += len;
++		size -= len;
++		*mp = m;
++		mp = &m->m_next;
++	}
++
++	/*
++	 * Keep the route while the destination stays the same.
++	 */
++	if (((struct sockaddr_in *) &cached_route.ro_dst)->sin_addr.s_addr
++	    != ip_msg->ip.ip_dst.s_addr) {
++		if (cached_route.ro_rt)
++			RTFREE(cached_route.ro_rt);
++		cached_route.ro_rt = 0;
++	}
++
++	/* the caller supplied a complete IP header */
++	(void) ip_output(top, (struct mbuf *)0,
++		      &cached_route, (IP_FORWARDING|IP_ALLOWBROADCAST));
++}
++
++boolean_t
++netipc_msg_send(
++    ipc_kmsg_t		kmsg
++)
++{
++    if (kmsg->ikm_header.msgh_id != IP_MSG_ID)
++	return (FALSE);
++
++    mach_net_output(kmsg);
++
++    return (TRUE);
++}
++
++/*
++ * Ports listening for datagrams, hashed by protocol.
++ */
++struct lbucket {
++	decl_simple_lock_data(,	lock)
++	struct listener		*head;
++};
++
++#define	LBHSZ	16
++#define	LBHASH(protocol)	((protocol) % LBHSZ)
++
++struct lbucket listeners[LBHSZ];
++
++struct listener {
++	struct listener	*next;
++	long		src_addr;
++	long		dst_addr;
++	unsigned short	src_port;
++	unsigned short	dst_port;
++	port_t		ipc_port;
++};
++
++#define LISTENER_MAX	100
++#define LISTENER_CHUNK	1
++
++zone_t listener_zone;
++
++#define FOR_EACH_BUCKET(b)	for((b)=listeners; (b) < &listeners[LBHSZ]; (b)++)
++#define FOR_EACH_LISTENER(lp,b)	for((lp)=(b)->head; (lp) != 0; (lp)=(lp)->next)
++#define LOCK_BUCKET(b, ipl)	{ ipl = splnet(); simple_lock(&(b)->lock); }
++#define UNLOCK_BUCKET(b, ipl)	{ simple_unlock(&(b)->lock); splx(ipl); }
++
++kern_return_t	netipc_listen(server_port, _src_addr, _dst_addr,
++			      _src_port, _dst_port, _protocol, ipc_port)
++	port_t		server_port;	/* unused */
++	int		_src_addr;
++	int		_dst_addr;
++	int		_src_port;
++	int		_dst_port;
++	int		_protocol;
++	port_t		ipc_port;
++{
++	register struct listener *lp;
++	register struct lbucket *b;
++	int ipl;
++	long		src_addr = _src_addr;
++	long		dst_addr = _dst_addr;
++	unsigned short	src_port = _src_port;
++	unsigned short	dst_port = _dst_port;
++	u_char		protocol = _protocol;
++
++	if (!(u.u_uid == 0))
++		return(KERN_NO_ACCESS);
++
++	if (ipc_port == PORT_NULL)
++		return(KERN_INVALID_ARGUMENT);
++
++	lp = (struct listener *) zalloc(listener_zone);
++	lp->src_addr = src_addr;
++	lp->src_port = src_port;
++	lp->dst_addr = dst_addr;
++	lp->dst_port = dst_port;
++	ipc_object_reference((ipc_object_t)(lp->ipc_port = ipc_port));
++
++	b = &listeners[LBHASH(protocol)];
++	LOCK_BUCKET(b, ipl);
++	lp->next = b->head;
++	b->head = lp;
++	UNLOCK_BUCKET(b, ipl);
++
++	ipc_kobject_set((ipc_port_t)ipc_port, 0, IKOT_NETIPC);
++
++	return(KERN_SUCCESS);
++}
++
++kern_return_t	netipc_ignore(server_port, ipc_port)
++	port_t		server_port;	/* unused */
++	register port_t	ipc_port;
++{
++	register struct lbucket *b;
++	register struct listener *prev, *lp;
++	kern_return_t result = KERN_FAILURE;
++	int ipl;
++
++	if (ipc_port == PORT_NULL)
++		return KERN_INVALID_ARGUMENT;
++
++	FOR_EACH_BUCKET (b) {
++		LOCK_BUCKET(b, ipl);
++		prev = b->head;
++		FOR_EACH_LISTENER (lp, b) {
++			if (lp->ipc_port == ipc_port) {
++				result = KERN_SUCCESS;
++				if (lp == b->head) {
++					b->head = lp->next;
++					zfree(listener_zone, (vm_offset_t) lp);
++					if ((prev = lp = b->head) == 0)
++						break;
++				} else {
++					prev->next = lp->next;
++					zfree(listener_zone, (vm_offset_t) lp);
++					lp = prev;
++				}
++				ipc_object_release((ipc_object_t)ipc_port);
++			}
++			else {
++				prev = lp;
++			}
++		}
++		UNLOCK_BUCKET(b, ipl);
++	}
++	return(result);
++}
++
++port_t		find_listener(src_addr, src_port, dst_addr, dst_port, protocol)
++	u_long		src_addr;
++	u_short		src_port;
++	u_long		dst_addr;
++	u_short		dst_port;
++	u_char		protocol;
++{
++	register struct lbucket *b;
++	register struct listener *prev, *lp;
++
++#define ADDR_MATCH(lp, addr)	((lp)->addr==INADDR_ANY || (lp)->addr==(addr))
++#define PORT_MATCH(lp, port)	((lp)->port==0 || (lp)->port ==(port))
++
++	b = &listeners[LBHASH(protocol)];
++	prev = b->head;
++	FOR_EACH_LISTENER(lp, b) {
++		/* cheapest tests first */
++		if (PORT_MATCH(lp, dst_port) &&
++		    PORT_MATCH(lp, src_port) &&
++		    ADDR_MATCH(lp, src_addr) &&
++		    ADDR_MATCH(lp, dst_addr)) {
++			if (lp != b->head) {
++				/* move to front */
++				prev->next = lp->next;
++				lp->next = b->head;
++				b->head = lp;
++			}
++			return(lp->ipc_port);
++		} else
++			prev = lp;
++	}
++	return(PORT_NULL);
++}
++
++struct ip_plus_ports {
++	struct ip	ip_header;
++	u_short		src_port;
++	u_short		dst_port;
++};
++
++static mach_msg_header_t ip_msg_template;
++
++#define MACH_NET_MSG_SIZE_MAX	2048
++
++zone_t	mach_net_kmsg_zone;
++
++void		mach_net_init()
++{
++	register struct lbucket *b;
++	vm_offset_t		zone_data;
++
++	listener_zone = zinit(
++				sizeof(struct listener),
++				LISTENER_MAX * sizeof(struct listener),
++				LISTENER_CHUNK * sizeof(struct listener),
++				FALSE,
++				"net listener zone"
++			);
++	ip_msg_template.msgh_bits =
++		MACH_MSGH_BITS(MACH_MSG_TYPE_PORT_SEND, 0);
++	ip_msg_template.msgh_size = MACH_NET_MSG_SIZE_MAX - IKM_OVERHEAD;
++	ip_msg_template.msgh_remote_port = MACH_PORT_NULL;
++	ip_msg_template.msgh_local_port = MACH_PORT_NULL;
++	ip_msg_template.msgh_id = IP_MSG_ID;
++	FOR_EACH_BUCKET (b) {
++		simple_lock_init(&b->lock);
++	}
++
++	/*
++	 * A private zone of wired buffers for incoming datagrams.
++	 */
++	mach_net_kmsg_zone = zinit(MACH_NET_MSG_SIZE_MAX, 4 * MACH_NET_MSG_SIZE_MAX,
++				MACH_NET_MSG_SIZE_MAX, FALSE, "mach_net messages");
++	zchange(mach_net_kmsg_zone, FALSE, FALSE, FALSE, FALSE);
++	(void) kmem_alloc_wired(kernel_map,
++					&zone_data, 4 * MACH_NET_MSG_SIZE_MAX);
++	zcram(mach_net_kmsg_zone, zone_data,
++				4 * MACH_NET_MSG_SIZE_MAX);
++}
++
++void
++netipc_msg_release(
++    ipc_kmsg_t		kmsg
++)
++{
++	zfree(mach_net_kmsg_zone, kmsg);
++}
++
++/*
++ * Give a received datagram to a listening port, if any; FALSE passes
++ * it on to the sockets.
++ */
++boolean_t	receive_ip_datagram(mp)
++	struct mbuf **mp;
++{
++	register struct mbuf		*m = *mp;
++	register struct ip_plus_ports	*ipp;
++	port_t				port;
++	ipc_kmsg_t			kmsg;
++	register caddr_t		cp;
++	int				space;
++
++	ipp = mtod(m, struct ip_plus_ports *);
++	if (ipp->ip_header.ip_hl > (sizeof (struct ip) >> 2))
++		ip_stripoptions(&ipp->ip_header, (struct mbuf *)0);
++	if (m->m_off > MMAXOFF || m->m_len < sizeof(struct ip_plus_ports)) {
++		if ((*mp = m = m_pullup(m, sizeof(struct ip_plus_ports))) == 0)
++			return(TRUE);
++		ipp = mtod(m, struct ip_plus_ports *);
++	}
++	port = find_listener(
++		ipp->ip_header.ip_src.s_addr, ipp->src_port,
++		ipp->ip_header.ip_dst.s_addr, ipp->dst_port,
++		ipp->ip_header.ip_p);
++	if (port == PORT_NULL)
++		return(FALSE);
++
++	(void) spl0();
++	if ((kmsg = (ipc_kmsg_t) zget(mach_net_kmsg_zone)) == IKM_NULL) {
++		/* no buffer: drop the datagram */
++		m_freem(m);
++		(void) splnet();
++		return(TRUE);
++	}
++	ikm_init_special(kmsg, IKM_SIZE_NETIPC);
++
++	/* undo ipintr's changes to the header */
++	ipp->ip_header.ip_len += (ipp->ip_header.ip_hl << 2);
++	ipp->ip_header.ip_off >>= 3;
++
++	space = MACH_NET_MSG_SIZE_MAX - sizeof (struct ipc_kmsg);
++	cp = (caddr_t)(&kmsg->ikm_header + 1);
++	while (m && space > 0) {
++		register unsigned int len;
++
++		len = MIN(m->m_len, space);
++		bcopy(mtod(m, caddr_t), cp, len);
++		cp += len;
++		space -= len;
++		m = m_free(m);
++	}
++
++	kmsg->ikm_delta = space;
++	space &= ~3;
++	kmsg->ikm_delta = space - kmsg->ikm_delta;
++
++	kmsg->ikm_header = ip_msg_template;
++	kmsg->ikm_header.msgh_size -= space;
++	kmsg->ikm_header.msgh_remote_port = port;
++	ipc_object_reference((ipc_object_t)port);
++	ipc_mqueue_send_always(kmsg);
++
++	(void) splnet();
++	return(TRUE);
++}

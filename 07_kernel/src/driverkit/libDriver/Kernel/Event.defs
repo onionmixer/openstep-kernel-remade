@@ -1,0 +1,86 @@
+/*
+ * libDriver/Kernel/Event.defs - MIG interface (plan 343, D030).
+ *
+ * Needed by the MIG run that makes libDriver/EventServer.c, whose objects
+ * match the original kernel bytes.  The text is nearly the same as Darwin 0.1
+ * driverkit-1/libDriver/Kernel/Event.defs; kept as project-authored under D030,
+ * without Darwin's notices (license judgement: D017).
+ */
+
+subsystem       Event 31000; 
+
+/* Select a userprefix to bring the user side in compliance with the name
+ * format for private API.
+ */
+userprefix	_NX;
+
+#include <mach/std_types.defs>
+#include <mach/mach_types.defs>
+
+type unsigned			= int;
+type EVString			= array[64] of char;
+type EVObjectNumber		= unsigned;
+type EVParameterName		= array[64] of char;
+type EVIntParameter		= array[*:64] of int;
+type EVCharParameter		= array[*:4096] of char;
+
+import <bsd/dev/evio.h>;
+
+routine EvOpen(
+                device_master          	: port_t;
+        in      event_port          	: port_t );
+
+routine EvClose(
+                device_master          	: port_t;
+        in      event_port          	: port_t );
+
+routine EvMapEventShmem(
+                device_master          	: port_t;
+        in      event_port          	: port_t;
+	in	task			: port_t;
+	in	size			: vm_size_t;
+	out	addr			: vm_offset_t );
+
+routine EvFrameBufferDevicePort(
+                device_master          	: port_t;
+        in      event_port          	: port_t;
+	in	name			: EVString;
+	in	class			: EVString;
+	out	nameDevicePort		: port_t );
+
+routine EvSetSpecialKeyPort(
+                device_master          	: port_t;
+	in	special_key		: int;
+        in      key_port          	: port_t );
+
+
+/*
+ * Get/set parameter RPCs.
+ */
+
+routine EvGetParameterInt(
+                device_master          	: port_t;
+	in	unit			: EVObjectNumber;
+	in	parameterName		: EVParameterName;
+	in	maxCount		: unsigned;
+	out	parameterArray		: EVIntParameter);
+	
+routine EvGetParameterChar(
+                device_master          	: port_t;
+	in	unit			: EVObjectNumber;
+	in	parameterName		: EVParameterName;
+	in	maxCount		: unsigned;
+	out	parameterArray		: EVCharParameter);
+	
+routine EvSetParameterInt(
+                device_master          	: port_t;
+	in	unit			: EVObjectNumber;
+	in	parameterName		: EVParameterName;
+	in	parameterArray		: EVIntParameter);
+	
+routine EvSetParameterChar(
+                device_master          	: port_t;
+	in	unit			: EVObjectNumber;
+	in	parameterName		: EVParameterName;
+	in	parameterArray		: EVCharParameter);
+

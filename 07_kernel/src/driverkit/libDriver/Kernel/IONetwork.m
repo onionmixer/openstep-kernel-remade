@@ -1,0 +1,171 @@
+/*
+ * IONetwork.m (plan 319).
+ *
+ * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+ * original module "Kernel/IONetwork.m", functions and methods
+ * 0x1a95c8-0x1a9965), following the OPENSTEP 4.2 SDK headers
+ * driverkit/IONetwork.h and bsd/net/netif.h.  Darwin 0.1
+ * driverkit-1/libDriver/Kernel/IONetwork.m is a later struct ifnet
+ * version and is not used as text.
+ */
+
+#import	<sys/types.h>
+#import <sys/socket.h>
+#import <sys/param.h>
+#import <net/netbuf.h>
+#import <driverkit/IONetwork.h>
+
+static int IONetworkInit(netif_t netif);
+static int IONetworkOutput(netif_t netif, netbuf_t pkt, void *addr);
+static netbuf_t IONetworkGetbuf(netif_t netif);
+static int IONetworkControl(netif_t netif, const char *command, void *data);
+
+@implementation IONetwork
+
+- initForNetworkDevice:device
+	name:(const char *)name
+	unit:(unsigned int)unit
+	type:(const char *)type
+	maxTransferUnit:(unsigned int)mtu
+	flags:(unsigned int)flags
+{
+	[super init];
+
+	_netif = if_attach(IONetworkInit, NULL, IONetworkOutput,
+		IONetworkGetbuf, IONetworkControl, name, unit, type, mtu,
+		flags, NETIFCLASS_REAL, device);
+	return self;
+}
+
+- free
+{
+	if_detach(_netif);
+	return [super free];
+}
+
+- (int)handleInputPacket:(netbuf_t)pkt extra:(void *)extra
+{
+	if_ipackets_set(_netif, if_ipackets(_netif) + 1);
+	return if_handle_input(_netif, pkt, extra);
+}
+
+- (unsigned)inputPackets
+{
+	return if_ipackets(_netif);
+}
+
+- (void)incrementInputPackets
+{
+	if_ipackets_set(_netif, if_ipackets(_netif) + 1);
+}
+
+- (void)incrementInputPacketsBy:(unsigned)increment
+{
+	if_ipackets_set(_netif, if_ipackets(_netif) + increment);
+}
+
+- (unsigned)inputErrors
+{
+	return if_ierrors(_netif);
+}
+
+- (void)incrementInputErrors
+{
+	if_ierrors_set(_netif, if_ierrors(_netif) + 1);
+}
+
+- (void)incrementInputErrorsBy:(unsigned)increment
+{
+	if_ierrors_set(_netif, if_ierrors(_netif) + increment);
+}
+
+- (unsigned)outputPackets
+{
+	return if_opackets(_netif);
+}
+
+- (void)incrementOutputPackets
+{
+	if_opackets_set(_netif, if_opackets(_netif) + 1);
+}
+
+- (void)incrementOutputPacketsBy:(unsigned)increment
+{
+	if_opackets_set(_netif, if_opackets(_netif) + increment);
+}
+
+- (unsigned)outputErrors
+{
+	return if_oerrors(_netif);
+}
+
+- (void)incrementOutputErrors
+{
+	if_oerrors_set(_netif, if_oerrors(_netif) + 1);
+}
+
+- (void)incrementOutputErrorsBy:(unsigned)increment
+{
+	if_oerrors_set(_netif, if_oerrors(_netif) + increment);
+}
+
+- (unsigned)collisions
+{
+	return if_collisions(_netif);
+}
+
+- (void)incrementCollisions
+{
+	if_collisions_set(_netif, if_collisions(_netif) + 1);
+}
+
+- (void)incrementCollisionsBy:(unsigned)increment
+{
+	if_collisions_set(_netif, if_collisions(_netif) + increment);
+}
+
+@end
+
+/*
+ * netif callbacks: pass each request to the device object registered as
+ * the interface's private data (plan 319).
+ */
+static int
+IONetworkInit(netif_t netif)
+{
+	id device = (id)if_private(netif);
+
+	if (device)
+		return [device finishInitialization];
+	return -1;
+}
+
+static int
+IONetworkOutput(netif_t netif, netbuf_t pkt, void *addr)
+{
+	id device = (id)if_private(netif);
+
+	if (device)
+		return [device outputPacket:pkt address:addr];
+	return -1;
+}
+
+static netbuf_t
+IONetworkGetbuf(netif_t netif)
+{
+	id device = (id)if_private(netif);
+
+	if (device)
+		return [device allocateNetbuf];
+	return NULL;
+}
+
+static int
+IONetworkControl(netif_t netif, const char *command, void *data)
+{
+	id device = (id)if_private(netif);
+
+	if (device)
+		return [device performCommand:command data:data];
+	return -1;
+}

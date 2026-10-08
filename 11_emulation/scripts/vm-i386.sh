@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# vm-i386.sh install|boot|boot-nocd [--cd ISO] [--snapshot] [--gdb-wait] [-- QEMU args]
+# vm-i386.sh install|boot|boot-nocd [--cd ISO] [--disk RAW --snapshot] [--snapshot] [--gdb-wait] [-- QEMU args]
 #   install    CD boot from the OPENSTEP_BOOTCD ISO (phase 1). The installer's
 #              reboot ends QEMU (-no-reboot); then run "boot".
 #   boot       hard-disk boot with the CD still attached (phase 2 reads packages from it)
 #   boot-nocd  hard-disk boot without the CD
 #   --cd ISO|KEY  boot mode only: another CD (path or site.conf key, e.g.
 #              OS42_DEV_ISO) in the same IDE position.
+#   --disk RAW  boot/boot-nocd with --snapshot only (plan 405): use this raw test
+#              disk image instead of 09_validation/images/i386/openstep42-i386-hdd.raw.
 # Layout: HDD = IDE primary master, CD = IDE secondary master.
 # Terminal = QEMU monitor. See 11_emulation/QEMU_VM_CONFIGURATIONS.md section 3.
 source "$(dirname -- "${BASH_SOURCE[0]}")/vm-common.sh"

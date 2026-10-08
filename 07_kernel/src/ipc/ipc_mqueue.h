@@ -148,8 +148,7 @@ extern mach_msg_return_t ipc_mqueue_receive(
 	boolean_t		resume,
 	void			(*continuation)(void),
 	ipc_kmsg_t		*kmsgp,
-	mach_port_seqno_t	*seqnop,
-	ipc_kmsg_t		*list);
+	mach_port_seqno_t	*seqnop);	/* plan 263: eight arguments, as in the original */
 
 /*
  *	extern void

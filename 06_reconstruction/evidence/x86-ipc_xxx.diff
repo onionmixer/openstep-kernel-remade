@@ -1,5 +1,5 @@
 --- 01_resources/upstream/darwin01/kernel/kern/ipc_xxx.c	1999-03-17 01:54:34.000000000 +0900
-+++ 07_kernel/src/kern/ipc_xxx.c	2026-10-01 23:49:26.093873839 +0900
++++ 07_kernel/src/kern/ipc_xxx.c	2026-10-08 11:37:47.942386655 +0900
 @@ -22,6 +22,8 @@
   * @APPLE_LICENSE_HEADER_END@
   */
@@ -9,7 +9,15 @@
  /*
   * Copyright (c) 1994 NeXT Computer, Inc.
   *
-@@ -47,15 +49,10 @@
+@@ -37,6 +39,7 @@
+ 
+ #import <mach/mach_types.h>
+ #import <mach/notify.h>
++#import <ipc/ipc_notify.h>		/* plan 392: ipc_notify_msg_accepted_compat */
+ 
+ static inline
+ port_name_t
+@@ -47,15 +50,10 @@
  {
  	port_name_t	name;
  
@@ -29,7 +37,7 @@
  	else
  		name = PORT_NULL;
  
-@@ -73,7 +70,7 @@
+@@ -73,7 +71,7 @@
  	register ipc_port_t port;
  	port_name_t name;
  
@@ -38,7 +46,7 @@
  		name = PORT_NULL;
  	}
  	else {
-@@ -91,7 +88,7 @@
+@@ -91,7 +89,7 @@
  	register ipc_port_t port;
  	port_name_t name;
  
@@ -47,7 +55,7 @@
  		port = realhost.host_self;
  	}
  	else {
-@@ -108,21 +105,7 @@
+@@ -108,21 +106,7 @@
   * the name service (or object service).
   */
  
@@ -70,7 +78,7 @@
  
  port_name_t
  _lookupd_port(name)
-@@ -132,7 +115,7 @@
+@@ -132,7 +116,7 @@
  	ipc_port_t port;
  
  	if (name != PORT_NULL) {
@@ -79,7 +87,7 @@
  			name = PORT_NULL;
  		else {
  			if (ipc_object_copyin(self->itk_space,
-@@ -147,34 +130,6 @@
+@@ -147,34 +131,6 @@
  		}
  	}	
  	else {
@@ -114,7 +122,7 @@
  		port = lookupd_port;
  		name = do_object_copyout(self, port);
  	}
-@@ -196,7 +151,7 @@
+@@ -196,7 +152,7 @@
  	register ipc_port_t port;
  	port_name_t name;
  
@@ -123,25 +131,40 @@
  		return PORT_NULL;
  	if ( num < 0 || num > (sizeof ev_port_list/sizeof ev_port_list[0]) )
  		return PORT_NULL;
-@@ -266,21 +221,3 @@
- 	if (port != IP_NULL)
+@@ -267,6 +223,25 @@
  		ipc_port_release_send(port);		/* XXX */
  }
--
--void
--send_notification(task, msg_id, name)
--	register task_t task;		/* Who we're notifying */
--	int msg_id;			/* What event occurred */
--	port_name_t name;		/* What port is involved */
--{
--	ipc_port_t	tnotify;
--	
--	if (msg_id != NOTIFY_MSG_ACCEPTED)
--		return;
--	
--	if (task_get_special_port(task,
--				TASK_NOTIFY_PORT, &tnotify) != KERN_SUCCESS)
--		return;
--		
--	ipc_notify_msg_accepted_compat(tnotify, name);
--}
+ 
++/*
++ * plan 392 (D024, D056): ds_notify, vm_object_pager_wakeup and task_secure
++ * are written from the original bytes [0x15a628, 0x15a634),
++ * [0x15a634, 0x15a63c) and [0x15a670, 0x15a67c); send_notification is the
++ * Darwin text again (original [0x15a63c, 0x15a670)).
++ */
++boolean_t
++ds_notify(msg)
++	mach_msg_header_t *msg;
++{
++	return (FALSE);
++}
++
++void
++vm_object_pager_wakeup(pager)
++	ipc_port_t pager;
++{
++}
++
+ void
+ send_notification(task, msg_id, name)
+ 	register task_t task;		/* Who we're notifying */
+@@ -284,3 +259,10 @@
+ 		
+ 	ipc_notify_msg_accepted_compat(tnotify, name);
+ }
++
++boolean_t
++task_secure(task)
++	task_t task;
++{
++	return (TRUE);
++}

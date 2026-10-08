@@ -1,0 +1,144 @@
+--- 01_resources/upstream/nextmach/mk-108.1/bsd/vfs_dnlc.c	2026-09-11 10:02:49.492217373 +0900
++++ 07_kernel/src/bsd/kern/vfs_dnlc.c	2026-10-03 10:47:42.779859130 +0900
+@@ -15,6 +15,7 @@
+ #import <sys/vnode.h>
+ #import <sys/pathname.h>
+ #import <sys/dnlc.h>
++#import <kern/assert.h>		/* plan 184.1: assert() emits no code in the original */
+ 
+ /*
+  * Directory name lookup cache.
+@@ -40,6 +41,70 @@
+ int	doingcache = 1;
+ 
+ /*
++ * plan 184 (authored, D024): the queue operations are done in line in the
++ * original (no insque/remque/insque2/remque2 calls, 0x11b28c-0x11b984);
++ * they are static functions defined before use so that -O3 inlines them.
++ */
++static struct ncache *dnlc_search();
++static dnlc_rm();
++
++/*
++ * Insert into queue, where the queue pointers are
++ * in the second two longwords.
++ */
++static
++insque2(ncp2, ncp1)
++	register struct ncache *ncp2, *ncp1;
++{
++	register struct ncache *ncp3;
++
++	ncp3 = ncp1->lru_next;
++	ncp1->lru_next = ncp2;
++	ncp2->lru_next = ncp3;
++	ncp3->lru_prev = ncp2;
++	ncp2->lru_prev = ncp1;
++}
++
++/*
++ * Remove from queue, like insque2.
++ */
++static
++remque2(ncp)
++	register struct ncache *ncp;
++{
++	ncp->lru_prev->lru_next = ncp->lru_next;
++	ncp->lru_next->lru_prev = ncp->lru_prev;
++}
++
++/*
++ * The same for the hash chains (first two longwords).
++ */
++static
++nc_insque(e, p)
++	register struct ncache *e, *p;
++{
++	e->hash_next = p->hash_next;
++	e->hash_prev = p;
++	p->hash_next->hash_prev = e;
++	p->hash_next = e;
++}
++
++static
++nc_remque(e)
++	register struct ncache *e;
++{
++	e->hash_next->hash_prev = e->hash_prev;
++	e->hash_prev->hash_next = e->hash_next;
++}
++
++#define	INS_LRU(ncp1,ncp2)	insque2((struct ncache *) ncp1, (struct ncache *) ncp2)
++#define	RM_LRU(ncp)		remque2((struct ncache *) ncp)
++#undef	INS_HASH
++#undef	RM_HASH
++#define	INS_HASH(ncp,nch)	nc_insque((struct ncache *) ncp, (struct ncache *) nch)
++#define	RM_HASH(ncp)		nc_remque((struct ncache *) ncp)
++
++/*
+  * Initialize the directory cache.
+  * Put all the entries on the LRU chain and clear out the hash links.
+  */
+@@ -199,6 +264,8 @@
+ 	int nameLength = pnp->pn_pathlen;
+ 	struct ncache *ncp;
+ 	
++	if (nameLength == 0)		/* plan 184 (authored; original 0x11b524) */
++		return;
+ 	ncp = dnlc_lookupSymLink(linkName, dvp);
+ 	
+ 	if (ncp == (struct ncache *) 0)
+@@ -208,7 +275,7 @@
+ 	
+ 		if (ncp->symLinkLength != pnp->pn_pathlen ||
+ 		    bcmp(pnp->pn_buf, ncp->symLink, pnp->pn_pathlen) != 0)
+-		    	kfree(ncp->symLink);
++		    	kfree(ncp->symLink, (long) ncp->symLinkLength);	/* plan 184 (0x11b5a4) */
+ 		else
+ 			return;		/* if it's the same, we're done */
+ 	}
+@@ -409,7 +476,7 @@
+ /*
+  * Utility routine to search for a cache entry.
+  */
+-struct ncache *
++static struct ncache *
+ dnlc_search(dp, name, namlen, hash, cred)
+ 	register struct vnode *dp;
+ 	register char *name;
+@@ -437,35 +504,3 @@
+ 	}
+ 	return ((struct ncache *) 0);
+ }
+-
+-/*
+- * Insert into queue, where the queue pointers are
+- * in the second two longwords.
+- * Should be in assembler like insque.
+- */
+-insque2(ncp2, ncp1)
+-	register struct ncache *ncp2, *ncp1;
+-{
+-	register struct ncache *ncp3;
+-
+-	ncp3 = ncp1->lru_next;
+-	ncp1->lru_next = ncp2;
+-	ncp2->lru_next = ncp3;
+-	ncp3->lru_prev = ncp2;
+-	ncp2->lru_prev = ncp1;
+-}
+-
+-/*
+- * Remove from queue, like insque2.
+- */
+-remque2(ncp)
+-	register struct ncache *ncp;
+-{
+-	ncp->lru_prev->lru_next = ncp->lru_next;
+-	ncp->lru_next->lru_prev = ncp->lru_prev;
+-}
+-
+-
+-
+-
+-

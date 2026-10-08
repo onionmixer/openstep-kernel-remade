@@ -1,0 +1,47 @@
+--- 01_resources/upstream/nextmach/mk-108.1/nfs/nfs_common.c	2026-09-11 10:02:49.607218787 +0900
++++ 07_kernel/src/bsd/nfs/nfs_common.c	2026-10-03 12:26:45.421791912 +0900
+@@ -38,6 +38,10 @@
+  */
+ nfstsize()
+ {
++#if	NeXT
++	/* plan 193 (authored, D024; original 0x12c808): SDK nfs.h has NFSTSIZE only */
++	return (NFSTSIZE);
++#else	NeXT
+ 	register struct ifnet *ifp;
+ 
+ 	for (ifp = ifnet; ifp; ifp = ifp->if_next) {
+@@ -52,6 +56,7 @@
+ 	dprint(nfsdebug, 3, "nfstsize: %d\n", IETSIZE);
+ #endif
+ 	return (IETSIZE);
++#endif	NeXT
+ }
+ 
+ /*
+@@ -64,9 +69,25 @@
+ {
+ 
+ 	na->na_type = (enum nfsftype)vap->va_type;
++#if	NeXT
++	/* plan 193 (authored, D024; original 0x12c822-0x12c873): -1 stays -1 */
++	if (vap->va_mode == (u_short)-1)
++		na->na_mode = (u_long)-1;
++	else
++		na->na_mode = vap->va_mode;
++	if (vap->va_uid == (uid_t)-1)
++		na->na_uid = (u_long)-1;
++	else
++		na->na_uid = (uid_t)vap->va_uid;
++	if (vap->va_gid == (gid_t)-1)
++		na->na_gid = (u_long)-1;
++	else
++		na->na_gid = (gid_t)vap->va_gid;
++#else	NeXT
+ 	na->na_mode = vap->va_mode;
+ 	na->na_uid = (int)vap->va_uid;
+ 	na->na_gid = (int)vap->va_gid;
++#endif	NeXT
+ 	na->na_fsid = vap->va_fsid;
+ 	na->na_nodeid = vap->va_nodeid;
+ 	na->na_nlink = vap->va_nlink;

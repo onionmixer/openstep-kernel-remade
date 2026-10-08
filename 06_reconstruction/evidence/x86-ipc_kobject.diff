@@ -1,0 +1,93 @@
+--- 01_resources/upstream/mach4/kernel/kern/ipc_kobject.c	2026-09-11 10:02:48.335203149 +0900
++++ 07_kernel/src/kern/ipc_kobject.c	2026-10-04 00:44:24.823399183 +0900
+@@ -68,7 +68,7 @@
+ ipc_kobject_server(request)
+ 	ipc_kmsg_t request;
+ {
+-	mach_msg_size_t reply_size = ikm_less_overhead(8192);
++	mach_msg_size_t reply_size = ikm_less_overhead(2048);	/* plan 264: 2048 (kalloc 0x800 in the original) */
+ 	ipc_kmsg_t reply;
+ 	kern_return_t kr;
+ 	mig_routine_t routine;
+@@ -146,48 +146,32 @@
+ 	 * Find the server routine to call, and call it
+ 	 * to perform the kernel function
+ 	 */
++#if	MACH_NET	/* plan 264: netipc_msg_send before dispatch, as in the original */
++    if (netipc_msg_send(request))
++	((mig_reply_header_t *) &reply->ikm_header)->RetCode = MIG_NO_REPLY;
++    else
++#endif
+     {
+ 	extern mig_routine_t	mach_server_routine(),
+ 				mach_port_server_routine(),
+-				mach_host_server_routine(),
+-				device_server_routine(),
+-				device_pager_server_routine(),
+-				mach4_server_routine();
++				mach_host_server_routine();	/* plan 264: no device, device_pager or mach4 routines */
+ #if	MACH_DEBUG
+ 	extern mig_routine_t	mach_debug_server_routine();
+ #endif
+-#if	NORMA_TASK
+-	extern mig_routine_t	mach_norma_server_routine();
+-	extern mig_routine_t	norma_internal_server_routine();
+-#endif
+-#if	NORMA_VM
+-	extern mig_routine_t	proxy_server_routine();
+-#endif
+-
+-#if	MACH_MACHINE_ROUTINES
+-	extern mig_routine_t	MACHINE_SERVER_ROUTINE();
++#if	DRIVERKIT	/* plan 264: driverServer replaces the NORMA and machine routines */
++	extern mig_routine_t	driverServer_server_routine();
+ #endif
+ 
+-	check_simple_locks();
++	/* plan 264: no check_simple_locks() calls here or after dispatch (none in the original) */
+ 	if ((routine = mach_server_routine(&request->ikm_header)) != 0
+ 	 || (routine = mach_port_server_routine(&request->ikm_header)) != 0
+ 	 || (routine = mach_host_server_routine(&request->ikm_header)) != 0
+-	 || (routine = device_server_routine(&request->ikm_header)) != 0
+-	 || (routine = device_pager_server_routine(&request->ikm_header)) != 0
+ #if	MACH_DEBUG
+ 	 || (routine = mach_debug_server_routine(&request->ikm_header)) != 0
+ #endif	MACH_DEBUG
+-#if	NORMA_TASK
+-	 || (routine = mach_norma_server_routine(&request->ikm_header)) != 0
+-	 || (routine = norma_internal_server_routine(&request->ikm_header)) != 0
+-#endif	NORMA_TASK
+-#if	NORMA_VM
+-	 || (routine = proxy_server_routine(&request->ikm_header)) != 0
+-#endif	NORMA_VM
+-	 || (routine = mach4_server_routine(&request->ikm_header)) != 0
+-#if	MACH_MACHINE_ROUTINES
+-	 || (routine = MACHINE_SERVER_ROUTINE(&request->ikm_header)) != 0
+-#endif	MACH_MACHINE_ROUTINES
++#if	DRIVERKIT
++	 || (routine = driverServer_server_routine(&request->ikm_header)) != 0
++#endif	DRIVERKIT
+ 	) {
+ 	    (*routine)(&request->ikm_header, &reply->ikm_header);
+ 	}
+@@ -200,7 +184,6 @@
+ #endif	MACH_IPC_TEST
+ 	}
+     }
+-	check_simple_locks();
+ 
+ 	/*
+ 	 *	Destroy destination. The following code differs from
+@@ -332,6 +315,12 @@
+ 		vm_object_pager_wakeup(port);
+ 		break;
+ 
++#if	MACH_NET	/* plan 264: netipc ports, as in the original */
++	    case IKOT_NETIPC:
++		netipc_ignore(IP_NULL, port);
++		break;
++#endif	MACH_NET
++
+ 	    default:
+ #if	MACH_ASSERT
+ 		printf("ipc_kobject_destroy: port 0x%x, kobj 0x%x, type %d\n",

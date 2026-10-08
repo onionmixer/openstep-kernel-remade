@@ -1,0 +1,9 @@
+# x86 `src/driverkit/libDriver/pci/IOPCIDeviceDescription.m` (plan 345 (S5-P334), 2026-10-06)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. ObjC module "pci/IOPCIDeviceDescription.m" (objc.json module 0x2092ec). Final run `s5p345-pe1`; 07 file SHA-256 `e436fe72c7ea5e3cdc198dc200706b505e1cbcc52ddd6bdf0c630c44cc65a22f`; diff `x86-IOPCIDeviceDescription.diff`.
+
+- `__text` [0x1c1b88, 0x1c1cb6) 302 B, 3 functions (3 methods) (-[IOPCIDeviceDescription(Private) _initWithDelegate:], -[IOPCIDeviceDescription free], -[IOPCIDeviceDescription getPCIdevice:function:bus:]). Front `c3 00 00 00`, back `00 00 55 89`, next function 0x1c1cb8.
+- Sections: __TEXT,__text 302 B given by objc metadata; __TEXT,__cstring 28 B literal (references checked by content); __OBJC,__cat_inst_meth 20 B given by objc metadata; __OBJC,__message_refs 20 B literal (references checked by content); __OBJC,__cls_refs 4 B literal (references checked by content); __OBJC,__class 40 B given by objc metadata; __OBJC,__meta_class 40 B given by objc metadata; __OBJC,__inst_meth 32 B given by objc metadata; __OBJC,__class_names 99 B literal (references checked by content); __OBJC,__meth_var_types 41 B literal (references checked by content); __OBJC,__meth_var_names 145 B literal (references checked by content); __OBJC,__category 20 B given by objc metadata; __OBJC,__instance_vars 16 B given by objc metadata; __OBJC,__module_info 16 B given by objc metadata; __OBJC,__symbols 20 B given by objc metadata.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p345-pe1-l1-IOPCIDeviceDescription-F-20261002.json`). Grade **A**.
+
+Module "pci/IOPCIDeviceDescription.m": __text [0x1c1b88, 0x1c1cb6). Diagnostics s5p347-* gave the same verdict. Codex second review of plans 345a/345b (gpt-6.1-sol) verified (setRegister movzx and five header adoptions added). s5p345-pe1 from 07 with kr_run RUNIN: OBJECT_MATCH, relcheck 0.

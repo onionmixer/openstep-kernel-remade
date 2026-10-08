@@ -1,0 +1,8 @@
+# x86 `src/kern/ipc_kobject.c` (plan 264 (S5-P250), 2026-10-04)
+
+Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`. plan 264 (S5-P250). Final run `s5p250-it1`; 07 file SHA-256 `dcc60c961fd8230ce937a4aa8bd41347c9fe7f7c915b01183d9c934d151657f9`; diff `x86-ipc_kobject.diff`.
+
+- Object [0x1581a8, 0x15846a) 706 B, 4 functions (_ipc_kobject_server, _ipc_kobject_set, _ipc_kobject_destroy, _ipc_kobject_notify). Front `ec 5d c3 00`, back `00 00 55 89`, next symbol 0x15846c.
+- Final OBJECT_MATCH (`09_validation/reconstruction/s5p250-it1-l1-ipc_kobject-F-20261002.json`). Grade **A**.
+
+Object extent [0x1581a8, 0x15846c) 708 B (706 B text + 00 00; ret at 0x158469): ipc_kobject_server, ipc_kobject_set, ipc_kobject_destroy, ipc_kobject_notify; next mach_msg_send_from_kernel (ipc_mig). __DATA,__data [0x1debec, 0x1dec47) 91 B ("ipc_kobject_server: dropping request\n", RetCodeType 02 20 01 10 at 0x1dec14, "ipc_object_destroy: strange destination rights") -- verified by L1d. References by file name: Mach4 kern/ipc_kobject.c (base, D022), Darwin 0.1 kern/ipc_kobject.c (structure), NeXTMach mk-108.1 has no file of that name (find). Original bytes: kalloc 0x800 (0x1581b1), netipc_msg_send then MIG_NO_REPLY (0x158225, 0x158232), dispatch mach, mach_port, mach_host, mach_debug, driverServer (0x158240-0x15827c), destroy types 9/8/0x11 (0x1583de-0x1583f0), notify device type 0xc (0x158450). Scratch builds s5p250-w1..w4 (07 untouched), w4 OBJECT_MATCH. The codex review of plan 264 confirmed the extent, changes and data; it added that the type values 9 and 0xc differ from the Mach4 header (15, 10) -- verified, they come from the 07 kern/ipc_kobject.h. it1 (s5p250-it1) from 07 OBJECT_MATCH, relcheck 0 mismatches.
