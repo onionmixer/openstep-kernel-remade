@@ -127,6 +127,8 @@ def main():
     obj = macho_obj.parse(ob)
     img = L.Image(a.image)
     imd = macho_obj.parse(open(a.image, 'rb').read())
+    macho_obj.require_i386(obj, 'zerofill_check')  # plan 411: i386 little-endian only
+    macho_obj.require_i386(imd, 'zerofill_check')
     rows = list(csv.DictReader(open(a.symbols), delimiter='\t'))
     imgsyms = {x['name']: int(x['value'], 16) for x in rows}
     zs = [s for s in obj['sections'] if s['segname'] == seg and s['sectname'] == sect]

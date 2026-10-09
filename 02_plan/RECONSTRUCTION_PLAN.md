@@ -1679,3 +1679,595 @@ codex 교차검토(gpt-6.1-sol, kcsi6w165) 판정:
 - 표에 큰따옴표가 든 줄이 20 개 있어 `csv` 모듈 대신 탭으로 직접 나눠 읽고 쓰도록 했고(`l2_place.py` 도 같게 고침, 결과 json 동일), 이전 `csv` 읽기 결과도 탭 나누기와 같았음(따옴표로 시작하는 칸 0).
 - `02_plan/DECISIONS.md` D063, `06_reconstruction/README.md`(P 정의 뒤에 `l2_placement` 설명), `README.md`(상태 표의 P 칸), `02_plan/STATUS.md`(머리를 2026-10-08 상태로 새로 쓰고 2026-09-11 서술은 아래에 그대로 보존).
 - STATUS 수치(python): 315(A 314·A\* 1)·70·17·2 = 404, 커버리지 합 850,838 B·남은 598 B·비율 73.13/26.76/0.04 % 재계산 일치.
+
+## 409. M0-1 세부 계획 — m68k·SPARC 사전 측정: 실기 교차 도구 확인과 1997 i386 빌드 동일성 측정(07·x86 기록·도구 변경 없음; 코딩 전, 2026-10-09)
+
+배경: 다른 아키텍처 작업 기준(로컬 문서 `02_plan/MULTIARCH_RECONSTRUCTION_STANDARD.md`)의 M0 와 9 절 미확인 항목 가운데 결정 D-M1–D-M4 에 앞서 사실을 모읍니다.
+m68k·SPARC 원본은 mk-183.34(1997-04-27)이고 x86 07 트리는 mk-183.34.4(1999-01-26)에 맞춰져 있습니다.
+
+확인한 사실(이번 세션, 읽기 전용):
+- 실기 `/lib` 에 `m68k`·`sparc`·`i386`·`hppa` 디렉터리가 있습니다. `m68k`·`sparc` 에는 `as`·`cc1obj`·`cc1objplus`·`cc1plus`·`cpp`·`cpp-precomp`·`specs` 가 있고
+  `hppa` 에는 `as`·`cpp-precomp` 뿐입니다(`ls -la`). 백엔드 날짜는 1997-04-22·23 입니다.
+- `lipo -info`: `/bin/cc`·`/bin/as`·`/bin/ld`·`/bin/strip`·`/lib/libcc.a`·`/lib/crt0.o` 는 m68k·i386·sparc 세 조각의 fat 파일입니다.
+- 실기 SDK `/NextDeveloper/Headers` 의 아키텍처 디렉터리(`ls -d */<arch>`): `architecture`·`mach`·`bsd`·`kernserv`·`mach-o`·`ansi` 에 m68k·sparc 가 있고,
+  `driverkit` 에는 `hppa`·`i386`·`machine`·`sparc` 만 있고 **m68k 가 없습니다**.
+- universal fat 조각 1(i386 mk-183.34)을 `03_original/installation-media/os42j/binaries/mach_kernel.universal`(SHA `f3b57f87…`)에서 python 으로 꺼내
+  SHA `cb6217c2…`, 1,113,724 B 임을 확인했습니다(세션 scratchpad 에만 둠; `03_original` 에 넣는 것은 D-M2).
+  `__text` 847,644 B(x86 183.34.4 는 851,436 B), `__const` 22,772 B·`__cstring` 13,892 B 는 x86 과 크기가 같습니다. 기호 SECT 3,648, ABS 100.
+- 기존 `l1_compare.py` 는 이 조각(i386, 리틀엔디언)에 그대로 쓰입니다: 시험으로 s6 재빌드 객체 `memcmp`(함수 2 개)·`sched_prim`(35 개)이 모두 MATCH.
+
+방법:
+1. **교차 도구 목록(읽기 전용)**: 실기에서 `/lib/{m68k,sparc,i386}/*` 의 SHA-256(`krsha256`)과 `specs` 내용, fat 도구의 `lipo -info` 를 기록합니다.
+   i386 기록 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 의 같은 파일과 해시를 대조합니다. 원 기록은 `08_build/toolchains/real-cross-20261009/`(무시 대상, IP 없음).
+2. **교차 컴파일 탐침**: 프로젝트가 쓴 두 줄짜리 C 파일(전역 변수 하나와 그것을 읽는 함수 하나; 참고 코드 없음)을 새 run 디렉터리 `08_build/runs/m0p409-xc1/`(무시 대상, 새 ID)에서
+   `cc -arch m68k -c -v`, `cc -arch sparc -c -v`, 대조로 `cc -arch i386 -c -v` 로 컴파일합니다. kr_run 은 i386 도구 목록이 고정이라 쓰지 않고, 명령·`-v` 출력·
+   실행 전후 도구 해시를 그 디렉터리에 남깁니다. 호스트에서 python 으로 출력의 magic·바이트 순서·cputype(6·14·7)·절·기호·재배치 수를 읽고 SHA 를 적습니다.
+   이것은 "백엔드가 목적 파일을 만든다" 는 확인뿐이며 ABI probe(M0-3)가 아닙니다.
+3. **1997 i386 빌드 동일성 측정**: s6 재빌드 402 객체(`09_validation/reconstruction/s6-l1-G*-s6l4-*.json` 의 `obj`, SHA 확인)를 조각 1 에 대해
+   `l1_compare.py --place-from-image`(.m 은 `--place-from-objc` 추가 — `l2_baseline.py` 와 같은 규칙)로 비교합니다. 새 읽기 전용 실행기
+   `10_tools/reconstruction/m0_slice_l1.py` 가 조각을 원본 universal 에서 꺼내 SHA 를 확인하고, 객체별 결과와 python 집계(객체 판정, 함수 판정 수, MATCH 함수 바이트,
+   소스 디렉터리별)를 냅니다. 실행기 자기 시험: 같은 실행기를 x86 원본 이미지에 돌리면 s6l4 기록 판정과 객체마다 같아야 합니다.
+   출력 `09_validation/reconstruction/m0-i386-18334-l1-20261009.json`(객체별 상세는 크기를 보고 같은 디렉터리 하위 또는 무시 대상에 둠).
+4. **해석 규칙(미리 정함)**: 조각 1 에서 OBJECT_MATCH 인 객체는 "`cc-744.13` 과 기록된 플래그·07 소스로 1997-04-27 i386 빌드의 그 객체 바이트를 다시 만든다" 는 뜻입니다.
+   이는 i386 백엔드에 대한 근거이고, m68k·SPARC 백엔드가 1997 빌드와 같다는 증명은 아닙니다(같은 패키지·날짜라는 정황만 적음).
+   NOT_MATCH 는 원인(소스 판·플래그·머리·컴파일러)을 가르지 않고 "판 차이 후보" 로만 셉니다. 측정은 M1(i386 183.34 다리)의 일부를 앞당기는 것이지만 기록·`03_original`·07 은 바꾸지 않습니다.
+5. 기록: 이 절에 결과, 로컬 기준 문서 1·9 절 사실 갱신. 07·x86 표·기존 도구는 바꾸지 않으므로 x86 회귀 관문(기준 문서 6 절)은 해당하지 않습니다(새 도구 둘만 추가).
+   그 뒤 측정값을 붙여 D-M1–D-M4 를 사용자에게 묻습니다.
+
+### 409.1 codex 교차검토(gpt-6.1-sol, kz2akk1px) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 한 절 안 기호들의 델타가 둘 이상이면 그 절은 배치되지 않고, 이미지에 없는 기호는 무시됨 | `l1_compare.py:447–459` 읽음(`len(ds) == 1` 일 때만 배치) | ✅ 미배치 `__text` 를 따로 셈 |
+| 기호 없는 절은 참조 추론, 참조 없으면 미검증, 추론된 zerofill 은 미검증 | `l1_compare.py:222–300` 읽음(`infer`, zerofill 은 `given by symbol` 일 때만 placement-only) | ✅ |
+| 리터럴 절은 내용으로 참조만 확인 | `l1_compare.py:287–290` 읽음(`literal (references checked by content)`) | ✅ 해석 규칙에 반영 |
+| ObjC 배치는 모듈 이름이 정확히 같아야 하는데 두 커널의 경로 앞부분이 다름 | `objc_place.py:56–65` 읽음(`module … not in image` 로 빈 결과); python 으로 두 이미지의 `.m` 경로 문자열 확인 — x86 61 개 `/BinarySourceCache_Mario1A/mk/mk-183.34.4/…`, 조각 1 61 개 `/private/Net/seaport/release/.sources/Sources6/mk_proj/mk-183.34/…` | ✅ .m 85 객체는 따로 셈(도구는 고치지 않음) |
+| libcc 두 구성원은 402 객체 밖 | `objects_toolchain.tsv:2–3` 읽음; s6l4 G1–G6 객체 402 개와 링크 입력 402 개의 SHA 집합이 같음(python) | ✅ 이번 측정에서 제외하고 그렇게 적음 |
+| 함수 기록에 `__TEXT,__const` 범위도 들어감 | `l1_compare.py:343–386` 읽음(`segname != '__TEXT'` 만 거름) | ✅ 함수 집계는 `__TEXT,__text` 만 |
+| "그 객체 바이트를 다시 만든다" 는 과장; OBJECT_MATCH 는 이 도구의 비교 통과일 뿐(원 목적 파일·플래그·머리·컴파일러, 리터럴 전체, COMMON 크기, 함수 경계를 증명하지 않음) | `l1_compare.py:282–300·343–405`, `macho_obj.py:65–73`(COMMON 은 기호 종류로만 읽힘) 읽음 | ✅ 해석 문구를 고침 |
+| NOT_MATCH 는 비교 수용 실패이지 바이트 차이·판 차이가 아님; DIFF 는 참조한 데이터 절 실패로도 생김 | `l1_compare.py:365` 읽음(`'fail' in dep_state.values()` → DIFF) | ✅ |
+| BOUNDARY 는 object_verdict 에 영향 없음 | 이번 측정은 `--ranges` 를 쓰지 않음 | ⏭️ 해당 없음 |
+| 탐침을 kr_run 없이 하려면 규약의 장치가 모두 필요 | `RECONSTRUCTION_PLAN.md:68–75`, 기준 문서 `:119–120` 읽음. 그리고 내가 따로 확인: `kr_run.py:39–41` 허용 도구에 `/bin/cc` 가 있고, `:344` EXPECT 가 두 바이트 순서 매직을 모두 받음 | ⚖️ 장치를 새로 만들지 않고 **kr_run 을 그대로 씀**(`/bin/cc -arch …`); 아키텍처 백엔드 해시는 1 의 실행 전후 목록으로 보충 |
+| 빅엔디언 탐침 객체는 `macho_obj.py` 로 재배치를 못 읽음 | 기준 문서 1 절 11 판정표에 이미 확인(`:85`·`:91`) | ✅ 헤더·절·기호만 macho_obj, 재배치 수는 python 으로 따로 셈 |
+| 목록에 fat 조각별 해시·subtype, libcc 아키텍처별 구성원, `migcom`·`migcom3`·`mig`·`/lib/cpp`, 링크 관계(inode), `cc -v` 가 고른 실행 파일, m68k VM 대조가 필요 | 기준 문서 `:95–99`(m68k VM 대조 요구) 읽음; `sha256-vs-vm.json` 의 vm 값은 i386 VM 임(파일 읽음); `cpp-precomp` 링크 수 5(`ls -la` 출력) | ✅ 1 에 넣음. m68k VM 은 실행하지 않고 디스크 이미지를 `nextufs mount`(기본 읽기 전용, `nextufs.1:86–87`)로 읽어 해시 |
+| 자기 시험이 지금 규칙대로면 실패(329/73): PCinit·ufs_alloc·libDriver_vers 는 `l2_expect-s6p398.json` 의 명시 `__const` 배치가 필요, swapfs 는 이유가 달라짐 | `l2_rebuild.py:284–288` 읽음; `l2_expect-s6p398.json` 의 `place` 4 건(155 ufs_alloc 0x1d1280, 384 swapfs 0x1d1276, 402 libDriver_vers 0x1d647c, 53 PCinit 0x1d58e4) python 출력; 세 객체를 명시 배치 없이 x86 에 돌려 셋 다 `NOT_MATCH ['__TEXT,__const: unverified']` 재현 | ✅ 자기 시험은 명시 배치를 같이 주고 판정과 이유를 모두 대조. 조각 1 에는 x86 주소를 옮기지 않고 이 넷의 `__const` 는 미배치로 셈 |
+
+추가로 확인: s6l4 기록의 등급(A 330, A\* 1, P 71)은 지금 표(A·A\* 315, P 70, 데이터 17)와 `x86-rtc` 하나가 다릅니다 — §398 뒤 A 로 옮겨짐(`objects_confirmed.tsv:316`). 집계에는 지금 06 표의 등급을 씁니다.
+
+고친 방법:
+1. 교차 도구 목록: 실기에서 `/lib/{i386,m68k,sparc,hppa}/*`·`/lib/cpp`·`/usr/lib/migcom`·`/usr/lib/migcom3`·`/usr/bin/mig` 의 `krsha256` 와 `ls -li`,
+   fat 도구(`/bin/cc`·`as`·`ld`·`strip`·`/lib/libcc.a`·`/lib/crt0.o`)의 `lipo -info`, `specs` 내용. fat 파일은 `cat` 으로 run 디렉터리에 복사해 호스트에서 SHA 를 대조하고
+   python 으로 조각별 cputype·subtype·SHA, libcc 조각의 구성원 이름·SHA 를 냅니다. 같은 경로를 m68k VM 디스크(`09_validation/images/m68k/openstep42-m68k-hdd.raw`, VM 이 꺼진 상태, 읽기 전용 마운트,
+   전후 이미지 SHA 동일 확인)에서 해시해 대조합니다. 탐침 run 전후로 실기 목록을 두 번 떠서 같아야 합니다.
+2. 교차 컴파일 탐침: kr_run 그대로(`RUN /bin/cc -arch m68k -c -v src/probe.c -o stage/probe-m68k.o`, sparc·i386 같은 꼴, EXPECT 셋). `-v` 출력(stage/_log)으로 실제 고른 백엔드 경로를 적습니다.
+3. 1997 i386 측정: 402 객체(libcc 제외), `--place-from-image` + (.m) `--place-from-objc`. 명시 배치는 x86 자기 시험에서만 씁니다. 집계 칸: 객체 판정, 이유 종류(미배치·미검증 절·DIFF 등),
+   `__text` 배치 여부, `__TEXT,__text` 함수만의 판정 수·바이트, .m 객체의 ObjC 대응 실패, 원래 등급별. 자기 시험은 x86 원본에서 402 객체의 판정과 이유가 s6l4 기록과 모두 같아야 합니다.
+4. 해석: OBJECT_MATCH = "기록된 재빌드 객체가 이 도구의 비교(배치된 절의 바이트·재배치 재계산)를 조각 1 에서 통과함". 원 목적 파일·플래그·머리·컴파일러가 같다는 증명이 아니며,
+   리터럴은 참조된 것만, COMMON 크기·함수 경계는 확인하지 않습니다. NOT_MATCH 는 원인을 가르지 않습니다. m68k·SPARC 백엔드에 대해서는 정황뿐입니다.
+
+### 409.2 결과(2026-10-09)
+
+**1. 교차 도구 목록**(`09_validation/reconstruction/m0-toolchain-cross-20261009.json`; 원 기록은 무시 대상 `08_build/toolchains/real-cross-20261009/`)
+- 실기 34 경로의 `krsha256`·`ls -li`·`lipo -info` 를 탐침 전후 두 번 떠서 같았습니다.
+- i386 쪽 14 경로는 기존 기록 `real-i386-20261001/sha256-vs-vm.json` 과 해시가 모두 같습니다.
+- **아키텍처 백엔드(`/lib/{i386,m68k,sparc}/{as,cc1obj,cpp}`)도 m68k·i386·sparc 세 조각의 fat 실행 파일입니다**(`lipo -info`). 즉 같은 파일이 어느 호스트에서든 그 대상 코드를 냅니다.
+  `cpp-precomp` 다섯 경로는 같은 inode(386985, 링크 수 5)입니다. `/usr/lib/migcom`·`migcom3` 는 fat 이 아닌 i386 실행 파일입니다.
+- fat 도구 7 개(`cc`·`as`·`ld`·`strip`·`libcc.a`·`crt0.o`·`/lib/cpp`)는 `cat` 으로 복사해 호스트에서 SHA 를 대조한 뒤 조각별 SHA 를 냈습니다. `libcc.a` 의 세 조각은 모두 구성원 47 개입니다.
+- m68k VM 디스크(`openstep42-m68k-hdd.raw`, VM 꺼짐, `nextufs mount -o ro`; 이미지 SHA `7097595f…` 전후 동일)와 대조: 34 경로 중 **32 같음**, 다른 둘은 `migcom`·`migcom3` —
+  VM 쪽은 m68k(cputype 6) 실행 파일입니다. MIG 생성 결과가 호스트에 따라 같은지는 M0-3 MIG probe 에서 확인합니다.
+
+**2. 교차 컴파일 탐침**(kr_run `m0p409-xc1`, DONE·게시 정상)
+- `cc -arch m68k`·`-arch sparc`·`-arch i386` 모두 목적 파일을 만들었습니다. `-v` 출력에서 각각 `/lib/<arch>/{cpp-precomp,cc1obj,as}` 를 골랐고, 기본값으로 `-dynamic -fPIC` 가 붙습니다
+  (커널 빌드는 `-static`; 플래그는 M0-3·M4 에서 정함).
+- python 판독: m68k 빅엔디언 cputype 6(sub 1), sparc 빅엔디언 14(0), i386 리틀엔디언 7(3) — 원본 커널의 cputype(sub)와 같습니다. `__text` 30·36·24 B, 재배치 2·6·2.
+
+**3. 1997 i386 빌드 동일성 측정**(`09_validation/reconstruction/m0-i386-18334-l1-20261009.json`; 상세는 무시 대상 `08_build/artifacts/m0p409/`, SHA 로 묶음)
+- 자기 시험(x86 원본, 명시 배치 포함): **402/402 객체의 판정과 이유가 s6l4 기록과 같음**(OBJECT_MATCH 332, NOT_MATCH 70).
+- 조각 1(i386 mk-183.34): OBJECT_MATCH 314, NOT_MATCH 88. 등급별 A 313/331, A\* 1/1, P 0/70(P 는 x86 에서도 NOT_MATCH).
+- `__text` 가 있는 385 객체, 850,498 B: 함수 판정 MATCH 4,230 개 715,950 B(84.18 %), MATCH_UNVERIFIED 305 개 90,078 B(10.59 %), **DIFF 17 개 14,029 B(1.65 %)**,
+  미배치 30,441 B(3.58 %). 합이 850,498 B 와 맞습니다(python). `__text` 함수가 모두 MATCH 인 객체 317/385(82.34 %).
+- A 인데 NOT_MATCH 인 18 객체의 분류(객체별 이유를 읽음):
+  - 코드는 모두 MATCH 이고 데이터 절 배치만 안 됨 11: `PCinit`·`ufs_alloc`(x86 에서도 명시 배치가 필요했던 `__TEXT,__const`), ObjC 9(`KernLock` 등 — 모듈 경로가 절대 경로라 `__module_info` 대응 실패).
+    codex 지적과 달리 libDriver 모듈은 이름이 상대 경로(`Kernel/…` 등)라 두 판에서 같아 57 객체가 레코드까지 배치됐고, 실패는 절대 경로 모듈 19 객체뿐입니다.
+  - 판 문자열 데이터 3: `vers`·`libDriver_vers`·`objc_vers`(`__text` 없음).
+  - 코드 차이 후보 4: `FBConsole`(DIFF 16 함수 13,957 B), `unix_startup`·`rtc`(`__text` 미배치), `IODisk`(후보 2 개).
+- 코드 차이 후보 전체(P 포함) 9 객체 45,098 B: 위 4 와 P 의 `BasicConsole`(DIFF 1 함수 72 B), `mach_clock`·`pmap`·`km`(미배치), `IOAudio`(후보 2 개). 원인(판·플래그·머리)은 가르지 않았습니다.
+- 해석(409.1 의 규칙): 1997-04-27 i386 커널에서 기록된 재빌드 객체 대부분이 이 도구의 비교를 통과하므로, **`cc-744.13`(실기)과 1997 i386 빌드의 코드 생성이 이 객체들에 대해 구별되지 않습니다.**
+  m68k·SPARC 백엔드에 대해서는 같은 fat 백엔드 파일이 세 대상을 모두 담는다는 정황뿐이고 증명이 아닙니다. 판 차이(183.34 ↔ 183.34.4)는 i386 에서 코드 차이 후보 9 객체 수준으로 작아 보이나,
+  미배치·ObjC·데이터 절은 확인 범위 밖입니다.
+
+07·x86 표·기존 도구는 바꾸지 않았습니다. 새 파일: `10_tools/reconstruction/m0_slice_l1.py`, 위 검증 JSON 2 개.
+
+### 409.3 사용자 결정(2026-10-09)
+
+D064 판별 덮어쓰기 트리, D065 조각 1 보관 + 후보 9·판 문자열 3 객체 원인 확인(183.34 i386 L2 는 하지 않음), D066 m68k 먼저, D067 L3 는 QEMU 만(`02_plan/DECISIONS.md`).
+
+## 410. M1 세부 계획 — D065: i386 mk-183.34 조각 보관과 판 차이 후보 12 객체의 원인 확인(07·x86 표 변경 없음; 코딩 전, 2026-10-09)
+
+배경: 사용자 결정 D065("조각 보관 + 후보 9개 확인"). §409.2 의 코드 차이 후보 9 객체(FBConsole·unix_startup·rtc·IODisk·BasicConsole·mach_clock·pmap·km·IOAudio)와
+판 문자열 3 객체(vers·libDriver_vers·objc_vers)의 차이가 무엇인지 원본 바이트로 확인합니다. 183.34 i386 의 재구성(L2)은 하지 않습니다(D065).
+
+확인한 사실(이번 세션, python, 읽기 전용):
+- 두 원본 모두 `strip -x` 꼴이라 `__text` 에는 외부 기호만 있습니다. 외부 함수 기호 이름을 두 이미지에서 맞추고 "다음 기호까지의 거리"로 크기를 재면
+  (정적 함수는 앞 외부 함수의 크기에 섞임), 후보 객체에서 크기가 다른 것: `unix_startup` `_startup_early` 232→280(x86→183.34),
+  `FBConsole` `_FBAllocateConsole` 148→7,092 이고 `_FBAllocateVBEConsole`·`_VBEModeInfo2IODisplayInfo` 는 183.34 에 없음, `mach_clock` `_clock_interrupt` 376→292,
+  `rtc` `_rtcput` 204→184·`_writetodc` 784→728, `BasicConsole` `_BasicAllocateConsole` 14,580→14,572, `pmap` `_pmap_bootstrap` 1,096→768, `km` `_kminit` 116→96.
+  `IODisk`·`IOAudio` 는 외부 함수 기호가 없습니다(ObjC 메서드만).
+- 호스트에 `objdump`(GNU)·`llvm-objdump` 가 있습니다.
+
+방법:
+A. **조각 보관**(기존 `03_original` 파일은 고치지 않고 새 디렉터리만 더함):
+   1. `03_original/x86-mk-183.34/binaries/mach_kernel` — universal(SHA `f3b57f87…`)의 fat 헤더로 조각 1 을 꺼내 SHA `cb6217c2…`·1,113,724 B 확인(무시 대상, `/03_original/**/binaries/*`).
+   2. `03_original/x86-mk-183.34/provenance.json`(새 파일, 추적): universal 경로·SHA, fat 색인·cputype·subtype·offset·size·align, 판 문자열, 추출 도구와 명령.
+      `installation-media/os42j/provenance.json`·`manifest.json` 은 고치지 않고 새 provenance 에서 가리킵니다.
+   3. `03_original/x86-mk-183.34/inventory/` — 기존 `10_tools/inventory_thin_macho.py --expected-endian little --expected-cpu 7` 로 macho.json·symbols.tsv·strings.tsv.
+   4. `03_original/README.md` 는 기존 파일이라 고치지 않습니다(새 provenance 에 설명).
+B. **원인 확인**(새 읽기 전용 도구 `10_tools/reconstruction/m1_version_diff.py`):
+   1. 12 객체마다 s6 재빌드 객체(§409 의 SHA)의 함수 기호로 두 이미지의 대응 함수 범위를 정합니다. 외부 함수: 이름으로 대응. ObjC 메서드(IODisk·IOAudio):
+      `objc_meta` 의 메서드 표(클래스·셀렉터 → IMP)로 대응. 대응하지 못한 함수는 그렇게 적습니다.
+   2. 대응 함수마다 크기·바이트를 비교합니다: 같음 / 재배치 필드만 다름(l1_compare 와 같은 재계산 — 이미지 주소 차이) / 명령 차이. 명령 차이는 두 범위를 `objdump -b binary -m i386`
+      으로 역어셈블해 차이 줄을 남깁니다(역어셈블은 해석 보조이고, 사실은 바이트 범위·크기).
+   3. 판 문자열 3 객체: 두 이미지에서 그 객체 `__data`/`__const` 범위의 바이트를 비교하고 문자열 차이를 적습니다.
+   4. 출력: `09_validation/reconstruction/m1-i386-18334-candidates-20261009.json`(객체·함수별 분류, 크기, 차이 오프셋, 입력 SHA)와 함수별 역어셈블 차이 텍스트(같은 이름 디렉터리).
+   5. 자기 시험: 같은 도구를 x86 원본 대 x86 원본으로 돌리면 12 객체 모든 대응 함수가 "같음" 이어야 하고, 일부러 한 바이트를 바꾼 사본에서는 그 함수만 "명령 차이" 여야 합니다.
+C. **분류 규칙(미리 정함)**: 원인은 원본 바이트로 보이는 것까지만 적습니다 — (a) 판 문자열 데이터, (b) 함수가 한쪽에만 있음(기능 추가·삭제), (c) 같은 함수의 명령 차이(소스·머리·플래그 중 무엇인지는
+   가르지 않음; 역어셈블에서 보이는 것—상수·구조체 오프셋·호출 대상—만 적음), (d) 재배치만 다름(판 차이 아님), (e) 대응 불가. 참고 코드의 판 이력은 이번에 쓰지 않습니다.
+D. 기록: 이 절에 결과, 로컬 기준 문서 12 절에 한 단락. 07·06 표·기존 도구 변경 없음 → x86 회귀 관문 해당 없음.
+
+### 410.1 codex 교차검토(gpt-6.1-sol, khlwr6tqk) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| A(새 디렉터리 추가)는 규칙과 맞음; 바이너리는 무시, provenance·inventory 는 추적 | `DECISIONS.md:69`(D065), `AGENTS.md:14`, `.gitignore:5` 읽음; `git check-ignore -v --no-index` 로 바이너리 무시·provenance 비무시 확인 | ✅ |
+| provenance 에 목적지·전체 SHA·실제 길이·바이트 순서/magic·추출 날짜·도구 해시, 기존 provenance 참조, manifest 에 없음을 적을 것; inventory 는 원시 사실 | `inventory_thin_macho.py:127` caveat("nlist entries are not function boundaries") 읽음 | ✅ 넣음 |
+| "다음 외부 기호까지의 거리" 는 함수 크기가 아니라 기호 구간(정적 함수·채움·뒤 객체 코드 포함) | 재빌드 `BasicConsole` 객체: `__text` 700 B, `_BasicAllocateConsole` 628–700 = 72 B(python), 이미지 구간 14,580 B | ✅ 410 의 수치는 "기호 구간" 으로 읽어야 함; 함수 크기로 쓰지 않음 |
+| ObjC 대응 키에 instance/class 종류가 필요 | `l1_compare.py:417–435`(키 `(owner, category, kind, selector)`), `objc_meta.py:79–89`(`'instance'`/`'class'`) 읽음 | ✅ 키를 고침 |
+| 두 링크 이미지만으로 "재배치만 다름" 을 판정하려면 정렬된 경계, 필드 밖 바이트 같음, 필드마다 같은 대상·가산값이 필요; 아니면 "미해결 주소 필드 차이" | 원칙 — l1_compare 는 객체 재배치와 절 배치로 재계산함(`:164–218`) | ✅ 규칙에 반영 |
+| C 의 "한쪽에만 있음 → 기능 추가·삭제", "재배치만 → 판 차이 아님" 은 과장 | 이름 변경·가시성·인라인·이동 가능성; 배치 변화도 판 차이의 결과일 수 있음 | ✅ 문구를 "기호 없음" / "검증된 대응 아래 주소 부호화만 다름" 으로 |
+| 자기 시험: 임의 한 바이트 변경이 명령 차이라는 보장 없음; 필드 변경·대상 변경·대응 모호·경계 실패도 시험 | 원칙 | ✅ 시험 항목 고침 |
+| 410 의 수치·VBE 부재·도구 존재가 모두 맞음 | §410 작성 때 내 python 출력과 같음 | ✅(내 측정) |
+| IOAudio 는 ObjC 메서드만이 아님 — 정적 `_ioThread`·`_keyThread`·`_interruptHandler` | 재빌드 객체 기호 python: `__text` 11,164 B, 오프셋 4916·5244·11092 의 비외부 기호 | ✅ 410 정정 |
+
+고친 방법 B:
+1. 함수 범위는 **재빌드 객체**의 기호(외부·정적·ObjC 메서드)로 정합니다. 12 객체는 x86 에서 `__text` 가 L1 일치이므로(s6l4 기록) 객체 함수 범위 = x86 원본 범위입니다.
+2. 183.34 쪽 대응은 **진입점만**: 외부 함수는 이름(이미지 전체에서 유일, `__TEXT,__text` 안), ObjC 메서드는 `(class, category, kind, selector)` 의 유일 IMP. 정적 함수는 대응 진입점이 없으므로
+   "정적 — 단독 대응 없음" 으로 두고, 객체의 `__text` 가 한 델타로 배치될 때만(§409 의 결과) 그 델타로 봅니다.
+3. 대응 함수 비교(길이 = 재빌드 객체의 함수 길이): (i) 바이트 같음, (ii) 객체 재배치 필드 밖은 모두 같고 필드마다 외부 기호 대상이 두 이미지에서 같은 이름·같은 가산값으로 풀림 →
+   "검증된 대응 아래 주소 부호화만 다름", (iii) 필드 밖은 같으나 필드 대상을 확정할 수 없음(지역·절 재배치 등) → "미해결 주소 필드 차이", (iv) 필드 밖 바이트가 다름 → "내용 차이"
+   (두 쪽을 역어셈블해 남김; 183.34 쪽 길이는 기호 구간으로 표시하고 함수 크기라고 하지 않음). 진입점이 183.34 에 없으면 "기호 없음".
+4. 판 문자열 3 객체는 §409 L1 의 데이터 절 배치(기호 기반)로 두 이미지의 범위를 읽어 비교합니다.
+5. 자기 시험: x86 대 x86 → 대응 함수 모두 (i). 조작한 183.34 사본 셋 — 필드 밖 명령 바이트 1 개 변경 → 그 함수 (iv); 외부 재배치 필드 값 변경 → (ii) 가 아닌 결과; 외부 기호 이름 1 개 지움 → "기호 없음".
+
+### 410.2 결과(2026-10-09)
+
+**A. 조각 보관** — `10_tools/extract_fat_slice.py` 로 `03_original/x86-mk-183.34/binaries/mach_kernel`(무시 대상)을 꺼냈습니다. SHA `cb6217c2…`, 1,113,724 B, `CEFAEDFE`(리틀엔디언),
+cputype 7(3), 판 문자열 "NeXT Mach 4.2: Sun Apr 27 14:07:30 PDT 1997; …mk-183.34.obj~4/RELEASE_I386". 기록 `03_original/x86-mk-183.34/provenance.json`(컨테이너 SHA·fat 색인·도구 SHA·명령),
+inventory 는 기존 `inventory_thin_macho.py`(절 26, 기호 3,748, 문자열 6,550; macho.json 키는 기존 m68k inventory 와 같은 18 개). 기존 `03_original` 파일은 바꾸지 않았습니다.
+
+**B. 원인 확인** — 도구 `10_tools/reconstruction/m1_version_diff.py`, 결과 `09_validation/reconstruction/m1-i386-18334-candidates-20261009.json` 과 같은 이름 디렉터리(content 함수의 역어셈블 9 개).
+- 계획에서 바꾼 점 둘(코딩 중 발견):
+  1. 처음 규칙은 외부 재배치 필드만 풀어 지역 필드가 모두 "미해결" 이었습니다(89 함수). l1_compare 의 `evaluate`·`lit_check` 로 객체 재배치를 두 이미지에서 다시 계산하도록 고쳤습니다.
+     183.34 쪽 지역 대상은 이름으로 정한 배치(`given by symbol`·`given by objc metadata`)만 쓰고 추론 배치는 쓰지 않습니다(409.1·410.1 의 순환 방지).
+  2. FBConsole 의 정적 함수를 외부 기호 하나(`_FBAllocateConsole`)로 정한 `__text` 델타로 놓았더니 모두 첫 바이트부터 달랐습니다(정규화 명령 일치 5–20 %). 그 객체는 183.34 에
+     진입점 둘이 없어 배치가 바뀐 것이므로, **진입점이 하나라도 없는 객체의 정적 함수는 위치를 정하지 않도록**(not_located) 고쳤습니다.
+- 자기 시험(고친 뒤 다시): x86 대 x86 236 함수 모두 same; 조작 사본에서 명령 바이트 변경 → content, 외부 필드 변경 → unresolved_address, 기호 이름 훼손 → symbol_absent.
+- 함수 236 개(9 객체): same 83, address_only 80, unresolved_address 32, **content 9**, **symbol_absent 2**, not_located 30(합 236, python).
+  - symbol_absent: FBConsole `_FBAllocateVBEConsole`·`_VBEModeInfo2IODisplayInfo`(183.34 에 이 기호가 없음).
+  - content(명령 차이가 있는 함수; 역어셈블에서 보이는 것만 적음, 원인 판정 아님): `unix_startup` `_startup_early`(183.34 쪽에 비교·분기·상수 0x10 대입이 더 있음),
+    `mach_clock` `_clock_interrupt`(183.34 쪽에 `0xf0(%ebx)` 갱신 블록이 더 있음), `rtc` `_rtcput`(183.34.4 쪽에만 포트 0x70/0x71 로 레지스터 0x32 를 쓰는 7 명령),
+    `rtc` `_writetodc`(183.34.4 쪽에 100 으로 나누는 계산과 큰 스택 프레임), `BasicConsole` `_BasicAllocateConsole`(183.34.4 쪽 오프셋 10 에 호출·검사·분기),
+    `pmap` `_pmap_bootstrap`(스택 프레임 크기가 다르고 183.34.4 쪽 범위에 표처럼 보이는 바이트), `IODisk` `-setLogicalDisk:`(183.34.4 쪽에 인자 0 검사가 더 있음),
+    `km` `_kminit`(183.34.4 쪽에 호출 하나와 결과 검사 뒤 다른 호출이 더 있음), `IOAudio` `-_setParameter:toInt:forObject:`(레지스터 배정과 표 바이트가 다름).
+  - unresolved_address 32 는 필드 밖 바이트가 같고 주소 필드를 이름 기반 배치로 확정하지 못한 것입니다(대부분 `__data`·`__bss` 미배치 객체). 판 차이로 세지 않습니다.
+- 판 문자열 3 객체: `vers` `__data` — "…Tue Jan 26 11:21:50 PST 1999…mk-183.34.4.obj~2…" ↔ "…Sun Apr 27 14:07:30 PDT 1997…mk-183.34.obj~4…"(183.34 쪽 범위가 절 끝을 넘어 108/110 B 읽음).
+  `libDriver_vers` `__TEXT,__const`(183.34 쪽 배치 없음, 앞 16 B 검색 유일 후보): "driverkit-94.16.2 DEVELOPER:cfriesen BUILT:Fri Jan 22 16:11:10 PST 1999" ↔ "driverkit-94.16 DEVELOPER:root BUILT:Tue Apr 22 22:20:23 PDT 1997".
+  `objc_vers`: 둘 다 "objc-170" 이고 BUILT 날짜만 다름(1997-03-27 ↔ 1997-04-22).
+- 정리: 9 후보 객체의 차이는 9 함수의 명령 차이와 2 함수의 기호 부재로 좁혀집니다. 나머지 함수 163 개(same 83 + address_only 80)는 x86 07 소스의 출력과 183.34 i386 원본이 주소 부호화 말고는 같습니다.
+  m68k·SPARC 에서는 아키텍처 공통부(`kern/mach_clock.c`, `driverkit/libDriver/IODisk.m`·`Kernel/IOAudio.m`)의 183.34 판 차이를 고려해야 하며, 나머지(`machdep/i386/` rtc·pmap·unix_startup, `bsd/dev/i386/` km·FBConsole·BasicConsole)는 원래 i386 전용 파일입니다(소스 경로는 §409 JSON 의 `source`).
+
+## 411. M0-5 세부 계획 — m68k 용 도구 확장 1: 빅엔디언 재배치 읽기(`macho_obj.py`)와 m68k L1 비교(`l1_compare.py`)(07 변경 없음; 코딩 전, 2026-10-09)
+
+배경: D066(m68k 먼저). 기준 문서 M0-5 의 고정점 가운데 m68k L1 에 필요한 최소 범위만 고칩니다. `l2_*`·`stage_headers`·`objc_meta`·`kr_run` 의 아키텍처 확장,
+SPARC 고유 재배치 의미, ABI probe(M0-3)는 다음 절로 미룹니다.
+
+확인한 사실(이번 세션):
+- `macho_obj.py` 는 헤더·절·기호를 두 바이트 순서로 읽지만 재배치는 빅엔디언이면 scattered·일반 모두 거부합니다(`:85`·`:91` 의 raise). 형식 표는 `RELOC_TYPES_I386`
+  `{0 VANILLA, 1 PAIR, 2 SECTDIFF, 3 PB_LA_PTR, 4 LOCAL_SECTDIFF}`(`:18`).
+- SDK `mach-o/reloc.h`(로컬 사본 `01_resources/local_mirrors/headers/NextDeveloper/Headers/mach-o/reloc.h`): `relocation_info` 는 비트필드
+  `r_symbolnum:24, r_pcrel:1, r_length:2, r_extern:1, r_type:4` 하나뿐이고(바이트 순서별 정의 없음), `scattered_relocation_info` 는 `__BIG_ENDIAN__` 에서
+  `r_scattered:1, r_pcrel:1, r_length:2, r_type:4, r_address:24` 순입니다. 일반 형식은 `GENERIC_RELOC_{VANILLA, PAIR, SECTDIFF, PB_LA_PTR}` 넷이고,
+  `mach-o/m68k/` 에는 `swap.h` 만 있어 m68k 고유 재배치 형식 정의가 없습니다(`mach-o/sparc/reloc.h` 는 있음).
+  참고 트리의 `next-gcc-2.7.2/config` 에는 i386 만 있어, 빅엔디언에서 일반 형식 비트필드의 배치는 소스로 확인할 수 없습니다 → 실측으로 확인합니다.
+- §409 탐침 객체(`m0p409-xc1`, `-dynamic -fPIC` 기본)의 재배치는 모두 scattered 였고, `llvm-objdump-14 --macho -r` 가 m68k(형식 2·1)·sparc(8·7·1) 를 숫자 형식으로 읽습니다.
+  원 8 바이트(예 m68k `a2000012 0000001e`)는 위 빅엔디언 scattered 배치(scattered 1, pcrel 0, length 2, type 2, address 0x12)와 맞습니다.
+- `l1_compare.py` 의 바이트 순서 고정: `:143`·`:157`·`:175`·`:232`·`:236`·`:318` 의 `'little'`, 형식 표 `TYPE = RELOC_TYPES_I386`(`:37`). 형식 표 사용처는 `zerofill_check.py:41`,
+  `m1_version_diff.py:107` 도 있습니다(둘 다 i386 전용 그대로 둠).
+- `check_macho_obj.py` 는 llvm-objdump 와 절·기호·재배치를 대조하며 형식 이름을 i386 표로 비교합니다(llvm 은 m68k·sparc 형식을 숫자로 출력).
+
+방법:
+1. `macho_obj.py`: 빅엔디언 재배치 읽기. scattered 는 reloc.h 의 `__BIG_ENDIAN__` 배치 그대로. 일반 형식은 가설 "첫 필드가 최상위 비트"(w1 = symbolnum<<8 | pcrel<<7 | length<<5 | extern<<4 | type)
+   으로 읽고 **llvm-objdump 와 대조해서만 채택**합니다. `RELOC_TYPES_GENERIC`(0–3, reloc.h)과 `reloc_types(cputype)` 를 더하고, i386 표와 리틀엔디언 경로는 바꾸지 않습니다.
+   SPARC 는 읽기(필드 분해)만 하고 형식 이름 표는 두지 않습니다.
+2. `l1_compare.py`: 필드 읽기의 바이트 순서를 객체·이미지의 `endian` 으로 바꾸고(둘이 다르면 오류), 형식 표를 cputype 으로 고릅니다(i386 → 기존 표, m68k → 일반 표).
+   그 밖의 cputype(SPARC·HPPA)은 **명시 오류로 거부**합니다(고유 재배치 의미를 구현하기 전에는 비교하지 않음). 계산식(F + S − Δ(P) 등)은 그대로 둡니다 — m68k 에서 맞는지는 3 의 링크 탐침으로 확인합니다.
+3. 탐침(kr_run 새 ID `m0p411-pr1`, 실기): 프로젝트가 쓴 두 C 파일(`a.c` 는 외부 함수 호출·외부 데이터 읽기·정적 데이터·문자열·`switch` 점프 표·함수 포인터 표,
+   `b.c` 는 그 정의)을 `-arch m68k`·`-arch sparc`·`-arch i386` 로 `-static -O2 -c`, m68k·i386 은 `ld -arch <a> -static -e _kr_a -o stage/probe-<a>.out a.o b.o` 로 링크합니다.
+   - 대조 A: `check_macho_obj.py` 로 6 객체를 llvm-objdump 와 대조 — 모두 AGREE 여야 합니다(형식은 i386 이 아니면 숫자로 비교하도록 대조 도구를 고침).
+   - 대조 B: `l1_compare.py --place-from-image` 로 m68k·i386 객체 4 개를 각 링크 결과와 비교 — OBJECT_MATCH 여야 합니다. 조작한 링크 결과 사본(재배치 밖 명령 바이트 1 개, 외부 재배치 필드 1 개)에서는
+     그 함수가 DIFF 여야 합니다. SPARC 객체는 `l1_compare` 가 거부해야 합니다.
+4. x86 회귀(기준 문서 6 절): (a) `m0_slice_l1.py selftest` 를 다시 돌려 402 객체 판정·이유가 같고, 객체별 상세 JSON 이 §409 때(`08_build/artifacts/m0p409/selftest/`)와 바이트 단위로 같음,
+   (b) `check_macho_obj.py` 를 402 객체에 돌려 모두 AGREE, (c) `m1_version_diff.py selftest`·`run` 결과가 §410 기록과 같음. 하나라도 다르면 바꾼 것을 되돌리고 원인을 찾습니다.
+5. 기록: 이 절, 기준 문서 12 절. 07·06 표는 바꾸지 않습니다.
+
+### 411.1 codex 교차검토(gpt-6.1-sol, kf5189v8v) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 일반 재배치의 MSB 우선 배치는 reloc.h 필드 순서와 맞고, 저장소의 m68k `libcc.a` `_bb.o` 가 그 배치를 보임 | 실기 사본과 같은 `03_original/x86/userland/binaries/lib/libcc.a`(SHA `bccd689e…`, §409 의 실기 `/lib/libcc.a` 와 같음)의 m68k 조각을 python 으로 풀어 `_bb.o`(파일 오프셋 0xa48, 1,908 B)의 일반 재배치 43 개를 가설대로 해독 — 첫 줄 `000002f4 000004d0` = 기호 4, pcrel, long, extern, type 0; `llvm-objdump-14 --macho -r` 출력(`_atexit`, `1 (__TEXT,__text)` …)과 같음 | ✅ 1997 NeXT 가 만든 실제 m68k 객체가 근거. libcc m68k 47 구성원 전체를 대조 A 에 넣음 |
+| 컴파일러 비트필드 배치를 직접 보는 `struct relocation_info` 초기화 탐침 | 위 실제 객체 대조가 같은 사실을 더 직접 보임 | ⚖️ 하지 않음(libcc 대조로 대체) |
+| `r_address` 는 필드의 절 오프셋, m68k 분기 기준(+2)은 이미 F 에 들어 있음, 1/2/4 바이트를 정확히 빅엔디언으로 읽을 것 | reloc.h 주석(`:24`·`:28`); 기준 차이는 F 에 들어 있으므로 식 그대로 — 링크 탐침(대조 B)으로 확인 | ✅(식은 바꾸지 않고 실측으로 확인) |
+| 지역 재배치의 `R_ABS`(절 번호 0)를 `evaluate` 가 `sections[T - 1]` = 마지막 절로 읽음 | `l1_compare.py:192`(`is_lit(obj['sections'][T - 1])`)·`:191`, reloc.h `:33` `#define R_ABS 0` 읽음; `infer` 에도 같은 꼴(`T = r['symbolnum']` 뒤 `sections[T - 1]`) | ✅ T == 0 이면 "R_ABS" 미확인으로 처리(두 곳) |
+| cputype 일치도 요구하고, 지원하지 않는 일반 형식(0 이 아닌 type)은 VANILLA 식을 쓰기 전에 거부 | `evaluate` 는 일반 재배치의 type 을 보지 않음(읽음) | ✅ 넣음(i386 에서 바뀌면 회귀에서 드러남) |
+| 순수 C 로는 2 바이트 필드·절 사이 SECTDIFF 가 보장되지 않음; 실제로 나온 재배치 목록을 기록하고 받을 것 | 원칙 | ✅ 탐침 결과의 형식·폭·pcrel·extern 조합을 python 으로 세어 기록, 나오지 않은 조합은 "미검증" 으로 남김. §409 PIC 탐침(SECTDIFF)도 대조에 넣음 |
+| `ld -arch m68k -static` 직접 호출은 시작 파일·라이브러리를 붙이지 않음; 모든 외부를 정의할 것 | 탐침이 두 파일 안에서 모든 외부를 정의하도록 함; 결과는 실측 | ✅ |
+| 12 개 파일이 macho_obj 를 import 하고, 거부가 풀리면 빅엔디언 객체가 리틀엔디언 가정 도구로 들어감: `objc_place.py:24`·`:38`, `zerofill_check.py:41`·`:88`·`:161`, `m1_version_diff.py:107`, `l2_coverage.py:75`·`:89`, `l2_place.py:74`·`:238` | python AST 로 import 파일 12 개 확인(앞서 내가 적은 13 은 틀림); 각 줄 sed 확인 | ✅ 그 도구들에 i386 전용 확인을 넣음 |
+| 회귀가 L2·커버리지·zerofill 까지 가야 함(기준 문서 6 절 `:186`·`:187`) | 기준 문서 읽음 | ✅ 회귀 스크립트: 기존 시험 5 개, 402 객체 `check_macho_obj`, `m0_slice_l1 selftest`, `m1_version_diff selftest/run`, `l2_place`(+selftest), `l2_coverage`(기본·`L2_COVER=s6l1`) 를 고치기 전후로 돌려 출력 비교. 빌드 도구(kr_run·stage_headers·l2_rebuild·l2_link)는 바꾸지 않으므로 x86 재빌드는 해당 없음 |
+| `next-gcc-2.7.2/config` 에는 i386 말고 `next/`(nextstep.h·nextstep.def)도 있음 | `ls config/next` | ✅ 사실 정정(m68k 백엔드 없음이라는 결론은 그대로) |
+| m68k 분기 기준 근거 `audit_m68k_all_type19_direct_transfers.py:27` | `:27` 은 `def decoder(...)` 줄 | ⏭️ 옮기지 않음 |
+
+### 411.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-tools-m68k-20261009.json`
+
+바꾼 것:
+- `macho_obj.py`: 빅엔디언 재배치 읽기(scattered 는 같은 수치 배치, 일반 형식은 MSB 우선), `RELOC_TYPES_GENERIC`(0–3), `reloc_types(cputype)`(i386·m68k 만, 그 밖은 None), `require_i386()`.
+- `l1_compare.py`: 필드 읽기의 바이트 순서를 객체의 것으로, 형식 표를 `types_of(obj)`(SPARC·HPPA 거부)로, 객체와 이미지의 cputype·바이트 순서가 다르면 거부,
+  일반 재배치의 type 이 0 이 아니면 계산하지 않고 미확인, `R_ABS`(절 0)는 미확인(`evaluate`·`infer` 두 곳). 모듈 변수 `TYPE` 은 기존 호출자를 위해 남김.
+- i386 전용 확인(`require_i386`)을 넣은 도구: `objc_meta.py`, `objc_place.py`, `zerofill_check.py`, `l2_coverage.py`, `l2_place.py`, `m1_version_diff.py`.
+- `check_macho_obj.py`: i386 이 아니면 형식을 숫자로 비교(llvm-objdump 가 m68k·SPARC 형식을 숫자로 출력).
+- 새 시험 `test_l1_m68k.py`, 회귀 스크립트 `regress_m0p411.sh`.
+
+검증:
+- 실제 NeXT 객체 대조(`libcc.a` 각 조각의 모든 `.o` 46 개 × 3): m68k 46/46 AGREE(재배치 97, 모두 일반 형식), i386 46/46 AGREE(101).
+  SPARC 28/46 AGREE — 나머지 18 개 객체의 불일치 113 행은 모두 SPARC 의 비-scattered type 1·symbolnum 0xffffff 항목으로, 필드 값은 llvm 과 같고 대조 도구가 참조 절 이름을 못 붙인 것뿐입니다(SPARC 는 읽기만).
+- 탐침 `m0p411-pr1`(실기 kr_run, DONE): `cc -static -O2` 6 객체와 `ld -arch m68k|i386 -static -e _kr_a` 링크 둘 모두 성공. llvm 대조: m68k·i386 4 객체 AGREE, SPARC 2 객체는 같은 PAIR 표기 불일치만.
+  m68k 에서 실제로 나온 재배치: `__text` 외부 절대 4·외부 pc 5·지역 절대 17·지역 pc 3·scattered 1, `__data` 외부 3·지역 2·scattered 1 — 모두 4 바이트 VANILLA.
+  **2 바이트 필드와 링크 비교에서의 SECTDIFF 는 이번에 나오지 않아 m68k 에서 미검증**입니다(SECTDIFF 읽기는 §409 PIC 탐침에서 AGREE).
+- `test_l1_m68k.py` 10/10: m68k·i386 객체 4 개가 각 링크와 OBJECT_MATCH(→ F + S − Δ(P) 등 일반 식이 NeXT ld 의 m68k 링크와 맞음), 조작 사본 4 종(필드 밖 바이트, 외부 pc 필드, `__data` 외부 필드, 지역 절대 필드) 모두 DIFF/NOT_MATCH,
+  m68k 객체 대 i386 이미지 거부, SPARC 객체 거부.
+- 원본 m68k 커널(`03_original/m68k/binaries/mach_kernel`)을 `l1_compare.Image` 로 읽음: cputype 6, big, 절 6, 외부 기호 이름 3,808.
+- x86 회귀(고치기 전후 같은 명령, `08_build/artifacts/m0p411/{base,after}`): 출력 435 파일 중 433 바이트 동일, 나머지 둘은 출력 경로 문자열과 `l1_compare.py` 자신의 해시만 다름(python 으로 정규화해 확인).
+  여기에 402 객체 L1 상세 JSON, 기존 시험 5 개, `l2_place`(+selftest), `l2_coverage`(기본·s6l1), `m1_version_diff` 가 들어 있습니다. 반환 코드도 같습니다.
+  기준선에서 이미 실패하던 것(zerofill 시험 3/14 — 이번에 고른 알려진 배치 목록이 plan 302 때와 다름; `check_macho_obj` 396/402 — `-g` 객체의 STAB 기호 줄)은 전후 같게 남았습니다.
+
+## 412. M0-3 세부 계획 — m68k ABI 탐침: C·Objective-C·어셈블리·MIG 를 `cc-744.13 -arch m68k` 로 컴파일하고 목적 파일 검사(07·기존 탐침·도구 변경 없음; 코딩 전, 2026-10-09)
+
+목적: GCC27 문서 완료 판정 2 를 m68k 에 대해 채웁니다(기준 문서 M0-3, D066 m68k 먼저). 측정만 하며, 원본 m68k 커널의 구조체 오프셋과 맞추는 일은 M3 끝 조건입니다.
+
+확인한 사실(이 세션에서 읽거나 실행):
+- 기존 i386 탐침(§11 A3, `10_tools/reconstruction/probes/`): `c_layout.c`·`c_codegen.c`·`objc_probe.m`·`asm_probe.s`(i386 문법)·`mig_probe.defs` 와 명령 두 벌. 결과 `09_validation/reconstruction/toolchain/c-layout-probe-20261001.json`.
+- 실기 `/usr/bin/mig` 는 49 줄 sh 스크립트입니다. `-arch A` 이면 `CPP=/lib/A/cpp` 로 전처리하고 `/usr/lib/migcom`(실기에서는 i386 단일 파일, §409)에 넘깁니다. 즉 m68k MIG 출력은 "m68k cpp + i386 migcom" 입니다.
+- `/lib/m68k/` 의 백엔드(`as`·`cc1obj`·`cpp` 등)는 §409 기록(`m0-toolchain-cross-20261009.json`)에 해시가 있습니다. `kr_run.py` 는 실행 때 `/bin/cc` 등 허용 도구만 i386 기록과 대조하고 `/lib/m68k/*` 는 대조하지 않습니다.
+- m68k 역어셈블러 셋: 실기 `/bin/otool -tv`(1997-04-23, `m0p411-pr1` 의 `a-m68k.o` 를 읽음), 호스트 `llvm-objdump-14`(대상 목록에 m68k), python capstone 4.0.2(`CS_ARCH_M68K`).
+- `m0p411-pr1` 의 `-O2` m68k 코드는 `pea a6@; movel sp,a6` 로 프레임을 만들고, 포인터 반환을 `movel a0,d0` 로 d0 에 둡니다(otool 출력) — 호출 규약은 이번에 체계적으로 잽니다.
+- NeXTMach `mk-108.1/conf/Makefile.NeXT:26` 의 m68k 플래그는 `-O -fwritable-strings -fcombine-regs` 입니다(GCC 1 시절 옵션; 원본 1997 m68k 커널의 플래그는 미확인).
+
+방법:
+1. 탐침 소스(새 파일, 프로젝트 작성, 참고 코드 없음; 기존 i386 탐침 파일은 고치지 않고 그대로 재사용):
+   - `probes/c_abi.c`: 컴파일 시점 상수만 담은 초기화 전역 배열(실행 없이 `__data` 에서 읽음) — `long long`·`long double` 크기와 `{char; T}` 오프셋(T = short·int·long·float·double·포인터·long long·long double),
+     `enum` 크기, `struct {char}`·`struct {char[3]}`·`struct {short; char}`·`union {char; short}` 크기, 구조체 안 구조체 정렬, 비트필드(12+12+12, `{char; int b:4}`, `int :0`) 크기,
+     `char` 부호(`(char)-1 < 0`). 그리고 값을 넣은 인스턴스: 비트필드 구조체 `{unsigned a:3, b:5, c:9; char x}` = {5, 17, 300, 0x5a} 와 `{char; int; short}` 값 — 바이트로 비트 순서·채움·바이트 순서를 봅니다.
+     `long long`·`long double` 은 GNU 확장으로 표시하고 측정만 합니다(커널 사용 여부는 M3).
+   - `probes/c_call.c`: 외부 함수 호출로 인자 전달(char·short·int·long·포인터, float·double, 작은·큰 구조체 값, 가변 인자)과 반환(char·short·포인터·float·double·long long·작은/큰 구조체),
+     레지스터를 많이 쓰는 함수 하나(호출 측 보존 레지스터 집합). 모두 프로토타입 있음.
+   - `probes/asm_pp_m68k.s`: m68k(MIT 문법) 함수 하나·데이터 둘(상수, 함수 주소)·외부 호출 하나. `#define` 상수를 써서 `cc -c` 가 `.s` 를 전처리하는지 봅니다.
+2. 명령(kr_run, 새 ID `m0p412-abi1`, 결정성 확인용 같은 입력 `m0p412-abi2`). 옵션 세 벌 × C 탐침(`c_layout`·`c_codegen`·`c_abi`·`c_call`):
+   D 기본(`-arch m68k -c`), O 커널 후보 비-디버그(`-static -fwritable-strings -traditional-cpp -nostdinc -O3 -fno-omit-frame-pointer`), G = O + `-g`(x86 최종 플래그와 같은 꼴).
+   ObjC `objc_probe.m`(D·G), 어셈블리 `asm_pp_m68k.s`(G 꼴, `-nostdinc` 제외), MIG `mig -arch m68k` 로 생성한 User·Server 를 G 로 컴파일. 대조군으로 `c_abi`·`c_call`·MIG 생성을 `-arch i386`(G) 로도 만듭니다.
+   실행 전후에 gcds 로 `/lib/m68k/*`·`/bin/cc`·`/bin/as`·`/usr/bin/mig`·`/usr/lib/migcom` 을 `krsha256` 로 해시해 §409 기록과 같아야 합니다(읽기 전용).
+3. 검사(호스트 python 새 도구 `10_tools/reconstruction/m0_abi_probe.py`, 결과 `09_validation/reconstruction/m0-abi-m68k-20261009.json`):
+   a. 두 실행의 출력 해시가 모두 같음(결정성).
+   b. D·O m68k 객체 전부 `check_macho_obj.py` AGREE(G 는 알려진 STAB 줄 한계가 있어 기록만).
+   c. 배치 표: `c_layout`·`c_abi` 의 표를 `macho_obj` 로 읽고(빅엔디언), 같은 값을 `llvm-objdump-14 --macho -s` 의 16 진 출력에서 따로 python 으로 풀어 일치 확인. D·O·G 세 벌이 같아야 하고,
+      i386 대조군 `c_layout` 값은 §11.2 기록과 같아야 합니다(판독 경로 확인).
+   d. 호출 규약: `c_call` 의 각 함수를 otool·llvm-objdump-14·capstone 으로 역어셈블해 명령 경계(주소 목록)가 셋 모두 같은지 python 으로 확인하고, 인자 읽기 위치(`a6@(n)`)·반환 레지스터(d0/d1, fp0, a0/a1)·
+      구조체 반환 방식·저장 레지스터를 목록 줄 인용과 함께 표로 기록(관찰 사실; 해석에 계산이 들면 python).
+   e. ObjC: m68k 와 i386 `objc_probe.o` 의 절 이름 집합이 같은지, 절 크기·재배치 수 표. 메타데이터 내부 해석은 `objc_meta` 확장(M0-5) 뒤로 미룹니다.
+   f. 어셈블리: `#define` 값이 명령 바이트에 들어갔는지(전처리 여부), 재배치(외부 pc·데이터 절대)를 `macho_obj` 와 llvm 으로 확인.
+   g. MIG: m68k·i386 생성 `.c`·`.h` 를 python 으로 비교해 다른 줄 목록을 기록(다르면 원인 후보만 적고 판단은 보류), m68k 생성 코드가 G 로 컴파일됨.
+4. 기록: 이 절 결과, 기준 문서 12 절, GCC27 문서 툴체인 확인 상태 한 줄(m68k probe 결과 인용). 07·06·기존 탐침·도구는 바꾸지 않습니다.
+
+끝 조건: 모든 RUN 종료 0·게시, a–g 통과(g 는 차이가 있어도 기록되면 통과), 도구 해시 전후 동일. SPARC 는 이번 범위가 아닙니다(D066).
+미해결로 남기는 것: 원본 1997 컴파일러와의 코드 동일성(M0-2), 원본 커널 구조체 오프셋 대조(M3), m68k VM 의 m68k `migcom` 출력과의 비교.
+
+### 412.1 codex 교차검토(gpt-6.1-sol, kb35a8gso) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `llvm-objdump-14` 는 m68k 명령을 제대로 풀지 못함(`--triple` 없으면 대상 없음, 있으면 `invalid instruction encoding`) | `m0p411-pr1/out/a-m68k.o` 에 두 명령 실행: `unable to get target for ''`, `--triple=m68k` 는 경고 3 줄과 기호 줄만 출력 | ✅ 역어셈블 대조에서 llvm 을 뺌(절·기호·재배치·16 진 출력에는 계속 씀) |
+| capstone 4.0.2 는 확장 정밀 즉시값 `fmove.x` 를 잘못 풂 | python capstone(`CS_MODE_M68K_040`)에 `f23c4800 3fff8000 00000000` → `fmove.x invalid, fp0`, 12 B 중 4 B 만 소비; `4856`→`pea.l (a6)`, `207900000172`→`movea.l $172.l, a0` 는 정상 | ✅ capstone 단독 판정 금지. 대신 **컴파일러 자신의 어셈블리(`-S`)** 를 기준으로 두고, otool·capstone 의 명령 수·경계·길이를 그와 대조, 불일치는 기록 |
+| LLVM D142080·D147480, capstone #3013·#3016 | 열지 않음 | ⏭️ 옮기지 않음 |
+| G(`-nostdinc`)로 `objc_probe.m` 을 빌드하면 `<objc/Object.h>` 를 못 찾음 | `objc_probe.m:2` `#import <objc/Object.h>`, 계획 412 의 "ObjC `objc_probe.m`(D·G)" | ✅ 머리가 필요한 탐침은 `-nostdinc` 없는 H 세트(= G − `-nostdinc`)로; 읽은 머리는 `-E` 줄 표시로 기록 |
+| i386 대조군에 `c_layout`·`objc_probe` 가 빠짐 | 계획 412 의 대조군 문장(`c_abi`·`c_call`·MIG 만) | ✅ 더함 |
+| `check_macho_obj` AGREE 는 절 내용·정렬을 검사하지 않음(이름·크기·주소만) | `check_macho_obj.py:37`–`:38` 의 비교 튜플 `(sectname, size, addr)` | ✅ 배치 표 바이트는 따로 대조(3c), 절 정렬은 `macho_obj` 값으로 기록 |
+| `run.json` 에 실행 ID·수집 시각이 있어 "출력 해시 전부 같음" 이 성립할 수 없음 | 기존 `run.json` 키: `id`, `prepared_utc`, `collected_utc` … | ✅ 결정성 비교는 `run.json`·`_log` 를 뺀 산출물로 |
+| 모든 명령이 종료 0 이어야 게시됨(기대 실패 시험은 따로) | `kr_run.py` collect 의 `need(rc == '0', …)` | ✅ 거부가 예상되는 옵션 시험은 넣지 않음 |
+| `mig` 는 작업 디렉터리에서 `"$base".d` 를 지움 | 실기 `/usr/bin/mig` 본문(`rm -f "$base".d "$base".d~`) | ✅ `RUNIN stage/mig_m68k`·`stage/mig_i386` 로 분리 |
+| `EXPECT` 는 `stage/` 없이 씀 | `kr_run.py` collect 의 `os.path.join(rdir, 'stage', e)` | ✅ |
+| C 인라인 asm 제약자 탐침이 없음 | GCC27 문서 `:35`(inline assembly 확인)·`:39`(operand/constraint); 참고 `mk-108.1` 의 m68k 인라인 asm 은 `=a`·`a`·`=dm`·`=m`·`Jdm` 사용(`next/spl.h:42`·`:43`, `kern/lock.c:187`, grep) | ✅ 같은 제약자 글자만 쓰는 프로젝트 작성 탐침 `c_iasm.c`(문장은 새로 씀) |
+| 정렬 종류(멤버·집합체·배열 보폭·전역·스택), 비트필드 멤버 위치·부호, 좁은 정수 인자, 구조체 모양별 반환(호출·피호출 양쪽), 가변 인자 피호출, 옛 형식 정의, enum 범위, `long long`·`long double` 인자, 보조 함수 기호 | 계획 412 목록과 대조(없음) | ✅ 탐침에 넣음(아래) |
+| `((unsigned long)&((T*)0)->f)` 정적 초기화는 C89 상수식이 아니며 접혔는지 확인 필요 | `c_layout.c:8` | ✅ 표 범위에 재배치가 하나도 없어야 함, 컴파일 진단(`_log/*.err`) 비어야 함 |
+| `-fwritable-strings` 효과는 D→O 묶음에 섞임 | 계획 412 옵션 정의 | ✅ 문자열 탐침 `c_str.c` 만 O 와 O − `-fwritable-strings` 둘로 |
+| m68k 기본 CPU·FPU 설정을 확인할 것 | §409 `m0p409-xc1/out/_log/00.err`: `cc1obj … -arch m68k -quiet … -dynamic -fPIC`(`-m` 옵션 없음), `GNU Obj-C version 2.7.2.1 (68k, MIT syntax)` | ✅ `-v` 출력과 생성 명령(68040/68881 명령 사용 여부)을 기록 |
+| `-g` 에서 코드 바이트가 같을 필요 없음 | GCC27 문서 `:18`(`-g` 에서만 인라인 판단이 다른 사례) | ✅ G 는 배치 표 값만 같아야 함 |
+
+수정된 방법(412 의 1–3 을 대신함):
+1. 새 탐침 소스(`10_tools/reconstruction/probes/`): `c_abi.c`(자료만), `c_call.c`(호출·반환·옛 형식·레지스터 압박·보조 함수), `c_vararg.c`(SDK `<stdarg.h>` 로 가변 인자 피호출), `c_iasm.c`, `c_str.c`, `asm_pp_m68k.s`.
+2. 세트: D(`-arch A -c`), O(`-static -fwritable-strings -traditional-cpp -nostdinc -O3 -fno-omit-frame-pointer`), G(O + `-g`), H(G − `-nostdinc`, 머리가 필요한 것), W(O − `-fwritable-strings`, `c_str` 만).
+   m68k: `c_layout`·`c_codegen`·`c_abi`·`c_call`·`c_iasm`·`c_str` × D·O·G, `c_vararg`·`objc_probe` × D·H, `c_str` × W, O 세트 C 탐침과 `c_vararg`(H)의 `-S`, `asm_pp_m68k.s`(H), MIG(RUNIN, H 로 컴파일), `-v` 한 줄.
+   i386 대조: `c_layout`·`c_abi`·`c_call`·`c_str` × O, `c_vararg`·`objc_probe` × H, `-S`(O), MIG(H).
+3. 검사: a 결정성(`run.json`·`_log` 제외 산출물 해시 동일), b D·O 객체 `check_macho_obj` AGREE(G·H 의 불일치는 STAB 줄인지 하나씩 분류), c 배치 표·값 인스턴스를 `macho_obj` 와 llvm 16 진 출력에서 각각 찾아 풀어 일치·표 범위 재배치 0·세트 간 동일·i386 `c_layout` 이 §11.2 와 같음,
+   d 역어셈블: 컴파일러 `-S` 를 기준으로 otool(실기, 게시 뒤 읽기 전용)·capstone 의 명령 수·주소·길이 대조, 불일치 목록, 호출 규약 관찰은 `-S` 줄 인용으로 표, e ObjC 절 집합·크기(관찰), f `.s` 전처리 값·재배치, g MIG 차이 줄, h 정해 둔 기호·관찰이 모두 있음, i 도구 해시 전후 동일.
+
+### 412.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-abi-m68k-20261009.json`
+
+실행: kr_run `m0p412-abi1`·`m0p412-abi2`(실기, 같은 입력, 명령 49 개, 모두 종료 0·게시). 컴파일러 진단은 없고(`_log/*.err` 는 `-v` 한 줄짜리 실행만 비어 있지 않음),
+도구 17 개(`/lib/m68k/*` 7, `/lib/i386/*` 5, `/bin/cc`·`/bin/as`·`/usr/bin/mig`·`/usr/lib/migcom`·`/bin/otool`)의 해시는 실행 전후 같고 `/bin/otool` 말고는 §409 기록과 같습니다(`/bin/otool` 은 §409 목록에 없음).
+새 파일: 탐침 소스 6 개(`probes/c_abi.c`·`c_call.c`·`c_vararg.c`·`c_iasm.c`·`c_str.c`·`asm_pp_m68k.s`), 검사 도구 `10_tools/reconstruction/m0_abi_probe.py`. otool 출력은 `08_build/artifacts/m0p412/otool/`(무시 대상).
+
+검사(모두 python):
+- a 결정성: `run.json`·`_log` 를 뺀 산출물 53 개의 해시가 두 실행에서 모두 같습니다.
+- b llvm 대조: 객체 34 개 중 D·O·W·`.s` 20 개 AGREE, `-g` 객체 14 개는 차이가 모두 STAB 줄(개수가 `macho_obj` 의 STAB 수와 같음)로 분류됨. 원천 파일 이름 STAB(`N_SO`)은 이름에 `:` 가 없어 처음 분류식이 놓쳤고, 실제 STAB 이름과 대조하도록 고쳤습니다.
+- c 배치: 표 두 개(`_kr_layout` 21 칸, `_kr_abi` 52 칸)를 `macho_obj` 와 llvm 16 진 출력에서 따로 찾아 읽어 같고, 표 범위의 재배치 0, m68k D·O·G 세 벌이 같고, i386 `c_layout` 은 §11.2 기록과 같습니다.
+  값 인스턴스 11 개의 필드 가설 19 개(m68k 는 빅엔디언 정수에서 최상위 비트부터, i386 은 리틀엔디언에서 최하위 비트부터)가 모두 초기값과 같습니다.
+- d 역어셈블: 함수 53 개. 컴파일러 `-S` 와 otool 의 명령 수는 `-S` 가 있는 52 개 중 51 개가 같고, 다른 하나(`_kr_switch`)는 `__text` 안 점프 표 `.long` 7 개(otool 이 `orb` 7 개로 풂)만큼 다릅니다.
+  otool·capstone 경계는 36 개가 같고 17 개가 다른데, 17 개 모두 capstone 4.0.2 결함으로 분류됩니다: `bsr.l`(0x61ff, 68020 32 비트 변위)를 2 바이트로 읽음 15, 확장 정밀도(`.x`) 메모리 원천 FPU 명령 2(그중 하나는 거기서 멈춤). 같은 자리를 otool 은 `-S` 와 맞게 풉니다.
+  llvm-objdump-14 는 m68k 명령을 풀지 못합니다(412.1).
+- 관찰 37 건은 `-S` 의 줄을 인용하고, 도구가 그 줄에 인용 문자열이 있는지 확인합니다(처음 적은 줄 번호 4 개가 틀려 고침).
+- e ObjC: m68k·i386(H) `objc_probe.o` 의 절 21 개 이름 집합이 같고, 크기는 `__text`(92·91 B) 말고 모두 같으며, 정렬이 다릅니다(m68k 2^1, i386 2^2). D(PIC) 에는 `__picsymbol_stub`·`__la_symbol_ptr` 가 더 있습니다.
+- f 어셈블리: `.s` 는 전처리됩니다 — `addql #KR_VAL,d0` 가 `5a80`(= `addql #5,d0`, python 으로 부호화), `.long KR_VAL` 이 5. 재배치는 외부 `jsr` 절대 1·`.long _kr_pp` 지역 절대 1.
+- g MIG: `mig -arch m68k`(m68k cpp + i386 migcom) 와 `-arch i386` 의 `krprobe.h`·`krprobeUser.c`·`krprobeServer.c` 가 줄 단위로 같고(23·213·212 줄), H 로 컴파일됩니다.
+- h 정해 둔 기호가 모든 객체에 있습니다.
+
+m68k(`cc-744.13 -arch m68k`) ABI 측정값(i386 대조와 다른 것 위주; 근거는 기록의 `c_tables`·`d_observations`):
+- 크기: char 1, short 2, int·long·포인터·float 4, double·long long 8, long double 12(68881 확장: 지수 16 비트, 0 채움 16 비트, 명시 정수 비트가 있는 가수 64 비트). char 는 부호 있음, enum 은 4 바이트·음수 허용.
+- **정렬은 최대 2 바이트**: 2 바이트 이상인 형은 모두 `__alignof__` 2, `{char; T}` 의 T 오프셋은 모두 2, 전역도 2 바이트 경계(`_kr_g_c1` 272 → `_kr_g_i` 274). 구조체는 최소 정렬·크기 단위가 2(`struct {char}` 2 B, `struct {char[3]}` 4 B, 그 배열 보폭 4).
+  예: `{char; int; short}` 8 B(i386 12), `{char; double}` 10 B(i386 12), 기존 `s4` 18 B(i386 24).
+- 비트필드: 최상위 비트부터 채우고 저장 단위 경계를 넘을 수 있음(`u:12×3` 6 B, i386 8 B), `int :0` 은 2 바이트 경계로(`{u:4; int:0; u:4}` 4 B, i386 8 B), `{char; int b:4}` 2 B, 이름 없는 `int` 비트필드는 부호 있음(`bfexts`).
+- 호출: 인자는 오른쪽부터 스택에 쌓고 모두 4 바이트 칸(char·short 는 칸의 오른쪽 끝, 8 바이트 형도 4 바이트 경계), 프로토타입 있는 float 는 4 바이트, 프로토타입 없거나 옛 형식이면 double 로 승격, 구조체 값은 크기대로 칸에(2 바이트 구조체는 오른쪽 끝). 가변 인자도 같은 칸 배치.
+- 반환: 정수·포인터 d0(char·short 는 피호출 쪽이 32 비트로 확장), long long·double d0:d1(상위 d0), **float 도 d0**(fp0 아님), long double 은 a1 이 가리키는 곳에 쓰고 a1 을 d0 에도 둠,
+  구조체는 4 바이트 이하 d0, `{int,int}` d0:d1, `{int[3]}`·`{double}`(8 B 이지만) 은 호출 쪽이 a1 으로 준 곳(주소를 d0 에도 둠).
+- 보존 레지스터: d2–d7·a2–a5, FP 는 fp2·fp3 (fp4–fp7 은 이번 탐침에서 쓰이지 않아 미확인; 관찰: `moveml #0x3f3c` = d2–d7,a2–a5, `fmovem #0xc` = fp2,fp3 — 마스크는 python 으로 풂), a6 프레임 포인터. 잎 함수는 `link` 대신 `pea a6@; movel sp,a6`.
+- 명령 집합: 68020 이상(`bsr.l`, `bfexts`/`bfextu`/`bfins`, `extbl`, `mulsl`)과 68881(`fmovex` 등)을 기본으로 냅니다(`-m` 옵션 없이; cc1obj 판 문자열 "68k, MIT syntax").
+  double→int 변환은 FPCR 반올림을 0 방향으로 바꿨다가 되돌립니다.
+- 보조 함수(정의되지 않은 기호): m68k `__ashldi3`·`__divdi3`·`__fixdfdi`·`__floatdidf`·`__umoddi3`, i386 `__divdi3`·`__umoddi3`.
+- 인라인 asm: 제약자 `=a`·`a`·`=dm`·`=m`·`Jdm`, 일치 제약 `"0"`, 덮어쓰기 `"cc"`·`"memory"` 를 받아들입니다(진단 없음). `Jdm` 에 상수를 주면 즉시값(`movw #9984,sr`).
+- 문자열: `-fwritable-strings` 이면 리터럴이 `__DATA,__data` 에 하나씩(같은 문자열도 합치지 않음), 빼면 `__TEXT,__cstring` 에 합쳐 놓입니다.
+
+판단: GCC27 문서 완료 판정 2 의 m68k 작은 탐침(C·ObjC·어셈블리·MIG·구조체 배치)이 `cc-744.13` 으로 통과했습니다. 측정 범위는 이 컴파일러와 D·O·G·H·W 옵션이고,
+1997 원본 컴파일러와의 코드 동일성(M0-2), 원본 m68k 커널 구조체 오프셋 대조(M3), ObjC 메타데이터 내부 해석(`objc_meta` 확장), SPARC 는 남았습니다.
+
+## 413. M0-2 세부 계획 — m68k: `cc-744.13` 과 1997 원본 m68k 컴파일러의 코드 동일성 측정(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09)
+
+배경: 기준 문서 M0-2. 원본 m68k 커널(mk-183.34, 1997-04-27)을 만든 컴파일러가 실기 `cc-744.13` 과 같은 코드를 내는지 모릅니다. i386 에서는 §409 가 정황을 주었고
+(1997 i386 조각에서 재빌드 객체 대부분 통과), m68k 백엔드는 같은 fat 파일이라는 정황뿐입니다. 이번에는 **아키텍처에 따라 전처리 결과가 바뀌지 않는 소스**만 골라
+m68k 로 컴파일하고 원본 m68k 커널과 L1 로 비교해, 소스·머리 요인을 줄인 상태에서 컴파일러 요인을 잽니다.
+
+확인한 사실(이번 세션, python, 읽기 전용):
+- §409 기록(`m0-i386-18334-l1-20261009.json`)에서 등급 A·ObjC 아님·x86 과 1997 i386 조각 모두 OBJECT_MATCH 이고, `__TEXT,__text` 의 외부 기호가 모두
+  원본 m68k 기호표(`03_original/m68k/inventory/symbols.tsv` 의 `defined_external`)에 있는 객체가 195 개(`__text` 394,952 B)입니다. 모두 `s6l4-g1a` 의 평범한 `RUN /bin/cc` 줄로 만들어졌습니다.
+- 그 입력 스테이징 `08_build/runs/tools/s6l4-g1a-stage` 는 매니페스트 837 파일과 디스크 837 파일이 같고 SHA 가 모두 맞습니다.
+- 스테이징의 `machine/` 머리는 `ARCH_INCLUDE` 나 `__i386__` 분기로 i386 머리를 고릅니다(예: `src/bsd/machine/endian.h`, `src/machdep/machine/features.h` 는 그 밖이면 `#error`).
+  따라서 이 머리를 거치는 소스는 m68k 로 그대로 컴파일되지 않거나 다른 텍스트가 됩니다.
+
+방법:
+1. 후보: 위 195 개 중 C 소스(`.c`)만. 객체마다 s6l4 의 컴파일 줄을 그대로 쓰고 `-arch` 와 출력만 바꿉니다(최적화·`-g`·정의·포함 경로 동일; `-O` 는 `__OPTIMIZE__` 를 바꾸므로 `-E` 에도 그대로 둠).
+2. run 1 `m0p413-pp1`(실기 kr_run, 입력은 위 스테이징): 후보마다 `-arch i386 … -E -o stage/NNN.i386.i`. 호스트에서 python 으로 줄 표시(`# n "file"`)를 읽어 포함 파일 목록을 만들고,
+   (a) 경로 요소에 `i386`·`m68k`·`machine` 이 있거나 `ARCH_INCLUDE.h` 를 포함한 객체, (b) 소스·포함 파일 원문에 아키텍처 이름(`i386`·`__i386__`·`m68k`·`mc68000`·`__BIG_ENDIAN__`·`__LITTLE_ENDIAN__`·`BYTE_ORDER`·`sparc`·`hppa`·`ppc`)이 나오는 객체를 뺍니다.
+   (b) 는 보수적 거르기이고(실패하는 m68k 컴파일로 run 전체가 게시되지 않는 것을 막음), 판정의 근거는 3 의 비교입니다.
+3. run 2·3 `m0p413-m68k1`·`m0p413-m68k2`: 남은 객체마다 `-arch m68k … -E -o stage/NNN.m68k.i` 와 `-arch m68k … -c -o stage/NNN.o`. 두 run 의 산출물 SHA 가 같아야 합니다(결정성).
+   m68k 백엔드(`/lib/m68k/*`) 해시는 run 전후 목록으로 보충합니다(§412 와 같은 방법). 호스트에서 객체마다 i386 `.i` 와 m68k `.i` 가 **바이트 동일**한지 봅니다.
+   다르면 비교 대상에서 빼고 이유를 적습니다(다른 줄 수).
+4. 비교: `.i` 가 같은 객체를 `l1_compare.py --image 03_original/m68k/binaries/mach_kernel --obj NNN.o --place-from-image` 로 비교합니다.
+   python 집계: 객체 판정, 이유 종류, `__TEXT,__text` 함수 판정 수·바이트(MATCH·MATCH_UNVERIFIED·DIFF·미배치), 경로(디렉터리)별. 대조군으로 같은 객체의 s6l4 i386 객체가 x86 원본에서 OBJECT_MATCH 인 것은 §409 기록으로 둡니다.
+5. DIFF 함수의 진단(판정과 분리): 함수 크기(원본은 다음 외부 기호까지, 객체는 기호 범위)의 같음/다름, 처음 다른 바이트 위치. 명령 수준 비교가 필요하면 실기 `otool` 로 원본과 객체를 읽기 전용으로 풀어 봅니다
+   (capstone 은 `bsr.l`·`.x` 메모리 원천 FPU 명령을 잘못 읽으므로 쓰지 않음, §412.2).
+6. 해석 규칙(미리 정함): MATCH 함수 = "`cc-744.13 -arch m68k` 와 기록된 플래그·07 소스·스테이징 머리로 만든 객체가 그 함수에서 이 도구의 비교를 원본 m68k 커널과 통과함"
+   — 그 함수에 대해 1997 m68k 컴파일러와 구별되지 않는다는 근거입니다. DIFF 는 원인(소스 판 183.34 ↔ 183.34.4, 구성 값 H-meta, 플래그, 컴파일러)을 가르지 않습니다.
+   MATCH 가 많으면 컴파일러 동일의 정황이 강해지고, 적어도 컴파일러 차이의 증명은 아닙니다. m68k 의 2 바이트 재배치·SECTDIFF 가 나오면 §411 의 미검증 항목이므로 따로 셉니다.
+7. 기록: 이 절 결과, `09_validation/reconstruction/m0-m68k-cc-l1-20261009.json`(객체별 상세는 무시 대상 `08_build/artifacts/m0p413/`, SHA 로 묶음), 새 도구 `10_tools/reconstruction/m0_m68k_l1.py`
+   (명령 파일 생성·`.i` 대조·L1 실행·집계). 07·x86 표·기존 도구는 바꾸지 않으므로 x86 회귀는 해당하지 않습니다. 로컬 기준 문서 M0-2 문단 갱신.
+
+### 413.1 codex 교차검토(gpt-6.1-sol, klfatek4s) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 2 의 거르기로는 195 개가 모두 빠짐(기존 `-M` 의존 목록 기준) | `08_build/runs/s6l4-g1a/run.cmd` 의 `-M` RUN 312 개와 `out/_log/NN.out` 를 python 으로 대응: `.c` 194 개 모두 경로 요소 `i386`·`machine` 또는 `ARCH_INCLUDE.h` 를 거침, 나머지 1 개는 `.s`(`start.s`). 가장 흔한 것 `ARCH_INCLUDE.h` 185·`mach/machine/boolean.h` 184 | ✅ 결론 사실(codex 의 186+9 분할은 내 규칙과 달라 옮기지 않음). 방법을 바꿈(아래) |
+| 원시 `.i` 동일은 보수적 거르기일 뿐이고 줄 표시와 확장 코드 차이를 구분해야 함 | §412 `m0p412-abi1/out/m68k_H_c_vararg.i` 의 줄 표시 형식 확인(`# n "file" flags`) | ✅ 줄 표시로 줄마다 출처 파일을 붙여 차이를 출처별로 분류 |
+| `-imacros meta_features.h` 가 가져오는 머리는 `-M` 목록에 안 나옴; `__ARCHITECTURE__`·`__TARGET_ARCHITECTURE__` 도 아키텍처 단어 | `06.out` 에 `cpus.h`·`confdep.h` 0 건(grep); `ARCH_INCLUDE.h` 가 `__TARGET_ARCHITECTURE__`←`__ARCHITECTURE__` 로 경로를 만듦(파일 읽음); `meta_features.h` 의 `#import` 50 개 파일에 `i386`·`m68k`·`__ARCHITECTURE__` 0 건(grep -l 빈 출력) | ✅ 생성 머리는 아키텍처 단어 없음을 기록. 판정은 `.i` 출처 분류로 함 |
+| 실패한 RUN 하나가 게시를 막음; `-E -o` 는 이미 됨; EXPECT 는 `stage/` 없이 | `kr_run.py:328–329`(rc≠0 이면 거부), `:141–144`·`:340–345`(EXPECT 는 `stage/` 를 붙여 찾음), `m0p412-abi1/run.cmd:33`(`-E -o`)·EXPECT 줄 | ✅ 전처리 run 을 먼저 따로 하고, 실패 객체는 로그로 확인해 다음 run 에서 뺌 |
+| 배치는 한 절의 모든 대응 기호가 같은 델타일 때만 됨; 함수 하나 크기가 다르면 그 절 전체가 미배치 | `l1_compare.py:466–478`(`placements_from_image`, `len(ds) == 1`) | ✅ 미배치는 DIFF 로 세지 않고 따로 셈. 보조 진단으로 함수마다 원본 기호 주소에서 재배치 필드를 가린 바이트 대조(판정 아님) |
+| 추론은 4 바이트 필드만 씀; 좁은·pc 상대 리터럴 참조는 미확인; 외부 재배치는 type≠0 검사 전에 반환 | `l1_compare.py:266`(`if w == 4 else None`), `:340–342`, `:188–197`(extern 분기가 `:198` 의 type 검사보다 앞) | ✅ 객체마다 재배치 종류(외부·pc·폭·type)를 세고, 1·2 바이트 필드·type≠0 이 들어간 함수는 MATCH 라도 따로 표시 |
+| 리터럴은 `S_CSTRING`·`S_LITPTR` 만 내용 대조, 절 전체는 비교 안 함; `-fwritable-strings` 이면 문자열이 `__data` | `l1_compare.py:101–105`, `:307–310`; §412.2 문자열 결과 | ✅ 해석에 적음(`__data` 배치 결과가 플래그 가설의 시험이 됨) |
+| 함수 "크기" 는 기호 범위이고 원본은 이름 없는 정적 함수를 품을 수 있음; STAB 정보는 무시 | `l1_compare.py:372–381`(객체 기호로 범위) | ⚖️ 범위가 기호 범위인 것은 사실. 객체 쪽 정적 함수는 `-g` 객체에서 비-STAB 지역 기호로도 있으므로 "STAB 에만 있어 합쳐짐" 은 이번 객체에 그대로 맞지 않음. "기호 범위" 로 적음 |
+| DIFF 는 코드 바이트 차이 없이 참조 데이터 절 실패로도 생김; 추론은 원본 값을 씀 | `l1_compare.py:383–384`, `:245–266` | ✅ DIFF 를 코드 바이트·재배치·의존 절로 나눠 셈 |
+| 같은 이름이라도 다른 구현(예: m68k `_strlen` 은 어셈블리) | 이번 후보에서 자기 파일이 `i386/` 아래인 18 개(`machdep/i386/libc/*` 포함)는 이미 빠짐(python) | ⏭️ 예시는 대상 밖이라 옮기지 않음. 일반 원칙은 해석에 적음 |
+| 강하게 고른 부분집합이므로 거르기 단계별 수를 보고하고 일반화하지 말 것 | 설계 판단 | ✅ |
+| 결정성은 `.i`·`.o` 만 대조, 도구·입력 해시로 묶을 것 | §412 방법(`run.json` 제외) | ✅ |
+
+추가로 확인한 사실(이번 세션):
+- `.c` 194 개 중 자기 파일이 `i386/` 아래 18, `machdep/`·`dev/`·`driverkit` 의 아키텍처 머리를 거치는 100 을 빼면 **76 개(`__text` 93,677 B)** 가 남고(python), 이들이 거치는 아키텍처 머리는 24 개입니다.
+  그중 22 개는 실기 SDK `/NextDeveloper/Headers/…/i386/` 의 사본(스테이징 매니페스트 주석), `bsd/i386/reboot.h`·`spl.h` 2 개는 프로젝트 작성본입니다.
+- 실기 SDK 의 m68k 디렉터리(`ls`, 읽기 전용): `architecture/m68k` 6 개(`fpu.h`·`frame.h`·`sel.h` 없음), `ansi/m68k` 7, `bsd/m68k` 17, `bsd/rpc/m68k` 1, `kernserv/m68k` 2, `mach/m68k` 9.
+
+고친 방법(앞의 2–4 를 대체):
+2'. **m68k 스테이징**: 위 여섯 SDK m68k 디렉터리의 모든 파일을 실기에서 `cat` 으로 무시 대상 `08_build/artifacts/m0p413/sdk-m68k/` 에 복사하고 실기 `krsha256` 과 호스트 SHA 를 대조합니다(D017: SDK 사본은 로컬).
+   `s6l4-g1a-stage` 를 새 무시 대상 `08_build/runs/tools/m0p413-stage` 로 복사하고, i386 짝이 놓인 자리(`components/architecture/m68k`, `nextdev/ansi/m68k`, `src/bsd/m68k`, `src/bsd/rpc/m68k`, `src/kernserv/m68k`, `src/mach/m68k`)에 더합니다.
+   기존 파일은 바꾸지 않습니다(같은 이름이 이미 있으면 SHA 가 같을 때만 둠). 매니페스트를 새로 씁니다.
+3'. 대상: 76 개 중 프로젝트 작성 머리(`bsd/i386/reboot.h`·`spl.h`)나 SDK m68k 짝이 없는 머리(`architecture/i386/{fpu,frame,sel}.h`)를 거치는 객체를 뺀 것.
+4'. run A `m0p413-pp1`: 대상마다 `-arch i386 … -E` 와 `-arch m68k … -E`(같은 새 스테이징). 실패가 있으면 로그로 원인을 적고 그 객체를 빼서 새 ID 로 다시 합니다.
+   호스트 python: 줄 표시로 줄마다 출처 파일을 붙이고, 두 `.i` 의 차이(줄 표시 제외)가 모두 아키텍처 디렉터리(`/i386/`·`/m68k/`) 출처인 객체를 "공유 텍스트 같음" 으로, 아니면 "공유 텍스트 다름" 으로 나눕니다(뒤의 것도 비교하되 따로 셈).
+5'. run B·C `m0p413-cc1`·`m0p413-cc2`: 남은 객체마다 `-arch m68k … -c`(s6l4 줄 그대로, `-arch` 만 바꿈). 두 run 의 `.o` SHA 동일(결정성). m68k 백엔드 해시는 run 전후 목록(§412 방법).
+6'. 비교·집계는 앞의 4–6 과 같고, 413.1 판정대로 미배치·재배치 종류·DIFF 원인을 나눠 셉니다. 거르기 단계별 수(195 → … → 비교 대상)를 기록합니다.
+   해석에 더함: 머리는 1997 커널 빌드의 내부 머리가 아니라 같은 시기 SDK 의 m68k 머리이므로 머리 요인이 남습니다.
+
+### 413.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-m68k-cc-l1-20261009.json`
+
+준비:
+- 실기 SDK m68k 머리 42 개를 `cat` 으로 복사, 실기 `krsha256` 과 호스트 SHA 42/42 같음. 새 스테이징 `m0p413-stage` 는 기존 837 파일 + 41 개(`bsd/m68k/fptrace.h` 1 개는 같은 SHA 로 이미 있음) = 878 파일, 매니페스트와 디스크가 같음(도구 assert).
+- 거르기(python, `m0_m68k_l1.py select`): 402 → 등급 A·비 ObjC·두 이미지 OBJECT_MATCH 아님 143, 외부 `__text` 기호 없음 12, m68k 원본에 없는 기호 52, `.c` 아님 1, 자기 파일이 `i386/` 18,
+  i386 머리가 SDK 사본이 아니거나 SDK m68k 짝 없음 130(가장 많은 것 `machdep/i386/machspl.h` 37·`architecture/i386/frame.h` 26·`bsd/i386/spl.h` 26) → **대상 46 객체**(i386 `__text` 50,252 B).
+- 실기 도구 12 경로 해시: run 전후 같고 §412 기록과도 같음.
+
+전처리(run `m0p413-pp1`, 92 명령 모두 종료 0, 게시):
+- `.i` 비교(python): 아키텍처 디렉터리 밖 차이 없음 2, `expansion` 44 — 공유 텍스트의 차이는 `TRUE`/`FALSE`(i386 `((boolean_t) 1)` ↔ m68k `(1)`), 바이트 순서 매크로(`NXSwapBigLongToHost(…)` ↔ 그대로) 등
+  머리 매크로 펼침이고, `.c` 자체에서 줄이 생기거나 사라진 객체(`source_structural`)는 0, 46 개 `.c` 원문에 아키텍처 이름 0(단어 경계 검사; 처음 검색의 `inp_ppcb` 같은 부분 일치는 오탐).
+
+컴파일(run `m0p413-cc1`·`cc2`, 46 명령씩 모두 종료 0, 게시):
+- 두 run 의 `.o` 46/46 SHA 같음. 컴파일 경고가 있는 객체 15, 46/46 이 같은 객체의 s6l4 i386 컴파일과 경고 내용이 같음(파일:줄 앞부분 제외).
+- 재배치(`__text`): 외부 pc 723·외부 절대 547·지역 절대 231·지역 pc 143·scattered 19, 모두 4 바이트 VANILLA. 1·2 바이트 필드나 type≠0 은 0 → §411 의 m68k 미검증 형식은 이번 판정에 들어가지 않음.
+
+원본 m68k 커널과 L1(python 집계):
+- 객체: **OBJECT_MATCH 18**(`__text` 7,480 B, 15.67 %), NOT_MATCH 28. `__text` 가 배치된 객체 33, 미배치 13(19,118 B — 같은 절 기호들의 델타가 하나가 아님).
+- 함수(`__TEXT,__text`, 46 객체 47,724 B): **MATCH 105 개 12,296 B(25.76 %)**, MATCH_UNVERIFIED 5 개 2,144 B(4.49 %), DIFF 57 개 14,166 B(29.68 %), 나머지는 미배치.
+  DIFF 원인(겹침): 코드 바이트 54, 재배치 값 37, 참조 데이터 절 실패 7.
+- 보조 진단(판정 아님): 외부 함수 221 개를 원본 기호 주소에서 재배치 필드를 가리고 대조 — **173 개(78.28 %) 같음**, 그중 166 개는 원본의 다음 외부 기호까지 거리와 크기도 같음.
+  OBJECT_MATCH 객체에는 `tcp_subr`(10 함수)·`ufs_lockf`(13)·`uipc_domain`(6)·`queue`(7)·`if_loop`(4) 등이 있습니다.
+- DIFF 예시(python 바이트 + capstone m68k 로 확인, `bsr.l`·`.x` 결함 명령 제외):
+  `_chdir` — 크기 82 같음, 재배치 밖 차이는 변위 0x15a ↔ 원본 0x156 뿐(구조체 필드 오프셋 4 차이, 머리·구성 요인으로 보임);
+  `__authenticate` — 크기 90 같음, 같은 명령의 기본 블록 순서가 다름; `_ku_sendto_mbuf` — 크기 216 같음, 주소 레지스터 배정(a1 ↔ a0)이 다름.
+  뒤의 둘은 같은 07 소스가 1997 i386 조각에서는 통과한 객체이므로, 원인 후보는 m68k 빌드 플래그(46 개 모두 x86 의 `-g -O3` 를 그대로 씀), 원 소스의 m68k 전용 분기, m68k 구성 값, 컴파일러입니다. 가르지 않았습니다.
+
+판단(413 의 해석 규칙대로):
+- `cc-744.13 -arch m68k` 는 이 부분집합에서 **1997 원본 m68k 커널과 바이트가 같은 함수 105 개(18 객체는 객체 전체)를 다시 만듭니다.** 재배치를 가린 대조로는 외부 함수의 78 % 가 같습니다.
+  이 함수들에 대해 1997 m68k 컴파일러와 구별되지 않습니다. M0-2 의 "작은 객체로 먼저 측정" 은 이 결과로 답했고, m68k 재구성에 `cc-744.13` 을 쓰는 근거가 됩니다.
+- 남은 차이는 원인을 가르지 않았습니다(컴파일러 차이의 증명도 아님). 강하게 고른 46 객체의 결과이므로 커널 전체로 일반화하지 않습니다.
+- 다음 후보: DIFF·미배치 28 객체에 플래그 격자(`-O2`/`-O3`/`-O4`, `-g` 유무 등)를 대어 플래그 요인을 분리, 구조체 오프셋 차이는 M3(머리·구성)에서 다룸.
+
+새 파일: `10_tools/reconstruction/m0_m68k_l1.py`, 위 검증 JSON. 07·x86 표·기존 도구는 바꾸지 않았습니다.
+
+## 414. M0-2 후속 — §413 의 m68k 차이 원인 분리: 플래그 격자, 머리 구조 차이, 명령 수준 분류(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09)
+
+배경: §413 에서 외부 함수 221 개 중 48 개가 재배치를 가려도 원본 m68k 와 다릅니다(같은 크기 14, 다른 크기 34; python). 원인 후보는 m68k 빌드 플래그, 머리·구성 값, 원 소스의 차이, 컴파일러입니다.
+
+확인한 사실(이번 세션, 읽기 전용):
+- **§413 기록의 정정**: `ppcheck` 의 `expansion` 은 `.c` 에서 줄이 생기거나 사라지지 않았다는 뜻일 뿐, 공유 머리 안의 조건부 구조 차이를 걸러내지 않았습니다.
+  예: `src/bsd/sys/user.h`(스테이징, 출처 `07_kernel/nextdev/bsd/sys/user.h`) 146–148 행 `#ifdef i386 … uu_sigreturn` 때문에 `struct utask` 가 m68k `.i` 에서 한 줄 짧습니다(두 `.i` 의 구조체 본문 python 대조: 40 ↔ 39 줄).
+  §413.2 의 "공유 텍스트의 차이는 머리 매크로 펼침" 은 이런 구조 차이를 빠뜨린 설명입니다.
+- `_umask`(`vfs_syscalls`) 는 실기 `otool -tv -p _umask` 로 원본과 객체를 풀면 `uu_cmask` 변위만 다릅니다(원본 `0x164`, 객체 `0x168`). 객체의 STABS 에서 m68k `struct utask` 의 `uu_cmask` 는 360 B(0x168), `uu_cdir` 346 B(0x15a) 입니다(python).
+  `_chdir` 의 `0x15a ↔ 0x156` 도 같은 4 B 차이입니다. 즉 이번 스테이징 머리의 m68k `struct utask` 가 원본보다 그 앞 어딘가에서 4 B 큽니다.
+- 원본 m68k 커널은 `not stripped`(실기 `file`), 실기 `/bin/otool -tv -p SYM` 이 원본과 m68k 객체를 모두 MIT 문법으로 풉니다(위 출력). capstone 4.0.2 는 `bsr.l`(0x61ff)을 2 바이트로 읽어 이후를 깨뜨립니다(이번 세션 `_nb_alloc` 등에서 재확인).
+- 참고 구성: Darwin 0.1 `kernel/conf/MASTER.i386:81` gdb 구성 `-g -O3 -fno-omit-frame-pointer`, `MASTER.ppc:81` gdb 구성 `-g -O2`, 두 파일 82 행 비 gdb `-O3`; `Makefile.ppc` 의 `MACHINE_CFLAGS` 에 `-finline -fno-keep-inline-functions`;
+  KCC 에 `-fno-builtin`; NeXTMach `mk-108.1/conf/Makefile.NeXT:26` m68k `-O -fwritable-strings -fcombine-regs`(GCC 1 옵션). m68k 의 1997 `MASTER` 는 없습니다(01_resources 에 `MASTER.m68k` 0 건, find).
+- 바이트 예시(capstone, `bsr.l` 결함 부분 제외): `_raw_attach`·`_dnlc_lookupSymLink` 는 `if (…) return 오류값;` 블록의 놓는 자리가 다르고(방향은 함수마다 반대), `_pn_set` 은 인자 적재 순서, `_nb_alloc` 은 레지스터 배정과 크기(84 ↔ 80)가 다릅니다.
+
+방법:
+1. **플래그 격자 run `m0p414-fg1`**(실기 kr_run, 입력 `m0p413-stage`, 대상 §413 의 46 객체): s6l4 컴파일 줄에서 `-g -O3 -fno-omit-frame-pointer` 세 낱말만 아래 변형으로 바꿉니다(`-arch m68k`, 출력 `stage/Vk__BASE.o`).
+   V0 `-g -O3 -fno-omit-frame-pointer`(§413 재현 — 46/46 이 `m0p413-cc1` 과 SHA 같아야 함), V1 `-g -O2`, V2 `-g -O2 -fno-omit-frame-pointer`, V3 `-g -O3`, V4 `-g -O`, V5 `-O3`, V6 `-O2`, V7 `-g -O3 -fno-omit-frame-pointer -fno-builtin`.
+   46×8 = 368 명령. 하나라도 실패하면 게시되지 않으므로 로그로 원인을 적고 그 변형을 빼서 새 ID 로 다시 합니다. 실기 도구 12 경로 해시는 run 전후(§413 방법).
+2. **격자 비교**(호스트 python, 새 도구 `10_tools/reconstruction/m0_m68k_cause.py`, `m0_m68k_l1.py` 의 함수를 가져다 씀): 변형·객체마다 `l1_compare.py --place-from-image` 와 §413 의 재배치 가림 대조.
+   집계: 변형별 OBJECT_MATCH 수, 함수 MATCH 수·바이트, 가림 대조 같음 수(221 중). 함수마다 같음이 되는 변형 집합.
+   미리 정한 해석: V0 에서 같던 것을 하나도 잃지 않고 더 얻는 변형이 있으면 그것을 "m68k 플래그 후보" 로 적습니다(역사적 사실 아님). 얻는 것이 변형마다 갈리면 결론 내지 않고 표만 둡니다.
+   플래그로 같아지는 함수는 "플래그 요인" 으로 분류합니다.
+3. **머리 구조 차이 재분류**(새 run 없음, `m0p413-pp1` 의 `.i`): 공유(아키텍처 디렉터리 밖) 파일에서 줄이 생기거나 사라진 차이를 파일별로 세어 객체마다 `header_structural` 여부와 그 파일·줄을 적습니다. §413 의 분류표는 고치지 않고 이번 기록에 정정으로 둡니다.
+4. **남은 함수의 명령 수준 분류**: 2 의 최선 변형(없으면 V0)에서 아직 다른 함수를 실기 `/bin/otool -tv -p SYM` 으로 원본과 객체 모두 풉니다(읽기 전용 gcds, 출력은 호스트 파일; capstone 은 쓰지 않음).
+   python 정규화: 주소 열 제거, 분기 대상은 함수 안 상대 위치로, 절대 주소 피연산자(재배치 자리)는 `ADDR` 로 바꿉니다. 분류(겹치지 않게 앞에서부터):
+   D — 명령 줄 수·연산 부호·레지스터가 모두 같고 변위·즉치값만 다름(머리·구성 값 후보; 다른 값 쌍과 차이를 적음),
+   R — 연산 부호 열은 같고 레지스터 이름만 다름(레지스터 배정),
+   O — 정규화한 명령의 다중집합이 같고 순서만 다름(블록 배치·명령 순서),
+   X — 그 밖. D 는 변위가 `struct utask` 필드(객체 STABS 의 오프셋)와 맞는지 표시합니다.
+5. 해석 규칙(미리 정함): 플래그 요인은 2 의 결과로만, 머리 요인은 D 이면서 변위 차이가 머리 구조 차이(3)로 설명될 때만 붙입니다. R·O·X 는 "원 소스 또는 컴파일러" 로 남기고, 같은 07 소스가 1997 i386 에서 통과한 함수인지(§409 기록)를 함께 적습니다. 컴파일러 판 차이를 증명하거나 반증하지 않습니다.
+6. 기록: 이 절 결과, `09_validation/reconstruction/m0-m68k-cause-20261009.json`(상세는 무시 대상 `08_build/artifacts/m0p414/`, SHA 로 묶음), 새 도구. 07·x86 표·기존 도구는 바꾸지 않습니다.
+
+### 414.1 codex 교차검토(gpt-6.1-sol, k0b327maz) 판정과 계획 수정
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `cc.cmd` 46 줄 모두 `-g -O3 -fno-omit-frame-pointer` 가 한 번씩 연속으로 있고 다른 `-O` 없음 → 세 낱말 치환 안전 | python: 46 줄 모두 `count(' -g -O3 -fno-omit-frame-pointer ')==1`, `-O*` 낱말 46·`-g` 46 | ✅ |
+| `-g` 를 뺀 `-O3 -fno-omit-frame-pointer`·`-O2 -fno-omit-frame-pointer` 를 더해야 `-g` 요인이 프레임 포인터와 분리됨 | 격자 설계 검토(V5·V6 은 `-fno-omit-frame-pointer` 없음) | ✅ V8·V9 로 더함 |
+| `-fno-thread-jumps`·`-fno-caller-saves`·`-fno-force-mem`·`-fno-defer-pop`·`-fno-inline` 후보(GNU 2.8 `toplev.c` 근거) | 외부 GNU 2.8 소스는 cc-744.13 의 근거가 아니며 열지 않음; 실기에서 인식 여부 미확인 | ⏭️ 이번 격자에 넣지 않음(인식 안 되면 run 전체가 막힘). 격자 결과가 갈리면 다음 절에서 실기 탐침 후 검토 |
+| kr_run 에 RUN 수 제한 없음, 로그 번호 `%02d` 는 최소 폭, `EXPECT` 는 `stage/` 없이, 0 아닌 종료가 하나라도 있으면 게시 거부, `wait` 1800 초 고정 | `kr_run.py:245–253`(`'%02d' % i`), `:326–329`(`need(rc == '0')`), `:340–345`(`os.path.join(rdir,'stage',e)`), `:364`(`def wait(rid, limit=1800)`) 읽음 | ✅ |
+| 가림 대조의 "같음" 은 객체 범위만큼의 앞부분 같음이고 재배치 대상은 확인하지 않음; `_xdr_callhdr` 는 객체 116 ↔ 원본 범위 272 인데 같음 | `m0_m68k_l1.py:385–392` 읽음; `report.json` python: `_xdr_callhdr` object_size 116·image_extent 272·masked_equal True, 같음이면서 범위가 다른 함수 7 | ✅ 변형 비교에서 엄격 L1 MATCH 집합과 "가림 같음 + 범위 같음" 집합을 따로 셈. §413 의 173 중 범위까지 같은 것은 이미 166 으로 적혀 있음 |
+| `-g` 는 코드에 영향을 줄 수 있는 실험 요인; 새로 같아진 함수는 "이 입력에서 플래그에 반응함" 이지 역사적 원인 확정 아님 | GCC27 문서 19 행(`sched_prim.c` 는 `-g` 에서만 일치) | ✅ 문구 수정 |
+| `read_i()` 는 줄 표시의 줄 번호를 버리고, 전역 difflib 정렬은 다른 머리의 같은 줄을 맞출 수 있으며, 길이 같은 치환이 매크로 펼침의 증명이 아님 | `m0_m68k_l1.py:239–252`(파일 이름과 본문만 보관), `:267–276` 읽음 | ✅ 3 을 (파일, 원 줄 번호) 열쇠 방식으로 바꿈(아래) |
+| `otool -p SYM` 은 함수가 아니라 절 끝까지 출력 | 이번 세션 실기 `otool -tv -p _umask` 출력이 `_vhangup:` 으로 이어짐 | ✅ 범위를 기호표로 자름 |
+| 객체의 `0x0:l` 자리는 재배치 기록으로 대상을 붙여야 하고, 분기 대상·pc 상대·점프 표 데이터(명령으로 잘못 풀림)에 주의 | `08_build/artifacts/m0p412/otool/m68k_O_c_codegen.txt:24`(`bsr 0x0:l`), `:51–52`(`jmp a0@` 뒤 `orb` 줄 = 표 데이터) 읽음 | ✅ 재배치·원본 기호표로 `기호+차이` 로 바꾸고, `jmp …@(…)` 뒤 표가 있는 범위는 `table` 로 표시 |
+| D 는 분기 대상 변화를 빼야 하고, R 은 일관된 레지스터 대응이어야 하며, O 의 다중집합은 휴리스틱; 머리·구성은 R·O·X 의 원인도 될 수 있음 | 설계 검토 | ✅ 분기 대상은 D 판정에서 제외 표기, R 은 일대일 대응 검사, O 는 "휴리스틱" 으로 적고, 5 의 나머지를 "원 소스·머리·구성·컴파일러" 로 넓힘 |
+| "`struct utask` 가 4 B 크다" 는 과함 — 관찰한 필드가 4 B 뒤에 있을 뿐, 크기·원인 필드 미확정 | 계획 문구 대조 | ✅ "관찰한 필드(`uu_cdir`·`uu_ttyp`·`uu_cmask`)가 원본보다 4 B 뒤" 로 고침 |
+
+추가 확인: 원본 m68k 기호표(`symbols.tsv`, debug 0)는 모두 `defined_external=1` 입니다(python). 원본에는 정적 함수 이름이 없으므로 명령 수준 비교의 단위는 "외부 기호에서 다음 외부 기호까지" 로 양쪽을 같게 잡습니다(객체 쪽은 그 사이 정적 함수를 포함하고 그 사실을 표시).
+
+고친 방법:
+1'. 변형은 V0–V9(V8 `-O3 -fno-omit-frame-pointer`, V9 `-O2 -fno-omit-frame-pointer`), 46×10 = 460 명령, `EXPECT Vk__BASE.o`.
+2'. 변형마다 집합 둘: 엄격 L1 함수 MATCH, 외부 구간 가림 같음 + 구간 길이 같음. 해석 규칙은 각 집합에 따로 적용하고, 결론은 "이 입력에서 플래그에 반응함".
+3'. 머리 구조: `.i` 의 줄 표시로 (파일, 원 줄 번호) 마다 비어 있지 않은 출력 줄을 모아, 한쪽에만 있는 (파일, 줄) 을 "조건부 구조 차이", 양쪽에 있으나 본문이 다른 것을 "펼침 차이" 로 셉니다(아키텍처 디렉터리 밖만). 구조 차이가 있는 줄은 머리 원문 줄을 함께 적습니다.
+4'. 명령 수준: 단위는 외부 구간. 객체는 재배치 기록, 원본은 기호표로 절대 피연산자를 `기호+차이` 로, 구간 안 분기 대상은 상대 위치로 바꿉니다. 분류 D/R/O/X 는 위 판정대로 좁히고, 점프 표가 있으면 `table` 표시.
+5'. 머리 요인은 "D 이고 변위 차이가 관찰된 구조 차이와 맞음" 일 때만 붙이며, 나머지는 "원 소스·머리·구성·컴파일러 중 미분리" 로 둡니다.
+
+### 414.2 중간 결과와 추가 단계(코딩 전 계획 덧붙임, 2026-10-09)
+
+중간 결과(run `m0p414-fg1`, 460 명령 모두 종료 0·게시; 실기 도구 12 경로 해시 run 전후 같음; 변형마다 경고 내용 같음):
+- V0 이 `m0p413-cc1` 의 46 객체와 SHA 가 모두 같습니다(도구 assert). `-g`·`-fno-omit-frame-pointer` 는 이번 46 객체의 `__TEXT` 를 바꾸지 않았습니다(`-O2` 무리 V1·V2·V6·V9 46/46, `-O3` 무리 V0·V3·V5·V7·V8 45/46 같음; V7 `-fno-builtin` 에서 1 객체 다름).
+- **`-O2`(V1)**: OBJECT_MATCH 18 → **30**, 함수 MATCH 105 → **216**(25,958 B), V0 에서 MATCH 이던 함수 중 잃은 것 0. 외부 구간(가림 같음 + 길이 같음) 167 → 195(+32, −4). 잃은 4 개는 모두 `vfs_dnlc`(`-O3` 에서만 같음 — 정적 함수 인라인과 관련, 미분리). `-g -O`(V4)는 크게 나빠짐(MATCH 33).
+- V1 에서 남은 외부 구간 26 개를 실기 `otool -tv` 로 분류(정규화 수정 셋 반영: 한 명령의 재배치 여러 개를 차례대로 대응, 객체 지역 분기 대상을 구간 안 상대 위치로, `jmp aN@` 뒤 점프 표를 바이트로 읽어 `.long L+off`): D 8, X 18.
+  D 8 개는 모두 변위만 다릅니다: `vfs_syscalls` 7 개(`struct utask` 필드가 원본보다 4 B 뒤 — `uu_cdir`·`uu_rdir`·`uu_ttyp`·`uu_cmask` 와 `0x14a ↔ 0x146`)와 `_host_info`(`0x144 ↔ 0x13c`, 8 B).
+- X 의 일부(`_acct`·`_unp_externalize`·`_lookuppn`)는 utask 변위 차이에 더해 **문자열 상수 참조**가 다릅니다: 객체는 `__DATA,__data`(`-fwritable-strings`), 원본은 `__TEXT,__cstring` 을 가리킵니다.
+  원본 절 크기(python): m68k `__cstring` 28,920 B·`__data` 22,552 B, 1997 i386 조각 `__cstring` 13,892 B·`__data` 46,692 B — m68k 가 문자열을 `__cstring` 에 두었다는 정황입니다. Darwin `Makefile.i386:53`·`Makefile.ppc:57`, NeXTMach `Makefile.NeXT:26` 은 모두 `-fwritable-strings` 를 씁니다(1997 m68k Makefile 은 없음).
+
+추가 단계(이 절 안, 미리 정함):
+7. run `m0p414-fg2`: 46 객체 × 변형 둘 — V10 = V1 에서 `-fwritable-strings` 뺌(`-g -O2`), V11 = V0 에서 뺌(`-g -O3 -fno-omit-frame-pointer`). 다른 낱말은 그대로. `gridcmd` 에 변형 목록 인자를 더해 만듭니다.
+8. V10·V11 을 2 와 같은 방법으로 비교하고, V10 에서 남은 구간을 4 의 방법으로 다시 분류합니다. 해석: V1 에서 같던 것을 잃지 않고 얻으면 "`-fwritable-strings` 없음" 을 m68k 플래그 후보로 적습니다(역사적 사실 아님). 잃는 객체가 있으면 파일별 차이로 적고 결론 내지 않습니다.
+
+### 414.3 codex 교차검토(gpt-6.1-sol, kdi97zn7i) 판정, 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-m68k-cause-20261009.json`
+
+414.2 검토 판정:
+
+| codex 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| NeXT GCC 2.7.2 는 `flag_writable_strings` 이면 문자열 상수를 data 로, 아니면 cstring 으로(NUL 이 든 문자열은 const) 보냄 | `01_resources/upstream/next-gcc-2.7.2/config/next/nextstep.h:628–639`(`SELECT_SECTION`) 읽음 | ✅ 해석 근거에 더함 |
+| 원본 `_lookuppn` 의 `"."` 참조 둘이 같은 주소(문자열 합침), 객체는 따로 | 이번 세션 정규화 출력: 원본 두 줄 모두 `__TEXT,__cstring+713`, 객체 `_metalinks+33`·`+38` | ✅ |
+| `m0p412-abi1` 에 `m68k_W_c_str.o`(쓰기 가능 문자열 탐침)가 있음 | `ls 08_build/runs/m0p412-abi1/out/` 에 `m68k_W_c_str.o` 있음 | ✅(내용 대조는 하지 않음 — 결론에 쓰지 않음) |
+| `cmd_grid` 가 전역 `VARIANTS` 를 돌고 V0 를 전제함 → V10·V11 만 있는 run 은 그대로 못 씀 | 도구 읽음(내가 쓴 코드) | ✅ `GRID_RUNS` 로 run 두 개를 합쳐 12 변형을 한 번에 비교, V1 기준 증감도 셈 |
+| `l1_compare.py` 는 참조된 cstring 내용만 보고 리터럴 절 전체는 비교하지 않음 | `l1_compare.py:137–144`, `:307–310` 읽음 | ✅ 해석에 적음(OBJECT_MATCH 가 문자열 절 전체 같음을 뜻하지 않음) |
+| 32 비트 피연산자를 재배치 수로 대응하면 재배치 없는 즉치값과 섞임(합성 예 `movel #0x400:l,0x0:l`) | 고친 뒤 같은 합성 예를 python 으로 돌림: `#0x400:l,@_x+0` | ✅ 재배치 필드에 저장된 값과 같은 피연산자에 대응하도록 고침 |
+| `dbf d1,0x…` 형식을 분기로 못 읽음 | 원본 목록 `otool-V1/image.txt:1228` 읽음 | ✅ `dN,` 앞붙이를 허용 |
+| 기호 주소 안의 숫자 차이(`@L+8`↔`@L+10`, `_foo+4`↔`_foo+8`)가 D 로 분류됨 | 고친 뒤 합성 예 python: 둘 다 X, `a0@(0x15a:w)`↔`0x156` 는 D | ✅ 기호 피연산자는 그대로 비교 |
+| 점프 표 검출이 자료 흐름 없이 앞의 주소만 봄 | 설계 검토 | ✅ `movel aN@(0x0:b,Rm:l:4),aN` + `jmp aN@` 짝일 때만 표로 읽음(`_tcp_input` 는 첨자가 `a2` 라 `[ad]` 로 넓힘) |
+| 원본에 쓰기 가능 문자열이 보이면 "모든 파일에 그 플래그 없음" 이 반증됨 | 설계 판단 | ✅ 결론을 이 46 객체로 한정 |
+
+실행(실기, 모두 종료 0·게시, 실기 도구 12 경로 해시 run 전후 같음, 같은 객체의 경고 내용은 변형 사이에 같음):
+`m0p414-fg1`(V0–V9, 460 명령), `m0p414-fg2`(V10·V11, 92 명령). V0 은 §413 객체 46/46 과 SHA 가 같습니다.
+
+플래그 격자(python 집계, 원본 m68k 커널과 L1; 외부 구간 221 개):
+
+| 변형 | 플래그 | OBJECT_MATCH | 함수 MATCH | MATCH 바이트 | 구간 같음 |
+|---|---|---|---|---|---|
+| V0 | `-g -O3 -fno-omit-frame-pointer` (§413) | 18 | 105 | 12,296 B(25.76 %) | 167 |
+| V1 | `-g -O2` | 30 | 216 | 25,958 B(55.08 %) | 195 |
+| V4 | `-g -O` | 7 | 33 | 1,572 B | 99 |
+| **V10** | `-g -O2`, `-fwritable-strings` 없음 | **34** | **240** | **33,734 B(71.58 %)** | 195 |
+| V11 | V0, `-fwritable-strings` 없음 | 20 | 112 | 15,172 B | 167 |
+
+- `-g`·`-fno-omit-frame-pointer` 는 46 객체의 `__TEXT` 를 바꾸지 않았습니다(`-O2` 무리 46/46, `-O3` 무리 45/46 같음 — 다른 하나는 V7 `-fno-builtin` 의 `nfs_server`). V2·V6·V9 는 V1 과, V3·V5·V8 은 V0 과 같은 수입니다.
+- V1 은 V0 의 함수 MATCH 를 하나도 잃지 않고 111 개를 더 얻고, V10 은 V1 의 MATCH 를 잃지 않고 24 개를 더 얻습니다. 미리 정한 규칙대로 **`-O2` 와 `-fwritable-strings` 없음은 이 46 객체에서 m68k 플래그 후보**입니다
+  (Darwin `MASTER.ppc:81` 의 gdb 구성도 `-g -O2`; 역사적 플래그를 확정한 것은 아님). 구간 비교에서는 V1 이 V0 보다 4 개를 잃는데 모두 `vfs_dnlc`(`-O3` 에서만 같음)입니다.
+- 머리 조건부 구조(§413 의 `expansion` 정정): 46 객체 중 44 에 공유 머리의 조건부 구조 차이가 있습니다 — `byte_order.h` 44(i386 에만 펼쳐지는 인라인 함수), `vm_param.h` 39(i386 에만 있는 `extern` 선언), `user.h` 15(`uu_sigreturn`), `ip.h` 6·`ip_var.h` 5·`tcp.h` 3(비트 필드 순서).
+
+V10 에서 남은 외부 구간 26 개(실기 `otool -tv` 정규화 분류 D 11·X 15, 원인은 목록을 직접 읽어 적음):
+
+| 원인 | 수 | 함수 |
+|---|---|---|
+| 머리·구성: `struct utask` 필드가 원본보다 4 B 앞(변위만 다름, `uu_ofile` 0x14a 부터 `uu_start` 0x236 까지 관찰) | 10 | `vfs_syscalls` 7, `_acct`, `_unp_externalize`, `_lookuppn` |
+| 머리·구성: `struct processor` 의 `slot_num` 이 8 B 앞(0x144 ↔ 0x13c) | 1 | `_host_info` |
+| 구성: 원본에 `simple_lock` 호출 없음, `processor_set` 필드 4–8 B 앞 | 1 | `_compute_mach_factor` |
+| 머리: 원본은 `splx`·`splimp` 를 `movew sr` 인라인으로, 객체는 함수 호출(실기 SDK `kernserv/m68k/spl.h` 에 그 인라인 정의가 있으나 이 07 소스의 포함 사슬에는 없음) | 2 | `_ku_sendto_mbuf`, `_VENIP_RIF` |
+| 머리 후보: 원본은 `ti_len` 을 두 번 저장(`HTONS` 가 대입형인 정의로 보임), 점프 표 주소는 그 결과로 4 B 밀림 | 1 | `_tcp_input` |
+| 배치: 객체 코드는 같고 원본 구간이 이름 없는 정적 함수를 더 품음(`_venip_config` 는 정적 함수 주소만 다름) | 3 | `_xdr_fhstatus`, `_nfs_svc`, `_venip_config` |
+| 인라인: `-O3` 변형에서만 같음 | 4 | `_dnlc_init`·`_dnlc_enter`·`_dnlc_lookup`·`_dnlc_purge1` |
+| 미분리 | 4 | `_dnlc_enterSymLink`(어느 변형에서도 다름; 같은 객체의 `_dnlc_lookupSymLink` 는 `-O2`·`-O` 에서만 같음), `_icmp_sendMaskPacket`(명령 1 개), `_tcp_mss`(0 확장 1 곳), `_uname`(레지스터 배정, 원본만 점프 표) |
+
+판단:
+- §413 의 차이 대부분은 **플래그**(`-O2`, 문자열 상수 위치)로 설명됩니다. 남은 26 구간 중 15 개는 머리·구성 값(구조체 오프셋·NCPUS 계열·인라인 spl·`HTONS`), 3 개는 비교 구간의 경계 문제, 4 개는 `vfs_dnlc` 의 인라인 판단, 4 개는 미분리입니다.
+- `vfs_dnlc` 는 같은 객체 안에서 `-O2` 에서만 같은 함수와 `-O3` 에서만 같은 함수가 섞여 있어 한 벌의 플래그로 설명되지 않습니다(원 소스의 `inline` 등 소스 요인 후보, 미확정).
+- 컴파일러 판 차이를 가리키는 사례는 이번 분류에서 나오지 않았습니다(증명도 반증도 아님). 머리·구성 요인은 M3(m68k 머리·구성)에서 다룹니다.
+- 분류는 46 객체에 한정합니다. 원인 칸은 목록을 읽은 해석이며, `D` 판정만 도구가 자동으로 냅니다.
+
+새 파일: `10_tools/reconstruction/m0_m68k_cause.py`(`m0_m68k_l1.py` 의 함수를 가져다 씀), 위 검증 JSON. 상세(`grid.json`·`hdr.json`·`class-V*.json`·otool 목록)는 무시 대상 `08_build/artifacts/m0p414/` 에 두고 SHA 로 묶었습니다. 07·x86 표·기존 도구는 바꾸지 않았습니다.

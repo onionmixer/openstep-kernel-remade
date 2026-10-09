@@ -72,6 +72,7 @@ class Obj:
     def __init__(self, name, data):
         self.name, self.data, self.sha = name, data, sha(data)
         self.m = M.parse(data)
+        M.require_i386(self.m, 'l2_place')  # plan 411: i386 little-endian only
 
     def sect(self, kind):
         for s in self.m['sections']:

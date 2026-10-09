@@ -1,0 +1,49 @@
+# plan 410: x86-IODisk ['-[IODisk setLogicalDisk:]']
+# x86 0x1a5b38 len 32 (rebuilt-object length); 183.34 0x1a4b4c interval 28 (to next entry point; not a size)
+
+## diff (instruction text only)
+--- x86 mk-183.34.4
++++ i386 mk-183.34
+@@ -1,11 +1,9 @@
+ push   %ebp
+ mov    %esp,%ebp
+-mov    0x8(%ebp),%edx
+-mov    0x10(%ebp),%eax
+-cmpl   $0x0,0x108(%edx)
+-je     0x1a5b4e
+-test   %eax,%eax
+-jne    0x1a5b54
+-mov    %eax,0x108(%edx)
++mov    0x8(%ebp),%eax
++cmpl   $0x0,0x108(%eax)
++jne    0x1a4b64
++mov    0x10(%ebp),%edx
++mov    %edx,0x108(%eax)
+ mov    %ebp,%esp
+ pop    %ebp
+
+## x86 mk-183.34.4
+  1a5b38:	55                   	push   %ebp
+  1a5b39:	89 e5                	mov    %esp,%ebp
+  1a5b3b:	8b 55 08             	mov    0x8(%ebp),%edx
+  1a5b3e:	8b 45 10             	mov    0x10(%ebp),%eax
+  1a5b41:	83 ba 08 01 00 00 00 	cmpl   $0x0,0x108(%edx)
+  1a5b48:	74 04                	je     0x1a5b4e
+  1a5b4a:	85 c0                	test   %eax,%eax
+  1a5b4c:	75 06                	jne    0x1a5b54
+  1a5b4e:	89 82 08 01 00 00    	mov    %eax,0x108(%edx)
+  1a5b54:	89 ec                	mov    %ebp,%esp
+  1a5b56:	5d                   	pop    %ebp
+  1a5b57:	c3                   	ret    
+
+## i386 mk-183.34
+  1a4b4c:	55                   	push   %ebp
+  1a4b4d:	89 e5                	mov    %esp,%ebp
+  1a4b4f:	8b 45 08             	mov    0x8(%ebp),%eax
+  1a4b52:	83 b8 08 01 00 00 00 	cmpl   $0x0,0x108(%eax)
+  1a4b59:	75 09                	jne    0x1a4b64
+  1a4b5b:	8b 55 10             	mov    0x10(%ebp),%edx
+  1a4b5e:	89 90 08 01 00 00    	mov    %edx,0x108(%eax)
+  1a4b64:	89 ec                	mov    %ebp,%esp
+  1a4b66:	5d                   	pop    %ebp
+  1a4b67:	c3                   	ret    

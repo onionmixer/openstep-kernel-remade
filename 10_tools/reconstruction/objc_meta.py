@@ -24,6 +24,7 @@ import l1_compare as L
 
 class Meta:
     def __init__(self, img):
+        L.macho_obj.require_i386(img.o, 'objc_meta')  # plan 411: i386 little-endian only
         self.img = img
         self.sec = {(s['segname'], s['sectname']): s for s in img.secs}
 

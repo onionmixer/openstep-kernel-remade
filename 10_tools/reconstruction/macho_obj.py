@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Reader for NeXT Mach-O relocatable objects (MH_OBJECT), i386 little-endian first.
+"""Reader for NeXT Mach-O relocatable objects (MH_OBJECT), i386 little-endian first;
+big-endian relocation entries (m68k, SPARC) are read since plan 411.
 
 Reads the header, the LC_SEGMENT sections, LC_SYMTAB symbols and every
 section's relocation entries (plain and scattered).  Written from the Mach-O
@@ -16,6 +17,22 @@ N_TYPE, N_EXT, N_STAB = 0x0e, 0x01, 0xe0
 N_UNDF, N_ABS, N_SECT = 0x0, 0x2, 0xe
 R_SCATTERED = 0x80000000
 RELOC_TYPES_I386 = {0: 'VANILLA', 1: 'PAIR', 2: 'SECTDIFF', 3: 'PB_LA_PTR', 4: 'LOCAL_SECTDIFF'}
+# plan 411: enum reloc_type_generic of the 4.2 SDK mach-o/reloc.h; m68k has no machine-specific
+# relocation header (mach-o/m68k/ holds only swap.h) and uses these.
+RELOC_TYPES_GENERIC = {0: 'VANILLA', 1: 'PAIR', 2: 'SECTDIFF', 3: 'PB_LA_PTR'}
+CPU_I386, CPU_M68K = 7, 6
+
+
+def reloc_types(cputype):
+    """Relocation type names for cputype; None where the machine-specific types are not
+    implemented (SPARC, HPPA ...), so callers must refuse those objects."""
+    return {CPU_I386: RELOC_TYPES_I386, CPU_M68K: RELOC_TYPES_GENERIC}.get(cputype)
+
+
+def require_i386(o, what):
+    """plan 411: guard for consumers that still assume i386 little-endian."""
+    if o['cputype'] != CPU_I386 or o['endian'] != 'little':
+        raise MachOError('%s: only i386 little-endian is supported (cputype %d, %s)' % (what, o['cputype'], o['endian']))
 
 
 class MachOError(Exception):
@@ -81,17 +98,23 @@ def relocs(d, e, off, n):
         if w0 & R_SCATTERED:
             # scattered_relocation_info, little-endian bit order:
             # r_address:24 r_type:4 r_length:2 r_pcrel:1 r_scattered:1 ; r_value
-            if e != '<':
-                raise MachOError('big-endian scattered relocations not implemented yet')
+            # (plan 411) the __BIG_ENDIAN__ declaration lists the same fields from the top
+            # (r_scattered:1 r_pcrel:1 r_length:2 r_type:4 r_address:24), so the word read in
+            # the file's byte order has the same numeric layout in both
             out.append(dict(scattered=True, address=w0 & 0xffffff, type=(w0 >> 24) & 0xf,
                             length=(w0 >> 28) & 3, pcrel=bool((w0 >> 30) & 1), value=w1))
-        else:
+        elif e == '<':
             # relocation_info, little-endian: r_symbolnum:24 r_pcrel:1 r_length:2 r_extern:1 r_type:4
-            if e != '<':
-                raise MachOError('big-endian relocations not implemented yet')
             out.append(dict(scattered=False, address=w0, symbolnum=w1 & 0xffffff,
                             pcrel=bool((w1 >> 24) & 1), length=(w1 >> 25) & 3,
                             extern=bool((w1 >> 27) & 1), type=(w1 >> 28) & 0xf))
+        else:
+            # (plan 411) big-endian: the same bitfields allocated from the most significant bit:
+            # r_symbolnum:24 (bits 31..8) r_pcrel:1 (7) r_length:2 (6..5) r_extern:1 (4) r_type:4 (3..0);
+            # checked against llvm-objdump on the m68k members of libcc.a and target-built probes
+            out.append(dict(scattered=False, address=w0, symbolnum=w1 >> 8,
+                            pcrel=bool((w1 >> 7) & 1), length=(w1 >> 5) & 3,
+                            extern=bool((w1 >> 4) & 1), type=w1 & 0xf))
     return out
 
 

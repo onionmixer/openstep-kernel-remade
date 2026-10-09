@@ -73,6 +73,7 @@ def main():
     outp = sys.argv[1]
     img = open(IMG, 'rb').read()
     im = M.parse(img)
+    M.require_i386(im, 'l2_coverage')  # plan 411: i386 little-endian only
     isec = {(s['segname'], s['sectname']): s for s in im['sections']}
     toff = lambda va, s: s['offset'] + va - s['addr']   # image file offset of a VA in section s
 
@@ -87,6 +88,7 @@ def main():
     for n, x in sorted(rows.items()):
         raw = open(x['obj'], 'rb').read()
         objs[n] = (raw, M.parse(raw), json.load(open(x['l1'])))
+        M.require_i386(objs[n][1], 'l2_coverage')
         rep['rows'][n] = {'object': x['object'], 'source': x['source'], 'obj': x['obj'],
                           'obj_sha256': x['obj_sha256'], 'l1': x['l1']}
 

@@ -3,6 +3,7 @@
 사용자 확정 요구: **최종 복원 커널 소스는 GCC 2.7에서 컴파일 가능해야 한다.**
 x86 우선 적용 후 SPARC 및 확정될 후속 CPU에도 같은 기준을 적용한다.
 툴체인 확인 상태(2026-10-01): OPENSTEP 실기와 i386 VM 의 `cc-744.13`(`NeXT Software, Inc. version cc-744.13, gcc version 2.7.2.1`, 도구 15 개 해시 동일)으로 C·Objective-C·어셈블리·MIG probe 를 컴파일했고, 같은 컴파일러로 만든 함수 11 개가 원본 커널과 바이트가 같다(`02_plan/RECONSTRUCTION_PLAN.md` 11.2·13.2). 전체 커널 컴파일·링크(완료 판정 3)는 아직이다.
+m68k(2026-10-09, `02_plan/RECONSTRUCTION_PLAN.md` 412): 실기 `cc-744.13 -arch m68k`(교차, `/lib/m68k/*` 해시는 §409 기록과 같음)로 C·Objective-C·어셈블리·MIG·구조체 배치 probe 가 통과했다(완료 판정 2, m68k 작은 probe). 기록 `09_validation/reconstruction/m0-abi-m68k-20261009.json`. 원본 1997 m68k 컴파일러와의 코드 동일성은 §413 에서 일부 측정했다: 07 소스 46 객체를 `-arch m68k` 로 컴파일해 원본 m68k 커널과 비교하니 18 객체·함수 105 개가 바이트까지 같았다(`09_validation/reconstruction/m0-m68k-cc-l1-20261009.json`). §414 플래그 격자에서는 `-g -O2` 에 `-fwritable-strings` 를 뺀 조합이 34 객체·함수 240 개로 가장 많이 같았고(m68k 플래그 후보, 확정 아님), 남은 차이는 대부분 머리·구성 값(구조체 오프셋, 인라인 spl 등)이었다(`09_validation/reconstruction/m0-m68k-cause-20261009.json`). 전체 커널 빌드(완료 판정 3)는 아직이다.
 
 ## 툴체인 고정
 

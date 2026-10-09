@@ -22,6 +22,7 @@ class ObjView:
     def __init__(self, path):
         self.d = open(path, 'rb').read()
         self.o = macho_obj.parse(self.d)
+        macho_obj.require_i386(self.o, 'objc_place')  # plan 411: i386 little-endian only
         self.by_name = {s['sectname']: s for s in self.o['sections'] if s['segname'] == '__OBJC'}
 
     def sect_at(self, a):

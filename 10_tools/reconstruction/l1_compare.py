@@ -34,7 +34,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import macho_obj
 
 S_ZEROFILL = 1
-TYPE = macho_obj.RELOC_TYPES_I386
+TYPE = macho_obj.RELOC_TYPES_I386      # i386 names; kept for callers (plan 411: per-object table below)
+
+
+def types_of(obj):
+    """plan 411: relocation type names of obj's CPU; SPARC/HPPA (machine-specific types not
+    implemented) are refused."""
+    t = macho_obj.reloc_types(obj['cputype'])
+    if t is None:
+        raise macho_obj.MachOError('cputype %d: relocation types not implemented' % obj['cputype'])
+    return t
 
 
 class Image:
@@ -140,7 +149,7 @@ def lit_check(img, obj, ob, T, target, V):
     if len(rel) != 1:
         return 'differs', 'literal-pointer slot without one relocation'
     r = rel[0]
-    F2 = int.from_bytes(ob[s['offset'] + off:s['offset'] + off + 4], 'little')
+    F2 = int.from_bytes(ob[s['offset'] + off:s['offset'] + off + 4], obj['endian'])
     if r['scattered']:
         C = sect_of(obj, r['value'])
     elif not r['extern']:
@@ -154,7 +163,7 @@ def lit_check(img, obj, ob, T, target, V):
     t = _img_sect(img, V, s)
     if t is None or (V - t['addr']) % 4:
         return 'differs', 'image value %#x not a slot of %s' % (V, key(s))
-    W = int.from_bytes(img.read(V, 4), 'little')
+    W = int.from_bytes(img.read(V, 4), obj['endian'])
     b = _img_cstr(img, W, cs)
     if a is None or b is None:
         return 'differs', 'literal-pointer string unreadable'
@@ -172,7 +181,7 @@ def evaluate(img, obj, ob, delta, s, rel_iter_index):
     a = r['address']
     if a + w > s['size']:
         raise ValueError('field outside section')
-    F = int.from_bytes(ob[s['offset'] + a:s['offset'] + a + w], 'little')
+    F = int.from_bytes(ob[s['offset'] + a:s['offset'] + a + w], obj['endian'])
     P = s['index']
     dP = delta.get(P)
     used = []
@@ -188,7 +197,11 @@ def evaluate(img, obj, ob, delta, s, rel_iter_index):
                 return a, w, None, 'symbol %s not in image' % name, used
             exp = F + S - (dP if r['pcrel'] else 0)
             return a, w, exp, '%s %s' % (how, name), used
+        if r['type'] != 0:                 # plan 411: only VANILLA is computed for plain entries
+            return a, w, None, 'unsupported plain relocation type %d' % r['type'], used
         T = r['symbolnum']
+        if T == 0:                         # plan 411: R_ABS (reloc.h), no section to index
+            return a, w, None, 'R_ABS local relocation', used
         if is_lit(obj['sections'][T - 1]):
             return a, w, None, ('LIT', T, F, r['pcrel']), used
         used.append(T)
@@ -196,7 +209,7 @@ def evaluate(img, obj, ob, delta, s, rel_iter_index):
             return a, w, None, 'section %d unplaced' % T, used
         exp = F + delta[T] - (dP if r['pcrel'] else 0)
         return a, w, exp, 'local sect %d' % T, used
-    t = TYPE.get(r['type'])
+    t = types_of(obj).get(r['type'])
     if t == 'VANILLA':
         A = sect_of(obj, r['value'])
         if A is not None and is_lit(obj['sections'][A - 1]):
@@ -207,7 +220,7 @@ def evaluate(img, obj, ob, delta, s, rel_iter_index):
         return a, w, F + delta[A] - (dP if r['pcrel'] else 0), 'scattered sect %d' % A, used
     if t in ('SECTDIFF', 'LOCAL_SECTDIFF'):
         pair = rels[rel_iter_index + 1] if rel_iter_index + 1 < len(rels) else None
-        if not pair or not pair['scattered'] or TYPE.get(pair['type']) != 'PAIR':
+        if not pair or not pair['scattered'] or types_of(obj).get(pair['type']) != 'PAIR':
             raise ValueError('SECTDIFF without PAIR')
         A, B = sect_of(obj, r['value']), sect_of(obj, pair['value'])
         if any(x is not None and is_lit(obj['sections'][x - 1]) for x in (A, B)):
@@ -226,18 +239,20 @@ def infer(img, obj, ob, delta):
         if delta.get(s['index']) is None or (s['flags'] & 0xff) == S_ZEROFILL:
             continue
         for i, r in enumerate(s['relocs']):
-            if r['scattered'] and TYPE.get(r['type']) == 'PAIR':
+            if r['scattered'] and types_of(obj).get(r['type']) == 'PAIR':
                 continue
             w = 1 << r['length']
-            F = int.from_bytes(ob[s['offset'] + r['address']:s['offset'] + r['address'] + w], 'little')
+            F = int.from_bytes(ob[s['offset'] + r['address']:s['offset'] + r['address'] + w], obj['endian'])
             got = img.read(s['addr'] + delta[s['index']] + r['address'], w)
             if got is None:
                 continue
-            V = int.from_bytes(got, 'little')
+            V = int.from_bytes(got, obj['endian'])
             dP = delta[s['index']] if r['pcrel'] else 0
             if not r['scattered'] and not r['extern']:
                 T = r['symbolnum']
-            elif r['scattered'] and TYPE.get(r['type']) == 'VANILLA':
+                if T == 0 or r['type'] != 0:      # plan 411: R_ABS / non-VANILLA plain entry
+                    continue
+            elif r['scattered'] and types_of(obj).get(r['type']) == 'VANILLA':
                 T = sect_of(obj, r['value'])
             else:
                 continue
@@ -254,6 +269,11 @@ def infer(img, obj, ob, delta):
 def compare(img, objpath, placements, ranges=None, by_symbol=(), method_info=None, by_objc=()):
     ob = open(objpath, 'rb').read()
     obj = macho_obj.parse(ob)
+    # plan 411: object and image must be the same CPU and byte order, with implemented types
+    if (obj['cputype'], obj['endian']) != (img.o['cputype'], img.o['endian']):
+        raise macho_obj.MachOError('object %s/%s vs image %s/%s' % (obj['cputype'], obj['endian'],
+                                                                  img.o['cputype'], img.o['endian']))
+    types_of(obj)
     delta = {}
     for s in obj['sections']:
         if key(s) in placements and not is_lit(s):
@@ -309,13 +329,13 @@ def compare(img, objpath, placements, ranges=None, by_symbol=(), method_info=Non
         rels = s['relocs']
         while i < len(rels):
             r = rels[i]
-            if r['scattered'] and TYPE.get(r['type']) == 'PAIR':
+            if r['scattered'] and types_of(obj).get(r['type']) == 'PAIR':
                 i += 1
                 continue
             a, w, exp, why, used = evaluate(img, obj, ob, delta, s, i)
             for j in range(a, a + w):
                 mask[j] = True
-            got = int.from_bytes(orig[a:a + w], 'little')
+            got = int.from_bytes(orig[a:a + w], obj['endian'])
             if isinstance(why, tuple) and why[0] == 'LIT':
                 _, T, Fv, pcrel = why
                 if pcrel or w != 4:

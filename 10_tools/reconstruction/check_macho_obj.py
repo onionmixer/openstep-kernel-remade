@@ -83,7 +83,7 @@ def check(path):
             fails.append('%s: %d relocs, llvm %d' % (key, len(s['relocs']), len(got)))
             continue
         for rel, line in zip(s['relocs'], got):
-            if line.startswith('PAIR '):
+            if line.startswith('PAIR '):            # i386 only (other CPUs print PAIR as a normal row)
                 f = line.split()
                 ok = (rel['scattered'] and TYPES.get(rel['type']) == 'PAIR' and (f[1] == 'True') == rel['pcrel']
                       and LEN.get(f[2]) == rel['length'] and int(f[6], 16) == rel['value'])
@@ -93,7 +93,8 @@ def check(path):
             f = line.split()
             addr, pcrel, length, ext, typ, scat = f[:6]
             ref = ' '.join(f[6:])
-            exp_type = TYPES.get(rel['type'], str(rel['type']))
+            # plan 411: llvm-objdump names only the i386 types; it prints m68k/SPARC types as numbers
+            exp_type = TYPES.get(rel['type'], str(rel['type'])) if o['cputype'] == macho_obj.CPU_I386 else str(rel['type'])
             ok = (int(addr, 16) == rel['address'] and (pcrel == 'True') == rel['pcrel'] and
                   LEN.get(length) == rel['length'] and typ == exp_type[:7] and (scat == 'True') == rel['scattered'])  # llvm prints 7 chars
             if rel['scattered']:
