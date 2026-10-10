@@ -1,0 +1,23 @@
+--- 07_kernel/src/bsd/ufs/ufs_dir.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_dir.c
+@@ -75,6 +75,7 @@
+ void byte_swap_dir_block_in();
+ void byte_swap_dir_block_out();
+ 
++#ifndef	m68k	/* plan 451 (m68k): i386 directory byte swap helper (plan 355) not in the m68k original */
+ /*
+  * plan 355 (authored, D024; original 0x13de14): blkatoff swaps a
+  * directory block to host byte order after reading it; swap it back to
+@@ -89,6 +90,12 @@
+ 		brelse(bp);
+ 	}
+ }
++#endif	/* plan 451 (m68k) */
++#if	m68k	/* plan 451 (m68k): no directory byte swap; NeXTMach brelse() at the plan 355 call sites */
++#define	brelse_and_swap(bp)		brelse(bp)	/* plan 451 (m68k) */
++#define	byte_swap_dir_block_out(bp)	/* plan 451 (m68k) */
++#define	byte_swap_dir_block_in(addr, n)	/* plan 451 (m68k) */
++#endif	/* plan 451 (m68k) */
+ 
+ int dirchk = 0;
+ 

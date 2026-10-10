@@ -1,0 +1,28 @@
+--- 07_kernel/src/bsd/kern/subr_prf.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/subr_prf.c
+@@ -111,6 +111,7 @@
+ 
+ #ifdef	NeXT
+ #import <kernserv/printf.h>	/* plan 220: struct reg_desc, TOCONS..TOSTR (was next/printf.h; mon/global.h dropped) */
++#import <mon/global.h>	/* plan 437 (m68k): struct mon_global */
+ #endif	NeXT
+ 
+ #define TOCONS	0x1
+@@ -520,6 +521,8 @@
+ void panic(const char *s)
+ {
+ 	int bootopt = RB_AUTOBOOT;
++	extern struct mon_global *mon_global;	/* plan 437 (m68k) */
++	struct mon_global *mg = mon_global;	/* plan 437 (m68k) */
+ 
+ 	simple_lock(&panic_lock);
+ 	if (panicstr) {
+@@ -540,6 +543,8 @@
+ 
+ 	printf("panic: (Cpu %d) %s\n", paniccpu, s);
+ #if	NeXT
++	printf ("NeXT ROM Monitor %d.%d v%d\n",	/* plan 437 (m68k) */
++		mg->mg_major, mg->mg_minor, mg->mg_seq);	/* plan 437 (m68k) */
+ 	printf("panic: %s\n", version);	/* plan 220: no ROM monitor line */
+ #endif	NeXT
+ #ifdef	vax

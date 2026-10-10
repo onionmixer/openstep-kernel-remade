@@ -1,0 +1,31 @@
+--- 07_kernel/src/bsd/kern/kern_exec.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_exec.c
+@@ -479,7 +479,12 @@
+ 		u.u_ar0[SP] = sp;
+ 		(void) suword((caddr_t)sp, load_result.mach_header);
+ 	}
++#if	m68k	/* plan 444 (m68k) begin: SDK PCH/PCL, original _execve 0x4005044-0x400505e (D024, D072) */
++	u.u_ar0[PCH] = (u.u_ar0[PCH] & 0xffff0000) | ((unsigned)load_result.entry_point >> 16);
++	u.u_ar0[PCL] = (load_result.entry_point << 16) | (u.u_ar0[PCL] & 0xffff);
++#else	/* plan 444 (m68k) end */
+ 	u.u_ar0[PC] = load_result.entry_point;	/* plan 291 */
++#endif	/* plan 444 (m68k) */
+ 
+ 	/*
+ 	 * Reset caught signals.  Held signals
+@@ -529,6 +534,15 @@
+ 		pn.pn_pathlen = MAXCOMLEN;
+ 	bcopy((caddr_t)pn.pn_buf, (caddr_t)utask->uu_comm,
+ 	      (unsigned)(pn.pn_pathlen + 1));
++#if	m68k	/* plan 445 (m68k) begin: PMON exec event, original _execve 0x4005150-0x4005174 (D024) */
++	{
++		extern int	pmon_flags[];
++		extern void	pmonlogexec();
++
++		if (pmon_flags[17] & 0x10000000)
++			pmonlogexec(17, 0x10000000, current_thread(), utask->uu_comm);
++	}
++#endif	/* plan 445 (m68k) end */
+ 	utask->uu_procp->p_flag |= SEXEC;	/* plan 291 (0x105785) */
+ bad:
+ 	pn_free(&pn);

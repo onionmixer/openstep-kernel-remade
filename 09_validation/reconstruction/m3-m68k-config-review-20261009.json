@@ -1,0 +1,3427 @@
+{
+ "plan": 438,
+ "tool": "10_tools/reconstruction/m3_m68k_config_review.py",
+ "tool_sha256": "11d2afb39787c5c97d0a170943e375b139e62e151f2780e6121300b9abc1de60",
+ "stage": "08_build/runs/tools/m0p438-stage",
+ "cc_cmd": "08_build/artifacts/m3p438/cc.cmd",
+ "record_in": "09_validation/reconstruction/m3-m68k-kernobjc-20261009.json",
+ "record_in_sha256": "2b4c136841dcffc675c02512adcf2d655e255d6f5de7509dc2ff68fd712726fb",
+ "tables": {
+  "06_reconstruction/config_options.tsv": "9566c9fd920e9e3faa943dc535876df992076d9bd153fc46dd61382b961990bb",
+  "06_reconstruction/config_options-m68k.tsv": "37cee20352c22f94534ab5c98a242d96669d9b5e8d8662d7a00d9ea174aebe70"
+ },
+ "limits": "textual scan of the stage (comments stripped), not the preprocessor closure; macro tests through other macros and header users are not attributed to objects",
+ "summary": {
+  "options": 53,
+  "judgement": {
+   "same evidence": 27,
+   "override": 4,
+   "not emitted (undetermined)": 3,
+   "no symbol evidence": 13,
+   "m68k evidence differs: deferred (no override)": 6
+  },
+  "deferred": {
+   "pc_support": {
+    "differs": [
+     "_PCcallMonitor",
+     "_PCcreate",
+     "_PCexception",
+     "_PCresume"
+    ],
+    "value_tests": [],
+    "objects": []
+   },
+   "uxpr": {
+    "differs": [
+     "_uxprGlobal",
+     "_xprLocked",
+     "_xpr_lock"
+    ],
+    "value_tests": [
+     "src/kern/xpr.h"
+    ],
+    "objects": []
+   },
+   "xpr_debug": {
+    "differs": [
+     "_IOAddDDMEntry",
+     "_IOMalloc"
+    ],
+    "value_tests": [
+     "src/driverkit/ddm.c",
+     "src/kern/xpr.h"
+    ],
+    "objects": []
+   },
+   "mach_debug": {
+    "differs": [
+     "_stack_usage_lock"
+    ],
+    "value_tests": [
+     "src/kern/ipc_kobject.c",
+     "src/kern/kernel_stack.c",
+     "src/kern/thread.c",
+     "src/kern/zalloc.c"
+    ],
+    "objects": [
+     [
+      "x86-ipc_kobject",
+      "OBJECT_MATCH"
+     ],
+     [
+      "x86-kernel_stack",
+      "NOT_MATCH"
+     ],
+     [
+      "x86-thread",
+      "OBJECT_MATCH"
+     ],
+     [
+      "x86-zalloc",
+      "OBJECT_MATCH"
+     ]
+    ]
+   },
+   "en": {
+    "differs": [
+     "_en_recv_pkt",
+     "_en_send_pkt"
+    ],
+    "value_tests": [
+     "src/bsd/netinet/if_ether.c"
+    ],
+    "objects": [
+     [
+      "x86-if_ether",
+      "NOT_MATCH"
+     ]
+    ]
+   },
+   "od": {
+    "differs": [
+     "_odattach",
+     "_odopen"
+    ],
+    "value_tests": [],
+    "objects": []
+   }
+  }
+ },
+ "rows": [
+  {
+   "option": "mach_assert",
+   "macro": "MACH_ASSERT",
+   "header": "mach_assert.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_panic",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_assert.h:1",
+     "src/kern/assert.h:42"
+    ],
+    "value_test": [
+     "src/ipc/ipc_mqueue.c:770",
+     "src/ipc/ipc_mqueue.h:161",
+     "src/ipc/ipc_right.c:663",
+     "src/ipc/ipc_right.c:805",
+     "src/ipc/ipc_right.c:1338",
+     "src/ipc/ipc_right.c:1496",
+     "src/ipc/ipc_right.c:1816",
+     "src/ipc/ipc_right.c:2194",
+     "src/ipc/ipc_right.c:2367",
+     "src/ipc/ipc_right.c:2615",
+     "src/ipc/ipc_right.c:2775",
+     "src/ipc/mach_msg.c:1894",
+     "src/ipc/mach_port.c:1671",
+     "src/kern/assert.h:46",
+     "src/kern/ipc_kobject.c:210",
+     "src/kern/ipc_kobject.c:325"
+    ],
+    "defined_test": [
+     "src/kern/assert.h:41"
+    ],
+    "other": [
+     "src/kern/ipc_kobject.c:328"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_mqueue.c",
+    "src/ipc/ipc_mqueue.h",
+    "src/ipc/ipc_right.c",
+    "src/ipc/mach_msg.c",
+    "src/ipc/mach_port.c",
+    "src/kern/assert.h",
+    "src/kern/ipc_kobject.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_mqueue",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_right",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_msg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_port",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_fixpri",
+   "macro": "MACH_FIXPRI",
+   "header": "mach_fixpri.h",
+   "x86_value": "1",
+   "x86_status": "confirmed",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_thread_policy",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_fixpri.h:1"
+    ],
+    "value_test": [
+     "src/kern/ast.c:70",
+     "src/kern/ast.c:148",
+     "src/kern/ast.c:195",
+     "src/kern/priority.c:179",
+     "src/kern/priority.c:196",
+     "src/kern/priority.c:200",
+     "src/kern/priority.c:222",
+     "src/kern/processor.c:193",
+     "src/kern/processor.c:747",
+     "src/kern/processor.c:813",
+     "src/kern/processor.c:844",
+     "src/kern/processor.h:99",
+     "src/kern/sched_prim.c:94",
+     "src/kern/sched_prim.c:632",
+     "src/kern/sched_prim.c:652",
+     "src/kern/sched_prim.c:656",
+     "src/kern/sched_prim.c:1112",
+     "src/kern/sched_prim.c:1120",
+     "src/kern/sched_prim.c:1235",
+     "src/kern/sched_prim.c:1615",
+     "src/kern/sched_prim.c:1748",
+     "src/kern/sched_prim.c:1764",
+     "src/kern/syscall_subr.c:71",
+     "src/kern/syscall_subr.c:258",
+     "src/kern/thread.c:391",
+     "src/kern/thread.c:1698",
+     "src/kern/thread.c:2005",
+     "src/kern/thread.c:2243",
+     "src/kern/thread.c:2252",
+     "src/kern/thread.h:152"
+    ],
+    "other": [
+     "src/kern/ast.c:72",
+     "src/kern/ast.c:164",
+     "src/kern/ast.c:197",
+     "src/kern/syscall_subr.c:73",
+     "src/kern/syscall_subr.c:264"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/ast.c",
+    "src/kern/priority.c",
+    "src/kern/processor.c",
+    "src/kern/processor.h",
+    "src/kern/sched_prim.c",
+    "src/kern/syscall_subr.c",
+    "src/kern/thread.c",
+    "src/kern/thread.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ast",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-priority",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-processor",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-sched_prim",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-syscall_subr",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "simple_clock",
+   "macro": "SIMPLE_CLOCK",
+   "header": "simple_clock.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": "confirmed",
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_recompute_priorities",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_sched_init",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_sched_usec",
+     "x86": false,
+     "m68k": true
+    },
+    {
+     "symbol": "_sched_usec_elapsed",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_thread_info",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [
+    "_sched_usec"
+   ],
+   "uses": {
+    "define": [
+     "generated/simple_clock.h:1"
+    ],
+    "value_test": [
+     "src/kern/sched.h:244",
+     "src/kern/sched_prim.c:111",
+     "src/kern/sched_prim.c:229",
+     "src/kern/sched_prim.c:1154",
+     "src/kern/sched_prim.c:1160",
+     "src/kern/thread.c:1640"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/sched.h",
+    "src/kern/sched_prim.c",
+    "src/kern/thread.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-sched_prim",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "override"
+  },
+  {
+   "option": "stat_time",
+   "macro": "STAT_TIME",
+   "header": "stat_time.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_clock_interrupt",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_timer_normalize",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/stat_time.h:1"
+    ],
+    "value_test": [
+     "src/kern/mach_clock.c:126",
+     "src/kern/sched.h:75",
+     "src/kern/timer.c:88",
+     "src/kern/timer.h:96",
+     "src/kern/timer.h:160",
+     "src/kern/timer.h:172"
+    ],
+    "other": [
+     "src/kern/mach_clock.c:137",
+     "src/kern/timer.c:89",
+     "src/kern/timer.c:324"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/mach_clock.c",
+    "src/kern/sched.h",
+    "src/kern/timer.c",
+    "src/kern/timer.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-mach_clock",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-timer",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "cpus",
+   "macro": "NCPUS",
+   "header": "cpus.h",
+   "x86_value": "1",
+   "x86_status": "confirmed",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_machine_slot",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/cpus.h:1",
+     "src/kern/lock.h:66"
+    ],
+    "other": [
+     "src/bsd/kern/init_main.c:361",
+     "src/bsd/kern/kern_fork.c:431",
+     "src/bsd/m68k/cpu.h:72",
+     "src/bsd/m68k/cpu.h:74",
+     "src/ipc/ipc_kmsg.c:73",
+     "src/ipc/ipc_kmsg.h:151",
+     "src/kern/ast.c:75",
+     "src/kern/ast.c:83",
+     "src/kern/ast.c:120",
+     "src/kern/ast.h:102",
+     "src/kern/host.c:94",
+     "src/kern/host.c:106",
+     "src/kern/host.c:162",
+     "src/kern/host.c:167",
+     "src/kern/mach_init.c:98",
+     "src/kern/machine.c:86",
+     "src/kern/machine.c:122",
+     "src/kern/parallel.h:44",
+     "src/kern/parallel.h:50",
+     "src/kern/processor.c:83",
+     "src/kern/processor.c:90",
+     "src/kern/processor.c:108",
+     "src/kern/processor.c:149",
+     "src/kern/processor.c:201",
+     "src/kern/processor.h:106",
+     "src/kern/processor.h:140",
+     "src/kern/processor.h:232",
+     "src/kern/syscall_subr.c:113",
+     "src/kern/syscall_subr.c:150",
+     "src/kern/syscall_subr.c:295",
+     "src/kern/thread.c:105",
+     "src/kern/thread.c:106",
+     "src/kern/thread.c:2658",
+     "src/kern/thread.h:278",
+     "src/kern/thread.h:279",
+     "src/kern/timer.c:49",
+     "src/kern/timer.c:50",
+     "src/kern/timer.c:67",
+     "src/kern/timer.h:141",
+     "src/kern/timer.h:142"
+    ],
+    "value_test": [
+     "src/bsd/m68k/cpu.h:64",
+     "src/kern/ast.c:115",
+     "src/kern/cpu_number.h:63",
+     "src/kern/ipc_sched.c:272",
+     "src/kern/ipc_sched.c:337",
+     "src/kern/lock.c:75",
+     "src/kern/lock.c:131",
+     "src/kern/machine.c:162",
+     "src/kern/machine.c:203",
+     "src/kern/parallel.h:37",
+     "src/kern/priority.c:106",
+     "src/kern/priority.c:112",
+     "src/kern/priority.c:133",
+     "src/kern/priority.c:153",
+     "src/kern/processor.c:197",
+     "src/kern/processor.c:483",
+     "src/kern/processor.c:496",
+     "src/kern/processor.c:512",
+     "src/kern/processor.c:529",
+     "src/kern/processor.h:75",
+     "src/kern/processor.h:103",
+     "src/kern/processor.h:134",
+     "src/kern/sched_prim.c:716",
+     "src/kern/sched_prim.c:850",
+     "src/kern/sched_prim.c:1290",
+     "src/kern/sched_prim.c:1303",
+     "src/kern/syscall_subr.c:108",
+     "src/kern/syscall_subr.c:145",
+     "src/kern/syscall_subr.c:291",
+     "src/kern/thread.c:431",
+     "src/kern/thread.c:1399",
+     "src/kern/thread.h:243"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/m68k/cpu.h",
+    "src/kern/ast.c",
+    "src/kern/cpu_number.h",
+    "src/kern/ipc_sched.c",
+    "src/kern/lock.c",
+    "src/kern/machine.c",
+    "src/kern/parallel.h",
+    "src/kern/priority.c",
+    "src/kern/processor.c",
+    "src/kern/processor.h",
+    "src/kern/sched_prim.c",
+    "src/kern/syscall_subr.c",
+    "src/kern/thread.c",
+    "src/kern/thread.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ast",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_sched",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-lock",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-machine",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-priority",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-processor",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-sched_prim",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-syscall_subr",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_ipc_compat",
+   "macro": "MACH_IPC_COMPAT",
+   "header": "mach_ipc_compat.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_ipc_right_copyin_compat",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_msg_send_trap",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_ipc_compat.h:1"
+    ],
+    "value_test": [
+     "src/ipc/ipc_kmsg.c:1256",
+     "src/ipc/ipc_kmsg.c:1337",
+     "src/ipc/ipc_kmsg.c:2779",
+     "src/ipc/ipc_kmsg.h:391",
+     "src/ipc/ipc_marequest.c:214",
+     "src/ipc/ipc_marequest.c:252",
+     "src/ipc/ipc_marequest.c:279",
+     "src/ipc/ipc_marequest.c:398",
+     "src/ipc/ipc_marequest.c:435",
+     "src/ipc/ipc_marequest.c:448",
+     "src/ipc/ipc_notify.c:54",
+     "src/ipc/ipc_notify.c:475",
+     "src/ipc/ipc_notify.h:117",
+     "src/ipc/ipc_object.c:393",
+     "src/ipc/ipc_object.c:491",
+     "src/ipc/ipc_object.c:511",
+     "src/ipc/ipc_object.c:925",
+     "src/ipc/ipc_object.h:259",
+     "src/ipc/ipc_port.c:614",
+     "src/ipc/ipc_port.c:706",
+     "src/ipc/ipc_port.c:815",
+     "src/ipc/ipc_port.c:1309",
+     "src/ipc/ipc_port.h:191",
+     "src/ipc/ipc_port.h:431",
+     "src/ipc/ipc_right.c:245",
+     "src/ipc/ipc_right.c:291",
+     "src/ipc/ipc_right.c:298",
+     "src/ipc/ipc_right.c:365",
+     "src/ipc/ipc_right.c:400",
+     "src/ipc/ipc_right.c:518",
+     "src/ipc/ipc_right.c:754",
+     "src/ipc/ipc_right.c:870",
+     "src/ipc/ipc_right.c:909",
+     "src/ipc/ipc_right.c:1002",
+     "src/ipc/ipc_right.c:1106",
+     "src/ipc/ipc_right.c:1179",
+     "src/ipc/ipc_right.c:1225",
+     "src/ipc/ipc_right.c:1277",
+     "src/ipc/ipc_right.c:1363",
+     "src/ipc/ipc_right.c:1397",
+     "src/ipc/ipc_right.c:1413",
+     "src/ipc/ipc_right.c:1476",
+     "src/ipc/ipc_right.c:1658",
+     "src/ipc/ipc_right.c:1705",
+     "src/ipc/ipc_right.c:1781",
+     "src/ipc/ipc_right.c:1861",
+     "src/ipc/ipc_right.c:1990",
+     "src/ipc/ipc_right.c:2044",
+     "src/ipc/ipc_right.c:2282",
+     "src/ipc/ipc_right.c:2382",
+     "src/ipc/ipc_right.h:223",
+     "src/ipc/ipc_space.c:195",
+     "src/ipc/ipc_space.c:346",
+     "src/ipc/ipc_space.h:127",
+     "src/ipc/ipc_space.h:200",
+     "src/ipc/mach_debug.c:456",
+     "src/ipc/mach_debug.c:481",
+     "src/ipc/mach_msg.c:1831",
+     "src/ipc/mach_msg.h:100",
+     "src/ipc/mach_port.c:191",
+     "src/ipc/mach_port.c:207",
+     "src/ipc/mach_port.c:1394",
+     "src/ipc/mach_port.c:1586",
+     "src/kern/ipc_host.c:129",
+     "src/kern/ipc_mig.c:333",
+     "src/kern/ipc_tt.c:261",
+     "src/kern/ipc_tt.c:378",
+     "src/kern/ipc_tt.c:622",
+     "src/kern/ipc_tt.c:806",
+     "src/kern/ipc_tt.c:881",
+     "src/kern/ipc_tt.c:959",
+     "src/kern/ipc_tt.c:1018",
+     "src/kern/syscall_sw.c:116",
+     "src/kern/syscall_sw.c:134",
+     "src/kern/syscall_sw.c:179",
+     "src/kern/thread.h:192"
+    ],
+    "other": [
+     "src/ipc/ipc_kmsg.c:1274",
+     "src/ipc/ipc_kmsg.c:1276",
+     "src/ipc/ipc_kmsg.c:1344",
+     "src/ipc/ipc_kmsg.c:3389",
+     "src/ipc/ipc_marequest.c:216",
+     "src/ipc/ipc_marequest.c:256",
+     "src/ipc/ipc_marequest.c:283",
+     "src/ipc/ipc_marequest.c:400",
+     "src/ipc/ipc_marequest.c:438",
+     "src/ipc/ipc_marequest.c:458",
+     "src/ipc/ipc_notify.c:64",
+     "src/ipc/ipc_notify.c:66",
+     "src/ipc/ipc_notify.c:593",
+     "src/ipc/ipc_object.c:399",
+     "src/ipc/ipc_right.c:251",
+     "src/ipc/ipc_right.c:293",
+     "src/ipc/ipc_right.c:303",
+     "src/ipc/ipc_right.c:376",
+     "src/ipc/ipc_right.c:449",
+     "src/ipc/ipc_right.c:528",
+     "src/ipc/ipc_right.c:757",
+     "src/ipc/ipc_right.c:873",
+     "src/ipc/ipc_right.c:912",
+     "src/ipc/ipc_right.c:1006",
+     "src/ipc/ipc_right.c:1116",
+     "src/ipc/ipc_right.c:1182",
+     "src/ipc/ipc_right.c:1228",
+     "src/ipc/ipc_right.c:1280",
+     "src/ipc/ipc_right.c:1367",
+     "src/ipc/ipc_right.c:1402",
+     "src/ipc/ipc_right.c:1417",
+     "src/ipc/ipc_right.c:1479",
+     "src/ipc/ipc_right.c:1661",
+     "src/ipc/ipc_right.c:1708",
+     "src/ipc/ipc_right.c:1784",
+     "src/ipc/ipc_right.c:1864",
+     "src/ipc/ipc_right.c:1993",
+     "src/ipc/ipc_right.c:2047",
+     "src/ipc/ipc_right.c:2288",
+     "src/ipc/ipc_right.c:2793",
+     "src/ipc/ipc_space.c:222",
+     "src/ipc/ipc_space.c:349",
+     "src/ipc/mach_msg.c:2389",
+     "src/kern/ipc_host.c:153",
+     "src/kern/ipc_tt.c:292",
+     "src/kern/ipc_tt.c:413",
+     "src/kern/ipc_tt.c:777",
+     "src/kern/ipc_tt.c:822",
+     "src/kern/ipc_tt.c:899",
+     "src/kern/ipc_tt.c:963",
+     "src/kern/ipc_tt.c:1022"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_kmsg.c",
+    "src/ipc/ipc_kmsg.h",
+    "src/ipc/ipc_marequest.c",
+    "src/ipc/ipc_notify.c",
+    "src/ipc/ipc_notify.h",
+    "src/ipc/ipc_object.c",
+    "src/ipc/ipc_object.h",
+    "src/ipc/ipc_port.c",
+    "src/ipc/ipc_port.h",
+    "src/ipc/ipc_right.c",
+    "src/ipc/ipc_right.h",
+    "src/ipc/ipc_space.c",
+    "src/ipc/ipc_space.h",
+    "src/ipc/mach_debug.c",
+    "src/ipc/mach_msg.c",
+    "src/ipc/mach_msg.h",
+    "src/ipc/mach_port.c",
+    "src/kern/ipc_host.c",
+    "src/kern/ipc_mig.c",
+    "src/kern/ipc_tt.c",
+    "src/kern/syscall_sw.c",
+    "src/kern/thread.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_host",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_marequest",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_mig",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ipc_notify",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_object",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_port",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_right",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_space",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_tt",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_debug",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_msg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_port",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-syscall_sw",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_ipc_debug",
+   "macro": "MACH_IPC_DEBUG",
+   "header": "mach_ipc_debug.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_ipc_hash_info",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_ipc_marequest_info",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_ipc_debug.h:1"
+    ],
+    "value_test": [
+     "src/ipc/ipc_hash.c:637",
+     "src/ipc/ipc_hash.h:145",
+     "src/ipc/ipc_marequest.c:77",
+     "src/ipc/ipc_marequest.c:464",
+     "src/ipc/ipc_marequest.h:101"
+    ],
+    "other": [
+     "src/ipc/ipc_marequest.c:509"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_hash.c",
+    "src/ipc/ipc_hash.h",
+    "src/ipc/ipc_marequest.c",
+    "src/ipc/ipc_marequest.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_hash",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_marequest",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "old_vm_code",
+   "macro": "OLD_VM_CODE",
+   "header": "old_vm_code.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_vm_map_reference",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_object_reference",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/old_vm_code.h:1"
+    ],
+    "value_test": [
+     "src/vm/pmap.h:133",
+     "src/vm/vm_map.c:229",
+     "src/vm/vm_map.c:238",
+     "src/vm/vm_map.h:96",
+     "src/vm/vm_map.h:131",
+     "src/vm/vm_map.h:136",
+     "src/vm/vm_map.h:192",
+     "src/vm/vm_map.h:228",
+     "src/vm/vm_object.h:76",
+     "src/vm/vm_object.h:87",
+     "src/vm/vm_object.h:106",
+     "src/vm/vm_object.h:127",
+     "src/vm/vm_object.h:134",
+     "src/vm/vm_object.h:203",
+     "src/vm/vm_object.h:229",
+     "src/vm/vm_page.h:120",
+     "src/vm/vm_page.h:142",
+     "src/vm/vm_page.h:183",
+     "src/vm/vm_page.h:222",
+     "src/vm/vm_page.h:238",
+     "src/vm/vm_page.h:322",
+     "src/vm/vm_page.h:412",
+     "src/vm/vm_resident.c:287"
+    ]
+   },
+   "value_test_files": [
+    "src/vm/pmap.h",
+    "src/vm/vm_map.c",
+    "src/vm/vm_map.h",
+    "src/vm/vm_object.h",
+    "src/vm/vm_page.h",
+    "src/vm/vm_resident.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-vm_map",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vm_resident",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_host",
+   "macro": "MACH_HOST",
+   "header": "mach_host.h",
+   "x86_value": "0",
+   "x86_status": "confirmed",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_pset_deallocate",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_host.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/kern_resource.c:237",
+     "src/bsd/kern/kern_sig.c:746",
+     "src/kern/host.c:245",
+     "src/kern/ipc_sched.c:265",
+     "src/kern/mach_init.c:121",
+     "src/kern/machine.c:279",
+     "src/kern/machine.c:475",
+     "src/kern/machine.c:490",
+     "src/kern/machine.c:670",
+     "src/kern/processor.c:73",
+     "src/kern/processor.c:130",
+     "src/kern/processor.c:376",
+     "src/kern/processor.c:380",
+     "src/kern/processor.c:548",
+     "src/kern/processor.h:265",
+     "src/kern/sched_prim.c:582",
+     "src/kern/sched_prim.c:599",
+     "src/kern/sched_prim.c:1321",
+     "src/kern/sched_prim.c:1359",
+     "src/kern/sched_prim.c:1697",
+     "src/kern/sched_prim.c:1756",
+     "src/kern/sched_prim.c:2001",
+     "src/kern/sched_prim.c:2006",
+     "src/kern/task.c:616",
+     "src/kern/task.c:622",
+     "src/kern/task.c:954",
+     "src/kern/thread.c:426",
+     "src/kern/thread.c:687",
+     "src/kern/thread.c:973",
+     "src/kern/thread.c:987",
+     "src/kern/thread.c:1015",
+     "src/kern/thread.c:1034",
+     "src/kern/thread.c:1853",
+     "src/kern/thread.c:2198",
+     "src/kern/thread.c:2222",
+     "src/kern/thread.h:238",
+     "src/kern/thread.h:316"
+    ],
+    "other": [
+     "src/bsd/kern/kern_resource.c:246",
+     "src/bsd/kern/kern_resource.c:251",
+     "src/bsd/kern/kern_sig.c:752",
+     "src/kern/host.c:341",
+     "src/kern/host.c:375",
+     "src/kern/mach_init.c:123",
+     "src/kern/processor.c:689",
+     "src/kern/task.c:620",
+     "src/kern/task.c:624"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/kern_resource.c",
+    "src/bsd/kern/kern_sig.c",
+    "src/kern/host.c",
+    "src/kern/ipc_sched.c",
+    "src/kern/mach_init.c",
+    "src/kern/machine.c",
+    "src/kern/processor.c",
+    "src/kern/processor.h",
+    "src/kern/sched_prim.c",
+    "src/kern/task.c",
+    "src/kern/thread.c",
+    "src/kern/thread.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-host",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_sched",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kern_resource",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kern_sig",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_init",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-machine",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-processor",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-sched_prim",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-task",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "driverkit",
+   "macro": "DRIVERKIT",
+   "header": "driverkit.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": "confirmed",
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_vol_check_manual_poll",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_vol_check_set_poll",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_vol_check_manual_poll",
+    "_vol_check_set_poll"
+   ],
+   "uses": {
+    "define": [
+     "generated/driverkit.h:1",
+     "src/kern/lock.h:66"
+    ],
+    "value_test": [
+     "src/bsd/dev/vol.c:145",
+     "src/bsd/dev/vol.c:338",
+     "src/bsd/dev/vol.c:951",
+     "src/ipc/ipc_kmsg.c:489",
+     "src/kern/ipc_kobject.c:161",
+     "src/kern/ipc_kobject.c:172",
+     "src/kern/ipc_xxx.c:84",
+     "src/kern/mach_init.c:139",
+     "src/kern/syscall_sw.c:100"
+    ],
+    "other": [
+     "src/bsd/dev/vol.c:147",
+     "src/bsd/dev/vol.c:347",
+     "src/bsd/dev/vol.c:975",
+     "src/kern/ipc_kobject.c:174",
+     "src/kern/ipc_xxx.c:102",
+     "src/kern/mach_init.c:141"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/dev/vol.c",
+    "src/ipc/ipc_kmsg.c",
+    "src/kern/ipc_kobject.c",
+    "src/kern/ipc_xxx.c",
+    "src/kern/mach_init.c",
+    "src/kern/syscall_sw.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_xxx",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_init",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-syscall_sw",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vol",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "override"
+  },
+  {
+   "option": "norma_task",
+   "macro": "NORMA_TASK",
+   "header": "norma_task.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_task_create",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_task_create_local",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/norma_task.h:1"
+    ],
+    "value_test": [
+     "src/kern/task.c:78",
+     "src/kern/task.c:215",
+     "src/kern/task.c:245",
+     "src/kern/task.h:128"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/task.c",
+    "src/kern/task.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-task",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "new_vm_code",
+   "macro": "NEW_VM_CODE",
+   "header": "new_vm_code.h",
+   "x86_value": "0",
+   "x86_status": "undetermined",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": false,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "value_test": [
+     "src/vm/vm_map.h:446"
+    ]
+   },
+   "value_test_files": [
+    "src/vm/vm_map.h"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "not emitted (undetermined)"
+  },
+  {
+   "option": "mach_pagemap",
+   "macro": "MACH_PAGEMAP",
+   "header": "mach_pagemap.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_pagemap.h:1"
+    ],
+    "value_test": [
+     "src/vm/vm_object.h:80",
+     "src/vm/vm_object.h:214"
+    ]
+   },
+   "value_test_files": [
+    "src/vm/vm_object.h"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_vm_debug",
+   "macro": "MACH_VM_DEBUG",
+   "header": "mach_vm_debug.h",
+   "x86_value": "0",
+   "x86_status": "undetermined",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": false,
+   "evidence_symbols": [
+    {
+     "symbol": "_vm_page_total_pages",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "value_test": [
+     "src/vm/vm_page.h:74",
+     "src/vm/vm_page.h:311",
+     "src/vm/vm_pageout.c:58",
+     "src/vm/vm_pageout.c:75",
+     "src/vm/vm_pageout.c:151",
+     "src/vm/vm_pageout.c:182",
+     "src/vm/vm_pageout.c:197",
+     "src/vm/vm_pageout.c:221",
+     "src/vm/vm_pageout.c:288",
+     "src/vm/vm_pageout.c:413"
+    ]
+   },
+   "value_test_files": [
+    "src/vm/vm_page.h",
+    "src/vm/vm_pageout.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-vm_pageout",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "not emitted (undetermined)"
+  },
+  {
+   "option": "norma_vm",
+   "macro": "NORMA_VM",
+   "header": "norma_vm.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/norma_vm.h:1"
+    ],
+    "value_test": [
+     "src/ipc/ipc_kmsg.c:2732",
+     "src/kern/ipc_kobject.c:360",
+     "src/kern/ipc_mig.c:90",
+     "src/vm/vm_object.c:62",
+     "src/vm/vm_object.h:84"
+    ],
+    "other": [
+     "src/ipc/ipc_kmsg.c:2777",
+     "src/kern/ipc_kobject.c:372",
+     "src/kern/ipc_mig.c:204"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_kmsg.c",
+    "src/kern/ipc_kobject.c",
+    "src/kern/ipc_mig.c",
+    "src/vm/vm_object.c",
+    "src/vm/vm_object.h"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_mig",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-vm_object",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_ldebug",
+   "macro": "MACH_LDEBUG",
+   "header": "mach_ldebug.h",
+   "x86_value": "0",
+   "x86_status": "undetermined",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": false,
+   "evidence_symbols": [
+    {
+     "symbol": "_mach_ldebug",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_panic",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "src/kern/lock.h:66"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "not emitted (undetermined)"
+  },
+  {
+   "option": "mach_xp",
+   "macro": "MACH_XP",
+   "header": "mach_xp.h",
+   "x86_value": "0",
+   "x86_status": "confirmed",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_vm_alloc_lock",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_map_lookup_done",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_mem_init",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_user_init",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_xp.h:1",
+     "src/vm/vm_fault.c:44",
+     "src/vm/vm_map.c:76"
+    ],
+    "value_test": [
+     "src/bsd/kern/kern_mman.c:80",
+     "src/bsd/kern/kern_mman.c:126",
+     "src/bsd/kern/kern_mman.c:199",
+     "src/bsd/kern/kern_mman.c:238",
+     "src/vm/vm_fault.c:118",
+     "src/vm/vm_fault.c:425",
+     "src/vm/vm_fault.c:443",
+     "src/vm/vm_fault.c:762",
+     "src/vm/vm_init.c:90",
+     "src/vm/vm_pageout.h:74",
+     "src/vm/vm_resident.c:876",
+     "src/vm/vm_unix.c:463",
+     "src/vm/vm_user.c:63",
+     "src/vm/vm_user.c:101"
+    ],
+    "other": [
+     "src/bsd/kern/kern_mman.c:82",
+     "src/bsd/kern/kern_mman.c:127",
+     "src/bsd/kern/kern_mman.c:129",
+     "src/bsd/kern/kern_mman.c:201",
+     "src/bsd/kern/kern_mman.c:203",
+     "src/bsd/kern/kern_mman.c:248",
+     "src/bsd/kern/kern_mman.c:265",
+     "src/vm/vm_fault.c:125",
+     "src/vm/vm_fault.c:132",
+     "src/vm/vm_fault.c:427",
+     "src/vm/vm_fault.c:429",
+     "src/vm/vm_fault.c:472",
+     "src/vm/vm_fault.c:528",
+     "src/vm/vm_fault.c:863",
+     "src/vm/vm_fault.c:964",
+     "src/vm/vm_init.c:91",
+     "src/vm/vm_init.c:93",
+     "src/vm/vm_resident.c:878",
+     "src/vm/vm_unix.c:629",
+     "src/vm/vm_user.c:64",
+     "src/vm/vm_user.c:76",
+     "src/vm/vm_user.c:105",
+     "src/vm/vm_user.c:134"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/kern_mman.c",
+    "src/vm/vm_fault.c",
+    "src/vm/vm_init.c",
+    "src/vm/vm_pageout.h",
+    "src/vm/vm_resident.c",
+    "src/vm/vm_unix.c",
+    "src/vm/vm_user.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-kern_mman",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vm_fault",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-vm_init",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vm_resident",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vm_user",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_old_vm_copy",
+   "macro": "MACH_OLD_VM_COPY",
+   "header": "mach_old_vm_copy.h",
+   "x86_value": "1",
+   "x86_status": "confirmed",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_ipc_soft_map",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_map_pageable",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_vm_move",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_old_vm_copy.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/kern_mman.c:471",
+     "src/ipc/ipc_init.c:57",
+     "src/ipc/ipc_init.c:154",
+     "src/ipc/ipc_kmsg.c:298",
+     "src/ipc/ipc_kmsg.c:454",
+     "src/ipc/ipc_kmsg.c:1435",
+     "src/ipc/ipc_kmsg.c:1451",
+     "src/ipc/ipc_kmsg.c:1573",
+     "src/ipc/ipc_kmsg.c:2537",
+     "src/ipc/ipc_kmsg.c:2817",
+     "src/ipc/ipc_kmsg.c:2854",
+     "src/ipc/ipc_kmsg.c:2980",
+     "src/ipc/ipc_kmsg.c:3362",
+     "src/ipc/mach_debug.c:202",
+     "src/ipc/mach_debug.c:214",
+     "src/ipc/mach_debug.c:294",
+     "src/ipc/mach_debug.c:306",
+     "src/ipc/mach_debug.c:517",
+     "src/ipc/mach_debug.c:537",
+     "src/ipc/mach_debug.c:567",
+     "src/ipc/mach_debug.c:587",
+     "src/ipc/mach_port.c:261",
+     "src/ipc/mach_port.c:319",
+     "src/ipc/mach_port.c:376",
+     "src/ipc/mach_port.c:400",
+     "src/ipc/mach_port.c:1093",
+     "src/ipc/mach_port.c:1118",
+     "src/ipc/mach_port.c:1197",
+     "src/ipc/mach_port.c:1216",
+     "src/ipc/mach_port.c:1711",
+     "src/ipc/mach_port.c:1721",
+     "src/ipc/mach_port.c:1730",
+     "src/ipc/mach_port.c:1749",
+     "src/ipc/mach_port.c:1761",
+     "src/kern/zalloc.c:1412",
+     "src/kern/zalloc.c:1422",
+     "src/kern/zalloc.c:1440",
+     "src/kern/zalloc.c:1450"
+    ],
+    "other": [
+     "src/bsd/kern/kern_mman.c:473",
+     "src/bsd/kern/kern_mman.c:475"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/kern_mman.c",
+    "src/ipc/ipc_init.c",
+    "src/ipc/ipc_kmsg.c",
+    "src/ipc/mach_debug.c",
+    "src/ipc/mach_port.c",
+    "src/kern/zalloc.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_init",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kern_mman",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_debug",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_port",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-zalloc",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_kdb",
+   "macro": "MACH_KDB",
+   "header": "mach_kdb.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_db_printf",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_debug_user_with_kdb",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_thread_kdb_return",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_kdb.h:1"
+    ],
+    "value_test": [
+     "src/ipc/ipc_kmsg.c:3392",
+     "src/kern/exception.c:64",
+     "src/kern/exception.c:278"
+    ],
+    "other": [
+     "src/ipc/ipc_kmsg.c:3659",
+     "src/kern/exception.c:289"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_kmsg.c",
+    "src/kern/exception.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-exception",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "norma_ether",
+   "macro": "NORMA_ETHER",
+   "header": "norma_ether.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/norma_ether.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "pc_support",
+   "macro": "PC_SUPPORT",
+   "header": "pc_support.h",
+   "x86_value": "1",
+   "x86_status": "confirmed",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_PCcallMonitor",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_PCcreate",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_PCexception",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_PCresume",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_PCcallMonitor",
+    "_PCcreate",
+    "_PCexception",
+    "_PCresume"
+   ],
+   "uses": {
+    "define": [
+     "generated/pc_support.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "fp_emul",
+   "macro": "FP_EMUL",
+   "header": "fp_emul.h",
+   "x86_value": "0",
+   "x86_status": "confirmed",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/fp_emul.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_nbc",
+   "macro": "MACH_NBC",
+   "header": "mach_nbc.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_nbc.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/vfs.c:424",
+     "src/bsd/kern/vfs.c:537",
+     "src/bsd/kern/vfs_syscalls.c:1071",
+     "src/bsd/kern/vfs_vnode.c:73",
+     "src/bsd/kern/vfs_vnode.c:270",
+     "src/bsd/kern/vfs_vnode.c:432",
+     "src/bsd/nfs/nfs_client.c:253",
+     "src/bsd/nfs/nfs_client.c:365",
+     "src/bsd/nfs/nfs_subr.c:783",
+     "src/bsd/nfs/nfs_vnodeops.c:84",
+     "src/bsd/nfs/nfs_vnodeops.c:770",
+     "src/bsd/nfs/nfs_vnodeops.c:1182",
+     "src/bsd/nfs/nfs_vnodeops.c:2017",
+     "src/bsd/nfs/nfs_vnodeops.c:2033",
+     "src/bsd/nfs/nfs_vnodeops.c:2464",
+     "src/bsd/ufs/ufs_bmap.c:81",
+     "src/bsd/ufs/ufs_bmap.c:93",
+     "src/bsd/ufs/ufs_bmap.c:128",
+     "src/bsd/ufs/ufs_bmap.c:179",
+     "src/bsd/ufs/ufs_bmap.c:229",
+     "src/bsd/ufs/ufs_bmap.c:284",
+     "src/bsd/ufs/ufs_inode.c:78",
+     "src/bsd/ufs/ufs_inode.c:390",
+     "src/bsd/ufs/ufs_inode.c:700",
+     "src/bsd/ufs/ufs_inode.c:971",
+     "src/bsd/ufs/ufs_vfsops.c:499",
+     "src/bsd/ufs/ufs_vnodeops.c:349",
+     "src/bsd/ufs/ufs_vnodeops.c:485",
+     "src/bsd/ufs/ufs_vnodeops.c:594",
+     "src/bsd/ufs/ufs_vnodeops.c:1300",
+     "src/kern/mfs_prim.c:97",
+     "src/kern/mfs_prim.c:153",
+     "src/kern/mfs_prim.c:159",
+     "src/kern/mfs_prim.c:212",
+     "src/vm/vnode_pager.c:159",
+     "src/vm/vnode_pager.c:723",
+     "src/vm/vnode_pager.c:1288"
+    ],
+    "other": [
+     "src/bsd/kern/vfs.c:426",
+     "src/bsd/kern/vfs.c:539",
+     "src/bsd/kern/vfs_syscalls.c:1074",
+     "src/bsd/kern/vfs_vnode.c:83",
+     "src/bsd/kern/vfs_vnode.c:275",
+     "src/bsd/kern/vfs_vnode.c:452",
+     "src/bsd/kern/vfs_vnode.c:454",
+     "src/bsd/nfs/nfs_client.c:260",
+     "src/bsd/nfs/nfs_client.c:386",
+     "src/bsd/nfs/nfs_client.c:392",
+     "src/bsd/nfs/nfs_subr.c:788",
+     "src/bsd/nfs/nfs_vnodeops.c:86",
+     "src/bsd/nfs/nfs_vnodeops.c:778",
+     "src/bsd/nfs/nfs_vnodeops.c:1185",
+     "src/bsd/nfs/nfs_vnodeops.c:2019",
+     "src/bsd/nfs/nfs_vnodeops.c:2035",
+     "src/bsd/nfs/nfs_vnodeops.c:2467",
+     "src/bsd/ufs/ufs_bmap.c:83",
+     "src/bsd/ufs/ufs_bmap.c:99",
+     "src/bsd/ufs/ufs_bmap.c:132",
+     "src/bsd/ufs/ufs_bmap.c:182",
+     "src/bsd/ufs/ufs_bmap.c:231",
+     "src/bsd/ufs/ufs_bmap.c:287",
+     "src/bsd/ufs/ufs_inode.c:80",
+     "src/bsd/ufs/ufs_inode.c:395",
+     "src/bsd/ufs/ufs_inode.c:704",
+     "src/bsd/ufs/ufs_inode.c:973",
+     "src/bsd/ufs/ufs_vfsops.c:501",
+     "src/bsd/ufs/ufs_vnodeops.c:362",
+     "src/bsd/ufs/ufs_vnodeops.c:489",
+     "src/bsd/ufs/ufs_vnodeops.c:605",
+     "src/bsd/ufs/ufs_vnodeops.c:1302",
+     "src/kern/mfs_prim.c:141",
+     "src/kern/mfs_prim.c:155",
+     "src/kern/mfs_prim.c:175",
+     "src/kern/mfs_prim.c:1448",
+     "src/vm/vnode_pager.c:161",
+     "src/vm/vnode_pager.c:739",
+     "src/vm/vnode_pager.c:1290"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/vfs.c",
+    "src/bsd/kern/vfs_syscalls.c",
+    "src/bsd/kern/vfs_vnode.c",
+    "src/bsd/nfs/nfs_client.c",
+    "src/bsd/nfs/nfs_subr.c",
+    "src/bsd/nfs/nfs_vnodeops.c",
+    "src/bsd/ufs/ufs_bmap.c",
+    "src/bsd/ufs/ufs_inode.c",
+    "src/bsd/ufs/ufs_vfsops.c",
+    "src/bsd/ufs/ufs_vnodeops.c",
+    "src/kern/mfs_prim.c",
+    "src/vm/vnode_pager.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-mfs_prim",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-nfs_client",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-nfs_subr",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-nfs_vnodeops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_bmap",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ufs_inode",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_vfsops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_vnodeops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-vfs",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-vfs_syscalls",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vfs_vnode",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vnode_pager",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "uxpr",
+   "macro": "UXPR",
+   "header": "uxpr.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_uxprGlobal",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_xprLocked",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_xpr_lock",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_uxprGlobal",
+    "_xprLocked",
+    "_xpr_lock"
+   ],
+   "uses": {
+    "define": [
+     "generated/uxpr.h:1"
+    ],
+    "value_test": [
+     "src/kern/xpr.h:125"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/xpr.h"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "xpr_debug",
+   "macro": "XPR_DEBUG",
+   "header": "xpr_debug.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_IOAddDDMEntry",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_IOMalloc",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_IOAddDDMEntry",
+    "_IOMalloc"
+   ],
+   "uses": {
+    "define": [
+     "components/driverkit-1/driverkit/Device_ddm.h:36",
+     "generated/xpr_debug.h:1",
+     "src/driverkit/xpr_mi.h:44",
+     "src/kern/xpr.h:131"
+    ],
+    "value_test": [
+     "src/driverkit/ddm.c:92",
+     "src/driverkit/ddm.c:105",
+     "src/kern/xpr.h:121"
+    ],
+    "other": [
+     "src/driverkit/ddm.c:95",
+     "src/driverkit/ddm.c:108",
+     "src/driverkit/ddm.c:111"
+    ]
+   },
+   "value_test_files": [
+    "src/driverkit/ddm.c",
+    "src/kern/xpr.h"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "mach_net",
+   "macro": "MACH_NET",
+   "header": "mach_net.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_mach_net_init",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_setup_main",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_net.h:1"
+    ],
+    "value_test": [
+     "src/bsd/netinet/ip_input.c:377",
+     "src/ipc/ipc_kmsg.c:495",
+     "src/kern/ipc_kobject.c:149",
+     "src/kern/ipc_kobject.c:318",
+     "src/kern/mach_init.c:79",
+     "src/kern/mach_init.c:113"
+    ],
+    "other": [
+     "src/bsd/netinet/ip_input.c:389",
+     "src/bsd/netinet/ip_input.c:394",
+     "src/kern/ipc_kobject.c:322",
+     "src/kern/mach_init.c:81",
+     "src/kern/mach_init.c:115"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/netinet/ip_input.c",
+    "src/ipc/ipc_kmsg.c",
+    "src/kern/ipc_kobject.c",
+    "src/kern/mach_init.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ip_input",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_init",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "mach_debug",
+   "macro": "MACH_DEBUG",
+   "header": "mach_debug.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_stack_check_usage",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_stack_max_usage",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_stack_usage_lock",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_stack_usage_lock"
+   ],
+   "uses": {
+    "define": [
+     "generated/mach_debug.h:1"
+    ],
+    "value_test": [
+     "src/kern/ipc_kobject.c:158",
+     "src/kern/ipc_kobject.c:169",
+     "src/kern/kernel_stack.c:183",
+     "src/kern/kernel_stack.c:256",
+     "src/kern/kernel_stack.c:270",
+     "src/kern/kernel_stack.c:574",
+     "src/kern/thread.c:120",
+     "src/kern/thread.c:265",
+     "src/kern/thread.c:318",
+     "src/kern/thread.c:452",
+     "src/kern/thread.c:2445",
+     "src/kern/zalloc.c:55",
+     "src/kern/zalloc.c:1317"
+    ],
+    "other": [
+     "src/kern/ipc_kobject.c:171",
+     "src/kern/zalloc.c:1665"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/ipc_kobject.c",
+    "src/kern/kernel_stack.c",
+    "src/kern/thread.c",
+    "src/kern/zalloc.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kernel_stack",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-zalloc",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "kernobjc",
+   "macro": "KERNOBJC",
+   "header": "kernobjc.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": "confirmed",
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/kernobjc.h:1"
+    ],
+    "value_test": [
+     "src/kernserv/kern_server.c:604",
+     "src/kernserv/kern_server.c:834"
+    ],
+    "other": [
+     "src/kernserv/kern_server.c:607",
+     "src/kernserv/kern_server.c:837"
+    ]
+   },
+   "value_test_files": [
+    "src/kernserv/kern_server.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-kern_server",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "override"
+  },
+  {
+   "option": "kernel_stack",
+   "macro": "KERNEL_STACK",
+   "header": "kernel_stack.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/kernel_stack.h:1"
+    ],
+    "value_test": [
+     "src/kern/thread.c:140",
+     "src/kern/thread.c:441",
+     "src/kern/thread.c:788",
+     "src/kern/thread.c:2556",
+     "src/kern/thread.c:2685"
+    ],
+    "other": [
+     "src/kern/thread.c:145"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/thread.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "hw_footprint",
+   "macro": "HW_FOOTPRINT",
+   "header": "hw_footprint.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_thread_create",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/hw_footprint.h:1"
+    ],
+    "value_test": [
+     "src/kern/sched_prim.c:1312",
+     "src/kern/thread.c:582"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/sched_prim.c",
+    "src/kern/thread.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-sched_prim",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-thread",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "norma_ipc",
+   "macro": "NORMA_IPC",
+   "header": "norma_ipc.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/norma_ipc.h:1"
+    ],
+    "value_test": [
+     "src/ipc/ipc_init.c:121",
+     "src/ipc/ipc_kmsg.c:478",
+     "src/ipc/ipc_kmsg.c:1456",
+     "src/ipc/ipc_kmsg.c:2732",
+     "src/ipc/ipc_kmsg.c:2859",
+     "src/ipc/ipc_kmsg.c:3487",
+     "src/ipc/ipc_mqueue.c:56",
+     "src/ipc/ipc_mqueue.c:216",
+     "src/ipc/ipc_mqueue.c:246",
+     "src/ipc/ipc_mqueue.c:328",
+     "src/ipc/ipc_mqueue.c:369",
+     "src/ipc/ipc_mqueue.c:649",
+     "src/ipc/ipc_mqueue.c:818",
+     "src/ipc/ipc_notify.c:385",
+     "src/ipc/mach_msg.c:643",
+     "src/ipc/mach_msg.c:762",
+     "src/ipc/mach_msg.c:867",
+     "src/ipc/mach_msg.c:1349",
+     "src/ipc/mach_msg.c:1388",
+     "src/kern/exception.c:449"
+    ],
+    "other": [
+     "src/ipc/ipc_init.c:124",
+     "src/ipc/ipc_kmsg.c:483",
+     "src/ipc/ipc_kmsg.c:1461",
+     "src/ipc/ipc_kmsg.c:2777",
+     "src/ipc/ipc_kmsg.c:2864",
+     "src/ipc/ipc_kmsg.c:3491",
+     "src/ipc/ipc_kmsg.c:3493",
+     "src/ipc/ipc_mqueue.c:62",
+     "src/ipc/ipc_mqueue.c:224",
+     "src/ipc/ipc_mqueue.c:249",
+     "src/ipc/ipc_mqueue.c:331",
+     "src/ipc/ipc_mqueue.c:378",
+     "src/ipc/ipc_mqueue.c:672",
+     "src/ipc/ipc_mqueue.c:820",
+     "src/ipc/ipc_notify.c:391",
+     "src/ipc/mach_msg.c:649",
+     "src/ipc/mach_msg.c:768",
+     "src/ipc/mach_msg.c:869",
+     "src/ipc/mach_msg.c:1351",
+     "src/ipc/mach_msg.c:1408",
+     "src/kern/exception.c:451"
+    ]
+   },
+   "value_test_files": [
+    "src/ipc/ipc_init.c",
+    "src/ipc/ipc_kmsg.c",
+    "src/ipc/ipc_mqueue.c",
+    "src/ipc/ipc_notify.c",
+    "src/ipc/mach_msg.c",
+    "src/kern/exception.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-exception",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_init",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_kmsg",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_mqueue",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-ipc_notify",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-mach_msg",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_pcsample",
+   "macro": "MACH_PCSAMPLE",
+   "header": "mach_pcsample.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_pcsample.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_ipc_test",
+   "macro": "MACH_IPC_TEST",
+   "header": "mach_ipc_test.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_ipc_test.h:1"
+    ],
+    "value_test": [
+     "src/kern/ipc_kobject.c:181"
+    ],
+    "other": [
+     "src/kern/ipc_kobject.c:184"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/ipc_kobject.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "mach_machine_routines",
+   "macro": "MACH_MACHINE_ROUTINES",
+   "header": "mach_machine_routines.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/mach_machine_routines.h:1"
+    ],
+    "value_test": [
+     "src/kern/ipc_kobject.c:53"
+    ]
+   },
+   "value_test_files": [
+    "src/kern/ipc_kobject.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ipc_kobject",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "nfs_server",
+   "macro": "NFS_SERVER",
+   "header": "nfs_server.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_nfs_svc",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_rfsdisptab",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/nfs_server.h:1"
+    ],
+    "defined_test": [
+     "src/bsd/kern/init_sysent.c:174",
+     "src/bsd/nfs/nfs.h:115"
+    ],
+    "other": [
+     "src/bsd/kern/init_sysent.c:182",
+     "src/bsd/kern/init_sysent.c:186"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "nfs_client",
+   "macro": "NFS_CLIENT",
+   "header": "nfs_client.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_async_daemon",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_nfs_vnodeops",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/nfs_client.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/init_sysent.c:165",
+     "src/bsd/vfs/vfs_conf.c:23"
+    ],
+    "other": [
+     "src/bsd/kern/init_sysent.c:170",
+     "src/bsd/kern/init_sysent.c:172",
+     "src/bsd/vfs/vfs_conf.c:25",
+     "src/bsd/vfs/vfs_conf.c:56",
+     "src/bsd/vfs/vfs_conf.c:58"
+    ],
+    "defined_test": [
+     "src/bsd/nfs/nfs_mount.h:10",
+     "src/bsd/vfs/vfs_conf.c:54"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/init_sysent.c",
+    "src/bsd/vfs/vfs_conf.c"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "sun_rpc",
+   "macro": "SUN_RPC",
+   "header": "sun_rpc.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_clntkudp",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_svckudp",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/sun_rpc.h:1"
+    ],
+    "value_test": [
+     "src/bsd/netinet/if_ether.c:979",
+     "src/bsd/netinet/udp_usrreq.c:349"
+    ],
+    "other": [
+     "src/bsd/netinet/if_ether.c:981",
+     "src/bsd/netinet/if_ether.c:983",
+     "src/bsd/netinet/udp_usrreq.c:353",
+     "src/bsd/netinet/udp_usrreq.c:356"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/netinet/if_ether.c",
+    "src/bsd/netinet/udp_usrreq.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-if_ether",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-udp_usrreq",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "ether",
+   "macro": "NETHER",
+   "header": "ether.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_arpinput",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/ether.h:1"
+    ],
+    "value_test": [
+     "src/bsd/net/if.c:357"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/net/if.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-if",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "loop",
+   "macro": "NLOOP",
+   "header": "loop.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_loattach",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/loop.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "en",
+   "macro": "NEN",
+   "header": "en.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_en_recv_pkt",
+     "x86": true,
+     "m68k": false
+    },
+    {
+     "symbol": "_en_send_pkt",
+     "x86": true,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [
+    "_en_recv_pkt",
+    "_en_send_pkt"
+   ],
+   "uses": {
+    "define": [
+     "generated/en.h:1",
+     "src/bsd/netinet/if_ether.c:101"
+    ],
+    "value_test": [
+     "src/bsd/netinet/if_ether.c:130",
+     "src/bsd/netinet/if_ether.c:154",
+     "src/bsd/netinet/if_ether.c:180",
+     "src/bsd/netinet/if_ether.c:199",
+     "src/bsd/netinet/if_ether.c:266",
+     "src/bsd/netinet/if_ether.c:354",
+     "src/bsd/netinet/if_ether.c:433",
+     "src/bsd/netinet/if_ether.c:589",
+     "src/bsd/netinet/if_ether.c:690",
+     "src/bsd/netinet/if_ether.c:870",
+     "src/bsd/netinet/if_ether.c:892",
+     "src/bsd/netinet/if_ether.c:916"
+    ],
+    "other": [
+     "src/bsd/netinet/if_ether.c:132",
+     "src/bsd/netinet/if_ether.c:156",
+     "src/bsd/netinet/if_ether.c:188",
+     "src/bsd/netinet/if_ether.c:208",
+     "src/bsd/netinet/if_ether.c:285",
+     "src/bsd/netinet/if_ether.c:368",
+     "src/bsd/netinet/if_ether.c:441",
+     "src/bsd/netinet/if_ether.c:612",
+     "src/bsd/netinet/if_ether.c:704",
+     "src/bsd/netinet/if_ether.c:872",
+     "src/bsd/netinet/if_ether.c:874",
+     "src/bsd/netinet/if_ether.c:906",
+     "src/bsd/netinet/if_ether.c:918",
+     "src/bsd/netinet/if_ether.c:920"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/netinet/if_ether.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-if_ether",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "quota",
+   "macro": "QUOTA",
+   "header": "quota.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_chkdq",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_dquot",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_dquotNDQUOT",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_getinoquota",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_ndqb",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_ndquot",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_quotactl",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/quota.h:1"
+    ],
+    "defined_test": [
+     "src/bsd/kern/init_sysent.c:110",
+     "src/bsd/ufs/quotas.h:95"
+    ],
+    "other": [
+     "src/bsd/kern/init_sysent.c:114",
+     "src/bsd/kern/init_sysent.c:389",
+     "src/bsd/kern/init_sysent.c:391",
+     "src/bsd/sys/quota.h:81",
+     "src/bsd/sys/quota.h:157",
+     "src/bsd/ufs/quotas.h:125",
+     "src/bsd/ufs/ufs_alloc.c:102",
+     "src/bsd/ufs/ufs_alloc.c:188",
+     "src/bsd/ufs/ufs_alloc.c:409",
+     "src/bsd/ufs/ufs_alloc.c:562",
+     "src/bsd/ufs/ufs_inode.c:77",
+     "src/bsd/ufs/ufs_inode.c:414",
+     "src/bsd/ufs/ufs_inode.c:426",
+     "src/bsd/ufs/ufs_inode.c:493",
+     "src/bsd/ufs/ufs_inode.c:585",
+     "src/bsd/ufs/ufs_inode.c:912",
+     "src/bsd/ufs/ufs_inode.c:1020",
+     "src/bsd/ufs/ufs_inode.c:1023",
+     "src/bsd/ufs/ufs_inode.c:1035",
+     "src/bsd/ufs/ufs_inode.c:1037",
+     "src/bsd/ufs/ufs_inode.c:1060",
+     "src/conf/param.c:108",
+     "src/conf/param.c:143"
+    ],
+    "value_test": [
+     "src/bsd/kern/init_sysent.c:387",
+     "src/bsd/sys/quota.h:77",
+     "src/bsd/sys/quota.h:153",
+     "src/bsd/ufs/ufs_alloc.c:100",
+     "src/bsd/ufs/ufs_alloc.c:184",
+     "src/bsd/ufs/ufs_alloc.c:405",
+     "src/bsd/ufs/ufs_alloc.c:557",
+     "src/bsd/ufs/ufs_dir.c:45",
+     "src/bsd/ufs/ufs_dir.c:1087",
+     "src/bsd/ufs/ufs_dir.c:1126",
+     "src/bsd/ufs/ufs_inode.c:75",
+     "src/bsd/ufs/ufs_inode.c:411",
+     "src/bsd/ufs/ufs_inode.c:423",
+     "src/bsd/ufs/ufs_inode.c:490",
+     "src/bsd/ufs/ufs_inode.c:580",
+     "src/bsd/ufs/ufs_inode.c:910",
+     "src/bsd/ufs/ufs_inode.c:1016",
+     "src/bsd/ufs/ufs_inode.c:1033",
+     "src/bsd/ufs/ufs_inode.c:1057",
+     "src/bsd/ufs/ufs_vfsops.c:534",
+     "src/bsd/ufs/ufs_vfsops.c:542",
+     "src/bsd/ufs/ufs_vnodeops.c:62",
+     "src/bsd/ufs/ufs_vnodeops.c:664",
+     "src/bsd/ufs/ufs_vnodeops.c:687",
+     "src/bsd/ufs/ufs_vnodeops.c:701",
+     "src/conf/param.c:104",
+     "src/conf/param.c:141"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/init_sysent.c",
+    "src/bsd/sys/quota.h",
+    "src/bsd/ufs/ufs_alloc.c",
+    "src/bsd/ufs/ufs_dir.c",
+    "src/bsd/ufs/ufs_inode.c",
+    "src/bsd/ufs/ufs_vfsops.c",
+    "src/bsd/ufs/ufs_vnodeops.c",
+    "src/conf/param.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-ufs_alloc",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_dir",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_inode",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_vfsops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-ufs_vnodeops",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "sun_lock",
+   "macro": "SUN_LOCK",
+   "header": "sun_lock.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_flock",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_lf_lockctl",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_lf_svnode_hash",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_spec_lockctl",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/sun_lock.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/kern_descrip.c:127",
+     "src/bsd/kern/kern_descrip.c:182",
+     "src/bsd/kern/kern_descrip.c:274",
+     "src/bsd/kern/kern_descrip.c:478",
+     "src/bsd/kern/kern_descrip.c:694",
+     "src/bsd/kern/kern_exec.c:504",
+     "src/bsd/kern/kern_exit.c:181",
+     "src/bsd/kern/kern_shutdown.c:280",
+     "src/bsd/kern/vfs_io.c:279",
+     "src/bsd/nfs/nfs_vnodeops.c:1947",
+     "src/bsd/specfs/fifo_vnodeops.c:64",
+     "src/bsd/specfs/fifo_vnodeops.c:96",
+     "src/bsd/specfs/spec_vnodeops.c:77",
+     "src/bsd/specfs/spec_vnodeops.c:114",
+     "src/bsd/specfs/spec_vnodeops.c:755"
+    ],
+    "other": [
+     "src/bsd/kern/kern_descrip.c:130",
+     "src/bsd/kern/kern_descrip.c:185",
+     "src/bsd/kern/kern_descrip.c:402",
+     "src/bsd/kern/kern_descrip.c:481",
+     "src/bsd/kern/kern_descrip.c:738",
+     "src/bsd/kern/kern_exec.c:511",
+     "src/bsd/kern/kern_exec.c:513",
+     "src/bsd/kern/kern_exit.c:184",
+     "src/bsd/kern/kern_shutdown.c:283",
+     "src/bsd/kern/vfs_io.c:351",
+     "src/bsd/nfs/nfs_vnodeops.c:1983",
+     "src/bsd/nfs/nfs_vnodeops.c:1989",
+     "src/bsd/specfs/fifo_vnodeops.c:66",
+     "src/bsd/specfs/fifo_vnodeops.c:98",
+     "src/bsd/specfs/fifo_vnodeops.c:100",
+     "src/bsd/specfs/spec_vnodeops.c:79",
+     "src/bsd/specfs/spec_vnodeops.c:116",
+     "src/bsd/specfs/spec_vnodeops.c:118",
+     "src/bsd/specfs/spec_vnodeops.c:769"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/kern_descrip.c",
+    "src/bsd/kern/kern_exec.c",
+    "src/bsd/kern/kern_exit.c",
+    "src/bsd/kern/kern_shutdown.c",
+    "src/bsd/kern/vfs_io.c",
+    "src/bsd/nfs/nfs_vnodeops.c",
+    "src/bsd/specfs/fifo_vnodeops.c",
+    "src/bsd/specfs/spec_vnodeops.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-fifo_vnodeops",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kern_descrip",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-kern_exit",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-kern_shutdown",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-nfs_vnodeops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-spec_vnodeops",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-vfs_io",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "secure_nfs",
+   "macro": "SECURE_NFS",
+   "header": "secure_nfs.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_authdes",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/secure_nfs.h:1"
+    ],
+    "value_test": [
+     "src/bsd/nfs/nfs_export.c:56",
+     "src/bsd/nfs/nfs_export.c:150",
+     "src/bsd/nfs/nfs_export.c:461",
+     "src/bsd/nfs/nfs_export.c:552",
+     "src/bsd/nfs/nfs_server.c:63",
+     "src/bsd/nfs/nfs_server.c:1978",
+     "src/bsd/nfs/nfs_server.c:2057",
+     "src/bsd/nfs/nfs_subr.c:149",
+     "src/bsd/nfs/nfs_subr.c:182",
+     "src/bsd/nfs/nfs_subr.c:212",
+     "src/bsd/nfs/nfs_subr.c:271",
+     "src/bsd/nfs/nfs_subr.c:286",
+     "src/bsd/nfs/nfs_vfsops.c:1001",
+     "src/bsd/rpc/svc_auth.c:45",
+     "src/bsd/rpc/svc_auth.c:55",
+     "src/bsd/rpc/svc_auth.c:59"
+    ],
+    "other": [
+     "src/bsd/nfs/nfs_export.c:58",
+     "src/bsd/nfs/nfs_export.c:154",
+     "src/bsd/nfs/nfs_export.c:528",
+     "src/bsd/nfs/nfs_export.c:556",
+     "src/bsd/nfs/nfs_server.c:65",
+     "src/bsd/nfs/nfs_server.c:1994",
+     "src/bsd/nfs/nfs_server.c:2076",
+     "src/bsd/nfs/nfs_subr.c:159",
+     "src/bsd/nfs/nfs_subr.c:184",
+     "src/bsd/nfs/nfs_subr.c:254",
+     "src/bsd/nfs/nfs_subr.c:273",
+     "src/bsd/nfs/nfs_subr.c:296",
+     "src/bsd/nfs/nfs_vfsops.c:1004",
+     "src/bsd/nfs/nfs_vfsops.c:1010",
+     "src/bsd/rpc/svc_auth.c:47",
+     "src/bsd/rpc/svc_auth.c:57",
+     "src/bsd/rpc/svc_auth.c:61",
+     "src/bsd/rpc/svc_auth.c:63"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/nfs/nfs_export.c",
+    "src/bsd/nfs/nfs_server.c",
+    "src/bsd/nfs/nfs_subr.c",
+    "src/bsd/nfs/nfs_vfsops.c",
+    "src/bsd/rpc/svc_auth.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-nfs_export",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-nfs_server",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-nfs_subr",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-nfs_vfsops",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-svc_auth",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "nfsmeas",
+   "macro": "NNFSMEAS",
+   "header": "nfsmeas.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_nfsmeas",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/nfsmeas.h:1"
+    ],
+    "value_test": [
+     "src/bsd/nfs/nfs_server.c:1833",
+     "src/bsd/nfs/nfs_server.c:1884",
+     "src/bsd/nfs/nfs_subr.c:489",
+     "src/bsd/nfs/nfs_subr.c:512",
+     "src/bsd/nfs/nfs_subr.c:627",
+     "src/bsd/rpc/svc_kudp.c:408"
+    ],
+    "other": [
+     "src/bsd/nfs/nfs_server.c:1835",
+     "src/bsd/nfs/nfs_server.c:1886",
+     "src/bsd/nfs/nfs_subr.c:492",
+     "src/bsd/nfs/nfs_subr.c:515",
+     "src/bsd/nfs/nfs_subr.c:629",
+     "src/bsd/rpc/svc_kudp.c:413"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/nfs/nfs_server.c",
+    "src/bsd/nfs/nfs_subr.c",
+    "src/bsd/rpc/svc_kudp.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-nfs_server",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-nfs_subr",
+     "NOT_MATCH"
+    ],
+    [
+     "x86-svc_kudp",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "imp",
+   "macro": "NIMP",
+   "header": "imp.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_impopen",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/imp.h:1"
+    ],
+    "value_test": [
+     "src/bsd/kern/uipc_domain.c:47",
+     "src/bsd/net/netisr.c:50",
+     "src/bsd/netinet/in_proto.c:79",
+     "src/bsd/netinet/in_proto.c:139"
+    ],
+    "other": [
+     "src/bsd/net/netisr.c:55"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/uipc_domain.c",
+    "src/bsd/net/netisr.c",
+    "src/bsd/netinet/in_proto.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-netisr",
+     "OBJECT_MATCH"
+    ],
+    [
+     "x86-uipc_domain",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "hy",
+   "macro": "NHY",
+   "header": "hy.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_hyattach",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/hy.h:1",
+     "src/bsd/netinet/in_proto.c:158"
+    ],
+    "value_test": [
+     "src/bsd/netinet/in_proto.c:161"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/netinet/in_proto.c"
+   ],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "od",
+   "macro": "NOD",
+   "header": "od.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_odattach",
+     "x86": false,
+     "m68k": true
+    },
+    {
+     "symbol": "_odopen",
+     "x86": false,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [
+    "_odattach",
+    "_odopen"
+   ],
+   "uses": {
+    "define": [
+     "generated/od.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "m68k evidence differs: deferred (no override)"
+  },
+  {
+   "option": "dli",
+   "macro": "DLI",
+   "header": "dli.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "0",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_dli",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/dli.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "gdb",
+   "macro": "GDB",
+   "header": "gdb.h",
+   "x86_value": "0",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": "confirmed",
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_gdb",
+     "x86": false,
+     "m68k": false
+    },
+    {
+     "symbol": "_kgdb",
+     "x86": false,
+     "m68k": false
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/gdb.h:1"
+    ],
+    "value_test": [
+     "src/bsd/net/if_venip.c:30",
+     "src/bsd/net/if_venip.c:156"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/net/if_venip.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-if_venip",
+     "OBJECT_MATCH"
+    ]
+   ],
+   "judgement": "override"
+  },
+  {
+   "option": "pty",
+   "macro": "NPTY",
+   "header": "pty.h",
+   "x86_value": "32",
+   "x86_status": "hypothesis",
+   "m68k_value": "32",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/pty.h:1",
+     "src/bsd/kern/tty_pty.c:71",
+     "src/bsd/kern/tty_pty.c:72"
+    ],
+    "value_test": [
+     "src/bsd/kern/tty_pty.c:54",
+     "src/bsd/kern/tty_pty.c:70"
+    ],
+    "other": [
+     "src/bsd/kern/tty_pty.c:99",
+     "src/bsd/kern/tty_pty.c:146",
+     "src/bsd/kern/tty_pty.c:334"
+    ]
+   },
+   "value_test_files": [
+    "src/bsd/kern/tty_pty.c"
+   ],
+   "compiled_objects_with_value_test": [
+    [
+     "x86-tty_pty",
+     "NOT_MATCH"
+    ]
+   ],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "cputypes",
+   "macro": "-",
+   "header": "cputypes.h",
+   "x86_value": "-",
+   "x86_status": "hypothesis",
+   "m68k_value": "-",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {},
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  },
+  {
+   "option": "sun_nfs",
+   "macro": "SUN_NFS",
+   "header": "sun_nfs.h",
+   "x86_value": "1",
+   "x86_status": "hypothesis",
+   "m68k_value": "1",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [
+    {
+     "symbol": "_nfs_svc",
+     "x86": true,
+     "m68k": true
+    },
+    {
+     "symbol": "_nfs_vfsops",
+     "x86": true,
+     "m68k": true
+    }
+   ],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/sun_nfs.h:1"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "same evidence"
+  },
+  {
+   "option": "maxusers",
+   "macro": "MAXUSERS",
+   "header": "confdep.h",
+   "x86_value": "8",
+   "x86_status": "confirmed",
+   "m68k_value": "8",
+   "m68k_status": null,
+   "emitted": true,
+   "evidence_symbols": [],
+   "evidence_differs": [],
+   "uses": {
+    "define": [
+     "generated/confdep.h:1",
+     "src/conf/param.c:86",
+     "src/conf/param.c:87",
+     "src/conf/param.c:90",
+     "src/conf/param.c:91"
+    ],
+    "other": [
+     "src/conf/param.c:103",
+     "src/conf/param.c:105"
+    ]
+   },
+   "value_test_files": [],
+   "compiled_objects_with_value_test": [],
+   "judgement": "no symbol evidence"
+  }
+ ]
+}

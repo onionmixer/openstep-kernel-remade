@@ -1,0 +1,177 @@
+--- 07_kernel/src/bsd/ufs/ufs_alloc.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_alloc.c
+@@ -118,6 +118,7 @@
+ extern int		inside[], around[];
+ extern unsigned char	*fragtbl[];
+ 
++#ifndef	m68k	/* plan 452 (m68k): i386 big-endian disk form (plan 214) not in the m68k original */
+ /*
+  * plan 214 (authored, D024; original _verify_and_swap_cg 0x13b714):
+  * cylinder groups are kept big-endian on disk; swap after reading and
+@@ -140,6 +141,10 @@
+ 	}
+ 	return (1);
+ }
++#endif	/* plan 452 (m68k) */
++#if	m68k	/* plan 452 (m68k): no cylinder group byte swap on m68k */
++#define	byte_swap_cylgroup(cgp)	/* plan 452 (m68k) */
++#endif	/* plan 452 (m68k) */
+ 
+ /*
+  * Allocate a block in the file system.
+@@ -663,9 +668,14 @@
+ 	register int cg;
+ 	int avgbfree, startcg;
+ 	daddr_t nextblk;
++#ifndef	m68k	/* plan 452 (m68k): i386 big-endian disk form (plan 214) not in the m68k original */
+ 	daddr_t prevblk;	/* plan 214 */
++#endif	/* plan 452 (m68k) */
+ 
+ 	fs = ip->i_fs;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (indx % fs->fs_maxbpg == 0 || bap[indx - 1] == 0) {	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	/*
+ 	 * plan 214 (authored, D024; original 0x13c0be-0x13c0eb): indirect
+ 	 * blocks are big-endian on disk, the inode's direct blocks are not.
+@@ -674,6 +684,7 @@
+ 		prevblk = (bap != &ip->i_db[0]) ?
+ 		    NXSwapBigLongToHost(bap[indx - 1]) : bap[indx - 1];
+ 	if (indx % fs->fs_maxbpg == 0 || prevblk == 0) {
++#endif	/* plan 452 (m68k) */
+ 		if (lbn < NDADDR) {
+ 			cg = itog(fs, ip->i_number);
+ 			return (fs->fs_fpg * cg + fs->fs_frag);
+@@ -682,10 +693,18 @@
+ 		 * Find a cylinder with greater than average number of
+ 		 * unused data blocks.
+ 		 */
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++		if (indx == 0 || bap[indx - 1] == 0)	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 		if (indx == 0 || prevblk == 0)
++#endif	/* plan 452 (m68k) */
+ 			startcg = itog(fs, ip->i_number) + lbn / fs->fs_maxbpg;
+ 		else
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++			startcg = dtog(fs, bap[indx - 1]) + 1;	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 			startcg = dtog(fs, prevblk) + 1;
++#endif	/* plan 452 (m68k) */
+ 		startcg %= fs->fs_ncg;
+ 		avgbfree = fs->fs_cstotal.cs_nbfree / fs->fs_ncg;
+ 		for (cg = startcg; cg < fs->fs_ncg; cg++)
+@@ -706,6 +725,13 @@
+ 	 * next block is requested contiguously, otherwise it is
+ 	 * requested rotationally delayed by fs_rotdelay milliseconds.
+ 	 */
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	nextblk = bap[indx - 1] + fs->fs_frag;	/* plan 452 (m68k) */
++	if (indx > fs->fs_maxcontig &&	/* plan 452 (m68k) */
++	    bap[indx - fs->fs_maxcontig] + blkstofrags(fs, fs->fs_maxcontig)	/* plan 452 (m68k) */
++	    != nextblk)	/* plan 452 (m68k) */
++		return (nextblk);	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	nextblk = prevblk + fs->fs_frag;
+ 	if (indx > fs->fs_maxcontig) {	/* plan 214 (original 0x13c21c) */
+ 		prevblk = (bap != &ip->i_db[0]) ?
+@@ -714,6 +740,7 @@
+ 		if (prevblk + blkstofrags(fs, fs->fs_maxcontig) != nextblk)
+ 			return (nextblk);
+ 	}
++#endif	/* plan 452 (m68k) */
+ 	if (fs->fs_rotdelay != 0)
+ 		/*
+ 		 * Here we convert ms of delay to frags as:
+@@ -814,8 +841,15 @@
+ 	}
+ 	bp = bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)), (int)fs->fs_cgsize);
+ 	cgp = bp->b_un.b_cg;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (bp->b_flags & B_ERROR || cgp->cg_magic != CG_MAGIC) {	/* plan 452 (m68k) */
++		brelse(bp);	/* plan 452 (m68k) */
++		return (NULL);	/* plan 452 (m68k) */
++	}	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	if (!verify_and_swap_cg(bp))	/* plan 214 */
+ 		return (NULL);
++#endif	/* plan 452 (m68k) */
+ 	getthetime(&tv);		/* plan 214 */
+ 	cgp->cg_time = tv.tv_sec;
+ 	bno = dtogd(fs, bprev);
+@@ -875,6 +909,13 @@
+ 		return (NULL);
+ 	bp = bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)), (int)fs->fs_cgsize);
+ 	cgp = bp->b_un.b_cg;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (bp->b_flags & B_ERROR || cgp->cg_magic != CG_MAGIC ||	/* plan 452 (m68k) */
++	    (cgp->cg_cs.cs_nbfree == 0 && size == fs->fs_bsize)) {	/* plan 452 (m68k) */
++		brelse(bp);	/* plan 452 (m68k) */
++		return (NULL);	/* plan 452 (m68k) */
++	}	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	if (!verify_and_swap_cg(bp))	/* plan 214 */
+ 		return (NULL);
+ 	if (cgp->cg_cs.cs_nbfree == 0 && size == fs->fs_bsize) {
+@@ -882,6 +923,7 @@
+ 		brelse(bp);
+ 		return (NULL);
+ 	}
++#endif	/* plan 452 (m68k) */
+ 	getthetime(&tv);		/* plan 214 */
+ 	cgp->cg_time = tv.tv_sec;
+ 	if (size == fs->fs_bsize) {
+@@ -1115,6 +1157,13 @@
+ 		return (NULL);
+ 	bp = bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)), (int)fs->fs_cgsize);
+ 	cgp = bp->b_un.b_cg;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (bp->b_flags & B_ERROR || cgp->cg_magic != CG_MAGIC ||	/* plan 452 (m68k) */
++	    cgp->cg_cs.cs_nifree == 0) {	/* plan 452 (m68k) */
++		brelse(bp);	/* plan 452 (m68k) */
++		return (NULL);	/* plan 452 (m68k) */
++	}	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	if (!verify_and_swap_cg(bp))	/* plan 214 */
+ 		return (NULL);
+ 	if (cgp->cg_cs.cs_nifree == 0) {
+@@ -1122,6 +1171,7 @@
+ 		brelse(bp);
+ 		return (NULL);
+ 	}
++#endif	/* plan 452 (m68k) */
+ 	getthetime(&tv);		/* plan 214 */
+ 	cgp->cg_time = tv.tv_sec;
+ 	if (ipref) {
+@@ -1203,8 +1253,15 @@
+ 	}
+ 	bp = bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)), (int)fs->fs_cgsize);
+ 	cgp = bp->b_un.b_cg;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (bp->b_flags & B_ERROR || cgp->cg_magic != CG_MAGIC) {	/* plan 452 (m68k) */
++		brelse(bp);	/* plan 452 (m68k) */
++		return;	/* plan 452 (m68k) */
++	}	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	if (!verify_and_swap_cg(bp))	/* plan 214 */
+ 		return;
++#endif	/* plan 452 (m68k) */
+ 	getthetime(&tv);		/* plan 214 */
+ 	cgp->cg_time = tv.tv_sec;
+ 	bno = dtogd(fs, bno);
+@@ -1300,8 +1357,15 @@
+ 	cg = itog(fs, ino);
+ 	bp = bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)), (int)fs->fs_cgsize);
+ 	cgp = bp->b_un.b_cg;
++#if	m68k	/* plan 452 (m68k): NeXTMach form, no i386 byte swap (plan 214) */
++	if (bp->b_flags & B_ERROR || cgp->cg_magic != CG_MAGIC) {	/* plan 452 (m68k) */
++		brelse(bp);	/* plan 452 (m68k) */
++		return;	/* plan 452 (m68k) */
++	}	/* plan 452 (m68k) */
++#else	/* plan 452 (m68k) */
+ 	if (!verify_and_swap_cg(bp))	/* plan 214 */
+ 		return;
++#endif	/* plan 452 (m68k) */
+ 	getthetime(&tv);		/* plan 214 */
+ 	cgp->cg_time = tv.tv_sec;
+ 	ino %= fs->fs_ipg;

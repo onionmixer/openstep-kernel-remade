@@ -1,0 +1,85 @@
+--- 07_kernel/src/bsd/ufs/ufs_vfsops.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_vfsops.c
+@@ -204,7 +204,11 @@
+ 	char *path;
+ 	struct vfs *vfsp;
+ {
++#if	m68k	/* plan 450 (m68k): frame filler for the m68k original (D073; size inferred, 57/58 byte-identical) */
++	char unused[58];	/* plan 450 (m68k) */
++#else	/* plan 450 (m68k) */
+ 	char unused[64];	/* plan 216.1: frame is 0x40 larger in the original (0x143187); name and place inferred */
++#endif	/* plan 450 (m68k) */
+ 	register struct fs *fsp;
+ 	register struct mount *mp = 0;
+ 	register struct buf *bp = 0;
+@@ -254,8 +258,10 @@
+ 		if (mp->m_bufp != 0 && (*devvpp)->v_rdev == mp->m_dev) {
+ 			if (vfsp->vfs_flag & VFS_REMOUNT) {
+ 				bp = mp->m_bufp;
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 				fsp = tp->b_un.b_fs;	/* plan 216 (original 0x1433d4) */
+ 				byte_swap_superblock(fsp);
++#endif	/* plan 450 (m68k) */
+ 				goto modify_now;
+ 			} else {
+ 				mp = 0;
+@@ -305,7 +311,9 @@
+ 	mp->m_dev = NODEV;
+ 	mp->m_devvp = *devvpp;
+ 	fsp = tp->b_un.b_fs;
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 	byte_swap_superblock(fsp);	/* plan 216 (original 0x1433a0) */
++#endif	/* plan 450 (m68k) */
+ 	if (fsp->fs_magic != FS_MAGIC || fsp->fs_bsize > MAXBSIZE ||
+ 	    fsp->fs_bsize < sizeof (struct fs)) {
+ 		error = EINVAL;	/* also needs translation */
+@@ -326,7 +334,9 @@
+ 	 */
+ 	if ((vfsp->vfs_flag & VFS_RDONLY) == 0) {
+ 		u.u_error = 0;		/* XXX */
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 		byte_swap_superblock(fsp);	/* plan 216 (original 0x143427) */
++#endif	/* plan 450 (m68k) */
+ 		bwrite(tp);
+ 		if (u.u_error == EROFS) {
+ 			u.u_error = 0;
+@@ -334,7 +344,9 @@
+ 				panic("Root device is physically write protected.  It must be writeable.");
+ 			vfsp->vfs_flag |= VFS_RDONLY;
+ 		}
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 		byte_swap_superblock(fsp);	/* plan 216 (original 0x143469) */
++#endif	/* plan 450 (m68k) */
+ 	} else
+ 		brelse(tp);
+ #else	NeXT
+@@ -413,7 +425,9 @@
+ 			goto out;
+ 		}
+ 		bcopy((caddr_t)tp->b_un.b_addr, space, (u_int)size);
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 		byte_swap_ints(space, size / sizeof (int));	/* plan 216 (original 0x1435d7) */
++#endif	/* plan 450 (m68k) */
+ 		fsp->fs_csp[fragstoblks(fsp, i)] = (struct csum *)space;
+ 		space += size;
+ 		brelse(tp);
+@@ -688,7 +702,9 @@
+ 		return;
+ 	bp = getblk(mp->m_devvp, SBLOCK / size, (int)fs->fs_sbsize);
+ 	bcopy((caddr_t)fs, bp->b_un.b_addr, (u_int)fs->fs_sbsize);
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 	byte_swap_superblock(bp->b_un.b_fs);
++#endif	/* plan 450 (m68k) */
+ /* BEGIN CS_RPAUSE */
+ 	/*
+ 	 *  These fields are supposed to be zero in 4.2 super-blocks and are
+@@ -712,7 +728,9 @@
+ 		bp = getblk(mp->m_devvp, (daddr_t)fsbtodb(fs, fs->fs_csaddr+i),
+ 		    size);
+ 		bcopy(space, bp->b_un.b_addr, (u_int)size);
++#ifndef	m68k	/* plan 450 (m68k): i386 byte swap (plan 216) not in the m68k original */
+ 		byte_swap_ints(bp->b_un.b_addr, size / sizeof (int));	/* plan 216 (original 0x143b3a) */
++#endif	/* plan 450 (m68k) */
+ 		space += size;
+ 		bwrite(bp);
+ 	}

@@ -154,9 +154,9 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
 - S1-1 툴체인 기록: 실기 `cc -v` = `NeXT Software, Inc. version cc-744.13, gcc version 2.7.2.1`, `cc1obj` = `GNU Obj-C version 2.7.2.1 (80386, BSD syntax)`, 전처리기 `NeXT DevKit-based CPP 4.0`. 드라이버 기본 옵션은 `-dynamic -fPIC`(사용자 코드용) — 커널용 옵션은 S1-4 에서 찾는다. 파일 사본과 출력: `08_build/toolchains/real-i386-20261001/`(무시됨), 해시 비교 `sha256-vs-vm.json`: `/bin/cc`·`as`·`ld`·`/lib/cpp`·`migcom`·`make`·`gnumake`·`mig`·`/lib/i386/{as,cc1obj,cc1objplus,cc1plus,cpp,cpp-precomp,specs}` 15 개 모두 **실기 = i386 VM**. 실기에는 `42JDeveloperPatch1`·`42JUserPatch1`·`OS42MachUserPatch4` 영수증이 있으나 이 15 개 파일은 VM(패치 없음)과 같다.
 - 함정(재현됨): 실기에서 읽기 전용 모드(`r-xr-xr-x`, `r--r--r--`) 파일을 `cp -p` 로 `/ndrv` 에 복사하면 **빈 파일**이 생긴다(SHA-256 `e3b0c442…`). 쓰기 가능한 모드의 파일은 정상. `cat src > dst` 로 복사하면 정상. 빌드 절차 규약 6(게시)의 manifest 검사가 이런 빈 출력을 잡아야 한다.
 
-## 보관된 세부 계획 색인 (§11–373)
+## 보관된 세부 계획 색인 (§11–436)
 
-§11–244 는 절 번호·내용을 바꾸지 않고 `02_plan/plans/` 의 보관 파일 세 개로 옮겼다(2026-10-03, 사용자 결정 D026). §245–320 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-245-320.md` 로 옮겼다(2026-10-05, 사용자 지시 “완료된 작업은 완료 문서로 분리”). 기존 인용 "RECONSTRUCTION_PLAN.md N"(N = 11–244)은 아래 색인의 보관 파일에서 같은 번호 절을 찾는다. §321–373 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-321-373.md` 로 옮겼다(2026-10-07, 사용자 지시 “완료된 작업은 완료 문서로 분리해도 됩니다”; 이 묶음 안의 진단 메모 §341·365·369·371 도 함께 옮김 — 이어지는 진단은 §374). §374 부터는 이 파일 끝에 이어 쓴다. 옮김 검증: 보관 파일 본문을 이어 붙이면 원래 줄과 같음(Python, 아래 숫자).
+§11–244 는 절 번호·내용을 바꾸지 않고 `02_plan/plans/` 의 보관 파일 세 개로 옮겼다(2026-10-03, 사용자 결정 D026). §245–320 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-245-320.md` 로 옮겼다(2026-10-05, 사용자 지시 “완료된 작업은 완료 문서로 분리”). 기존 인용 "RECONSTRUCTION_PLAN.md N"(N = 11–244)은 아래 색인의 보관 파일에서 같은 번호 절을 찾는다. §321–373 도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-321-373.md` 로 옮겼다(2026-10-07, 사용자 지시 “완료된 작업은 완료 문서로 분리해도 됩니다”; 이 묶음 안의 진단 메모 §341·365·369·371 도 함께 옮김 — 이어지는 진단은 §374). §374 부터는 이 파일 끝에 이어 쓴다. 옮김 검증: 보관 파일 본문을 이어 붙이면 원래 줄과 같음(Python, 아래 숫자). §374–408(x86 마무리, L2·L3)과 §409–436(m68k M0–M3)도 같은 방식으로 `plans/RECONSTRUCTION_PLAN-374-408.md`·`plans/RECONSTRUCTION_PLAN-409-436.md` 로 옮겼습니다(2026-10-09, 사용자 지시 “완료된 작업은 알맞게 정리”). 이 옮김의 검증(Python): 두 보관 파일의 본문 1162·1736 줄이 원래 줄과 같고, 남은 본문은 원래 파일에서 그 줄들을 빼고 색인 63 줄을 더한 것과 같습니다. §437 부터는 이 파일 끝에 이어 씁니다.
 
 - §11 S1-A 세부 계획 — 빌드 왕복과 툴체인 probe (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
 - §12 S1-B 세부 계획 — L1·L1d 비교 도구 (코딩 전, 2026-10-01) → [plans/RECONSTRUCTION_PLAN-011-099.md](plans/RECONSTRUCTION_PLAN-011-099.md)
@@ -517,1757 +517,1152 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
 - §371 진단 메모 — plan 370 방법(암시적 int ↔ void 반환형)을 남은 차이에 적용(07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
 - §372 S5-P354 세부 계획 — `bsd/ufs/ufs_lockf.c`(Net/2 바탕 D052 + 작성 D024; plan 295·367 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
 - §373 S5-P355 세부 계획 — `machdep/i386/pmap.c`(D029: Darwin 0.1 바탕 + 수정; plan 275 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-321-373.md](plans/RECONSTRUCTION_PLAN-321-373.md)
+- §374 진단 메모 — plan 373 뒤 남은 레지스터·식 차이(07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §375 S5-P356 세부 계획 — `driverkit/libDriver/Kernel/devswAndVfssw.m`(D030 작성, Darwin 0.1 과 거의 같음; plan 364 조사 메모 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §376 S5-P357 세부 계획 — `driverkit/objc_support.m`(D054 ④, D030 꼴 작성; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §377 진단 메모 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §378 진단 메모 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §379 S5-P358 세부 계획 — 커널 `bsd/dev/i386/FBConsole.c`(D024·D030, Darwin 0.1 바탕; plan 341·369·374 진단 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §380 진단 메모 — plan 379 뒤 남은 레지스터 차이(swapfs·vtrip·ip_output; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §381 S5-P359 세부 계획 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정, D024 작성) + `nextdev_private/bsd/net/tokensr.h` 4.2 꼴(plan 377·380 이어서; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §382 진단 메모 — `machdep/i386/machine_clock.c`(plan 365·380 이어서; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §383 S5-P360 세부 계획 — `bsd/netinet/ip_output.c` 루프 체크섬 저장(plan 175.1·380 이어서; D024 작성; 코딩 전, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §384 진단 메모 — plan 383 뒤 남은 둘(swapfs_mount·machine_clock; 07 손대지 않음, 2026-10-07) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §385 진단 메모 — 일치 객체를 증거로 쓰는 관용구 탐색과 machine_clock 의 RTL 추적(07 손대지 않음, 2026-10-07 밤) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §386 진단 메모 — machine_clock clock_timer_init: 원본 바이트를 내는 구조를 찾음, 남은 것은 레지스터 순서(07 손대지 않음, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §387 계획 — 잔여 둘의 다음 탐색(codex 영어 질의 kgmj50qsl·k6t2bclxs 취합; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §388 S5-P361 세부 계획 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정, D024 작성) 07 배치(plan 378·387 이어서; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §389 진단 메모 — machine_clock clock_timer_init 잔여 1 바이트(복사 레지스터) 재탐색(07 손대지 않음, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §390 S5-P362 세부 계획 — `machdep/i386/machine_clock.c`(plan 240 작성, D024) 07 배치(plan 386·389 이어서; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §391 진단 메모 — 마지막 미기록 구간 [0x15a628, 0x15a67c) 84 B(D054 ③; 사용자 지시로 다룸; 07 손대지 않음, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §392 S5-P363 세부 계획 — D056: [0x15a628, 0x15a67c) 84 B 를 07 `kern/ipc_xxx.c` 끝에 붙여 ipc_xxx 객체를 [0x15a39c, 0x15a67c) 로 다시 기록(코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §393 S6-1 세부 계획 — L2 링크(사용자 지시 2026-10-08 "L2 링크 작업을 진행합니다"; 코딩 전) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §394 S6-2 세부 계획 — D057: 현재 07 로 전체 재빌드(L0)와 객체별 L1 재판정, 링크 입력 확정(코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §395 S6-3 세부 계획 — L0 자족 빌드의 남은 틈 둘: SDK `mach-o/fat.h` 들이기, `PCKeymap.c` 작성본 선택(plan 394 항목 18; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §396 S6-4 세부 계획 — L2-A: 링크 입력의 빈 곳 찾기(원본 절별 배정·기호 대조; 빌드 없음, 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §397 S6-5 세부 계획 — L2-B: 링크 입력의 빈 곳 메우기(구간별 출처 정하기, 링커 규칙 탐침, 데이터만 있는 객체 작성; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §398 S6-6 세부 계획 — L2-B 07 반영: 데이터만 있는 객체 17 과 기존 객체 8 고침(plan 397·D058; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §399 S6-7 세부 계획 — L2 시험 링크(진단; 실제 `__common` 배치를 얻어 B5 를 정하기 위함, 07 변경 없음; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §400 S6-8 세부 계획 — B5: 원본 공통 기호 25 개의 정의(07 고침; plan 399 항목 7·D059; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §401 S6-9 세부 계획 — B5b: 공통 기호 어긋남 5 개 고침(plan 399 항목 9; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §402 S6-10 세부 계획 — L2 링크 마무리: `strip -x` 단계와 도구 등록(코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §403 진단 메모 — L3(부팅) 확인 방법 조사(07·기록 변경 없음, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §404 S6-11 세부 계획 — D061: 이번에 넣은 Darwin·Mach4 줄에 고지 붙이기(주석·기록만; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §405 S7-1 세부 계획 — L3 준비: 07 에서 만든 커널로 QEMU(i386) 부팅 시험 준비(부팅은 하지 않음; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §406 S7-2 세부 계획 — L3 부팅 시험(QEMU i386; 사용자 시작 확인 뒤 실행, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §407 S7-3 세부 계획 — 기록 공백 보완: `Event.defs`·`audio.defs` 의 PROVENANCE·MODIFICATIONS 행(기록만, 07 코드·빌드 변경 없음; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §408 S7-4 세부 계획 — x86 기록 마무리: 등급 P 70 객체의 링크 배치 증명과 재판정 규칙, `STATUS.md` 갱신(07·빌드 변경 없음; 코딩 전, 2026-10-08) → [plans/RECONSTRUCTION_PLAN-374-408.md](plans/RECONSTRUCTION_PLAN-374-408.md)
+- §409 M0-1 세부 계획 — m68k·SPARC 사전 측정: 실기 교차 도구 확인과 1997 i386 빌드 동일성 측정(07·x86 기록·도구 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §410 M1 세부 계획 — D065: i386 mk-183.34 조각 보관과 판 차이 후보 12 객체의 원인 확인(07·x86 표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §411 M0-5 세부 계획 — m68k 용 도구 확장 1: 빅엔디언 재배치 읽기(`macho_obj.py`)와 m68k L1 비교(`l1_compare.py`)(07 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §412 M0-3 세부 계획 — m68k ABI 탐침: C·Objective-C·어셈블리·MIG 를 `cc-744.13 -arch m68k` 로 컴파일하고 목적 파일 검사(07·기존 탐침·도구 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §413 M0-2 세부 계획 — m68k: `cc-744.13` 과 1997 원본 m68k 컴파일러의 코드 동일성 측정(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §414 M0-2 후속 — §413 의 m68k 차이 원인 분리: 플래그 격자, 머리 구조 차이, 명령 수준 분류(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §415 M2-1 세부 계획 — m68k 원본 `__TEXT,__text` 의 객체 후보 지도: 외부 기호를 x86 재빌드 객체에 대응(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §416 M2-2 세부 계획 — m68k `__text` 구간 경계: 이름 없는 함수 진입점과 참조로 정적 함수를 객체에 귀속(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §417 M2-3 세부 계획 — 자료 절 표로만 쓰이는 정적 함수의 귀속과 미결정 경계 재판정(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §418 M2-4 세부 계획 — 자료 절이 링크 순서를 따른다는 관찰로 코드 참조 자료 항목의 소유를 넓히고 미결정 경계 재판정(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §419 M2-5 세부 계획 — m68k 자료 절(`__data`·`__const`) 객체 지도, `__cstring`·`__bss`·`__common` 관찰(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §420 M2-6 세부 계획 — m68k 전용(대응 없는) `__text` 구간을 NeXTMach 소스 파일 후보로 나누기(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §421 M2-7 세부 계획 — 갈라진 x86 객체 13 과 이웃 흡수 후보 16 을 NeXTMach 파일 단위로 다시 묶기(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §422 M2-8 세부 계획 — m68k 원본 안의 libcc 구성원 후보를 L1 로 판정(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §423 M2-9 세부 계획 — m68k 객체 후보 목록 통합과 분모(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §424 M2-10 세부 계획 — m68k 함수 목록과 분모: 진입점마다 도달 분석으로 함수 범위 확인(07·기존 도구·표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §425 M3-1 세부 계획 — m68k 구성 가설 `DRIVERKIT 0`(→ `MACH_SLOCKS 0`)을 재컴파일로 시험(07·기존 표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §426 M3-2 세부 계획 — m68k `machparam.h` 가 인라인 spl 을 가져왔다는 가설을 재컴파일로 시험(07·기존 표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §427 M3-3 세부 계획 — m68k 구성 가설 `GDB 1` 을 재컴파일로 시험(07·기존 표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §428 M3-4 세부 계획 — 46 객체 중 남은 4 NOT_MATCH 의 명령 수준 진단(07·기존 표 변경 없음; 진단만, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §429 M3-5 세부 계획 — 지금까지의 m68k 구성으로 이름 대응 공통부 208 객체를 컴파일·대조(07·기존 표 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §430 M3-6 세부 계획 — m68k `machdep` 머리를 시험 스테이징에 두고 공통부 120 객체를 컴파일·대조(07 변경 없음; 측정만, 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §431 M3-7 세부 계획 — §430 의 깨끗한 집합 중 다른 27 객체(외부 구간 41)의 명령 수준 진단(07 변경 없음; 진단만, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §432 M3-8 세부 계획 — m68k 구성 `MACHINE_AST`(pcb +0x54 비트 0x10)와 `SIMPLE_CLOCK 1` 을 시험 스테이징에서 재컴파일로 시험(07 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §433 M3-9 세부 계획 — m68k 구성·머리 후보를 D068 의 덮어쓰기 트리 `07_kernel/v183.34/m68k/` 에 넣고 같은 결과를 재현(x86 트리 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §434 M3-10 세부 계획 — m68k 생성물(구성 머리·MIG 출력)의 재생성 명령과 해시(07 코드 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §435 M3-11 세부 계획 — D070: `subr_kudp`·`if_venip` 의 m68k 판이 `<machine/spl.h>` 를 가져오게 해 인라인 spl 회복(x86 트리 변경 없음; 코딩 전, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
+- §436 M3-12 세부 계획 — §435 뒤 깨끗한 NOT_MATCH 중 원인을 아직 진단하지 않은 객체의 명령 수준 진단(07 변경 없음; 진단만, 2026-10-09) → [plans/RECONSTRUCTION_PLAN-409-436.md](plans/RECONSTRUCTION_PLAN-409-436.md)
 
-## 374. 진단 메모 — plan 373 뒤 남은 레지스터·식 차이(07 손대지 않음, 2026-10-07)
+## 437. M3-13 세부 계획 — m68k `_panic` 의 ROM Monitor 줄을 덮어쓰기 소스로 시험(x86 트리 변경 없음; 코딩 전, 2026-10-09)
 
-- ip_output(D028): 남은 4 B 는 조각 루프의 체크섬 저장 한 곳 — 원본 0x12781a 가 `mov eax,[ebp-0x4c]; add eax,0xa` 로 주소를 먼저 만들고 `[eax]`·`[eax+1]` 에 씀(첫 조각 자리는 07 꼴 `map[10]`·`map[11]` 그대로 맞음). 변형(`s5p371-ipv1`–`ipv6`, scratchpad `ipv/`): `&mhip->ip_sum` 바이트 대입(v1), 지역 포인터 `cp`(v2·v3·v6), memcpy(v4, 1580 B), 2 바이트 구조체 대입(v5, 빌드 실패) — 모두 1584 B 또는 더 나쁨. 원인 미확정.
-- FBConsole DrawRect: 원본은 [0x19e23c, +1424)(Init 끝, python). ColorTable 지역 선언 순서 바꾸기(`s5p369-fbda`–`fbdd`)는 DrawRect·EraseRect 정렬 차이 수 그대로(fmatch·alf 기준); x·y 를 `km_rect->` 로 읽기(`fbde`)는 나빠짐. 관찰: 원본은 table 을 ebx, bits 를 스택, i 를 esi, bBits 를 edi 에 두고 B 시프트(bits − bPos − bBits)를 루프 안에서 매번 계산, `width − 640` 을 스택에 내렸다 다시 읽음; 작업본은 B 시프트를 루프 밖으로 옮김. 다음 후보: ColorTable 를 함수가 아니라 DrawRect·EraseRect 안 같은 글로(인라인 경계 차이), 루프 꼴. 추가: `static inline`(`fbdi`)은 같음, `-O2`(+inline `fbdj`, 인라인 없음 `fbdk`)는 다른 함수까지 바뀜(Init 704→528 B) → 원본은 -O3 꼴. EraseRect 원본 0x19e7e4–0x19e7f6: `width − 640` 을 ecx 에 만들고 [ebp−0x4c] 에 저장 뒤 다시 읽음(작업본은 eax 에 둠) — 남는 레지스터가 있는데도 내려 놓은 꼴이라, reload 가 어떤 명령 때문에 하드 레지스터 하나를 함수 전체에서 비운 흔적으로 보임(가설). [ebp−0x4c] 는 인라인된 ColorTable 의 console 사본과 같은 칸.
+배경: §436 에서 m68k `_panic` 이 원본보다 30 B 짧은 원인 후보는 NeXTMach `bsd/subr_prf.c:515-516` 의 `printf ("NeXT ROM Monitor %d.%d v%d\n", mg->mg_major, mg->mg_minor, mg->mg_seq);` 입니다. 07 `subr_prf.c:543` 은 i386 원본에 맞춰(계획 220) 그 줄을 뺐습니다. 이것은 아키텍처 차이이므로 D068 덮어쓰기 트리에 둡니다.
 
-### 373.2 기록 정정 — ObjC 기록 도구가 남긴 "authored" 출처(2026-10-07)
-- 찾음(python): ObjC 객체 행 67 개가 출처 칸에 "authored from the original bytes, D024" 를 가짐. PROVENANCE 종류가 authored 가 아닌 것은 둘 — swapgeneric.m(darwin01, D036; plan 324)·km.m(darwin01+nextmach, D037; plan 326). 두 계획은 PROVENANCE·MODIFICATIONS 만 고치고 objects_partial·functions 행은 도구 기본값 그대로 둠.
-- 고침: objects_partial 두 행 출처 문구; functions 25 행(swapgeneric 5, km 20) — Darwin 정의 줄 인용(`darwin01/…:N (edited file :M)`), kmselect 는 nextmach km.c:310, kmopen·kmstart·kmoutput 은 darwin01+nextmach(07 파일의 plan 326 주석과 PROVENANCE 의 km.c:262-273·320-348·350-388). kmstart 의 07 줄은 원형 선언 :88 이던 것을 정의 :352 로.
-- 검사(python): 인용 53 개를 원문·07 정의 줄과 대조 — Darwin·NeXTMach 정의 줄 28(kmopen 의 NeXTMach 은 정의 :183 + 범위), 07 정의 줄 25 모두 맞음. 행 수 그대로(functions 4679, objects_partial 70 줄).
-- machine_clock(plan 365 이어서, scratchpad `mcv/`, run `s5p365-mvm1`–`mvm9`): 크기 1957 B 는 원본과 같고, 남은 것은 두 곳(정렬): ① clock_timer_init 0x187b4e 원본 `mov eax,esi; mov [reload],ax`(작업본은 `mov [reload],si`) ② us_spin_calibrate 원본은 프레임 0x10, elapsed 를 [ebp−8] 에 두 번 저장(timer_read 결과, `0xffff − elapsed`)하고 나눗수 ecx·피제수 ebx 순; 작업본은 프레임 0xc, timer_read 바이트를 [ebp−4] 에 word 로 저장. ① 시도: `reload = last_count`(m1)·순서 바꿈(m2)·형변환(m3·m5·m8·m9) 그대로; 지역 `unsigned short r = count` 를 먼저(m4)는 `mov eax,esi; mov [..],ax` 가 나오나 두 저장 모두 ax 이고 r 이 스택에 남음(1953 B); r 을 last_count 저장 뒤(m7)는 r 이 전역을 다시 읽음(1961 B). ② 는 reload 가 하드 레지스터를 비운 흔적으로 보임(가설). 보류.
+확인한 사실(이번 세션, 읽기 전용):
+- 원본 m68k `_panic`(0x400bc66)은 다음과 같이 동작합니다(§436 덩어리).
+  - `movel @_mon_global,a3` 로 시작합니다.
+  - `movew a3@(0x30c)`·`a3@(0x30a)`·`a3@(0x312)` 를 차례로 넣고 `printf` 를 부릅니다(문자열 0x40a62ad "NeXT ROM Monitor %d.%d v%d\n").
+  - `moveml d2/a2/a3` 로 레지스터를 보존합니다.
+- 원본 기호표에 `_mon_global`(0x40b69bc, section 6)이 있습니다.
+- NeXTMach `panic` 은 `#if NeXT` 안에서 `extern struct mon_global *mon_global; struct mon_global *mg = mon_global;` 를 선언하고(484–490 행), 머리는 `#import <mon/global.h>`(117 행)입니다.
+- NeXTMach `mon/global.h:99-101` 의 순서는 `short mg_minor, mg_seq; int (*mg_anim_run)(); short mg_major;` 입니다.
+  - m68k 에서 0x30a 부터 놓으면 0x30a·0x30c·(0x30e 포인터)·0x312 가 되어 원본 변위와 상대 위치가 맞습니다(python).
+  - 그 머리는 `mon/` 7 개와 `next/cpu.h`·`next/machparam.h` 를 가져와 닫힘이 큽니다.
+- 07·m68k 스테이징에는 `mon/` 경로가 없습니다(find 0).
 
-## 375. S5-P356 세부 계획 — `driverkit/libDriver/Kernel/devswAndVfssw.m`(D030 작성, Darwin 0.1 과 거의 같음; plan 364 조사 메모 이어서; 코딩 전, 2026-10-07)
+방법:
+1. 07 덮어쓰기 `07_kernel/v183.34/m68k/src/bsd/kern/subr_prf.c` = 07 본 파일에 표시된 줄만 끼운 것입니다(지우거나 고치는 줄 없음).
+   - `#endif NeXT`(114 행) 앞에 `#import <mon/global.h>` 를 넣습니다.
+   - `panic` 의 `int bootopt` 다음에 NeXTMach 484–490 행 꼴의 두 선언을 넣습니다.
+   - 543 행 앞에 NeXTMach 515–516 행의 `printf` 두 줄을 넣습니다.
+   - 끼운 줄마다 끝에 `/* plan 437 (m68k) */` 를 붙입니다.
+2. 07 덮어쓰기 `07_kernel/v183.34/m68k/src/mon/global.h`: 프로젝트 작성 부분 머리(D024)입니다.
+   - `struct mon_global` 에 앞부분 채움 `char mg_pad0[0x30a]` + NeXTMach 이름의 네 멤버만 둡니다(원본 바이트 근거: `_panic` 의 변위).
+   - NeXTMach 저작권 줄을 넣고(식별자 출처), 머리 주석에 "M4 에서 NeXTMach 전체 머리로 바꿀 후보" 를 적습니다.
+   - 전체 머리를 지금 들이지 않는 이유는 위의 큰 닫힘과, 커널 공통부에서 쓰는 곳이 `panic` 하나뿐이라는 점입니다.
+3. `stage_m68k.py` 의 파생 검사를 일반화합니다.
+   - 등록된 표시(`plan 435 (D070)`·`plan 437 (m68k)`)가 붙은 줄을 모두 빼면 07 본 파일과 바이트까지 같아야 합니다.
+   - D070 표시는 지금처럼 하나만, `#import <sys/param.h>` 바로 다음에만 허용합니다.
+   - 기존 줄 끝에 붙은 표시는 그 줄을 빼면 본 파일과 달라지므로 거부됩니다.
+   - 음성 시험을 다시 합니다.
+4. 새 스테이징, 205 재컴파일(새 run), 미리 정한 기준:
+   - `x86-subr_prf` 외 204 는 §435 run 과 비 STABS 절이 같습니다.
+   - `x86-subr_prf` 는 `_panic` 구간이 같아지고 OBJECT_MATCH 가 됩니다(146 → 147). 잃은 것은 0, 미정의 기호 가운데 원본에 없는 것도 0 입니다.
+   - 다르면 진단만 하고 07 을 그대로 둡니다(덮어쓰기 파일은 시험 결과와 함께 기록).
+   - x86 관문(7 스테이징 불변)도 확인합니다.
+5. PROVENANCE·MODIFICATIONS 에 행을 덧붙이고, diff `06_reconstruction/evidence/m68k-subr_prf.diff` 를 만듭니다. 기록은 `09_validation/reconstruction/m3-m68k-panic-20261009.json` 입니다.
 
-0. 원본(ObjC 모듈 기록 없음 — 이름은 Darwin 0.1 같은 이름 파일을 따름): `__text` [0x1a9ad4, 0x1a9f19) 1093 B + `00` 3 B → 다음 IOEthernet 0x1a9f1c; 앞은 IONetbufQueue(끝 0x1a9ad3, `c3` 뒤 `00` 1 B). 함수 9(IOAddToBdevswAt·IOAddToBdevsw·IORemoveFromBdevsw·IOAddToCdevswAt·IOAddToCdevsw·IORemoveFromCdevsw·IOAddToVfsswAt·IOAddToVfssw·IORemoveFromVfssw — 원본 기호). `__data` 68 B [0x1e5100, 0x1e5144)(static no_cdev 44 B·no_bdev 24 B; no_bdev 0x1e512c 는 원본 memcmp 의 `mov edi,0x1e512c` 와 같음).
-1. 참조: 같은 이름 파일은 Darwin 0.1 driverkit-1/libDriver/Kernel/devswAndVfssw.m 뿐(`find 01_resources/upstream -name 'devswAndVfssw*'`) → Darwin 전용 libDriver 파일 = D030(작성 유지, 머리·PROVENANCE·MODIFICATIONS 에 "nearly the same as Darwin 0.1 …").
-2. 4.2 에 맞춘 차이(근거): Darwin 은 vfssw 함수 3 개를 `#if 0` 으로 뺐으나 원본에 기호가 있음 → 넣음; 4.2 SDK `<driverkit/devsw.h>` 의 IOAddToBdevsw(At) 는 ioctl 인자 없음, SDK `<bsd/sys/conf.h>` bdevsw 는 d_ioctl 없고 `d_flags`(Darwin d_type), 테이프 표시는 원본 `mov [edx+0x14],0x400` = SDK buf.h B_TAPE; strategy_fcn_t·putc_fcn_t 형변환 없음(SDK 에 없는 형); NO_CDEVICE 의 seltrue 가 SDK 머리에 선언되지 않아 파일 안 `extern int seltrue();`.
-3. 진단(scratchpad `devsw/`, 새 도구 `diag_objc.py` = diag_k07 의 07 사본 무대 + iter_objc 의 libDriver 꼴): `s5p375-dv0`(Darwin 원문 + vfssw) seltrue 미선언으로 실패; `s5p375-dv1`(2 항 수정) **OBJECT_MATCH**(9); `s5p375-dv2`(07 후보 = dv1 + D030 머리, Darwin 고지 뺌) **OBJECT_MATCH**(9), text 0·data 0(참조 46·15 같음).
-4. 07 `src/driverkit/libDriver/Kernel/devswAndVfssw.m` 배치 → iter_objc(ROOT driverkit/libDriver, MODULE Kernel/devswAndVfssw.m) → relcheck → 실기 cc -M → 기록(authored, D030 문구) → A.
-5. codex 교차검토(ktqp4rleg, gpt-6.1-sol) 판정:
+### 437.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| "원본 모듈 Kernel/devswAndVfssw.m" 은 근거 없음 — 원본에 이 모듈 기록 없음, 빌드 객체에도 module_info 없음 | `grep -rl devswAndVfssw 03_original/x86/`(objc.json 등) 0 건; 빌드 객체 절은 `__text`·`__data` 뿐(python) | ✅ 채택: 07 머리를 "원본에 ObjC 모듈 기록 없음, 이름·자리는 Darwin 0.1 같은 이름 파일을 따름" 으로, 0 항 문구도 같은 뜻 |
-| `<bsd/sys/buf.h>` 가 공통 기호 10 개 496 B 를 더함; 원본에 이름이 있고 크기가 맞음 — 기존 공통 기호 규칙상 허용, 대안은 지역 B_TAPE | python: `_bfreelist` 272·`_bufhash` 192·나머지 8 개 4 B, 합 496 | ✅ buf.h 유지(B_TAPE 는 SDK 이름 그대로가 덜 지어냄), 머리에 출처(buf.h, 원본 0x1a9b7a) 적음; 기록 때 공통 기호 검사 결과 남김 |
-| 0–3 항 수치·Darwin 차이 근거·D030 문구·373.2 정정 25 행 53 인용 | 앞서 내 python·L1·diff 결과와 같음 | ✅ |
-- 결과: 07 `src/driverkit/libDriver/Kernel/devswAndVfssw.m`(= cand.m, 머리 고침 뒤). `s5p375-it1` **OBJECT_MATCH**(9), relcheck 0, 실기 cc -M `s5p375-dep1` 21 헤더 모두 07(객체 = it1). 기록: record_object(authored, D030 문구; ObjC 모듈 기록이 없어 record_objc 대신) → objects_confirmed +1(311 줄), functions +9(4688), PROVENANCE +1(1020), MODIFICATIONS +1(491); 함수 9 행의 07 줄 모두 정의 줄(python). 기록기가 gap_after 를 다음 C 기호(0x1aace0)로 잡아 "3527 x 00" 이라 쓴 것을 "3 x 00, 다음 객체 IOEthernet 0x1a9f1c" 로 고침(바이트 `00 00 00`·`55 89 e5`, python). 공통 기호 중 _bufpages·_nbuf 는 원본에서 `__data` 정의(기록기 규칙대로 크기 검사 제외).
-- 범위(python): 이번 1093 B. A 310 obj 599065 B (70.36%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 96.57%, A+P+L 96.61%, rem 28878.
+| 원본 `_panic`: `moveml d2/a2/a3` → `clrl d2`(bootopt) → `movel 0x40b69bc,a3`(mg, 선언 순서) … `movew a3@(0x30c/0x30a/0x312)` 를 오른쪽 인자부터 넣음(seq·minor·major) → `printf` | §414 원본 목록(`otool-V10/image.txt`) 0x400bc66–0x400bd0c 를 awk 로 읽음 | ✅ 초기화 꼴(`struct mon_global *mg = mon_global;`)이 a3 의 이른 적재와 맞음 |
+| `addaw #0x20` vs `#0x1c` 와 `pea ""` 차이는 ROM 줄로 생긴 대기 스택 조정 차이(GCC 2.7 `calls.c` 의 32 B 기준) | 원본에 `pea 0x40a62e7`(빈 문자열 후보)·`addaw #0x20` 있음 확인; GCC 내부 설명은 미검증 | ⚖️ 설명은 가설, 판정은 실행 |
+| 원본에 `mach_ldebug` 없음 → NeXTMach 484–486·509–511 은 넣지 않음 | §434.1 에서 `_mach_ldebug` 부재 확인(x86 표 17 행 근거와 같음) | ✅ |
+| printf 는 542(`#if NeXT`)와 543 사이에 넣어야 함; 선언 둘을 `#if NeXT` 로 감쌀지 밝힐 것 | 07 540–545 행 읽음 | ✅ printf 두 줄은 542 와 543 사이, 선언 둘은 감싸지 않음(이 파일은 m68k 전용 덮어쓰기, `NeXT` 정의됨) |
+| `<mon/global.h>` 는 `-Isrc/src` 로 덮어쓰기 `src/mon/global.h` 에 닿고 충돌 없음; `ddm.c` 는 다른 파일(`mon/mon_global.h`)이고 205 명령에 없음; `version` 은 `sys/systm.h:52` 에 선언 | 스테이징 `systm.h:52` 읽음, `cc.cmd` 의 `ddm` 0 건, §437 사실의 find 0 | ✅ |
+| 채움 구조체: 0x30e 포인터·0x312 는 정렬 ≤ 2 에서만 성립 — m68k 최대 정렬 2(계획 412) | MULTIARCH 표준 275 행 "정렬 최대 2 바이트" 읽음 | ✅ 머리 주석에 `mg_pad0` 은 작성 이름, `sizeof` 는 원본과 다름, 다른 멤버 없음(쓰면 컴파일 오류)을 적음 |
+| 파생 검사 일반화: D070 표시는 0 또는 1 개(있으면 `sys/param.h` 다음), 덮어쓰기 `.c` 마다 등록 표시 1 개 이상, 07 본 파일에는 표시 문자열 없음, 이어지는 줄에도 표시, 음성 시험(437 표시를 기존 줄 끝에 붙임·섞임) | 현재 `check_derived` 는 D070 정확히 1 개를 요구(읽음); 07 `src` 에 "plan 437" 0 건(grep) | ✅ 모두 반영. 위치 검사는 하지 않으므로 diff 파일이 위치 근거 |
+| `--plan 437` 은 `EXCEPTS` 에 437 이 있어야 받음; 미리 정할 값: differ `['x86-subr_prf']`, same_non_stabs 204, byte_identical 87, object_match [146, 147], gained `['x86-subr_prf']`, lost [], stage_vs_test_stage 19 | `stage_m68k.py` main 의 `int(a[1]) in EXCEPTS` 읽음 | ✅ 그대로 미리 정함 |
+| "원본에 없는 미정의 기호 0" 은 지금 `compare` 가 계산하지 않음(`_spl*` 만) | 도구 읽음 | ✅ 객체마다 원본 기호표에 없는 미정의 기호를 세고, 기준 객체에 없던 것만 "새로 생김" 으로 집계(기대 {}) |
+| 새 문자열은 원본처럼 "panic: (Cpu" 와 "panic: %s" 사이(0x40a6299 < 0x40a62ad < 0x40a62c9) | 원본 목록의 `pea` 세 주소 읽음 | ✅ 실행 뒤 `__cstring` 순서 확인 |
 
-## 376. S5-P357 세부 계획 — `driverkit/objc_support.m`(D054 ④, D030 꼴 작성; 코딩 전, 2026-10-07)
+### 437.2 실행 결과(2026-10-09) — 기록 `09_validation/reconstruction/m3-m68k-panic-20261009.json`
 
-0. 원본: `__text` [0x17e1e8, 0x17e231) 73 B + `00` 3 B → autoconfCommon 0x17e234; 앞은 vnode_pager(P, 끝 0x17e1e8, 채움 없음). 함수 3: NXFlush(0 반환), NXPrintf(splhigh → vlog(3, format, &args) 0x17e20a → splx), abort(panic "objc: fatal error\n", 0x1e0f36). `__data` 19 B [0x1e0f36, 0x1e0f49)(그 문자열, -fwritable-strings). 공통 NXArgv(원본 기호 0x1f7484, `__common`). ObjC 모듈 기록 없음.
-1. 참조: Darwin 0.1 kernel/driverkit/objc_support.m 의 앞 세 함수(+ `char **NXArgv;`) — 같은 이름 파일은 Darwin 에만. 그 파일의 zone 부분은 4.2 에서 objc-runtime/objc-zone.c(plan 360)로 따로 기록됨. 이름·자리: D054(Darwin conf/files 순서 vm/vnode_pager.c → driverkit/objc_support.m → driverkit/autoconfCommon.m 이 원본 링크 순서와 같음).
-2. Darwin 과 다른 곳(근거): `log(LOG_ERR, format, ap)` → `vlog(LOG_ERR, format, ap)`(원본이 _vlog 를 3·format·&args 로 부름); `<bsd/stdarg.h>` → `<stdarg.h>`(SDK 에 bsd/stdarg.h 없음, ansi/stdarg.h 있음); zone 부분 없음; Darwin 고지 빼고 D030 머리.
-3. 진단(scratchpad `objs/`, diag_k07 커널 C 꼴): `s5p376-os1` bsd/stdarg.h 없음으로 실패, `s5p376-os2` **OBJECT_MATCH**(3; text 73 B·data 19 B 0 차이).
-4. 07 `src/driverkit/objc_support.m` → iter_k07(커널 C 꼴, .m 이라 L1 --place-from-objc) → relcheck → 실기 cc -M → record_object(authored, D030/D054 문구) → A.
-5. codex 교차검토(k8kj5opso, gpt-6.1-sol) 판정:
+07 덮어쓰기 파일:
+- `v183.34/m68k/src/bsd/kern/subr_prf.c`: 07 본 파일에 `plan 437 (m68k)` 표시 줄 5 개를 끼웠습니다.
+  - 114 행 `#import <mon/global.h>`
+  - `panic` 안에 NeXTMach 488–489 행의 선언 둘
+  - 542 와 543 사이에 515–516 행의 `printf` 두 줄
+  - diff 는 `06_reconstruction/evidence/m68k-subr_prf.diff` 입니다.
+- `v183.34/m68k/src/mon/global.h`: 작성 부분 머리(채움 + 네 멤버).
+- PROVENANCE 1069 → 1071, MODIFICATIONS 593 → 595(덧붙이기만).
 
-| codex 주장 | 내 검증 방법 | 결과 |
+`stage_m68k.py`:
+- `--plan 437` 와 예외(`x86-subr_prf`)를 더했습니다.
+- 파생 검사를 일반화했습니다.
+  - 등록된 표시마다 허용 파일과 표시 줄 수를 정합니다(D070: `subr_kudp`·`if_venip` 각 1, 437: `subr_prf` 5).
+  - 표시 줄을 빼면 07 본 파일과 같아야 하고, 07 본 파일에는 표시 문자열이 없어야 합니다.
+  - D070 줄은 `sys/param.h` 다음에만 허용합니다.
+  - 정상판 3 개는 통과하고 음성 시험 10 개는 모두 거부합니다.
+- 비교 요약에 "원본에 없는 새 미정의 기호" 를 더했습니다.
+  - 첫 계산은 STABS 기호까지 세는 제 오류가 있었고, `stab` 을 빼도록 고쳐 비교만 다시 돌렸습니다(재컴파일 없음).
+  - 도구 해시는 `08_build/artifacts/m3p437/tools-pre.sha` 에 있고, 마지막 판(d013ad1d…)이 기록과 같습니다.
+  - 스테이징·명령은 그 앞 판으로 만들었으며, 바뀐 것은 `compare` 부분뿐입니다.
+
+결과:
+- 스테이징 `m0p437-stage` 는 888 파일(덮어쓰기 바꿈 13·더함 10)입니다. x86 관문에서 7 스테이징이 모두 같습니다.
+- run `m3p437-cc1` 은 205 명령이 모두 종료 0 이고 616 파일을 게시했습니다.
+- 미리 정한 값과 모두 같습니다.
+  - 비 STABS 절이 같은 것 **204**, 다른 것은 `x86-subr_prf` 하나입니다.
+  - 바이트까지 같은 것 87 입니다.
+  - OBJECT_MATCH 는 **146 → 147** 이고(얻은 것 `x86-subr_prf`, 잃은 것 0), 미정의 `_spl*` 는 0 입니다.
+  - 원본에 없는 새 미정의 기호는 0 입니다(새 미정의 `_mon_global` 은 원본에 있음).
+  - 시험 스테이징 대비 다른 파일은 19 입니다.
+- 객체 `__cstring` 순서 "panic: (Cpu"(24) < "NeXT ROM Monitor"(44) < "panic: %s"(72) 는 원본 순서와 같습니다.
+
+해석:
+- m68k `_panic` 은 NeXTMach 의 ROM Monitor 줄과, 원본 변위로 정한 `struct mon_global` 부분 정의로 원본과 같아집니다.
+- 이 줄은 m68k 전용 차이입니다. i386 은 계획 220 그대로 둡니다.
+
+## 438. M3-14 세부 계획 — m68k 구성 값 전체 재확인과 `KERNOBJC 0` 시험(x86 트리 변경 없음; 코딩 전, 2026-10-09)
+
+배경: §434 의 m68k 덮어쓰기 표에는 4 값만 있고, 나머지 49 옵션은 x86 값을 그대로 씁니다. M3 를 닫기 전에 x86 표의 옵션마다 m68k 원본으로 같은 값이 맞는지 봅니다.
+
+확인한 사실(이번 세션, 읽기 전용, python):
+- x86 표 근거 칸에 적힌 `_` 기호를 m68k 기호표와 대조했습니다. 갈리는 옵션은 다음과 같습니다.
+  - `simple_clock`·`driverkit`: 이미 덮어씀.
+  - `pc_support`: `_PCcreate` 등 3 개가 m68k 에 없음.
+  - `uxpr`: `_uxprGlobal` 등 3 개가 없음.
+  - `xpr_debug`: 근거 `_IOMalloc`·`_IOAddDDMEntry` 가 없음(DriverKit 이 없어서).
+  - `en`: `_en_recv_pkt`·`_en_send_pkt` 가 없음.
+  - `od`: `_odattach` 가 m68k 에만 있음.
+- 그 매크로를 쓰는 곳(m68k 스테이징, i386 디렉터리 제외 grep):
+  - `PC_SUPPORT`·`NOD`·`DLI`·`FP_EMUL` 은 생성 머리뿐입니다.
+  - `UXPR` 은 `kern/xpr.h:125` 인데 `#if XPR_DEBUG`(0) 안이라 효과가 없습니다.
+  - `NEN` 은 `if_ether.c`, `NPTY` 는 `tty_pty.c`(둘 다 비청정), `MAXUSERS` 는 `conf/param.c`(205 밖), `MACH_LDEBUG` 는 `kern/lock.h`(DRIVERKIT 0 이면 MACH_SLOCKS 0) 입니다.
+  - `KERNOBJC` 는 `kernserv/kern_server.c:604-607·834-837` 의 `objc_registerModule`·`objc_unregisterModule` 호출입니다. `kern/thread.c` 는 머리만 가져옵니다.
+- §431 진단: `kern_server` 의 다른 구간은 `_kern_serv_load_objc`·`_kern_serv_shutdown` 둘이고, 각각 객체에만 `_objc_registerModule`·`_objc_unregisterModule` 호출이 있습니다(CALL 덩어리 하나씩).
+- m68k 원본에는 그 두 기호가 없고(python), `__OBJC` 절도 없습니다(§423). mk-108.1 `conf/MASTER.next:88` RELEASE 에 `kernobjc` 가 없습니다(grep 0).
+
+방법:
+1. 새 도구 `10_tools/reconstruction/m3_m68k_config_review.py` 로 옵션마다 표를 만듭니다. 기록은 `09_validation/reconstruction/m3-m68k-config-review-20261009.json` 입니다.
+   - 표의 열: 매크로, x86 값, m68k 덮어쓰기 값, 근거 기호의 x86·m68k 유무, m68k 스테이징에서 매크로를 쓰는 파일(i386 디렉터리 제외), 205 객체 가운데 그 파일을 소스로 가진 것, 판정.
+   - 판정은 다음 넷 중 하나입니다: "같음(근거 같음)", "덮어씀", "m68k 후보값 있음 — 쓰는 객체가 아직 없어 미룸", "근거 없음".
+   - 매크로 사용 검사는 grep 기준입니다(전처리 닫힘이 아님 — 한계로 적음).
+2. `KERNOBJC 0` 을 `06_reconstruction/config_options-m68k.tsv` 에 덧붙입니다(hypothesis → 시험 뒤 판정). `gen_config_headers.py --arch m68k` 로 `v183.34/m68k/generated/kernobjc.h` 를 생성하고 PROVENANCE·MODIFICATIONS 에 행을 덧붙입니다.
+3. 새 스테이징과 205 재컴파일(`stage_m68k.py --plan 438`, 예외 `x86-kern_server`)을 합니다. 미리 정한 기준은 다음과 같습니다.
+   - `kern_server` 만 이전 run 과 달라지고 OBJECT_MATCH 가 됩니다(147 → 148).
+   - `thread` 는 그대로입니다. 잃은 것 0, 원본에 없는 새 미정의 기호 0 입니다.
+   - x86 관문은 불변입니다.
+   - 다르면 표 행을 hypothesis 로 남기지 않고 되돌린 뒤 진단만 합니다.
+4. 다른 후보값(`pc_support` 0, `uxpr`, `en`, `od`, `cputypes`, `maxusers`, `pty`, `mach_ldebug`)은 지금 205 객체의 코드에 영향이 없거나 쓰는 객체가 비청정이라, 바꾸지 않고 표에 "미룸" 으로 기록합니다. M4·M5 에서 그 객체를 만들 때 정합니다.
+
+### 438.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| PROVENANCE 에 비교한 Darwin 원문(판·해시·`objc_support.m:36–71`)을 남겨야 함 — record_object 의 authored 기본값은 "no reference text" | Darwin objc_support.m :36 `#import <streams/streams.h>`, :71 panic 줄, :72 `}`(sed) | ⚖️ 채택: 범위는 36–72 로(닫는 괄호 포함); 기록 뒤 PROVENANCE 4 칸에 비교 원문 적음 |
-| "zone 부분은 4.2 에서 objc-zone.c" 는 원래 이름처럼 읽힘 — plan 360 은 재구성 선택 | 보관 plan 360(:1156) "objc-zone.c(D024 작성…)" | ✅ 머리를 "따로 재구성(objc-runtime/objc-zone.c)" 로 |
-| NXArgv 4 B 는 원본 0x1f7484 `__common`, 다음 _IOTask 0x1f7488 | symbols.tsv awk | ✅ |
-| 0–3 항 수치·vlog·stdarg.h·D030 머리 | 내 앞선 python·빌드 결과와 같음 | ✅ |
-- 결과: 07 `src/driverkit/objc_support.m`(= cand.m). `s5p376-it1` **OBJECT_MATCH**(3), relcheck 0, 실기 cc -M `s5p376-dep1` 25 헤더 모두 07(객체 = it1). record_object(authored, D030/D054 문구) → objects_confirmed +1(312 줄), functions +3(4691), PROVENANCE +1(1021; 4 칸에 비교 원문 darwin01 objc_support.m:36–72·판 해시), MODIFICATIONS +1; 함수 3 행 07 정의 줄 확인(python).
-- 범위(python): 이번 73 B. A 311 obj 599138 B (70.37%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 96.58%, A+P+L 96.62%, rem 28805.
-
-## 377. 진단 메모 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정; 07 손대지 않음, 2026-10-07)
-
-- 원본 [0x11fb84, 0x1209e9) 3685 B + `00` 3 B(netbuf 0x1209ec): SRHash·SRIsEqual(전역), 정적 output 0x11fbdc·input 0x11fddc·attach 0x120458, 전역 vtrip_config 0x120614, 정적 control 0x120648·getbuf 0x12075c, 전역 nullsap_input 0x1207bc, 정적 0x120950·0x120968. `__const` [0x1d11d8, 0x1d1209) 49 B(SRTablePrototype 16 B = {SRHash, SRIsEqual, NXNoEffectFree, 0}, "Internet Protocol", "802.2 Null Sap"), `__data` [0x1db870, 0x1db940) 208 B(add_sr 문자열 두 벌, LLC/SNAP 머리 aa aa 03 00 00 00 + 형, ARP 하드웨어 형 00 01·00 06, 기본 MTU 8100, "4/16Mb Token-Ring", printf 문자열 둘). 참조 원문 없음 — D024 작성; 07 tokensr.h(Darwin 꼴) 주석 "Used by if_vtrXX modules".
-- 4.2 의 원천 경로 표는 MAC 키: 항목 32 B = MAC 6 B(+0, RII 끔) · ipAddr(+8) · ri(+12); SRHash 는 앞 4 B 와 뒤 2 B 를 NXPtrHash 해 XOR; add_sr 내보내기 조건은 `at == NULL || ipAddr == 0`, 한도 500. 07 tokensr.h 의 srtable_t·find_sr·add_sr·get_src_route·save_src_route 를 이 꼴로 바꾼 scratch 사본(`vtrip/tokensr2.h`, add_sr 의 지역 ifp 없앰)으로 진단. 07 에서 이 함수들을 쓰는 다른 기록 객체 없음(IOTokenRing 은 get_8025_hdr_len 만).
-- 진단(scratchpad `vtrip/`, run `s5p377-vt1`–`vt18`, `b*`, `d*`): 11 함수 중 **10 일치**(SRHash·SRIsEqual·output·attach·config·control·getbuf·nullsap_input·정적 둘). 맞춘 꼴: venip 처럼 접근 함수를 인라인으로 하되 `static inline`(원본엔 VTRIP_* 기호 없음; 스택 정리 시점이 인라인 꼴), output 은 `struct ether_header *eh = (…)dst->sa_data` 를 선언 때 초기화, attach 는 `mtu = if_mtu(rifp) − 8; vmtu = vp->vmtu ? vp->vmtu : 기본; mtu = MIN(vmtu, mtu)`, kalloc(32) & ~3, LLC 보조 함수 둘은 nullsap_input 뒤에 정의(앞에 두면 인라인됨).
-- 남은 것: vtrip_input(크기 1660 같음, 레지스터 배정 다름). 원본은 rifp→ebx, th→edi 이고 ifp 는 매번 [ebp+8] 에서 읽으며, 인라인 add_sr 의 netif 인자를 따로 사본([ebp−0x54])으로 둠(작업본은 ifp→esi 로 사본 없이 씀). `&ifp` 진단(y1)은 더 나빠짐. 원인 미확정 — GCC 2.7 인라인 인자 복사 조건(매개변수가 본문에서 바뀌면 복사)과 관련된 4.2 머리 꼴로 추정.
-
-## 378. 진단 메모 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정; 07 손대지 않음, 2026-10-07)
-
-- 원본 [0x13a588, 0x13b714) 4492 B, 함수 18(전역 logswap·compress_data·uncompress_data, 정적 15 — 기호 없음). 정적 함수 이름은 `__data` 의 연산 표로 정함: `_swapfs_vfsops` 0x1dd8bc(SDK vfsops 7 칸: mount 0x13b2ec·unmount·root·statfs·sync·vget/mountroot = EINVAL 함수), 이어서 이름 없는 vnodeops 0x1dd8d8(getattr·setattr·inactive·pagein 0x13a9dc·pageout 0x13ac9c·nlinks·devblocksize, 나머지 EINVAL 0x13b6fc, prepagein·apageout 0). 0x13b580 은 mount 가 sysent[21] 에 꽂는 통계 조회(100 B copyout). 노드 124 B = vnode 0x34 + swapfs 자료 0x48(조각 크기 page/8, 지도 항목 수, 실제 vnode, 지도 {블록 24 bit·조각 수 4·위치 4}, 비트맵, hipage·hint, 읽기·쓰기 캐시, 압축 버퍼, 참조·잠금 바이트). `__data` [0x1dd7b4, 0x1dd95c)(전역 7 + 문자열 + swpgotcha + 표), bss 통계 100 B 0x1e5a34, 공통 logswp·logswapindex·compress_backoff_*·maxswapdevice·swapfs_*_map.
-- 작업본(scratchpad `swapfs/cur.c`, run `s5p378-sf2`–`sf31`, 채점 `swapfs/score.py`): `__data` 0 차이(문자열 순서는 인라인 함수 정의 순서를 따름). 18 함수 중 **15 일치**(pagein 은 재배치 바이트만 다름). 맞춘 꼴: 성공 시 `return (0)` 따로, logswap(int type, …, char nfrag, char pos), compress/uncompress 는 지역 포인터와 `for (i = 0; i <= 7 && n < nwords; i++, n++)`·`&dst[(size + 3) / 32 + 4]`, 잠금·해제·지도 조회·읽기 캐시·쓰기 캐시·무효화·쓰기를 인라인 함수로(원본의 인자 사본 칸과 문자열 순서가 그 꼴), 쓰기 캐시 안에 쓰이지 않는 `struct vm_page`(원본 프레임 48 B), mount 는 SDK `VN_INIT`·`VN_HOLD`.
-- 남은 것: alloc(찾기 루프 비교 — 원본은 movzx 뒤 레지스터 0xff 와 int 비교, 작업본은 바이트 비교), pageout(압축 호출 앞뒤 짧은 임시값 레지스터 이름 3 곳, 4 B), mount(원본은 vp→edi·sn 스택, 작업본은 sn 이 블록 지역 의사로 edi).
-- 함께 찾은 것: 07 `machdep/i386/pmap.c` 의 compress_data_from_phys·uncompress_data_to_phys 인자 이름(plan 373)이 실제 쓰임과 다름 — compress_data(src, size, dst)·uncompress_data(src, srcsize, dst, size, …)이고 감싸개는 첫(압축)·셋째(복원) 인자에 pmap_phys_to_kern 을 써야 맞음. pmap_phys_to_kern 이 항등이라 바이트는 같음. swapfs 를 07 에 넣을 때 함께 고칠 것(기록 SHA 갱신).
-- 이어서(같은 날): alloc **일치** — 찾기 루프는 `int full = 0xff;` 지역과 비교하는 꼴(상수 비교는 앞단이 바이트 비교로 좁혀 버림; 변수면 movzx 후 레지스터 비교, 루프 불변으로 0xff 가 esi 에 남음). 18 중 **16 일치**(pagein 은 재배치 바이트만). 남은 것: pageout(압축 호출 앞뒤 reload 레지스터 이름 3 곳 — reload 스필 순서 차이로 보임), mount(원본은 sn 이 넘친 의사, 작업본은 sn 이 edi).
-- GCC 동작 근거: 실기 `/NextDeveloper/Source/GNU/gcc/`(cc-744.13 의 원문, 302 파일)에서 integrate.c·local-alloc.c·global.c·reload1.c 등 21 개를 읽기만 하려고 scratchpad 로 복사(SHA-256 = 실기 krsha256, 저장소 밖 임시 디렉터리는 지움; 01_resources 에 들이지 않음 — 들이려면 D050 범위 확장 결정 필요). integrate.c:1305–1327: 인라인 함수 인자는 그 매개변수가 본문에서 값이 바뀔 때(또는 반환 대상과 겹칠 때)만 새 레지스터로 복사. vtrip_input 의 원본 [ebp−0x54](add_sr 진입의 netif 사본)는 4.2 판 add_sr 가 netif 를 고치는 꼴임을 뜻함 — 진단 `s5p377-vtd2`(본문 끝에 `netif = 0` 진단용 대입)에서 원본처럼 add_sr 진입에 `mov esi,[ebp+8]` 사본이 생김(배정은 아직 다름). 4.2 판에서 무엇이 netif 를 바꿨는지는 바이트로 알 수 없음.
-
-## 379. S5-P358 세부 계획 — 커널 `bsd/dev/i386/FBConsole.c`(D024·D030, Darwin 0.1 바탕; plan 341·369·374 진단 이어서; 코딩 전, 2026-10-07)
-
-0. 원본(L1 `s5p369-fbe4` 기록, python): `__text` [0x19ba18, 0x19f09d) 13957 B + `00` 3 B → EventSrcPCKeyboard 0x19f0a0(A); 앞은 VGAConsole(P, 끝 0x19ba15, 틈 3 B). `__data` [0x1e4704, 0x1e488b) 391 B(정적 표 셋 + 문자열, -fwritable-strings). 함수 16: 정적 FlipCursor·Erase·BltChar·FBPutC·SetTitle·InitWindow·Init·DrawRect·EraseRect·Free·Restore·PutC·GetSize, 외부 FBAllocateConsole(0x19ec24)·FBAllocateVBEConsole(0x19ecb8)·VBEModeInfo2IODisplayInfo(0x19ed8c). 원본 기호표에는 이 범위의 외부 기호 3 개만 있음(정적 이름은 Darwin 것, 정적 ColorTable·table2Bit·table8Bit·colorTable 은 이 프로젝트가 붙인 추정 이름).
-1. 참조: Darwin 0.1 `kernel/bsd/dev/i386/FBConsole.c` 만(같은 이름은 Darwin i386·ppc 에만, NeXTMach·Mach4 에 없음 — find). D030: 파일 머리는 프로젝트 작성(Apple·NeXT 고지와 HISTORY 없음, VGAConsole.c plan 338 선례), 본문은 Darwin 과 거의 같고 다른 줄은 plan 표시. 머리 `bsd/dev/i386/FBConsPriv.h`(SDK 에 없음)는 D032 로 `07_kernel/nextdev_private/bsd/dev/i386/FBConsPriv.h` 에 Darwin 본문 그대로(VGAConsPriv.h 선례). 진단에서 쓰던 param.h·ohlfs12.h 덧붙임은 필요 없음(`s5p369-fbe4`: FBConsPriv.h 하나로 OBJECT_MATCH).
-2. Darwin 과 다른 곳(모두 원본 바이트 근거, 이미 진단에서 함수별 0 차이 확인):
-   - plan 341: FBPutC 첫머리 `window_type == SCM_GRAPHIC` 이면 return; InitWindow save-under 의 `if (save)` 없음; Init 색 상수(8 비트·15 비트·24 비트)·화면 지우기 조건(이전 window_type)·TEXT 창 디스플레이 3/4·SCM_GRAPHIC 갈래·ALERT save-under 1; VIDEO_W/H 640×480; ColorTable(2·8 비트 정적 표, 그 밖 pixelEncoding 으로 4 색) 인라인.
-   - plan 369: FBAllocateVBEConsole·VBEModeInfo2IODisplayInfo(D024, 부트 매개변수 블록 지역 정의 D035 꼴); Restore(`if (save)` 없음, IOFree, saveBits = 0 없음).
-   - plan 341·379 DrawRect·EraseRect 본문(원본 바이트로 작성, D024): Darwin 의 `return -1` 없음, 지역 x·y(rect 는 width 만 고침), 주소는 rowBytes 로(Darwin 은 totalWidth 로 pixel 을 만들고 `size <= 0` 검사), EraseRect 는 깊이별 채우기 루프(Darwin 은 2 비트/그 밖 둘), Darwin 의 Description·Preconditions 주석(1132×832 화면 설명)은 두지 않음 — 함수 앞 묶음 표시 주석 하나로 표시.
-   - plan 379(이번): (a) ColorTable 두 번째 루프는 R·G·B 최댓값·시프트를 변수로 미리 두지 않고 루프 본문 식으로 — 원본은 i = 0(0x19e946 `xor esi, esi`)을 마스크 계산보다 먼저 두고 B 시프트(bits − bPos − bBits)를 루프 안에서 매번 계산(0x19e9de–0x19e9e6): loop.c 가 본문 불변식을 루프 앞(초기화 뒤)으로 옮기고 레지스터 한도로 마지막 것은 남긴 꼴. (b) DrawRect 의 x·y 식만 인자 `km_rect->x`·`km_rect->y` 를 읽음(원본 0x19e3fd·0x19e41f `mov ecx, [ebp+0xc]`, 나머지는 rect 사본 [ebp−0x14]). (c) InitWindow save-under 할당이 `kalloc_noblock` 아닌 `IOMalloc`(원본 호출 0x19d3ac → _IOMalloc 0x1a5448).
-3. 진단(diag_k07 커널 C 꼴, 07 손대지 않음): `s5p369-fbe1`(a) 16 중 14 일치(EraseRect 일치), `fbe2`(+b) 15, `fbe3`(+c) **OBJECT_MATCH**(16), `fbe4`(덧붙임 FBConsPriv.h 만) **OBJECT_MATCH**(16; text 13957 B·data 391 B 0 차이).
-4. 07 배치: `src/bsd/dev/i386/FBConsole.c`(= scratchpad `fbc/v8.c` 에 D030 머리와 빠진 plan 표시를 덧붙인 것; 코드 바이트는 바꾸지 않음), `nextdev_private/bsd/dev/i386/FBConsPriv.h`(D032) → iter_k07(커널 C 꼴) → relcheck → 실기 cc -M(모든 헤더 07) → record_object(authored, D024/D030 문구) → A. PROVENANCE 2 행(.c·.h), MODIFICATIONS, functions 16 행 정의 줄 확인, 범위 갱신.
-5. codex 교차검토(kz1qbap6g, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| DrawRect `size <= 0` 검사 삭제·totalWidth → rowBytes·EraseRect 깊이별 루프·Description 주석 삭제가 2 항에 열거되지 않음 | Darwin FBConsole.c :1134–1144(Description), :1172–1175(pixel·totalWidth·size), EraseRect :1300–1324(sed); 작업본 v8.c 에 `size <= 0` 없음, totalWidth 는 다른 함수(:316·:326·:335·:368·:1497)에만(grep) | ✅ 채택: 2 항에 한 줄 추가, 07 본의 함수 앞 표시 주석에도 적음 |
-| 작업본에 plan 표시 없는 변경 덩어리(531–532, 926, 932, 1040–1098, 1120–1128, 1183–1187, 1206–1207, 함수 본문) | difflib 덩어리 48 개 중 표시 있는 것 2 개(python) | ✅ 사실 — 4 항에 이미 예정. 07 후보본(scratchpad `fbc/cand.c`)에 줄 표시 13 곳 + DrawRect·EraseRect 앞 묶음 주석 |
-| D030/D032 머리 처리는 VGAConsole.c·VGAConsPriv.h 선례와 같음 | VGAConsole.c :1–9, VGAConsPriv.h :1–8, DECISIONS :34·:36 (sed·grep) | ✅ |
-| 0–4 항 범위·함수·추정 이름·경로 모순 없음 | 앞서 L1 json·원본 기호표 python 집계(text 13957 B, data 391 B, 외부 기호 3) | ✅ |
-| pmap.c 지역 KERNBOOTSTRUCT 와 충돌 없음, FBConsPriv.h 는 ohlfs12 를 extern 으로만 | 번역 단위 지역 typedef(pmap.c :350 typedef); Darwin FBConsPriv.h :41 `extern char ohlfs12[96][CHAR_H];`(grep) | ✅ |
-| objects_partial VGAConsole 의 gap_after "12815 x 00 … next symbol at 0x19ec24" 는 FBConsole 인정 뒤 3 B 로 고쳐야 함 | objects_partial.tsv 63 줄 11 칸(awk); 0x19ba18 − 0x19ba15 = 3, 0x19ec24 − 0x19ba15 = 12815(python) | ✅ 채택: 기록 때 "3 x 00 (next object FBConsole 0x19ba18)" 로 정정 |
-- 결과: 07 `src/bsd/dev/i386/FBConsole.c`(= scratchpad `fbc/cand.c`, v8.c 에 D030 머리·plan 표시만 더함), `nextdev_private/bsd/dev/i386/FBConsPriv.h`(D032, 본문 Darwin 그대로). `s5p379-it1` **OBJECT_MATCH**(16), relcheck 불일치 1 은 도구 한계 — `_ohlfs12` 가산값 −0x180(원본 단어 0x1e407c = _ohlfs12 0x1e41fc − 0x180, 작업본 가산값 0xfffffe80; python), L1 refs 차이 0. 실기 cc -M `s5p379-dep1` 25 헤더 모두 07(객체 = it1). record_object(authored, D024/D027/D030) → objects_confirmed +1, functions +16(4707; 16 행 07 정의 줄 확인 python), PROVENANCE +2(1023; FBConsole.c 4 칸에 비교 원문 darwin01 FBConsole.c·판 해시, FBConsPriv.h 행), MODIFICATIONS +2. 기록 도구가 gap_after 를 다음 C 기호(0x1a0ac8)로 계산한 것을 "3 x 00 … EventSrcPCKeyboard 0x19f0a0" 로, VGAConsole(objects_partial) gap_after 를 "3 x 00 … FBConsole 0x19ba18" 로 고침(원본 바이트 00 00 00 확인, python); 두 증거 .md 의 next symbol 문구도 함께.
-- 범위(python): 이번 13957 B. A 312 obj 613095 B (72.01%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 98.22%, A+P+L 98.26%, rem 14848 B; 겹침 없음.
-
-## 380. 진단 메모 — plan 379 뒤 남은 레지스터 차이(swapfs·vtrip·ip_output; 07 손대지 않음, 2026-10-07)
-
-- swapfs_mount(원본 0x13b2ec, 660 B): 원본은 `page_size / 4` 를 ebx 에 둔 채 호출 넷을 건너 bzero 크기(`shl ebx, 2`)로 다시 씀 → 지역 변수(`nmap`) 꼴(호출 뒤 메모리 필드를 재사용할 수 없음). 그 꼴(`s5p378-sfm5`, scratchpad `swapfs/m1.c`)은 656 B(원본 660). 원본 sn 은 0xa2–0xa6 `push ecx; mov [ebp−0x20], ecx; call bzero` — 저장이 인자 push 뒤·호출 바로 앞이라 GCC 2.7 caller-save(복원은 첫 사용 앞)의 꼴로 보임: sn 이 callee-saved 레지스터를 못 받고 `4 × 호출수 < 참조수`(global.c:1085 CALLER_SAVE_PROFITABLE)로 ecx 를 받은 것. 작업본(`-dl -dg` `s5p378-sfmd`)은 sn(의사 28, 40 회·102 insn·호출 11)이 우선순위 1 위로 edi. 원본에서 vp 가 edi 를 먼저 받은 까닭은 미확정. sn 을 버퍼 뒤에 선언(`sfm2`·`sfm3`)은 효과 없음.
-- vtrip_input(원본 0x11fddc, 1660 B): 원본 갈래는 `cmp cx,0x800; je; cmp cx,0x806; je; jmp 기본`(0xd4–0xe6), IP·ARP·기본(nullsap_input, 0x65c) 순 — switch 꼴. switch 변형(`s5p377-vs1`, `vtrip/w30.c`)은 분기·호출 배치는 원본과 같으나 1572 B(레지스터: 원본 rifp→ebx·th→edi 를 처음부터, 작업본은 th 를 매번 [ebp+0x14] 에서). add_sr 첫머리 `ifp = netif` 사본은 원본 [ebp−0x54]·작업본(tokensr3) [ebp−0x58] 로 둘 다 있음.
-- ip_output(원본 0x127280, 1588 B, 작업본 1584): 루프의 체크섬 두 바이트 저장 — 원본은 `mov eax,[ebp−0x4c](map); add eax,0xa` 뒤 `[eax]`·`[eax+1]`. 지역 포인터(v3·v6)·인라인 보조 함수(`s5p371-ipv7`)도 CSE 가 `[map+0xa]` 로 접음(인라인은 스택 정리 시점까지 바뀜). 원인 미확정.
-- machine_clock clock_timer_init(원본 0x187a40): 남은 것은 원본 0x187b4e `mov eax, esi` 뒤 `mov [reload], ax`(작업본 `mov [reload], si`, 1 B 차이 + 정렬 nop). `reload = last_count = count`(`s5p365-mvm10`)는 last_count 값을 스택 임시로 두어 나빠짐, `reload = count & 0xffff`(`mvm11`)는 m1 과 같음.
-- (이어서) swapfs 진전 — 작업본 scratchpad `swapfs/p9.c`(= `cur2.c`), run `s5p378-sfq9`: 18 함수 중 mount 만 남음(이후 함수의 DIFF 는 mount 크기 차이로 밀린 것).
-  - pageout **일치**(`sfq1`): `offset >= sd_nmap * page_size` 갈래를 `goto out` 대신 `swapfs_unlock(vp); return (error);` 로. 근거(GCC 원문): reload 레지스터는 함수 전체에서 spill 레지스터를 돌아가며 고름(reload1.c allocate_reload_reg 의 round-robin, last_spill_reg); 이 함수의 spill 레지스터는 eax·edx 둘(`-dg`)이라 앞쪽 reload 할당 수의 홀짝이 0x1f0·0x208·0x275 의 eax/edx 를 정함. 그 갈래의 꼬리는 교차 점프로 out: 과 합쳐져 최종 코드는 같고 reload 수만 달라짐.
-  - pagein **일치**(`sfq9`): swapfs_getmap 이 csize 를 `*csizep` 로 쓰지 않고 값으로 돌려줌(`csize = swapfs_getmap(sd, offset, &foff, &fragoff)`). 근거: 원본 csize 는 [ebp−0x40](맨 아래 칸) — 주소를 받는 지역은 선언 때 칸을 받지만 원본은 reload 의 spill 칸(마지막)에 있음; 작업본은 [ebp−0xc] 이고 나머지 칸이 4 씩 밀림(L1 11 B).
-  - mount: 원본은 sn 이 caller-save ecx(저장이 호출 바로 앞), vp 가 edi(local-alloc 이 cbuf 에 준 edi 를 vp 가 밀어냄). global.c 순서(1076–1092 caller-save 판단이 1096– 밀어내기보다 먼저)로 보면 원본 sn 은 `4 × 호출수 < 참조수` 가 참이어야 함; 작업본 sn 은 참조 40·호출 11 이라 거짓 → 밀어내기로 edi. 진단(원본 꼴 아님): VN_INIT 를 `do { } while (0)` 로 감싸 참조를 50 으로 올리면(`sfq6`) sn→ecx·vp→edi 로 바뀌고 나머지는 rbuf 임시 레지스터와 루프 시작 스택 정리만 다름 → 메커니즘 확인. 자연스러운 원본 꼴(참조 +5 또는 호출 −1)은 미확정: sd 포인터(`sfq5`)·인라인 할당 보조 함수(`sfqa`)는 효과 없음.
-  - mount 추가 시도(효과 없음): `register struct swapnode *sn`(`sfrpb`·`pd`), nmap 결합(`sfrpc`), vnode 포인터 사본 `svp = &sn->sn_vnode`(`sfrpe`·`pf`, 참조 41).
-- vtrip_input 추가 단서(`s5p377-vsd`, `-dl -dg`): 원본은 호출 결과마다 `mov ecx, eax`(if_private·nb_size·bcmp·nullsap_input 뒤)로 다른 레지스터에 옮기고, 매개변수 재읽기 reload 가 eax·edx·esi 를 돌아가며 씀 → 원본은 eax 가 spill 레지스터(그래서 호출 결과 의사가 eax 에 못 앉음). 작업본(switch 꼴)은 insn 408(GENERAL 2 개 필요) 때문에 edx·edi 를 spill 하고 th→ebx·rifp→esi(원본 rifp→ebx·th→edi). 원본에서 eax 를 spill 하게 만든 명령(AREG/AD_REGS 필요)이 무엇인지 미확정.
-- machine_clock 추가(`s5p365-mvm12`–`mvm19`, `mvd1`·`mvd2` 덤프): 작업본의 `reload = last_count` 는 메모리→메모리 이동이라 reload 가 같은 값을 가진 esi 를 바로 씀(reload1.c 5290–5350). 원본의 `mov eax, esi` 는 별도 HI 임시 의사가 eax 에 배정되고 esi 에서 복사된 꼴로 보임; `r = last_count`(m12)·`r = count`(m14)는 CSE 가 last_count 메모리에서 읽게 바꿈, `reload = last_count = (u_short)count`(m15)는 두 저장 모두 ax, volatile(m18·m19)은 효과 없음.
-- ip_output 추가(`s5p371-ipv8`·`ipv9`): 2 바이트 구조체 대입·memcpy 는 i386 에서 HImode 한 번 저장(`mov [edi+0xa], ax`)이 되어 원본(바이트 둘) 꼴 아님; `cp = map; cp += 10;` 도 CSE 가 `[map+0xa]` 로 접음. 근거(GCC 원문): i386 ADDRESS_COST 는 REG+상수 0 < REG 1(config i386.h 1506–1511)이라 cse.c find_best_addr 가 같은 값 부류에 `map + 10` 이 있으면 늘 그 꼴로 바꿈 → 원본의 `eax = map + 10` 은 CSE 가 그 값을 모르는 경로(다른 확장 블록에서 만든 값 등)에서 나온 것으로 보임. 미확정.
-
-## 381. S5-P359 세부 계획 — `bsd/net/if_vtrip.c`(D054 ②, 이름 추정, D024 작성) + `nextdev_private/bsd/net/tokensr.h` 4.2 꼴(plan 377·380 이어서; 코딩 전, 2026-10-07)
-
-0. 원본(L1 `s5p377-v4s4`, python): `__text` [0x11fb84, 0x1209ea) 3686 B, 앞 if_venip(끝 0x11fb81, `00` 3 B)·뒤 netbuf(0x1209ec, `00` 2 B); `__const` [0x1d11d8, 0x1d1209) 49 B(SRTablePrototype 16 B, "Internet Protocol" 18 B, "802.2 Null Sap" 15 B); `__data` [0x1db870, 0x1db91b) 171 B(L1d). 함수 11: SRHash·SRIsEqual·vtrip_config·nullsap_input(원본 기호 있음), 정적 vtrip_output·vtrip_input·vtrip_attach·vtrip_control·vtrip_getbuf·llc_reply·llc_send(이름 추정). 원본 기호는 그 밖에 _SRTablePrototype 뿐(정적 IFTYPE_IP·IFTYPE_NULLSAP 이름 추정).
-1. 참조 원문 없음(같은 이름 파일 없음 — plan 377). 07 tokensr.h(Darwin 0.1 꼴, plan 303 D032)는 Darwin 의 IP 키 원천 경로 표; 원본 if_vtrip 바이트는 MAC 키 표(항목 32 B: MAC 6 B·ipAddr +8·ri +12)를 요구 → tokensr.h 의 srtable_t·find_sr·add_sr·get_src_route·save_src_route 를 4.2 꼴로(D024, 줄마다 plan 381 표시, 머리 문구 갱신). 이 머리를 쓰는 다른 07 파일은 libDriver Kernel/IOTokenRing.m 뿐(grep) — 새 머리로 진단 `s5p381-tr1`·`tr2` **OBJECT_MATCH**(41) 그대로.
-2. plan 380 뒤 이번에 맞춘 것(근거):
-   - switch 꼴(원본 0xd4–0xe6 `cmp cx,0x800; je; cmp cx,0x806; je; jmp 기본`).
-   - `short etype`(부호 있음): C 앞단은 switch 식을 부호가 같을 때만 좁혀 16 비트 비교(원본 `cmp cx`), u_short 이면 int 로 넓혀 32 비트 비교(작업본 `movzx ecx,si; cmp ecx`).
-   - add_sr 의 ARPTAB_LOOK 에 지역 `ipa` 없이 `sourceRouteEntry->ipAddr` 직접: 원본 ARP 갈래 0x54c·0x54f `mov eax,[ebp−0x4c]; mov [ebp−0x4c],eax`(안쪽 루프 0x554 바로 앞, 같은 칸 읽기·쓰기). 루프 안 비교용 읽기를 loop.c 가 루프 밖으로 옮긴 꼴로 해석함(해석; 원본 RTL 로 확정한 것은 아님) — 이 꼴로 바꾸면 ipa 가 edi 를 받고 reload 가 eax·edx·esi 를 비워(호출 결과 `mov ecx,eax` 들) 작업본이 원본과 일치함.
-   - `__const` 순서: IFTYPE_IP·IFTYPE_NULLSAP 정적 배열을 SRTablePrototype 정의 뒤에(앞에 두면 문자열이 먼저 나와 52 B, vtrip_attach 의 참조 1 건 다름).
-3. 진단: `s5p377-v4s1`(switch+tokensr4) vtrip_input 1664 B, `v4s3`(+short) text 0 차이·const 순서만 다름, `v4s4`(+const 순서) **OBJECT_MATCH**(14); 07 후보(scratchpad `vtrip/cand.c`·`vtrip/tokensr_cand.h`, 표시 주석만 더함) `s5p381-vc1` **OBJECT_MATCH**(14), IOTokenRing `s5p381-tr2` **OBJECT_MATCH**(41).
-4. 07 배치: `src/bsd/net/if_vtrip.c`(= cand.c), `nextdev_private/bsd/net/tokensr.h`(= tokensr_cand.h) → iter_k07(if_vtrip) → iter_objc(IOTokenRing 재확인) → relcheck → 실기 cc -M(모든 헤더 07) → record_object(authored, D024/D054) → A; tokensr.h PROVENANCE·MODIFICATIONS 갱신(plan 381), gap 칸 확인(앞 3 B·뒤 2 B), 범위 갱신.
-5. codex 교차검토(kdl3xjpay, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 후보 tokensr.h 에 "ipAddr must be the first element" 옛 주석이 남음(MAC 키와 모순) | 후보 :36–39(sed) | ✅ 채택: plan 381 표시로 MAC 키 설명으로 바꿈 |
-| 0 항 범위·크기·틈·원본 기호 구분은 맞음 | 앞서 L1 json·원본 기호표 python(이번 세션) | ✅ |
-| plan 377 의 3685 B·뒤 3 B·data 208 B, D054 의 3691 B 는 틀림(python 3688 B) | DECISIONS :58 `0x11fb84–0x1209ec 3691 B`(grep), python 0x1209ec−0x11fb84 = 3688, 0x1209ea−0x11fb84 = 3686; plan :569(sed) | ✅ 내 기록 오류 — 정정 메모(아래), D054 칸에 정정 덧붙임 |
-| 머리 외 표시 없는 바뀐 줄은 빈 줄 하나뿐 | 후보 :229–233(cat -A) | ✅ 행동 변화 없음 |
-| 다른 소비자 없음(IOTokenRing 만, get_8025_hdr_len) | 07 전수 grep(이번 세션): IOTokenRing.m·tokensr.h·기록 파일뿐 | ✅ |
-| 2 항 관찰은 맞으나 loop.c 원인은 추정으로 써야 함 | 원본 역어셈블 0x54c·0x54f·0x554(이번 세션 출력) | ⚖️ 채택: 해석임을 밝힘 |
-| PROVENANCE·MODIFICATIONS 의 "body verbatim" 문구 갱신 필요 | PROVENANCE :737(grep) | ✅ 4 항 예정대로 기록 때 반영 |
-- 정정(plan 377 메모): 원본 if_vtrip 는 `__text` [0x11fb84, 0x1209ea) 3686 B + `00` 2 B(netbuf 0x1209ec), `__data` 171 B(L1d) — plan 377 의 3685 B·`00` 3 B·208 B 는 이전 추정치.
-- 결과: 07 `src/bsd/net/if_vtrip.c`(= scratchpad `vtrip/cand.c`), `nextdev_private/bsd/net/tokensr.h`(= `vtrip/tokensr_cand.h`, codex 지적 주석 반영). `s5p381-it1` **OBJECT_MATCH**(14), relcheck 0; IOTokenRing 을 07 에서 다시 빌드 `s5p381-tok` **OBJECT_MATCH**(41); 실기 cc -M `s5p381-dep1` 48 헤더 모두 07(객체 = it1). record_object(authored, D024/D054) → objects_confirmed +1(gap 앞 3 B·뒤 2 B 맞음), functions +11(4718; 11 행 07 정의 줄 확인 python), PROVENANCE +1(if_vtrip) 및 tokensr.h 행 갱신(plan 381, 새 해시), MODIFICATIONS +2.
-- 범위(python): 이번 3686 B. A 313 obj 616781 B (72.44%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 98.65%, A+P+L 98.69%, rem 11162 B; 겹침 없음.
-
-## 382. 진단 메모 — `machdep/i386/machine_clock.c`(plan 365·380 이어서; 07 손대지 않음, 2026-10-07)
-
-- us_spin_calibrate **일치**(`s5p365-mvm28`, scratchpad `mcv/m28.c` = `mcv/cur.c`): Darwin 0.1 꼴처럼 `timer_cnt_val_t leftover` 하나에 읽고 `splx(s)` 뒤 식 안에서 `(int)(TIMER_COUNT_MAX - leftover)` 로 나눔. 근거: 원본은 timer 값(bx)을 splx 너머로 들고 가서 splx 뒤 [ebp−8] 에 두 번 저장(0 확장 값, `0xffff − 값`) — 같은 임시 의사가 두 번 쓰이고 idiv 의 reload 때문에 스택 칸으로 밀린 꼴; 작업본(`elapsed = timer_read()` 를 splx 앞에서)은 elapsed 가 레지스터. `mvm26`·`mvm27`(지역 count + splx 뒤 대입)은 코드는 같고 칸 배치만 달랐음.
-- machine_clock L1(`mvm28`): 11 함수 중 clock_timer_init 만 DIFF(45 B = `mov eax, esi` 1 B 와 그 뒤 밀림), 나머지는 bss 배치 미확정으로 MATCH_UNVERIFIED.
-- clock_timer_init: panic 문구 "clock_timer_constant 1/2/3" 과 Darwin `system_timer_constant()` 로 보아 4.2 에는 상수를 돌려주는 정적 함수 clock_timer_constant 가 인라인된 것으로 추정. 그 꼴(`mvm30`–`mvm39`): 반환형 timer_cnt_val_t 이고 함수 안에서 `last_count = count;` 를 한 뒤 `reload = clock_timer_constant();`(`mvm34`)면 `[last]=si; mov eax,esi; [reload]=ax` 가 원본과 같아지지만, CSE 가 반환값 의사를 last_count 메모리와 같은 값으로 보아 timer_write 인자가 스택 임시가 됨(원본은 last_count 메모리를 두 번 읽음); 반환형 unsigned int/int(`mvm36`·`mvm37`)는 timer_write 는 맞으나 반환값 복사가 combine 에 흡수(si). volatile reload 결합(`mvm38`·`mvm39`) 효과 없음. 미확정.
-- (이어서, 2026-10-07) ip_output: 원본 커널 `__text` 전체에서 "주소를 레지스터로 더해 만든 뒤 `[r]`·`[r+1]` 바이트 저장" 꼴을 python 으로 찾으면 ip_output 의 0x12781a 한 곳뿐 — 이미 맞춘 객체에서 같은 관용구의 소스를 빌려 올 수 없음. 덤프(`s5p371-ipd3`, `-dr … -dl`)로는 지역 포인터 `cp = map + 10` 이 CSE 단계에서 `(plus map 10)` 주소로 접힘을 확인.
-- machine_clock: 인라인 clock_timer_constant 꼴(`mvm34`)에서 반환값 의사가 last_count 메모리와 이어지는 것은 인라인 반환 레이블이 jump1 에서 지워져 CSE 가 한 블록으로 보기 때문(`s5p365-mvd5` rtl·cse 덤프). timer_write 를 ANSI 원형으로 바꾼 진단(`s5p365-tim34`)은 효과 없음.
-- swapfs_mount: kalloc 결과를 임시 포인터로 받아 bzero 뒤 sn 에 대입(`s5p378-sfpt1`·`pt2`)해도 CSE 가 둘을 한 의사로 합쳐 참조 40·호출 11 그대로.
-- 컴파일 옵션 가설 배제(2026-10-07, scratchpad `flagsweep.sh`·`flagsweep.log`, run `s5p383-fs1`–`fs14` × {swapfs `pc.c`, machine_clock `m28.c`, 07 ip_output}): -fno-caller-saves, -fno-expensive-optimizations, -fno-rerun-cse-after-loop, -fno-cse-follow-jumps, -fno-cse-skip-blocks, -fno-force-mem, -fno-defer-pop, -fno-strength-reduce, -fthread-jumps, -fno-inline-functions, -fkeep-inline-functions, -fno-function-cse, -m486, -fomit-frame-pointer 를 하나씩 더해도 swapfs_mount(656 B)·clock_timer_init(4 줄)·ip_output(9 줄) 잔여는 그대로이거나, 이미 일치하던 함수가 깨짐. 세 잔여는 옵션이 아니라 소스 꼴 차이로 판단.
-- machine_clock 인라인 clock_timer_constant 조합 전수(`s5p384-t{0..4}{in,before,after}`, scratchpad `mcv/sw/`): 반환형 timer_cnt_val_t·unsigned short·int·unsigned int·long × last_count 대입 위치(함수 안/호출자에서 지역 사본으로/호출자에서 reload 뒤) 15 개. 함수 안·reload 뒤 꼴(int·unsigned int·long)은 m28 과 같은 잔여(`mov eax, esi` 없음), 나머지는 10 줄(timer_write 인자 스택 임시)로 더 나쁨. us_spin_calibrate 는 모두 0.
-- 컴파일러 판 가설(사실과 추정 구분): 원본 커널 문자열 `NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386`(strings) — 1999-01 의 4.2 패치 빌드. 실기의 컴파일러는 `/bin/cc`·`/lib/i386/*` 1997-04-23 날짜의 cc-744.13 하나(gcds ls). 원본 커널을 만든 cc 판은 바이너리에 문자열이 없어 알 수 없음. 313 객체가 cc-744.13 으로 바이트 일치하므로 같은 계열이지만, 1999 빌드 기계의 cc 가 744 계열의 후속 패치판이었다면 남은 세 곳(caller-save 판단·CSE 등가·combine)의 드문 차이를 설명할 수 있음(추정). 확인하려면 다른 판의 NeXT cc 가 필요 — 들여오기는 사용자 결정 사항.
-- ip_output 변형 조사(`s5p385-a1`·`a2`·`b1`·`c1`·`c2`, scratchpad `ipv/sw/`): 포인터를 bcopy 앞에서 만들기(a1·a2), 원천·대상 포인터 둘(c1·c2)은 기준과 같은 9 줄(CSE 가 접음). 포인터를 루프 첫머리(map 대입 직후)에서 만들기(b1)는 다른 확장 블록이라 접히지 않아 `[r]`·`[r+1]` 꼴이 나오지만, 포인터가 호출들을 건너 스택 칸([ebp−0x50])에 저장·재적재되어 원본(저장 직전 `[ebp−0x4c]`+0xa 재계산)과 다르고 프레임도 4 B 큼. 원본은 "같은 자리에서 계산하면서도 CSE 가 접지 않는" 경우인데 그 조건을 아직 못 찾음.
-- 2026-10-07 사용자 답: 다른 판 NeXT cc 는 구할 수 없음 → cc-744.13 으로 소스 탐색 계속.
-- swapfs_mount 진전(2026-10-07, scratchpad `swapfs/`): 루프 가중(flow 의 loop_depth)으로 sn 참조가 문턱을 넘는 꼴을 찾음 — 함수 본문 전체를 `do { … } while (0)` 로 감싼 `s5p378-sfpw1`(`pw1.c`, nmap 지역 포함)은 sn→caller-save ecx·vp→edi·뒤쪽(0xd9 이후) 전부가 원본과 같고, 앞쪽만 다름(data 인자가 ecx 를 받음, getvnodefp 인자 재적재 레지스터, rbuf 를 kalloc 결과 임시(원본 ecx) 없이 바로 저장, &max 를 스택에 내림). 루프 시작 위치 조사(`sfwl0`·`l0b`·`l1`·`l2`·`l3`): getvnodefp(L0b)·vp 대입(L1)부터면 크기 660 B 로 같지만 루프 안 ENOTDIR 반환 블록을 jump 최적화가 루프 앞으로 옮김; copyin(L0)부터면 data 가 레지스터를 받음; VN_HOLD(L2)·rbuf(L3)부터 또는 sd_rbuf 에서 끝나는 부분 루프(`sfpe1`–`pe3`)는 vp 가 스택으로 밀림. 조기 반환을 break 로 쓴 꼴(`sfpbc`·`pbd`·`pbe`)은 더 나쁨. 연쇄 대입 `wbuf = (rbuf = kalloc(..)) + page_size`(`sfpr*`)·SDK `<kernserv/kalloc.h>`(07 머리와 kalloc 선언 충돌로 컴파일 안 됨)도 rbuf 꼴 아님. 해석: 원본에는 vp 를 쓰는 구간 전체를 덮는 루프(가중) 구조가 있고 그 모양은 아직 미확정(추정).
-- swapfs_mount(이어서): 루프 구문 `for (;;)`·`while (1)`(`sfgbf`·`gbw`·`gwf`·`gww`)은 do-while(0) 과 같은 결과. L2(VN_HOLD 부터) 덤프(`sfwl2d`): sn 은 caller-save ecx 로 원본과 같으나 rbuf(참조 8/56 insn, 우선순위 3·8/56)가 vp(15/121, 3·15/121)보다 앞서 edi 를 가져가 vp 가 스택으로 밀림 — 원본처럼 vp 가 앞서려면 vp 참조 16 이상(floor_log2 4) 또는 rbuf 참조 7 이하가 필요. 루프 안 ENOTDIR 반환 블록은 jump.c 의 "if (foo) bar; else break;" 범위 교환(jump.c 1800–1913)으로 옮겨지는 것으로 보임. kalloc 결과 형 변환(`sfpt*`)·별도 지역 buf(`sfpb*`)는 CSE 가 접어 효과 없음.
-- **swapfs_mount 큰 진전**(`s5p378-sfpz1`, scratchpad `swapfs/pz1.c` = `cur3.c`): 두 번째 kmem_suballoc 문장(`swapfs_rem_map = …`)부터 함수 끝까지를 `do { … } while (0)` 로 감싸면, 앞쪽 rbuf·wbuf·cbuf 계산 7 명령(원본 0x7e–0x94, 크기 656 대 660 B)만 빼고 원본과 같음. 근거(GCC 원문): loop.c 는 루프 안 "조건 점프 뒤 루프 밖으로 나가는 블록"을 반환 레이블과 같은 깊이의 barrier 로 옮기므로(loop.c 2300–2420) ENOTDIR 반환 블록은 루프 밖이어야 하고, expand_start_loop 는 루프 시작에서 대기 스택 정리를 내보내므로(stmt.c expand_start_loop) 루프는 원본에 스택 정리가 있는 자리(0xcb `add esp,0x24`)에서 시작해야 함; 그 자리에서 시작하면 rbuf 참조 일부만 가중을 받아 vp 가 rbuf 보다 앞서 edi 를 받고, sn 은 caller-save ecx. 남은 7 명령: 원본은 kalloc 결과를 임시(ecx)에 받아 rbuf 에 저장하고 page_size 를 메모리 피연산자로 두 번 더함(`add ecx,[page_size]`); 작업본은 page_size 를 한 번 읽어 재사용. 시도: caddr_t 형(`sfpz3`·`pz4`), `+=`·연쇄·피연산자 순서(`sfpz6`–`pz8`) 효과 없음; 주소 잡기(`sfpz5`, 진단)는 칸 순서가 바뀌어 원본과 다름. 루프 꼴의 원본 소스 의미(왜 루프인지)는 미확정.
-- swapfs_mount 남은 7 명령(원본 0x7e–0x94) 분석(`s5p378-sfpz1d` cse·lreg·greg 덤프): 작업본은 page_size 를 한 의사(REG_EQUIV `(mem page_size)`)로 CSE 해 두 덧셈이 공유하고 local-alloc 이 eax 를 줌; 원본은 두 덧셈 모두 `add r,[page_size]` 메모리 피연산자이고 kalloc 결과가 임시(ecx)를 거쳐 rbuf 칸에 저장됨 → 원본에서는 page_size 읽기가 둘로 나뉘어(각각 한 번 쓰이는 REG_EQUIV 의사라 local-alloc update_equiv_regs 가 메모리로 바꿈) CSE 가 합치지 않은 것으로 보임(해석). 선언 순서·형·register 조합 8 개(`s5p386-b1`–`b8`)는 효과 없음.
-- swapfs_mount(이어서): update_equiv_regs 는 참조가 정확히 2(설정·사용 하나씩)인 의사만 메모리 등가로 바꿈(local-alloc.c `reg_n_refs[regno] == 2`) — 원본은 page_size 읽기가 둘로 나뉜 꼴이 맞음. kalloc 을 감싼 인라인 함수(`sfpi1`·`pi2`)는 인라인 끝에서 대기 스택 정리(`add esp,4`)가 생겨 원본 꼴 아님.
-- machine_clock(이어서): 인라인 clock_timer_constant 에 반환 경로 둘(panic 갈래 안에서도 `last_count = count; return (count);`)을 두면(`s5p365-mvm43`·`mvm44`) 반환 레이블이 CSE 단계까지 남아 반환값 복사가 살아남고 timer_write 는 원본처럼 last_count 메모리를 읽음 — 다만 두 꼬리가 교차 점프로 합쳐지지 않아 `jmp`·중복 코드가 남고 복사 레지스터가 ecx(원본 eax). 방향 단서로 기록.
-- machine_clock(이어서): K&R 꼴 인라인 `set_reload(val) timer_cnt_val_t val; { reload = val; }` 를 `last_count = count; set_reload(count);`(`mvm45`)·`set_reload(last_count)`(`mvm46`)로 부르면 reload 저장이 별도 의사를 거치고 timer_write 는 메모리를 읽어 원본 꼴에 가장 가까움 — 남은 차이는 그 의사의 원천이 `mov ax,[last_count]`(작업본) 대 `mov eax,esi`(원본). 16 비트 지역 사본(`mvm47`)·`set_reload(last_count = count)`(`mvm48`)는 timer_write 인자가 스택 임시가 되어 더 나쁨.
-
-## 383. S5-P360 세부 계획 — `bsd/netinet/ip_output.c` 루프 체크섬 저장(plan 175.1·380 이어서; D024 작성; 코딩 전, 2026-10-07)
-
-0. 원본(objects.tsv seq 82): `__text` [0x127280, 0x12823f) 4031 B(python), ip_output 1588 B. 07 `src/bsd/netinet/ip_output.c`(plan 175) 는 남은 차이가 이 저장 하나라 표에 넣지 않았음(175.1).
-1. 남은 차이(원본 [0x12781a, 0x12782b), 17 B, python): `mov eax,[ebp−0x4c](map); add eax,0xa; mov cl,[ebp−0x1e]; mov [eax],cl; mov cl,[ebp−0x1d]; mov [eax+1],cl`. 07 은 `[map+0xa]`·`[map+0xb]` 로 접힘(i386 ADDRESS_COST, cse.c find_best_addr — plan 380).
-2. 진단(07 손대지 않음, scratchpad `ipv/`):
-   - codex 브레인스토밍 후보 중 빈 `__asm__` 로 `cp` 를 불투명하게 한 꼴(`s5p387-c5`) **OBJECT_MATCH** → 메커니즘 확인(별도 의사 레지스터에 `map + 10`). asm 은 원본 꼴로 보기 어려워 채택하지 않음.
-   - 순수 C: `cp = map + 10; map = 0; mhip = 0;`(`c6`) text 3 B 차이(0x4a7·0x4aa·0x4c5: map 의 두 칸 −0x4c/−0x34 저장 순서와 ip_optcopy 인자 읽기 칸이 바뀜); `cp = map + 10; mhip = 0; map = 0;`(`c7`)·`cp = map + 10; map = 0;`(`c8`) **OBJECT_MATCH**(9); `cp = (char *)mhip + 10`(`c9`)·`cp = map + 10; mhip = 0;`(`c10`)·`map += 10` 꼴 둘(`c11`·`c13`)·`map = (char *)&mhip->ip_sum`(`c14`)·`mhip = (struct ip *)(map + 10)`(`c15`)는 크기가 달라 불일치.
-   - 해석(GCC 원문 근거는 plan 380 의 cse 메모): `map` 에 새 값이 들어가면 cse 가 `cp` 를 `map + 10` 으로 되돌려 접을 수 없어 cp 가 따로 레지스터에 남음. 원본 소스 꼴은 모름 — c8 은 시험한 일치 꼴 중 가장 짧은 꼴(죽은 저장 `map = 0` 은 생성 코드에 남지 않음: OBJECT_MATCH).
-3. 07 변경(c8 + 표시 주석, scratchpad `ipv/cand383.c`): 루프의 `map[10]`·`map[11]` 두 줄을 블록 `{ char *cp; cp = map + 10; map = 0; cp[0] = …; cp[1] = …; }` 로, plan 383 주석(원본 주소, 원본 꼴 모름) 포함. 첫 조각(0x1276bc, 접힌 꼴)은 그대로. 후보 진단 `s5p383-ic1` **OBJECT_MATCH**(9).
-4. 이어서: iter_k07 → relcheck → 실기 cc -M(모든 헤더 07) → record_object(NeXTMach 바탕 + D024 작성; plan 175·383) → A; PROVENANCE·MODIFICATIONS·functions·evidence(x86-ip_output.md/.diff), 틈 칸(앞 0x12727e·뒤 0x128240, objects.tsv) 확인, 범위 갱신. plan 175.1 "기록 보류" 해제를 175 쪽(보관 문서)에 한 줄 덧붙임.
-5. codex 교차검토(k4fso0nd6, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| `map = 0` 뒤 map 을 읽는 곳 없음(다음 쓰기는 루프 첫머리) | 후보 전수 grep `\bmap\b`(82·293–302·319–336·351–352 행), done:/bad: 362–368 행(sed) | ✅ |
-| 0x12781a·0x12782b·17 B 맞음, 끝은 배타 표기로 | python 0x127280+0x59a, +0x5ab, 0x5ab−0x59a | ✅ 표기 `[ , )` 로 고침 |
-| c6 차이는 저장 순서만이 아니라 뒤 읽기도(0x4a7·0x4aa·0x4c5) | `s5p387-c6` L1 json first_differences 1191·1194·1221, python 파일 오프셋−244; c5/c6 objdump diff(0x4c3 `mov ecx,[ebp−0x34]`) | ✅ 문구 고침 |
-| c9·c10·c14·c15 4027 B, c11·c13 4091 B | python macho_obj 로 각 목적 파일 `__text` 크기 | ✅ |
-| "가장 짧은 꼴" 은 "시험한 꼴 중" 으로 | — | ✅ 문구 고침 |
-| 4 항: 첫 기록이므로 파일 전체 출처(NeXTMach URL·커밋·경로, CMU/Berkeley 고지 유지), 175·175.1·383 전체 diff, 함수별 출처 구분 필요 | 06_reconstruction/README.md :15·:26–27(sed), PROVENANCE·MODIFICATIONS 에 ip_output 행 없음(grep 0 건) | ✅ 채택 |
-| 더 자연스러운 꼴: `cp = map + 10; map = (char *)&iph.ip_sum; cp[0] = map[0]; cp[1] = map[1];` | 빌드 `s5p387-c16` **OBJECT_MATCH**(9) | ✅ 채택 — 죽은 저장이 없어 c8 대신 이 꼴 |
-
-- 결정: 07 변경은 c16 꼴(+ plan 383 주석). 후보 `s5p383-ic2` **OBJECT_MATCH**(9). 3 항의 c8 꼴은 대안 기록으로 남김.
-- 진단 덤: machine_clock 에 같은 원리(복사 뒤 원 변수 죽이기) `s5p387-k1`–`k4` 는 효과 없음(원본 0x187b4e `mov eax, esi` 여전히 없음); codex 의 빈 asm 꼴 `b3` 은 `mov ecx,eax; mov [reload],cx` 로 다름.
-- 결과: 07 `src/bsd/netinet/ip_output.c`(= scratchpad `ipv/cand383.c`, c16 꼴 + plan 383 주석; 이전 본 `ipv/ip_output.pre383.c`). `s5p383-it1` **OBJECT_MATCH**(9), relcheck 0; 실기 cc -M `s5p383-dep1` 48 헤더 모두 07(객체 = it1). record_object(nextmach 바탕 + 복원 수정, 멀티캐스트 넷은 authored D024) → objects_confirmed +1(앞 `00`×2·뒤 `00`×1, 원본 바이트 python 확인), functions +9(4727; 인용 18 개 모두 정의 줄, python), PROVENANCE +1, MODIFICATIONS +1, evidence `x86-ip_output.md/.diff`.
-- 범위(python): 이번 4031 B. A 314 obj 620812 B (72.91%), P 69 obj 223153 B (26.21%), L 2 obj 340 B; A+P 99.12%, A+P+L 99.16%, rem 7131 B; 겹침 없음.
-
-## 384. 진단 메모 — plan 383 뒤 남은 둘(swapfs_mount·machine_clock; 07 손대지 않음, 2026-10-07)
-
-- 도구 주의: scratchpad `alf.sh`(→ `tcp/al.py`)는 `ebp−0x30/0x34/0xc/0x10` 칸을 `S` 로 정규화하므로 그 칸이 바뀐 차이를 못 보임(ip_output `c6` 의 3 B 차이가 alf 에 안 나옴). 일치 판정은 diag 도구의 L1 결과로만 함.
-- machine_clock(`s5p387-k1`–`k4`): 복사 뒤 원 변수 죽이기(`i = count; count = 0; reload = i;` 등) 4 개 모두 기준과 같음(원본 0x187b4e `mov eax, esi` 없음). 인라인 setter 변형(`s5p387-j1`–`j6`): last_count·reload 를 한 인라인에서 쓰기(j1·j3·j5·j6)는 last_count 가 스택 임시가 되어 나빠짐, `unsigned int` 매개변수(j2)는 기준과 같음, ANSI 원형 `set_reload(timer_cnt_val_t)` 를 `last_count = count;` 뒤에서(j4)는 m45 와 같음(`mov ax,[last_count]` 대 원본 `mov eax,esi`).
-- swapfs_mount 남은 7 명령(원본 0x13b36a–0x13b383) RTL 근거(`s5p378-sfpz1d` lreg·greg): 작업본은 두 page_size 읽기를 CSE 가 의사 48(REG_EQUIV `(mem page_size)`, 사용 2)로 합치고 global alloc 이 eax(0)를 줌; 이 함수의 spill 레지스터는 esi(4)·edx(1)(greg "Spilling reg 4/1"); rbuf·wbuf·cbuf(의사 29·30·31)는 스택. 원본은 두 덧셈이 모두 `add r,[page_size]` 이고 reload 레지스터가 ecx·edx — 해석(미확정): 원본에서는 의사 48 이 spill 레지스터에 놓였다가 밀려나 reload 가 REG_EQUIV 메모리를 두 사용처에 넣은 꼴, kalloc 결과는 별도 임시(ecx)를 거침. cse.c 원문 근거: 두 읽기를 합치지 않게 하는 조건(note_mem_written 7555–7592 의 가변 주소 비구조체 저장·BLKmode 저장, 호출)이 원본 명령열에는 없음; 0x1e0d0c 의 기호는 `_page_size` 하나(symbols.tsv).
-- swapfs_mount 덧셈 꼴(`s5p388-q1`–`q5`: `rbuf + page_size + page_size`, `rbuf + 2 * page_size`, 연쇄, 지역 변수에 page_size 먼저, 피연산자 순서)은 효과 없음(656 B 그대로 또는 더 나쁨).
-- codex 브레인스토밍(kv9e2s3s0, gpt-6.1-sol; 근거 아님) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| spill_hard_reg 는 밀어낸 의사를 global 재할당에 다시 넣음(reload1.c:3498) | reload1.c 3490–3502(sed): `reg_renumber[i] = -1; something_changed = 1; if (global)` | ✅ — 원본의 page_size 의사는 밀려난 뒤 재할당도 못 받았어야 함 |
-| 하드 레지스터 없는 의사의 메모리 등가가 사용처에 들어감(reload1.c:852), 초기화 insn 삭제(:1917) | reload1.c 852–856·1916–1919(sed) | ✅ |
-| local-alloc 이 바뀌지 않는 MEM 적재에 REG_EQUIV 를 붙임(local-alloc.c:1051) | local-alloc.c 1045–1055(sed) | ✅ |
-| 값이 쓰이는 메모리 대입은 store_expr 가 레지스터로 복사(expr.c:2767) | expr.c 2760–2770(sed) | ✅(원문 맞음; ecx 가 된다는 근거는 아님 — codex 도 그렇게 씀) |
-| 후보 1: `rp = &rbuf; wbuf = (*rp = kalloc(..)) + page_size;` | `s5p388-x1`: 664 B, rbuf 가 [ebp−4] 칸을 받아 스택 배치 전체가 밀림 | ❌ 원본 꼴 아님 |
-| 후보 2: 출력 포인터 셋을 받는 보조 함수 | `s5p388-x2`: 656 B, 차이 더 많음 | ❌ |
-| 후보 3: 지역 구조체 buffers | `s5p388-x3`: 652 B | ❌ |
-- machine_clock m45 덤프(`s5p388-m45d`, `-dr -ds -dc -dl -dg`): rtl 의 인라인 매개변수 적재 insn 192 `(set (reg:HI 43) (subreg:HI (reg/v:SI 26) 0))` 를 CSE 가 `(mem:HI last_count)` 로 바꿈(cse 덤프). 근거(GCC 원문): i386 `MODES_TIEABLE_P` 는 같은 모드만 참(config_i386_i386.h:439), cse.c rtx_cost 는 묶을 수 없는 SUBREG 에 `COSTS_N_INSNS (2)`(cse.c 735–739) → 메모리가 더 쌈. 원본의 `mov eax, esi; mov [reload], ax` 는 그 값의 등가 부류에 HImode 레지스터가 있었다는 뜻(해석). mvm34(인라인 clock_timer_constant 가 timer_cnt_val_t 반환)는 그 꼴이지만 같은 HI 레지스터가 timer_write 의 last_count 읽기까지 대신해 스택 임시가 생김 — 원본은 timer_write 에서 last_count 를 두 번 메모리에서 읽으므로, reload 저장 뒤 timer_write 앞에서 그 HI 레지스터 등가가 끊겨야 함(미확정).
-- machine_clock `s5p388-v1`(mvm34 꼴 + `volatile` last_count): 더 나쁨(last_count 가 스택 임시, 크기 달라짐).
-- swapfs 메커니즘 진단(원본 꼴 아님): `-fcall-saved-cx`(`s5p388-fxdcx`)는 640 B 로 멀어짐; `-ffixed-ax`(`s5p388-fxdax`)는 실기 컴파일 실패(상태 1, 로그 없음) — eax 를 빼는 진단은 이 도구로 불가.
-- machine_clock mvm34 꼴 + `do { } while (0)` 블록 경계(`s5p388-w1` timer_write 감쌈, `w2` reload 대입 감쌈, `w3` 둘 다): 모두 mvm34 와 같음(timer_write 인자 스택 임시). 근거: toplev.c 3129 의 jump_optimize 가 3167 cse_main 앞에서 돌아 코드 없는 레이블은 CSE 전에 사라짐(해석). mvm43·44 에서 레이블이 남은 것은 실제 점프(panic 갈래의 반환)가 있었기 때문.
-- swapfs `s5p388-x4`(x1 + rbuf 를 min·max 뒤에 선언): x1 과 같음(664 B, rbuf 가 [ebp−4]). 해석: 주소를 잡는 지역은 처음 `&` 가 나올 때 칸을 받음(put_var_into_stack, 문장 단위 확장) — 원본 칸 순서(fname −4·fp −8·min −0xc·max −0x10·rbuf −0x14)에서 min·max(&는 kmem_suballoc 에서)가 rbuf 보다 앞이므로 원본 rbuf 는 주소 잡힌 변수가 아니라 spill 칸 → codex 후보 1 갈래 종료. 원본 꼴의 해석(미확정): kalloc 값이 먼저 임시 의사(T, ecx)에 들어가 rbuf(스택)에 저장되고, wbuf 는 T 가 죽는 자리에서 같은 reload 레지스터 ecx 로, cbuf 는 상속된 ecx 를 edx 로 옮겨 계산 — page_size 의사는 하드 레지스터 없이 메모리 등가로 대입됨.
-- swapfs 호출 결과 임시 의사 가설: expr.c 의 CALL_EXPR 처리(5211–5222)는 preexpand_calls(8822) 로 미리 확장된 호출이면 그 결과를 돌려주고, 미리 확장할 때는 target 이 없어 calls.c 2238 `copy_to_reg (valreg)` 로 새 의사가 생깁니다. 원본의 `mov ecx, eax` 임시가 이 경로라는 해석으로, pz1 기준 연쇄 대입 `wbuf = (rbuf = kalloc(..)) + page_size`(`s5p388-y1`), 세 겹 연쇄(`y2`), 피연산자 순서를 바꾼 꼴(`y3`)을 시험했습니다. 세 개 모두 기준과 같았습니다(656 B, 차이 391). 정정: preexpand_calls 원문(expr.c 8822–8885)은 대입식(부류 'e')의 피연산자까지 내려가므로 y1 에서도 호출은 target 없이 미리 확장됩니다. 결과가 같은 것은 그 임시 의사가 뒤 단계에서 rbuf 와 합쳐지기 때문으로 보이며(해석, 덤프 미확인), 남은 차이를 정하는 것은 page_size 의사의 할당입니다. 덤프 확인(`s5p388-y1d`, `-dr -ds -dc -dl -dg`): rtl 에는 호출 결과 임시 의사 48 과 `29 = 48` 이 있으나 cse 덤프에서 `29 = 48` 이 사라지고 rbuf 사용이 48 로 바뀌어, 임시가 곧 rbuf(스택)가 됩니다. page_size 의사 49 는 두 사용으로 합쳐진 채 eax(greg dispositions `49 in 0`)를 받고, spill 레지스터는 esi·edx("Spilling reg 4/1")로 기준과 같습니다. 원본 꼴이 되려면 page_size 의사가 끝내 하드 레지스터를 받지 못해야 하는데, 이 함수에서 그렇게 만드는 소스 조건은 아직 찾지 못했습니다.
-- swapfs 다른 해석과 최적화 수준 진단: local-alloc.c 1056–1081 원문을 보면, 합쳐지지 않은 page_size 읽기는 설정 1·사용 1 이면 combine 이 덧셈에 바로 접습니다(원문 주석 "this can't succeed or combine would have done it"). 따라서 원본은 "두 읽기를 CSE 가 합치지 않음"으로도 설명됩니다. 이를 최적화 수준으로 시험했으나 원인이 아니었습니다. `-O`(`s5p388-oo1`)는 대부분의 함수가 깨졌고, `-O2`(`oo2`)는 자동 인라인이 빠져 pageout 이 1344 B(원본 1616 B)가 되었으며, mount 는 둘 다 648 B 였습니다.
-- machine_clock 추가: 인라인 clock_timer_constant 가 `return (last_count = count);`(`s5p388-n1`), 호출자 `reload = (last_count = clock_timer_constant());`(`n2`)는 mvm34 와 같았습니다(timer_write 인자가 스택 임시).
-- codex 브레인스토밍(ks6kpn03c, gpt-6.1-sol; 근거 아님) 판정:
-
-| codex 후보 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 1. 인라인 안 last_count 저장만 `*(volatile timer_cnt_val_t *)&last_count = count;` | 빌드 `s5p388-cx1` | ❌ timer_write 는 원본처럼 메모리를 읽지만 reload 복사가 사라져 기준과 같은 1 B 차이(`mov [reload], si`) |
-| 2. unsigned int 매개변수 setter | 앞서 시험한 m49·m50·j2 와 같은 꼴(§382·§384) | ⏭️ 새 시험 없음 — 기준과 같음 |
-| 3. 매개변수에 `val &= TIMER_COUNT_MAX` | 빌드 `s5p388-cx3` | ❌ 기준과 같음 |
-| 4. 두 저장을 한 unsigned int setter 에서 | j2(§384)와 같은 꼴 | ⏭️ 기준과 같음 |
-| 5. union 으로 하위 반쪽 고르기 | 빌드 `s5p388-cx5` | ❌ 기준과 같음 |
-- machine_clock cx1 덤프(`s5p388-cx1d`): reload 복사가 사라지는 곳은 combine 이 아니라 local-alloc update_equiv_regs 입니다. lreg 덤프에서 반환값 의사 31 의 설정 insn 184 에 `REG_EQUIV (mem:HI reload)` 가 붙고, greg 에서는 `(set (mem:HI reload) (subreg:HI (reg esi)))` 하나가 됩니다. 원문 조건(local-alloc.c 980–996): 저장 원천 의사가 한 기본 블록 안에서만 쓰이고(`reg_basic_block >= 0`), 설정 insn 이 하나이며(`reg_equiv_init_insn != 0`), validate_equiv_mem 이 성립해야 합니다. 원본은 `mov eax, esi` 복사가 남았으므로 이 조건 중 하나가 깨진 꼴로 해석됩니다. mvm43·44(반환 경로 둘)가 복사를 남긴 것도 설정 insn 이 둘이기 때문으로 보입니다(해석). 다만 그 꼴은 jmp·중복 코드를 남기므로, 코드를 늘리지 않고 이 조건을 깨는 소스 꼴은 아직 찾지 못했습니다.
-- machine_clock 루프 변수 `i` 를 거치는 꼴(`s5p388-z1` `reload = i = count;`, `z2` `i = count;` 를 last_count 저장 앞에)은 둘 다 기준과 같았습니다(CSE 가 i 를 count 로 바꿔 씀).
-- codex 브레인스토밍(k1dy5kkqh, gpt-6.1-sol; 근거 아님) 판정 — swapfs page_size 두 읽기:
-
-| codex 주장·후보 | 내 검증 방법 | 결과 |
-|---|---|---|
-| cse 의 MEM 해시·동치는 모드·주소만 보며 RTX_UNCHANGING·MEM_IN_STRUCT 는 무효화 분류에만 쓰임 | cse.c 1942–1957(sed) | ✅ — 같은 모드·주소의 page_size 를 다른 MEM 으로 만드는 선언·매크로 꼴은 없음 |
-| union 생성자는 초기화 전에 CLOBBER 를 냄(expr.c 3026–3029), cse 는 MEM CLOBBER 를 쓰기로 처리(cse.c 6256–6262) | 두 곳 sed | ✅ |
-| 정적 `&&label` 초기화는 forced_labels 로 레이블을 남김(expr.c 4170–4172, jump.c 234–235) | 두 곳 sed | ✅ |
-| 후보 2: 정적 `&&label` 로 블록 경계(진단 전용 — 원본에 없는 정적 데이터를 더함) | 빌드 `s5p388-lb`: 672 B. 두 덧셈이 `add edx,[page_size]`·`add esi,[page_size]` 메모리 피연산자가 됨. 다만 레이블 자리에서 대기 스택 정리 `add esp,4` 가 나옴 | ⚖️ 메커니즘 확인(읽기를 나누면 메모리 피연산자), 원본 꼴 아님 |
-| 후보 1: cbuf 를 BLKmode union 초기화로 | 빌드 `s5p388-un2`(첫 `un` 은 제 변환 실수로 컴파일 실패, 같은 ID 재빌드는 이전 결과가 남아 새 ID 사용): 676 B. 스택 정리 없이 두 덧셈이 메모리 피연산자가 되지만 union 칸·복사 명령이 늘고 프레임이 바뀜 | ⚖️ 메커니즘 확인(코드 없는 메모리 무효화가 있으면 원본 방향), 원본 꼴 아님 |
-
-- 정리: 원본의 7 명령은 "두 page_size 읽기 사이에 코드를 남기지 않는 메모리 무효화(또는 블록 경계)" 가 있었다는 해석과 맞습니다. 이를 만드는 원본 소스 꼴은 아직 찾지 못했습니다.
-
-### 383.1 기록 점검 — ip_output 의 비활성 원문 복원과 hunk 표시(코딩 전, 2026-10-07)
-
-0. 점검 결과: 기록본(07 SHA 8fe86788…, NeXTMach 대비 diff 11 hunk) 중 6 hunk 에 plan 표시가 없습니다. 그중 셋은 plan 175(2026-10-03)가 NeXTMach 의 `#if NeXT` 블록 셋(참조 69–73 선언, 186–190 if_output_mbuf, 208–328 단편화)에서 `#if/#else/#endif` 와 `#else NeXT` 쪽 비활성 코드(mbuf 단편화 경로 약 60 줄)를 지운 것입니다. NeXT 가 정의되어 있어 바이트에는 영향이 없으므로 원본 바이트가 요구한 수정이 아니며, 2026-10-04 사용자 지시("비활성 코드를 정리하지 말 것", 메모리 no-feature-additions)에 맞지 않습니다. plan 175 는 그 지시보다 먼저 쓰였습니다.
-1. 변경(주석·전처리 줄만, 후보 scratchpad `ipv/cand383_1.c`):
-   - 참조 69–73: `nb`·`map`·`mhlen` 선언을 `#if\tNeXT` … `#endif\tNeXT` 로 다시 감쌉니다.
-   - 참조 186–190: `if_output_mbuf` 줄을 참조 원문(`#if NeXT` / `#else NeXT` 의 `(*ifp->if_output)` / `#endif NeXT`)으로 되돌립니다.
-   - 참조 208: 단편화 앞 `#if\tNeXT\t` 줄을 되살리고, 그 아래 iph 설명 주석에 plan 175 표시를 답니다.
-   - 참조 264–328: 루프 뒤 `m_freem(m0);` 다음에 `#else NeXT` 쪽 원문과 `#endif NeXT` 를 그대로 넣습니다.
-   - 표시 없는 나머지 hunk 에 plan 175 표시 주석(ROUTETOIF 블록·소스 주소 블록의 `ia` 함수 범위, 멀티캐스트 블록 0x12742c–0x127534, `sendit:`, 첫 조각 `iph = *ip;`)을 답니다.
-2. 결과 예측과 진단: 참조 대비 diff 10 hunk 모두 plan 표시 있음(python 전수 검사), 지운 줄 21(python). 진단 `s5p383-ic3` **OBJECT_MATCH**(9), `__text` 4031 B·`__data` 10 B 의 SHA 와 재배치 수 87 이 기록본 `s5p383-it1` 과 같음(python).
-3. 이어서: 07 반영 → iter_k07 → relcheck → 실기 cc -M(모든 헤더 07) → 기록 갱신(PROVENANCE 의 파일 SHA, MODIFICATIONS 행 문구에 비활성 원문 유지와 plan 383.1, evidence `.md` 의 SHA·run, `.diff` 재생성, functions.tsv 의 07 줄번호 인용 9 행 갱신과 정의 줄 검사). objects_confirmed 의 build 칸 run 이름도 확인합니다.
-4. 같은 점검에서 본 것(이번 범위 밖, 사용자 판단 대상): 이미 기록된 tcp_input(참조 `#else` 3 → 07 1)·tcp_output(1 → 0)·netisr(1 → 0)·if_ether(42 → 41)도 참조보다 `#else` 가 적습니다. 원본 바이트가 요구한 것인지(빌드에 필요한 삭제였는지)는 아직 확인하지 않았습니다.
-5. codex 교차검토(kmowxtxjg, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 되살린 블록이 참조 69–73·186–190·208·264–328 과 바이트 단위로 같고(`#if\tNeXT\t` 포함) 짝이 맞음 | python: 참조 블록 셋의 바이트열이 후보에 정확히 1 번씩 있음, `#if\tNeXT\t` 줄 1 개, 조건부 지시문 짝 검사 통과 | ✅ |
-| NeXT 쪽 `m_freem(m0);` 는 `#else` 앞, `done:` 은 `#endif` 뒤(후보 373·374·438·439) | python 으로 후보 374·438·439 행 출력 | ✅ |
-| 07 대비 바뀐 것은 주석·전처리 줄·비활성 갈래뿐 | 07→후보 diff 의 더한 줄 80 중 71 이 참조 원문, 나머지 9 는 표시 주석·`#if\tNeXT\t`·표시 붙은 두 줄; 지운 줄 4 는 표시 주석으로 바뀐 줄(python 분류) | ✅ |
-| 10 hunk 모두 plan 표시, 멀티캐스트 범위는 plan 175 3 항과 같음 | python 전수 검사(표시 없음 0); RECONSTRUCTION_PLAN-100-199.md:2216(grep) | ✅ |
-| functions.tsv 9 행의 검증 JSON 경로(`s5p383-it1`)도 갱신 필요, 후보 정의 줄은 62·454·494·527·600·708·943·994·1012 | python: functions.tsv 4719–4727 행의 run 이름 집합 {s5p383-it1}; 후보 정의 줄 계산 결과 같음 | ✅ 채택 — 3 항 기록 갱신에 포함 |
-- 결과: 07 `src/bsd/netinet/ip_output.c` = scratchpad `ipv/cand383_1.c`(이전 본 `ipv/ip_output.pre383_1.c`), 파일 SHA-256 6d81e9770dacaa4c7ca82439d925650b478fb59acb51a43c6ada7d0ab46b4172. iter_k07 `s5p383-it2` **OBJECT_MATCH**(9), relcheck 0; 실기 cc -M `s5p383-dep2` 48 헤더 모두 07, 목적 파일 = it2(SHA 같음). 기록 갱신: PROVENANCE(파일 SHA), MODIFICATIONS(비활성 원문 유지 문구, plan 383.1), functions.tsv 9 행(07 정의 줄 62·454·494·527·600·708·943·994·1012, 검증 JSON `s5p383-it2`), objects_confirmed(build 칸 dep2·it2), evidence `.md`(SHA·run·경위)와 `.diff` 재생성. 갱신 뒤 python 검사: 인용 18 개 모두 정의 줄, 검증 JSON 9 개 존재, diff 10 hunk 모두 plan 표시, 표 행 수 변화 없음(PROVENANCE 1026·functions 4728·objects_confirmed 316·MODIFICATIONS 497).
-- 4 항 확인 결과(사용자 판단 대상 아님): netisr(plan 154)·tcp_output(plan 174, `#if DEBUG`·`#if BSD>=43`)·if_ether(표시 있는 hunk)의 조건부 삭제는 모두 표시된 작성·복원 수정 안에 있습니다. tcp_input 은 바탕이 Net/2(plan 368, PROVENANCE `net2+nextmach`)라 NeXTMach 와 `#else` 수를 비교한 것이 맞지 않았습니다.
-- 같은 점검을 이번 세션에 기록한 다른 파일에도 했습니다(python, 참조 대비 diff hunk 의 plan 표시). `nextdev_private/bsd/net/tokensr.h`(Darwin 대비 10 hunk)·`FBConsPriv.h`(1 hunk)는 모두 표시가 있습니다. `src/bsd/dev/i386/FBConsole.c` 는 Darwin 대비 13 hunk 중 6 개의 hunk 안에 표시가 없지만, 모두 같은 함수·블록의 표시 주석이 설명합니다. 15·24 비트 색 값은 1015 행 `plan 341: 4.2 colour values for 8, 15 and 24 bit` 가, DrawRect 의 화면 주소 계산·루프 변수와 EraseRect 본문은 DrawRect 앞 1175–1182 행 블록 주석(plan 341·379, 본문을 원본 바이트로 작성)이 설명합니다. Darwin 의 Description·Preconditions 주석을 뺀 것도 그 주석에 적혀 있으며, 지워진 비활성 원문은 없습니다. 그래서 07 은 바꾸지 않았습니다. `if_vtrip.c` 는 전부 작성한 파일이라 참조 대비 검사 대상이 아닙니다.
-- swapfs(이어서): cse.c 8054–8072 원문상 loop.c 전의 CSE 는 기본 블록을 CODE_LABEL 외에 `NOTE_INSN_LOOP_END` 에서도 끊습니다. 그러나 두 page_size 읽기 사이에서 루프가 끝나는 꼴은 원본이 될 수 없다고 판단합니다. stmt.c 의 expand_loop_continue_here(2202)·expand_end_loop(2250 근처)가 대기 스택 정리를 내보내는데, 원본은 kalloc 인자 4 B 정리를 0xcb 의 `add esp,0x24` 에 합치고 있어 그 사이에 `add esp` 가 없습니다(레이블도 expand_label 643 에서 같은 이유로 제외). 확인 빌드 `s5p388-le1`(kalloc 과 wbuf 계산을 `do { } while (0)` 로 감쌈): 루프 끝 뒤의 두 번째 덧셈은 `add esi,[page_size]` 메모리 피연산자가 되었지만 0x92 에 `add esp,4` 가 나오고 684 B 가 되어 판단과 같았습니다.
-- swapfs 원본 7 명령의 할당 해석(덤프·원본 대조, 미확정): kalloc 결과 임시 의사 T 가 global alloc 에서 ecx 를 받고, rbuf 는 T 와 다른 스택 의사입니다(`mov [ebp−0x14], ecx` 는 `rbuf = T`). wbuf 는 T 가 죽는 자리라 reload 가 ecx 를 그대로 출력 레지스터로 쓰고, cbuf 는 상속된 ecx 값을 spill 레지스터 edx 로 옮겨 계산합니다. 이 해석은 함수의 spill 레지스터 {esi, edx}(작업본 greg)와 모순되지 않습니다. y1 에서는 CSE 가 rbuf 사용을 T 로 바꿔 써서 둘이 합쳐졌으므로, 남은 조건은 "rbuf 가 T 와 합쳐지지 않고 page_size 의사가 레지스터를 받지 않는 꼴"입니다. 진단 `s5p388-y5`(y1 + `volatile` rbuf): rbuf 가 선언 때 [ebp−4] 칸을 받아 스택 배치가 밀렸습니다(672 B).
-- swapfs 원본 점프 확인(python, capstone): 원본 swapfs_mount 의 점프는 0x10·0x17·0x30·0x48·0x58·0x65 의 여섯이고 뒤로 가는 점프는 없습니다. 대상 레이블은 0x1c·0x6c·0x28a 뿐이라 0x6c 뒤로는 끝까지 레이블이 없습니다. 그래서 CSE 경계로 남은 후보는 루프 끝 메모이며, 그 정리가 원본 0xcb `add esp,0x24` 와 겹치도록 "첫 루프가 0xcb 에서 끝나고 바로 pz1 의 둘째 루프가 시작"하는 꼴을 시험했습니다. `s5p388-t1`(rbuf 부터 swapfs_bit_map 까지 감쌈), `t2`(VN_HOLD 부터), `t3`(t1 + 연쇄 대입) 모두 680 B 였습니다. t3 은 두 번째 page_size 읽기가 메모리 피연산자가 되었지만, 첫 루프의 가중으로 rbuf 가 edi 를 받고 vp 가 [ebp−0x14] 로 밀렸으며 프레임이 4 B 커졌습니다(`sub esp,0x28`).
-- D055(2026-10-07, 사용자 결정) 참고 원문 확보: 4.3BSD-Net/2·4.4BSD-Lite 의 `sys/vm` `swap_pager.c/.h`·`vm_swap.c`·`vnode_pager.c/.h` 를 TUHS 에서 받아 `01_resources/upstream/net2/sys/vm/`·`upstream/bsd44lite/sys/vm/` 에 두었습니다(Lite 는 배포처 cksum 5/5 일치, 매니페스트 `net2-vm-swap.json`·`bsd44lite-vm-swap.json`). 비교 결과: BSD 스왑은 스왑 장치 블록 지도(`rmalloc(swapmap, …)`)와 vm_pager 구조(`malloc(…, M_VMPAGER, …)`)를 쓰고, 4.4BSD-Lite swapon 은 블록 장치만 받습니다(`v_type != VBLK` → `ENOTBLK`, vm_swap.c). swapfs_mount 의 꼴(정규 파일 vnode·`ENOTDIR`, kalloc 버퍼 셋, `kmem_suballoc` 지도 둘, vfs_data)과 같은 원문이나 관용구는 없습니다. 남은 7 명령의 소스 꼴을 정하는 근거로는 쓸 수 없다고 판단합니다. 이 판단은 grep 결과와 두 swapon 원문을 직접 읽어 확인했습니다.
-- swapfs 조합 탐색(2026-10-07, 사용자 선택 "1 탐색 계속"; scratchpad `swapfs/sw389/gen.py`·`run.sh`·`log`, run `s5p389-a?b?c?`): 할당식 꼴 6(a0 기본·a1 연쇄 대입·a2 임시 buf·a3 `buf +=`·a4 wbuf 연쇄·a5 피연산자 순서) × 루프 구조 3(b0 pz1·b1 첫 루프 rbuf 부터·b2 첫 루프 VN_HOLD 부터) × 선언 위치 2(c0 기존·c1 nmap 뒤) = 36 개(a0b0c0 = pz1 확인 뒤 35 개 빌드). 빌드 35 개 모두 상태 0, mount 크기·차이 바이트(python 집계): 656 B·391 이 9 개, 660 B·400 이 2 개, 676 B·396 이 4 개, 680 B·417 이 20 개. OBJECT_MATCH 는 없었습니다. a3b0c0·a3b0c1 은 크기만 660 B 로 원본과 같고, buf 가 스택으로 가고 vp 가 [ebp−0x14] 로 밀리는 등 배정은 기준보다 멉니다. 선언 위치(c)는 결과에 영향이 없었습니다.
-
-## 385. 진단 메모 — 일치 객체를 증거로 쓰는 관용구 탐색과 machine_clock 의 RTL 추적(07 손대지 않음, 2026-10-07 밤)
-
-- 방법 전환(사용자 질문 "남은 문제를 어떻게 추적해야 할까요?"): 소스 꼴 추측 대신, 이미 바이트가 맞은 객체에서 같은 명령 꼴을 찾아 그 07 소스로 "이 컴파일러에서 그 꼴을 내는 C 형태"를 확인합니다(scratchpad `idiom390.py`·`idiom390b.py`, 함수 경계마다 capstone 역어셈블, 기본 블록 단위).
-  - swapfs 꼴(같은 전역을 한 블록에서 두 번 읽음, 둘 다 덧셈에 접힘): 일치 객체 안에는 없습니다. qsort(A) 의 1 건은 루프 경계를 사이에 둔 읽기라 다른 경우입니다. 넓힌 검색(같은 전역 두 번 읽기 29 건)은 모두 첫 읽기 레지스터가 그 사이에 망가진 경우(cse 가 합칠 수 없음)라 증거가 아닙니다.
-  - machine_clock 꼴(32 비트 레지스터 복사 직후 16 비트 저장): 일치 객체에 4 건 — rewhence(kern_descrip, `switch (ld->l_whence = newwhence)`), tcp_input, unix_syscall(trap), initDmaLock(IOSVGADisplay). 네 건 모두 복사 레지스터가 저장 뒤에도 쓰입니다(cmp/add). 원본 machine_clock 은 저장 뒤 eax 를 쓰지 않으므로, "cse 뒤에 죽은 두 번째 쓰임" 가설로 이어졌습니다.
-- machine_clock 변형(scratchpad `mcv/`, run `s5p390-*`): n3(`reload = count; timer_write(..., count)`)·n6(SI 사본 c)·n13·n4·n5(SI 반환 인라인의 반환값을 두 곳에)·cx·k·j 류는 기준과 같았습니다(SI 사본은 cse 가 count 로 되돌려 복사가 사라짐). n7(HI 사본 c 를 reload·timer_write 양쪽에)·q4(인라인이 `return (last_count)`)는 timer_write 는 원본과 같고 복사 출처만 `mov ax,[last_count]`(원본 `mov eax, esi`). n11·q2·q10·q7 은 m34 와 같거나 더 나빴습니다(앞단이 `& 0xffff`·`+ 0` 을 접음).
-- RTL 추적(덤프 `s5p365-mvd5`(m34)·`s5p390-n7d`·`q4d`, GCC 원문):
-  - `mov eax, esi` 는 HImode 레지스터 간 복사입니다. i386.md movhi 템플릿은 두 피연산자가 레지스터면 `movl %k1,%k0` 을 냅니다.
-  - m34 의 복사: 인라인 반환값이 `39 = zero_extend:SI(subreg:HI count)` 와 `(subreg:SI (reg:HI 31)) = 39` 두 insn 으로 나옵니다. 앞단이 반환형 unsigned short 를 unsigned int 로 승격했고(zero_extend), integrate.c 1642–1662 가 arriving_mode(SI) ≠ departing_mode(HI) 라 대상을 `(subreg:SI (reg:HI 31))` 로 만듭니다. PROMOTE_FUNCTION_RETURN 은 i386/next 설정에 없습니다.
-  - m34 가 timer_write 를 그르치는 이유: cse.c 7401–7450 의 "넓은 SUBREG 대상 기록" 규칙이 reg 31 을 `lowpart(39 의 부류)` = `(subreg:HI count)` = `(mem:HI last_count)` 부류에 넣고, 그래서 timer_write 의 `last_count` 적재가 reg 31 로 치환되어 바이트 읽기가 스택 임시가 됩니다. cse.c 7340–7352 는 원천이 ZERO_EXTEND/SIGN_EXTEND 이면 대상을 기록하지 않지만, m34 의 원천은 reg 39 라 적용되지 않습니다.
-  - n7·q4 가 복사 출처를 메모리로 만드는 이유: `(set X (subreg:HI count))` 의 원천을 cse 가 더 싼 `(mem:HI last_count)` 로 바꾸고(비묶음 SUBREG 비용 cse.c 735–739), 그 X 는 REG_EQUIV 메모리를 받아 하드 레지스터 없이 남아 reload 가 `mov ax,[last_count]` 와 바이트 메모리 읽기를 냅니다.
-  - 따라서 원본은 "`(set (subreg:SI X) (zero_extend:SI (subreg:HI count)))` 한 insn" 꼴로 해석됩니다. 그러면 7340–7352 규칙으로 X 가 last_count 부류에 들어가지 않아 timer_write 는 메모리를 읽고, combine 은 SUBREG 대상 insn 을 흡수하지 않아 복사가 남으며, 하위 16 비트만 쓰이므로 `mov eax, esi` 가 됩니다(해석). 이 한 insn 꼴이 어떤 C 소스에서 나오는지는 아직 찾지 못했습니다. stmt.c expand_return 은 `cleanups = 1`(#if 0 로 고정)이며 반환값을 먼저 의사 레지스터에 계산하는 경로가 보이는데, 최종 분기 조건(expand_return 뒷부분)은 아직 읽지 않았습니다.
-- 사용자 지시(2026-10-07 밤): 이 작업까지 끝내고 잠시 대기. codex 모델은 이 작업의 분석·교차검토에 한해 `gpt-6-astra` 도 허용(메모리 기록).
-
-## 386. 진단 메모 — machine_clock clock_timer_init: 원본 바이트를 내는 구조를 찾음, 남은 것은 레지스터 순서(07 손대지 않음, 2026-10-08)
-
-0. 방법: 소스 꼴 추측 대신 RTL 단계별 덤프(`-dr -ds -dc -dl -dg -df`)와 GCC 원문(실기 cc 의 원문과 해시 일치 확인: i386.c·local-alloc.c·cse.c)으로 거꾸로 추적했습니다. 모든 run 은 `s5p390-*`·`s5p391-*`(scratchpad `mcv/`).
-1. 사실(덤프·원문):
-   - `mov eax, esi` 는 HImode 레지스터 간 복사입니다(i386.md movhi 는 레지스터 둘이면 `movl %k1,%k0`).
-   - X 가 HI REG 여야 reload 저장이 레지스터에서 옵니다. SI 반환(m36)이면 저장 원천 `(subreg:HI X)`(비용 16)를 cse 가 메모리(비용 4)로 바꿔 `mov [reload], si` 가 됩니다(`s5p391-m36d` cse 덤프 insn 191).
-   - HI 반환 인라인(m34)은 X 를 `(set (subreg:SI X) 39)`, `39 = zero_extend(subreg:HI count)` 두 insn 으로 만들고, cse.c 7401–7450 의 넓은 SUBREG 대상 기록 규칙이 X 를 `last_count` 메모리 부류에 넣습니다(gen_lowpart_common 이 zero_extend 의 피연산자를 돌려줌 — 실기 emit-rtl.c 567– 확인). 그래서 timer_write 의 `last_count` 적재가 X 로 치환되어 바이트 읽기가 스택 임시가 됩니다.
-   - 복사가 combine 에 흡수되지 않는 조건은 "X 의 쓰임 둘 또는 설정 둘"입니다(w4f: 블록 경계로 치환만 막으면 쓰임이 하나가 되어 흡수됨; d1: 죽은 두 번째 대입은 delete_dead_from_cse 가 지워 역시 흡수).
-   - 두 꼬리 구조(반환 둘)에서 mvm43 이 실패한 원인은 panic 호출의 인자 정리 `add esp,4` 가 return 까지 미뤄져 꼬리가 달라진 것입니다. 저장을 인라인 helper 호출로 하면 integrate.c 의 `do_pending_stack_adjust` 가 호출 직후 정리를 내보내 꼬리가 같아지고 최종 jump pass 의 cross-jump 가 합칩니다(e1·e3: 남은 차이는 복사 레지스터 ecx).
-   - e1 의 X 는 전역(두 설정)이라 reload 의 eax spill(udivmodsi4 의 AREG 수요, `-dg` "Spilling reg 0")에 밀려났습니다. reload1.c 3480–3495: 블록 지역 pseudo 는 그 블록에 수요가 없으면 밀려나지 않습니다. 호출점을 둘로 나누어 꼬리마다 다른 pseudo 를 두면(g1: `if (count > 0xffff) { panic(...); reload = set_counts(count); } else reload = set_counts(count);`, set_counts 는 `last_count = count; return (count);` 인라인) X 가 꼬리 블록 지역이 되어 밀려나지 않습니다. **g1 은 복사 레지스터(edx, 원본 eax) 하나만 다릅니다.**
-   - `-mreg-alloc=adcbSDB`(eax 우선, 진단 전용)로 g1 을 빌드하면 clock_timer_init 의 바이트가 원본과 같습니다(`s5p391-g1a`, alf 차이 재배치 자리뿐). 그러나 같은 옵션은 set_timer 를 바꾸므로(원본 set_timer 는 기본 순서) 빌드 옵션은 아닙니다.
-   - edx 가 먼저인 이유: i386.c order_regs_for_local_alloc 은 함수 안에 SET_SRC 가 DImode 인 insn 이 있으면 순서를 edx·ecx·eax 로 바꿉니다(use_dca). clock_timer_init 에는 `time_of_boot` 의 DI 저장과 `__udivdi3` 인자·결과가 있어 원본에서도 참이었을 것입니다.
-2. 남은 문제(한 가지): 꼬리 블록 지역 X 에 local-alloc 이 edx 대신 eax 를 주려면, X 의 생존 구간(복사→저장 2 insn)에 edx 와 ecx 가 살아 있거나(find_free_reg 의 regs_live_at), X 가 local-alloc 대상에서 빠져 global 이 할당해야 합니다(local_alloc 조건: `reg_basic_block >= 0 && reg_n_deaths == 1 && (alternate == NO_REGS || !CLASS_LIKELY_SPILLED_P(pref))`). g1·g5(조건 반전)·g3(timer_write 중복)·g6(HI 매개변수)은 모두 edx 또는 더 나쁨. 꼬리 블록 시작의 live 레지스터는 ebp·esp·s·count 뿐(flow 덤프)이라 현재 꼴에서는 edx 가 비어 있습니다. 어떤 자연스러운 C 구문이 그 조건을 만드는지는 아직 찾지 못했습니다.
-3. 판단: 소스 구조는 거의 확정(두 호출점 + 인라인 helper, 혹은 그와 같은 RTL 을 내는 꼴)이고, 마지막 1 바이트는 local-alloc 의 레지스터 선택입니다. 다음은 그 선택을 바꾸는 자연스러운 구문 탐색입니다.
-4. codex 브레인스토밍(k3vl6061t, gpt-6-astra; 근거 아님) 판정:
-
-| codex 주장·후보 | 내 검증 방법 | 결과 |
-|---|---|---|
-| global.c 도 같은 reg_alloc_order 를 쓰므로 X 를 global 로 보내는 것만으로는 부족 | global.c find_reg 원문(`regno = reg_alloc_order[i]`, 앞서 읽음) | ✅ |
-| 인라인 반환값은 eax 정체성을 잃음(integrate.c 1652·1666), REG_EQUIV(reload) 는 메모리 등가일 뿐 | integrate.c 1666–1667·1713–1717·2184–2196(앞서 읽음) | ✅ |
-| 1 안: 두 꼬리에 각각 `x = set_counts(count); reload = x; timer_write(TIMER_CNT0_SEL, x);` | 빌드 `s5p391-cv1`: T = X 가 되어 바이트 읽기가 스택 임시, 꼬리도 합쳐지지 않음(jmp·중복) | ❌ |
-| 2·3 안: 함수 범위 `x` 를 두 꼬리에서 설정하고 timer_write 에 넘김 | 1 안과 같은 T = X 구조(m34·n11·cv1 에서 모두 실패) | ❌(빌드 생략) |
-| 더미 사용으로 edx·ecx 를 묶어 둘 수 없음(최적화·할당을 지나 남지 않음) | d1·k1–k4 결과와 일치 | ✅ |
-
-5. 현재 결론: 원본 바이트를 내는 소스 구조(두 호출점 + `last_count` 저장·반환 인라인 helper, 꼬리 cross-jump)는 찾았고, 남은 1 바이트는 local-alloc 이 꼬리 블록의 HI pseudo 에 edx(DI 함수 순서) 대신 eax 를 준 이유입니다. 바이트 순서상 포트 적재가 reload 저장 뒤라 ecx 를 X 와 겹치게 할 지역 pseudo 는 보이지 않고, 자연스러운 C 구문으로 그 조건을 만드는 방법은 아직 없습니다. 사용자 판단 대상으로 보고합니다.
-
-## 387. 계획 — 잔여 둘의 다음 탐색(codex 영어 질의 kgmj50qsl·k6t2bclxs 취합; 코딩 전, 2026-10-08)
-
-0. 취합(모두 원문으로 확인한 사실만 적습니다):
-   - machine_clock: 인라인 인자는 왼쪽부터 평가되나 수정되지 않는 매개변수의 MEM 인자는 모든 인자 평가 뒤 복사됩니다(integrate.c 1259–1304, 1480–1494; 수정되는 매개변수는 1306–1327 에서 즉시 복사). 포트 적재는 바이트상 reload 저장 뒤라 ecx 점유를 설명할 수 없습니다. sched 패스 없음(toplev.c 547–548, i386 설정에 OPTIMIZATION_OPTIONS 없음). 새 저비용 후보는 `timer_write(TIMER_CNT0_SEL, reload = set_counts(count))`(X 가 AREG 선호를 얻어 local-alloc 에서 제외되면 global 이 eax; local-alloc.c 472–477, config_i386_i386.h 744–751) 하나이며, T = X 가 되어 바이트 읽기가 레지스터가 될 위험이 큽니다.
-   - swapfs: cse2 는 LOOP_END 를 무시하므로 do-while 경계는 되돌려집니다(cse.c 8067–8072). 원본의 `add r,[page_size]` 둘은 "합쳐진 pseudo 가 하드 레지스터를 못 받아 reload 가 메모리로 치환"(reload1.c 852–859·1910–1928·1958–1987)으로도 설명됩니다. y1 덤프: kalloc 임시 T 가 cse 의 정규형 규칙(cse.c 840–862)으로 rbuf 사용 전부를 흡수해 T 가 곧 rbuf(호출 6 개 교차)가 됩니다. 원본은 T(ecx) 가 짧게 살고 rbuf 는 메모리이므로, rbuf·wbuf·cbuf 는 pseudo 가 아닌 메모리 변수(집합체 또는 주소를 잡은 변수)로 해석됩니다. expand_decl(stmt.c)은 주소를 잡거나 BLKmode 인 지역을 선언 시점에 선언 순서대로 스택에 두므로, fname·fp·min·max(−4…−0x10) 뒤에 선언된 집합체가 −0x14 부터 받습니다. pz1·y1 의 spill 레지스터는 esi·edx 뿐이라, T 가 ecx 가 되려면 원본에서는 eax 도 spill 되었어야 합니다(진단 대상).
-1. swapfs 변형(pz1 바탕, min·max 뒤에 선언, kalloc 임시 `buf`):
-   - h1: `struct { vm_offset_t cbuf, wbuf, rbuf; } b;` + `buf = kalloc(page_size * 3); b.rbuf = buf; b.wbuf = buf + page_size; b.cbuf = b.wbuf + page_size;`
-   - h2: h1 의 대입을 체인 `b.wbuf = (b.rbuf = kalloc(page_size * 3)) + page_size;` 로
-   - h3: `vm_offset_t buf[3];`(rbuf = buf[2], wbuf = buf[1], cbuf = buf[0]) — 진단용
-   확인: mount 크기·차이, 0x7e–0x94 명령열, `-dl -dg` 로 T 의 레지스터와 spill 레지스터.
-2. machine_clock 변형(g1 바탕): c1: 두 갈래 모두 `timer_write(TIMER_CNT0_SEL, reload = set_counts(count));`.
-3. 결과에 따라 다음을 정합니다. 어느 쪽도 맞지 않으면 사용자 보고.
-4. 결과(2026-10-08): 커널 진단 빌드 h1·h2·h3(집합체 버퍼)은 652 B 로 pz1 보다 멀고, c1 은 T = X 라 더 나쁨. 집합체는 선언 시점에 첫 칸([ebp−4…])을 받아(GCC 2.7 C 는 문장 단위 전개; 주소를 잡는 스칼라는 `&` 가 처음 나올 때 칸을 받음) 원본 칸 순서와 맞지 않습니다.
-5. **탐침 환경**(08_build/runs/tools/probe, git 무시; `run.sh`: 독립 C 파일을 실기 cc-744.13 으로 `-O3 -fno-omit-frame-pointer -traditional-cpp -S`, `runk.sh`: 커널 헤더 스테이징(s5p388-y1)으로 커널 소스 파일을 `-S`). 축약 탐침 p1(swapfs 꼴)·p2(machine_clock 꼴)는 커널 빌드의 해당 구간을 그대로 재현했습니다(p1 = pz1 꼴, p2 = g1 꼴). 건당 수 초.
-   - p2a(DImode 연산 제거): 꼬리가 원본과 **정확히 같음**(`movl %esi,%eax; movw %ax,_reload`). p2b(time_of_boot 만 DI)·p2c(res 루프만 DI): 둘 다 edx. → 순서 가설 확정. 원본 함수에는 DI 가 있으므로 "edx·ecx 점유" 조건이 남습니다. q2(지역 사본)·q3·q4(포트를 미리 지역에) 는 edx 그대로이거나 asm 레지스터가 바뀜.
-   - swapfs 탐침: v01(임시 buf)·v02(volatile)·v04(char * 반환)·v05(체인)·v08(구조체)·v14(+=)·v16(char * 버퍼) 모두 pz1 꼴 또는 더 멂. 강제 레이블(l0·l1·l5, 진단) 도 변화 없음 → "버퍼 계산 뒤 블록 경계" 가설 기각. **d1–d4(64 비트 복사 한 줄 추가 → edx 우선 순서)**: `movl %eax,-rbuf; movl _page_size,%edx; movl %eax,%ecx; addl %edx,%ecx; …` 로 원본 쪽(ecx·edx)으로 이동하지만 rbuf 저장 원천과 page_size 레지스터는 아직 다릅니다. 원본 swapfs_mount 바이트에 64 비트 쌍 저장·적재는 없습니다(python 검사).
-6. 결과(2026-10-08, 전체 커널 문맥 탐침 `runk.sh` sw0–sw5; 덤프 `-dr -dl -dg`; gcc 소스 10 파일은 실기 `/NextDeveloper/Source/GNU/gcc` 와 BSD `sum` 일치 확인 — i386.md·i386.h·reload1.c·reload.c·caller-save.c·expr.c·calls.c·optabs.c·local-alloc.c·global.c):
-   - 원본 0x7e–0x94 를 내는 RTL·할당은 다음으로 설명됩니다. (a) `-O2` 이상은 `-fforce-mem`(toplev.c 3718–3726) 이라 `page_size` 가 pseudo 로 적재되고(expand_binop, optabs.c 371–374), REG_EQUIV 메모리 등가를 받습니다(local-alloc.c 1049–1054); 하드 레지스터를 못 받으면 reload 가 `[page_size]` 로 치환합니다. (b) rbuf·wbuf·cbuf(pseudo 29·30·31)는 호출을 건너 살아 spill 되며 칸 −0x14·−0x18·−0x1c 는 우리 출력과 **같은 칸**입니다(sw0: −20·−24·−28; sn 의 caller-save 칸 −32 도 원본 −0x20 과 같음). 뒤쪽 읽기도 원본·우리 모두 같은 칸(원본 0x165·0x180·0x198). 따라서 메모리 변수(집합체·주소 취득) 가설은 기각(§387.4 와 일치). (c) 남은 차이는 두 가지뿐: 원본은 kalloc 값 복사 임시 T 가 **ecx**(우리는 eax 로 묶임), 합쳐진 page_size pseudo 가 **할당되지 않음**(우리는 eax/edx). 두 add 의 reload 는 inherit(`mov edx,ecx`)·in/out 규칙으로 원본과 같은 꼴이 됩니다.
-   - T 가 생기는 경로 확인: expand_assignment 의 "call-first" 경로(expr.c 2587–2598: 좌변이 REG 인 VAR_DECL 이 아닐 때 `expand_expr(from, NULL)` 뒤 복사), expand_call 은 target 이 없을 때 `copy_to_reg(valreg)`(calls.c 2238; target 이 있으면 2157–2163 직접 이동), preexpand_calls(이항식 안의 호출). 단순 출력 reload 는 선택 reload 를 만들지 않으므로(reload.c 3527–3545 "Optional output reloads don't do anything") `mov ecx,eax; mov [-0x14],ecx` 는 반드시 실제 pseudo T 입니다.
-   - 탐침: sw2·sw3(인라인 helper 로 `&rbuf` — put_var_into_stack fixup, RTL 243–258)·sw4(배열 `buf[3]`, call-first 경로 확인: RTL 113 `(set 45 eax)`·115 저장)·sw5(중첩 대입 체인) 모두 T = eax, page_size = 레지스터. 즉 T 를 만드는 구문은 여럿이지만 **eax 를 피하게 하는 조건**(T 수명 [113,121] 동안 eax 가 살아 있거나 설정됨)과 page_size pseudo 가 레지스터를 못 받는 조건은 아직 자연스러운 C 로 만들지 못했습니다. DI 순서는 원본에 64 비트 쌍이 없어 제외.
-   - 다음 후보(미실행): kalloc 반환값이 두 번 읽히는 꼴(eax 수명 연장), 또는 T 수명 안에 eax 를 쓰는 짧은 식. 사용자 지시로 분석 중단(2026-10-08).
-7. 결과(2026-10-08 재개분, 탐침 sw6–sw10; codex gpt-6-astra 영어 질의 k0j4dpyoo — 회신의 1 순위 "sn 의 pseudo 재사용"은 제가 독립적으로 먼저 도달한 가설과 같았고, 아래 탐침으로 검증했습니다):
-   - 복사 임시 T 가 cse 를 살아남는 조건을 원문으로 확정: cse.c 7467–7520 은 `(set T eax)(set 29 T)` 에서 29 가 T 의 qty 정규 레지스터일 때 두 insn 을 맞바꿔 `(set 29 eax)` 로 만들고(sw6 덤프 116/118 로 확인), 반대로 T 가 정규이면 canon_reg 가 29 의 뒤 사용을 모두 T 로 바꿉니다(sw5: 29 사용 245·249 → 48). 정규 선택은 make_regs_eqv(cse.c 840–862)의 "마지막 사용이 더 늦은 쪽" 규칙입니다. 또 local-alloc 의 optimize_reg_copy_1(local-alloc.c 700–830)이 pseudo 간 복사를 합칩니다. 따라서 T 가 남으려면 **T 가 뒤에서 다른 값으로 다시 설정되는 변수**여야 합니다(sw8/sw9: 재사용 임시 `buf` → lreg 에서 `(set 30 29)` 가 29 의 REG_DEAD 와 함께 남음; 그러나 T = eax).
-   - **sw10(`sn = (struct swapnode *)kalloc(page_size * 3); rbuf = (vm_offset_t)sn;` 뒤에 기존 `sn = kalloc(0x7c)`)**: `movl %eax,%ecx; movl %ecx,-20(%ebp)` 로 원본 0x7e–0x80 과 같아졌습니다. 이유: sn 의 pseudo 28 은 호출을 건너므로 global 에서 eax 와 충돌(call 이 eax 를 설정)하고 ebx·esi·edi 가 없어 caller-save 로 ecx 를 받으며(우리 빌드의 sn 과 같은 할당), 그 첫 구간이 kalloc 값의 짧은 복사가 됩니다. 남은 차이는 page_size pseudo 48 하나뿐: 우리는 global 이 eax 를 주고(통과 0: eax 는 regs_used_so_far 에 있고 아무도 선호하지 않음, global.c 946–990), 원본은 edx(reload 의 spill 레지스터 — 우리 덤프 "Spilling reg 4./Spilling reg 1." 즉 esi·edx; eax 는 spill 레지스터가 아님)를 받아 reload 가 REG_EQUIV 메모리로 치환했어야 합니다. 그러려면 48 보다 우선순위가 낮고 48 과 겹치는 allocno 가 eax 를 선호하거나(regs_someone_prefers, prune_preferences global.c 829–880), 48 의 수명 안에 eax 가 살아 있어야 합니다(set_preference 는 하드 레지스터 또는 local 할당 pseudo 와의 복사만 기록, global.c set_preference).
-   - 기각: 선언 초기화(sw6·sw7), 배열(sw4), 중첩 대입(sw5), 단순 재사용 임시(sw8·sw9)는 T 가 eax. `-mreg-alloc=dcabSDB` 진단(sw10d)은 sn 이 edi 로 바뀌어 비교 무의미. fsid 복사는 원본·우리 모두 SI 조각(move_by_pieces, 교차 적재/저장)이라 DImode 순서(use_dca, i386.c 253–285) 근거가 없습니다.
-   - 다음(미실행): sw10 구조에서 48 의 eax 를 막는 자연 구문 — (a) 첫 덧셈이 sn 을 직접 쓰는 꼴 `wbuf = (vm_offset_t)sn + page_size`(28 과 48 충돌; 단 28 의 선호는 call 교차로 가지치기됨), (b) rbuf 가 하드 레지스터/local pseudo 에서 복사되어 eax 선호를 갖는 꼴, (c) 48 수명 안에 eax 를 쓰는 식. 사용자 지시로 대기(2026-10-08).
-8. 결과(2026-10-08 재개 2, 탐침 sw11–sw14, 객체 채점 `runko.sh`+`scoreo.py`(swapfs/score.py 를 객체 경로로 바꾼 사본)):
-   - **sw11 = sw10 + `wbuf = (vm_offset_t)sn + page_size;`(기본 플래그)**: 원본과 다른 곳은 0x83–0x94 의 5 명령뿐입니다(우리 `movl _page_size,%eax; movl %ecx,%edx; addl %eax,%edx; movl %edx,-24(%ebp); addl %edx,%eax; movl %eax,-28(%ebp)`, 원본 `add ecx,[page_size]; mov [ebp-0x18],ecx; mov edx,ecx; add edx,[page_size]; mov [ebp-0x1c],edx`). 앞 두 명령(`mov ecx,eax; mov [ebp-0x14],ecx`)은 이제 일치합니다. 나머지 17 함수는 기존과 같이 일치(scoreo 차이 0).
-   - **진단(소스 아님)**: 같은 sw11 을 `-fno-force-mem -fno-expensive-optimizations` 로 컴파일하면 swapfs_mount 가 **원본과 바이트 일치(차이 0)** 합니다. 그러나 이 두 플래그는 같은 파일의 다른 함수 8 개를 깨뜨리고(각 플래그 단독으로도 깨짐), 따라서 파일 플래그가 원인이 아니라 두 메커니즘을 소스가 비켜 가야 합니다.
-     (1) expensive-optimizations: local-alloc.c 1004–1007 의 optimize_reg_copy_1(700–830)이 `(set rbuf sn)` 뒤의 덧셈 입력 sn 을 rbuf 로 바꿔(lreg 덤프 `(plus 29 48)`) 덧셈 입력이 죽는 하드 레지스터 ecx 가 아니게 되므로 find_dummy_reload(reload.c) 로 `add ecx,…` 가 나오지 못합니다. 이 변환은 복사와 sn 의 죽음 사이에 CODE_LABEL·JUMP_INSN·LOOP_BEG/END 노트, sn·rbuf 의 재설정, sn 의 USE 가 있을 때만 멈춥니다. 루프 노트는 expand_start_loop/expand_end_loop(stmt.c 2145–2275)가 대기 스택 조정을 내보내 원본의 0xcb `add esp,0x24`(kalloc·kalloc·bzero·kmem_suballoc 인자 4+4+8+20)와 어긋나므로 제외.
-     (2) force-mem: 두 page_size 읽기가 pseudo 로 적재되고 cse 가 하나로 합쳐 두 번 쓰이므로 combine 이 메모리 피연산자로 되돌리지 못합니다. 두 읽기 사이에 cse 가 "all" 무효화(note_mem_written cse.c 7555–7590: 구조체·배열이 아닌 가변 주소 저장, BLKmode 저장, 호출)를 하거나 합쳐진 pseudo 가 하드 레지스터를 잃어야(eax 를 받지 않고 spill 레지스터 edx/esi 를 받은 뒤 그 블록의 reload 요구로 쫓겨남) 원본이 됩니다.
-   - 기각: 버퍼를 주소 취득 변수로 둔 sn 재사용(sw13·sw14, 인라인 helper): sn 이 edi, vp 가 스택으로 바뀌어 더 멂.
-9. **결과(2026-10-08 재개 2): swapfs.c 전체 text 일치 탐침.** codex(gpt-6-astra) 영어 질의 kw8ku9epm 의 1 순위 "sn 을 커서로 파괴적 갱신"을 탐침으로 검증했습니다(codex 회신은 근거가 아니며, 아래 결과만 근거입니다).
-   - sw18(sw0 = pz1 바탕): `sn = (struct swapnode *)kalloc(page_size * 3); rbuf = (vm_offset_t)sn; sn = (struct swapnode *)((vm_offset_t)sn + page_size); wbuf = (vm_offset_t)sn; cbuf = wbuf + page_size;` 뒤에 기존 `sn = (struct swapnode *)kalloc(sizeof (struct swapnode));`.
-   - 실기 cc-744.13 `-O3`(runko.sh, s5p388-y1 헤더)로 객체를 만들어 scoreo.py 로 비교: **swapfs.c 의 18 함수 모두 차이 0(재배치 가림), text 4492 = 원본 4492.** sw19(`cbuf = (vm_offset_t)sn + page_size;`)도 객체가 sw18 과 바이트 동일(cmp)이라 두 꼴은 바이트로 구별되지 않습니다.
-   - 메커니즘(원문 대조): `(set rbuf sn)` 다음 insn 이 sn 을 다시 설정하므로 optimize_reg_copy_1(local-alloc.c 721–735 의 `reg_set_p (src, p)`)이 멈추고, `sn = sn + page_size` 의 입력 sn 이 그 insn 에서 죽는 ecx 라 reload 가 `add ecx,[page_size]` 를 만듭니다. page_size 가 메모리 피연산자가 되는 경로(합쳐진 pseudo 의 할당·reload 치환 또는 combine)는 덤프로 아직 확인하지 않았습니다(배치 계획에서 확인할 항목).
-   - 남은 일: 07 에 배치(swapfs 는 아직 07 에 없음 — 새 파일 `bsd/swapfs/swapfs.c` 와 관련 헤더·기록), 데이터·cstring·bss 절 비교, iter_k07·relcheck·cc -M·기록. 별도 계획(§388)으로 세우고 codex 교차검토 뒤 코딩합니다.
-10. **확인 빌드 s5p393-k1(2026-10-08, 진단, 07 아님)**: s5p392-h1 의 커널 형식 스테이지(`-g -O3 -fno-omit-frame-pointer`, 전체 -D/-I)를 복사해 swapfs.c 만 sw18 로 바꿈. L1(`09_validation/reconstruction/s5p393-k1-l1-swapfs-20261008.json`): `__TEXT,__text` 4492 B 바이트 차이 0·참조 183 중 차이 0, `__DATA,__data` 432 B 차이 0·참조 40 중 차이 0, 함수 MATCH 14·MATCH_UNVERIFIED 4(swapfs_alloc·swapfs_pagein·swapfs_pageout·swapfs_getstats, 미검증 의존은 `__bss` 뿐) [정정 2026-10-08 plan 388 검토: 처음에 "18 함수 모두 MATCH" 로 잘못 적음]. 객체 판정은 `__DATA,__bss`(100 B, 추정 배치) 미검증 하나로 NOT_MATCH — zerofill 확인과 07 배치는 §388 에서 계획합니다.
-
-## 388. S5-P361 세부 계획 — `bsd/swapfs/swapfs.c`(D054 ①, 이름 추정, D024 작성) 07 배치(plan 378·387 이어서; 코딩 전, 2026-10-08)
-
-0. 원본(L1 `s5p393-c1`, python): `__text` [0x13a588, 0x13b714) 4492 B — 앞 spec_vnodeops 끝 0x13a588(틈 0 B), 뒤 ufs_alloc 시작 0x13b714(틈 0 B, objects_confirmed); `__data` [0x1dd7b4, 0x1dd964) 432 B(plan 378 의 끝 0x1dd95c(424 B)는 이전 추정 — 정정); `__bss` 100 B 는 객체 쪽 크기이고 원본 안 자리는 참조로 추정한 것(정적 통계, 기호 없음; 3 항 — 소유를 증명하지 않음). 함수 18(전역 logswap·compress_data·uncompress_data, 정적 15 — plan 378 의 이름 추정). 원본 기호 중 이 구간 `__data` 의 것: _swapfs_cangrow·_swapfs_enabled·_compress_window_size·_compress_threashold·_compress_enable·_compress_backoff_on·_compress_backoff_off·_swpgotcha·_swapfs_vfsops(python 기호표 조회).
-1. 참조 원문 없음(D054 ①; D055 의 BSD 스왑 원문은 설계가 달라 쓰지 않음 — plan 387 기록). 파일 전체 D024 작성.
-2. 후보 = scratchpad `swapfs/cand388.c` = 탐침 sw21 + 머리 문구 갱신 + 표시 주석 2 곳(findblock 의 `int full`(plan 378 근거), mount 버퍼 꼴(plan 388)). sw21 = plan 387 의 sw18 에서 mount 의 `do { … } while (0)` 감싸개를 뺀 것 — 감싸개는 이전 레지스터 배정 우회용이었고, sn 커서 꼴에서는 있든 없든 객체가 바이트 동일(sw18·sw19·sw21 `.o` SHA-256 모두 1623ab6a…9c33, 재배치 포함; `__bss` 는 크기·배치만 비교 가능). 원본 바이트가 감싸개의 유무를 정하지 못하므로, 처음 작성하는 D024 파일에는 더 단순한 꼴(감싸개 없음)을 고른 것이며 "원본이 감싸개가 없었다" 는 주장은 아님. 반대로 `int full` 을 상수 비교로 바꾸면(sw23) alloc 이 660 B 로 달라져 필요함을 다시 확인. 마지막 줄 `cbuf = wbuf + page_size;` 는 `cbuf = (vm_offset_t)sn + page_size;` 와 객체가 바이트 동일(sw18·sw19 cmp) — 바이트로 가를 수 없음을 기록에 적음.
-3. 진단(07 아님): `s5p393-k1`(sw18), `s5p393-c1`(cand388) 둘 다 `__text` 0 차이(참조 183 중 0), `__data` 0 차이(참조 40 중 0), 판정 사유는 `__DATA,__bss: unverified` 하나. zerofill_check(c1, known = `zerofill-known-s5p373b-20261007.json`): reference-inferred, 참조 19, Δ 하나 0x1e46f8, 후보 [0x1e5a34, 0x1e5a98)(100 B), 정렬·zero-fill 안·기호 없음·겹침 없음, 음성 검사 검출.
-4. 07 배치: `src/bsd/swapfs/swapfs.c`(= cand388.c) → iter_k07(`s5p393-it1`, 커널 C 꼴) → relcheck(원본 text 0x13a588) → 실기 cc -M(`s5p393-dep1`, 모든 헤더 07 확인) → zerofill_check(it1 객체; 결과 json 저장, known 목록에 [0x1e5a34, 0x1e5a98) 추가한 새 판) → record_partial(authored, D024/D054, 등급 **P**: bss 만 미검증 — xdr·intr 선례; 함수 compared/high 14·medium 4; 앞뒤 틈 0 B 경계 증명; zerofill 은 직전 known 판으로 검사한 뒤 새 판에 [0x1e5a34, 0x1e5a98) 추가; PROVENANCE 에 D054 이름 추정 문구·원본 주소·파일 SHA-256·전체 D024 작성, 증거 md 에 최종 L1·zerofill json·명령·cc -M·sw18/sw19/sw21 동등성·page_size 메커니즘은 해석임을 적음) → objects_partial +1, functions +18(정의 줄 python 확인), PROVENANCE +1, MODIFICATIONS +1, 증거 md·diff, 범위(python).
-5. 범위 밖(이번에 하지 않음): ① plan 378 메모의 07 `machdep/i386/pmap.c` compress_data_from_phys·uncompress_data_to_phys 매개변수 이름·변환 인자 — 바이트가 같아 원본 바이트가 요구하는 수정이 아니므로 별도 계획에서 판단. ② machine_clock 잔여(plan 386·387).
-   - ① 의 내용(codex 검토로 보탬): uncompress_data_to_phys 는 둘째 인자(swapfs 가 넘기는 압축 크기)에 pmap_phys_to_kern 을 적용하고 셋째(물리 주소)는 그대로 넘기며, 다섯째 매개변수는 `int *result` 인데 swapfs 는 `(int)foff / 8192` 정수를 넘김. VM_MIN_KERNEL_ADDRESS = 0 이라 지금 바이트는 같음. plan 378 메모의 "swapfs 를 넣을 때 함께 고칠 것" 은 이 계획에서 "별도 계획" 으로 바꿈(이 줄이 유효한 지시).
-6. codex 교차검토(kmd7gf1mo, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| §387.10 "18 함수 모두 MATCH" 는 틀림 — k1·c1 모두 MATCH 14·MATCH_UNVERIFIED 4 | k1·c1 L1 json 의 functions 판정을 python Counter 로 집계(alloc·pagein·pageout·getstats) | ✅ 내 기록 오류 — §387.10 정정 |
-| §388.0·3 의 수(text 4492 B·data [0x1dd7b4, 0x1dd964) 432 B·bss 후보 [0x1e5a34, 0x1e5a98) 100 B·참조 19·Δ 0x1e46f8·앞뒤 틈 0 B·data 기호 9 개)는 맞음 | 이번 세션 python: L1 json 절 주소·크기, zf-c1.json, objects_confirmed spec_vnodeops 끝 0x13a588·ufs_alloc 시작 0x13b714, symbols.tsv 조회 | ✅ |
-| bss 100 B 를 "원본" 사실로 쓰면 안 되고 참조 추정 자리로 써야 함 | L1 json `__bss` placement "inferred"·"zero-fill (not comparable)"(앞서 출력) | ✅ 채택: 0 항 문구 고침 |
-| cand388.c 와 sw21.c 의 차이는 주석뿐, 표시 주석 주소 [0x13b35c, 0x13b383) 맞음 | diff 출력(머리·`full` 주석·mount 4 줄 주석), python 0x13b2ec+0x70·+0x97 | ✅ |
-| sw18·sw19·sw21 `.o` 는 바이트 동일 | sha256sum 셋 = 1623ab6a…9c33 | ✅ 2 항을 객체 SHA 로 고침 |
-| 감싸개 제거는 "원본 바이트가 요구" 가 아니라 바이트 중립 선택 — 그렇게 적어야 함 | 위 SHA 동일; DECISIONS D024(작성 파일) | ✅ 채택: 2 항에 명시 |
-| `__bss` 는 "내용" 비교가 아니라 크기·배치 | 위 L1 json | ✅ 2 항 고침 |
-| P 등급·흐름은 xdr 선례(objects_partial :13, 증거 x86-xdr.md :6–8)와 맞음, 함수 high 14·medium 4 | objects_partial :13·x86-xdr.md :6–8(sed), README :20–23 compared/high·medium 정의(sed) | ✅ 4 항에 반영 |
-| zerofill 은 이전 known 목록으로 검사한 뒤 새 구간을 덧붙인 새 판을 만들어야 함(자기 구간을 넣고 검사하면 겹침) | zerofill_check.py :191–194 `overlaps` 검사(sed) | ✅ 4 항에 순서 명시(이미 그렇게 적었으나 분명히 함) |
-| 경계 증명서(앞뒤 0 B) 기록 필요 | README :25 P 정의·§381 4 항(sed) | ✅ 4 항에 반영 |
-| PROVENANCE·MODIFICATIONS 에 D054 이름 추정 문구·원본 주소·파일 SHA·전체 작성 표기 | PROVENANCE :1024·MODIFICATIONS :496 if_vtrip 선례(grep) | ✅ 4 항에 반영 |
-| 범위는 P 에 text 4492 B 더하고 bss 는 세지 않음 | §381 범위 줄·README 정의 | ✅ |
-| §387.9 의 page_size 메커니즘 확인이 4 항에 없음 | §387.9 문장(sed) | ⚖️ 채택: 해석으로 남김(바이트 일치가 근거) — 4 항에 적음 |
-| pmap 은 이름만이 아니라 uncompress 감싸개가 둘째 인자(csize)에 pmap_phys_to_kern 을 씀, 다섯째 매개변수 `int *result` 인데 swapfs 는 `(int)foff / 8192` 정수를 넘김; 지금은 VM_MIN_KERNEL_ADDRESS = 0 이라 바이트 같음 | pmap.c :1889–1898(앞서 grep), pmap.h :121 `((phys) + VM_MIN_KERNEL_ADDRESS)`, nextdev/mach/i386/vm_param.h :44 `0x00000000`, cand388.c :387–388 | ✅ 사실 — 5 항 ① 에 내용 추가, plan 378 메모("함께 고칠 것")는 이번 결정으로 대체 |
-- 결과(2026-10-08): 07 `src/bsd/swapfs/swapfs.c`(= cand388.c, SHA-256 cc29d0e0…a311). `s5p393-it1`(iter_k07): `__text` 0 차이(참조 183 중 0)·`__data` 432 B 0 차이(참조 40 중 0), 함수 MATCH 14·MATCH_UNVERIFIED 4(`__bss` 만), 객체 판정 사유 `__DATA,__bss: unverified` 하나; relcheck 0; 실기 cc -M `s5p393-dep1` 125 헤더 모두 07(객체 = it1, cmp). zerofill(직전 known `s5p373b`로 검사) reference-inferred [0x1e5a34, 0x1e5a98)(참조 19·Δ 0x1e46f8·음성 검사 검출) → 새 known `zerofill-known-s5p393-20261008.json`(70 → 71 행). 기록: record_partial 의 이번 판(scratchpad `record_partial388.py` — 함수별 판정으로 high/medium, 객체 행 문구를 spec 으로)으로 objects_partial +1(P, 앞뒤 0 B), functions +18(high 14·medium 4; 18 행 모두 07 정의 줄 확인 python), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-swapfs.md`·`.diff`(줄 수 4727→4745, 70→71, 1025→1026, 497→498 — wc 확인).
-- 범위(python): 이번 4492 B. A 314 obj 620812 B (72.91%), P 70 obj 227645 B (26.74%), L 2 obj 340 B; A+P 99.65%, A+P+L 99.69%, rem 2639 B; 겹침 없음.
-
-## 389. 진단 메모 — machine_clock clock_timer_init 잔여 1 바이트(복사 레지스터) 재탐색(07 손대지 않음, 2026-10-08)
-
-0. 탐침: `08_build/runs/tools/probe` 의 `runk2.sh`(STAGE 환경변수로 헤더 스테이지 선택; machine_clock 은 `STAGE=s5p391-g1`), mc0 = scratchpad `mcv/g1.c`(대조: 복사 `movl %esi,%edx`, 원본 `mov eax,esi`).
-1. 플래그 진단(mc0, 각 1 개 끔): -fno-expensive-optimizations·-fno-force-mem·-fno-cse-follow-jumps·-fno-cse-skip-blocks·-fno-rerun-cse-after-loop·-fno-strength-reduce·-fno-caller-saves·-fno-defer-pop·-fno-thread-jumps·-O2 모두 edx 그대로 → 남은 원인은 플래그가 아닌 레지스터 순서·점유(§386 의 use_dca)로 다시 확인.
-2. 원본 꼬리(python 역어셈블 0x187b32–0x187b7d): panic 블록이 0x187b47 로 흘러들고, 그 뒤 저장·포트·out 두 번이 레이블 없는 한 블록. 0x187b47 `mov [last_count],si` → 0x187b4e `mov eax,esi` → 0x187b50 `mov [reload],ax` → 0x187b56 `mov cx,[port]` → `mov bl,[last_count]` …
-3. 새 해석(덤프로 확인한 부분): `mov eax,esi` 는 X 가 eax 를 받은 것이 아니라 **reload 의 입력 reload**(reload 레지스터 eax = 첫 spill 레지스터, 값은 find_equiv_reg 로 esi 에서 가져옴)일 수 있습니다.
-   - mc1·mc3·mc4·mc5·mc6·mc9(한 꼬리 꼴): `movl %esi,%eax; movw %ax,_reload` 가 나옴(eax!). 다만 값 pseudo 가 스택 칸 −20 을 받아 `movw %si,-20(%ebp)`·`movb -20(%ebp),%bl` 이 생김(cse 가 뒤의 last_count 읽기를 그 pseudo 로 바꿔 수명이 asm 까지 늘고, 저장 등가 규칙 local-alloc.c 987–1000 이 성립하지 않음).
-   - mc11(두 갈래 끝에 `set_counts(count)` = `last_count = count`, 합류 뒤 `reload = last_count;`): 원본과 다른 곳은 `movw _last_count,%ax` 한 명령뿐(원본 `mov eax,esi`). 합류 레이블 때문에 reload 의 find_equiv_reg 가 앞 저장(esi)을 보지 못함.
-   - mc12(한 꼬리, `last_count = count; reload = last_count;`): RTL 은 `(set (mem reload) (mem last_count))`, reload 가 find_equiv_reg(reload1.c 5279–5345)로 esi 를 찾아 **esi 를 reload 레지스터로 직접** 써서 `movw %si,_reload`.
-   - 따라서 원본은 "같은 블록에서 esi 가 같은 값을 갖지만 esi 를 reload 레지스터로 직접 쓰지 못해(5279–5345 의 거부 조건) eax 로 복사" 한 꼴이거나, §386 의 "X 가 eax" 꼴 중 하나입니다. 아직 어느 쪽인지 정하지 못했습니다.
-4. codex(ktwfb4l6s, gpt-6-astra) 1 순위 "합류를 건너는 공유 결과 pseudo"(mc13·mc14·mc15): 전역 pseudo 가 되어 edx 를 받고 reload 가 edx 를 spill 하자 retry_global_alloc 이 ecx 를 줌(`movl %esi,%ecx; movw %cx,_reload`, -dg "Spilling reg 1 … Register 39 now in 2") → 기각.
-5. 꼴 24 가지 일괄 탐침(`probe/mcs/`, 도움 함수 8 × 꼬리 6, 결과 `mcs/result.txt`): 일치 없음. 묶음별 결과: 두 갈래 꼴은 edx(지역)·ecx(전역) 또는 si 직접; 한 꼬리 꼴은 `movl %esi,%eax; movw %ax,_reload` 가 나오나 값 pseudo Y 가 스택 칸을 받음.
-6. 덤프로 확정한 reload 경로(mcs01 = 한 꼬리 `reload = set_counts(count)`): Y 는 asm 이 있는 블록에서 DREG 수요로 밀려나 스택 칸 −20 을 받고, Y 의 초기화 insn 이 `(set (mem −20) (subreg:HI esi))` 저장으로 바뀜; `reload = Y` 의 입력 reload 는 reload 레지스터 eax 를 받고 값은 그 저장에서 esi 로 가져옴(`(set (reg:HI ax) (subreg:HI esi))`). 즉 **원본은 Y 의 집이 스택 칸이 아니라 `last_count` 이고 초기화 insn 이 그 저장으로 남은 꼴**로 설명됩니다 = local-alloc.c 987–1000 의 저장 등가(Y 가 `last_count = Y` 에서 죽어야 함).
-   - mc16(`last_count = count; return (last_count);` 도움 함수): Y 가 적재 규칙(1044–1054)으로 `last_count` 등가를 얻지만 초기화가 적재라 reload 가 지우고, reload 입력은 메모리에서 적재(`movw _last_count,%ax`) → 원본과 한 명령 다름.
-   - 저장 규칙의 걸림돌: Y 가 저장에서 죽으려면 뒤의 timer_write 가 `last_count` 를 메모리로 읽어야 하는데, 같은 블록이면 cse 가 그 읽기를 Y 로 바꿔 Y 의 수명이 늘어남.
-7. codex(k3u3n22bk, gpt-6-astra) 회신 검증과 결과: s01 의 eax 복사는 그 pseudo 의 선호 부류 Q_REGS(mcs01.c.lreg :946 "Register 39 used 4 times across 7 insns in block 15; 2 bytes; pref Q_REGS, else GENERAL_REGS.")로 reload 부류가 esi 를 빼고(reload.c find_reloads 의 선호 부류 좁힘), emit_reload_insns 가 ALL_REGS 로 찾은 esi 를 원천으로 쓴 결과라는 해석 — 덤프와 일치. 제안 "`last_count` 를 timer_write 뒤에 대입" 을 탐침: mc18(HI 매개변수 인라인 `reload = c; timer_write(SEL, c); last_count = c;`), mc19(HI 지역 `c = count; reload = c; timer_write(TIMER_CNT0_SEL, c); last_count = c;`), mc20(`reload = c = count; timer_write(SEL, reload); last_count = c;`) **세 꼴 모두 꼬리가 원본과 같음**. 커널 형식 `s5p394-m18`·`m19`·`m20`: `__text` 1957 B 0 차이(참조 98 중 0)·`__const`·`__data` 0 차이, 셋의 절 내용 동일(python). 저장 등가: local-alloc.c 984–1000 이 c 의 초기화 insn 에 REG_EQUIV `(mem last_count)` 를 달고, c 가 asm 블록 수요로 레지스터를 잃으면 reload 가 c 의 쓰임을 그 메모리로 바꾸며(reload1.c 586–595 가 끝의 저장을 등가 insn 으로 기록, 1910–1928 이 그 저장을 지움) 초기화 insn 이 `last_count` 저장으로 남음 [codex 검토로 단계 구분; 최종 명령 순서가 근거이고 각 단계의 분기 선택은 덤프로 직접 보지 않은 해석].
-
-## 390. S5-P362 세부 계획 — `machdep/i386/machine_clock.c`(plan 240 작성, D024) 07 배치(plan 386·389 이어서; 코딩 전, 2026-10-08)
-
-0. 원본(L1 `s5p394-c1`, python): `__text` [0x187844, 0x187fe9) 1957 B — 앞 checksum_16 끝 0x187842(`00 00` 2 B), 뒤 dkbad 시작 0x187fec(`00 00 00` 3 B); `__const` [0x1d14a0, 0x1d14dc) 60 B(L1d), `__data` [0x1e17f8, 0x1e1841) 73 B; `__bss` 40 B 는 객체 쪽 크기이고 원본 자리는 참조 추정(4 항). 함수 14(L1 은 `__const` 기호 `__timer_cnt_port_`·`_clock_attrs`·`_timer_attrs` 도 함께 나열해 17 행; 함수 14 중 MATCH 5·MATCH_UNVERIFIED 9).
-1. 참조 원문 없음(plan 240: 전면 작성, D024). 07 에 아직 없음(plan 240·253·365 에서 보류).
-2. 후보 = scratchpad `mclk/cand390.c` = 탐침 mc21 + 머리 문구(plan 240·386·389·390, 원본 범위) + 꼬리 표시 주석 하나(plan 390). mc21 = g1(scratchpad `mcv/g1.c`, §386)에서 clock_timer_init 꼬리를 `if (count > 0xffff) panic(...); c = count; reload = c; timer_write(TIMER_CNT0_SEL, c); last_count = c;` 로 바꾸고 쓰이지 않게 된 인라인 set_counts 를 뺀 것(뺀 뒤 `s5p394-m21` 절 내용이 m19 와 같음, python) — 바이트 중립 선택으로 처음 작성하는 D024 파일에 단순한 꼴을 고른 것이며 원본이 그랬다는 주장은 아님(swapfs 선례). mc18·mc19·mc20 은 절 내용·배치·재배치가 같아(객체 파일 해시는 디버그 정보로 다름) 바이트로 가를 수 없음 — 가장 단순한 지역 변수 꼴을 고름(원본이 그 꼴이었다는 주장은 아님).
-3. 진단(07 아님): `s5p394-c1`: `__text`·`__const`·`__data` 0 차이·참조 차이 0, 판정 사유 `__DATA,__bss: unverified` 하나, L1 17 행 MATCH 8·MATCH_UNVERIFIED 9(그중 함수 14: MATCH 5·MATCH_UNVERIFIED 9).
-4. zerofill(c1 이 아니라 07 빌드 객체로 다시; 진단 m21 결과: known `zerofill-known-s5p393-20261008.json` 로 검사 → reference-inferred, 참조 45, Δ 0x1e6d94, 후보 [0x1e75c4, 0x1e75ec) 40 B, 겹침 없음, 음성 검사 검출).
-5. 07 배치: `src/machdep/i386/machine_clock.c`(= cand390.c) → iter_k07(`s5p394-it1`) → relcheck(원본 text 0x187844) → 실기 cc -M(`s5p394-dep1`, 헤더 모두 07) → zerofill(직전 known `s5p393` 판으로 검사, 새 판 `zerofill-known-s5p394-20261008.json` 에 추가) → record_partial388(authored, D024, 등급 **P**: bss 만 미검증, `__const` 는 L1d 로 검증; 함수 high 5·medium 9; 기록 도구는 bss 절 번호를 L1 json 에서 읽도록 고친 판(이 객체의 `__bss` 는 index 2); 앞 2 B·뒤 3 B `00` 경계) → objects_partial +1, functions +14(정의 줄 python 확인), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-machine_clock.md`·`.diff`, 범위(python).
-6. 범위 밖: 없음(이것이 마지막 잔여). 
-7. codex 교차검토(kgq96v8ez, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| record_partial388.py 는 bss 절 번호를 3 으로 고정 — 이 객체의 `__bss` 는 index 2, 함수 의존도 "2" 라 실패 | L1 json 절 index 출력(text 1·bss 2·const 3·data 4), 도구 :96–97(grep) | ✅ 채택: 도구가 L1 의 bss index 를 쓰도록 고침 |
-| 함수 14 중 MATCH 5·MATCH_UNVERIFIED 9(나머지 MATCH 3 은 `__const` 기호), 기호 이름은 `__timer_cnt_port_` | python: 객체 text 기호 14 와 L1 판정 교차 집계, 비-text 3 행 이름 출력 | ✅ 내 기록 부정확 — 0·3·5 항 고침 |
-| §389.7 "local-alloc 이 저장을 옮김" 은 단계 압축 — REG_EQUIV 표시(local-alloc) 뒤 reload 가 등가 메모리로 바꾸고 나중 저장을 지움 | reload1.c 576–595(등가 insn 기록), 1910–1928(삭제) sed | ✅ 채택: 문구 고침 |
-| 저장 등가 코드는 local-alloc.c 1009 까지 | local-alloc.c 1001–1009 sed: optimize_reg_copy_1 부분 | ❌ 기각: 저장 등가는 984–1000(987–1000 에서 984–1000 으로만 넓힘) |
-| set_counts 제거·mc19 꼴 선택은 바이트 중립 선택으로 적어야 함, 객체 해시는 서로 다름 | sha256sum m18·m19·m20 서로 다름(앞서 출력), 절 비교 같음 | ✅ 2 항 고침 |
-| 범위·크기·틈 바이트·zerofill 수치는 맞음 | 이번 세션 python(L1 json 절, 원본 틈 `00 00`·`00 00 00`, zf-m21) | ✅ |
-| 후보는 mc21 과 주석만 다르고 주석 주소 [0x187b47, 0x187b56) 맞음; "plan 240.1 … variant d5" 주석은 옛 계획 근거가 있어 남겨도 됨 | diff 출력, 원본 역어셈블 0x187b47–0x187b56(앞서 출력) | ✅ |
-- 결과(2026-10-08): 07 `src/machdep/i386/machine_clock.c`(= cand390.c, SHA-256 3aabbc41…fa04d). `s5p394-it1`(iter_k07): `__text` 0 차이(참조 98 중 0)·`__const` 60 B L1d 0 차이·`__data` 73 B 0 차이, 함수 MATCH 5·MATCH_UNVERIFIED 9(`__bss` 만), 객체 판정 사유 `__DATA,__bss: unverified` 하나; relcheck 0; 실기 cc -M `s5p394-dep1` 116 헤더 모두 07(객체 = it1, cmp). zerofill(직전 known `s5p393` 로 검사) reference-inferred [0x1e75c4, 0x1e75ec)(참조 45·Δ 0x1e6d94·음성 검사 검출) → 새 known `zerofill-known-s5p394-20261008.json`(71 → 72 행). 기록(record_partial388.py, bss index 를 L1 에서 읽도록 고친 판): objects_partial +1(P, 앞 `00 00`·뒤 `00 00 00`), functions +14(high 5·medium 9, subsystem machdep; 14 행 모두 07 정의 줄 확인 python), PROVENANCE +1, MODIFICATIONS +1, 증거 `x86-machine_clock.md`·`.diff`(줄 수 4745→4759, 71→72, 1026→1027, 498→499).
-- 범위(python): 이번 1957 B. A 314 obj 620812 B (72.91%), P 71 obj 229602 B (26.97%), L 2 obj 340 B; A+P 99.88%, A+P+L 99.92%, rem 682 B; 겹침 없음.
-
-## 391. 진단 메모 — 마지막 미기록 구간 [0x15a628, 0x15a67c) 84 B(D054 ③; 사용자 지시로 다룸; 07 손대지 않음, 2026-10-08)
-
-0. 사용자 지시(2026-10-08): "이제는 하나밖에 없으니 그것만 해결하면 끝나는게 아닌가요? 그럼 취급하는게 맞을거 같습니다." — D054 ③ 의 "계속 보류" 를 풀고 다룸.
-1. 범위 계산(python): plan 390 뒤 미배정 `__text` 682 B 중 0 이 아닌 바이트가 있는 구간은 [0x15a628, 0x15a67c) 84 B 하나뿐(나머지는 객체 사이 0 채움).
-2. 원본(python capstone): `_ds_notify` 0x15a628(`xor eax,eax` 반환), `_vm_object_pager_wakeup` 0x15a634(빈 함수), `_send_notification` 0x15a63c(msg_id ≠ 0x42 이면 반환, `task_get_special_port(task, 2, &tnotify)` 성공이면 `ipc_notify_msg_accepted_compat(tnotify, name)`), `_task_secure` 0x15a670(`return 1`). 함수 사이 채움은 `90`(목적 파일 안의 함수 정렬 채움과 같은 값 — 네 함수가 한 목적 파일이라는 해석의 근거일 뿐 증명은 아님; 커진 ipc_xxx 경계는 D056 의 재구성 결정), 앞 ipc_xxx 끝 0x15a628·뒤 kalloc 시작 0x15a67c 로 틈 0 B. 원본 기호표는 이름순이라 목적 파일 소속을 알려 주지 않음.
-3. 참조: send_notification 은 Darwin 0.1 `kern/ipc_xxx.c:271`(port_release 바로 뒤, 본문이 원본 바이트와 같은 꼴)과 NeXTMach `kern/ipc_basics.c:593`(옛 IPC, 다른 본문); ds_notify 는 Mach4 `device/ds_routines.c:1371`(다른 본문); vm_object_pager_wakeup 는 Mach4 `vm/vm_object.c:683`(다른 본문); task_secure 는 NeXTMach `kern/ipc_tt.c:618`(다른 본문). 4.2 의 빈 꼴 셋은 어느 참조에도 없음. 07 `kern/ipc_xxx.c` 는 Darwin 바탕에서 send_notification 을 지운 판(PROVENANCE :161, "send_notification removed")이고 객체 A [0x15a39c, 0x15a628).
-4. 진단 `s5p395-nt0`(diag_k07, 07 복사본에 `kern/notify_stubs.c` 임시 이름): `ds_notify`(FALSE 반환)·`vm_object_pager_wakeup`(빈 몸)·`send_notification`(Darwin 본문과 같은 꼴)·`task_secure`(TRUE 반환) 네 함수로 **OBJECT_MATCH**(`__text` 0 차이, 함수 4 MATCH).
-5. 사용자 결정이 필요한 것: (a) 이 84 B 를 어느 07 파일에 둘지 — 07 `kern/ipc_xxx.c` 끝에 붙여 ipc_xxx 객체를 [0x15a39c, 0x15a67c) 로 넓힐지(2026-10-04 "Darwin 의 파일 배치는 기준 근거가 아님, ipc_xxx 경계 그대로" 지시를 바꾸는 것) 또는 새 파일(이름 추정, D054 방식)로 둘지; (b) send_notification 본문이 Darwin 과 같은 꼴이므로 D027(작성 처리) 적용 여부.
-
-## 392. S5-P363 세부 계획 — D056: [0x15a628, 0x15a67c) 84 B 를 07 `kern/ipc_xxx.c` 끝에 붙여 ipc_xxx 객체를 [0x15a39c, 0x15a67c) 로 다시 기록(코딩 전, 2026-10-08)
-
-0. 원본(python): ipc_xxx 의 기존 A 범위 [0x15a39c, 0x15a628) 652 B(함수 8) + 이번 84 B(함수 4) = [0x15a39c, 0x15a67c) 736 B, 함수 12; 앞 ipc_tt 끝 0x15a39c(0 B), 뒤 kalloc 시작 0x15a67c(0 B, task_secure `ret` 0x15a67b). `__data` 23 B 0x1ded00, common `_lookupd_port` 는 그대로.
-1. 후보 = scratchpad `nt/ipc_xxx_cand392.c` = 07 `kern/ipc_xxx.c` + 끝에 표시 주석 묶음(plan 392, D024, D056) + `ds_notify`(FALSE 반환)·`vm_object_pager_wakeup`(빈 몸)·`send_notification`(Darwin 0.1 ipc_xxx.c 의 본문을 공백까지 그대로 — python 으로 Darwin 파일의 그 함수 시작부터 끝까지 잘라 붙임)·`task_secure`(TRUE 반환). 순서는 원본 주소순.
-2. 진단 `s5p395-x1`(diag_k07, 07 복사본): **OBJECT_MATCH**(함수 12 MATCH, `__text`·`__data` 0 차이). 앞서 새 파일 꼴 `s5p395-nt0` 도 OBJECT_MATCH(함수 4) — 바이트로는 두 배치를 가를 수 없고 배치는 D056 사용자 결정.
-3. 07 편집: `kern/ipc_xxx.c` = 후보. → iter_k07(`s5p395-it1`) OBJECT_MATCH 확인 → relcheck(0x15a39c) → 실기 cc -M(`s5p395-dep1`) → 기록 갱신(기존 행을 고침, 새로 덧붙이지 않음):
-   - objects_confirmed `x86-ipc_xxx` 행: 끝 0x15a628 → 0x15a67c, 빌드 칸에 이번 run·cc -M, 뒤 경계 칸 "0 bytes (ret at 0x15a67b; _kalloc_init 0x15a67c)".
-   - functions +4(ds_notify·vm_object_pager_wakeup·task_secure 는 authored D024, send_notification 은 darwin01 `kern/ipc_xxx.c:271` 바탕 D027 취지; 정의 줄 python 확인). 기존 8 행의 검증 json·근거 칸을 새 run 으로 바꿀지는 선례(plan 383.1) 대로 새 L1 경로로 갱신.
-   - PROVENANCE `kern/ipc_xxx.c` 행: 파일 SHA, "send_notification removed" 문구를 "send_notification kept (D056); ds_notify·vm_object_pager_wakeup·task_secure authored (plan 392, D024)" 로.
-   - MODIFICATIONS +1(2026-10-08, plan 392), 증거 `x86-ipc_xxx.md` 에 plan 392 절 덧붙임, `.diff` 다시 만듦(Darwin 대비).
-   - 범위(python): 미배정 0 이 아닌 구간 0 이 되는지 확인.
-4. codex 교차검토(k0im34j3r, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 후보에 `<ipc/ipc_notify.h>` 가 없어 ipc_notify_msg_accepted_compat(void) 선언이 보이지 않음 | 07 ipc_notify.h :117–123(sed, MACH_IPC_COMPAT 안 extern void), 07 ipc_xxx.c 가져오기 :38–41 | ✅ 채택: `#import <ipc/ipc_notify.h>`(plan 392 표시) 추가 → 진단 `s5p395-x2` OBJECT_MATCH(12), 절 내용 x1 과 같음(python); 실기 cc -E 로 선언이 보임(줄 14900 `ipc_notify_msg_accepted_compat( );`) |
-| D056 의 "원본 바이트로 쓴 결과가 Darwin 과 같음" 은 잘라 붙인 사실과 다름 → "Darwin 원문 복원, 바이트로 검증" 으로 | 1 항 문구, D027 정의(DECISIONS :31) | ✅ D056 문구 정정 |
-| MODIFICATIONS :44 의 "to be handled with those objects" 와 증거 md :7·:15·:24(밖에 있음·남은 의무)·`kern_server.c:1149`(지금은 :1118) 가 낡음 → 명시적으로 대체 표시 | MODIFICATIONS :44(sed), 증거 md :24 grep, kern_server.c :1116–1118 sed | ✅ 기록 때 옛 행·절에 "plan 392 로 대체" 덧붙임 |
-| `90` 채움은 한 목적 파일의 증명이 아님 | 원본 역어셈블(앞서) | ✅ 391.2 문구 고침 |
-| 미배정 682 B → 이번 뒤 598 B(모두 0) | python(앞서 682 B, 84 B) | ✅ 결과 줄에 적음 |
-| D054 ③ "보류"·plan 245–320 :621·011–099 :1996·321–373 :1313 이 낡게 됨, objects.tsv :164·source_choice.tsv :165 는 역사적 탐색 출력이라 그대로 둠 | 각 줄 sed/grep(321–373 :1313 에 "0x15a628 의 84 B 는 … 보류 유지" 확인) | ✅ 계획 파일들 끝 메모·D054 칸에 "D056 으로 해제" 덧붙임, tsv 둘은 고치지 않음 |
-| 빌드 칸의 옛 `-fno-common`·`-O3 = -O2` 문구는 옛 빌드 설명 → 새 빌드로 바꿔 적음 | objects_confirmed 행(앞서 출력) | ✅ |
-- 결과(2026-10-08): 07 `kern/ipc_xxx.c`(= 후보 + `<ipc/ipc_notify.h>`, SHA-256 f6830c24…1cbe). `s5p395-it1`(iter_k07) **OBJECT_MATCH**(함수 12, `__text` 736 B 0 차이·참조 34 중 0, `__data` 23 B 0 차이); relcheck 0; 실기 cc -M `s5p395-dep1` 103 헤더 모두 07(객체 = it1). 기록: objects_confirmed `x86-ipc_xxx` 행 고침(끝 0x15a67c, 빌드 칸 새 run, 뒤 경계 "ret at 0x15a67b; _kalloc_init 0x15a67c"; 행 수 315 그대로), functions 기존 8 행 고침(07 정의 줄이 import 한 줄로 1 씩 밀림, 검증 칸 새 L1) + 4 행(ds_notify·vm_object_pager_wakeup·task_secure authored D024, send_notification darwin01 :271; 12 행 정의 줄 python 확인), PROVENANCE 행 고침(파일 SHA, send_notification kept), MODIFICATIONS 옛 행에 "superseded … plan 392" 덧붙이고 +1 행, 증거 md 에 plan 392 절(옛 경계·의무·:1149 대체), `.diff` 다시 만듦(send_notification 제거 hunk 없음). D054 칸과 옛 계획 세 줄(245–320 :621, 011–099 :1996, 321–373 :1313)에 "D056 으로 해제" 덧붙임; objects.tsv·source_choice.tsv 는 역사적 탐색 출력이라 그대로.
-- 범위(python): 이번 84 B(A 객체 확장). A 314 obj 620896 B (72.92%), P 71 obj 229602 B (26.97%), L 2 obj 340 B; A+P 99.89%, A+P+L 99.93%, rem 598 B(모두 `00` 채움 — 0 이 아닌 미배정 구간 없음); 겹침 없음.
-
-## 393. S6-1 세부 계획 — L2 링크(사용자 지시 2026-10-08 "L2 링크 작업을 진행합니다"; 코딩 전)
-
-0. 사실(python, 원본 `03_original/x86/binaries/mach_kernel` 1,117,920 B, `macho.json`):
-   - 명령 7: LC_SEGMENT 5(`__PAGEZERO` 0/4096, `__TEXT` 0x100000/892,928, `__DATA` 0x1da000/122,880(파일 49,152), `__OBJC` 0x1f8000/73,728, `__LINKEDIT` 0x780000/102,112), LC_SYMTAB, LC_UNIXTHREAD(eip 0x1860dc = `_start`). 파일 크기 = `__LINKEDIT` 파일 위치 1,015,808 + 102,112.
-   - 절 26: `__text` 0x1012d0 851,436(파일 위치 4,816 = Mach 머리 28 + 명령 2,152 + `00` 채움 2,636; 채움의 원인 — headerpad 인자 또는 링커의 절 배치 — 은 정해지지 않음), `__const` 22,772, `__cstring` 13,892, `__data` 46,782, `__bss` 12,432, `__common` 62,464, `__OBJC` 20 절.
-   - 기호 3,751(디버그 없음): 외부 정의(type 0xf) 3,651 = 절 1 `__text` 2,916 + 절 2 `__const` 18 + 절 4 `__data` 300 + 절 6 `__common` 417, 절대(type 0x3) 100(그중 99 가 `.objc_category_name_*`/`.objc_class_name_*` 꼴). 로컬 기호 없음. 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386" 은 `__data`(vers.o 로 추정).
-   - Darwin 0.1 링크 꼴(참고, 근거 아님): `conf/Makefile.template:380–387` `${LD} -static ${LDFLAGS} ${FVMFILE_LDFLAGS} ${LDOBJS} $(MACH_OFILES) vers.o ${LDFLAGS2} ${LIBS}`(FVMFILE_LDFLAGS 의 실제 값은 확인 전), `:269–272` `strip -x -o mach_kernel mach_kernel.sys`, `conf/Makefile.i386:55–69` `LDFLAGS=-e _start -segaddr __TEXT ${RELOC} -segaddr __LINKEDIT ${SYMADDR} -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3`, `LIBS=-lcc`, `LDOBJS_PREFIX= libc 객체`, `LDOBJS_SUFFIX= libDriver·libobjc`. 실기 `/bin/ld`(853,564 B, 1997-04-23, VM 과 해시 같음 — `08_build/toolchains/real-i386-20261001`).
-   - 07 쪽: 기록된 객체 387(A 314·P 71·L 2), 컴파일 꼴이 여럿(빌드 칸 문구 그대로 184 가지, run id·숫자를 지워 묶으면 122 가지: 커널 C 꼴 `-fwritable-strings`·`-fno-common` 유무·`-O3`/`-O4 -funroll-all-loops`, libDriver(`-fwritable-strings` 없음, `-DMACH_USER_API`), ObjC 런타임 꼴(RUNIN), ABSROOT 절대 경로 ObjC, `.s`, libgcc). 객체 id `x86-memcpy` 가 둘(libc memcpy.c 와 DriverKit __IOCopyMemory)이라 객체는 (07 소스, 원본 범위)로 식별해야 함; 등급 A* 1(kdp_machdep).
-1. 판정(L2, 1 절): 링크가 성공하고, 절 크기·외부 기호 집합을 원본과 python 으로 비교한다. 더 나아가 기호 주소·절 내용(재배치 해결 뒤)을 비교해 원본과의 차이를 목록으로 남긴다(원본 전체 바이트 동일은 1 절의 별도 목표 — 이번 판정 조건 아님). 성공을 돌려주는 임시 stub 금지(1 절).
-2. 단계(각 단계 뒤 기록·보고, 다음 단계 전 계획 보강):
-   - **L2-A 목록(빌드 없음)**: 도구 `10_tools/reconstruction/l2_inventory.py` → `06_reconstruction/l2_objects.tsv`: 객체마다 등급·`__text` 범위·07 소스·마지막 run id·그 run 의 `.cmd` 의 RUN/RUNIN 줄·`out/*.o` 경로와 SHA-256·L1 json. 자동으로 못 찾은 것은 증거 md 를 읽어 손으로 채우고 근거를 적음. 같은 도구가 원본 모든 절(`__text` 밖 포함)에 대해 객체들의 L1 배치를 모아 **배정 안 된 바이트**(데이터만 있는 객체: vers.o·ioconf.o 꼴, MIG, 링커가 만드는 것)를 목록으로 냄. 링크 순서 = `__text` 주소순(데이터만 있는 객체는 그 데이터 주소로 끼움) — 이것은 추정이며 절마다 객체 순서가 같은지 python 으로 확인.
-   - **L2-B 기록된 객체로 첫 링크**: 각 객체의 기록된 `out/*.o`(해시 확인)를 L2-A 순서로 실기 `/bin/ld` 에 넘김. 링크 명령은 원본 배치(세그먼트 주소 0x100000·`__LINKEDIT` 0x780000·`-segalign 0x1000`·`-e _start`·`-lcc`)에 맞춤; 빠진 객체(L2-A 의 미배정)는 미해결 기호 목록으로 남기고 stub 을 만들지 않음 — 미해결이 있으면 링크 실패를 기록하고 멈춤(`-undefined` 경고 옵션으로 진단 링크만 따로 할지 그때 계획). 비교 도구 `10_tools/reconstruction/l2_compare.py`: 명령·세그먼트·절 주소/크기, 외부 기호 이름·형·절·주소, 절 내용 바이트 차이(원본 대비, 구간 목록).
-   - **L2-C 현재 07 로 전체 다시 빌드**: L2-A 의 객체별 명령으로 한 run 에 모든 객체를 07 에서 다시 컴파일(L0 전체 빌드), 각 객체가 기록된 객체와 절 내용이 같은지(L1 판정 유지) 확인한 뒤 다시 링크·비교. 07 이 그동안 바뀌어 달라진 객체는 목록으로 남겨 따로 계획.
-3. 하지 않는 것: 원본에 없는 기능·stub·임시 대체 객체; 07 소스 수정(차이가 나오면 별도 계획); 실기 커널 교체·재부팅(사용자 몫); QEMU 부팅(L3, 별도 단계).
-4. 이번 첫 작업: L2-A 도구와 표(07 과 원본은 읽기만).
-5. codex 교차검토(kzih9fbbc, gpt-6.1-sol) 판정과 계획 보강:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 4,816 B 는 머리·명령 크기가 아니라 `__text` 까지의 위치(28 + 2,152 + 0 채움 2,636) | python: 머리 `(magic,7,3,2,7,2152,1)`, 0x884–0x12d0 바이트 모두 0 | ✅ 0 항 고침 |
-| Darwin 링크 줄에서 `${FVMFILE_LDFLAGS}` 를 빠뜨림, 마무리 `strip -x` 있음 | Makefile.template :386·:401 grep, :269–272 sed(앞서) | ✅ 0 항 고침 |
-| 빌드 칸 문구는 184 가지(122 는 정규화 값), "337" 은 재현 방법이 없음 | python: 세 표의 빌드 칸 고유 184 | ✅ 고침; 자동 추정 숫자는 버림 |
-| 객체 id `x86-memcpy` 중복, A* 1 | python: 중복 id·등급 집계 | ✅ 식별은 (07 소스, 원본 범위) |
-| 링크 입력은 "마지막 run" 추정이 아니라 **채택된 L1 json 의 inputs(객체 경로·SHA-256)** 로 정해야 함; 한 run 에 변형(-fno-common/common)이 섞인 예(dma) | (내 확인) iter_k07 L1 json 에 `inputs` 키가 객체 경로·해시를 가짐(앞서 if_vtrip json 출력) | ✅ L2-A 의 근거로 채택 |
-| OBJECT_MATCH 는 공통 기호 정의·중복 정의·전역 공통 배치를 보증하지 않음 → 링커 탐침 필요 | macho_obj.py·l1_compare.py 구조(codex 인용; 이 판정은 설계 판단) | ✅ L2-B 앞에 링커 탐침 단계 추가 |
-| 데이터만 있는 내용: 커널 판(`_version*` 0x1e5650–), `_objc_VERS_STRING` 0x1d6754·`_objc_VERS_NUM` 0x1d67f4, `_pseudo_inits` 0x1e4f80(ioconf 꼴), DriverKit 판 문자열 | python: 기호표 조회(값 일치) | ✅ L2-A 에서 모두 목록화 |
-| libDriver 는 Darwin 에서 `ld -r … $(OFILES) vers.o` 중간 링크 | driverkit-1/libDriver/Makefile :610–631 sed | ✅ 직접 링크와 `ld -r` 중간 링크를 탐침으로 비교 |
-| 링크 후보에 `-static -force_cpusubtype_ALL -u __muldi3`; L 객체는 넘기지 말고 `-lcc` 로 | Makefile.i386 :55–64, D051 | ✅ |
-| UNIXTHREAD 전체(flavor −1, count 16, eip·cs 0xf·ss/ds/es 0x17)와 LINKEDIT(symoff 1015808, nsyms 3751, stroff 1060820, strsize 57100), 기호 이름순·문자열 표를 비교 | python: SYMTAB 디코드·이름순 확인 | ✅ 비교 도구 항목에 넣음 |
-| `__mh_execute_header` 도 절대 기호 | python | ✅ |
-| D007 은 "원문 텍스트 일치와 기능 재구성 구분" — 전체 바이트 목표는 1 절 | DECISIONS :11 grep | ✅ 고침 |
-| L2-C 는 객체별 작업 디렉터리·ABSROOT·ObjC 런타임 꼴·MIG 이름 바꿈을 지켜야 함; 선택한 객체는 새 run 입력으로 복사·해시 | D033·D047·MIG run cmd(codex 인용) | ✅ 원칙으로 채택(세부는 L2-C 계획에서 검증) |
-
-6. 보강한 단계:
-   - **L2-A 목록(빌드 없음)**: (a) 객체마다 채택 L1 json(기록의 검증 칸·증거 md 에서) → 그 json 의 `inputs` 로 정확한 `.o` 경로·SHA-256 → 그 run 의 `out/run.json`·`run.cmd` 로 명령·작업 디렉터리; 파일 해시가 지금도 같은지 확인. 못 찾은 객체는 목록으로 남겨 하나씩 증거로 채움. (b) 원본 모든 절의 배정: 정규 절(연속 배치)·리터럴 절(`__cstring` 내용 대응)·zero-fill 추정을 따로 집계, 외부 정의 기호 중 어느 객체도 정의하지 않는 것, 판·ObjC 판·`_pseudo_inits` 등 데이터만 있는 내용. (c) 순서 가설: `__text` 주소순과 각 데이터 절 안의 앞뒤 관계를 맞춰 보고 모순을 목록화(조용히 바꾸지 않음).
-   - **L2-A2 링커 탐침**(작은 시험 객체, 07 아님): 입력 순서 뒤집기, 공통 기호 배치 규칙, 공통 vs 절 정의, 중복 강정의, 정렬, 직접 링크 vs `ld -r`, `-headerpad`·`-segaddr`·`-segalign` 이 머리 채움 2,636 B 와 세그먼트 주소에 주는 영향, `strip -x` 결과. 링커 옵션 가설 표(근거·선택 인자·탐침 결과)를 남김 — "원래 명령" 이라 부르지 않음.
-   - **L2-B·L2-C**: 위 결과로 다시 세부 계획 → codex 검토 → 진행. kr_run 에 `ld`·`strip` 허용이 필요하면 그때 도구 변경 계획.
-7. L2-A 첫 탐침(2026-10-08, 도구 아님 — python 한 번): 객체 387 중 "기록(functions 검증 칸·증거 md)에 적힌 L1 json 이 `inputs` 를 갖고, 그 입력 `.o` 가 지금도 같은 SHA-256 으로 남아 있는" 것은 **130**, 나머지 **257** 은 옛 형식(초기 plan 의 L1 json 에 `inputs` 가 없거나 증거에 json 경로가 없음 — 예: libc memcmp·memcpy·kern_machdep·vm_pager·ipc_thread·host·priority·vm_init …). 기록된 옛 객체를 고고학적으로 다시 찾는 비용이 큼.
-   - 대안(판단 필요): L2-B(기록된 객체로 링크)를 건너뛰고 **L2-C(현재 07 로 전체 다시 빌드)를 먼저** 함 — 객체마다 명령 꼴(기록된 빌드 칸의 꼴: 커널 C 꼴·`-fno-common` 유무·`-O3/-O4`·libDriver·ObjC 런타임·ABSROOT·`.s`·MIG)을 정하고 한 번에 다시 컴파일한 뒤 원본에 L1 을 다시 돌려 **기록된 판정(A/A*/P)과 같은지** 확인. 같으면 그 객체들이 링크 입력(새 run 의 해시가 근거), 다르면 목록으로 남겨 하나씩 기록을 대조. 장점: 링크 입력이 모두 현재 07 에서 나와 L0 전체 빌드도 함께 확인됨. 단점: 객체마다 명령 꼴을 정하는 작업이 필요(기록 문구 184 가지 → 꼴 몇 개로 묶기).
-
-## 394. S6-2 세부 계획 — D057: 현재 07 로 전체 재빌드(L0)와 객체별 L1 재판정, 링크 입력 확정(코딩 전, 2026-10-08)
-
-0. 결정 D057(사용자): 링크 입력은 현재 07 로 다시 빌드한 객체. 객체 387(식별은 (07 소스, 원본 범위); `x86-memcpy` 두 개).
-1. 컴파일 꼴 분류(python, 빌드 칸 문구의 낱말로 거칠게; 확정 전): c 기본 187, c + 옛 common 명령 41, c + `-O4` + 옛 common 38, libDriver ObjC(`-fwritable-strings` 없음) 22, 커널 트리 ObjC 절대 경로(ABSROOT, D033) 19, libDriver ObjC + `-DMACH_USER_API` 19, c + `-DMACH_USER_API`(MIG 사용자 쪽) 14, ObjC 런타임 꼴(D047) 13, libDriver c 12, libDriver ObjC + MIG 9, `.s` 5, c `-O4` 2, ObjC 기타 2, libgcc(L, 다시 빌드하지 않음 — `-lcc`) 2, ObjC 런타임 c·`.s` 각 1.
-2. 단계:
-   a. **꼴 표 확정**(도구 `10_tools/reconstruction/l2_forms.py`, 빌드 없음): 객체마다 (07 소스, 원본 범위, 등급, 꼴, 컴파일 명령 원형, stage_headers 선택지, 작업 디렉터리, 출력 이름)을 `06_reconstruction/l2_build_forms.tsv` 로. 명령 원형은 꼴마다 대표 run 의 `.cmd`(지금도 남아 있는 것) 에서 가져오고, 객체별 추가 정의(`-DMACH_USER_API`·`-UKERNEL_PRIVATE`·RUNIN 디렉터리·ABSROOT 경로·MIG 이름 바꿈)는 그 객체의 기록(빌드 칸·증거 md·마지막 cmd)에서 읽어 근거 칸에 적음. 옛 "common 명령"(`-fno-common`) 꼴 객체는 기록에 "common 변형도 OBJECT_MATCH" 가 있는 것이 대부분 — 원본 `__common` 417 기호와 맞는 쪽(공통 기호를 내는 변형)을 고르는 규칙을 이 단계에서 객체별 근거로 정함.
-   b. **묶음 스테이징 검사**: 같은 stage_headers 선택지를 쓰는 객체끼리 한 스테이지에 모을 때, 각 객체 단독 스테이지와 파일 대응(논리 경로 → 출처·해시)이 충돌하지 않는지 python 으로 확인(충돌하면 그 객체는 따로 run).
-   c. **다시 빌드**: 묶음마다 kr_run 하나(RUN 줄 여럿), 실기 cc-744.13, 07 은 읽기만. 실패한 컴파일은 목록.
-   d. **L1 재판정**: 새 객체마다 l1_compare(+ P 는 zerofill_check, 직전 known 판)로 판정해 기록된 등급과 비교 → `09_validation/reconstruction/s6-l0-<날짜>.json`(객체별 결과·해시). 같지 않은 객체는 원인 조사 목록(07 이 그 뒤 바뀜·명령 꼴 잘못 정함·기록 오류).
-   e. 결과 보고 후 링크 단계(L2-A2 링커 탐침 → 링크) 계획.
-3. 하지 않는 것: 07 수정(차이는 별도 계획), 기록 표 고침(이번은 판정 결과 파일만), libgcc 다시 빌드.
-4. 비용 추정: kr_run 한 번 몇 분 × 묶음 수(꼴 15 안팎 + 따로 run 객체). 실기 장시간 사용은 nohup(기존 kr_run 방식).
-5. codex 교차검토(kf5uzhmfn, gpt-6.1-sol) 판정과 보강:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 빌드 칸 낱말 검색으로는 꼴을 가를 수 없음(채택 옵션과 "같은 객체" 대안이 섞임, 예 vm_pager `-O3`(대안 `-O4`), kern_machdep `-O2`) | 표 행 읽기(앞서 출력한 묶음 문구) | ✅ 1 항 분류는 선별용으로만; 꼴 표는 객체별 근거(마지막 최종 cmd·증거)로 |
-| 최종 빌드는 `-fno-common` 을 쓰지 않음(GCC27_COMPATIBILITY.md :18–22, 템플릿 s5p107 "final object = O3c__"); `-fno-common` 만 맞는다는 기록은 없음 | GCC27_COMPATIBILITY.md :18–22 sed, s5p107-build.cmd :2 grep | ✅ 재빌드는 공통 기호 변형(=`-fno-common` 없음) |
-| `-g` 는 sched_prim 인라인 판단을 바꾸므로 유지 | x86-sched_prim.md :20 sed | ✅ |
-| libc 는 `-O4 -funroll-all-loops` 따로(`-O4`·`-O3` 이면 9 개 다름) | x86-libc-unroll.md :14 sed | ✅ |
-| 꼴 표에는 순서 있는 argv·작업 디렉터리·소스 철자·stage 선택지(`--public-sdk`·`--subst`·COMPANION)·출력 이름을 넣어야 함; 예외: IOMallocLow·SCSIDiskThread(`--public-sdk kernserv/queue.h`), 오디오 ObjC(+`-DMACH_USER_API`), `-UKERNEL_PRIVATE` 는 객체별, 런타임 objc-runtime.m 의 NXString.h COMPANION·HashTable 의 별도 디렉터리, port_allocate 류 `-D<routine>=<routine>_EXTERNAL`(kern_server_reply_user.c 는 일반 꼴) | (codex 인용 — 각 객체 꼴을 정할 때 해당 cmd 로 확인 예정; 지금은 원칙만 채택) | ⚖️ 원칙 채택, 사례는 꼴 표 작성 때 하나씩 검증 |
-| 묶음 스테이징은 선택지가 같으면 결정적이나, 다른 객체의 파일이 검색 경로에 끼어드는 문제·대소문자 충돌·`--subst` 결합 문제 → 단독/묶음 스테이지를 실제 `cc -M` 과 해시로 비교해야 함 | stage_headers 우선순위(앞서 --help 확인) | ✅ 2b 를 "실기 cc -M 비교"로 강화 |
-| 등급만 같으면 부족 — 함수 범위·바이트·참조 차이·절 결과·미검증 사유·zerofill 결론까지 기준과 비교; A* 는 L1 판정이 아님; P 가 모두 zerofill 대상은 아님(vm_machdep const 미참조, bios bss 미참조, kalloc D019 단일 참조); `--place-from-l1`(kmGraphics) 유지 | objects_partial :2 bios "0 references" sed | ✅ 2d 보강 |
-| 최신 known 목록에는 이미 그 객체 자신(swapfs 등)이 있어 그대로 다시 쓰면 겹침 실패 → 그 객체 자신의 구간을 뺀 목록으로 검사 후 기록된 후보와 비교, 마지막에 전체 겹침 검사 | zerofill-known-s5p394 :85 "swapfs" grep, zerofill_check.py :191–194 | ✅ |
-| L1 은 NOT_MATCH 여도 종료 코드 0, kr_run 은 명령 하나라도 실패하면 전체 거부 → 상태를 하나씩 확인 | (설계 사실; 기존 도구 사용 경험과 일치) | ✅ |
-| MIG 생성 C 는 07 에 있음 — 이번에는 그대로 컴파일, 재생성 검증은 별도 | (확인 예정) | ⚖️ |
-| 객체 재빌드 완료를 커널 호환·링크 입력 완비로 보고하지 말 것(데이터만 있는 입력 남음) | §393 6 항 | ✅ |
-
-6. 기존 자원: 같은 성격의 일괄 재빌드가 이미 있었음 — `08_build/runs/tools/s5p129-regress.cmd`(RUN 116, 최종 템플릿 꼴), 비교 결과 `09_validation/reconstruction/s5p*-regress-compare-*.json`, scratchpad `regress.py`(객체별 iter 재빌드). 꼴 표의 출발점으로 그 회귀 명령(초기 객체)과 이후 plan 들의 최종 run cmd(뒤 객체)를 씀.
-7. 다음 작업: 꼴 표 도구(`l2_forms.py`) — 객체마다 근거 cmd 를 찾아 argv 를 뽑고, 근거가 없는 객체는 목록으로 남김(빌드 없음).
-8. 꼴 표 초안(2026-10-08, 도구 `10_tools/reconstruction/l2_forms.py` 첫 판, 결과는 scratchpad `l2_forms_draft.tsv` — 아직 저장소 표로 내지 않음):
-   - 근거: 끝난 run 마다 실제로 실행한 `08_build/runs/<run>/run.cmd`(도구 쪽 `.cmd` 이름과 run id 가 다른 경우가 있어서 — 예 `s4a1-regress.cmd` → run `s4a1-regress-1`)의 `-c` 줄을 소스별로 모으고, 객체 기록(빌드 칸·증거 md)에 이름이 나온 run 중 가장 늦은 것을 고름. 결과: 객체 385 중 기록에 이름이 나온 run 으로 384, 이름 없는 최근 run 1(memcmp → `s5p129-diaga-1`, 확인 필요).
-   - 고른 명령을 지금 커널 C 템플릿(`s5p395-it1`)과 비교해 묶으면 85 묶음: 템플릿과 같음 174, libDriver ObjC(RUNIN·`@R` 절대 -I·`-fwritable-strings` 없음) 25, 그 + `-DMACH_USER_API` 20, libDriver C 12, ObjC 런타임 12, libc `-O4 -funroll-all-loops -fno-common` 11, 템플릿보다 -D 가 적은 옛 최종(xdr 류 `-DINET` 만 11, xdr_mem 류 0 개 9, netif 류 6, authunix_prot 류 4) 등.
-   - 문제(다음 단계에서 정할 것): (i) 이름이 나온 run 이 초기(s5p3–s5p19)의 `-fno-common`·옛 헤더(스테이지 선택지 없음) 명령인 객체가 있음 — 그 뒤 일괄 회귀(s5p129·s5p171·s5p227·s5p249·s5p256 등)가 지금 템플릿으로 다시 확인했으나 기록에 그 run 이름이 없는 경우. 이런 객체의 재빌드 명령은 "기록된 최적화 수준 + 지금 템플릿(공통 기호)" 으로 하고 L1 로 확인. (ii) 한 run 에 변형 여러 줄(F/N, O2/O3/O3c/O4, U/O4u)이 있어 출력 이름 규칙(F·O3c·U 우선)으로 골라야 함. (iii) 템플릿보다 -D 가 적은 옛 최종 명령은 그대로 둘지(기록 존중) 지금 템플릿으로 맞출지 — L1 결과로 판단.
-9. 꼴 표 확정(2026-10-08): `06_reconstruction/l2_build_forms.tsv`(도구 `l2_forms.py` 고친 판, 385 행 + 머리). 고르는 규칙(도구 머리 주석): ① 끝난 run 의 `run.cmd` 줄 중 그 run 의 입력 사본(`08_build/runs/<run>/src/src/<소스>`) SHA-256 이 지금 07 파일과 같은 것만(진단 run 의 scratch 사본·옛 본문 제외) ② `-fno-common` 없는 줄 우선 ③ D021/D022 헤더 묶음(bsd_set nextos·mach_set sdk)으로 스테이징한 run 우선 ④ 기록에 이름이 나온 run(295), 없으면 가장 늦은 run(90) ⑤ 출력 이름 F > O3c > U > O4u > O3d. 결과: 385 모두 지금 07 소스·지금 헤더 묶음·공통 기호·출력 이름 `F__`(385; 처음 적은 "F 330/O3c 55" 는 앞 초안 값 — codex 검토로 정정). 쓰인 플래그 전체 집계(python): 진단용 플래그(`-mreg-alloc`·`-d*`) 없음; `-O3` 353, `-O4` 16(그중 `-funroll-all-loops` 11), `-O` 15(ObjC 런타임), `-O2` 1(kern_machdep); `-DMACH_USER_API` 54, `-UKERNEL_PRIVATE` 5, MIG `-D<r>=<r>_EXTERNAL` 14(정정, python); `-DINET` 없는 것 11 등 옛 최종 명령의 -D 차이는 기록대로 둠.
-   - 묶음(작업 디렉터리·public-sdk·ABSROOT 기준): 커널 C 300, libDriver RUNIN 40, ABSROOT ObjC 19, ObjC 런타임 RUNIN 14, public-sdk `kernserv/queue.h` 11(libDriver 10 + C 1), HashTable RUNIN 1.
-10. 재빌드 실행 설계(코딩 전):
-   - 묶음마다 stage_headers 한 번(같은 선택지, 소스 = 묶음의 모든 소스 + 각 행 stage 의 companion), kr_run 하나: 객체마다 `-M` 줄(같은 argv 에서 `-c … -o …` 를 `-M` 로)과 `-c` 줄. 출력 이름 `L2__<이름>.o`(같은 basename 충돌 — memcpy 둘 등 — 은 python 으로 미리 검사해 다른 이름).
-   - 묶음 안전 검사(python): 객체마다 실기 `cc -M` 의존 목록의 각 파일이 그 소스 하나만 스테이징했을 때의 정적 closure(`stage_headers.py --list` 같은 선택지)에 있고 같은 출처·해시인지 확인; 아니면 그 객체는 따로 run.
-   - 판정(python, `l2_verdict.py`): 객체마다 l1_compare(`.m` 은 `--place-from-objc`, 기록에 `--place-from-l1` 이 있는 것은 그대로) → A·A*: OBJECT_MATCH, P: object_reasons 가 그 행의 미검증 절과 같음, 함수 MATCH/MATCH_UNVERIFIED 수가 기록과 같음(functions.tsv). zerofill 은 P 중 기록이 reference-inferred 인 것만, 그 객체 자신의 구간을 뺀 최신 known 목록으로 검사해 기록된 후보와 같은지. 결과 `09_validation/reconstruction/s6-l0-rebuild-<날짜>.json`.
-   - 하지 않는 것: 07·기록 표 수정, 링크(다음 단계).
-11. codex 교차검토(k2ckbb8k1, gpt-6.1-sol) 판정과 설계 고침:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 출력 이름은 모두 `F__`(385), `_EXTERNAL` 14 | python 집계 | ✅ 9 항 정정 |
-| 함수 수를 functions.tsv 와 비교하는 규칙은 못 씀: L1 `functions` 에 `__const` 기호도 들어감(kmGraphics·port_allocate·netif), functions.tsv 에 L1 과 다른 행(netif `_if_attach`·`_if_registervirtual`, `L1 ?` 행 IOAudio·objc_runtime) | (판단 근거는 codex 인용 줄; 함수 수 규칙은 버리므로 사실 여부와 무관하게 설계에서 뺌 — functions.tsv 불일치는 따로 확인할 목록으로 남김) | ✅ 규칙 바꿈 |
-| `--place-from-l1` 은 l1_compare 가 아니라 zerofill_check 의 선택지, 새 L1 json 을 넘겨야 함(입력 해시 검사) | l1_compare.py :467(선택지 목록), zerofill_check.py :123·:143 grep | ✅ |
-| 묶음 안전 검사의 단독 기준은 "소스 + 그 객체의 companion"(objc-runtime.m·objc-load.m 의 NXString.h, HashTable.m 의 objc-private.h) | (확인 예정: 선택 run 의 manifest `sources`) | ⚖️ 채택, 구현 때 manifest 로 검증 |
-| P 는 object_reasons 만으로 부족 — 절 목록·크기·정렬·배치·검증된 절의 0 차이까지 | l1_compare 결과 구조(앞서 사용) | ✅ |
-| 이름 충돌: `memcpy.c` 둘, `hashtable.m`/`HashTable.m`(대소문자) | python: 출력 이름 소문자 중복 `f__memcpy.o`·`f__hashtable.o` | ✅ 식별은 (소스, 원본 범위), 출력 이름은 고유하게 |
-| "named" 는 "채택된" 이 아니라 "언급된" — 선택 전에 채택 L1 을 확인하지 않음; codex 가 90 개 current-source 행의 기존 객체로 L1 을 다시 돌려 A·A* 는 OBJECT_MATCH, P 13 은 NOT_MATCH(DIFF 없음) | (내가 같은 검사를 도구로 다시 할 것 — 아래 새 기준) | ⚖️ 채택: 아래 기준선 단계 |
-| kr_run: RUN 수 제한 없음, wait 기본 1800 초, EXPECT 는 stage 기준 이름, 명령 하나 실패면 게시 안 됨 | (kr_run 사용 경험과 일치; 구현 때 코드로 확인) | ⚖️ |
-
-12. 고친 판정 설계: **기준선 = 고른 run 의 기존 객체(해시 확인)에 지금 원본으로 다시 돌린 L1**(도구 `l2_baseline.py`, 빌드 없음). 기준선이 기록 등급과 맞는지 먼저 확인(A·A*: OBJECT_MATCH, P: NOT_MATCH 이고 DIFF/BOUNDARY 없음 + 기록의 미검증 절과 같은 절). 그다음 재빌드 객체의 L1 을 기준선과 **구조적으로** 비교: 절마다(이름·크기·배치·바이트/참조 차이·미검증), 함수마다(원본 주소·판정·참조 수), object_reasons. zerofill 은 기록이 reference-inferred(·-single) 인 P 만, 새 L1 로 `--place-from-l1`(kmGraphics) 포함, 그 객체 자신의 구간을 뺀 known 목록, 결론·후보 구간이 기록과 같은지.
-13. 다음 작업: `l2_baseline.py`(빌드 없음, 07·기록 읽기만) → 결과 보고 → 재빌드 도구.
-14. 기준선 결과(2026-10-08, `l2_baseline.py`, 요약 `09_validation/reconstruction/s6-l2-baseline-20261008.json`, 객체별 L1 `…/s6-l2-baseline-20261008/`): 385 객체 모두 고른 run 의 객체가 해시대로 있고, 기록 등급과 일치(A 313 OBJECT_MATCH, A* 1 OBJECT_MATCH, P 71 NOT_MATCH — 함수 판정은 MATCH/MATCH_UNVERIFIED 뿐, 사유는 모두 "…: unverified"). P 의 미검증 절을 objects_partial 의 9 열 문구와 대조(python): 70 같음, **1 다름 — `x86-vol`(bsd/dev/vol.c) 은 L1 사유 `__DATA,__bss: unverified` 인데 기록 9 열이 비어 있음**(기록 결함으로 보임; 이번 계획은 기록을 고치지 않으므로 별도 확인 목록).
-15. 재빌드 도구 설계(코딩 전, `10_tools/reconstruction/l2_rebuild.py`):
-   - `prepare GROUP RID`: 묶음 G1 커널 C(RUN, public-sdk 없음, ABSROOT 아님) · G2 libDriver RUNIN · G3 ABSROOT ObjC · G4 ObjC 런타임 RUNIN · G5 public-sdk `kernserv/queue.h` · G6 HashTable RUNIN 중 하나. 행마다 companion = 고른 run 의 stage manifest `sources` 중 `.h`(다른 번역 단위는 넣지 않음). stage_headers `--prefer-07 --nextdev --bsd-set nextos --mach-set sdk`(+ G5 `--public-sdk kernserv/queue.h`)로 묶음 스테이징 → `bsd_not_adopted`·`mach_not_adopted` 가 비어야 함. 명령 파일: 행마다 고른 argv 를 그대로 쓰되 `-o` 만 `stage/L2_<행번호>__<이름>.o`(행번호로 대소문자·동명 충돌 방지), 그 앞에 같은 argv 에서 `-c … -o …` 를 `-M <소스>` 로 바꾼 의존 줄; RUNIN 행은 같은 디렉터리로; G3 은 맨 앞에 `ABSROOT`; 행마다 `EXPECT L2_<n>__<이름>.o`. kr_run prepare/launch, wait 는 넉넉한 시간.
-   - `check RID`: (a) 모든 명령 상태 0·게시 확인, (b) 행마다 `-M` 출력(로그)을 파싱 — 의존 파일 각각을 run 디렉터리 기준 경로(RUNIN 은 그 디렉터리, `@R`·ABSROOT 는 실제 경로로 풀어)로 바꿔 묶음 manifest 의 (논리 경로, 출처, 해시)에 대응; 같은 선택지로 `stage_headers.py --list <소스+companion>`(단독 closure)에 그 논리 경로가 있고 출처가 같아야 함 — 아니면 그 행은 "묶음 위험" 으로 표시, (c) 새 객체마다 l1_compare(+`.m` 은 `--place-from-objc`) 를 돌려 기준선 L1 과 구조 비교: object_verdict·reasons, 절마다(이름·placement·주소·크기·byte_differences·references·refs_differ·refs_unverified), 함수마다(names·image_range·verdict·byte_differences·refs·refs_differ). (d) 기록이 reference-inferred(·single) 인 P 는 zerofill_check(그 객체 자신의 구간을 뺀 known 목록, kmGraphics·volCheck 등 기록에 `--place-from-l1` 이 있는 것은 새 L1 로) → 결론·후보 구간이 기록과 같은지. 결과 `09_validation/reconstruction/s6-l0-<GROUP>-<RID>.json`.
-   - 순서: G6(1)·G4(14)·G5(11) 처럼 작은 묶음부터 → G2(40) → G3(19) → G1(300).
-16. codex 교차검토(kq46r1ckp, gpt-6.1-sol) 판정과 설계 고침:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| RUNIN 행의 출력은 `@R/stage/…` 로 써야 함(RUNIN 은 그 디렉터리에서 실행, `@R/` 는 RUNIN 에서만 풀림) | kr_run.py :244–250 sed, 기존 RUNIN run `s5p287-it1` 의 `-o @R/stage/F__NXSpinLock.o` grep | ✅ |
-| G2(libDriver 40) 묶음에 `nextdev/objc/hashtable.h`(IOTokenRing)와 `HashTable.h`(IODirectDevice 등) 대소문자 충돌 → kr_run 거부 | python: s5p296-it1·s5p306-it1 manifest 의 해당 경로 | ✅ G2 를 둘로 나눔(소문자 hashtable.h 를 쓰는 행 / 나머지) |
-| G4·G6 의 정적 closure 에 `mach_not_adopted` 3(`src/mach/cthreads.h` 등) — 옛 채택 run 에도 같음 | python: s5p356-r2rt·s5p359-r1ht manifest `mach_not_adopted` | ✅ "목록이 비어야 함" 규칙을 "**실기 `cc -M` 실제 의존이 모두 07(또는 07 에 들인 SDK 사본)이어야 함**; 정적 목록에만 있고 읽히지 않는 항목은 기록" 으로 바꿈 |
-| `--list` 는 해시를 주지 않음 → 묶음 안전 검사는 closure()/sha 로 해시까지 | (stage_headers 코드 확인 예정) | ⚖️ 구현 때 확인 |
-| 의존 경로는 run 디렉터리 기준으로 어휘적으로 풀고(ABSROOT 는 링크가 지워지므로 realpath 금지) Make 이어짐 줄 처리 | (설계 판단) | ✅ |
-| L1 json 키: 객체는 `object_reasons`, 절은 `"SEG,SECT"` 키 사전, 조건부 키 주의; 정렬은 L1 에 없음(객체에서 읽어야); `methods` 대응도 비교; `object`·`inputs` 는 비교에서 빼고 해시는 따로 확인 | (구현 때 l1_compare 출력으로 확인) | ⚖️ |
-| zerofill 재실행 대상은 9 열만으로 부족: `vol`(9 열 빈칸, 증거는 reference-inferred), `objc_runtime`(옛 `--place-from-l1` 사용이 9 열에 없음) | x86-vol.md :6·:8(앞서 grep) | ✅ 객체별 채택 zerofill 보고서를 명시적으로 대응시켜 씀 |
-| 회신 묶음 수치(G1 300 → closure 821 등) | (참고; 구현 뒤 실제 manifest 로 확인) | ⏭️ |
-
-17. P 등급 메모(사용자 질문 2026-10-08 "P 등급의 경우 다시 원본 분석 및 수정을 해야 하는건 아닌가요?" 에 대한 답): P 는 코드·초기화 데이터는 일치하고 기호 없는 정적 `__bss` 의 원본 위치만 참조 추정인 상태라 소스 수정 대상이 아님. **L2 링크 뒤 비교에서 각 객체 `__bss` 가 놓인 주소와 코드 속 참조 값이 원본과 같으면 P 의 위치가 확인됨**(L2 비교 항목으로 명시). 참조가 없는 bss(bios 등 7)·위치 못 정한 작은 `__const`(intr 등)는 링크 배치로만 판단.
-18. 재빌드 결과(2026-10-08, D057, 도구 `l2_rebuild.py`; run `s6l0-g6a`·`g4a`·`g5a`·`g2aa`·`g2ba`·`g3a`·`g1a`, 결과 `09_validation/reconstruction/s6-l0-<묶음>-<run>.json`):
-   - **385 객체 모두 현재 07 에서 다시 컴파일됨(실패 0), 새 객체의 원본 대비 L1 이 기준선과 절·함수·참조 단위로 완전히 같음(385/385)**; 묶음 스테이징과 단독 스테이징의 실제 의존(`cc -M`) 차이 0. 첫 시험에서 결과 경로 `.o.o` 버그를 고침.
-   - 실제로 읽힌 07 밖 입력 4 객체(자족 빌드의 남은 틈): (a) `nextdev/mach-o/fat.h` 를 07 이 아닌 로컬 SDK 사본에서 읽음 — mach_fat(184)·mach_loader(185)·kern_exec(208); 07 `nextdev/mach-o/` 에는 ldsyms.h·loader.h·rld.h 만 있음. (b) EventSrcPCKeyboard(244)는 `src/bsd/dev/i386/PCKeymap.c` 를 **Darwin 원문**에서 읽음 — 07 의 작성본 `nextdev_private/bsd/dev/i386/PCKeymap.c`(SHA 613e80cf…, Darwin f79d4ede… 와 다름; PROVENANCE :815 은 이 작성본을 쓴다고 적음)가 쓰이지 않음(stage_headers 의 private 선택이 `.h` 에만 적용되는 것으로 보임 — codex kq46r1ckp 지적과 같음). 객체는 일치하므로 두 본문이 같은 바이트를 내거나 작성본이 쓰인 적이 없는 것 — 확인 필요.
-   - 후속(별도 계획, 07·도구 변경이라 codex 검토 필요): (a) SDK `mach-o/fat.h` 를 07 `nextdev/mach-o/` 로 들임(기존 들임 절차·실기 해시 목록 확인); (b) PCKeymap.c 선택 규칙과 PROVENANCE 기록을 바로잡고 작성본으로 EventSrcPCKeyboard 일치 확인.
-
-## 395. S6-3 세부 계획 — L0 자족 빌드의 남은 틈 둘: SDK `mach-o/fat.h` 들이기, `PCKeymap.c` 작성본 선택(plan 394 항목 18; 코딩 전, 2026-10-08)
-
-0. 사실(python·grep):
-   - (a) `nextdev/mach-o/fat.h`: mach_fat·mach_loader·kern_exec 의 실기 `cc -M` 의존이 로컬 SDK 사본(`…/ref/openstep/headers/NextDeveloper/Headers/mach-o/fat.h`, SHA-256 1147faac…773f)에서 읽힘. 이 SHA 는 실기 목록 `09_validation/reconstruction/s4c-nextdev-headers-20261002.json` 의 `/NextDeveloper/Headers/mach-o/fat.h`(1,467 B)와 같음. 07 `nextdev/mach-o/` 에는 ldsyms.h·loader.h·rld.h 만 있음. 선례: `nextdev/mach-o/loader.h` PROVENANCE :236(nextdev-os42, 실기 목록, license TBD D017, "none (verbatim; file SHA-256 …)", 증거 x86-mach_header.md).
-   - (b) `PCKeymap.c`: EventSrcPCKeyboard.m:37 `#import <bsd/dev/i386/PCKeymap.c>`. 07 작성본 `nextdev_private/bsd/dev/i386/PCKeymap.c`(PROVENANCE :815, D030·D032) 와 Darwin 원문의 차이는 머리 주석뿐(diff: 머리 주석 블록 교체, 나머지 동일 — 키맵 데이터 같음). stage_headers.py `select()`(:279–302)는 `--bsd-set` 에서 `src/bsd/…` 의 `.h` 만 `bsd_pick`(private 먼저)으로 보내고, `.c` 는 07 `src/` → Darwin 순이라 작성본이 선택되지 않음. nextdev_private 에서 `.h` 가 아닌 파일은 이것 하나(find).
-1. 고침:
-   - (a) SDK `mach-o/fat.h` 를 07 `nextdev/mach-o/fat.h` 로 그대로 복사(실기 목록 SHA 확인), PROVENANCE +1(loader.h 행과 같은 꼴), 증거는 x86-mach_fat.md 에 한 줄.
-   - (b) stage_headers.py `select()`: `--bsd-set` 이고 논리 경로가 `src/bsd/…` 의 `.h` 가 아닌 파일이며 07 `src/` 에 그 파일이 없고 `nextdev_private/bsd/<rel>` 이 있으면 그 작성본을 고름(plan 395 표시; 번역 단위인 BSD `.c` 는 07 `src/` 에 있으므로 영향 없음). manifest 의 출처 표기가 작성본으로 나오는지 확인. 시험 `test_stage_headers_private_data.py` 추가(작성본이 선택되고, 07 `src/` 에 같은 이름이 있으면 그것이 선택됨).
-2. 확인: 영향 객체 4(mach_fat 184·mach_loader 185·kern_exec 208·EventSrcPCKeyboard 244)를 l2_rebuild 로 다시 빌드(행 지정 묶음 기능 추가: `prepare-rows`) → L1 이 기준선과 같고 실제 의존이 모두 07. 또 07 의 다른 `.c` 가 바뀌지 않음을 보이려고 stage_headers 고침 전후로 기존 묶음 manifest 를 다시 만들어 차이가 PCKeymap.c 한 줄뿐인지 python 으로 비교.
-3. 하지 않는 것: 다른 SDK 헤더 일괄 들이기(실제로 읽힌 것만), 기록 표(objects·functions) 변경.
-4. codex 교차검토(kp3yz0sin, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 0 항 사실은 맞음(fat.h 해시·소비 객체 3·PCKeymap 머리 주석만 다름·`.h` 조건·private 의 비헤더 파일 하나) | 이번 세션 python·grep(앞서 출력) | ✅ |
-| PROVENANCE :815 "used by EventSrcPCKeyboard (s5p330-it1)" 는 틀림 — 그 run 의 stage manifest :48 은 Darwin 파일 | s5p330-it1-stage.manifest.json 의 PCKeymap 행 python 출력(origin darwin01, f79d4ede…) | ✅ 기록 정정 |
-| 비헤더 규칙은 범위가 넓음 → 명시 목록(PRIVATE_DATA)으로, `_no_symlink` 유지, `--prefer-07` 없을 때 동작 정의 | (설계 판단) | ✅ PRIVATE_DATA = (`dev/i386/PCKeymap.c`,) |
-| 작성본 행에 private 주석을 달되 `.h` 조건을 넓히지 말 것 | stage_headers.py :553 근처 bsd_pick assert(앞서 sed) | ✅ 별도 분기로 주석 |
-| fat.h 는 loader.h 처럼 들이면 `--prefer-07` 일반 규칙이 07 사본을 고름; 들인 파일의 해시·크기·링크 여부를 직접 확인 | (구현 후 확인) | ✅ |
-| `prepare-rows` 면 check 도 같은 부분집합을 써야 함; fat 소비자는 G1, EventSrcPCKeyboard 는 G3(ABSROOT) | l2_rebuild.py check 의 dep 로그 색인(앞서 작성) | ✅ `RID.rows.json` 으로 묶음·순서 기록 |
-| 시험 보강·기존 시험 실행 | — | ✅ 아래 |
-
-5. 결과(2026-10-08):
-   - stage_headers.py: `PRIVATE_DATA` 명시 목록과 `private_data()`(select 와 manifest 행에 plan 395 표시) 추가. 고침 전 사본(scratchpad `stage_headers.before395.py`)과 고친 판으로 기존 7 묶음의 `--list` 를 비교(python): 6 묶음 동일, G3 은 PCKeymap.c 한 줄의 출처만 Darwin → 07 private 로 바뀜(선택만 바뀐 비교; fat.h 는 들이기 전이라 차이 없음).
-   - 시험 `test_stage_headers_private_data.py` 15 통과(선택·prefer07 유무·07 src 사본 우선·사본 없음·심볼릭 링크 거부·`--bsd-set` 없을 때 끔·실제 스테이징과 manifest 주석); 기존 components 11·rename 12·soundkit 13·subst 19 모두 통과.
-   - 07 `nextdev/mach-o/fat.h` 들임(SDK 원문 그대로, SHA-256·크기 1,467 B 실기 목록과 같음, 링크 아님).
-   - l2_rebuild.py: 행 지정 묶음(`prepare GROUP RID N1,N2`, `RID.rows.json`) 추가.
-   - 다시 빌드: `s6l0-p395a`(mach_fat 184·mach_loader 185·kern_exec 208), `s6l0-p395b`(EventSrcPCKeyboard 244): 넷 다 OBJECT_MATCH, L1 이 기준선과 같음, 실제 의존 모두 07(64·116·132·153 파일), 묶음/단독 차이 0.
-   - 기록: PROVENANCE +1(fat.h) 및 PCKeymap 행 정정, MODIFICATIONS +1, 증거 x86-mach_fat.md·x86-EventSrcPCKeyboard.md 덧붙임. → **L0: 385 객체 모두 07 만으로 다시 빌드되고 원본 L1 판정 유지.**
-
-## 396. S6-4 세부 계획 — L2-A: 링크 입력의 빈 곳 찾기(원본 절별 배정·기호 대조; 빌드 없음, 코딩 전, 2026-10-08)
-
-0. 입력: plan 394–395 재빌드 객체 385(행 → 최신 run: `s6l0-*`, 행 184·185·208·244 는 `s6l0-p395a/b`)와 그 L1 json, 원본 `macho.json`·`symbols.tsv`, libgcc 행(objects_toolchain 2: `__muldi3` 등, `-lcc` 로 링크). 재빌드 L1 의 절 배치 종류(python 집계): 정규 배치(`given by symbol`·`given by objc metadata`·`inferred, verified by L1d`), zero-fill 추정(`__bss` inferred 64), 배치 못 함(`unplaced`: `__bss` 3, `__TEXT,__const` 9, 빈 ObjC 절들), 내용 대조만 한 리터럴 절(`__TEXT,__cstring`·ObjC `__class_names`·`__meth_var_names`·`__meth_var_types`·`__message_refs`·`__cls_refs`).
-1. 도구 `10_tools/reconstruction/l2_coverage.py`(읽기만) → `09_validation/reconstruction/s6-l2-coverage-<날짜>.json`:
-   - 정규 절: 객체마다 배치된 [주소, 주소+크기) 를 원본 절별로 모아 겹침 검사, 배정 안 된 구간과 그 구간의 0 아닌 바이트 수(정렬 채움 `00`·`90` 과 구별).
-   - zero-fill(`__bss`·`__common`): `__bss` 는 추정 구간 합집합과 빈 곳; `__common` 은 원본 기호(절 6, 417)와 객체들의 공통 기호(이름·크기) 대조 — 원본에 있는데 어느 객체도 공통/정의로 내지 않는 이름, 크기가 원본 간격보다 큰 이름.
-   - 리터럴 절: 원본 절을 NUL 단위 문자열 목록으로, 객체들의 같은 절 문자열 집합과 대조 — 원본에만 있는 문자열(어느 객체도 내지 않음) 목록. (링커가 같은 문자열을 합치므로 순서·위치는 L2 링크 뒤 비교.)
-   - 기호: 원본 외부 정의 3,651(절 1·2·4·6)과 절대 100 을 객체들의 외부 정의(SECT·COMMON·ABS)·libgcc 구성원과 대조 → 정의되지 않은 이름 목록(이것이 데이터만 있는 객체·판 객체 후보), 둘 이상이 강하게 정의하는 이름(중복) 목록.
-   - 0 아닌 미배정 구간마다 그 구간을 가리키는 기호·재배치 출처(어느 객체가 참조하는지)를 붙여 다음 단계(누락 객체 작성 계획)의 근거로.
-2. 하지 않는 것: 07·기록 변경, 링크.
-3. codex 교차검토(kjkjsfhu0, gpt-6.1-sol) 판정과 계획 고침:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| **`__bss` 가 맞지 않음**: 원본 12,432 B, 추정 64 구간 합 12,402 B(겹침 없음) → 남은 30 B, 배치 못 한 bss 3 개(bios 16·rtc 14·SCSIGenericKern 4) 34 B, 선택 객체 bss 합 12,436 B → 정렬 전에도 4 B 초과 | python(이번 세션): 행 → 최신 run(184·185·208·244 는 p395) 객체의 `__bss` 크기 합 12,436, L1 inferred 합집합 12,402·겹침 0, unplaced (315,16)(354,14)(371,4) | ✅ **새 발견** — §394 항목 17 의 "P 는 위치만 미확정" 은 이 셋(참조 없는 bss)에는 맞지 않을 수 있음; 원인 조사 대상(07 에 원본에 없는 정적 변수가 있거나 크기가 다를 가능성) |
-| `__message_refs`·`__cls_refs` 는 S_LITERAL_POINTERS(0x5) — NUL 로 나누면 안 되고 재배치로 가리키는 문자열 내용으로 비교 | (도구 구현 때 macho.json 절 flags 로 확인) | ✅ 계획 고침 |
-| 원본 `__cstring` 에 객체가 내지 않는 비어 있지 않은 문자열 51(DMA/SCSI 상태·명령 설명) | (도구로 다시 셀 것) | ⚖️ 도구 결과로 확인 |
-| `00`/`90` 만으로 채움 판정 금지 — 다음 객체의 정렬 요구로 판정; text 미배정 598 B·282 구간 중 281 은 정렬로 설명, `[0x1c88f4, 0x1c8900)` 12 B(HashTable 앞)는 설명 안 됨 | (도구로 다시 셀 것) | ⚖️ |
-| 공통 기호: 이름별 최대 요청 크기, 강정의가 이기는 경우, 원본 다음 주소는 상한일 뿐; 원본 `__data` 에 정의된 16 이름(`_hz`·`_tick`·`_time` 등)의 공통 요청은 오류 아님 | (도구 구현) | ✅ |
-| 기호 비교는 `ext`·kind 로, `N_PEXT` 따로; `__mh_execute_header` 는 링커 정의; ObjC 절대 표지 99 는 객체가 정의; libgcc `__udivdi3` 의 지역 `___clz_tab` 256 B 도 덮음 | (도구 구현) | ✅ |
-| 원본 이름 중 정의 없는 것 89(`__data` 56·`__common` 30·`__const` 3) | (도구로 다시 셀 것) | ⚖️ |
-| 미배정 구간의 참조는 "소비자" 이지 정의 객체가 아님; 재배치는 PC 상대·SECTDIFF/PAIR 까지 풀어야 | l1_compare 재배치 해석 재사용 | ✅ |
-| 행 선택은 명시적으로(184·185·208→p395a, 244→p395b), memcpy 두 행(6·201) 유지; unplaced 는 "있는 내용, 위치 모름" 으로 따로(`__bss` 34 B, `__const` 44 B) | python 행 선택 출력(위) | ✅ |
-
-4. 고친 도구 범위(`l2_coverage.py`): 행 선택 명시 → 정규 절 배치 목록(배치 방법·해시·포함·정렬·겹침 검사) → text/정규 데이터 미배정 구간(다음 객체 정렬로 설명되는지) → `__bss`(zerofill 결과와 L1 대조, 크기 합 모순 보고) → `__common`(이름별 최대 요청·강정의·상한) → 리터럴 문자열 절(문자열·참조 오프셋)·리터럴 포인터 절(재배치로 가리키는 내용) → 기호(정의 없음·중복·추가·N_PEXT·링커 정의) → 미배정 구간의 참조 소비자. 숫자는 codex 값과 독립으로 다시 구해 대조.
-5. 결과(2026-10-08, 도구 `l2_coverage.py`, `09_validation/reconstruction/s6-l2-coverage-20261008.json`; 숫자는 codex 회신 값과 독립으로 다시 구해 일치):
-   - `__text`: 미배정 598 B 모두 `00`; 다음 객체 정렬로 설명 안 되는 것은 `[0x1c88f4, 0x1c8900)` 12 B(HashTable 앞) 하나. 배치 문제(겹침·포함·정렬) 0.
-   - `__TEXT,__const`: 미배정 1,589 B 중 0 아닌 1,036 B, 정렬로 설명 안 되는 구간 9: `0x1d68b0` 256 B(libgcc `__udivdi3` 의 지역 `___clz_tab` 자리로 보임 — 도구가 libgcc 의 const 를 아직 넣지 않음), `_IODMAStatusStrings`, `_objc_VERS_NUM`·`_objc_VERS_STRING`, 기호 없는 892 B(0x1d58e4)·160 B·작은 12–14 B 넷(배치 못 한 const 44 B 후보).
-   - `__DATA,__data`: 미배정 6,960 B 중 0 아닌 4,157 B, 구간 18 — `_sysent`/`_nsysent`, `_linesw`, `_unixsw`/`_unixdomain`, `_vfssw`, `_inetsw`/`_inetdomain`, `_fragtbl*`/`_around`/`_inside`, param 꼴(`_max_proc`·`_ncallout`·copyright 문자열 등), `_machdep_call_table`, `_bdevsw`/`_cdevsw`, `_pseudo_inits`, `_IOSCSI*Strings`, ObjC `__alloc` 등 훅, 판(`_version*`) — Darwin conf 류 "데이터만 있는" 파일(init_sysent·tty_conf·uipc_proto·vfs_conf·in_proto·param·conf·ioconf·ufs_tables·vers 등)의 내용으로 보임(이름은 가설).
-   - 기호: 원본 정의 중 객체가 정의하지 않는 이름 89(`__data` 56·`__common` 30·`__const` 3), 강정의 중복 0, 원본에 없는 추가 정의 0, N_PEXT 0. 공통 기호: 요청이 상한을 넘는 것 0, 아무 객체도 요청·정의하지 않는 원본 공통 30(`_master_cpu`·`_active_u`·`_kernel_map`·`_cons`·`_file`·`_nmi_*` 등), 원본에서 `__data` 에 정의된 이름의 공통 요청 16(정상).
-   - `__bss`: 객체 합 12,436 B > 원본 12,432 B(추정 합 12,402 + 배치 못 한 bios 16·rtc 14·SCSIGenericKern 4) — 정렬 전에도 4 B 초과(조사 필요).
-   - 리터럴: `__cstring` 원본 문자열 중 객체가 내지 않는 51(DMA/SCSI 설명 문자열 — 위 `_IOSCSI*Strings` 표의 내용), ObjC 문자열 세 절은 차이 0; `__message_refs` 725·`__cls_refs` 32 슬롯이 가리키는 내용 집합이 객체와 같음(객체 쪽 슬롯 1,393·90 은 링커가 합침).
-6. 판단: 링크 전에 **데이터만 있는 누락 객체**를 먼저 다시 만들어야 함(링크가 미정의 기호로 실패할 것). 다음 계획(§397)에서 구간마다 원본 바이트·참조 소스(Darwin conf·NeXTMach)·객체 경계를 정하고 07 에 둘 파일 이름은 D054 처럼 사용자 결정이 필요한 곳을 묻기로 함. 함께 조사: bss 4 B 초과, text 12 B 틈, 이름 없는 const 구간.
-
-## 397. S6-5 세부 계획 — L2-B: 링크 입력의 빈 곳 메우기(구간별 출처 정하기, 링커 규칙 탐침, 데이터만 있는 객체 작성; 코딩 전, 2026-10-08)
-
-0. 사실(이번 세션 python, `09_validation/reconstruction/s6-l2-coverage-20261008.json` 과 객체·원본 바이트 직접 대조):
-   - (a) **배치 못 한 `__const` 44 B 는 빈 곳이 아닙니다.** 객체 9 개의 4·12 B const(intr·PCresume·vm_machdep·fp_support·i386_init·PCexception·trap·pmap 은 `18 00 20 00`, ddm 은 `40 00 00 00 41 00 00 00 42 00 00 00`)가 링크 순서대로 원본 빈 곳 `0x1d13e8`(ddm 12 B)·`0x1d14dc`(fp_support·i386_init·intr)·`0x1d163c`(pmap·trap·vm_machdep)·`0x1d5c56`(PCexception·PCresume, 정렬 2 B; plan 397 항목 4 에서 고침)과 바이트가 같습니다. `__const`·`__data`·`__bss` 의 배치 순서는 `__text` 순서와 어긋남이 0 입니다(배치된 const 48·data 217·bss 64).
-   - (b) **`__const` 0x1d58e4 892 B** = 키맵 882 B(EventSrcPCKeyboard 의 `PCDefaultKeymap`, 원본 0x1d554a 의 것과 882 B 모두 같음) + 위 (a)의 8 B(0x1d5c56) + `00` 2 B 입니다(항목 4 에서 고침). 이 둘째 사본을 가리키는 참조는 원본에 없습니다(4 B 주소 검색 0 건). 링크 순서로 EventSrcPCPointer 와 PCexception 사이의 객체(PCPointer.m·EventShmemLock.s·kbd_entries.m·PCinit.c) 하나가 키맵을 한 번 더 들인 것으로 보입니다(어느 것인지는 아직 모릅니다).
-   - (c) **`__DATA,__data` 0x1db91b 37 B** "add_sr: source route table overflow\n" 은 plan 377 기록(if_vtrip 원본 `__data` 208 B, add_sr 문자열 두 벌)의 둘째 벌입니다. 07 if_vtrip 객체는 171 B 이므로 37 B 가 모자랍니다. 참조 0 건입니다.
-   - (d) **`__const` 0x1d1276 14 B** = "swapfs\0" + `00` 3 B + `04 00 00 00`(0x1d1280)입니다. 참조 0 건이고, 링크 순서로 netif 와 kern_server 사이(그 사이 객체 121 개 중 const 를 내는 것 0)에 있습니다. 참조 원문에 `"swapfs"` 문자열 0 건(grep)입니다. 주인을 아직 모릅니다.
-   - (e) **판 문자열**: `0x1d647c` 160 B "@(#)LIBRARY:libDriver  PROJECT:driverkit-94.16.2 …" (strlen 105, 기호 없음), `_objc_VERS_STRING` 160 B(strlen 87)·`_objc_VERS_NUM` "170"(다음 객체까지 12 B, `char[10]` 이면 0x1d67fe 에서 끝나고 다음 const 정렬 4 로 0x1d6800), `__data` 끝 `_version_major` 4·`_version_minor` 2·`_version_variant` ""·`_version` "NeXT Mach 4.2: … RELEASE_I386\n"(101 B, `__data` 끝 0x1e56be 와 맞음). vers_string 꼴 `char[160]`·`char[10]` 은 가설입니다.
-   - (f) **`__text` 12 B 틈 `[0x1c88f4, 0x1c8900)`**: 바로 뒤 HashTable 은 ObjC 런타임의 첫 객체이고 0x1c8900 은 16 B 정렬입니다. ObjC 런타임 객체 중 `objc-msg.s` 만 text 정렬 4(16 B)이므로, libobjc 를 `ld -r` 로 한 객체로 묶어 링크했다면 묶음 전체의 정렬이 16 B 가 되어 이 틈이 설명됩니다(가설, 탐침 필요).
-   - (g) **`__bss` 4 B 초과의 원인은 rtc 입니다.** 빈 곳 6 개 합 30 B 중 bios(16 B)는 0x1e75a4(miniMonMachdep·APM_i386 사이), SCSIGenericKern(4 B)은 0x1e7570(SCSIDiskKern·ddm 사이)에 정확히 맞고, 나머지 넷(2·2·3·3 B)은 다음 객체의 정렬 채움입니다(합 20 + 10 = 30). rtc 의 자리(autoconf_i386 끝 0x1e7749 ~ kmDevice 0x1e774c)는 3 B 이므로, 07 rtc.c 의 참조 없는 `static unsigned char rtc[RTC_NREG]`(14 B, x86-rtc 증거에 "unreferenced")는 원본에 없던 것으로 보입니다.
-   - (h) **데이터만 있는 객체 후보**(빈 곳의 링크 순서 위치·이름·참조 원문 grep): init_sysent(`_sysent`·`_nsysent`, init_main 과 kern_acct 사이), tty_conf(`_linesw`·`_nldisp`), uipc_proto(`_unixsw`·`_unixdomain`), vfs_conf(`_vfssw`·`_vfsNVFS`, 이름 문자열 "swapfs" "spec" "nfs" "4.3" 이 `__data` 안), in_proto(`_inetsw`·`_inetdomain`), ufs_tables(`_around`·`_inside`·`_fragtbl124`·`_fragtbl8`·`_fragtbl`), param(copyright 셋·`_max_proc`·`_nchsize`·`_ncallout`·`_nclist`·`_nmbclusters`·`_nport`·`_ncsize`·`_ndquot`·`_cfreelist`·`_cfreecount`·`_fifoinfo`; NeXTMach conf/param.c 의 순서와 같음), counters(`_c_thread_*` 5, ast·exception 사이), machdep_call(`_machdep_call_table`·`_count`, machdep·pcb 사이), conf(`_bdevsw`·`_nblkdev`·`_cdevsw`·`_nchrdev`, autoconf_i386·cons 사이), ioconf(`_pseudo_inits` = {32, pty_init}, {1, venip_config}, {0, 0}; NeXTMach config mkioconf.c 가 만드는 꼴), libDriver dma.c(`_IODMAStatusStrings` 7×8 B = 56 B, Darwin driverkit-1 libDriver/dma.c:35, 파일 44 줄), SCSIGlobals.m(`_IOScStatusStrings`·`_IOSCSISenseStrings`·`_IOSCSIOpcodeStrings`, Darwin libDriver/Kernel/SCSIGlobals.m), objc-globaldata.m(훅 11×4 B = 44 B, Darwin objc/objc-globaldata.m; objc-errors 와 objc-globaltext 사이), 판 객체 셋(위 e).
-   - (i) **이미 있는 객체 끝에 붙는 것으로 보이는 이름**: `_pmsgbuf`(qsort·subr_prf 사이 = subr_log 자리, 값 0; NeXTMach bsd/subr_log.c:45), `_nrnode`(nfs_server·nfs_subr 사이, 값 0; NeXTMach next/machdep.c:173·175), `_active_mfsbufs`(mfs_prim 끝, 값 0; Darwin kern/mapfs.c:1081 `int active_mfsbufs = 0;`).
-   - (j) **`__common` 배치 규칙(가설, 강한 근거)**: 원본 `__common` 417 이름을 주소 순으로 보면 이름이 알파벳 오름차순인 구간들로 나뉩니다. "링크 순서에서 그 이름을 처음 언급(UNDF 또는 COMMON)한 객체 순, 객체 안에서는 기호표 순" 으로 재빌드 객체 385 를 흉내 내면, 언급되는 406 이름 중 최장 증가 부분열이 400 입니다. 어긋나는 6 중 5(`_boottime` init_main·`_callout` kern_clock·`_inode_list`·`_iuniqtime` vfs·`_in_interfaces` in.c)는 07 객체가 **잠정 정의(COMMON)** 로 언급하는 것이고, 원본에서는 그 객체가 언급하지 않았거나(또는 UNDF 로) 다른 곳이 정의한 것으로 보입니다. `_master_cpu` 는 원본에서 맨 앞(0x1e8750)인데 재빌드 객체 중 처음 언급은 kern_sig(UNDF)입니다. 아무 객체도 언급하지 않는 11(`____xxx_state`·`_file`·`_mfsbuf_lock`·`_nmi_*` 8)은 그 이름을 정의하는 객체의 링크 위치를 알려 줍니다(예: `_callout`·`_file` 은 ufs_vfsops 구간 뒤 = param 자리).
-1. 단계(차례대로; 각 단계 끝에 기록):
-   - **B1 도구 고침**(07 변경 없음): `l2_coverage.py` 가 (a)의 배치 못 한 const 를 링크 순서·바이트 일치로 배치하고, libgcc 구성원의 const(`___clz_tab` 256 B, 0x1d68b0)를 넣고, (j)의 공통 기호 흉내(처음 언급 순)를 보고에 더합니다. 결과를 다시 만들어 숫자가 위와 같은지 확인합니다.
-   - **B2 링커·컴파일러 탐침**(실기, gcds, 저장소 밖 임시 디렉터리; 결과 json 은 `09_validation/reconstruction/`):
-     1. 공통 기호 배치 순서: 작은 객체 둘~셋(UNDF·COMMON·정의를 섞고 이름 순서를 바꿈)을 `ld` 로 링크해 `__common` 주소 순서가 "처음 언급 순, 객체 안 기호표 순" 인지, 객체 안에서 COMMON 과 UNDF 를 따로 처리하는지 확인합니다(in.c 의 `_in_interfaces`·`_ipintrq` 순서가 이 질문입니다).
-     2. `ld -r` 묶음의 정렬: text 정렬 4 인 `.s` 와 정렬 2 인 `.c` 를 `ld -r` 로 묶어 묶음 `__text` 정렬이 4 가 되는지, 묶음을 링크했을 때 앞에 채움이 생기는지 확인합니다(f).
-     3. GCC 2.7(cc-744.13) 동작: 참조 없는 `static const` 배열이 `.c`(cc1)와 `.m`(cc1obj)에서 객체에 남는지(b·d), `-fwritable-strings` 여부에 따라 인라인 함수의 문자열이 두 벌 나오는 조건(c).
-     4. vers_string: 실기의 vers_string(있으면) 내용·출력 꼴을 읽기만 합니다(e의 `char[160]`·`char[10]`·기호 없는 libDriver 판 문자열의 꼴).
-   - **B3 데이터만 있는 객체 작성**(h): 파일마다 참조 원문 후보(Darwin 0.1·NeXTMach·Mach4, 같은 이름 파일을 세 나무 모두에서 찾음)를 원본 바이트(재배치는 원본 기호 주소로 풀어서)와 대조해 고르고, 맞지 않는 줄은 D024 로 고칩니다. 객체별 확인은 "데이터 L1": 객체 `__data`·`__const`·`__cstring` 을 원본 빈 곳에 놓고 바이트·재배치 대상 주소가 모두 같은지 python 으로 봅니다. 출처·라이선스는 D013·D030 규칙대로 PROVENANCE·MODIFICATIONS 에 적습니다. 판 객체 셋은 원본 문자열(바이트 사실)로 작성합니다.
-   - **B4 이미 있는 객체의 남은 바이트**(b·c·d·g·i): 각 객체를 따로 진단합니다(scratch 사본만; 07 은 결과가 바이트로 확정될 때만 고침). rtc 는 참조 없는 정적 배열을 빼면 원본 자리(3 B 이하)와 맞는지, 그때 rtc 객체가 L1 에서 A 가 되는지 확인합니다. pmsgbuf·nrnode·active_mfsbufs 는 값 0 초기화 정의가 그 객체의 `__data` 끝에 오면 원본 주소와 맞는지 확인합니다.
-   - **B5 공통 기호 맞추기**(j): B2-1 규칙이 확정되면 재빌드 객체 + B3 객체로 흉내 내어 원본 417 순서와 같아질 때까지 07 의 잠정 정의/extern 선언을 고칩니다(text·data 바이트는 바뀌지 않음을 L1 로 확인). `_master_cpu`·`____xxx_state`·`_nmi_*` 처럼 정의하는 곳이 바이트로 정해지지 않는 이름은 사용자에게 묻습니다.
-2. 사용자 결정이 필요한 곳(코딩 전에 묻지 않고, 해당 단계에 이르면 바이트로 정해지지 않는 것만 묶어서 묻습니다): 데이터만 있는 객체의 07 파일 이름·경로(특히 ioconf·판 객체 셋·counters), 키맵 둘째 사본·"swapfs" const 의 주인 파일이 바이트로 정해지지 않을 때, 정의 위치가 바이트로 정해지지 않는 공통 기호.
-3. 하지 않는 것: 링크 자체(B1–B5 뒤 다음 계획), 등급 표 변경(B4 의 결과가 나오면 따로 계획), 01_resources·03_original 변경.
-4. codex 교차검토(k6bny7aag, gpt-6.1-sol) 판정과 계획 고침(코딩 전):
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| (a)의 PCexception·PCresume 는 0x1d5c58 이 아니라 **0x1d5c56·0x1d5c5a**(정렬 2 B)이고 끝 `00` 2 B 가 뒤에 옴 | python: 키맵 끝 0x1d58e4+882 = 0x1d5c56, 원본 0x1d5c56 의 10 B = `18002000 18002000 0000` | ✅ **내 계획이 틀렸습니다.** 0 (a)·(b)를 "키맵 882 B + const 8 B(0x1d5c56) + `00` 2 B" 로 고칩니다. 나머지 일곱(ddm·fp_support·i386_init·intr·pmap·trap·vm_machdep) 위치는 그대로입니다 |
-| 키맵 둘째 사본 882 B 일치, 그 주소를 가리키는 4 B 값 0 건 | python: `B(0x1d58e4,882)==B(0x1d554a,882)` → True (이번 세션 두 번째 확인) | ✅ |
-| add_sr 문자열은 원본 파일에 세 군데(0x1d74d8 `__cstring`, 0x1db870 근처, 0x1db91b) | python 파일 검색: 파일 오프셋 0xd74d8·0xdb870·0xdb91b(= 주소 +0x100000) | ✅ (plan 377 기록과 같음) |
-| `___clz_tab` 256 B = `bit_length(i)` 표 | python: `B(0x1d68b0,256)==bytes(i.bit_length() for i in range(256))` → True | ✅ B1 에 넣습니다 |
-| rtc 14 B 를 두면 kmDevice 가 0x1e7758 로 12 B 밀림, 빼면 12,422 + 10 = 12,432 | python: 0x1e7749+14 = 0x1e7757 → 4 B 정렬 0x1e7758 | ✅ |
-| 공통 기호 흉내: 417·406·LIS 400, 어긋남 6 같음. in.c 두 이름을 바꾸면 401, UNDF 먼저 367, COMMON 먼저 372 → "원본이 UNDF 였다" 만으로는 설명 안 됨 | python 흉내(이번 세션, 내 스크립트로 네 방식): symtab (406,400)·swap (406,401)·undf_first (406,367)·common_first (406,372) | ✅ 규칙은 가설로 두고 B2 탐침으로 정합니다. in.c 문제는 미해결로 기록합니다 |
-| init_sysent: NeXTMach·Darwin 어느 쪽도 그대로는 184 항목이 아님(codex 182·234) | grep: 표 본문의 항목 줄 수(전처리 전, `#if` 양쪽 포함) NeXTMach 199·Darwin 218 — 전처리 뒤 수는 아직 안 셈 | ⚖️ "그대로 맞지 않음" 은 받아들이되, 정확한 수는 B3 에서 실기 `cc -E` 로 셉니다 |
-| vfs_conf: 원본은 20 항목(NeXTMach 10) | python: `_vfsNVFS` 값 0x1db6e0, (0x1db6e0−0x1db640)/8 = 20; NeXTMach vfs_conf.c:48–79 항목 10 | ✅ D024 고침이 필요합니다 |
-| param: 참조 전체는 248 B, `hz`·`tick`·`tickadj` 를 빼면 236 B; 이 셋은 재빌드 mach_clock.c 가 이미 정의 | 객체 기호: mach_clock.c `_hz`·`_tick`·`_tickadj` SECT; 원본 `_hz` 0x1dee30·`_tick` 0x1dee34·`_tickadj` 0x1dee48(`__data`, mach_clock 자리) | ✅ (248 은 B3 에서 빌드로 확인) |
-| tty_conf: 참조 파일의 `nullioctl` 은 이미 tty.c 가 정의(원본 0x111bf4) | 객체 기호: tty.c `_nullioctl` SECT; symbols.tsv `_nullioctl` 0x111bf4 | ✅ 표만 옮깁니다 |
-| in_proto·conf 는 참조 크기와 다름(원본 377·2,476 B) | (구조 크기 미측정) | ⏭️ B3 에서 빌드·측정으로 정합니다. 계획 숫자로 옮기지 않습니다 |
-| dma.c 선언 줄은 44 가 아니라 35 | dma.c:35 `const IONamedValue IODMAStatusStrings[] = {`; `wc -l` 44 | ❌ 계획의 "44 줄" 은 파일 길이(44 줄)였습니다. 오해가 없도록 "dma.c:35, 파일 44 줄" 로 적습니다 |
-| objc-globaldata.m 은 SHLIB 를 끄고 빌드해야 함(켜면 468 B 덧붙음) | Darwin objc-globaldata.m 끝 `#ifdef SHLIB char _objc_global_data_pad[468]` (이번 세션 읽음) | ✅ |
-| 원본 ObjC 모듈 76, SCSIGlobals·globaldata 이름 없음 | python: `__module_info` 1,216/16 = 76; 원본 파일에 "SCSIGlobals"·"globaldata"·"objc-globaltext" 0 건(재빌드 objc-globaltext.m 도 모듈 없음) | ✅ 데이터만 있는 `.m` 이 모듈 정보를 내는지 B2 탐침에 넣습니다 |
-| 참조 빌드는 libDriver·libobjc 를 `ld -r` 로 묶음: Darwin `driverkit-1/libDriver/Makefile:631`, `objc/Makefile.postamble:155` | 파일 열어 확인: Makefile:631 `$(LD) -r -o $@ $(OFILES) vers.o`(vers.o 가 끝); postamble:155 `$(LD) -r -o …/libk$(NAME).o …/static_obj/$${architecture}/*.o` | ✅ **중요한 근거입니다.** libDriver 판 문자열이 libDriver 끝(IOVPCodeDisplay 뒤)에 오는 것과, libobjc 구성원 순서(HashTable·List·Object·Protocol·except·hashtable… = `*.o` 의 ASCII 순)가 원본 text 순서와 맞습니다. 공통 기호 흉내는 묶음을 넣은 뒤 다시 합니다 |
-| 객체 재배치 41,357 개를 풀어도 (b)–(d) 구간 대상 0 | (내 재배치 해석은 안 함) | ⏭️ 행동이 바뀌지 않습니다. 계획에 옮기지 않습니다 |
-| 순서 권고: B1 고침 → B2 넓힘 → B3/B4 → 묶음 넣고 다시 흉내 → B5 | 위 확인들 | ✅ 받아들입니다 |
-
-5. 고친 단계:
-   - B1: 작은 const 아홉은 "링크 순서로 뒷받침되는 조건부 배치" 로 표시합니다(같은 바이트 `18002000` 이 여럿이라 유일 일치가 아님). `___clz_tab` 을 libgcc 행으로 넣습니다.
-   - B2: (1) 공통 기호 순서, (2) `ld -r` 정렬, (3) 참조 없는 static const·인라인 문자열 두 벌, (4) vers_string 에 더해 (5) **libDriver·libobjc 를 참조 빌드처럼 `ld -r` 로 묶은 중간 객체**의 기호 순서·정렬·COMMON 처리·문자열 합침을 봅니다. (6) 데이터만 있는 `.m`(SCSIGlobals·objc-globaldata) 이 ObjC 모듈 정보를 내는지 봅니다.
-   - B3: 참조 원문은 실기 `cc -E` 로 전처리한 뒤 항목 수·구조 크기를 재고, 이름이 바뀐 대응 파일(ufs_tables ↔ Darwin ffs_tables)도 찾습니다. 객체가 내는 모든 절과 COMMON 기호를 봅니다(목표 구간만 보지 않음). param 에서 `hz`·`tick`·`tickadj` 는 빼고, tty_conf 는 표만, objc-globaldata 는 SHLIB 없이 만듭니다.
-   - B5: 묶음과 B3 객체를 넣은 뒤에만 합니다. 판정 기준은 LIS 가 아니라 공통 기호 주소·크기·정렬이 원본과 같고 L1 결과가 바뀌지 않는 것입니다.
-6. B1 결과(2026-10-08, 고친 `l2_coverage.py` → `09_validation/reconstruction/s6-l2-coverage-20261008-b1.json`; 이전 결과 파일은 그대로 둠):
-   - 조건부 배치 7 개가 바이트와 맞았습니다: ddm 0x1d13e8, fp_support 0x1d14dc·i386_init 0x1d14e0·intr 0x1d14e4, pmap 0x1d163c·trap 0x1d1640·vm_machdep 0x1d1644. PCexception·PCresume 는 앞의 키맵 둘째 사본(주인 미정)이 자리를 차지하고 있어 이 규칙으로는 배치되지 않습니다(바이트는 0x1d5c56·0x1d5c5a 에서 맞음, 항목 4). 키맵 주인이 정해지면 다시 돌립니다.
-   - libgcc `__const` 256 B(0x1d68b0)가 `bit_length` 표와 같아 넣었습니다.
-   - `__TEXT,__const` 남은 빈 곳: 1,297 B 중 0 아닌 766 B, 정렬로 설명 안 되는 구간 5(0x1d1276 14 B, 0x1d58e4 892 B, `_IODMAStatusStrings` 56 B, libDriver 판 160 B, objc 판 172 B; python 합 7+541+23+105+90 = 766). `__text`·`__data`·`__bss`·기호·문자열 숫자는 plan 396 결과와 같습니다.
-   - 공통 기호 흉내(처음 언급 순): 원본 417, 언급 406, LIS 400, 어긋남 6(`_boottime`·`_callout`·`_master_cpu`·`_inode_list`·`_iuniqtime`·`_in_interfaces`), 언급 없음 11 — 항목 0 (j)·4 와 같습니다.
-7. B2 결과(2026-10-08, 실기 gcds, `/bin/cc`(cc-744.13)·`/bin/ld`; 원문·스크립트·출력 `08_build/runs/tools/probe/l2b2/`(run.sh), 해석은 호스트 python `macho_obj`):
-   - **B2-1 공통 기호 순서: 가설과 같습니다.** c1a.o(기호표: `_za` COMMON·`_zb` UNDF·`_zc` COMMON·`_zd` UNDF), c1b.o(`_zd` 정의·`_yy`·`_zb`·`_zz` COMMON), c1c.o(`_ww` COMMON·`_zz` UNDF)를 a·b·c 순으로 링크하면 `__common` 이 za 0x4010·zb 0x4014·zc 0x4018·yy 0x401c·zz 0x4020·ww 0x4024, c·b·a 순이면 ww·zz·yy·zb·za·zc 입니다. 곧 "링크 순서에서 처음 언급(UNDF·COMMON 가리지 않음)한 객체, 그 객체 안에서는 기호표 순" 이고, 강하게 정의된 `_zd` 는 `__data` 에 남습니다. (in.c 의 `_in_interfaces`·`_ipintrq` 순서는 이 규칙으로 설명되지 않아 미해결로 남깁니다.)
-   - **B2-2 `ld -r` 묶음 정렬: 가설과 같습니다.** `ld -r` 로 a2c.o(정렬 2)·a2m.o(`.align 4`)를 묶은 lib2.o 의 `__text` 정렬은 4 이고, a2x.o(9 B) 뒤에 묶음을 링크하면 묶음이 0x3fe0 으로 가며 `00` 7 B 가 끼입니다(따로 링크하면 a2c 가 0x3fdc). 원본 HashTable 앞 12 B 틈과 같은 꼴입니다.
-   - **B2-3 GCC 2.7:** 참조 없는 `static const` 는 `.c` 와 `.m` 모두 객체에 남습니다(s3.o `__const` 정렬 2 = "swapfs\0" + `00` + `04 00 00 00`, int 가 오프셋 8; s3m.o `__const` 정렬 0 = 6 B). 원본 0x1d1276 은 "swapfs\0" 뒤 int 가 오프셋 10 이고 시작이 4 B 정렬이 아니므로, 한 C 파일의 두 static const 로는 이 꼴이 나오지 않습니다(두 객체이거나 다른 꼴; 미정). 호출되지 않는 `static __inline__` 함수의 문자열도 객체에 남습니다(t3n.o: 본문 없이 문자열만; `-fwritable-strings` 이면 `__data`, 아니면 `__cstring`). 한 번 인라인된 경우 문자열은 한 벌입니다(t3·t3w).
-   - **B2-4 vers_string(실기 `/usr/bin/vers_string`, 1,607 B, 읽기만):** `-l` → `static const char SGS_VERS[160] = "@(#)LIBRARY:…\n";`, `-c` → `const char SGS_VERS[160] = "@(#)PROGRAM:…\n";` 와 `const char VERS_NUM[10] = "<rev>";`. 원본의 기호 없는 libDriver 160 B(정적)·`_objc_VERS_STRING` 160 B·`_objc_VERS_NUM`(10 B + 다음 객체 정렬 2 B)과 맞습니다(objc 쪽 이름은 바꾼 꼴).
-   - **B2-6 데이터만 있는 `.m`:** d6.m(클래스 없음)은 `__OBJC` 절을 내지 않고 `__data`·`__cstring` 만 냅니다 — 원본 모듈 76 에 SCSIGlobals·globaldata 가 없는 것과 맞습니다.
-   - 다음: B3(데이터만 있는 객체). 참조 빌드처럼 libDriver(끝에 vers.o)·libobjc(`*.o` 순)를 `ld -r` 로 묶는 것은 링크 계획에서 정합니다.
-8. B3 진단 결과(2026-10-08, 07 손대지 않음; scratch 사본을 07 사본 경로에 두고 이웃 객체의 l2_build_forms 꼴로 빌드 — scratchpad 도구 `diag_form.py`·`diag_k07.py`; L1 json `09_validation/reconstruction/s6p397-*-l1-*.json`). 모두 **OBJECT_MATCH**:
-
-| 객체(진단 경로) | run | 바탕 | 고친 것 |
-|---|---|---|---|
-| ufs_tables (bsd/ufs/ufs_tables.c) | s6p397-ut1 | NeXTMach ufs/ufs_tables.c | 없음 |
-| counters (kern/counters.c) | s6p397-ct2 | Mach4 kern/counters.c | `#include <mach_counters.h>` 한 줄(07 에 없음; MACH_COUNTERS 는 `<kern/counters.h>` → `<mach/features.h>`) |
-| machdep_call (machdep/i386/machdep_call.c) | s6p397-mc1 | Darwin machdep/i386/machdep_call.c | 없음 |
-| dma (driverkit/libDriver/dma.c) | s6p397-dm1 | Darwin driverkit-1 libDriver/dma.c | 없음 |
-| SCSIGlobals (driverkit/libDriver/Kernel/SCSIGlobals.m) | s6p397-sg1 | Darwin driverkit-1 libDriver/Kernel/SCSIGlobals.m | 없음 |
-| objc-globaldata (objc-runtime/objc-globaldata.m) | s6p397-gd1 | Darwin objc/objc-globaldata.m | 없음(SHLIB 정의 안 함) |
-| tty_conf (bsd/kern/tty_conf.c) | s6p397-tc1 | NeXTMach bsd/tty_conf.c | `nullioctl` 함수 뺌(07 tty.c 가 정의, 원본 0x111bf4) |
-| uipc_proto (bsd/kern/uipc_proto.c) | s6p397-up1 | NeXTMach bsd/uipc_proto.c | 없음 |
-| vfs_conf (bsd/vfs/vfs_conf.c) | s6p397-vc1 | NeXTMach bsd/vfs_conf.c | 6 번 "swapfs"·`swapfs_vfsops`, 빈 항목 7–19(20 항목) |
-| in_proto (bsd/netinet/in_proto.c) | s6p397-ip1 | NeXTMach netinet/in_proto.c | ICMP 와 raw 사이 IGMP 항목(Darwin in_proto.c:132 꼴) |
-| param (conf/param.c) + confdep.h | s6p397-pm2 | NeXTMach conf/param.c | `hz`·`tick`·`tickadj` 와 `<machine/param.h>` 뺌(07 mach_clock.c 가 정의), `nclist = 216`(식 모름), 생성 머리 confdep.h `MAXUSERS 8`(nport 42·ncallout 184·nchsize 308·ncsize 140 과 맞음) |
-| init_sysent (bsd/kern/init_sysent.c) | s6p397-is3 | NeXTMach bsd/init_sysent.c | 항목 23·52·139·147–154·174–183 을 원본대로, 끝 181 항목 뺌(184 항목) |
-| conf (bsd/dev/i386/conf.c) | s6p397-cf1 | 원본 바이트로 작성(D024); 칸 배치·주석은 Darwin bsd/dev/i386/conf.c, 구조는 SDK `<sys/conf.h>`(6·11 필드) | Darwin 의 isdisk·chrtoblk 등 함수는 원본에 없음 |
-| ioconf (conf/ioconf.c) | s6p397-io1 | NeXTMach config mkioconf.c 의 `pseudo_inits` 꼴 | {32, pty_init}, {1, venip_config}, {0, 0} |
-| vers (conf/vers.c) | s6p397-vk1 | 원본 문자열; 꼴은 Darwin conf/tools/newvers 와 같은 네 정의 | — |
-| objc_vers (objc-runtime/objc_vers.c) | s6p397-vo1 | vers_string -c + Darwin objc common.make:201–203 의 sed | — |
-| libDriver vers (driverkit/libDriver/vers.c) | s6p397-vd1 | vers_string -l(Darwin libDriver Makefile:612) | 기호가 정적이라 `--place __TEXT,__const=0x1d647c` 로 비교 |
-
-   진단 경로는 임시입니다. 07 에 둘 경로·이름(특히 param·ioconf·vers·confdep.h 같은 config 생성물, conf.c 의 출처 표기)은 바이트로 정해지지 않으므로 사용자에게 묻습니다. 링크 위치는 원본 데이터 순서로 정해집니다(예: init_sysent 는 init_main 과 kern_acct 사이, objc_vers 는 libobjc `*.o` 의 끝, libDriver vers 는 libDriver 묶음 끝).
-9. B4 진단 결과(2026-10-08, 07 손대지 않음, scratch 사본 + `diag_form.py`):
-   - **rtc**(s6p397-rt1): 07 rtc.c 에서 참조 없는 `static unsigned char rtc[RTC_NREG];` 한 줄을 빼면 **OBJECT_MATCH**(text 1,800 B·data 52 B, 함수 8 MATCH, `__bss` 없음). 기준선은 P(`__bss` unverified)였습니다. 원본 `__bss` 자리(3 B)와도 맞습니다.
-   - **active_mfsbufs·mfsbuf_lock**(s6p397-mf1): 07 mfs_prim.c 에 Darwin kern/mapfs.c:132 `lock_data_t mfsbuf_lock;`(MACH_NBC 묶음 첫 줄)과 :1081 `int active_mfsbufs = 0;`(07 의 `extern int nmfsbuf;` 앞, Darwin 과 같은 자리)을 넣으면 **OBJECT_MATCH**, `__data` 97 → 104 B 로 `_active_mfsbufs` 가 0x1defb4 에 옵니다. 둘 다 Darwin 에서도 정의만 있고 쓰이지 않습니다.
-   - **pmsgbuf**(s6p397-sl1): 07 subr_log.c 의 `struct msgbuf *pmsgbuf;` 를 `= 0` 으로 초기화하면 **OBJECT_MATCH**, `__data` 4 B 가 0x1dac14.
-   - **nrnode**: nfs_subr.c 의 `extern int nrnode;` 를 `int nrnode = 0;` 로 바꾸는 꼴(s6p397-nr1: `__data` 0x1dc2c0 부터 671 B, 기준선과 같은 P 상태)과 nfs_server.c 끝에 `int nrnode = 0;` 을 붙이는 꼴(s6p397-nr2: OBJECT_MATCH, 868 B) 둘 다 원본 바이트와 맞습니다 — **바이트로 정해지지 않습니다**(NeXTMach 은 next/machdep.c 에 정의).
-   - **키맵 둘째 사본**(882 B, 0x1d58e4): `#import <bsd/dev/i386/PCKeymap.c>` 를 kbd_entries.m(s6p397-kp2)이나 PCinit.c(s6p397-kp3)에 넣으면 둘 다 `--place __TEXT,__const=0x1d58e4` 로 **OBJECT_MATCH** 입니다. PCPointer.m(s6p397-kp1)에 넣으면 `__OBJC,__class_names` 가 115 → 81 B 로 바뀌어 맞지 않습니다. 둘 중 어느 것인지는 **바이트로 정해지지 않습니다**.
-   - **"swapfs" const 14 B**(0x1d1276): B2-3 대로 한 C 파일의 두 static const 로는 이 꼴(int 가 오프셋 10)이 나오지 않으므로, 정렬 0 인 char 배열을 내는 객체 하나와 정렬 2 인 int 4 를 내는 객체 하나로 보입니다. 둘 다 참조가 없고, 이름·주인을 알려 주는 원문이 없습니다 — **바이트로 정해지지 않습니다**.
-   - **if_vtrip add_sr 둘째 문자열 37 B**(0x1db91b, `__data` 끝): B2-3 대로 호출되지 않는 `static __inline__` 함수의 문자열은 남고, 한 번 인라인된 함수의 문자열은 한 벌입니다. 원본은 참조되는 첫 벌(`__data` 처음)과 참조 없는 둘째 벌(끝)을 가지므로, 같은 문자열을 가진 두 번째 정의가 파일 뒤쪽에 있었던 것으로 보이나 그 꼴은 **바이트로 정해지지 않습니다**. 이 37 B 가 없으면 링크에서 뒤 객체(raw_usrreq 등)의 `__data` 주소가 37 B 앞당겨집니다.
-10. 사용자 결정이 필요한 것(B3·B4 결과로 좁힘; 07 반영과 B5 는 결정 뒤):
-   1. 데이터만 있는 객체 17 개의 07 경로·이름, 특히 config 생성물(param.c·confdep.h·ioconf.c·vers.c)과 판 객체(objc_vers.c·libDriver vers.c), 그리고 conf.c(원본 바이트로 작성, Darwin 칸 배치)의 출처 표기.
-   2. nrnode: nfs_subr.c 정의 또는 nfs_server.c 끝.
-   3. 키맵 둘째 사본: kbd_entries.m 또는 PCinit.c.
-   4. "swapfs" const 14 B 와 if_vtrip add_sr 둘째 문자열 37 B: 근거 없는 꼴로 작성할지(어느 파일에, D024 표시), 아니면 링크 단계에서 빈 곳으로 남기고 비교에서 따로 다룰지.
-11. B5 미리 보기(scratch, 기록·07 변경 없음; scratchpad `commonsim3.py`): 재빌드 객체 385 에 B3 진단 객체 17 을 원본 데이터 순서 자리에 넣고 rtc·mfs_prim·subr_log 를 B4 사본으로 바꿔 "처음 언급 순" 을 흉내 내면 언급 408/417, LIS 402 입니다. `_file`(param)·`_mfsbuf_lock`(mfs_prim)이 제자리에 들어오고, 어긋남은 그대로 6(`_boottime`·`_callout`·`_master_cpu`·`_inode_list`·`_iuniqtime`·`_in_interfaces`), 언급 없음 9(`____xxx_state`·`_nmi_*` 8)가 남습니다. libDriver·libobjc 묶음은 아직 넣지 않았습니다.
-12. 사용자 질문(2026-10-08 "4가지는 mach 2.0 이나 darwin 을 참고해서 배치할 수는 없나요?")과 지시("근거없는 두조각도 작성은 해야죠") 뒤 확인:
-   - **경로·링크 위치는 Darwin 빌드 목록으로 정해집니다.** Darwin `kernel/conf/files`(:361–363 init_main·init_sysent·kern_acct, :396–399 tty·tty_compat·tty_conf·tty_pty, :403–404 uipc_mbuf·uipc_proto, :131·:134 vfs_bio·vfs_conf, :220–222 in_pcb·in_proto·ip_icmp, :410 conf/param.c, :431–433 ast·counters·exception)과 `files.i386`(:36–38 machdep_call·pcb, :47·:49·:50 autoconf_i386·conf·cons)의 차례가 원본 데이터 순서와 같습니다. Darwin `Makefile.template:232` `LDOBJS=${LDOBJS_PREFIX} ${OBJS} subr_prof.o ioconf.o ${LDOBJS_SUFFIX}`, `Makefile.i386:68–69`(PREFIX = libc 객체, SUFFIX = libDriver·libobjc 묶음), `Makefile.template:381–387`(newvers 로 vers.c 를 만들어 `${LDOBJS} $(MACH_OFILES) vers.o ${LIBS}` 순으로 링크)은 원본 순서(libc → 커널 객체 → ioconf → libDriver → libobjc → mach 사용자 스텁 → vers → libcc)와 같습니다. 그래서 07 경로: `bsd/kern/init_sysent.c`·`bsd/kern/tty_conf.c`·`bsd/kern/uipc_proto.c`·`bsd/vfs/vfs_conf.c`·`bsd/netinet/in_proto.c`·`kern/counters.c`·`machdep/i386/machdep_call.c`·`bsd/dev/i386/conf.c`·`conf/param.c`(Darwin·NeXTMach 모두 conf/param.c), `bsd/ufs/ufs_tables.c`(07 의 ufs 는 NeXTMach 처럼 평평; Darwin 은 ffs/ffs_tables.c), libDriver `driverkit/libDriver/dma.c`·`driverkit/libDriver/Kernel/SCSIGlobals.m`, `objc-runtime/objc-globaldata.m`. 빌드 생성물(config 의 ioconf.c·confdep.h, newvers 의 vers.c, vers_string 의 objc_vers.c·libDriver vers.c)의 07 위치는 plan 398 에서 정합니다(`07_kernel/generated/` 최상위는 gen_config_headers.py 가 쓰는 머리 자리이므로 그대로 쓰지 않음).
-   - **nrnode·키맵 둘째 사본은 참조로 정해지지 않습니다.** Darwin 에는 nrnode 가 없고 NeXTMach 은 next/machdep.c 에 정의하나 4.2 machdep.c 의 `__data`(0x1e227c)는 다른 자리입니다. 키맵은 Darwin·NeXTMach 어디에서도 EventSrcPCKeyboard.m 밖에서 PCKeymap.c 를 들이지 않습니다(grep). Darwin files.i386 :68–72 차례(PCPointer.m·EventShmemLock.s·kbd_entries.m·PCinit.c)도 둘 다 같은 자리라 가르지 못합니다.
-   - **근거 없는 두 조각의 꼴(실기 탐침, `l2b2/run2.sh`)**: 단독 `static const char x[] = "swapfs";` 는 `__const` 7 B 정렬 0, 단독 `static const int y = 4;` 는 4 B 정렬 2 → 원본 14 B 는 "char 배열을 낸 객체" 다음 "int 를 낸 객체" 꼴과 정확히 맞습니다(7 + 채움 3 + 4). 데이터 뒤에 호출되지 않는 `static __inline__` 함수(문자열 포함)를 두면 `-fwritable-strings` 에서 그 문자열이 `__data` 끝에 옵니다(t6w.o: `01 00 00 00` 뒤 "add_sr: …") → if_vtrip 끝 37 B 꼴과 맞습니다. 링크 순서상 char 배열은 netif 뒤 첫 const 자리, int 는 그 뒤 kern_server 앞(사이 객체 중 swapfs.c 가 이름과 맞음; swapfs.c 뒤 kern_server 앞 객체 66).
-
-## 398. S6-6 세부 계획 — L2-B 07 반영: 데이터만 있는 객체 17 과 기존 객체 8 고침(plan 397·D058; 코딩 전, 2026-10-08)
-
-0. 근거: plan 397 항목 8(B3 진단 17 OBJECT_MATCH), 9(B4), 12(Darwin 빌드 목록), D058(nrnode = nfs_subr.c, 키맵 = PCinit.c, 근거 없는 두 조각 = swapfs.c·ufs_alloc.c·if_vtrip.c 끝). 추가 진단(이번 세션, 07 손대지 않음): if_vtrip 끝에 호출되지 않는 static inline(문자열 하나) → `__data` 208 B **OBJECT_MATCH**(s6p397-vt1); swapfs.c 에 `static const char swapfs_const_name[] = "swapfs";` → `--place __TEXT,__const=0x1d1276` 에서 바이트 0 차이, 등급 P 그대로(`__bss` 만 미확정, s6p397-sw1); ufs_alloc.c 의 `#endif QUOTA` 뒤에 `static const int ufs_alloc_const_4 = 4;` → `--place …=0x1d1280` **OBJECT_MATCH**(s6p397-ua2; 처음 시도 ua1 은 `#if QUOTA` 안에 넣어 빠졌음).
-1. 새 07 파일(내용 = plan 397 진단 사본; 머리·출처는 D013·D030·D024 규칙):
-
-| 07 경로 | 바탕·라이선스 처리 | 비고 |
-|---|---|---|
-| src/bsd/kern/init_sysent.c | NeXTMach bsd/init_sysent.c, 고지 유지, 고친 줄 plan 397 표시 | 184 항목 |
-| src/bsd/kern/tty_conf.c | NeXTMach bsd/tty_conf.c(표 부분만), 고지 유지 | nullioctl 뺌 |
-| src/bsd/kern/uipc_proto.c | NeXTMach bsd/uipc_proto.c 그대로 | |
-| src/bsd/vfs/vfs_conf.c | NeXTMach bsd/vfs_conf.c, 고지 유지 | swapfs 항목·20 항목 |
-| src/bsd/netinet/in_proto.c | NeXTMach netinet/in_proto.c, 고지 유지 | IGMP 항목 |
-| src/bsd/ufs/ufs_tables.c | NeXTMach ufs/ufs_tables.c 그대로 | |
-| src/conf/param.c | NeXTMach conf/param.c, 고지 유지 | hz·tick·tickadj·machine/param.h 뺌, nclist 216 |
-| src/kern/counters.c | Mach4 kern/counters.c, 고지 유지 | include 한 줄 |
-| src/machdep/i386/machdep_call.c | Darwin kernel/machdep/i386/machdep_call.c, APSL 고지 유지 | 그대로 |
-| src/bsd/dev/i386/conf.c | 원본 바이트로 작성(D024); 칸 배치·주석 꼴만 Darwin bsd/dev/i386/conf.c | 프로젝트 작성 |
-| src/driverkit/libDriver/dma.c | Darwin driverkit-1 libDriver/dma.c — D030(Darwin 전용, kernel/machdep 밖, Mach4·NeXTMach 짝 없음): 프로젝트 작성, "nearly the same as Darwin 0.1 …" | 그대로 |
-| src/driverkit/libDriver/Kernel/SCSIGlobals.m | 위와 같음(D030) | 그대로 |
-| src/objc-runtime/objc-globaldata.m | Darwin objc/objc-globaldata.m — D030·D047 프로젝트 작성, "nearly the same as Darwin 0.1 objc-1 objc-globaldata.m", 머리 주석 교체·Darwin 고지 없음(선례: PROVENANCE 의 objc-globaltext.m·objc-errors.m 행) | 그대로(SHLIB 없음) |
-| src/conf/ioconf.c, src/conf/vers.c | 빌드 생성물(config·newvers 출력 꼴)을 원본 바이트로 씀; 07_kernel/generated/README 에 MIG C 파일처럼 "src 옆에 둔 생성물" 로 적음 | |
-| src/objc-runtime/objc_vers.c, src/driverkit/libDriver/vers.c | vers_string 출력 꼴(실기 /usr/bin/vers_string 확인)을 원본 바이트로 씀 | |
-| generated/confdep.h | `06_reconstruction/config_options.tsv` 에 `maxusers MAXUSERS confdep.h 8 confirmed`(근거: param 값) 행 → gen_config_headers.py 로 생성 | meta_features.h 도 confdep.h 를 들이게 됨(아래 3) |
-
-2. 기존 07 파일 고침(줄마다 plan 397/398 표시): rtc.c(참조 없는 `rtc[RTC_NREG]` 뺌), mfs_prim.c(Darwin mapfs.c:132·:1081 두 줄), subr_log.c(`pmsgbuf = 0`), nfs_subr.c(`int nrnode = 0;`, D058), PCinit.c(`#import <bsd/dev/i386/PCKeymap.c>`, D058; 마지막 #import 뒤), swapfs.c·ufs_alloc.c·if_vtrip.c(D058 근거 없는 조각, "no evidence" 머리 주석).
-3. 빌드·확인:
-   - confdep.h 가 meta_features.h(모든 컴파일의 `-imacros`)에 들어가 `MAXUSERS` 가 모든 번역 단위에 정의되므로(07·참조 머리 grep 으로 MAXUSERS 쓰는 곳 확인), **385 객체 전체를 다시 빌드**해(plan 394 l2_rebuild 묶음) L1 이 기준선과 같은지 봅니다. 바뀌어야 하는 객체(위 2 의 8 개)만 기대한 대로 바뀌어야 합니다(rtc P→A, 나머지 등급 그대로).
-   - 새 17 객체는 이웃 객체의 l2_build_forms 꼴로 07 에서 빌드(진단과 같은 꼴), L1 OBJECT_MATCH(libDriver vers 는 `--place`), `cc -M` 의존이 모두 07(plan 395 기준).
-   - 그 뒤 `l2_coverage.py` 를 새 객체까지 넣어 다시 돌려 `__const`·`__data` 빈 곳이 정렬 채움만 남는지, 정의 없는 원본 이름이 공통 기호(B5 대상)만 남는지 봅니다.
-4. 기록: PROVENANCE(새 17 + 고친 8), MODIFICATIONS, 증거 파일(새 객체마다 x86-<name>.md·.diff, 고친 객체는 기존 파일에 덧붙임), 데이터만 있는 객체는 text 범위가 없으므로 새 표 `06_reconstruction/objects_data.tsv`(object·arch·binary_sha256·sections(절=시작+크기)·source·build·grade·evidence)를 만들고 l2_forms·l2_coverage 가 읽게 고칩니다. rtc 의 등급 변경은 objects_partial → objects_confirmed 이동으로 기록합니다.
-5. 하지 않는 것: B5(공통 기호 선언 고침)와 링크 — 이 반영 뒤 다음 계획.
-6. codex 교차검토(kj95ge9b3, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 진단 37 보고를 다시 계산해 모두 같음, B3 17 OBJECT_MATCH | (재계산은 codex 쪽; 나는 각 run 직후 L1 json 을 직접 읽어 이 세션 기록에 적음) | ⏭️ 행동 바뀌지 않음; 숫자 37 은 계획에 옮기지 않음 |
-| in_proto.c 의 IGMP 항목은 Darwin in_proto.c:132 꼴이므로 출처는 NeXTMach+Darwin 섞임으로, in_bootp 선례(PROVENANCE:1011)처럼 | PROVENANCE.tsv 1011 행 읽음: `nextmach+darwin01`, Darwin 부분 줄 범위·APSL 고지 | ✅ (내 줄은 Darwin 의 `rip_usrreq` 대신 원본 바이트대로 `raw_usrreq` 이지만 꼴은 Darwin 에서 옴) → in_proto.c 는 섞임 출처, IGMP 줄에 Darwin 표시, APSL 고지 추가 |
-| conf.c 는 D030 아님(두 참조에 짝 있음), D024 작성으로 됨 | 계획 표에 이미 D024 작성으로 적음 | ✅ 그대로 |
-| generated/confdep.h 도 PROVENANCE 행 필요 | PROVENANCE 의 `07_kernel/generated/` 행 31, 예 mach_kdb.h 행(`generated` · gen_config_headers.py) | ✅ 추가 |
-| MAXUSERS·confdep 를 쓰는 곳이 07·기준선 스테이징에 없음 | `grep -rln "MAXUSERS\|confdep" 07_kernel` 0 건; SDK rusers.h `#define MAXUSERS 100` 은 07 이 쓰지 않음(grep "rusers" 07 0 건) | ✅ 전체 재빌드는 확인용으로 그대로 함 |
-| 빌드 대상 402(385+17) | python 385+17 = 402 | ✅ |
-| objects_* 표를 직접 읽는 도구는 l2_forms.py:128 뿐 | `grep -rn "objects_confirmed\|objects_partial" 10_tools --include=*.py` → l2_forms.py:6·:128 | ✅; 간접 소비자(l2_baseline·l2_rebuild·l2_coverage)도 고쳐야 함 |
-| 대안: 새 표 대신 기존 표에 text 범위 빈 칸 | (기존 표를 읽는 coverage·기록 도구가 text 범위를 숫자로 쓰는지 전수 확인 안 함) | ⚖️ 받지 않음 — 기존 A/P/L 집계가 text 범위로 계산되므로 빈 칸이 다른 도구를 깨뜨릴 위험이 있어 **새 표 `objects_data.tsv`** 유지, 대신 l2 도구 넷을 명시적으로 고침 |
-| 명시 배치가 넷 필요: PCinit 0x1d58e4, swapfs 0x1d1276, ufs_alloc 0x1d1280, libDriver vers 0x1d647c | 이 세션 진단에서 넷 모두 `--place` 로만 확인됨(kp3·sw1·ua2·vd1) | ✅ 재빌드 확인 도구에 행별 배치 넣음 |
-| l2_coverage.py:54 가 `same_as_baseline` 을 요구해 의도한 변경을 거부 | l2_coverage.py:54 `assert x.get('same_as_baseline') and not x.get('problem'), n` | ✅ 새 재빌드 결과를 읽도록 선택 규칙 고침 |
-| rtc 를 표 사이로 옮기면 행 번호 40 개가 바뀜 | python: rtc 는 forms 354 행(objects_partial), confirmed 314 행 → 315 로 넣으면 315–354 의 40 행이 밀림 | ✅ 새 재빌드부터는 행 번호가 아니라 **object 이름**으로 잇고, 이전 결과 파일은 그대로 둠 |
-| `x86-dma` 는 이미 machdep DMA 객체·증거 이름 | objects_partial.tsv `x86-dma` 행, 06_reconstruction/evidence/x86-dma.md 있음 | ✅ 새 이름 `x86-libDriver_dma` |
-| 선언 순서 유지: nrnode 는 nfs_subr `__data` 오프셋 0, active_mfsbufs 는 100 | python: s6p397-nr1 객체 `_nrnode` 오프셋 0; 0x1defb4−0x1def50 = 100 | ✅ 진단 사본의 줄 자리를 그대로 옮김 |
-| 생성 .c 는 "생성기 출력 꼴을 원본 바이트로 다시 쓴 것" 으로 적고 gen_config_headers.py --check | generated/README 의 MIG 문구는 실제 도구 출력용 | ✅ |
-
-7. 고친 순서(코딩): (a) 07 새 파일 17·고친 파일 8·config_options.tsv 행 → gen_config_headers.py 로 confdep.h·meta_features.h, `--check`; (b) 새 표 objects_data.tsv 와 l2 도구 고침(object 이름 키, 행별 명시 배치, 데이터만 있는 객체의 링크 자리); (c) 402 객체 재빌드·L1·`cc -M` 의존 확인; (d) l2_coverage 다시; (e) 기록(PROVENANCE·MODIFICATIONS·증거·objects 표·README). 각 단계 끝에 결과를 이 절에 적습니다.
-8. 단계 (a) 결과(2026-10-08): 07 새 파일 17(위 표 경로; 내용 = plan 397 진단 사본, 머리만 선례대로: D030·D047 파일은 머리 교체, conf.c·생성물 꼴 넷은 프로젝트 머리, in_proto.c 는 in_bootp 선례대로 NeXTMach 머리 뒤에 Darwin APSL 고지와 "plan 397 (Darwin)" 표시), 고친 파일 8(백업 scratchpad `bak398/`; diff 로 바뀐 줄 수 rtc 2·mfs_prim 2·subr_log 2·nfs_subr 2·PCinit 1·if_vtrip 13·swapfs 7·ufs_alloc 7 — 진단 사본에서 주석 문구만 다듬음). config_options.tsv 에 `maxusers MAXUSERS confdep.h 8 confirmed` 행(53 → 54 줄; python: NPROC 84, nport 42, ncallout 184, NINODE 280, nchsize 308, ncsize 140), gen_config_headers.py 로 `generated/confdep.h`(`#define MAXUSERS 8`)와 meta_features.h(`#import <confdep.h>` 한 줄 추가) 생성, `--check` 0.
-9. 단계 (b)·(c) 결과(2026-10-08):
-   - (b) 도구: `10_tools/reconstruction/l2_forms_s6p398.py` → `06_reconstruction/l2_build_forms-s6p398.tsv`(402 행: 1–385 행은 기존 forms 와 같음(python 비교 True), 386–402 행 = 새 17 객체, 이웃 템플릿 꼴에서 -c·-o 만 바꿈)와 `06_reconstruction/l2_expect-s6p398.json`(기대 25: 바뀐 8 + 새 17, 명시 배치 PCinit 0x1d58e4·swapfs 0x1d1276·ufs_alloc 0x1d1280·libDriver vers 0x1d647c). `l2_rebuild.py` 에 env `L2_FORMS`·`L2_EXPECT`(기대 행은 `--place` 를 주고 판정·이유를 기대와 비교, 나머지는 기준선 L1 과 비교) 추가(백업 scratchpad `bak398/l2_rebuild.py`, 306 → 331 줄). 데이터만 있는 객체 표(`objects_data.tsv`)와 l2_coverage 고침은 (d)·(e) 에서.
-   - (c) 재빌드(07 에서, run s6l1-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a; 결과 `09_validation/reconstruction/s6-l1-<G>-<run>.json`): 객체 402(행 1–402 모두), 기준선과 같음 377, 기대와 맞음 25(새 17 모두 OBJECT_MATCH, rtc P→OBJECT_MATCH, mfs_prim·subr_log·if_vtrip·PCinit·ufs_alloc OBJECT_MATCH, nfs_subr·swapfs 는 `__bss: unverified` 만), 실패 0, 문제 0, 묶음 대 단독 스테이징 의존 차이 0, **`cc -M` 의존이 07 밖인 객체 0**(python 집계). confdep.h 가 모든 컴파일에 들어갔지만 기존 377 객체는 바뀌지 않았습니다.
-10. 단계 (d) 결과(2026-10-08): `l2_coverage.py` 에 env `L2_COVER=s6l1`(plan 398 재빌드 402 행을 읽고 기준선과 같거나 기대와 맞는 행만 받음)과 데이터만 있는 객체의 링크 자리(같은 절에서 바로 앞에 놓인 text 객체 뒤)를 넣음(백업 `bak398/l2_coverage.py`, 353 → 383 줄). 옛 모드로 다시 돌린 결과는 `s6-l2-coverage-20261008-b1.json` 과 키마다 같음(새 키 `link_keys_data_only` 만 빈 값). 새 결과 `09_validation/reconstruction/s6-l2-coverage-20261008-s6p398.json`:
-   - `__TEXT,__const` 빈 곳 10 B 모두 `00`, 정렬로 설명 안 되는 구간 **0**(조건부 배치 9 개 모두 바이트 일치 — PCexception 0x1d5c56·PCresume 0x1d5c5a 포함). `__DATA,__data` 빈 곳 168 B 모두 `00`, 구간 **0**. `__text` 는 그대로 HashTable 앞 12 B 하나(libobjc `ld -r` 묶음 정렬, B2-2).
-   - `__bss`: 객체 합 12,422 B, 원본 12,432 B, 차이 10 B = 정렬 채움(python: 12,402 + bios 16 + SCSIGenericKern 4 = 12,422).
-   - 기호: 정의 없는 원본 이름 **25**(모두 `__common`), 중복·추가·N_PEXT 0. `__cstring` 원본 문자열 중 객체가 내지 않는 것 **0**. ObjC 리터럴 절 차이 0.
-   - 공통 기호 흉내: 언급 408/417, LIS 402, 언급 없음 9(`____xxx_state`·`_nmi_*` 8) — B5 대상.
-11. 단계 (e) 기록(2026-10-08; 백업 scratchpad `bak398/`):
-   - `06_reconstruction/objects_data.tsv` 새 표 17 행(재빌드 L1 의 절 배치, build 열에 run·행·`--place`). `06_reconstruction/README.md` 에 표 설명 한 단락.
-   - rtc: objects_partial(72 → 71 줄) → objects_confirmed(315 → 316 줄), 등급 A. functions.tsv 의 rtc 8 행 검증 문구를 A(`s6l1-g1a-l1-354.json`)로. functions.tsv 의 07 줄 번호 인용 68 개를 옮김(mfs_prim·PCinit·swapfs·ufs_alloc 줄이 늘어서; 옛 줄과 새 줄 내용이 모두 같음을 python 으로 확인, 행 수 4,763 그대로).
-   - PROVENANCE 1,028 → 1,046 행(새 17 + confdep.h; 바뀐 8 행은 SHA-256 과 plan 398 고침을 적음; in_proto.c 는 `nextmach+darwin01`, APSL 고지). MODIFICATIONS 501 → 526 줄(25 항목). 증거: 새 객체마다 `x86-<name>.md`·`.diff`(17 쌍), 바뀐 8 객체는 증거 끝에 "plan 397·398 고침" 절, diff 다시 만듦(PCinit 은 새 `x86-PCinit.diff`). `07_kernel/generated/README` 에 생성물 꼴 C 파일 넷과 confdep.h 설명.
-   - text 커버리지(python): A 622,696 B 73.13 %, P 227,802 B 26.76 %, L 340 B 0.04 %, 합 99.93 %, 남은 598 B(모두 정렬 `00`).
-12. 다음: B5(공통 기호) — 남은 원본 공통 이름 25 개의 정의 자리와 어긋남 6·언급 없음 9 를, libDriver·libobjc `ld -r` 묶음을 넣은 링크 순서로 다시 흉내 낸 뒤 정합니다(별도 계획, codex 검토 먼저).
-
-## 399. S6-7 세부 계획 — L2 시험 링크(진단; 실제 `__common` 배치를 얻어 B5 를 정하기 위함, 07 변경 없음; 코딩 전, 2026-10-08)
-
-0. 사실(이번 세션 python·실기 읽기):
-   - 원본 Mach-O(python): filetype 2(EXECUTE), cpu 7 sub 3, flags 0x1, ncmds 7, sizeofcmds 2,152; 세그먼트 `__PAGEZERO` 0–0x1000, `__TEXT` 0x100000 크기 0xda000(파일 0–892,928), `__DATA` 0x1da000 0x1e000, `__OBJC` 0x1f8000 0x12000, `__LINKEDIT` 0x780000 0x18ee0(파일 1,015,808, 102,112 B); SYMTAB symoff 1,015,808 nsyms 3,751 stroff 1,060,820 strsize 57,100; UNIXTHREAD flavor 0xffffffff count 16, eip 0x1860dc(`_start`), cs 0xf, ss·ds·es 0x17; 파일 1,117,920 B. 기호는 외부 3,651(구역) + 절대 100 뿐이고 이름순(지역 기호 없음).
-   - Darwin 0.1 링크 꼴: `conf/Makefile.i386:55–59` `LDFLAGS=-e _start -segaddr __TEXT ${RELOC} -segaddr __LINKEDIT ${SYMADDR} -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3`, `LIBS= -lcc`; `Makefile.template:386–387` `${LD} -static ${LDFLAGS} ${FVMFILE_LDFLAGS} ${LDOBJS} $(MACH_OFILES) vers.o ${LDFLAGS2} ${LIBS}`; `LDOBJS = libc 객체 + OBJS + subr_prof.o + ioconf.o + libDriver 묶음 + libobjc 묶음`(plan 397 항목 12). libDriver 묶음 = `$(LD) -r -o … $(OFILES) vers.o`(driverkit-1/libDriver/Makefile:631; OFILES 의 MD 목록 끝이 IOMallocLow·machdepFuncs, :177–178), libobjc 묶음 = `ld -r -o libkobjc.o …/*.o`(objc/Makefile.postamble:155). 실기 `/lib/libcc.a` SHA-256 = 원본 보관본(bccd689e…2fda5, 77,600 B).
-   - 링크 순서(python, plan 398 재빌드 402 객체): text 객체는 원본 text 주소 순. 데이터만 있는 객체 17 중 9 는 원본 데이터 위치로 자리가 하나(init_sysent·vfs_conf·in_proto·ufs_tables·counters·machdep_call·objc_vers 등), 8 은 후보가 여럿이라 Darwin 목록 차례로 정함: tty_conf → tty.c 뒤(files:396–399), uipc_proto → uipc_mbuf 뒤(:403–404), param → ufs_vnodeops 뒤 = ipc_entry 앞(files:410–412 "conf/param.c" 다음 ipc), conf → autoconf_i386 뒤(files.i386:47–50), ioconf → PCemulatePROT 뒤(OBJS 끝, Makefile.template:232; files.i386:77), dma → disk_label 뒤(libDriver KERNEL_CFILES 차례 disk_label·dma·label_subr), SCSIGlobals → SCSIGeneric 뒤(KERNEL_MFILES), objc-globaldata → objc-errors 뒤(`*.o` 이름 차례), libDriver vers → machdepFuncs 뒤(묶음 끝), vers → mach 스텁 끝(vm_write) 뒤.
-1. 도구 `10_tools/reconstruction/l2_link.py`(새로; 읽기·준비만):
-   - `prepare RID`: plan 398 재빌드 결과(402 행, SHA 확인)와 위 순서 규칙(데이터만 있는 객체 8 개의 자리 표는 도구 안에 근거와 함께 명시)으로 링크 목록을 만들고, 객체를 `08_build/runs/tools/RID-src/objs/` 에 복사(SHA 재확인), `RID.cmd` 를 씀: (1) `/bin/ld -r -o stage/libDriver_kern.o <libDriver 묶음: ioconf 다음부터 machdepFuncs 까지 + libDriver vers>`, (2) `/bin/ld -r -o stage/libkobjc.o <objc-runtime 객체, 원본 text 순 + objc_vers>`, (3) `/bin/ld -static -e _start -segaddr __TEXT 0x100000 -segaddr __LINKEDIT 0x780000 -segalign 0x1000 -force_cpusubtype_ALL -u __muldi3 -o stage/mach_kernel <libc·OBJS·ioconf> stage/libDriver_kern.o stage/libkobjc.o <mach 스텁> <vers.o> -lcc`. 링크 목록·묶음 구성은 json 으로 남김.
-   - 묶음 경계: libDriver 묶음은 ioconf 다음 객체(IODevice.m)부터 machdepFuncs.c 까지(원본 text 연속 구간), libobjc 묶음은 HashTable.m 부터 objc-sel.m + objc_vers, mach 스텁은 그 뒤 port_allocate … vm_write.
-2. 도구 `10_tools/reconstruction/l2_compare.py`(새로; 읽기만): 링크 결과와 원본을 비교 — Mach-O 머리·로드 명령(세그먼트·절 주소·크기·정렬·플래그, UNIXTHREAD), 절마다 바이트(같지 않은 구간 목록), 기호(이름·값·종류; 원본에 없는 지역 기호는 따로 셈), `__common` 이름별 주소 차이, LINKEDIT(기호·문자열 표 크기). 결과 json `09_validation/reconstruction/s6-l2-link-<RID>.json`.
-3. 실행: kr_run 진단 run `s6p399-ln1`(allow-list `/bin/ld` 이미 있음). 링크가 실패하면(미정의 기호 등) 메시지를 그대로 기록하고 멈춥니다.
-4. 판단에 쓰는 기대: text·const·data·ObjC 절 바이트는 plan 398 결과대로 같아야 함(재배치 해석은 링크 결과가 실제 값). 다를 것으로 예상하는 곳: `__common` 순서(B5 대상 6+9 이름), 지역 기호(원본은 없음 → `-x` 류 처리 여부는 결과를 보고 다음 계획에서), `__cstring` 문자열 합침 순서. 예상 밖 차이는 모두 목록으로 남김.
-5. 하지 않는 것: 07·기록 표 변경, 결과 커널 부팅, B5 고침(이 결과를 근거로 다음 계획).
-6. codex 교차검토(klip8umee, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| **어떤 객체도 정의하지 않고 참조만 하는 전역 16 개** 때문에 최종 링크가 미정의 기호로 멈춤 | python: 빠진 원본 공통 이름 25 중 객체가 UNDF 로만 언급 16(`_active_u`·`_cons`·`_cons_tp`·`_cpu_config`·`_kernel_map`·`_master_cpu`·`_mem_region`·`_mem_size`·`_nfsslowlink`·`_num_regions`·`_pgrphash`·`_posix_proc_hash`·`_u_task_zone`·`_u_thread_zone`·`_virtual_avail`·`_virtual_end`), 아무도 언급하지 않음 9(`____xxx_state`·`_nmi_*` 8), COMMON/SECT 로 정의하는 객체 0 | ✅ **계획을 고칩니다**: B5(공통 정의)를 시험 링크 앞의 선행 단계로 |
-| 머리 값·Darwin 인용은 맞으나 "자리 하나 9 / 여럿 8" 은 틀림(절 배치만 7/10, 문자열 순서까지 8/9) | 내 계산(ranges399.py, 절 배치만): 하나 7(init_sysent·vfs_conf·in_proto·ufs_tables·counters·machdep_call·objc_vers), 여럿 10 | ✅ 내 숫자가 틀렸습니다(7/10). 고른 자리는 모두 허용 범위 안 |
-| files:410–412 는 "param 이 ipc_entry 앞" 만 말하고 ufs_vnodeops 바로 뒤를 말하지 않음; files.i386:77 은 OBJS 끝이 아님(fp_emul 이 뒤) | files 405–412 읽음(uipc_usrreq 뒤 param, 그 뒤 ipc), files.i386 74–80(PCemulatePROT 뒤 fp_emul optional) | ✅ 문구 고침: param 은 원본 데이터 허용 범위(ufs_vnodeops / ipc_init) 안에서 ipc 앞, ioconf 는 Makefile.template:232 `${OBJS} … ioconf.o` 로 OBJS 뒤 |
-| libDriver 묶음 안의 strtol(커널 files:127)·IOTokenRing 은 Darwin libDriver 목록에 없음 → 묶음 소속은 추론 | (strtol 의 원본 text 위치가 묶음 구간 안임은 링크 순서 표에서 확인) | ⚖️ 바이트 순서상 그 자리여야 하므로 묶음 안에 둠, "추론" 으로 기록 |
-| libobjc 의 objc-zone 은 `*.o` ASCII 순과 다름 | 원본 text: objc-globaltext 0x1cde40 → objc-zone 0x1cdeb0 → objc-load 0x1cdf30 | ✅ 원본 순서를 그대로 씀(이름 순 가정 안 함) |
-| 묶음별로 리터럴 포인터 목록을 뒤집으면 메시지 참조 725·클래스 참조 32 슬롯이 맞음 | (계산 안 함) | ⏭️ 시험 링크 결과로 확인 |
-| `-lcc` 가 고른 라이브러리는 kr_run 이 해시하지 않음 | kr_run.py ALLOWED_TOOLS·hash 는 도구만 | ✅ 실행 기록에 /lib/libcc.a 해시를 남김(이번 세션 실기 krsha256 = 보관본) |
-| EXPECT 는 `stage/` 없이 | kr_run.py:21 "EXPECT <path under stage/>", collect 가 stage/ 를 붙임 | ✅ |
-| 앞 RUN 출력을 뒤 RUN 입력으로 쓸 수 있음; RUN 실패해도 다음 RUN 계속, collect 가 거부 | kr_run.py parse_cmdfile(인자는 ARG_RE 만 검사) · 실행 스크립트(상태만 기록) | ✅ |
-| 비교 도구: 묶음 중간물도 비교, zero-fill 은 파일 바이트 없음, STAB·지역 기호 구별, LINKEDIT 구조, macho_obj 보강, 공통 주소가 바뀌면 재배치 칸이 바뀌므로 바이트 비교는 조건부 | (설계 판단) | ✅ 비교 도구 범위에 넣음 |
-
-7. **공통 기호 정의(B5) — 근거 조사(이번 세션, python·grep, 07 변경 없음)**: plan 397 B2-1 규칙(처음 언급 순)에서 **머리 파일의 잠정 정의**는 그 머리를 들이는 모든 객체를 COMMON 언급자로 만듭니다. 재빌드 402 객체의 `cc -M` 기록으로 각 머리를 링크 순서상 처음 들이는 객체를 구했습니다:
-   - `_master_cpu`: 원본 `__common` 맨 앞(0x1e8750). 07 `kern/cpu_number.h`(Darwin 판 `extern int master_cpu;`)를 처음 들이는 객체는 libc **pagesize.c**(cmu_syscalls 보다 앞). Mach4 `kernel/kern/cpu_number.h:36` 은 `int master_cpu;`(잠정 정의) → 4.2 가 Mach4 꼴이면 맨 앞이 설명됩니다(Darwin 은 extern 으로 바꾸고 i386_init.c:77 에서 정의).
-   - `____xxx_state`: 원본은 cmu_syscalls 덩어리(`_total`) 뒤, init_main 덩어리(`_active_threads` …) 첫 이름. 07 `nextdev_private/bsd/i386/reg.h`(`extern thread_saved_state_t *___xxx_state;`)를 처음 들이는 객체가 **init_main.c**(13 객체 중 첫째; Darwin conf/files 360–361 에서 cmu_syscalls 와 init_main 사이 파일 없음) → reg.h 의 잠정 정의 꼴이면 정확히 맞습니다(Darwin 은 extern + i386_init.c:103 "Just a placeholder" 정의).
-   - `_nmi_*` 8: 원본 순서 `_glLanguage, _nmi_big, _nmi_cont, _nmi_gdb, _nmi_halt, _nmi_help, _nmi_mon, _nmi_msg, _nmi_reboot, _nmi_stay, _prettyShutdown` 는 07 machdep.c(이미 `_glLanguage` UNDF·`_nmi_stay` COMMON 을 처음 언급)의 이름순 한 덩어리 → Darwin machdep/i386/machdep.c:109–110 `int nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg, nmi_stay, nmi_reboot, nmi_big;` 을 07 의 `int nmi_stay;` 자리에 쓰면 맞습니다.
-   - 나머지 UNDF 만 15(`_master_cpu` 제외): 처음 언급자가 이미 원본 덩어리와 맞으므로(예: `_kernel_map`·`_pgrphash`·`_posix_proc_hash` = init_main 덩어리, `_cons` = subr_prf, `_cpu_config` = fp_support), **정의를 그 처음 언급자와 같거나 뒤의 객체에 두면 배치가 바뀌지 않습니다**(B2-1 규칙). 참조가 정의 파일을 알려 주는 것: Darwin i386_init.c:78·83·85·86·88(`cpu_config`, `virtual_avail`·`virtual_end`, `mem_region`, `num_regions`, `mem_size`) → 07 machdep/i386/i386_init.c; Mach4 kernel/vm/vm_kern.c:55·Darwin vm_kern.c:70(`kernel_map`) → 07 vm/vm_kern.c; Darwin bsd/kern/kern_proc.c:95(`pgrphash`) → 07 bsd/kern/kern_proc.c; Darwin bsd/kern/kern_fork.c:346(`u_thread_zone`) → 07 bsd/kern/kern_fork.c; Darwin bsd/dev/i386/cons.c:47(`cons`) → 07 machdep/i386/cons.c. 참조 정의가 없는 것: `_active_u`·`_posix_proc_hash`·`_u_task_zone`·`_nfsslowlink`, 그리고 `_cons_tp`(NeXTMach 은 next/cons.h 에 잠정 정의).
-   - 크기: 공통 크기는 요청 중 최댓값이므로 정의의 형이 원본 간격(다음 주소까지)을 넘지 않는지 시험 링크로 확인합니다(원본 nlist 에 크기는 없음).
-8. 고친 순서: (B5-1) 07 고침 계획 — cpu_number.h·reg.h 잠정 정의, machdep.c nmi 줄, 참조가 알려 주는 정의 위치 다섯 파일, 참조 없는 다섯 이름의 정의 위치(사용자 결정) → codex 검토 → 고침 → 영향 객체 재빌드(머리 고침은 들이는 모든 객체; text·data 는 바뀌지 않아야 함) → (L2-1) 시험 링크 → 비교.
-
-## 400. S6-8 세부 계획 — B5: 원본 공통 기호 25 개의 정의(07 고침; plan 399 항목 7·D059; 코딩 전, 2026-10-08)
-
-0. 근거: plan 399 항목 7(머리 잠정 정의·처음 언급 규칙), D059. 형 크기(진단 객체 s6p399-sz1, 07 머리로 컴파일, python 으로 `__data` 값 읽음): `struct _u_address` 8, `struct pgrp *` 4·PIDHSZ 64(→ 256), `struct tty` 136, `struct mem_region` 28(×2 = 56), `cpu_conf_t` 4, `vm_map_t`·`struct zone *`·`vm_size_t`·`vm_offset_t`·`thread_saved_state_t *` 각 4. 원본 간격(다음 공통 주소까지, 상한): active_u 8, pgrphash 256, posix_proc_hash 256, cons 136, mem_region 56, 그 밖 4–16 — 모두 형 크기 이상입니다. `-fno-common` 으로 컴파일하는 행 0(머리 잠정 정의가 실제 정의로 바뀌는 객체 없음).
-1. 07 고침(줄마다 plan 400 표시; text·data 바이트는 바뀌지 않아야 함):
-
-| 파일 | 고침 | 근거 |
-|---|---|---|
-| src/kern/cpu_number.h | `extern int master_cpu;` → `int master_cpu;` | Mach4 kernel/kern/cpu_number.h:36; 처음 들이는 객체 pagesize.c → `__common` 맨 앞 |
-| nextdev_private/bsd/i386/reg.h | `extern thread_saved_state_t *___xxx_state;` → 잠정 정의 | Darwin i386_init.c:103 "Just a placeholder"; 처음 들이는 객체 init_main.c |
-| src/machdep/i386/machdep.c | `int nmi_stay;` → `int nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg, nmi_stay, nmi_reboot, nmi_big;` | Darwin machdep/i386/machdep.c:109–110 |
-| src/machdep/i386/i386_init.c | `extern vm_offset_t virtual_avail, virtual_end;`·`extern vm_size_t mem_size;` → 정의, `cpu_conf_t cpu_config;`·`struct mem_region mem_region[2];`·`int num_regions;` 추가 | Darwin i386_init.c:77–88 |
-| src/vm/vm_kern.c | `vm_map_t kernel_map;` | Mach4 vm_kern.c:55 |
-| src/bsd/kern/kern_proc.c | `struct pgrp *pgrphash[PIDHSZ];`, `struct posix_proc *posix_proc_hash[PIDHSZ];` | Darwin kern_proc.c:95; posix_proc_hash 는 D059 |
-| src/bsd/kern/kern_fork.c | `extern struct zone *u_task_zone, *u_thread_zone;` → 정의, `struct _u_address active_u[NCPUS];` | Darwin kern_fork.c:346; u_task_zone·active_u 는 D059 |
-| src/machdep/i386/cons.c | `extern struct tty cons, *cons_tp;` → 정의 | Darwin bsd/dev/i386/cons.c:47; cons_tp 는 D059 |
-| src/bsd/nfs/nfs_vnodeops.c | `extern int nfsslowlink;` → `int nfsslowlink;` | D059 |
-
-   cpu_number.h 는 Darwin 원문 그대로였던 파일(PROVENANCE `none (verbatim)`) → 고침 기록 새로; reg.h 는 nextdev_private 작성본.
-2. 확인: 머리 고침 둘이 많은 객체(cpu_number.h 178·reg.h 13 들임)에 들어가므로 **402 객체 전체 재빌드**(plan 398 도구 그대로, 새 run), L1 이 plan 398 결과(377 기준선 + 25 기대)와 모두 같아야 함(고친 9 파일의 객체도 text·data 같음 — 공통 요청만 늘어남). 그 뒤 공통 기호 흉내(l2_coverage)로 25 이름이 모두 정의되고 처음 언급 순 LIS 가 늘어나는지 봄(묶음 없는 근사; 실제는 plan 399 시험 링크로).
-3. 기록: PROVENANCE(바뀐 9 행 SHA·고침), MODIFICATIONS 9 항목, 해당 증거 파일 끝에 덧붙임·diff 다시, functions.tsv 줄 번호 인용 다시 맞춤(plan 398 remap 방식). 
-4. 하지 않는 것: 링크(plan 399 로 이어짐).
-5. codex 교차검토(k2dzgnv73, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 고친 뒤 흉내: 언급 417/417, LIS 412, 어긋남 5(`_boottime`·`_callout`·`_inode_list`·`_iuniqtime`·`_in_interfaces`) | 내 흉내(scratchpad `sim400.py`, 머리 잠정 정의 = 들이는 모든 객체에 COMMON, 객체 안 이름순): mentioned 417, LIS 412, 같은 5 이름 | ✅ 이 다섯은 별도 계획(B5b) |
-| **정렬 규칙**: 이름별 최대 요청 크기 + 2 의 거듭제곱 정렬(최대 16) 로 원본 순서대로 놓으면 417 주소와 끝 0x1f7b50 이 모두 맞음 | python: 객체 COMMON 최대 요청 + 계획 정의 크기로 같은 규칙 → 불일치 0, 끝 0x1f7b50 = 원본(0x1e8750 + 62,464) | ✅ 크기는 모두 맞고 순서만 남음 |
-| vm_kern.c:351 의 `extern vm_map_t kernel_map;` 은 kmem_init 함수 안 — extern 만 지우면 지역 변수가 되어 코드가 바뀜; 파일 범위에 정의를 따로 둘 것 | vm_kern.c 345–351 읽음(`void kmem_init(start, end) … { vm_offset_t addr; extern vm_map_t kernel_map;`) | ✅ 계획 고침: 파일 범위 정의 추가, 함수 안 선언은 그대로 |
-| kern_proc.c:61 이 `struct proc *pidhash[PIDHSZ];` | kern_proc.c 55·58 행이 pidhash(55 `struct proc *pidhash[PIDHSZ];`, 58 `short pidhash[PIDHSZ];`), 61 은 주석 줄 | ❌ 줄 번호 틀림(정의는 55·58); 행동은 바뀌지 않음(새 정의는 그 근처 파일 범위) |
-| NCPUS 는 meta_features.h → cpus.h(`NCPUS 1`)로 정의됨 | (형 크기 진단 s6p399-sz1 이 같은 꼴로 컴파일되어 `active_u[0]` 8 B) | ✅ |
-| `_master_cpu` 만 처음 언급자가 앞당겨짐(의도), 나머지 정의 위치는 모두 처음 언급자와 같거나 뒤 | 내 흉내에서 `_master_cpu` 가 pagesize.c 로, 다른 정의 파일은 바깥 목록에 없음 | ✅ |
-| libDriver 묶음은 이 417 이름의 처음 언급을 하나도 주지 않고 libobjc 는 `__NXUncaughtExceptionHandler` 하나 | (계산 안 함) | ⏭️ 시험 링크로 확인 |
-| 받아들임 기준은 LIS 가 아니라 정확한 공통 주소; 기호 추가로 객체 해시·디버그 기록·재배치 기호 번호가 바뀔 수 있으니 절 바이트와 풀린 재배치 대상으로 확인 | l2_rebuild check 는 L1(절 바이트·재배치 대상 해석) 구조 비교 | ✅ 재빌드 확인은 L1 구조 비교(객체 해시 비교 아님) |
-
-6. 고친 계획: 표의 vm_kern.c 는 "파일 범위에 `vm_map_t kernel_map;` 추가(함수 안 extern 유지)". 나머지 그대로. B5b(어긋남 5)는 시험 링크 결과를 본 뒤 따로 계획합니다 — 원본 순서 `_in_interfaces, _ip_id, _ipq, _ipstat, _udb` 한 덩어리, `_inode_list, _iuniqtime, _reaper_queue, _rootdir, _rootvfs` 한 덩어리는 4.3BSD 식 머리 잠정 정의(ip_var.h·udp_var.h 등)의 흔적으로 보이며, 07 머리는 SDK 판이라 신중히 다뤄야 합니다.
-7. 결과(2026-10-08): 9 파일 고침(백업 scratchpad `bak400/`; vm_kern.c 는 파일 범위 정의 추가). 402 객체 재빌드(s6l2-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a; 결과 `09_validation/reconstruction/s6-l1-<G>-s6l2-*.json`): 기준선과 같음 377, 기대와 맞음 25, 실패 0, `cc -M` 의존이 07 밖 0 — 공통 요청만 늘고 절 바이트·재배치 해석은 그대로입니다. 기록: functions.tsv 07 줄 번호 인용 66 개를 옮김(옛·새 줄 내용 같음, 4,763 행 그대로), PROVENANCE 9 행(SHA·plan 400), MODIFICATIONS 9 항목(526 → 535 줄), 증거 7 파일 끝에 절 덧붙임, diff 7 다시·새 diff 둘(`x86-cpu_number_h.diff`, `x86-reg_h.diff`). machdep.c 의 nmi 줄은 원본 기호 이름으로 정해지는 선언이며 Darwin 0.1 machdep.c:109–110 과 같은 줄이라 출처 판단(APSL 고지 여부)은 사용자 판단 사항으로 남깁니다.
-9. **시험 링크 결과**(2026-10-08, 진단 run `s6p399-ln1`, 도구 `l2_link.py`·`l2_compare.py`(원본 대 원본 시험: 같음 0 차이); 입력 plan 400 재빌드 402 객체; 결과 `09_validation/reconstruction/s6-l2-link-s6p399-ln1.json`):
-   - `ld -r` 둘과 최종 `ld` 모두 상태 0, 경고·오류 출력 없음.
-   - **Mach-O 머리 같음**(filetype·cpu·flags·ncmds 7·sizeofcmds 2,152). 세그먼트·절은 **모두 원본과 같은 주소·크기**(`__PAGEZERO`·`__TEXT`·`__DATA`·`__OBJC` 세그먼트 명령 같음, UNIXTHREAD 같음).
-   - 절 바이트: `__text` 만 1,222 B 다름(1,066 구간), 나머지 `__const`·`__cstring`·`__data`·ObjC 절은 모두 같음. `__text` 의 다른 바이트는 **모두** 주소가 달라진 공통 기호 75 개를 가리키는 4 B 칸으로 설명됩니다(python: 설명 안 되는 바이트 0).
-   - 외부 기호 3,751 이름 집합이 원본과 같고, 값이 다른 75 개는 모두 `__common`(공통 417 중 342 같음). 어긋남 5(`_boottime`·`_callout`·`_inode_list`·`_iuniqtime`·`_in_interfaces`)가 순서를 밀어 75 주소가 달라진 것입니다.
-   - 로드 명령 차이 2: `__LINKEDIT` 크기(13,418,496 대 102,112 B)와 SYMTAB(nsyms 400,586 대 3,751) — 링크 결과에는 디버그 STAB 394,059 개와 지역 기호 2,776 개가 있고 원본에는 없습니다.
-   - 남은 일: (1) B5b — 어긋남 5 의 처음 언급 자리 고침(4.3BSD 식 머리 잠정 정의 가설, 별도 계획·codex 검토), (2) 기호표: 원본처럼 STAB·지역 기호를 뺀 꼴 만들기(strip 류; kr_run allow-list 에 도구 추가가 필요하면 도구 해시 기록 포함, 별도 계획), (3) 그 뒤 파일 전체 비교.
-
-## 401. S6-9 세부 계획 — B5b: 공통 기호 어긋남 5 개 고침(plan 399 항목 9; 코딩 전, 2026-10-08)
-
-0. 사실(이번 세션 python·grep; 링크 순서 = `08_build/runs/tools/s6p399-ln1.link.json`, 의존 = plan 400 재빌드 `cc -M`):
-   - 원본 `__common` 의 오름차순 덩어리: `[_all_psets, _all_psets_lock, _default_pset, _inode_list, _iuniqtime, _reaper_queue, _rootdir, _rootvfs]`(나머지는 지금 kern_shutdown 이 처음 언급), `[_boottime, _realhost]`(realhost 는 kern_time), `[_in_ifaddr, _ipintrq]` 다음 `[_in_interfaces, _ip_id, …]`, `[_callout, _file, …]`(file 은 param).
-   - `_inode_list`·`_iuniqtime`: 07 SDK `nextdev/bsd/ufs/inode.h:202·287` 에 잠정 정의가 이미 있음. 이 머리를 처음 들이는 객체는 vfs.c(링크 순서 뒤쪽). Darwin `bsd/kern/kern_shutdown.c:61–62` 는 `ufs/ufs/quota.h`·`ufs/ufs/inode.h` 를 들임, 07 kern_shutdown.c(링크 31 번째) 는 들이지 않음 → 07 kern_shutdown 이 `ufs/inode.h` 를 들이면 처음 들이는 객체가 되어 원본 덩어리와 맞습니다.
-   - `_in_ifaddr`·`_ipintrq`: 07 SDK `nextdev/bsd/netinet/in_var.h:56·58`(KERNEL) 잠정 정의. 처음 들이는 객체가 in.c(82 번째). Darwin `bsd/netinet/if_ether.c:85` 는 `netinet/in_var.h` 를 들임, 07 if_ether.c(81 번째)는 들이지 않음 → 들이면 in.c 앞에서 두 이름이 언급되어 `_in_interfaces` 가 원본처럼 그 뒤로 갑니다.
-   - `_boottime`: 07 init_main.c:182 `struct timeval boottime;` 는 07 코드에서 쓰이지 않는 잠정 정의(grep: 그 줄뿐). kern_time.c(35 번째)가 UNDF 로 참조. NeXTMach init_main.c:188·Darwin init_main.c:275 는 init_main 에 정의하지만, 원본 배치는 4.2 init_main 이 이 이름을 언급하지 않았음을 보여 줍니다 → init_main 의 정의를 빼고 kern_time 이상의 자리에 정의(위치는 사용자 결정).
-   - `_callout`: 07 kern_clock.c:101 `struct callout *callout;` 는 쓰이지 않는 잠정 정의(grep: 그 줄과 주석뿐); 07 conf/param.c:135 가 정의(NeXTMach param.c 와 같음); NeXTMach sys/callout.h:48 은 `extern` → kern_clock 의 줄을 `extern` 으로 바꾸면 처음 언급자가 param 이 되어 원본과 맞습니다.
-1. 07 고침(줄마다 plan 401 표시): kern_shutdown.c 에 `#import <ufs/inode.h>`(필요하면 quota 머리도 — 스테이징으로 확인), if_ether.c 에 `#import <netinet/in_var.h>`, init_main.c:182 를 extern 으로, boottime 정의를 새 자리에, kern_clock.c:101 을 extern 으로.
-2. 확인: 바뀌는 5 객체(+ 머리를 들이게 된 두 객체의 text·data 가 바뀌지 않는지)를 포함해 402 객체 재빌드 → L1 이 plan 400 결과와 같음, 흉내로 공통 417 순서 전부 일치(정렬 규칙으로 417 주소 일치), 그 뒤 시험 링크 다시 → `__text` 차이 0 기대.
-3. codex 교차검토(k3amx92ab, gpt-6.1-sol) 판정과 결정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 항목 0 사실(inode.h:202·287, in_var.h:56·58, Darwin kern_shutdown.c:61–62·if_ether.c:85, init_main.c:182 유일, kern_clock.c:101 유일·param.c:135, NeXTMach callout.h:48 extern) 모두 맞음 | 이번 세션 grep·sed 로 같은 줄을 열어 확인(위 항목 0 의 근거 출력) | ✅ |
-| 링크 위치 "31·35·81·82 번째" 는 0 부터 센 색인 — 서수로 32·36·82·83 번째 | 내 계산은 python `list.index`(0 부터) | ✅ **내 표기가 틀렸습니다**: 항목 0 의 "n 번째" 는 0 부터 센 색인으로 읽어야 합니다 |
-| 고친 뒤 흉내: 417 이름 순서·주소 모두 원본과 같음(끝 0x1f7b50), 묶음 입력으로도 같음 | (재빌드·재링크로 직접 확인할 것) | ⚖️ 재링크 결과로 확인 |
-| 두 머리에는 함수 본문·정적 객체·초기화 데이터·`#undef` 없음 → text·data 영향 없을 것 | (재빌드 L1 로 확인) | ⚖️ 재빌드로 확인 |
-| quota 머리는 필요 없음(inode.h 는 불완전형 `struct dquot *` 만), Darwin 경로 `ufs/ufs/quota.h` 는 07 에 없음 | (컴파일로 확인) | ⚖️ quota 는 넣지 않고 컴파일로 확인 |
-| inode.h 는 vnode 등 앞선 머리 뒤에, in_var.h 는 net/if.h·netinet/in.h 뒤에 | 07 if_ether.c 96–100 행(net/if.h → netinet/in.h → in_systm → ip → if_ether.h) | ✅ |
-
-   결정 D060(사용자, 2026-10-08): boottime 은 kern_time.c 에 정의.
-
-## 402. S6-10 세부 계획 — L2 링크 마무리: `strip -x` 단계와 도구 등록(코딩 전, 2026-10-08)
-
-0. 사실(이번 세션):
-   - Darwin `conf/Makefile.template:272` `SYS_RULE_2=strip -x -o $@ $@.sys` — 커널 이미지는 링크 결과(`.sys`)를 `strip -x` 한 것.
-   - 탐침(07·기록 변경 없음; `08_build/runs/tools/probe/l2b3/run.sh`, 시험 링크 s6p399-ln1 출력의 사본): `strip -x` 결과는 파일 크기 1,117,920 B(원본과 같음), 로드 명령 차이 0, 기호 외부 3,751·STAB 0·지역 0. `strip -S` 는 지역 2,776 이 남아 1,219,072 B, `strip -x -S` 는 `-x` 와 같은 결과. 남은 차이는 공통 기호 75 값과 그 참조 칸(plan 401 로 고침 중)뿐.
-   - 도구: 실기 `/bin/strip` 378,240 B, SHA-256 `80cb973b6092ab955f4843be0ef08a63b192779c6b32941bf21647e640c812d7`(krsha256). i386 VM 디스크(`09_validation/images/i386/openstep42-i386-hdd.raw`)의 scratch 사본을 nextufs 로 읽기 전용 마운트해 잰 `/bin/strip` 도 같은 값(대조: VM `/bin/ld` = 기록값 4c6dae19…, 저장소 디스크 SHA 전후 같음, 사본은 지움). 지금 kr_run allow-list 와 `sha256-vs-vm.json` 에 `/bin/strip` 이 없음.
-1. 고침:
-   - `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 에 `/bin/strip` {real, vm, size} 추가(측정 방법은 계획에 기록), `kr_run.py` ALLOWED_TOOLS 에 `/bin/strip`.
-   - `l2_link.py`: 최종 `ld` 출력을 `stage/mach_kernel.sys` 로, 이어서 `RUN /bin/strip -x -o stage/mach_kernel stage/mach_kernel.sys`(EXPECT 둘); 문서 문자열에 Darwin 근거.
-2. 실행: plan 401 재빌드(s6l3-*) 결과로 `l2_link.py prepare s6p402-ln1 s6l3` → kr_run → `l2_compare.py`(stripped 대 원본). 기대: 파일 전체 같음(SHA-256 33469393…). 다르면 차이를 그대로 기록.
-3. 하지 않는 것: 결과 커널 부팅(사용자·VM 계획 따로), 기록 표 등급 변경.
-4. codex 교차검토(k4blnua6s, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| Makefile.template:272 인용 맞음(원래 명령의 증명은 아님) | 이번 세션 grep 출력 | ✅ |
-| 탐침: mk.x·mk.xS 크기·로드 명령 원본과 같음, 둘은 같은 파일; mk.S 는 지역 2,776 남음 | `cmp mk.x mk.xS` → 같음; l2_compare 출력(위 항목 0) | ✅ |
-| mk.x 의 다른 바이트 1,306 = `__text` 1,222(공통 기호 참조 칸) + 기호표 n_value 84(75 기호), 문자열 표 57,100 B 같음, 그 밖 0 | python 분류(이번 세션): text 1,222·symtab 84(필드 오프셋 8–10 만)·strtab 0·기타 0 | ✅ |
-| `/bin/strip` 은 ALLOWED_TOOLS 와 TOOLS_JSON(real = vm)에 넣고 REAL_ONLY 에는 넣지 않음; 해시 검사는 실기 실행 스크립트에서 빌드 전에 | kr_run.py tool_hashes()(:157–171: real ≠ vm 이면 die), 실행 스크립트 `tools.actual`/`tools.expected` cmp | ✅ |
-| l2_link.py: 최종 출력 `stage/mach_kernel.sys` + `RUN /bin/strip -x -o stage/mach_kernel stage/mach_kernel.sys`, EXPECT 둘 | (설계 판단) | ✅ |
-5. 결과(2026-10-08):
-   - plan 401 고침 5 파일(백업 `bak401/`) 뒤 402 객체 재빌드(s6l3-g6a·g2aa·g5a·g3a·g4a·g2ba·g1a): 기준선과 같음 377, 기대와 맞음 25, 실패 0, 07 밖 의존 0.
-   - 도구: `sha256-vs-vm.json` 에 `/bin/strip`(real = vm = 80cb973b…, 378,240 B; 15 → 16 도구), `kr_run.py` ALLOWED_TOOLS 에 `/bin/strip`, `l2_link.py` 에 `mach_kernel.sys` → `strip -x` 단계(백업 `bak402/`).
-   - **L2 링크(run `s6p402-ln1`, `l2_link.py prepare s6p402-ln1 s6l3`; 명령 4 개 모두 상태 0, 출력 없음): 07 에서 다시 빌드한 402 객체 + `-lcc` 를 링크하고 `strip -x` 한 `mach_kernel` 이 원본과 바이트 단위로 같습니다** — SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`, 1,117,920 B; 머리·로드 명령 차이 0, 외부 기호 3,751 모두 같음, 공통 기호 417/417 같음(`09_validation/reconstruction/s6-l2-link-s6p402-ln1.json`).
-   - 기록: functions.tsv 07 줄 번호 인용 30 개 옮김(4,763 행 그대로), PROVENANCE 5 행·MODIFICATIONS 5 항목(535 → 540 줄), 증거 5 파일 덧붙임·diff 다시.
-   - 남은 것: 07 트리 밖 입력은 libcc(`-lcc`, 등급 L, D051)와 실기 도구뿐. 결과 커널의 부팅 확인(L3)은 원본과 같은 바이트이므로 원본과 같은 동작이 기대되나, VM 부팅은 별도 계획(사용자 지시 시).
-
-## 403. 진단 메모 — L3(부팅) 확인 방법 조사(07·기록 변경 없음, 2026-10-08)
-
-- 실기(읽기만, gcds): `/mach_kernel` SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`, 1,117,920 B(krsha256) = plan 402 의 07 재빌드·링크 결과(run s6p402-ln1)와 같음. `hostinfo` 의 실행 중 커널 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386" = 원본 바이트 안의 `_version` 문자열(python), `uptime` 7 일 21 시간.
-- 판단: 실기는 디스크의 `/mach_kernel`(07 결과와 같은 바이트)과 같은 판 문자열의 커널로 7 일 넘게 돌며 이 작업의 모든 빌드를 수행했습니다. 실행 중 이미지가 그 파일에서 부팅됐다는 것은 기본 부팅 파일 경로에 따른 추론이며, 07 결과 파일 자체로 새로 부팅한 시험은 아닙니다.
-- VM 쪽: `09_validation/images/i386/kernels/mach_kernel.183.34.4.pic`(같은 크기, SHA 304cb696…)·`extracted/mach_kernel`(1,113,724 B, SHA 00e49892…)은 07 결과와 다른 파일입니다. VM 으로 07 결과 파일을 직접 부팅하려면 디스크 사본에 커널을 넣고 `--snapshot` 으로 부팅하는 별도 계획이 필요합니다(실기 커널 교체·재부팅은 사용자 몫).
-
-## 404. S6-11 세부 계획 — D061: 이번에 넣은 Darwin·Mach4 줄에 고지 붙이기(주석·기록만; 코딩 전, 2026-10-08)
-
-0. 대상(plan 397–401 에서 넣은 줄, grep 으로 확인할 것):
-
-| 07 파일 | 줄 | 출처 | 고지 |
-|---|---|---|---|
-| src/machdep/i386/machdep.c | nmi 선언(plan 400) | Darwin 0.1 machdep/i386/machdep.c:109–110 | Darwin 그 파일 머리 APSL |
-| src/kern/mfs_prim.c | mfsbuf_lock·active_mfsbufs(plan 397) | Darwin kern/mapfs.c:132·:1081 | 〃 |
-| src/machdep/i386/i386_init.c | 정의 5 줄(plan 400) | Darwin machdep/i386/i386_init.c:77–88 | 〃 |
-| src/bsd/kern/kern_proc.c | pgrphash(plan 400) | Darwin bsd/kern/kern_proc.c:95 | 〃 |
-| src/bsd/kern/kern_fork.c | u_task_zone·u_thread_zone 줄(plan 400; u_thread_zone 부분) | Darwin bsd/kern/kern_fork.c:346 | 〃 |
-| src/machdep/i386/cons.c | cons 정의 줄(plan 400) | Darwin bsd/dev/i386/cons.c:47 | 〃 |
-| src/bsd/kern/kern_shutdown.c | `#import <ufs/inode.h>`(plan 401) | Darwin bsd/kern/kern_shutdown.c:62 | 〃 |
-| src/bsd/netinet/if_ether.c | `#import <netinet/in_var.h>`(plan 401) | Darwin bsd/netinet/if_ether.c:85 | 〃 |
-| src/vm/vm_kern.c | `vm_map_t kernel_map;`(plan 400) | Mach4 kernel/vm/vm_kern.c:55 | Mach4 그 파일 머리(CMU·Utah) |
-| src/kern/cpu_number.h | `int master_cpu;`(plan 400) | Mach4 kernel/kern/cpu_number.h:36 | 같은 CMU 고지가 이미 파일에 있음 → 출처 기록만 |
-
-1. 꼴(in_bootp.c 선례, PROVENANCE:1011): 파일의 기존 머리 주석 뒤, 첫 `#import` 앞에 `/* Parts marked "plan NNN (Darwin)" follow Darwin 0.1 kernel/<path> (kernel-1), whose notice is: */` + 그 Darwin 파일의 첫 주석 블록(고지) 그대로. 해당 줄 주석의 "plan NNN" 을 "plan NNN (Darwin)"(Mach4 는 "(Mach4)")으로. 코드 줄은 바꾸지 않음.
-2. 확인: 주석만 바뀌므로 객체 절 바이트는 같아야 함 — 바뀐 10 파일의 객체가 든 묶음 재빌드(cpu_number.h 는 178 객체가 들이므로 사실상 전체)로 L1 이 plan 401 결과와 같음을 확인, 그 뒤 링크·strip 한 커널이 다시 원본과 같은지(SHA) 확인. functions.tsv 줄 번호 인용 다시 맞춤(옛·새 줄 내용 같음 검사).
-3. 기록: PROVENANCE 10 행(source_id 에 +darwin01 / +mach4, 개정·원본 경로·고지 칸, SHA), MODIFICATIONS 항목, 증거 덧붙임·diff 다시.
-4. 교차검토 전 내 확인과 codex(kgauj4tp3, gpt-6.1-sol) 판정:
-
-| 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| (내 발견, codex 도 같음) Darwin kern_proc.c:95 는 `u_long pgrphash;` — 07 의 `struct pgrp *pgrphash[PIDHSZ];` 와 다른 선언 | `sed -n 95p` Darwin kern_proc.c → `u_long pgrphash;` | ✅ **내 인용이 틀렸습니다**(plan 399 항목 7·400 표·07 주석·증거·MODIFICATIONS). 07 줄의 형은 SDK `sys/proc.h:250` extern 선언에서 온 것 → kern_proc.c 는 고지 대상 아님, 인용 정정 |
-| machdep 의 Darwin 줄은 110–111(109 는 주석) | Darwin machdep.c 108–111 출력(108 빈 줄, 109 `/* nmi mini-monitor */`, 110–111 선언) | ✅ 인용을 110–111 로 정정 |
-| reg.h:17 `___xxx_state` 는 Darwin i386_init.c:103 과 같은 선언; reg.h 는 PROVENANCE:437 에서 darwin01·APSL 로 적혀 있는데 파일에 APSL 고지가 없음 | PROVENANCE 437 행(“KERNEL_PRIVATE body of the Darwin file verbatim”, APSL-1.0.txt), reg.h 1–9 행 머리(작성 문구만), Darwin i386_init.c:103 | ✅ reg.h 에 APSL 고지 추가(plan 144 부터 있던 누락도 함께 고침) |
-| init_sysent.c 334·345·373 행(`syss(setsid,0)`·`sysp(setprivexec,1)`·`syss(add_profil,4)`)이 Darwin init_sysent.c 457·467·495 와 같은 글자 | Darwin 457 행 = 07 334 행(주석 `/* 147 = setsid */` 까지 같음) | ✅ 원본 바이트로 쓴 줄이지만 글자가 같으므로 D061("모두 붙임")에 따라 "같은 글자" 로 표시하고 고지 추가 |
-| kern_fork·cons 는 줄의 일부만(u_thread_zone, cons) Darwin 과 같음; kern_shutdown·if_ether 는 경로·지시어를 바꾼 꼴(`ufs/ufs/inode.h`, `#include`) | Darwin 346·47·62·85 행 출력 | ✅ 표시 문구에 "일부"·"꼴을 바꿈" 을 적음 |
-| cpu_number.h 의 CMU 고지가 Mach4 cpu_number.h 고지와 글자 그대로 같음 | (python 비교는 codex; 나는 두 블록을 출력해 눈으로 대조 — 25 행 같음) | ⚖️ 출처 기록만(고지 이미 있음) |
-| machdep_call.c(APSL 그대로)·counters.c(CMU 그대로)·in_proto.c(APSL 블록 있음)·D030/D047 파일은 이미 처리됨 | 이번 세션 plan 398 기록 | ✅ |
-| 주석 추가는 -g 줄 정보(STAB)만 바꾸고 L1·strip 결과는 그대로일 것; 단 `__LINE__` 은 바이트를 바꿀 수 있음(kern/assert.h, MACH_ASSERT 0 이라 꺼짐) | generated/mach_assert.h `#define MACH_ASSERT 0`(config_options) | ✅ 재빌드 L1 + 링크·strip SHA 비교로 확인 |
-
-5. 고친 대상: Darwin APSL 고지 — machdep.c(110–111), mfs_prim.c(132·1081), i386_init.c(78·83·85·86·88), kern_fork.c(346 의 u_thread_zone 부분), cons.c(47 의 cons 부분), kern_shutdown.c(62, 경로 바꿈), if_ether.c(85, 지시어 바꿈), init_sysent.c(457·467·495 와 같은 글자 세 줄), reg.h(Darwin 본문·i386_init.c:103 선언); Mach4 고지 — vm_kern.c(55); 출처 기록만 — cpu_number.h; 인용 정정 — kern_proc.c.
-
-## 405. S7-1 세부 계획 — L3 준비: 07 에서 만든 커널로 QEMU(i386) 부팅 시험 준비(부팅은 하지 않음; 코딩 전, 2026-10-08)
-
-0. 사실(이번 세션):
-   - plan 402 의 07 링크 결과(run s6p402-ln1) = 원본(SHA-256 33469393…); plan 404(고지 주석) 뒤의 재빌드·재링크(s6l4-*·s6p404-ln1)로 현재 07 도 같은지 확인 중.
-   - `11_emulation/QEMU_VM_CONFIGURATIONS.md` 3.4·4 절: 원본 그대로의 mk-183.34.4 커널은 이 QEMU 에서 IDE 인터럽트가 잠겨 부팅되지 않음; `_intr_handler` 12 B 를 고친 `.pic` 판(`10_tools/runtime/make_i386_pic_kernel.py`, 출력 SHA 304cb696…)으로 `boot:` 에서 `hd()mach_kernel.183.34.4.pic -v` 부팅, `hostinfo` 로 판 확인.
-   - VM 디스크(`09_validation/images/i386/openstep42-i386-hdd.raw`)의 scratch 사본을 nextufs 로 읽기 전용 마운트(저장소 디스크 SHA 전후 같음, 사본은 지움): `/mach_kernel.183.34.4` = 33469393…(07 결과와 같은 바이트), `/mach_kernel.183.34.4.pic` = 304cb696…, `/mach_kernel` = 1997 판(00e49892…).
-   - `vm-common.sh:69–79`: 디스크 경로는 고정(`openstep42-ARCH-hdd.raw`), `--snapshot` 이면 디스크에 쓰지 않음. 다른 디스크를 고르는 옵션은 없음.
-1. 준비(부팅 없음):
-   1. 현재 07 의 링크 결과가 원본과 같음을 확인(s6p404-ln1; 같지 않으면 멈춤).
-   2. `make_i386_pic_kernel.py` 에 `--in PATH`(선택, 기본은 지금처럼 03_original) — 입력 SHA 가 기준 SHA 와 같아야 하고 출력 SHA 가 304cb696… 이어야 쓰는 검사는 그대로. 07 결과(`08_build/runs/s6p404-ln1/out/mach_kernel`)에 적용해 `09_validation/images/i386/kernels/mach_kernel.l2.pic` 를 만들고 SHA 를 디스크의 `.pic` 파일과 대조.
-   3. 시험 디스크: 저장소 디스크의 **사본** `09_validation/images/i386/openstep42-i386-hdd.l2test.raw`(원본 디스크는 건드리지 않음, 사본 전후 SHA 기록)에 nextufs `mkfile` 로 `/mach_kernel.l2`(07 결과 그대로)와 `/mach_kernel.l2.pic`(위 2)를 넣고, 넣은 뒤 읽기 전용 마운트로 두 파일 SHA 확인·`fsck -n` 으로 파일 시스템 확인.
-   4. `vm-common.sh`/`vm-i386.sh` 에 부팅 모드 전용 `--disk PATH` 옵션(시험 디스크 선택; `--snapshot` 과 함께일 때만 허용)을 넣고 README·QEMU_VM_CONFIGURATIONS 에 적음. 문법 검사(`bash -n`)와 옵션 오류 경로만 확인(QEMU 는 실행하지 않음).
-2. 부팅 시험(다음 단계, 사용자 지시 뒤): `vm-i386.sh boot-nocd --disk …l2test.raw --snapshot` → `boot:` 에서 `hd()mach_kernel.l2.pic -v` → `hostinfo` 판 문자열 확인; 대조로 `hd()mach_kernel.l2 -v`(원본과 같은 IDE 잠김이 기대됨).
-3. 하지 않는 것: 저장소 VM 디스크 쓰기, 실기 커널 교체.
-4. codex 교차검토(kywj6mg32, gpt-6.1-sol) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| s6p402-ln1 = 원본, s6p404-ln1 은 아직 없음(현재 07 확인 대기) | 이번 세션 `cmp`·sha256sum(같음); s6p404 재빌드 G1 진행 중 | ✅ 단계 1 은 그 결과로 판정 |
-| `--disk` 는 기존 드라이브의 파일만 바꾸는 꼴로, i386 부팅 모드 + `--snapshot` 일 때만; raw 형식 확인, `-w` 요구 대신 읽기 가능 검사; `--` 로 드라이브를 더 넣는 방식은 IDE 제약에 어긋남 | vm-i386.sh 18–30 행(`-drive "file=$disk,if=ide,index=0,…,format=raw"`, `-display gtk -monitor stdio`), vm-common.sh 69–79 행(`[[ -w "$disk" ]]`) | ✅ 계획 고침 |
-| 바이너리는 `mkfile --from-file SRC PATH HOSTFILE`, 이어서 권한 `0444`; 기본 `mkfile` 은 문자열을 씀 | nextufs.1 man(301 행 `source path contents` = 문자열, `--from-file` 항목) | ✅ 계획 고침; 권한·소유자·그룹·해시를 넣은 뒤 확인 |
-| make_i386_pic_kernel.py `--in`: 기존 검사 유지, 출력이 입력·원본과 같은 파일(심볼릭·하드 링크)이면 거부 | 도구 44–64 행 읽음(입력 SHA·원본 바이트·12 B·출력 SHA 검사, 마지막 `open(..., 'wb')`) | ✅ 별칭 거부 추가 |
-| 부팅 증거: `/mach -> $BOOTFILE` 유지, BootHelp 의 10 초 입력 창, 실제 부팅 명령·`-v` 화면·게스트 `hostinfo` 전체 기록; i386 은 직렬을 쓰지 않으므로 화면 기록 방법 필요; 시간 제한·실패 기준·종료·시험 뒤 디스크 해시 | vm-i386.sh(직렬 없음, GTK·monitor stdio) | ✅ 부팅 시험 계획(다음 단계)에 넣음: QEMU 모니터 `screendump` 로 화면을 PPM 으로 남김 |
-
-5. 고친 준비 단계: (1) s6p404-ln1 = 원본 확인; (2) `make_i386_pic_kernel.py --in`(+ 출력 별칭 거부) → `09_validation/images/i386/kernels/mach_kernel.l2.pic`, SHA 304cb696… 확인; (3) QEMU 가 꺼진 상태에서 저장소 디스크 사본 `openstep42-i386-hdd.l2test.raw` 를 만들고(원본·사본 SHA 기록, `fsck -n` 전후), `mkfile --from-file` 로 `/mach_kernel.l2`·`/mach_kernel.l2.pic` 를 넣고 `--chmod … 0444`, `-o ro` 마운트로 형·권한·소유자·해시 확인; (4) `--disk PATH`(i386 `boot`/`boot-nocd` 와 `--snapshot` 일 때만, 일반 파일·raw 크기 확인) — `bash -n` 과 가짜 실행 파일로 인자 구성만 확인.
-6. plan 404 확인(2026-10-08): 고지 주석을 넣은 현재 07 로 402 객체 재빌드(s6l4-*: 기준선과 같음 377·기대와 맞음 25·실패 0) → 링크·strip(run s6p404-ln1) → **원본과 바이트 단위로 같음**(`cmp` 차이 0, SHA-256 33469393…, l2_compare: 머리·로드 명령·기호 3,751·공통 417 모두 같음; `09_validation/reconstruction/s6-l2-link-s6p404-ln1.json`).
-7. 준비 결과(2026-10-08; QEMU 실행 안 함):
-   - (1) 현재 07 = 원본(항목 6 의 plan 404 확인, run s6p404-ln1).
-   - (2) `make_i386_pic_kernel.py --in`(백업 `bak405/`): 출력 별칭 거부(원본 파일을 출력으로 주면 STOP), 해시가 다른 입력 거부, 기본 모드 출력이 예전과 같음, s6p402·s6p404 결과에 적용하면 12 B 바뀐 304cb696…(기존 `.pic` 과 `cmp` 같음). 파일: `09_validation/images/i386/kernels/mach_kernel.l2`(33469393…)·`mach_kernel.l2.pic`(304cb696…).
-   - (3) QEMU 꺼짐 확인 → 저장소 디스크(SHA 36e437f6…) 사본 `09_validation/images/i386/openstep42-i386-hdd.l2test.raw`(사본 SHA 같음) → `fsck -n`(NO WRITE, 오류 없음, 37,675 파일) → `mkfile --from-file` 두 파일 + `--chmod 0444` → `fsck -n`(오류 없음, 37,677 파일; 로그 `09_validation/images/i386/logs/l2test-fsck-{before,after}-20261008.log`) → `-o ro` 마운트 확인: `/mach_kernel.l2`·`/mach_kernel.l2.pic` 일반 파일, 0444, uid/gid 0/0, 크기 1,117,920, 해시 위와 같음; 기존 `/mach_kernel`·`.183.34.4`·`.pic`·`/mach -> $BOOTFILE` 그대로. 시험 디스크 SHA dec0572b…. 저장소 디스크 SHA 전후 같음.
-   - (4) `vm-common.sh`·`vm-i386.sh` 에 `--disk RAW`(백업 `bak405/`): `bash -n` 통과, QEMU 없이 vm_parse·vm_disk 만 부른 시험 8 가지(정상·--snapshot 없음·install·qcow2·512 배수 아님·없는 파일·sparc·옵션 없음) 모두 기대대로. README·QEMU_VM_CONFIGURATIONS 에 적음.
-8. 부팅 시험 절차(다음 단계, 사용자 지시 뒤): `bash 11_emulation/scripts/vm-i386.sh boot-nocd --disk 09_validation/images/i386/openstep42-i386-hdd.l2test.raw --snapshot` → BootHelp 의 10 초 안에 `boot:` 에 `hd()mach_kernel.l2.pic -v` → 부팅 화면을 QEMU 모니터 `screendump` 로 PPM 저장 → 로그인 뒤 게스트 `hostinfo` 전체를 화면으로 남김(기대: "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386") → 정상 종료(모니터 `quit`) → 시험 디스크 SHA 가 dec0572b… 그대로인지 확인. 대조 시험: `hd()mach_kernel.l2 -v`(원본과 같은 IDE 인터럽트 잠김이 기대됨, 시간 제한 두고 종료). 둘 다 `--snapshot`.
-
-## 406. S7-2 세부 계획 — L3 부팅 시험(QEMU i386; 사용자 시작 확인 뒤 실행, 2026-10-08)
-
-0. 준비 상태: plan 405 항목 7(시험 디스크 `09_validation/images/i386/openstep42-i386-hdd.l2test.raw` SHA dec0572b…, `/mach_kernel.l2`·`/mach_kernel.l2.pic`, `--disk` 옵션). QEMU 실행 파일 SHA 6b12d00f…(QEMU_VM_CONFIGURATIONS 표와 같음), 화면은 사용자 X 세션(DISPLAY :1)에 GTK 창으로. 사용자 지시: 시작 전에 확인을 받음, QEMU 는 사용자가 볼 수 있게 실행.
-1. 실행(확인 뒤):
-   1. 시험 디스크 SHA 확인(dec0572b…), QEMU·i386 소켓 없음 확인.
-   2. `tail -f /dev/null | bash 11_emulation/scripts/vm-i386.sh boot-nocd --disk 09_validation/images/i386/openstep42-i386-hdd.l2test.raw --snapshot` 를 셸을 막지 않게 띄움(표준 입력은 열어 둔 채, QEMU 모니터 출력은 로그로) — GTK 창은 사용자 화면에 보임.
-   3. scratchpad `qmp_boot.py`(QMP 로 VGA 텍스트 버퍼 0xb8000 을 읽어 "boot:" 를 감지 → `sendkey` 로 `hd()mach_kernel.l2.pic -v` + Enter → 5 초마다 `screendump` 를 PNG 로; VM 을 끄거나 재설정하지 않음)로 입력·기록. 기록 위치 `09_validation/images/i386/logs/l3-boot-<날짜>/`(무시 대상).
-   4. 부팅이 끝나면 화면을 보고 로그인·`hostinfo` 는 사용자와 상의해 진행(로그인 계정은 기록에 남기지 않음). 기대 판 문자열 "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386".
-   5. 종료: QEMU 모니터 `quit`(QMP `quit`), 시험 디스크 SHA 가 그대로인지 확인(--snapshot).
-   6. 대조 시험(`hd()mach_kernel.l2 -v`, IDE 잠김 기대)은 사용자가 원할 때 같은 절차로 따로.
-2. 판정: 화면 기록과 `hostinfo` 판 문자열로 L3 를 기록. 실패하면 화면·로그를 그대로 남기고 원인을 따로 조사.
-3. 문서·검토(2026-10-08, 사용자 지시 "HOWTOCOMPILE 문서… git ignore 의 update 가 필요한지 검토"):
-   - `HOWTOCOMPILE.md`(저장소 최상위, 새 파일): 준비물·연결·컴파일 꼴·스테이징·kr_run·전체 빌드·링크·strip·비교·QEMU 판·주의. codex 사실 확인(kvw7rlx32) 지적을 하나씩 확인해 고침 — 실행 시 해시 검사 범위(ALLOWED_TOOLS 9 개, libcc·cc1obj 제외; kr_run.py:39–41, sha256-vs-vm.json 키 16 개), G3 의 ABSROOT 실기 링크(kr_run.py:241–244, plans/RECONSTRUCTION_PLAN-245-320.md:1638), nextdev_private 도 로컬 전용(.gitignore:71), gen_config_headers 실행, 이전 기록·krsha256 필요, pagesize `-O3`(forms 4 행), RID 정규식, wait 1,800 초(kr_run.py:364), check 는 판정하지 않음, Darwin LDOBJS 의 `subr_prof.o`(Makefile.template:232; files:391 주석 처리). 사이트 주소·계정 없음.
-   - `.gitignore` 검토: 추적 외 4,976 파일 47 MB, 50 MB 넘는 파일 없음, 이번에 만든 큰 파일(시험 디스크·커널 사본·runs)은 기존 규칙으로 무시됨. 결정 필요 둘: (a) 최상위 `--help/`·`--help.manifest.json`(2026-10-03 `stage_headers.py --help` 가 만든 스테이징 부산물) 삭제, (b) kr_run 이 요구하는 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json`(해시만)을 예외로 추적할지.
-4. codex 교차검토(kaoc0gg7s, gpt-6.1-sol) 판정과 고침:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| `xp /2000bx` 는 2,000 B = 1,000 칸(12.5 줄)만 읽음; 80×25 화면은 4,000 B | python: 80×25×2 = 4000, 2000/2/80 = 12.5 | ✅ `/4000bx` 로, 읽은 바이트 수 검사 |
-| 프롬프트 글자는 "boot: "(디스크 0x109b2·0x209b2), BootHelp 의 10 초; 60 초 감시로는 놓칠 수 있음 → 멈춘 채 띄우고 붙은 뒤 시작 | QEMU_VM_CONFIGURATIONS 3.3("`boot:` 에서 `hd()커널이름 -v`"), vm-common.sh `--gdb-wait` → `-S` | ✅ `--gdb-wait` 로 띄우고 driver 가 `cont`, 감시 30 초 |
-| QMP 응답·오류·HMP 문자 오류를 버리고 있음, 읽기 시간 제한 없음 | qmp_boot.py(옛 판) 읽음 | ✅ 인사·오류·이벤트·HMP 출력 검사, 소켓 10 초 제한 |
-| `screendump` 는 QEMU 작업 디렉터리 기준 상대 경로·덮어씀 → 절대 경로·실행마다 새 디렉터리 | (QEMU 소스 인용은 codex; 행동 바꿀 만함) | ✅ QMP `screendump` 에 절대 경로, 출력 디렉터리 새로 만듦(있으면 멈춤) |
-| `commit` 은 스냅숏 내용을 디스크에 씀 → 금지; 정지는 QMP stop → quit, QEMU PID 확인, `tail` PID 정리, 두 디스크 해시 비교 | vm-common.sh(`-snapshot`) | ✅ qmp_stop.py(stop·quit 만), 실행 전후 해시 |
-| vm-common.sh 의 512 배수 검사가 셸 산술 — 계산은 python 원칙 | vm-common.sh 해당 줄 | ✅ python 한 줄로 바꿈(`bash -n` 통과) |
-| 키 이름(US 배열) `shift-9`·`shift-0`·`shift-minus`·`dot`·`minus`·`spc`·`ret` 맞음 | (QEMU qapi 인용은 codex) | ⚖️ 실제 입력 결과를 화면 기록으로 확인 |
-5. **부팅 시험 결과**(2026-10-08, 사용자 시작 확인 "지금 시작"; 기록 `09_validation/images/i386/logs/l3-boot-20261008/`(무시 대상)):
-   - 시작 전 해시: 시험 디스크 dec0572b…, 저장소 디스크 36e437f6…; QEMU·소켓 없음.
-   - `tail -f /dev/null | vm-i386.sh boot-nocd --disk …l2test.raw --snapshot --gdb-wait`(GTK 창, 사용자 화면) → `qmp_boot.py`: 상태 prelaunch 에서 `cont`, 0.8 초 뒤 "boot:" 감지, `hd()mach_kernel.l2.pic -v` 입력(로그 `run1/driver.log`).
-   - 첫 화면(`run1/shot-001.png`): "NeXT Mach 4.2: Tue Jan 26 11:21:50 PST 1999; root(rcbuilder):Objects/mk-183.34.4.obj~2/RELEASE_I386", PCI·PnP·DriverKit 420, hc0/hd0(QEMU HARDDISK 1023 MB) 인식.
-   - 사용자 보고: 로그인 화면 → 로그인 → Workspace 구동 성공. 게스트 Terminal 의 `hostinfo`(`run1/hostinfo.png`): 위와 같은 판 문자열, 단일 프로세서 I386(Intel 486), 메모리 64 MB, 34 tasks·67 threads.
-   - 판정: **07 에서 다시 만든 커널(QEMU 용 12 B PIC 판)이 QEMU i386 에서 부팅해 Workspace 까지 동작(L3)**. PIC 판은 원본·07 결과와 `_intr_handler` 12 B 만 다르며(plan 405), 원본 그대로의 판은 이 QEMU 에서 IDE 인터럽트가 잠기는 것으로 기록돼 있음(QEMU_VM_CONFIGURATIONS 4 절; 대조 시험은 아직).
-   - 정리: 사용자 결정에 따라 최상위 `--help/`·`--help.manifest.json` 삭제(추적되지 않던 부산물); 도구 해시 기록은 로컬 유지.
-   - 종료(사용자 "확인은 끝났습니다"): `qmp_stop.py`(qmp_capabilities → stop → quit; 이벤트 STOP·SHUTDOWN), QEMU PID 1179582 종료 확인, `tail` 은 파이프가 닫혀 스스로 끝남, 시험 디스크·저장소 디스크 SHA 가 시작 전과 같음(dec0572b…, 36e437f6…).
-6. `HOWTOUSE.md`(저장소 최상위, 새 파일, 사용자 지시 2026-10-08): 결과물·원본 대조·QEMU 용 PIC 판·시험 디스크·부팅·끄기·실기 시험(사용자 작업)·디버깅 참고. codex 사실 확인 지적 넷을 확인해 고침 — Workspace 부팅은 PIC 판(대조 시험 없음), `.sys` 는 `__LINKEDIT`·LC_SYMTAB 이 다름(plan 402 탐침 비교에서도 그 둘), 실기 시험은 "새 정보 없음" 이 아니라 결과 파일로 새로 부팅한 적 없음(plan 403), gdb 소켓은 `/tmp/kr-<arch>-gdb.sock`(vm-common.sh:54).
-7. README 갱신(2026-10-08, 사용자 지시): 제목·현재 상태(x86 바이트 일치, QEMU Workspace 부팅, 객체·등급·커버리지 표)·스크린샷(`docs/images/qemu-i386-reconstructed-kernel-hostinfo-20261008.png`, 사용자 제공 화면 사본, SHA 원본과 같음, 801×661)·HOWTOCOMPILE/HOWTOUSE 안내·출처와 라이선스·도구·디렉터리 구성·저장소에 없는 것. codex 사실 확인(k1ig0efbh) 지적 다섯을 확인해 고침 — P 등급 설명(06_reconstruction/README.md:26, objects_partial 의 kern_notify·PCresume 행), PROVENANCE 가 모든 파일을 담지 않음(생성 머리 21–22·문서 제외; 내 python 대조에서 `src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 도 행 없음 — 이번 세션 전부터의 누락, 사용자에게 보고 → plan 407 로 보완), 라이선스 TBD(PROVENANCE 364 곳)·Darwin 파일 중 BSD 고지(ansi.h, PROVENANCE:3), 입력 해시 없는 보고서(l1-sectof-diff-20261002.json).
-
-## 407. S7-3 세부 계획 — 기록 공백 보완: `Event.defs`·`audio.defs` 의 PROVENANCE·MODIFICATIONS 행(기록만, 07 코드·빌드 변경 없음; 코딩 전, 2026-10-08)
-
-배경: plan 406 항목 7 의 python 대조에서 `07_kernel/src/driverkit/libDriver/Kernel/Event.defs`·`audio.defs` 가 `07_kernel/PROVENANCE.tsv` 에 행이 없음을 찾았습니다(사용자 지시 "미처리 보완 진행"). 두 파일은 plan 343(2026-10-06)에서 D030 사본으로 두었으나, 그때 기록은 PROVENANCE 872→876(생성 C 3 + msg_type.h)·MODIFICATIONS 378→381 로 .defs 두 행이 빠졌습니다(plans/RECONSTRUCTION_PLAN-321-373.md 의 §343 기록 줄).
-
-확인한 사실(이번 세션, python·sha256sum):
-- 07 `Event.defs` SHA-256 cbaf090903ca6d9f146b4ca21b6f662cf851718fc750dfb9f50421cfc60a08bb(86 줄), `audio.defs` 420e65d9d68c5e50f08e378bafecafa2add078e175b74293c961de7719fb1f12(365 줄).
-- Darwin 원문 `01_resources/upstream/darwin01/driverkit-1/libDriver/Kernel/Event.defs` 361d8cd4…(104 줄), `audio.defs` 20a635a4…(383 줄); 아카이브 `driverkit-139.1-1.tar.gz` 255235626e702fe52b28564c0bc5644a686f1e886697f1c567b6a4275bc43102.
-- difflib: 차이는 머리 주석뿐 — Darwin 의 저작권·APSL 머리와 파일 설명 주석(Event: `File: bsd/dev/Event_server.defs`, audio: `audio.defs / MIG interface to audio driver kernel server.`)이 프로젝트 D030 머리 주석으로 바뀌었고 본문은 같습니다.
-- 07 git 추적 파일 중 `src/` 의 `.defs` 로 PROVENANCE 행이 없는 것은 이 둘뿐입니다(PROVENANCE 1,045 행, 7 열).
-
-할 일(선례: PROVENANCE `audioReply.defs` 행, MODIFICATIONS `audioReply.defs` 행):
-1. `07_kernel/PROVENANCE.tsv` 끝에 두 행을 덧붙입니다(중간 삽입은 문서들이 인용한 행 번호를 밀므로 하지 않음). 열: destination · `authored` · `255235626e70…`(아카이브) · `darwin01/driverkit-1/libDriver/Kernel/<이름>` · D030 문구(nearly the same as Darwin 0.1 …, body verbatim, head comment replaced, Darwin notices not included, D017) · 작성 2026-10-06(plan 343)·파일 SHA-256·Darwin 파일 SHA-256·MIG 입력(생성 C, s5p343-mig2)·행 추가 plan 407 · 근거 `06_reconstruction/evidence/x86-EventServer.md` / `x86-audioServer.md`.
-2. `07_kernel/MODIFICATIONS.md` 끝에 두 행(날짜 2026-10-08, 작성일 2026-10-06 은 설명에).
-3. 검사(python): 행 수 1,046→1,048·552→554, 모든 행 7 열, destination 중복 없음, 새 행의 SHA 가 실제 파일과 같음, `.defs` 누락 0, 기존 행 바이트 그대로(앞부분 접두 비교).
-4. 기록: 이 절에 결과, §406 항목 7 의 "사용자에게 보고" 뒤에 "→ plan 407 로 보완".
-
-하지 않는 것: 07 `.defs` 본문·머리 수정, 빌드, 다른 표(objects_*·functions) 수정.
-
-codex 교차검토(gpt-6.1-sol, k83bqzgmu) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
-|---|---|---|
-| 계획의 해시·줄 수·머리 주석만 다름·`.defs` 누락 둘뿐이 맞음 | 이번 세션 sha256sum, python difflib, PROVENANCE destination 과 git ls-files 대조(누락 `.defs` 2) | ✅(이미 내가 측정한 값과 같음; codex 가 인용한 매니페스트 줄은 쓰지 않음) |
-| 끝에 덧붙이는 것이 맞음(행 번호 인용이 있음) | 이 계획 항목 1 의 이유와 같음; PROVENANCE·MODIFICATIONS 마지막 바이트 `0a`(xxd) | ✅ |
-| "1,045 행"은 머리 뺀 레코드, 1,046→1,048 은 물리 줄 수 — 구분해 적을 것 | wc -l 1046, csv 레코드 1045 | ✅ 검사 문구를 고침(아래 3) |
-| MODIFICATIONS 는 5 열, "7 열"은 PROVENANCE 만 | MODIFICATIONS.md:12 머리 `| Date | File | Original version | Change | Evidence |` | ✅ |
-| MODIFICATIONS 변경 칸에 "nearly the same as Darwin 0.1 …"·본문 그대로·머리 교체·고지 없음·작성 plan 343·기록 plan 407 을 넣을 것 | MODIFICATIONS.md:375(audioReply.defs 선례), AGENTS.md:6(D030) | ✅ |
-| 근거 md(x86-EventServer.md·x86-audioServer.md)에 입력 .defs 출처 문단을 덧붙일 것 | 두 파일 전문을 읽음 — 생성물 검증만 있고 .defs 출처 설명 없음 | ✅ 짧은 문단 추가 |
-| objects·functions·README 는 고칠 필요 없음 | 이 보완은 객체 결과를 바꾸지 않음(07 코드 변경 없음) | ⏭️(행동 변화 없음; 인용 줄은 쓰지 않음) |
-| **objc 머리 18 개(PROVENANCE 964–978·985–987)가 MODIFICATIONS 에 없음**, D047 은 MODIFICATIONS 에도 문구를 요구 | python: MODIFICATIONS 파일 칸 467 개와 PROVENANCE destination 대조 → 18 개 모두 없음; DECISIONS.md:51 D047 끝 "파일 머리·PROVENANCE·MODIFICATIONS 에 "nearly the same as Darwin 0.1 objc-1 <file>"" 확인; 18 개 SHA 가 PROVENANCE 기록과 같고 Darwin 원문과의 차이가 모두 첫 코드 줄 앞(머리 주석)뿐(difflib) | ✅ **새 발견** — 같은 종류의 기록 공백이므로 이번 보완에 넣음(아래 5) |
-| 그 밖의 추적 소스 파일 누락 없음, 생성 머리 22 개는 README 예외 | 내 대조: "nearly the same" 또는 authored 이면서 MODIFICATIONS 에 없는 행은 위 18 + spl.h(:251)·diskstruct.h(:654) — 둘은 Darwin 문장을 옮기지 않음(PROVENANCE 문구 "no text copied"·"no reference text") → D030 문구 대상 아님 | ⚖️ 누락 18 은 확인, 생성 머리 22 개 수는 이 작업에 쓰지 않음 |
-
-보강한 할 일:
-3. 검사(python): 물리 줄 수 PROVENANCE 1,046→1,048(레코드 1,045→1,047), MODIFICATIONS 552→572(행 2+18); PROVENANCE 모든 레코드 7 열·destination 중복 없음; MODIFICATIONS 새 행 5 열·각 행에 "nearly the same as Darwin 0.1" 문구; 새 PROVENANCE 행 SHA 가 실제 파일과 같음; `.defs` 누락 0; D030/D047 "nearly the same" 행 가운데 MODIFICATIONS 에 없는 것 0; 기존 내용은 앞부분 접두 비교로 바이트 그대로.
-5. `07_kernel/MODIFICATIONS.md` 끝에 objc 머리 18 행(날짜 2026-10-08; 선례 MODIFICATIONS `src/objc-runtime/maptable.m` 행 꼴; 원판 `objc-1.tar.gz sha256 3809cc3d…` `darwin01/objc/<이름>`; 변경 칸 "whole file nearly the same as Darwin 0.1 objc-1 <이름> (body verbatim; leading notice comments replaced by the project head comment), D030/D047; authored 2026-10-07 (plan 356/358/359); record added 2026-10-08 (plan 407)"; 근거는 각 PROVENANCE 행의 근거 칸).
-6. 근거 md 두 곳(x86-EventServer.md·x86-audioServer.md)에 입력 .defs 출처 문단.
-
-결과(2026-10-08, scratchpad `rec407.py`, 먼저 시험 실행 뒤 `--write`):
-- `07_kernel/PROVENANCE.tsv` 물리 줄 1,046→1,048(레코드 1,045→1,047): `Event.defs`·`audio.defs` 행(작성 plan 343, Darwin 파일 SHA 포함, "row added … plan 407").
-- `07_kernel/MODIFICATIONS.md` 552→572: 두 `.defs` 행 + objc 머리 18 행(PROVENANCE 964–978·985–987; 각 행 SHA 를 실제 파일과 대조한 뒤 씀).
-- 근거 md 두 곳(`x86-EventServer.md`·`x86-audioServer.md`)에 입력 출처 문단 추가.
-- 검사(python): 기존 바이트는 접두로 그대로, PROVENANCE 7 열·destination 중복 0, 새 MODIFICATIONS 행 5 열·문구 포함, `src/` `.defs` 누락 0, "nearly the same" PROVENANCE 행 가운데 MODIFICATIONS 에 없는 것 0. 07 코드·빌드 변경 없음.
-
-## 408. S7-4 세부 계획 — x86 기록 마무리: 등급 P 70 객체의 링크 배치 증명과 재판정 규칙, `STATUS.md` 갱신(07·빌드 변경 없음; 코딩 전, 2026-10-08)
-
-배경(사용자 지시 "1 작업 진행"): 링크한 커널이 원본과 바이트 동일해졌으므로(§402·404), 객체 단독 L1 로는 위치를 정하지 못해 P 로 둔 절을 링크 결과로 확인하고
-재판정 규칙을 정합니다. `02_plan/STATUS.md` 는 머리가 "2026-09-11" 인 분석 단계 서술이라 지금 상태로 고칩니다.
+| 사실 목록이 불완전: `pc_support` 는 4 기호(`_PCresume` 포함), `od` 는 `_odopen` 도, `mach_debug` 의 `_stack_usage_lock` 은 x86 에만(MACH_SLOCKS 0 이면 `decl_simple_lock_data` 가 비어 정상) | 근거 칸 원문과 두 기호표 python 대조: `_PCresume`·`_PCcallMonitor`·`_stack_usage_lock` x86 만, `_odopen`·`_odattach` m68k 만 | ✅ **내 오류**: 예비 조사 정규식 `(?<![\w/.])` 이 `/` 뒤 기호를 빠뜨림 — 도구에서는 `/` 를 허용 |
+| 205 컴파일 모두 `-imacros meta_features.h` 로 `KERNOBJC` 를 봄(`meta_features.h:17`), 그러나 `#if KERNOBJC` 는 `kern_server.c` 의 두 곳뿐 | `meta_features.h:17` 읽음; §438 사실의 grep(같은 결과) | ✅ |
+| 크기: 객체 3846 B, 원본 구간 3804 B, 차 42 = 지워질 두 호출 덩어리(24 + 18); 원본 `_kern_serv_load_objc` 10 B | 실행 결과로 확인(재컴파일 뒤 크기 비교) | ⏭️→ 실행으로 |
+| **도구가 `--plan 438` 을 받지 못함**(`EXCEPTS` 에 438 없음) | `stage_m68k.py:40-43` 읽음 | ✅ `EXCEPTS[438]` 추가 |
+| **비교는 기준 run(`m3p429-cc2`·`m3p432-int`)과 하므로 예외는 누적돼야 함** — 438 예외 = `x86-subr_prf`(§437) + `x86-kern_server` | `cmd_compare` 가 `REFS` 와 비교함(읽음) | ✅ 계획 정정; 기준: differ = 두 객체, same_non_stabs 203, object_match [146, 148], gained 두 객체 |
+| 바이트 동일은 기준이 아님(STABS 줄 번호) — `sections_differ` 기준 | §433 이후 그대로 씀 | ✅(기존 기준 유지) |
+| 미루는 옵션 가운데 205 에 영향 없는 것: `NEN` 은 `if_ether.c:98-102` 가 `#else vax` 에서 0 으로 재정의, `NPTY` 는 `tty_pty.c:70-73` 이 1 일 때만 바꿈, `mach_ldebug.h` 는 undetermined 라 생성되지 않음 | 세 곳 읽음, `generated/mach_ldebug.h` 없음 | ✅ 표에 "소스가 재정의"·"생성 안 됨" 으로 따로 적음 |
+| `cputypes.h`: CMU config 는 cpu 줄마다 `#define <cpu> 1`; `MASTER.next:96 cpu "NeXT"` → `#define NeXT 1` = 컴파일 줄의 `-DNeXT` 와 같음 | `MASTER.next` 96 행은 실행 때 도구로 읽어 기록; mkmakefile 설명은 미검증 | ⚖️ "같은 효과로 보임(미검증 부분 있음)" 으로 기록, 바꾸지 않음 |
+| grep 방법의 한계: 머리 닫힘 아님, 다른 매크로를 거친 시험(MACH_SLOCKS·PRI_SHIFT 등), 지역 재정의·주석·`#ifdef` 도 사용으로 셈, `machdep/ppc` 도 셈 | 설계 | ✅ 도구가 `#if`/`#ifdef`/`#define`/주석을 나눠 세고 `machdep/{i386,ppc,hppa,sparc}` 를 빼며, 한계를 기록에 적음 |
+| 미루는 옵션이 OBJECT_MATCH 객체에 쓰이는 경우(STAT_TIME·KERNEL_STACK·MACH_DEBUG 등)는 지금 값으로 이미 일치 — 바꿀 근거 없음 | 147 일치 사실 | ✅ "현재 값으로 일치하는 객체가 있음" 열을 둠 |
+
+### 438.2 실행 결과(2026-10-09) — 기록 `m3-m68k-kernobjc-20261009.json`(재컴파일), `m3-m68k-config-review-20261009.json`(옵션 표)
+
+**`KERNOBJC 0`**
+- `06_reconstruction/config_options-m68k.tsv` 에 행을 덧붙였고, `generated/kernobjc.h` 를 `gen_config_headers.py --arch m68k` 로 생성했습니다.
+  - 기존 m68k 머리 4 개는 바이트가 그대로입니다(SHA 확인). x86 `--check` 는 종료 0 입니다.
+  - PROVENANCE 1071 → 1072, MODIFICATIONS 595 → 596(덧붙이기만).
+- `stage_m68k.py` 에 `EXCEPTS[438]` 를 넣었습니다(§437 의 `x86-subr_prf` + `x86-kern_server`, 기준 run 과 비교하므로 누적).
+- 실기 run `m3p438-cc1` 은 205 명령이 모두 종료 0 이고, 스테이징 888 파일, x86 관문 7 스테이징이 같습니다. 도구 해시는 실행 전후가 같습니다(`08_build/artifacts/m3p438/tools-pre.sha`).
+- 미리 정한 값과 모두 같습니다.
+  - 비 STABS 절이 같은 것 203, 다른 것은 `x86-kern_server`·`x86-subr_prf` 입니다.
+  - OBJECT_MATCH 는 **146(기준 run) → 148**(얻은 것 두 객체, 잃은 것 0)입니다.
+  - 미정의 `_spl*` 0, 원본에 없는 새 미정의 기호 0 입니다.
+- 결과에 따라 표 행의 상태를 confirmed 로 고쳤습니다(오늘 쓴 행, 행 수 그대로). 생성 머리는 바뀌지 않습니다(`--check` 종료 0).
+
+**옵션 표**
+- 도구 `10_tools/reconstruction/m3_m68k_config_review.py`(11d2afb3…)로 x86 표 53 옵션을 판정했습니다.
+  - 근거 같음 27, 덮어씀 4(`simple_clock`·`driverkit`·`kernobjc`·`gdb`; `iplmeas` 는 x86 표에 없음), 생성 안 됨 3(`new_vm_code`·`mach_vm_debug`·`mach_ldebug`), 기호 근거 없음 13, **근거가 갈려 미룸 6**입니다.
+- 미룬 6 개와 이유:
+  - `pc_support`·`od`: 값을 시험하는 파일이 스테이징에 없습니다(i386 전용·m68k 전용 장치는 M4).
+  - `uxpr`·`xpr_debug`: 시험이 `kern/xpr.h`·`driverkit/ddm.c` 뿐이고, `#if XPR_DEBUG`(0) 안이거나 205 밖입니다.
+  - `en`: `if_ether.c:98-102` 가 non-vax 에서 `NEN 0` 으로 다시 정의하므로 생성값이 효과가 없습니다.
+  - `mach_debug`: `_stack_usage_lock` 이 m68k 에 없는 것은 `MACH_SLOCKS 0`(DRIVERKIT 0)에서 `decl_simple_lock_data` 가 비기 때문이고, 값 1 로 `thread`·`zalloc`·`ipc_kobject` 가 일치하므로 바꿀 근거가 없습니다.
+- 한계(기록에 적음): 전처리 닫힘이 아닌 문자열 검사입니다. 다른 매크로를 거친 시험과 머리를 통한 사용은 객체에 연결하지 않았습니다. `cputypes.h`(빈 머리)가 `MASTER.next:96 cpu "NeXT"` 의 config 출력과 같은 효과라는 점은 검토 의견일 뿐 미검증입니다.
+
+해석: x86 값을 그대로 쓰는 m68k 옵션 가운데, 지금 컴파일하는 205 객체에 영향을 주면서 근거가 갈리는 것은 남지 않았습니다. 미룬 6 개는 그 값을 쓰는 객체를 M4·M5 에서 만들 때 정합니다.
+
+## 439. M3-15 세부 계획 — 다시 만든 m68k 객체로 §418 의 미결정 경계 판정(07 변경 없음; 표는 새 판으로; 코딩 전, 2026-10-09)
+
+배경: §418 경계 326 개 가운데 미결정은 11 개입니다. 그중 양쪽 객체를 m68k 로 다시 만든 것은 셋입니다(k=130 `ufs_vfsops`|`ufs_vnodeops`, k=191 `kern_notify`|`kern_server_handler`, k=193 `kern_server_reply_user`|`exc_server`). 나머지 8 개는 대응 없는 구간·SCSI·`.word` 행과 맞닿아 있어 이번 대상이 아닙니다.
 
 확인한 사실(이번 세션, python):
-- `objects_partial.tsv` 70 행: `unverified_sections` 가 `__DATA,__bss` 만 60, `__bss`+`__TEXT,__const` 5, `__const` 만 4, **빈 칸 1(`x86-vol`)**.
-  `x86-vol` 은 근거 `06_reconstruction/evidence/x86-vol.md:6`·`:8` 이 "`__DATA,__bss` reference-inferred … 24 B at [0x1e7588, …)" 라고 적어 표 칸이 빠진 기록 공백입니다.
-- 링크 run `08_build/runs/s6p404-ln1`: 객체별 배치 지도(link map)는 없습니다(`run.cmd` 에 `-M` 없음). 대신 strip 전 `out/mach_kernel.sys` 에 지역 기호 2,776·외부 3,751 과
-  STAB(N_SO 0x64 792 개 — 이름 있는 것 396, N_STSYM 0x26 6,368, N_LCSYM 0x28 660, N_FUN 0x24 4,480 등)이 있습니다. `__bss` 의 지역 기호는 184 개입니다.
-- 링크 입력 순서는 `run.cmd` 의 `ld -r`(libDriver_kern.o, libkobjc.o) 두 줄과 최종 `ld -static …` 줄에 있습니다.
+- k=191: OBJECT_MATCH 인 `kern_server_handler` 의 L1 자리는 0x40576ce 이고, 이는 하한과 같습니다(구간 [0x40576ce, 0x4057d74]). `kern_notify` 의 L1 끝도 0x40576ce 입니다.
+- k=193: OBJECT_MATCH 인 `exc_server` 의 자리는 0x4058090 이고 하한과 같습니다. `kern_server_reply_user`(OBJECT_MATCH)의 끝도 0x4058090 입니다.
+- k=130 은 [0x403a04c, 0x403a056] 입니다.
+  - `ufs_vnodeops` 객체 첫 36 B 가 0x403a056 에서 같습니다(§436).
+  - `ufs_vfsops` 는 결정된 k=129 의 0x4039568 에서 첫 32 B 중 3 B 만 다릅니다(재배치 필드로 보임).
+  - 원본 범위 [0x4039568, 0x403a056) 는 2798 B 로 객체 2884 B 보다 86 B 짧습니다. 후보 원인은 §430 에 기록된 i386 `_byte_swap_*` 호출입니다.
+  - `ufs_vfsops` 의 L1 자리 0x403952e("외부 기호 기준") 에서는 첫 32 B 가 모두 달라, §436 의 `ufs_vnodeops` 와 같은 자리 오류입니다.
 
-방법 — 링크 배치 증명(읽기 전용 도구 `10_tools/reconstruction/l2_place.py`, 새 파일):
-1. 입력: `run.cmd`(링크 순서), `src/objs/*.o`, `out/libDriver_kern.o`·`out/libkobjc.o`, `out/mach_kernel.sys`, 원본 `03_original/x86/binaries/mach_kernel`. 모든 입력의 SHA-256 을 출력에 적습니다.
-2. ld 배치 모의: 출력 절마다 입력 순서대로 각 입력 절을 그 절의 정렬로 올림한 주소에 둡니다. `ld -r` 묶음 두 개는 안쪽도 같은 방식으로 모의하고, 그 결과를 묶음 객체의 기호표와 대조합니다.
-3. 모의 검증(독립 근거와 대조, 불일치 0 이어야 함): (a) 출력 절의 시작·크기가 `.sys` 의 절과 같음, (b) `.sys` 의 모든 비-STAB 기호(지역·외부) 값 = 모의한 입력 절 시작 + 그 기호의 객체 안 값,
-   (c) STAB N_STSYM·N_LCSYM·N_FUN 의 주소도 같은 식으로 맞음(N_SO 범위로 객체를 가름). 기호·STAB 가 없는 입력 절은 (a) 의 누적 크기로만 확인되므로 따로 셉니다.
-4. P 객체마다 미검증 절의 모의 위치 [시작, 끝): `__const` 는 객체 바이트 = 원본 바이트(원본 파일에서 읽음), `__bss` 는 원본 `__bss` 안에 있고 표·근거에 적힌 reference-inferred 주소와 같음.
-   객체는 표의 최종 객체가 아니라 s6 재빌드 객체이므로, 두 객체의 SHA 가 같은지(또는 §394 의 L1 재판정이 같은 등급인지)를 함께 적습니다.
-5. 출력 `09_validation/reconstruction/s6-l2-place-20261008.json`. 도구 자기 시험: 일부러 순서를 바꾼 입력·정렬을 틀린 입력에서 3 이 실패해야 합니다.
+방법(새 도구 `10_tools/reconstruction/m2_m68k_boundaries_built.py`; 입력 §418 표·기록, run `m3p438-cc1` 객체와 L1 기록):
+1. 판정 규칙은 다음과 같습니다(미리 정함).
+   - b 쪽이 OBJECT_MATCH 이면 그 L1 `__text` 자리를 경계로 봅니다.
+   - a 쪽이 OBJECT_MATCH 이면 자리 + 크기를 경계로 봅니다.
+   - 둘 다 아니면 b 객체 `__text` 첫 64 B(재배치 필드를 가림)가 [하한, 상한] 안의 짝수 주소 가운데 정확히 한 곳에서 같을 때 그 주소를 경계로 봅니다.
+   - 어느 경우든 값이 [하한, 상한] 안이어야 합니다. 두 근거가 함께 있으면 서로 같아야 합니다.
+2. k=130 의 a 쪽 정합 확인을 합니다. 실기 `otool -tv`(읽기 전용)로 `ufs_vfsops` 객체를 풀고, §436 도구 방식으로 [0x4039568, 0x403a056) 와 전체 정규화 비교를 합니다. 86 B 차이가 모두 `_byte_swap_*` 관련 덩어리여야 합니다. 아니면 k=130 을 결정하지 않습니다.
+3. 산출:
+   - 새 표 `06_reconstruction/m68k-text-boundaries-built.tsv` 는 §418 표 326 행 전체를 그대로 옮기고 열 `decided_439`·`boundary_439`·`basis_439` 를 더합니다. §418 표는 바꾸지 않습니다.
+   - 기록은 `09_validation/reconstruction/m2-m68k-boundaries-built-20261009.json` 입니다.
+   - §423 객체 목록의 "정확 경계" 수가 몇 개 늘어나는지 python 으로 셉니다(표는 다시 만들지 않고 기록만 합니다).
+4. 음성 시험: 첫 64 B 대조를 경계 ±2·±4 로 옮겨 맞지 않음을 보입니다. 또 이미 결정된 경계 가운데 양쪽이 다시 만든 객체인 것 전부에 같은 규칙을 적용해, §418 값과 어긋남이 0 인지 봅니다.
 
-재판정 규칙(사용자 결정 D063 대상, 4 가 모두 통과한 객체에만 적용):
-- ① **P 유지 + 증명 열**: 등급 정의는 그대로, `objects_partial.tsv` 에 링크 배치 증명 결과 열을 더함. README 커버리지는 "P(링크 배치 증명 완료)" 로 표시.
-- ② **A 로 승격**: `objects_confirmed.tsv` 로 옮기고 A 정의를 "L1 OBJECT_MATCH 또는 (P + 링크 배치 증명)" 으로 넓힘. 증명 근거 열을 둠. 객체 단독 증명과 링크 증명이 같은 등급으로 섞입니다.
-- ③ **새 등급(예: `A-L2`)**: `objects_confirmed.tsv` 에 넣되 등급 이름으로 구분. 정의 "P 의 미검증 절이 L2 링크 배치 증명으로 확인됨".
-- 공통: 증명이 실패한 객체는 P 로 남기고 사유를 적습니다. `x86-vol` 의 빈 칸은 어느 선택이든 근거 md 대로 채웁니다.
+### 439.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-`STATUS.md` 갱신: 머리를 2026-10-08 현재 상태(바이트 동일 L2, QEMU L3, 객체 수·커버리지, 남은 항목, m68k·SPARC 다음)로 새로 쓰고, 기존 2026-09-11 서술은 "이전 기록" 으로 아래에 그대로 둡니다(지우지 않음).
-
-검사(python): 표 행 수(70 + 315 + 17 + 2 = 404 유지), 각 행 열 수, 등급 집계, README 커버리지 수치 재계산, 기존 행 바이트 보존(바뀐 행만 diff).
-하지 않는 것: 07·빌드·링크 재실행, 다른 아키텍처.
-
-codex 교차검토(gpt-6.1-sol, kcsi6w165) 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| 70 행 60/5/4/1·`x86-vol` 빈 칸·`.sys` 기호/STAB 수·link map 없음이 맞음 | 이번 세션 python(위 사실 줄과 같은 출력) | ✅ |
-| 표 합계 404 중 confirmed 315 는 A 314 + A\* 1 | (A\* 수는 이 계획에 옮기지 않음 — 집계는 코딩 뒤 python 으로) | ⏭️ STATUS 작성 때 python 으로 다시 셈 |
-| **`ld -r` 이 문자열·메시지 참조 절을 합침 → "모든 출력 절을 이어 붙여 모의" 는 틀림** | python: libDriver_kern.o `__cstring` 이어 붙임 12,374 ↔ 실제 11,567, `__message_refs` 4,028 ↔ 2,204, `__cls_refs` 216 ↔ 84; libkobjc.o `__cstring` 1,801 ↔ 1,680, `__message_refs` 252 ↔ 204, `__cls_refs` 12 ↔ 8; 반면 `__bss` 224·8, `__const` 2,236·738 은 이어 붙임과 같음 | ✅ **내 계획이 틀림** — 증명 범위를 `__bss`(zerofill)·일반 `__const` 로 좁힘 |
-| `-lcc` 구성원(`_muldi3.o`·`_udivdi3.o`)이 입력에서 빠짐 | `run.cmd` 마지막 ld 줄에 `-lcc` 있음(python) | ✅ 입력에 넣음(아카이브 해시·i386 조각·구성원 해시) |
-| 기호 식: 링크 값 = 기여 시작 + n_value − 입력 절 addr, `ld -r` 두 단계 합성 | Mach-O MH_OBJECT 의 n_value 는 객체 주소 공간 값(macho_obj 의 절 `addr` 열 확인) | ✅ |
-| `__common` 은 링크가 따로 배정 | §399–401 기록(처음 언급 순) | ✅ 이 증명 범위 밖(P 의 미검증 절에 `__common` 없음 — 60/5/4/1 분류 출력) |
-| `-segalign` 은 절 시작에 영향 → 시작은 `.sys` 관측값으로 쓰고 "예측 아님" 이라 적을 것 | 원칙상 맞음 | ✅ |
-| **P 70 중 재빌드 객체 해시가 기록과 같은 것 21, 다른 것 49; 68 은 구조 기준선 같음, `nfs_subr`·`swapfs` 는 `expected_ok` 만** | python: 기준선 `s6-l2-baseline-20261008/<n>-*.json` 의 inputs 해시 ↔ `s6-l1-*-s6l4-*.json` 의 obj_sha256 → 같음 21·다름 49; (same_as_baseline, expected_ok) = (True,None) 68·(None,True) 2 = nfs_subr·swapfs | ✅ "같은 해시 또는 같은 등급" 대신 아래 항목 B |
-| `.sys` 비-STAB 절대 기호 120, 지역 이름 중복 50 무리 → 이름만으로 맞추면 안 됨 | python: 120·50 | ✅ 기호를 종류·입력 순서로 식별 |
-| N_SO 없는 어셈블리 입력 6, 라이브러리 구성원 식별 필요 | (402 − 396 = 6 은 python 으로 맞음; 어느 입력인지는 도구에서 셈) | ⚖️ 도구가 세어 출력 |
-| 기호·STAB 닻이 없는 `__const` 기여 8 → "순서 의존 귀속" 으로 표시 | 아직 측정 안 함 | ⚖️ 도구가 세어 출력, 표시 규칙은 채택 |
-| `bios`·`SCSIGenericKern` 은 reference-inferred 주소가 없음(참조 없는 bss) | `objects_partial.tsv` bios 행 "16 B unreferenced" 확인 | ✅ 위치와 닻만 보고 |
-| 권장 ①(P 유지 + 증명 열): A 는 OBJECT_MATCH + 경계 증명, P 는 OBJECT_MATCH 가 아님; ③ 은 도구가 모르는 등급 | `06_reconstruction/README.md:24`(A 정의), `:26`(P 정의) sed; `10_tools/reconstruction/l2_baseline.py` 의 등급 분기 `A`/`A*`/`P` 만 확인 | ✅ 권장안 ① 로 함(결정은 사용자) |
-| STATUS 는 바이트 동일 커널과 PIC 판 QEMU 부팅을 구분, L 커버리지 따로, 역사적 소스 동일성 주장 금지 | AGENTS.md:15(사실·해석·구현·검증 분리) sed | ✅ |
-| 증명 한계: 저장된 재빌드 링크의 배치 증명이지, 구별 불가한 0 저장소·반복 상수의 역사적 귀속 증명이 아님 | 원칙상 맞음 | ✅ 출력과 표에 한계 문구 |
+| k=191·193 의 L1 자리·끝 값 맞음; 단 `kern_notify` 는 NOT_MATCH 라 규칙 1.2 의 a 쪽 근거가 못 됨(정합 확인일 뿐) | §439 사실의 python 출력 | ✅ 규칙에 "a 쪽 근거는 OBJECT_MATCH 일 때만" 명시 |
+| `ufs_vfsops` 의 0x4039568 차이 바이트는 27–29·51 이고, 각각 외부 pc 상대 재배치(offset 26, 4 B)와 지역 pc 상대 재배치(offset 48) 안 | python: 첫 64 B 차이 offset [27, 28, 29, 51], 재배치 (48, len 2, pcrel, local)·(26, len 2, pcrel, extern) | ✅ |
+| 0x403a04c 의 10 B 진입점 = 객체 마지막 함수 `_ufs_badvfsop`(offset 2874; 2874 − 86 = 2788 = 0x403a04c − 0x4039568) — 하한 쪽 미해결 진입점은 a 쪽 함수 | python: 원본 0x403a04c 10 B 와 객체 끝 10 B 가 같음(`48562c4f70164e5e4e75`), 마지막 기호 `_ufs_badvfsop` 2874 | ✅ k=130 의 결정 근거는 a 쪽 전체 비교(관문)로 둠 |
+| 같은 10 B 꼴이 `__text` 에 여러 번(11) 나타나므로 b 쪽 첫 바이트만으로는 k=130 을 정할 수 없음 | 도구에서 셈 | ⏭️→ 도구 기록 |
+| 첫 64 B 규칙은 MIG 머리말 반복 때문에 유일하지 않을 수 있음(k=191 에서 3 곳) → 둘 다 OBJECT_MATCH 아닐 때만 쓰고, 후보는 [하한, 상한] 안의 **진입점**, 여럿이면 판정 보류 | 설계(도구에서 다시 셈) | ✅ |
+| 재배치 가림: scattered PAIR 항목은 건너뛰고 나머지는 `1 << r_length` 바이트 | `l1_compare` 관례(검토 의견), 도구에 구현 | ✅ |
+| 모든 205 객체 `__text` 정렬 2^1·크기 짝수 → 채움 없음; 결정된 경계 195 개(양쪽 재빌드) 중 OBJECT_MATCH 쪽 확인 모두 일치 | 도구에서 다시 셈 | ⏭️→ 음성 시험에 포함 |
+| **음성 시험 설계가 무의미**: 결정된 경계는 하한 = 상한이라 "구간 안 유일" 이 자명 → 창을 (a_last, b_first] 로 넓혀 시험 | §418 표의 결정 행 lower = upper 확인(k=129 등) | ✅ 창 (a_last, b_first] 의 진입점으로 규칙 1.3 을 시험: 틀린 판정 0 이어야 함(놓침·보류는 허용, 수를 기록) |
+| 6 객체(`m68k-123`·`124`·`184`–`187`)가 정확해져 300 → 306, 정확 바이트 76.70 % → 78.89 % | 도구에서 다시 셈 | ⏭️→ 도구 기록 |
+| 2 단계의 합격 기준을 미리 정할 것; L1 의 잘못된 자리 대신 0x4039568·0x403a056 을 강제로 씀 | 설계 | ✅ 기준: (a) 객체 − 원본 바이트 차 합 = 86, (b) 객체에만 있는 호출은 `_byte_swap_*` 뿐, (c) 원본에만 있는 호출 0, (d) 그 밖의 덩어리는 바이트 차 0. 하나라도 어긋나면 k=130 은 결정하지 않음 |
 
-수정한 방법(위 "방법" 2–4 를 대체):
-- A. 범위: P 객체의 미검증 절, 즉 `__DATA,__bss`(S_ZEROFILL)와 일반 `__TEXT,__const` 만. 이 두 종류는 이어 붙임 모의가 `ld -r` 결과와 맞음을 위 python 으로 확인했고, 최종 링크 `__bss` 합계(12,432)도 도구가 다시 확인합니다.
-  입력: `run.cmd` 순서의 `src/objs/*.o`, 두 `ld -r` 묶음, `-lcc` 구성원(아카이브 해시·i386 조각·구성원 해시·추출 순서). 각 출력 절의 시작은 `.sys` 관측값이며 "예측" 이 아님을 출력에 적습니다.
-- B. 객체 동일성: 각 P 객체마다 (1) 기록된 객체(기준선 `inputs` 경로, 70 개 모두 디스크에 있고 해시 일치)와 (2) 링크에 쓰인 재빌드 객체(`s6-l1-*-s6l4` obj_sha256 → `input.expected` → `src/objs`)를 묶고,
-  두 객체의 미검증 절이 같은지(크기·정렬·`__const` 바이트·그 절의 기호 이름·값) 직접 비교합니다. `nfs_subr`·`swapfs` 는 이 비교에 더해 재빌드 객체로 L1 비교를 다시 돌려 표의 등급·사유와 같은지 확인합니다.
-- C. 배치 검증: 그 두 절 종류에 대해 기여 시작 = 이어 붙임 모의, 그리고 (a) 합계가 `.sys` 절 크기와 같음, (b) 그 절에 놓이는 모든 비-STAB 절 기호(N_SECT; 절대 기호 제외)가 "기여 시작 + n_value − 입력 절 addr" 과 같음(입력 순서·발생 순서로 식별),
-  (c) 주소가 그 절에 드는 STAB N_STSYM·N_LCSYM 도 같음. 불일치 0 이어야 합니다. 기호·STAB 닻이 없는 기여는 "순서 의존 귀속" 으로 따로 셉니다.
-- D. P 객체 판정: 미검증 절의 링크 위치 [시작, 끝)를 적고, `__const` 는 그 범위의 원본 바이트 = 객체 바이트, `__bss` 는 원본 `__bss` 안 + 기록된 reference-inferred 주소와 같음(참조 없는 bss 는 위치와 닻만).
-- E. 한계 문구: "저장된 재빌드 링크(s6p404-ln1)에서의 배치 증명이며, 구별할 수 없는 0 저장소·반복 상수의 역사적 귀속은 증명하지 않음".
-- F. 도구 자기 시험: 입력 순서를 바꾼 경우·정렬을 틀린 경우·한 객체를 빼는 경우에 C 가 실패해야 합니다.
+### 439.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m2-m68k-boundaries-built-20261009.json`, 표 `06_reconstruction/m68k-text-boundaries-built.tsv`
 
-재판정 권장: ① P 유지 + 증명 열(`l2_placement`: 결과·근거 json·닻 유무). 사용자 결정(D063) 전에는 표를 바꾸지 않고 도구·증명 json 만 만듭니다(읽기 전용 작업).
-`STATUS.md` 는 위 원칙(구분·한계)으로 쓰고, 수치는 모두 python 으로 다시 셉니다.
+도구 `10_tools/reconstruction/m2_m68k_boundaries_built.py`.
+- 첫 실행은 §423 표의 `data-only` 행(시작 칸이 빔)에서 멈췄고, 고친 뒤 다시 돌렸습니다. 해시는 `08_build/artifacts/m3p439/tool-pre.sha` 에 있고, 마지막 판(f9564bab…)이 기록과 같습니다.
+- `ufs_vfsops` 의 실기 `otool -tv` 목록은 `08_build/artifacts/m3p439/otool/` 에 두었고, 객체 SHA 를 실기 `krsha256` 과 대조했습니다.
 
-결과 1 — 링크 배치 증명(2026-10-08, 읽기 전용; 도구 `10_tools/reconstruction/l2_place.py`, 출력 `09_validation/reconstruction/s6-l2-place-20261008.json`):
-- 배치 모의 6 개(`.sys`·`libDriver_kern.o`·`libkobjc.o` × `__bss`·`__const`) 모두 통과: 끝 주소, 비-STAB 절 기호 다중집합, N_STSYM·N_LCSYM 다중집합이 기대와 같음.
-  `.sys` `__bss` 0x1e56c0·12,432 B, `__const` 0x1d10bc·22,772 B — 원본 절과 같은 시작·크기(python). `-lcc` 구성원 순서는 `.sys` 의 text 기호 주소로 관측.
-- P 70 행 모두 증명 통과(`proof_ok` 70): 재빌드 L1 json 이 객체 해시에 묶여 있고 P 일관성 규칙(l2_baseline.py) 통과, 기록된 객체와 재빌드 객체의 미검증 절이 크기·정렬·플래그·`__const` 바이트·절 기호까지 같음
-  (해시가 같은 객체 21, 다른 객체 49 — 다른 49 도 미검증 절은 같음), 링크 위치가 원본 절 안, `__const` 9 개는 원본 바이트와 같음, `__bss` 63 개는 기록된 reference-inferred 위치와 시작(구간이면 끝도)이 같음.
-- 기록 위치가 없는 `__bss` 3: `bios` [0x1e75a4, 0x1e75b4)·`SCSIGenericKern` [0x1e7570, 0x1e7574)(참조 없는 bss, 위치와 기호·STAB 닻만), `vol` [0x1e7588, 0x1e75a0)(표 칸이 빈 기록 공백; 근거 `x86-vol.md:8` 의 구간과 같음).
-- 닻(기호·STAB) 없는 기여 = 순서 의존 귀속: `__const` 8 개(intr·PCresume·vm_machdep·fp_support·i386_init·PCexception·trap·pmap — 4 B `18 00 20 00` 류). 바이트는 원본과 같습니다.
-- 도구 첫 실행의 실패 24 는 표 문장의 다른 주소("one Delta 0x…")까지 위치로 읽은 도구 파싱 오류였고, "reference-inferred[-single] at" 뒤의 위치만 읽도록 고친 뒤 0 이 됐습니다(kalloc 의 "-single" 표기 포함).
-- 자기 시험: 입력 순서 바꾸기·`__const` 입력 빼기·채움이 있는 기여의 정렬 낮추기 세 경우 모두 배치 모의가 실패함(검출).
-- 한계(출력에도 적음): 저장된 재빌드 링크 s6p404-ln1 에서의 배치 증명이며, 구별할 수 없는 0 저장소·반복 상수의 역사적 귀속은 증명하지 않습니다. `.sys` 절 시작은 관측값입니다.
-- 다음: 재판정 규칙 D063 사용자 결정 → 표·README·`STATUS.md` 반영.
+결과:
+- **k=191 → 0x40576ce**(규칙 1: `kern_server_handler` OBJECT_MATCH 자리), **k=193 → 0x4058090**(규칙 1 + 2 일치)로 결정했습니다.
+- **k=130 은 결정하지 않았습니다**(미리 정한 a 쪽 관문 불통과).
+  - 규칙 3 은 [하한, 상한] 안의 진입점 가운데 0x403a056 한 곳에서만 맞았습니다.
+  - 관문에서 객체 − 원본 바이트 차의 합이 86 이 아니라 82 였습니다. 정규화로 같다고 본 분기도 길이가 다를 수 있어 4 B 가 덩어리 밖에 남은 것으로 보입니다(미검증).
+  - 객체에만 있는 호출에 `_byte_swap_superblock`·`_byte_swap_ints` 말고도 `_copyin` 이 있고, 원본에만 `_copyinmsg` 가 있습니다(`ufs_mount`, 07·NeXTMach `ufs_vfsops.c:124` 는 `copyin`).
+  - `bwrite` 정렬 덩어리 쌍(−8·+10)이 있었습니다.
+  - `mountfs` 의 프레임 변위가 4 B 다릅니다(`linkw #0xffb0` 대 `#0xffb4`; 바이트 차 0 인 D-frame 13 개).
+  - 0x403a04c 진입점의 10 B 는 `ufs_vfsops` 객체의 마지막 함수 `_ufs_badvfsop` 과 같습니다(§439.1). 따라서 경계가 0x403a056 이라는 근거는 강하지만, 미리 정한 기준이 아니어서 이번에는 결정하지 않습니다.
+- 음성 시험(양쪽이 다시 만든 객체인 결정 경계 195 개)은 모두 통과했습니다.
+  - 규칙 1 확인 142·규칙 2 확인 143, 어긋남 0.
+  - 규칙 3 을 넓은 창 (a_last, b_first] 로 돌리면 맞음 179·놓침 14·모호 2·**틀림 0**.
+  - ±2·±4 이동 거짓 일치 0.
+- 새 표는 §418 표 326 행에 `decided_439`·`boundary_439`·`basis_439` 를 더한 것입니다(§418 표는 그대로). 결정된 것은 315 + 2 = 317 입니다.
+- §423 객체 목록에 미치는 효과(표는 다시 만들지 않음):
+  - 정확한 객체가 300 → 304(`m68k-184`–`187` = `kern_notify`·`kern_server_handler`·`kern_server_reply_user`·`exc_server`)입니다.
+  - 정확 바이트는 520,436 → 524,384(`__text` 678,510 B 의 76.70 % → 77.28 %)입니다.
+  - 검토자가 예상한 6 개 가운데 `m68k-123`·`124`(k=130) 는 들지 않았습니다.
 
-결과 2 — D063 반영(2026-10-08, 사용자 선택 "P 유지 + 증명 열 (Recommended)"):
-- `06_reconstruction/objects_partial.tsv`: `l2_placement` 열을 `evidence` 앞에 넣음(12→13 열, 71 줄 유지). `l2_forms.py` 가 열 5·6·마지막(`evidence`)을 읽으므로 끝이 아닌 자리에 넣었고,
-  표를 고치기 전후 `l2_forms.py` 출력이 바이트 단위로 같음(cmp). `x86-vol` 의 빈 `unverified_sections` 를 근거 md 대로 채움 → `l2_place.py` 재실행에서 표·L1 일치 70/70, 증명 70/70.
-  기록 스크립트는 scratchpad `rec408.py`(먼저 시험 실행; 기존 칸이 새 열을 뺀 새 행과 같은지 행마다 확인).
-- 표에 큰따옴표가 든 줄이 20 개 있어 `csv` 모듈 대신 탭으로 직접 나눠 읽고 쓰도록 했고(`l2_place.py` 도 같게 고침, 결과 json 동일), 이전 `csv` 읽기 결과도 탭 나누기와 같았음(따옴표로 시작하는 칸 0).
-- `02_plan/DECISIONS.md` D063, `06_reconstruction/README.md`(P 정의 뒤에 `l2_placement` 설명), `README.md`(상태 표의 P 칸), `02_plan/STATUS.md`(머리를 2026-10-08 상태로 새로 쓰고 2026-09-11 서술은 아래에 그대로 보존).
-- STATUS 수치(python): 315(A 314·A\* 1)·70·17·2 = 404, 커버리지 합 850,838 B·남은 598 B·비율 73.13/26.76/0.04 % 재계산 일치.
+새 M5 후보:
+- `ufs_vfsops` `ufs_mount` 에서 원본은 `copyinmsg` 를 부릅니다.
+- `mountfs` 의 지역 변수 4 B 차이가 있습니다(바이트 교환 외).
 
-## 409. M0-1 세부 계획 — m68k·SPARC 사전 측정: 실기 교차 도구 확인과 1997 i386 빌드 동일성 측정(07·x86 기록·도구 변경 없음; 코딩 전, 2026-10-09)
+## 440. M3-16 세부 계획 — 경계 규칙 4(a 쪽 끝 함수 + b 쪽 첫 바이트의 맞닿음)로 k=130 다시 판정(사용자 지시 "진행합니다"; 07 변경 없음; 코딩 전, 2026-10-09)
 
-배경: 다른 아키텍처 작업 기준(로컬 문서 `02_plan/MULTIARCH_RECONSTRUCTION_STANDARD.md`)의 M0 와 9 절 미확인 항목 가운데 결정 D-M1–D-M4 에 앞서 사실을 모읍니다.
-m68k·SPARC 원본은 mk-183.34(1997-04-27)이고 x86 07 트리는 mk-183.34.4(1999-01-26)에 맞춰져 있습니다.
+배경: §439 에서 k=130 은 미리 정한 a 쪽 전체 비교 관문을 통과하지 못해 미결정으로 남았습니다(바이트 차 82 ≠ 86, `ufs_mount` 의 원본 `copyinmsg`, `mountfs` 프레임 4 B). 그 관문은 a 객체 전체가 바이트 교환 말고는 같아야 한다는 강한 조건이었습니다. 경계를 정하는 데 필요한 것은 "a 가 어디서 끝나고 b 가 어디서 시작하는가" 입니다. 그래서 끝과 시작이 맞닿는지만 보는 규칙을 새로 정하고, 이번에도 결과를 보기 전에 미리 정합니다.
 
-확인한 사실(이번 세션, 읽기 전용):
-- 실기 `/lib` 에 `m68k`·`sparc`·`i386`·`hppa` 디렉터리가 있습니다. `m68k`·`sparc` 에는 `as`·`cc1obj`·`cc1objplus`·`cc1plus`·`cpp`·`cpp-precomp`·`specs` 가 있고
-  `hppa` 에는 `as`·`cpp-precomp` 뿐입니다(`ls -la`). 백엔드 날짜는 1997-04-22·23 입니다.
-- `lipo -info`: `/bin/cc`·`/bin/as`·`/bin/ld`·`/bin/strip`·`/lib/libcc.a`·`/lib/crt0.o` 는 m68k·i386·sparc 세 조각의 fat 파일입니다.
-- 실기 SDK `/NextDeveloper/Headers` 의 아키텍처 디렉터리(`ls -d */<arch>`): `architecture`·`mach`·`bsd`·`kernserv`·`mach-o`·`ansi` 에 m68k·sparc 가 있고,
-  `driverkit` 에는 `hppa`·`i386`·`machine`·`sparc` 만 있고 **m68k 가 없습니다**.
-- universal fat 조각 1(i386 mk-183.34)을 `03_original/installation-media/os42j/binaries/mach_kernel.universal`(SHA `f3b57f87…`)에서 python 으로 꺼내
-  SHA `cb6217c2…`, 1,113,724 B 임을 확인했습니다(세션 scratchpad 에만 둠; `03_original` 에 넣는 것은 D-M2).
-  `__text` 847,644 B(x86 183.34.4 는 851,436 B), `__const` 22,772 B·`__cstring` 13,892 B 는 x86 과 크기가 같습니다. 기호 SECT 3,648, ABS 100.
-- 기존 `l1_compare.py` 는 이 조각(i386, 리틀엔디언)에 그대로 쓰입니다: 시험으로 s6 재빌드 객체 `memcmp`(함수 2 개)·`sched_prim`(35 개)이 모두 MATCH.
+확인한 사실(이번 세션, python):
+- `ufs_vfsops` 객체의 마지막 함수(offset 2874, 10 B, 재배치 없음)와 같은 바이트열은 원본 `__text` 에 11 번 나옵니다(0x403a04c 포함).
+- k=130 의 [하한, 상한] 안 진입점은 0x403a04c·0x403a056 두 개입니다.
+- §439: `ufs_vnodeops` 의 가린 첫 64 B 는 그 안에서 0x403a056 에만 맞습니다.
 
-방법:
-1. **교차 도구 목록(읽기 전용)**: 실기에서 `/lib/{m68k,sparc,i386}/*` 의 SHA-256(`krsha256`)과 `specs` 내용, fat 도구의 `lipo -info` 를 기록합니다.
-   i386 기록 `08_build/toolchains/real-i386-20261001/sha256-vs-vm.json` 의 같은 파일과 해시를 대조합니다. 원 기록은 `08_build/toolchains/real-cross-20261009/`(무시 대상, IP 없음).
-2. **교차 컴파일 탐침**: 프로젝트가 쓴 두 줄짜리 C 파일(전역 변수 하나와 그것을 읽는 함수 하나; 참고 코드 없음)을 새 run 디렉터리 `08_build/runs/m0p409-xc1/`(무시 대상, 새 ID)에서
-   `cc -arch m68k -c -v`, `cc -arch sparc -c -v`, 대조로 `cc -arch i386 -c -v` 로 컴파일합니다. kr_run 은 i386 도구 목록이 고정이라 쓰지 않고, 명령·`-v` 출력·
-   실행 전후 도구 해시를 그 디렉터리에 남깁니다. 호스트에서 python 으로 출력의 magic·바이트 순서·cputype(6·14·7)·절·기호·재배치 수를 읽고 SHA 를 적습니다.
-   이것은 "백엔드가 목적 파일을 만든다" 는 확인뿐이며 ABI probe(M0-3)가 아닙니다.
-3. **1997 i386 빌드 동일성 측정**: s6 재빌드 402 객체(`09_validation/reconstruction/s6-l1-G*-s6l4-*.json` 의 `obj`, SHA 확인)를 조각 1 에 대해
-   `l1_compare.py --place-from-image`(.m 은 `--place-from-objc` 추가 — `l2_baseline.py` 와 같은 규칙)로 비교합니다. 새 읽기 전용 실행기
-   `10_tools/reconstruction/m0_slice_l1.py` 가 조각을 원본 universal 에서 꺼내 SHA 를 확인하고, 객체별 결과와 python 집계(객체 판정, 함수 판정 수, MATCH 함수 바이트,
-   소스 디렉터리별)를 냅니다. 실행기 자기 시험: 같은 실행기를 x86 원본 이미지에 돌리면 s6l4 기록 판정과 객체마다 같아야 합니다.
-   출력 `09_validation/reconstruction/m0-i386-18334-l1-20261009.json`(객체별 상세는 크기를 보고 같은 디렉터리 하위 또는 무시 대상에 둠).
-4. **해석 규칙(미리 정함)**: 조각 1 에서 OBJECT_MATCH 인 객체는 "`cc-744.13` 과 기록된 플래그·07 소스로 1997-04-27 i386 빌드의 그 객체 바이트를 다시 만든다" 는 뜻입니다.
-   이는 i386 백엔드에 대한 근거이고, m68k·SPARC 백엔드가 1997 빌드와 같다는 증명은 아닙니다(같은 패키지·날짜라는 정황만 적음).
-   NOT_MATCH 는 원인(소스 판·플래그·머리·컴파일러)을 가르지 않고 "판 차이 후보" 로만 셉니다. 측정은 M1(i386 183.34 다리)의 일부를 앞당기는 것이지만 기록·`03_original`·07 은 바꾸지 않습니다.
-5. 기록: 이 절에 결과, 로컬 기준 문서 1·9 절 사실 갱신. 07·x86 표·기존 도구는 바꾸지 않으므로 x86 회귀 관문(기준 문서 6 절)은 해당하지 않습니다(새 도구 둘만 추가).
-   그 뒤 측정값을 붙여 D-M1–D-M4 를 사용자에게 묻습니다.
+규칙 4(미리 정함; 양쪽 다 다시 만든 객체이고 둘 다 OBJECT_MATCH 가 아닐 때만):
+1. a 객체 `__text` 의 마지막 함수(마지막 기호부터 끝까지, 길이 L)를 재배치 필드를 가려 원본 진입점 e_a 와 대조합니다. e_a 의 범위는 [a_last, 상한] 안의 진입점입니다.
+2. b 객체 첫 min(크기, 64) B 를 가려 진입점 c 와 대조합니다(§439 규칙 3 과 같은 방법). c 의 범위는 [하한, 상한] 입니다.
+3. e_a + L = c 인 짝이 **정확히 하나**이면 c 를 경계로 정합니다. 없거나 둘 이상이면 보류합니다.
+4. c 는 [하한, 상한] 안이어야 합니다.
 
-### 409.1 codex 교차검토(gpt-6.1-sol, kz2akk1px) 판정과 계획 수정
+음성 시험(미리 정함):
+- 양쪽을 다시 만든 결정 경계 195 개에 규칙 4 를 넓은 창으로 적용합니다(e_a 는 [a_last, b_first] 진입점, c 는 (a_last, b_first] 진입점). **틀린 판정 0** 이어야 하고, 맞음·보류 수를 기록합니다.
+- k=130 에서 c 를 ±2·±4 로 옮기면 짝이 성립하지 않아야 합니다.
+- 하나라도 틀리면 규칙 4 를 쓰지 않습니다.
 
-| codex 주장 | 내 검증 방법 | 결과 |
+방법: §439 도구 `m2_m68k_boundaries_built.py` 에 `--plan 440`(규칙 4 추가, 규칙 1–3·관문은 그대로)을 더합니다. 표 `06_reconstruction/m68k-text-boundaries-built.tsv` 를 같은 열로 다시 만들고(근거 칸에 `rule4 (plan 440)`), 기록은 `09_validation/reconstruction/m2-m68k-boundaries-built4-20261009.json` 입니다. §439 기록은 그대로 둡니다. §423 객체 정확 수의 효과도 다시 셉니다.
+
+해석 한계: 규칙 4 는 두 객체가 맞닿는다는 것만 보입니다. a 객체 안쪽의 차이(`copyinmsg`·프레임)는 M5 항목으로 남습니다.
+
+### 440.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| 한 절 안 기호들의 델타가 둘 이상이면 그 절은 배치되지 않고, 이미지에 없는 기호는 무시됨 | `l1_compare.py:447–459` 읽음(`len(ds) == 1` 일 때만 배치) | ✅ 미배치 `__text` 를 따로 셈 |
-| 기호 없는 절은 참조 추론, 참조 없으면 미검증, 추론된 zerofill 은 미검증 | `l1_compare.py:222–300` 읽음(`infer`, zerofill 은 `given by symbol` 일 때만 placement-only) | ✅ |
-| 리터럴 절은 내용으로 참조만 확인 | `l1_compare.py:287–290` 읽음(`literal (references checked by content)`) | ✅ 해석 규칙에 반영 |
-| ObjC 배치는 모듈 이름이 정확히 같아야 하는데 두 커널의 경로 앞부분이 다름 | `objc_place.py:56–65` 읽음(`module … not in image` 로 빈 결과); python 으로 두 이미지의 `.m` 경로 문자열 확인 — x86 61 개 `/BinarySourceCache_Mario1A/mk/mk-183.34.4/…`, 조각 1 61 개 `/private/Net/seaport/release/.sources/Sources6/mk_proj/mk-183.34/…` | ✅ .m 85 객체는 따로 셈(도구는 고치지 않음) |
-| libcc 두 구성원은 402 객체 밖 | `objects_toolchain.tsv:2–3` 읽음; s6l4 G1–G6 객체 402 개와 링크 입력 402 개의 SHA 집합이 같음(python) | ✅ 이번 측정에서 제외하고 그렇게 적음 |
-| 함수 기록에 `__TEXT,__const` 범위도 들어감 | `l1_compare.py:343–386` 읽음(`segname != '__TEXT'` 만 거름) | ✅ 함수 집계는 `__TEXT,__text` 만 |
-| "그 객체 바이트를 다시 만든다" 는 과장; OBJECT_MATCH 는 이 도구의 비교 통과일 뿐(원 목적 파일·플래그·머리·컴파일러, 리터럴 전체, COMMON 크기, 함수 경계를 증명하지 않음) | `l1_compare.py:282–300·343–405`, `macho_obj.py:65–73`(COMMON 은 기호 종류로만 읽힘) 읽음 | ✅ 해석 문구를 고침 |
-| NOT_MATCH 는 비교 수용 실패이지 바이트 차이·판 차이가 아님; DIFF 는 참조한 데이터 절 실패로도 생김 | `l1_compare.py:365` 읽음(`'fail' in dep_state.values()` → DIFF) | ✅ |
-| BOUNDARY 는 object_verdict 에 영향 없음 | 이번 측정은 `--ranges` 를 쓰지 않음 | ⏭️ 해당 없음 |
-| 탐침을 kr_run 없이 하려면 규약의 장치가 모두 필요 | `RECONSTRUCTION_PLAN.md:68–75`, 기준 문서 `:119–120` 읽음. 그리고 내가 따로 확인: `kr_run.py:39–41` 허용 도구에 `/bin/cc` 가 있고, `:344` EXPECT 가 두 바이트 순서 매직을 모두 받음 | ⚖️ 장치를 새로 만들지 않고 **kr_run 을 그대로 씀**(`/bin/cc -arch …`); 아키텍처 백엔드 해시는 1 의 실행 전후 목록으로 보충 |
-| 빅엔디언 탐침 객체는 `macho_obj.py` 로 재배치를 못 읽음 | 기준 문서 1 절 11 판정표에 이미 확인(`:85`·`:91`) | ✅ 헤더·절·기호만 macho_obj, 재배치 수는 python 으로 따로 셈 |
-| 목록에 fat 조각별 해시·subtype, libcc 아키텍처별 구성원, `migcom`·`migcom3`·`mig`·`/lib/cpp`, 링크 관계(inode), `cc -v` 가 고른 실행 파일, m68k VM 대조가 필요 | 기준 문서 `:95–99`(m68k VM 대조 요구) 읽음; `sha256-vs-vm.json` 의 vm 값은 i386 VM 임(파일 읽음); `cpp-precomp` 링크 수 5(`ls -la` 출력) | ✅ 1 에 넣음. m68k VM 은 실행하지 않고 디스크 이미지를 `nextufs mount`(기본 읽기 전용, `nextufs.1:86–87`)로 읽어 해시 |
-| 자기 시험이 지금 규칙대로면 실패(329/73): PCinit·ufs_alloc·libDriver_vers 는 `l2_expect-s6p398.json` 의 명시 `__const` 배치가 필요, swapfs 는 이유가 달라짐 | `l2_rebuild.py:284–288` 읽음; `l2_expect-s6p398.json` 의 `place` 4 건(155 ufs_alloc 0x1d1280, 384 swapfs 0x1d1276, 402 libDriver_vers 0x1d647c, 53 PCinit 0x1d58e4) python 출력; 세 객체를 명시 배치 없이 x86 에 돌려 셋 다 `NOT_MATCH ['__TEXT,__const: unverified']` 재현 | ✅ 자기 시험은 명시 배치를 같이 주고 판정과 이유를 모두 대조. 조각 1 에는 x86 주소를 옮기지 않고 이 넷의 `__const` 는 미배치로 셈 |
+| **"미리 정함" 은 k=130 에 대해 정직하지 않음**: 규칙의 두 입력(0x403a04c 의 10 B, 0x403a056 의 b 머리)을 이미 안 뒤에 정했으므로 k=130 에는 사전 등록 시험이 아님; 독립 근거는 음성 시험뿐 | §440 본문을 다시 읽음(사실 목록에 두 입력이 있음) | ✅ **내 오류** — 기록 문구를 "§439 결과를 본 뒤 사용자 지시로 정한 규칙; k=130 에는 사후 판정, 독립 근거는 음성·특이성 시험" 으로 고침 |
+| 끝 함수 10 B 는 식별력이 없음(같은 꼴 11 곳; 다른 객체의 끝 함수와도 거짓 짝 25 / 39,780) → 고정 길이 a 꼬리(마지막 min(크기, 64) B, 가림)가 c 에서 끝나야 한다는 꼴이 더 강함 | 11 곳은 §440 사실의 python 출력; 거짓 짝 수는 도구에서 다시 셈 | ✅ 규칙 4 를 "a 꼬리 64 B" 로 바꿈 |
+| 규칙 4 는 규칙 3(b 머리)을 포함하므로, 음성 시험의 힘은 규칙 3 이 모호했던 경계에서만 생김 | 설계 확인 | ✅ 기록에 "규칙 4 ⊂ 규칙 3 의 제한" 이라고 적고, 교차 짝 특이성 시험을 더함(아래) |
+| 구조 근거: 객체 기호 `_getmdev`·`_ufs_vget`·`_ufs_badvfsop` 을 −86 옮기면 원본 진입점 0x4039f30·0x4039fae·0x403a04c 에 놓임 | python: 세 기호만 −86 에서 진입점과 일치(앞쪽 3 개는 0 에서, `_ufs_unmount`–`_sbupdate` 는 어느 쪽도 아님) | ✅ 보조 근거로 기록 |
+| `e_a ≥ 하한` 조건은 일반적으로 틀림(결정 경계는 하한 = 상한) | 설계 확인 | ✅ 넣지 않음 |
+| "마지막 함수" 의 정의를 밝힐 것 | — | ⏭️ 꼬리 꼴로 바꿔 필요 없음 |
 
-추가로 확인: s6l4 기록의 등급(A 330, A\* 1, P 71)은 지금 표(A·A\* 315, P 70, 데이터 17)와 `x86-rtc` 하나가 다릅니다 — §398 뒤 A 로 옮겨짐(`objects_confirmed.tsv:316`). 집계에는 지금 06 표의 등급을 씁니다.
+고친 규칙 4(이 판정표 뒤, 실행 전에 고정):
+- 양쪽 다 다시 만든 객체이고 둘 다 OBJECT_MATCH 가 아닐 때만 씁니다.
+- a 객체 `__text` 의 마지막 min(크기, 64) B(재배치 필드 가림)가 원본에서 c 바로 앞에서 끝나고, b 객체 첫 min(크기, 64) B(가림)가 c 에서 시작하는 진입점 c 가 [하한, 상한] 안에 **정확히 하나** 일 때 c 로 정합니다.
 
-고친 방법:
-1. 교차 도구 목록: 실기에서 `/lib/{i386,m68k,sparc,hppa}/*`·`/lib/cpp`·`/usr/lib/migcom`·`/usr/lib/migcom3`·`/usr/bin/mig` 의 `krsha256` 와 `ls -li`,
-   fat 도구(`/bin/cc`·`as`·`ld`·`strip`·`/lib/libcc.a`·`/lib/crt0.o`)의 `lipo -info`, `specs` 내용. fat 파일은 `cat` 으로 run 디렉터리에 복사해 호스트에서 SHA 를 대조하고
-   python 으로 조각별 cputype·subtype·SHA, libcc 조각의 구성원 이름·SHA 를 냅니다. 같은 경로를 m68k VM 디스크(`09_validation/images/m68k/openstep42-m68k-hdd.raw`, VM 이 꺼진 상태, 읽기 전용 마운트,
-   전후 이미지 SHA 동일 확인)에서 해시해 대조합니다. 탐침 run 전후로 실기 목록을 두 번 떠서 같아야 합니다.
-2. 교차 컴파일 탐침: kr_run 그대로(`RUN /bin/cc -arch m68k -c -v src/probe.c -o stage/probe-m68k.o`, sparc·i386 같은 꼴, EXPECT 셋). `-v` 출력(stage/_log)으로 실제 고른 백엔드 경로를 적습니다.
-3. 1997 i386 측정: 402 객체(libcc 제외), `--place-from-image` + (.m) `--place-from-objc`. 명시 배치는 x86 자기 시험에서만 씁니다. 집계 칸: 객체 판정, 이유 종류(미배치·미검증 절·DIFF 등),
-   `__text` 배치 여부, `__TEXT,__text` 함수만의 판정 수·바이트, .m 객체의 ObjC 대응 실패, 원래 등급별. 자기 시험은 x86 원본에서 402 객체의 판정과 이유가 s6l4 기록과 모두 같아야 합니다.
-4. 해석: OBJECT_MATCH = "기록된 재빌드 객체가 이 도구의 비교(배치된 절의 바이트·재배치 재계산)를 조각 1 에서 통과함". 원 목적 파일·플래그·머리·컴파일러가 같다는 증명이 아니며,
-   리터럴은 참조된 것만, COMMON 크기·함수 경계는 확인하지 않습니다. NOT_MATCH 는 원인을 가르지 않습니다. m68k·SPARC 백엔드에 대해서는 정황뿐입니다.
+시험:
+- (i) 결정 경계 195 개에 넓은 창 (a_last, b_first] 로 적용합니다. **틀림 0** 이어야 하고, 맞음·보류 수를 기록합니다.
+- (ii) 교차 짝 특이성: 결정 경계마다 참 경계 c 에서 다른 모든 다시 만든 객체의 a 꼬리, 그리고 다른 모든 객체의 b 머리가 성립하는 거짓 짝 수를 셉니다(판정 관문이 아니라 기록용).
+- (iii) k=130 에서 c ±2·±4 를 확인합니다.
+- (i) 에서 틀림이 하나라도 있으면 k=130 을 정하지 않습니다.
 
-### 409.2 결과(2026-10-09)
+### 440.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m2-m68k-boundaries-built4-20261009.json`, 표 `06_reconstruction/m68k-text-boundaries-built.tsv`(다시 만듦)
 
-**1. 교차 도구 목록**(`09_validation/reconstruction/m0-toolchain-cross-20261009.json`; 원 기록은 무시 대상 `08_build/toolchains/real-cross-20261009/`)
-- 실기 34 경로의 `krsha256`·`ls -li`·`lipo -info` 를 탐침 전후 두 번 떠서 같았습니다.
-- i386 쪽 14 경로는 기존 기록 `real-i386-20261001/sha256-vs-vm.json` 과 해시가 모두 같습니다.
-- **아키텍처 백엔드(`/lib/{i386,m68k,sparc}/{as,cc1obj,cpp}`)도 m68k·i386·sparc 세 조각의 fat 실행 파일입니다**(`lipo -info`). 즉 같은 파일이 어느 호스트에서든 그 대상 코드를 냅니다.
-  `cpp-precomp` 다섯 경로는 같은 inode(386985, 링크 수 5)입니다. `/usr/lib/migcom`·`migcom3` 는 fat 이 아닌 i386 실행 파일입니다.
-- fat 도구 7 개(`cc`·`as`·`ld`·`strip`·`libcc.a`·`crt0.o`·`/lib/cpp`)는 `cat` 으로 복사해 호스트에서 SHA 를 대조한 뒤 조각별 SHA 를 냈습니다. `libcc.a` 의 세 조각은 모두 구성원 47 개입니다.
-- m68k VM 디스크(`openstep42-m68k-hdd.raw`, VM 꺼짐, `nextufs mount -o ro`; 이미지 SHA `7097595f…` 전후 동일)와 대조: 34 경로 중 **32 같음**, 다른 둘은 `migcom`·`migcom3` —
-  VM 쪽은 m68k(cputype 6) 실행 파일입니다. MIG 생성 결과가 호스트에 따라 같은지는 M0-3 MIG probe 에서 확인합니다.
+도구는 `m2_m68k_boundaries_built.py --plan 440`(84feae6b…, `08_build/artifacts/m3p439/tool-pre.sha`)입니다. 규칙 1–3 과 관문은 §439 와 같습니다.
 
-**2. 교차 컴파일 탐침**(kr_run `m0p409-xc1`, DONE·게시 정상)
-- `cc -arch m68k`·`-arch sparc`·`-arch i386` 모두 목적 파일을 만들었습니다. `-v` 출력에서 각각 `/lib/<arch>/{cpp-precomp,cc1obj,as}` 를 골랐고, 기본값으로 `-dynamic -fPIC` 가 붙습니다
-  (커널 빌드는 `-static`; 플래그는 M0-3·M4 에서 정함).
-- python 판독: m68k 빅엔디언 cputype 6(sub 1), sparc 빅엔디언 14(0), i386 리틀엔디언 7(3) — 원본 커널의 cputype(sub)와 같습니다. `__text` 30·36·24 B, 재배치 2·6·2.
+**정직성 표시**: 규칙 4 는 §439 결과(k=130 의 두 사실)를 본 뒤 사용자 지시로 정했습니다. 따라서 k=130 에 대해서는 사후 판정이고, 독립 근거는 아래 시험들입니다. 규칙 4 는 규칙 3(b 머리)에 a 꼬리 조건을 더한 제한입니다.
 
-**3. 1997 i386 빌드 동일성 측정**(`09_validation/reconstruction/m0-i386-18334-l1-20261009.json`; 상세는 무시 대상 `08_build/artifacts/m0p409/`, SHA 로 묶음)
-- 자기 시험(x86 원본, 명시 배치 포함): **402/402 객체의 판정과 이유가 s6l4 기록과 같음**(OBJECT_MATCH 332, NOT_MATCH 70).
-- 조각 1(i386 mk-183.34): OBJECT_MATCH 314, NOT_MATCH 88. 등급별 A 313/331, A\* 1/1, P 0/70(P 는 x86 에서도 NOT_MATCH).
-- `__text` 가 있는 385 객체, 850,498 B: 함수 판정 MATCH 4,230 개 715,950 B(84.18 %), MATCH_UNVERIFIED 305 개 90,078 B(10.59 %), **DIFF 17 개 14,029 B(1.65 %)**,
-  미배치 30,441 B(3.58 %). 합이 850,498 B 와 맞습니다(python). `__text` 함수가 모두 MATCH 인 객체 317/385(82.34 %).
-- A 인데 NOT_MATCH 인 18 객체의 분류(객체별 이유를 읽음):
-  - 코드는 모두 MATCH 이고 데이터 절 배치만 안 됨 11: `PCinit`·`ufs_alloc`(x86 에서도 명시 배치가 필요했던 `__TEXT,__const`), ObjC 9(`KernLock` 등 — 모듈 경로가 절대 경로라 `__module_info` 대응 실패).
-    codex 지적과 달리 libDriver 모듈은 이름이 상대 경로(`Kernel/…` 등)라 두 판에서 같아 57 객체가 레코드까지 배치됐고, 실패는 절대 경로 모듈 19 객체뿐입니다.
-  - 판 문자열 데이터 3: `vers`·`libDriver_vers`·`objc_vers`(`__text` 없음).
-  - 코드 차이 후보 4: `FBConsole`(DIFF 16 함수 13,957 B), `unix_startup`·`rtc`(`__text` 미배치), `IODisk`(후보 2 개).
-- 코드 차이 후보 전체(P 포함) 9 객체 45,098 B: 위 4 와 P 의 `BasicConsole`(DIFF 1 함수 72 B), `mach_clock`·`pmap`·`km`(미배치), `IOAudio`(후보 2 개). 원인(판·플래그·머리)은 가르지 않았습니다.
-- 해석(409.1 의 규칙): 1997-04-27 i386 커널에서 기록된 재빌드 객체 대부분이 이 도구의 비교를 통과하므로, **`cc-744.13`(실기)과 1997 i386 빌드의 코드 생성이 이 객체들에 대해 구별되지 않습니다.**
-  m68k·SPARC 백엔드에 대해서는 같은 fat 백엔드 파일이 세 대상을 모두 담는다는 정황뿐이고 증명이 아닙니다. 판 차이(183.34 ↔ 183.34.4)는 i386 에서 코드 차이 후보 9 객체 수준으로 작아 보이나,
-  미배치·ObjC·데이터 절은 확인 범위 밖입니다.
+결과:
+- **k=130 → 0x403a056(규칙 4)** 입니다.
+  - [하한, 상한] 진입점 가운데 짝이 성립하는 곳은 0x403a056 하나입니다.
+  - c ±2·±4 는 모두 불성립입니다.
+  - 다시 만든 다른 객체의 64 B 꼬리 가운데 0x403a056 에서 끝나는 것은 없습니다(검토자가 짚은 10 B 끝 함수의 `spec_vfsops` 거짓 짝은 64 B 꼬리에서 사라짐).
+  - 보조 근거: 객체 기호 `_getmdev`·`_ufs_vget`·`_ufs_badvfsop` 을 −86 옮기면 원본 진입점에 놓입니다(§440.1).
+- 시험 (i): 결정 경계 195 개(양쪽 다시 만든 객체)에 넓은 창으로 규칙 4 를 적용했습니다. **맞음 172·틀림 0**·보류 23(모두 짝 없음)입니다.
+- 시험 (ii), 교차 짝 특이성(기록용): 참 경계에서 다른 객체의 꼬리가 성립한 것 20 건, 다른 객체의 머리가 성립한 것 6 건입니다.
+  - 그래서 꼬리나 머리 하나만으로는 식별력이 완전하지 않습니다.
+  - 판정은 둘이 함께 맞고 창 안에서 하나일 때만 합니다.
+- 표: §439 판과 비교하면 k=130 행의 덧붙인 세 열만 바뀌었습니다(`1`, `0x403a056`, `rule4 (plan 440)`). 앞 13 열과 다른 행은 같습니다(diff). 결정 경계는 318/326 입니다.
+- §423 객체 효과(표는 다시 만들지 않음):
+  - 정확한 객체가 300 → **306** 입니다(`m68k-123` `ufs_vfsops`·`124` `ufs_vnodeops`·`184`–`187`).
+  - 정확 바이트는 520,436 → 535,278 B, `__text` 의 76.70 % → **78.89 %** 입니다.
+- §439 기록(`m2-m68k-boundaries-built-20261009.json`)은 그대로 두었습니다.
 
-07·x86 표·기존 도구는 바꾸지 않았습니다. 새 파일: `10_tools/reconstruction/m0_slice_l1.py`, 위 검증 JSON 2 개.
+## 441. M3-17 세부 계획 — m68k `need_ast` 의 정의 자리와 `_hardclock` 의 `_clock_value` 경로(조사·결정 대기; 07 변경 없음, 2026-10-09)
 
-### 409.3 사용자 결정(2026-10-09)
+확인한 사실(이번 세션, python·grep):
+- 원본 m68k `_need_ast` 는 `__common`(section 6) 0x40b6064 이고 크기는 4 B(다음 기호까지)입니다. 바로 앞이 `_last_hardclock`(0x40b605c), 바로 뒤가 `_file_zone`(0x40b6068) 입니다.
+- 다시 만든 m68k 객체(run `m3p438-cc1`) 가운데 `_need_ast` 를 언급하는 7 개(`kern_clock`·`kern_sig`·`ast`·`ipc_sched`·`sched_prim`·`task`·`thread`)는 모두 미정의(UNDF)로만 참조합니다.
+  - 07 `kern/ast.c:74-76` 이 `#ifndef MACHINE_AST` 일 때만 정의하는데, m68k 는 §432 부터 `MACHINE_AST` 입니다.
+  - 이대로면 M7 링크에서 미정의 기호가 됩니다.
+- B2-1 규칙(§397·§399: `__common` 순서 = 링크 순서에서 처음 언급(UNDF·COMMON 가리지 않음)한 객체, 그 안에서는 기호표 순) 으로 보면 다음과 같습니다.
+  - 다시 만든 객체 가운데 처음 언급자는 링크 순서상 첫째인 `kern_clock`(원본 0x40033d2)입니다.
+  - 원본 m68k `_hardclock` 은 `_last_hardclock` 에 쓰고 `ast` 를 검사하므로, `_last_hardclock`·`_need_ast` 가 이어 놓인 것과 맞습니다.
+  - 뒤의 `_file_zone` 을 처음 언급하는 객체는 다음 객체 `kern_descrip` 입니다.
+- NeXTMach mk-108.1 에서 `need_ast` 를 정의하는 곳은 `kern/ast.c:76`(`int need_ast[NCPUS];`, 조건 없음) 하나입니다. `next/` 기계 의존부에는 언급이 없습니다(grep).
+- 따라서 정의(COMMON)는 `kern_clock` 과 같거나 뒤의 어느 객체에 있어도 원본 배치와 같습니다. 바이트만으로는 정의 파일을 정할 수 없습니다(x86 B5 의 `_master_cpu` 등과 같은 경우 — 그때도 사용자에게 물었습니다).
+- `_hardclock` 의 `_clock_value` 경로:
+  - 원본 m68k `_hardclock` 은 `pea 1; bsr _clock_value; lea _last_hardclock` 꼴로 `clock_value(1)` 를 `last_hardclock` 과 함께 씁니다(§431 덩어리).
+  - `_clock_value` 는 m68k `__text` 0x40920aa 에 있는 함수입니다(기계 의존부로 보임).
+  - 07 `kern_clock.c` 의 `hardclock` 은 x86 원본에서 작성한 판(계획 233)이고, NeXTMach `bsd/kern_clock.c:169-210` 은 `usec_elapsed` 꼴이라 둘 다 이 꼴이 아닙니다.
+  - 이것은 m68k(또는 183.34) 전용 소스 블록이라 **M5 작성 항목**으로 넘깁니다(이번에는 고치지 않음).
 
-D064 판별 덮어쓰기 트리, D065 조각 1 보관 + 후보 9·판 문자열 3 객체 원인 확인(183.34 i386 L2 는 하지 않음), D066 m68k 먼저, D067 L3 는 QEMU 만(`02_plan/DECISIONS.md`).
+결정이 필요한 것(사용자):
+- `need_ast` 를 어디서 정의할지 정해야 합니다.
+- 후보 (가): m68k 덮어쓰기 `kern/ast.c` 에 NeXTMach `kern/ast.c:76` 자리처럼 조건 없는 `volatile ast_t need_ast[NCPUS];` 를 둡니다(표시 줄 방식, `#ifndef MACHINE_AST` 는 초기화 고리에만 남김).
+  - `ast` 는 `kern_clock` 뒤이므로 배치가 바뀌지 않습니다.
+  - `ast` 객체의 `__text` 는 그대로일 것으로 예측합니다(COMMON 은 절 바이트를 바꾸지 않음).
+- 후보 (나): M7 링크 때까지 미룹니다.
 
-## 410. M1 세부 계획 — D065: i386 mk-183.34 조각 보관과 판 차이 후보 12 객체의 원인 확인(07·x86 표 변경 없음; 코딩 전, 2026-10-09)
+### 441.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-배경: 사용자 결정 D065("조각 보관 + 후보 9개 확인"). §409.2 의 코드 차이 후보 9 객체(FBConsole·unix_startup·rtc·IODisk·BasicConsole·mach_clock·pmap·km·IOAudio)와
-판 문자열 3 객체(vers·libDriver_vers·objc_vers)의 차이가 무엇인지 원본 바이트로 확인합니다. 183.34 i386 의 재구성(L2)은 하지 않습니다(D065).
-
-확인한 사실(이번 세션, python, 읽기 전용):
-- 두 원본 모두 `strip -x` 꼴이라 `__text` 에는 외부 기호만 있습니다. 외부 함수 기호 이름을 두 이미지에서 맞추고 "다음 기호까지의 거리"로 크기를 재면
-  (정적 함수는 앞 외부 함수의 크기에 섞임), 후보 객체에서 크기가 다른 것: `unix_startup` `_startup_early` 232→280(x86→183.34),
-  `FBConsole` `_FBAllocateConsole` 148→7,092 이고 `_FBAllocateVBEConsole`·`_VBEModeInfo2IODisplayInfo` 는 183.34 에 없음, `mach_clock` `_clock_interrupt` 376→292,
-  `rtc` `_rtcput` 204→184·`_writetodc` 784→728, `BasicConsole` `_BasicAllocateConsole` 14,580→14,572, `pmap` `_pmap_bootstrap` 1,096→768, `km` `_kminit` 116→96.
-  `IODisk`·`IOAudio` 는 외부 함수 기호가 없습니다(ObjC 메서드만).
-- 호스트에 `objdump`(GNU)·`llvm-objdump` 가 있습니다.
-
-방법:
-A. **조각 보관**(기존 `03_original` 파일은 고치지 않고 새 디렉터리만 더함):
-   1. `03_original/x86-mk-183.34/binaries/mach_kernel` — universal(SHA `f3b57f87…`)의 fat 헤더로 조각 1 을 꺼내 SHA `cb6217c2…`·1,113,724 B 확인(무시 대상, `/03_original/**/binaries/*`).
-   2. `03_original/x86-mk-183.34/provenance.json`(새 파일, 추적): universal 경로·SHA, fat 색인·cputype·subtype·offset·size·align, 판 문자열, 추출 도구와 명령.
-      `installation-media/os42j/provenance.json`·`manifest.json` 은 고치지 않고 새 provenance 에서 가리킵니다.
-   3. `03_original/x86-mk-183.34/inventory/` — 기존 `10_tools/inventory_thin_macho.py --expected-endian little --expected-cpu 7` 로 macho.json·symbols.tsv·strings.tsv.
-   4. `03_original/README.md` 는 기존 파일이라 고치지 않습니다(새 provenance 에 설명).
-B. **원인 확인**(새 읽기 전용 도구 `10_tools/reconstruction/m1_version_diff.py`):
-   1. 12 객체마다 s6 재빌드 객체(§409 의 SHA)의 함수 기호로 두 이미지의 대응 함수 범위를 정합니다. 외부 함수: 이름으로 대응. ObjC 메서드(IODisk·IOAudio):
-      `objc_meta` 의 메서드 표(클래스·셀렉터 → IMP)로 대응. 대응하지 못한 함수는 그렇게 적습니다.
-   2. 대응 함수마다 크기·바이트를 비교합니다: 같음 / 재배치 필드만 다름(l1_compare 와 같은 재계산 — 이미지 주소 차이) / 명령 차이. 명령 차이는 두 범위를 `objdump -b binary -m i386`
-      으로 역어셈블해 차이 줄을 남깁니다(역어셈블은 해석 보조이고, 사실은 바이트 범위·크기).
-   3. 판 문자열 3 객체: 두 이미지에서 그 객체 `__data`/`__const` 범위의 바이트를 비교하고 문자열 차이를 적습니다.
-   4. 출력: `09_validation/reconstruction/m1-i386-18334-candidates-20261009.json`(객체·함수별 분류, 크기, 차이 오프셋, 입력 SHA)와 함수별 역어셈블 차이 텍스트(같은 이름 디렉터리).
-   5. 자기 시험: 같은 도구를 x86 원본 대 x86 원본으로 돌리면 12 객체 모든 대응 함수가 "같음" 이어야 하고, 일부러 한 바이트를 바꾼 사본에서는 그 함수만 "명령 차이" 여야 합니다.
-C. **분류 규칙(미리 정함)**: 원인은 원본 바이트로 보이는 것까지만 적습니다 — (a) 판 문자열 데이터, (b) 함수가 한쪽에만 있음(기능 추가·삭제), (c) 같은 함수의 명령 차이(소스·머리·플래그 중 무엇인지는
-   가르지 않음; 역어셈블에서 보이는 것—상수·구조체 오프셋·호출 대상—만 적음), (d) 재배치만 다름(판 차이 아님), (e) 대응 불가. 참고 코드의 판 이력은 이번에 쓰지 않습니다.
-D. 기록: 이 절에 결과, 로컬 기준 문서 12 절에 한 단락. 07·06 표·기존 도구 변경 없음 → x86 회귀 관문 해당 없음.
-
-### 410.1 codex 교차검토(gpt-6.1-sol, khlwr6tqk) 판정과 계획 수정
-
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| A(새 디렉터리 추가)는 규칙과 맞음; 바이너리는 무시, provenance·inventory 는 추적 | `DECISIONS.md:69`(D065), `AGENTS.md:14`, `.gitignore:5` 읽음; `git check-ignore -v --no-index` 로 바이너리 무시·provenance 비무시 확인 | ✅ |
-| provenance 에 목적지·전체 SHA·실제 길이·바이트 순서/magic·추출 날짜·도구 해시, 기존 provenance 참조, manifest 에 없음을 적을 것; inventory 는 원시 사실 | `inventory_thin_macho.py:127` caveat("nlist entries are not function boundaries") 읽음 | ✅ 넣음 |
-| "다음 외부 기호까지의 거리" 는 함수 크기가 아니라 기호 구간(정적 함수·채움·뒤 객체 코드 포함) | 재빌드 `BasicConsole` 객체: `__text` 700 B, `_BasicAllocateConsole` 628–700 = 72 B(python), 이미지 구간 14,580 B | ✅ 410 의 수치는 "기호 구간" 으로 읽어야 함; 함수 크기로 쓰지 않음 |
-| ObjC 대응 키에 instance/class 종류가 필요 | `l1_compare.py:417–435`(키 `(owner, category, kind, selector)`), `objc_meta.py:79–89`(`'instance'`/`'class'`) 읽음 | ✅ 키를 고침 |
-| 두 링크 이미지만으로 "재배치만 다름" 을 판정하려면 정렬된 경계, 필드 밖 바이트 같음, 필드마다 같은 대상·가산값이 필요; 아니면 "미해결 주소 필드 차이" | 원칙 — l1_compare 는 객체 재배치와 절 배치로 재계산함(`:164–218`) | ✅ 규칙에 반영 |
-| C 의 "한쪽에만 있음 → 기능 추가·삭제", "재배치만 → 판 차이 아님" 은 과장 | 이름 변경·가시성·인라인·이동 가능성; 배치 변화도 판 차이의 결과일 수 있음 | ✅ 문구를 "기호 없음" / "검증된 대응 아래 주소 부호화만 다름" 으로 |
-| 자기 시험: 임의 한 바이트 변경이 명령 차이라는 보장 없음; 필드 변경·대상 변경·대응 모호·경계 실패도 시험 | 원칙 | ✅ 시험 항목 고침 |
-| 410 의 수치·VBE 부재·도구 존재가 모두 맞음 | §410 작성 때 내 python 출력과 같음 | ✅(내 측정) |
-| IOAudio 는 ObjC 메서드만이 아님 — 정적 `_ioThread`·`_keyThread`·`_interruptHandler` | 재빌드 객체 기호 python: `__text` 11,164 B, 오프셋 4916·5244·11092 의 비외부 기호 | ✅ 410 정정 |
+| **NeXTMach `kern/ast.c:75-77` 은 조건 없음이 아님**: `#if !HW_AST` 안이고 RELEASE 는 `hw_ast` → NeXTMach next 커널은 `need_ast` 를 정의하지 않음. 조건 없는 `volatile ast_t need_ast[NCPUS];` 는 Mach4 `kernel/kern/ast.c:58`·Darwin `kern/ast.c:82`(둘 다 초기화 고리만 `#ifndef MACHINE_AST`) | NeXTMach 72–88 행, Mach4 ast.c grep(58·63–68), Darwin ast.c grep(82·87–92) 읽음 | ✅ **내 오류**(앞선 grep 결과를 잘못 읽음) — 후보 (가) 의 출처를 Mach4 `kern/ast.c:58`(D022 기본 참고)로 고침 |
+| 원본 `__text` 가 0x40b6064 를 17 번 참조하고, 그중 2 곳(0x4099e66, 0x409a328)은 trap 쪽 기계 의존 객체 → 원본 언급 객체는 9 개 | python 으로 `__text` 에서 4 B 값 검색: 17 곳, 주소 목록 일치 | ✅ trap 두 곳은 링크 순서상 뒤라 배치에 영향 없음; M5 에서 언급자로 더함 |
+| `kern_clock` 앞의 객체(다시 만든 것·안 만든 것 모두)는 `need_ast` 를 언급하지 않음(원본 바이트에 0x400344e 아래 참조 없음; B2-1 로도 그렇다면 kern_acct 공통 기호 앞에 놓였을 것) | 위 17 곳 중 최소 주소 0x400344e(= `_hardclock` 안) 확인 | ✅ |
+| `_hardclock` 은 `need_ast` 를 "검사" 가 아니라 `ast_on(AST_UNIX)` 꼴로 씀 | 원본 목록(§431 덩어리 `orl d6,d0`) | ✅ 문구 정정 |
+| 덮어쓰기 파생 검사는 끼운 표시 줄만 허용 → (가) 는 07 `ast.c:76` 뒤에 표시 줄 하나 `volatile ast_t need_ast[NCPUS];` 를 끼우는 꼴이고, `MARKERS` 에 `{'src/kern/ast.c': 1}` 을 더해야 함 | `stage_m68k.py` `check_derived` 읽음(§437 에서 작성) | ✅ |
+| 형은 07 `kern/ast.h:102` 의 `extern volatile ast_t` 와 같아야 함(NeXTMach `int` 는 충돌) | 07 `ast.h:102` grep(§441 사실) | ✅ |
+| 07 `kern/ast.h:123-142` 가 `need_ast` 를 조건 없이 쓰므로, 07 `ast.c` 의 정의 가드(계획 198)는 Mach4 의 `MACHINE_AST` 뜻(aston/astoff 만 바꿈)과 맞지 않음 — (가) 를 뒷받침 | `ast.h` 123–142 행은 §441 grep 출력에 있음 | ✅ |
+| `_last_hardclock`(8 B, 64 비트 산술 → `ns_time_t`)은 `kern_clock` 의 잠정 정의로 보이며, 다시 만든 `kern_clock` 은 아직 언급하지 않음(M5) | 원본 크기 8 확인(§441) | ✅ M5 항목에 더함 |
+| 정의 파일은 바이트로 정해지지 않음(trap 등도 가능) → 사용자 결정 | — | ✅ |
 
-고친 방법 B:
-1. 함수 범위는 **재빌드 객체**의 기호(외부·정적·ObjC 메서드)로 정합니다. 12 객체는 x86 에서 `__text` 가 L1 일치이므로(s6l4 기록) 객체 함수 범위 = x86 원본 범위입니다.
-2. 183.34 쪽 대응은 **진입점만**: 외부 함수는 이름(이미지 전체에서 유일, `__TEXT,__text` 안), ObjC 메서드는 `(class, category, kind, selector)` 의 유일 IMP. 정적 함수는 대응 진입점이 없으므로
-   "정적 — 단독 대응 없음" 으로 두고, 객체의 `__text` 가 한 델타로 배치될 때만(§409 의 결과) 그 델타로 봅니다.
-3. 대응 함수 비교(길이 = 재빌드 객체의 함수 길이): (i) 바이트 같음, (ii) 객체 재배치 필드 밖은 모두 같고 필드마다 외부 기호 대상이 두 이미지에서 같은 이름·같은 가산값으로 풀림 →
-   "검증된 대응 아래 주소 부호화만 다름", (iii) 필드 밖은 같으나 필드 대상을 확정할 수 없음(지역·절 재배치 등) → "미해결 주소 필드 차이", (iv) 필드 밖 바이트가 다름 → "내용 차이"
-   (두 쪽을 역어셈블해 남김; 183.34 쪽 길이는 기호 구간으로 표시하고 함수 크기라고 하지 않음). 진입점이 183.34 에 없으면 "기호 없음".
-4. 판 문자열 3 객체는 §409 L1 의 데이터 절 배치(기호 기반)로 두 이미지의 범위를 읽어 비교합니다.
-5. 자기 시험: x86 대 x86 → 대응 함수 모두 (i). 조작한 183.34 사본 셋 — 필드 밖 명령 바이트 1 개 변경 → 그 함수 (iv); 외부 재배치 필드 값 변경 → (ii) 가 아닌 결과; 외부 기호 이름 1 개 지움 → "기호 없음".
+고친 후보 (가):
+- m68k 덮어쓰기 `kern/ast.c` 는 07 본 파일 76 행(`#endif MACHINE_AST`) 뒤에 `volatile ast_t\tneed_ast[NCPUS];\t/* plan 441 (m68k): Mach4 kern/ast.c:58 */` 한 줄을 끼웁니다.
+- 출처는 Mach4 `kernel/kern/ast.c:58`(Darwin `kern/ast.c:82` 도 같은 줄)입니다. 07 `ast.c` 에는 CMU 고지가 이미 있지만 Mach4 판(Utah 포함) 고지 여부를 기록합니다.
+- 예측: `ast` 객체는 기호 하나만 UNDF → COMMON(4) 으로 바뀌고 절 바이트는 그대로이며, 205 의 OBJECT_MATCH 는 그대로입니다.
 
-### 410.2 결과(2026-10-09)
+### 441.2 사용자 결정 D071 과 구현 계획(코딩 전)
 
-**A. 조각 보관** — `10_tools/extract_fat_slice.py` 로 `03_original/x86-mk-183.34/binaries/mach_kernel`(무시 대상)을 꺼냈습니다. SHA `cb6217c2…`, 1,113,724 B, `CEFAEDFE`(리틀엔디언),
-cputype 7(3), 판 문자열 "NeXT Mach 4.2: Sun Apr 27 14:07:30 PDT 1997; …mk-183.34.obj~4/RELEASE_I386". 기록 `03_original/x86-mk-183.34/provenance.json`(컨테이너 SHA·fat 색인·도구 SHA·명령),
-inventory 는 기존 `inventory_thin_macho.py`(절 26, 기호 3,748, 문자열 6,550; macho.json 키는 기존 m68k inventory 와 같은 18 개). 기존 `03_original` 파일은 바꾸지 않았습니다.
+- 사용자 결정 **D071**: "ast.c 덮어쓰기 (Recommended)".
+- 덮어쓰기 `07_kernel/v183.34/m68k/src/kern/ast.c` 는 07 본 파일 76 행 뒤에 다음을 끼웁니다.
+  - 계획 404(`vm/vm_kern.c`) 선례대로 Mach4 고지(Mach4 `kernel/kern/ast.c` 1–28 행)를 먼저 넣습니다.
+  - 그 뒤에 Mach4 58 행과 같은 정의 줄을 넣습니다.
+- 여러 줄 고지에는 줄마다 표시를 달 수 없으므로 `stage_m68k.py` 의 파생 검사에 **묶음 표시**를 더합니다.
+  - `plan 441 (m68k) begin` 이 있는 줄부터 `plan 441 (m68k) end` 가 있는 줄까지가 끼운 줄로 셈해집니다.
+  - 표시별 줄 수는 등록합니다(등록 수 = 묶음 전체 줄 수).
+  - 묶음이 닫히지 않거나 겹치면 거부합니다. 음성 시험을 다시 합니다.
+- `EXCEPTS[441]` 은 §438 과 같습니다(`x86-subr_prf`·`x86-kern_server`). 기준 run 과 비교하므로 `ast` 는 비 STABS 절이 같아야 합니다.
+- 미리 정한 기준(새 run)은 다음과 같습니다.
+  - 비 STABS 절이 같은 것 203, 다른 것은 위 두 예외뿐입니다.
+  - OBJECT_MATCH 148 은 그대로입니다.
+  - `ast` 객체의 `_need_ast` 는 COMMON(값 4) 입니다.
+  - 원본에 없는 새 미정의 기호 0, x86 관문은 불변입니다.
+- 기록: PROVENANCE·MODIFICATIONS 에 행을 덧붙입니다. 출처는 nextmach(본 파일) + mach4 `kernel/kern/ast.c:58`(revision 은 PROVENANCE 의 기존 mach4 행과 같은 것)입니다. diff `06_reconstruction/evidence/m68k-ast.diff`, 기록 `09_validation/reconstruction/m3-m68k-need-ast-20261009.json` 입니다.
 
-**B. 원인 확인** — 도구 `10_tools/reconstruction/m1_version_diff.py`, 결과 `09_validation/reconstruction/m1-i386-18334-candidates-20261009.json` 과 같은 이름 디렉터리(content 함수의 역어셈블 9 개).
-- 계획에서 바꾼 점 둘(코딩 중 발견):
-  1. 처음 규칙은 외부 재배치 필드만 풀어 지역 필드가 모두 "미해결" 이었습니다(89 함수). l1_compare 의 `evaluate`·`lit_check` 로 객체 재배치를 두 이미지에서 다시 계산하도록 고쳤습니다.
-     183.34 쪽 지역 대상은 이름으로 정한 배치(`given by symbol`·`given by objc metadata`)만 쓰고 추론 배치는 쓰지 않습니다(409.1·410.1 의 순환 방지).
-  2. FBConsole 의 정적 함수를 외부 기호 하나(`_FBAllocateConsole`)로 정한 `__text` 델타로 놓았더니 모두 첫 바이트부터 달랐습니다(정규화 명령 일치 5–20 %). 그 객체는 183.34 에
-     진입점 둘이 없어 배치가 바뀐 것이므로, **진입점이 하나라도 없는 객체의 정적 함수는 위치를 정하지 않도록**(not_located) 고쳤습니다.
-- 자기 시험(고친 뒤 다시): x86 대 x86 236 함수 모두 same; 조작 사본에서 명령 바이트 변경 → content, 외부 필드 변경 → unresolved_address, 기호 이름 훼손 → symbol_absent.
-- 함수 236 개(9 객체): same 83, address_only 80, unresolved_address 32, **content 9**, **symbol_absent 2**, not_located 30(합 236, python).
-  - symbol_absent: FBConsole `_FBAllocateVBEConsole`·`_VBEModeInfo2IODisplayInfo`(183.34 에 이 기호가 없음).
-  - content(명령 차이가 있는 함수; 역어셈블에서 보이는 것만 적음, 원인 판정 아님): `unix_startup` `_startup_early`(183.34 쪽에 비교·분기·상수 0x10 대입이 더 있음),
-    `mach_clock` `_clock_interrupt`(183.34 쪽에 `0xf0(%ebx)` 갱신 블록이 더 있음), `rtc` `_rtcput`(183.34.4 쪽에만 포트 0x70/0x71 로 레지스터 0x32 를 쓰는 7 명령),
-    `rtc` `_writetodc`(183.34.4 쪽에 100 으로 나누는 계산과 큰 스택 프레임), `BasicConsole` `_BasicAllocateConsole`(183.34.4 쪽 오프셋 10 에 호출·검사·분기),
-    `pmap` `_pmap_bootstrap`(스택 프레임 크기가 다르고 183.34.4 쪽 범위에 표처럼 보이는 바이트), `IODisk` `-setLogicalDisk:`(183.34.4 쪽에 인자 0 검사가 더 있음),
-    `km` `_kminit`(183.34.4 쪽에 호출 하나와 결과 검사 뒤 다른 호출이 더 있음), `IOAudio` `-_setParameter:toInt:forObject:`(레지스터 배정과 표 바이트가 다름).
-  - unresolved_address 32 는 필드 밖 바이트가 같고 주소 필드를 이름 기반 배치로 확정하지 못한 것입니다(대부분 `__data`·`__bss` 미배치 객체). 판 차이로 세지 않습니다.
-- 판 문자열 3 객체: `vers` `__data` — "…Tue Jan 26 11:21:50 PST 1999…mk-183.34.4.obj~2…" ↔ "…Sun Apr 27 14:07:30 PDT 1997…mk-183.34.obj~4…"(183.34 쪽 범위가 절 끝을 넘어 108/110 B 읽음).
-  `libDriver_vers` `__TEXT,__const`(183.34 쪽 배치 없음, 앞 16 B 검색 유일 후보): "driverkit-94.16.2 DEVELOPER:cfriesen BUILT:Fri Jan 22 16:11:10 PST 1999" ↔ "driverkit-94.16 DEVELOPER:root BUILT:Tue Apr 22 22:20:23 PDT 1997".
-  `objc_vers`: 둘 다 "objc-170" 이고 BUILT 날짜만 다름(1997-03-27 ↔ 1997-04-22).
-- 정리: 9 후보 객체의 차이는 9 함수의 명령 차이와 2 함수의 기호 부재로 좁혀집니다. 나머지 함수 163 개(same 83 + address_only 80)는 x86 07 소스의 출력과 183.34 i386 원본이 주소 부호화 말고는 같습니다.
-  m68k·SPARC 에서는 아키텍처 공통부(`kern/mach_clock.c`, `driverkit/libDriver/IODisk.m`·`Kernel/IOAudio.m`)의 183.34 판 차이를 고려해야 하며, 나머지(`machdep/i386/` rtc·pmap·unix_startup, `bsd/dev/i386/` km·FBConsole·BasicConsole)는 원래 i386 전용 파일입니다(소스 경로는 §409 JSON 의 `source`).
+### 441.3 실행 결과(2026-10-09) — 기록 `09_validation/reconstruction/m3-m68k-need-ast-20261009.json`
 
-## 411. M0-5 세부 계획 — m68k 용 도구 확장 1: 빅엔디언 재배치 읽기(`macho_obj.py`)와 m68k L1 비교(`l1_compare.py`)(07 변경 없음; 코딩 전, 2026-10-09)
+07 덮어쓰기와 기록:
+- `v183.34/m68k/src/kern/ast.c` 는 07 본 파일 76 행 뒤에 32 줄 묶음(`plan 441 (m68k) begin`…`end`)을 끼운 것입니다.
+  - 묶음은 Mach4 `kernel/kern/ast.c:1-28` 고지와 58 행 정의 줄입니다.
+  - diff 는 `06_reconstruction/evidence/m68k-ast.diff` 입니다.
+- PROVENANCE 1072 → 1073, MODIFICATIONS 596 → 597(덧붙이기만).
 
-배경: D066(m68k 먼저). 기준 문서 M0-5 의 고정점 가운데 m68k L1 에 필요한 최소 범위만 고칩니다. `l2_*`·`stage_headers`·`objc_meta`·`kr_run` 의 아키텍처 확장,
-SPARC 고유 재배치 의미, ABI probe(M0-3)는 다음 절로 미룹니다.
+`stage_m68k.py`:
+- 묶음 표시를 지원합니다(시작 줄부터 끝 줄까지 셈, 닫히지 않음·겹침·다른 표시 섞임 거부). `MARKERS` 에 `ast.c: 32`, `EXCEPTS[441]` 를 더했습니다.
+- 정상판 4 개는 통과했습니다.
+- 음성 시험은 모두 거부했습니다. 대상은 묶음 미종결, 시작 없는 끝, 묶음 안 줄 추가·삭제, 묶음 밖 수정, 표시 없음, 묶음 둘, 묶음 안 다른 표시, 그리고 이전 경우들입니다.
+  - 처음 두 경우는 바꿀 줄을 07 본문 머리에서 잘못 골랐습니다(같은 문장이 2 행에도 있음). 묶음 안 줄로 다시 시험했습니다.
+
+결과:
+- 스테이징 `m0p441-stage` 는 888 파일이고, x86 관문 7 스테이징이 같습니다.
+- run `m3p441-cc1` 은 205 명령이 모두 종료 0 입니다. 도구 해시는 실행 전후가 같습니다.
+- 미리 정한 값과 같습니다.
+  - 비 STABS 절이 같은 것 203 이고, 다른 것은 예외 둘(`kern_server`·`subr_prf`)뿐입니다.
+  - OBJECT_MATCH 148 은 그대로입니다. 잃은 것 0, 원본에 없는 새 미정의 기호 0 입니다.
+  - `ast` 객체의 `_need_ast` 는 **COMMON(4)** 입니다(나머지 6 객체는 UNDF 그대로).
+- 남은 M5 항목(§441·441.1):
+  - m68k `_hardclock` 의 `clock_value(1)`·`last_hardclock`(`ns_time_t`, `kern_clock` 의 잠정 정의로 보임) 블록 작성.
+  - 기계 의존 trap 두 객체의 `need_ast` 참조.
+
+## 442. M3-18 세부 계획 — m68k 커널 비공개 레지스터 색인(`PC`·`SP`·`PS`·`R0`·`R1`)과 남은 컴파일 실패 3 개(조사·결정 대기; 07 변경 없음, 2026-10-09)
+
+배경: §430 부터 m68k 에서 컴파일되지 않는 공통부 C 가 3 개 있습니다.
+- `bsd/kern/mach_process.c:170` 과 `bsd/kern/kern_exec.c:482` 는 `PC` 가 선언되지 않았습니다(`SP` 도 씀).
+- `kern/ns_timer.c:43·47·147·150` 은 i386 인라인 어셈블리 `divl` 를 씁니다.
 
 확인한 사실(이번 세션):
-- `macho_obj.py` 는 헤더·절·기호를 두 바이트 순서로 읽지만 재배치는 빅엔디언이면 scattered·일반 모두 거부합니다(`:85`·`:91` 의 raise). 형식 표는 `RELOC_TYPES_I386`
-  `{0 VANILLA, 1 PAIR, 2 SECTDIFF, 3 PB_LA_PTR, 4 LOCAL_SECTDIFF}`(`:18`).
-- SDK `mach-o/reloc.h`(로컬 사본 `01_resources/local_mirrors/headers/NextDeveloper/Headers/mach-o/reloc.h`): `relocation_info` 는 비트필드
-  `r_symbolnum:24, r_pcrel:1, r_length:2, r_extern:1, r_type:4` 하나뿐이고(바이트 순서별 정의 없음), `scattered_relocation_info` 는 `__BIG_ENDIAN__` 에서
-  `r_scattered:1, r_pcrel:1, r_length:2, r_type:4, r_address:24` 순입니다. 일반 형식은 `GENERIC_RELOC_{VANILLA, PAIR, SECTDIFF, PB_LA_PTR}` 넷이고,
-  `mach-o/m68k/` 에는 `swap.h` 만 있어 m68k 고유 재배치 형식 정의가 없습니다(`mach-o/sparc/reloc.h` 는 있음).
-  참고 트리의 `next-gcc-2.7.2/config` 에는 i386 만 있어, 빅엔디언에서 일반 형식 비트필드의 배치는 소스로 확인할 수 없습니다 → 실측으로 확인합니다.
-- §409 탐침 객체(`m0p409-xc1`, `-dynamic -fPIC` 기본)의 재배치는 모두 scattered 였고, `llvm-objdump-14 --macho -r` 가 m68k(형식 2·1)·sparc(8·7·1) 를 숫자 형식으로 읽습니다.
-  원 8 바이트(예 m68k `a2000012 0000001e`)는 위 빅엔디언 scattered 배치(scattered 1, pcrel 0, length 2, type 2, address 0x12)와 맞습니다.
-- `l1_compare.py` 의 바이트 순서 고정: `:143`·`:157`·`:175`·`:232`·`:236`·`:318` 의 `'little'`, 형식 표 `TYPE = RELOC_TYPES_I386`(`:37`). 형식 표 사용처는 `zerofill_check.py:41`,
-  `m1_version_diff.py:107` 도 있습니다(둘 다 i386 전용 그대로 둠).
-- `check_macho_obj.py` 는 llvm-objdump 와 절·기호·재배치를 대조하며 형식 이름을 i386 표로 비교합니다(llvm 은 m68k·sparc 형식을 숫자로 출력).
+- 두 소스는 `#import <machine/reg.h>` 로 SDK `bsd/machine/reg.h` → `bsd/m68k/reg.h` 를 읽습니다. m68k SDK `bsd/m68k/reg.h` 에는 `excp_frame` 등만 있고 `u_ar0` 색인이 없습니다(공개판).
+- NeXTMach mk-108.1 `next/reg.h:198-203` 에는 "offset definitions into u.u_ar0 for machine independent code" 로 `R0 0`·`R1 1`·`SP 15`·`PS 17`·`PC 17` 이 있습니다.
+- 원본 m68k 바이트는 이 색인과 맞습니다(python: 15×4 = 0x3c, 17×4 = 0x44).
+  - `_execve`(0x40048fc) 범위에서 `movel a3,a0@(0x3c)`, `movel a0@(0x3c),d0`/`movel d0,a0@(0x3c)`(SP − NBPW), `movel d0,a0@(0x44)`(PC = entry point) 를 씁니다.
+  - `_ptrace`(0x400ad9a) 범위에서 `orl d0,a3@(0x44)`(PS 비트) 를 씁니다.
+- x86 선례: 같은 문제(SDK 공개판에 색인 없음)를 `07_kernel/nextdev_private/bsd/i386/reg.h`(설명 주석 + Darwin 의 `KERNEL_PRIVATE` 본문, 계획 144)로 풀었습니다. `07_kernel/nextdev_private/` 와 SDK 사본 `07_kernel/nextdev/` 는 통째로 git 무시 대상입니다(`.gitignore:72-73`; D017 SDK 라이선스 미정).
+- `ns_timer.c` 의 `divl` 는 i386 전용 소스 블록입니다. m68k 원본의 해당 함수를 읽어 m68k 판을 작성해야 하는 **M5 작성 항목**이며, 이번 범위에서 뺍니다.
+
+결정이 필요한 것(사용자): m68k 레지스터 색인을 어디에 둘지.
+- (가) x86 선례대로 로컬 전용 `07_kernel/nextdev_private/bsd/m68k/reg.h` 에 둡니다.
+  - 내용은 SDK m68k 본문 + NeXTMach `next/reg.h:198-203` 색인 블록(`#ifdef KERNEL_PRIVATE`)입니다.
+  - `stage_m68k.py` 가 SDK 사본 뒤에 `nextdev_private` 의 m68k 파일을 덮어 놓습니다.
+  - 커밋되지 않습니다(SDK 본문 때문).
+- (나) 공개되는 m68k 덮어쓰기 트리에 SDK 본문 없이 작성 머리 `src/machdep/m68k/reg_private.h`(NeXTMach 색인 6 줄, D013)를 두고, 두 소스의 m68k 판이 `#import` 합니다(D070 꼴 표시 줄).
+- (다) SDK 본문 + 색인을 공개 덮어쓰기 `src/bsd/m68k/reg.h` 에 둡니다(SDK 본문이 공개됨 — D017 과 충돌 가능).
+
+시험(결정 뒤): 새 스테이징으로 205 + 두 객체 = 207 개를 컴파일합니다.
+- 미리 정한 기준:
+  - 두 객체가 컴파일되어야 합니다.
+  - 다른 205 개는 이전 run 과 비 STABS 절이 같아야 합니다(예외 누적 2 개).
+  - 원본에 없는 새 미정의 기호가 0 이어야 합니다.
+- 두 객체의 원본 대조 결과(OBJECT_MATCH 여부)는 측정합니다. 판정 관문은 아닙니다(소스 쪽 차이가 더 있을 수 있음).
+
+### 442.1 교차검토(Opus 5.5 서브에이전트) 판정과 결론 — 계획의 중심 사실이 틀림
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| **SDK m68k `bsd/m68k/reg.h:195-200` 에 이미 `R0 0`·`R1 1`·`SP 15`·`PS 16`·`PCH 16`·`PCL 17` 이 있음; 없는 것은 `PC` 뿐** | SDK 사본 190–202 행 읽음 | ✅ **내 오류**: 예비 조사에서 `grep -v … \| head -60` 으로 잘린 출력만 보고 "색인 없음" 이라 적음 |
+| 컴파일 실패는 `PC` 하나(`SP` 는 정의됨) | §430 진단 기록(검토자 인용)과 위 SDK 행 | ✅ |
+| 원본 `_ptrace` 는 `PC` 를 둘로 나눠 OR: 0x400aee4–aee8 `swap; extl; orl d0,a3@(0x40)`(슬롯 16 = PCH), 0x400aeec–aef4 `swap; clrw; orl d0,a3@(0x44)`(슬롯 17 = PCL) — §442 의 "0x44 = PS 비트" 해석은 틀림; PT_STEP 은 0x400af3a–af40 `moveq #9; cmpl a2@; bne; bset #7,a3@(0x40)` = `PS 16` 에 `PSL_T`(= `SR_TSINGLE << 16`, `psl.h:43`) | 원본 목록 0x400aee0–0x400af44 읽음, `psl.h:43` grep | ✅ **내 오류**(해석) 정정 |
+| 원본 `_execve` 의 PC 쓰기도 나뉨: 0x4005044 `movew a6@(0xff78),a0@(0x42)`(상위 반), 0x4005052–505e `swap; clrw; orw a0@(0x46),d0; movel d0,a0@(0x44)` | 원본 목록 0x4005040–0x4005062 읽음 | ✅ `u.u_ar0[PC] = entry` 한 줄로는 이 바이트가 나오지 않음 |
+| NeXTMach `next/reg.h` 의 `PC 17`·`PS 17` 은 다른 `struct regs`(`short pad`) 기준이라 1997 바이트와 맞지 않음; `PC 17` 을 더하면 SDK 틀에서 형식 낱말을 덮어쓰는 틀린 코드 | 위 두 사실(원본은 0x40/0x42/0x44/0x46 을 나눠 씀) | ✅ 선택지 가·나·다(머리에 `PC` 정의)는 모두 버림 |
+| x86 선례(`nextdev_private/bsd/i386/reg.h`)는 SDK 에 i386 reg.h 가 아예 없어서였고, m68k 는 SDK 파일이 있고 맞음 | x86 PROVENANCE 행 설명(§442 사실) | ✅ |
+| NeXTMach 에 `PCH`/`PCL` 을 쓰는 C 코드 없음 | `grep -rn 'PCH\|PCL'` — `next/reg.h` 밖 결과는 모두 다른 이름(`TS_HUPCLS`·`PCLK_*` 등) | ✅ → m68k 판 두 소스는 원본 바이트에서 작성(D024) |
+| `ns_timer.c` 는 무조건 i386 `divl` 인라인 어셈블리; m68k 원본 `_ns_time_to_timeval`(0x404e712)은 68020 `divull`·`divul` 두 단계 나눗셈 | 07 소스 43–50·147–150 행은 §430 기록, 원본 주소는 검토자 인용(미검증) | ⚖️ M5 작성 항목으로 둠(문구 "무조건 i386 asm") |
+| `machine/reg.h` 를 들이는 스테이징 소스 14 개; `PS`·`R0`·`R1` 은 `kern_xxx.c` 의 `#ifdef COMPAT`(정의 안 됨) 안에서만 | 검토자 grep 인용 | ⏭️ 머리를 바꾸지 않으므로 영향 없음 |
+
+결론:
+- 결정할 머리 자리는 없습니다(SDK 가 맞음). 사용자 질문은 하지 않습니다.
+- 남은 세 컴파일 실패는 모두 **M5 작성 항목**입니다.
+  - `mach_process.c`·`kern_exec.c` 의 m68k 판: SDK `PCH`/`PCL` 로 PC 를 나눠 쓰는 블록을 원본 바이트에서 작성하고, 표시 묶음으로 끼웁니다.
+  - `ns_timer.c` 의 m68k 판: `divull`/`divul` 꼴의 m68k 인라인 어셈블리.
+- M3 범위(머리·구성·생성물)는 이 셋에 대해 더 할 일이 없습니다. 07 은 바꾸지 않았습니다.
+
+## 443. M3-19 세부 계획 — M3 끝 조건 점검: 덮어쓰기 구조체 오프셋 탐침과 근거 집계(07 변경 없음; 코딩 전, 2026-10-09)
+
+배경: MULTIARCH 표준 M3 의 끝 조건은 두 가지입니다.
+- "M0-3 probe 와 원본의 구조체 오프셋 근거가 맞음"
+- "생성 코드가 GCC 2.7 규칙을 만족"
+
+148 OBJECT_MATCH 객체가 쓰는 구조체 변위는 바이트 일치로 이미 확인되었습니다. 그러나 프로젝트가 작성한 m68k 머리(§430–441)의 구조체는 "원본 변위를 내도록 썼다" 는 주장뿐이고, 그 변위가 실제 컴파일러로 나오는지 따로 잰 적이 없습니다.
 
 방법:
-1. `macho_obj.py`: 빅엔디언 재배치 읽기. scattered 는 reloc.h 의 `__BIG_ENDIAN__` 배치 그대로. 일반 형식은 가설 "첫 필드가 최상위 비트"(w1 = symbolnum<<8 | pcrel<<7 | length<<5 | extern<<4 | type)
-   으로 읽고 **llvm-objdump 와 대조해서만 채택**합니다. `RELOC_TYPES_GENERIC`(0–3, reloc.h)과 `reloc_types(cputype)` 를 더하고, i386 표와 리틀엔디언 경로는 바꾸지 않습니다.
-   SPARC 는 읽기(필드 분해)만 하고 형식 이름 표는 두지 않습니다.
-2. `l1_compare.py`: 필드 읽기의 바이트 순서를 객체·이미지의 `endian` 으로 바꾸고(둘이 다르면 오류), 형식 표를 cputype 으로 고릅니다(i386 → 기존 표, m68k → 일반 표).
-   그 밖의 cputype(SPARC·HPPA)은 **명시 오류로 거부**합니다(고유 재배치 의미를 구현하기 전에는 비교하지 않음). 계산식(F + S − Δ(P) 등)은 그대로 둡니다 — m68k 에서 맞는지는 3 의 링크 탐침으로 확인합니다.
-3. 탐침(kr_run 새 ID `m0p411-pr1`, 실기): 프로젝트가 쓴 두 C 파일(`a.c` 는 외부 함수 호출·외부 데이터 읽기·정적 데이터·문자열·`switch` 점프 표·함수 포인터 표,
-   `b.c` 는 그 정의)을 `-arch m68k`·`-arch sparc`·`-arch i386` 로 `-static -O2 -c`, m68k·i386 은 `ld -arch <a> -static -e _kr_a -o stage/probe-<a>.out a.o b.o` 로 링크합니다.
-   - 대조 A: `check_macho_obj.py` 로 6 객체를 llvm-objdump 와 대조 — 모두 AGREE 여야 합니다(형식은 i386 이 아니면 숫자로 비교하도록 대조 도구를 고침).
-   - 대조 B: `l1_compare.py --place-from-image` 로 m68k·i386 객체 4 개를 각 링크 결과와 비교 — OBJECT_MATCH 여야 합니다. 조작한 링크 결과 사본(재배치 밖 명령 바이트 1 개, 외부 재배치 필드 1 개)에서는
-     그 함수가 DIFF 여야 합니다. SPARC 객체는 `l1_compare` 가 거부해야 합니다.
-4. x86 회귀(기준 문서 6 절): (a) `m0_slice_l1.py selftest` 를 다시 돌려 402 객체 판정·이유가 같고, 객체별 상세 JSON 이 §409 때(`08_build/artifacts/m0p409/selftest/`)와 바이트 단위로 같음,
-   (b) `check_macho_obj.py` 를 402 객체에 돌려 모두 AGREE, (c) `m1_version_diff.py selftest`·`run` 결과가 §410 기록과 같음. 하나라도 다르면 바꾼 것을 되돌리고 원인을 찾습니다.
-5. 기록: 이 절, 기준 문서 12 절. 07·06 표는 바꾸지 않습니다.
+1. 탐침 객체를 만듭니다(새 도구 `10_tools/reconstruction/m3_m68k_offsets.py`).
+   - 스테이징 `m0p441-stage` 를 복사하고 `src/probe/m68k_offsets.c` 하나를 더합니다(SHA 매니페스트).
+   - 탐침은 `int off[] = { ((int)&((struct X *)0)->m), …, sizeof(…) }` 를 `__data` 에 둡니다.
+   - 컴파일 명령은 run `m3p441-cc1` 의 `kern/ast.c` 줄과 같은 플래그(`-arch m68k … -g -O2 -c`)이고, 소스·출력만 바꿉니다.
+2. 미리 정한 기대값(원본 바이트 근거)은 다음과 같습니다.
+   - `struct pcb`(`machdep/m68k/thread.h`): `pcb_regs` 0x48, `pcb_regs_valid` 0x4c(`_init_task` 의 USER_REGS, §430), `pcb_flags` 0x54(aston/astoff `bset/bclr #4,…@(0x54)`, §431–432).
+   - `struct pmap`(`machdep/m68k/pmap.h`): `stats.resident_count` 0x10(`_task_info`, §430).
+   - `struct mon_global`(`mon/global.h`): `mg_minor` 0x30a, `mg_seq` 0x30c, `mg_anim_run` 0x30e, `mg_major` 0x312(`_panic`, §437).
+   - SDK `struct regs`(`bsd/m68k/reg.h`): `r_evec` 0x40, `r_pc`(`r_evec.e_pc`) 0x42. 이것은 `_execve`·`_ptrace` 의 0x40/0x42/0x44/0x46 쓰기(§442.1) 근거이며 M5 작성의 바탕이 됩니다.
+   - 탐침 값이 기대와 하나라도 다르면 해당 머리를 고치기 전에 진단만 합니다.
+3. 실기 run 을 새 ID 로 돌리고, 실행 전후 도구 해시를 남깁니다. `macho_obj` 로 `__data` 를 읽어 대조합니다(big-endian 4 B).
+4. 근거를 집계합니다(기록 `09_validation/reconstruction/m3-m68k-closure-20261009.json`).
+   - M0-3 ABI 탐침 기록(§412).
+   - §431·§436 명령 수준 진단의 구조체 변위(D-struct) 덩어리 수.
+   - 생성물: `gen_config_headers.py` x86·m68k `--check` 종료값, §434 MIG 24/24.
+   - 현재 m68k 수치: 205 중 148, 정확 객체 306.
+   - M4·M5 로 넘긴 항목 목록.
+5. 끝 조건 판정 문단은 MULTIARCH 표준에 적습니다.
 
-### 411.1 codex 교차검토(gpt-6.1-sol, kf5189v8v) 판정과 계획 수정
+### 443.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| 일반 재배치의 MSB 우선 배치는 reloc.h 필드 순서와 맞고, 저장소의 m68k `libcc.a` `_bb.o` 가 그 배치를 보임 | 실기 사본과 같은 `03_original/x86/userland/binaries/lib/libcc.a`(SHA `bccd689e…`, §409 의 실기 `/lib/libcc.a` 와 같음)의 m68k 조각을 python 으로 풀어 `_bb.o`(파일 오프셋 0xa48, 1,908 B)의 일반 재배치 43 개를 가설대로 해독 — 첫 줄 `000002f4 000004d0` = 기호 4, pcrel, long, extern, type 0; `llvm-objdump-14 --macho -r` 출력(`_atexit`, `1 (__TEXT,__text)` …)과 같음 | ✅ 1997 NeXT 가 만든 실제 m68k 객체가 근거. libcc m68k 47 구성원 전체를 대조 A 에 넣음 |
-| 컴파일러 비트필드 배치를 직접 보는 `struct relocation_info` 초기화 탐침 | 위 실제 객체 대조가 같은 사실을 더 직접 보임 | ⚖️ 하지 않음(libcc 대조로 대체) |
-| `r_address` 는 필드의 절 오프셋, m68k 분기 기준(+2)은 이미 F 에 들어 있음, 1/2/4 바이트를 정확히 빅엔디언으로 읽을 것 | reloc.h 주석(`:24`·`:28`); 기준 차이는 F 에 들어 있으므로 식 그대로 — 링크 탐침(대조 B)으로 확인 | ✅(식은 바꾸지 않고 실측으로 확인) |
-| 지역 재배치의 `R_ABS`(절 번호 0)를 `evaluate` 가 `sections[T - 1]` = 마지막 절로 읽음 | `l1_compare.py:192`(`is_lit(obj['sections'][T - 1])`)·`:191`, reloc.h `:33` `#define R_ABS 0` 읽음; `infer` 에도 같은 꼴(`T = r['symbolnum']` 뒤 `sections[T - 1]`) | ✅ T == 0 이면 "R_ABS" 미확인으로 처리(두 곳) |
-| cputype 일치도 요구하고, 지원하지 않는 일반 형식(0 이 아닌 type)은 VANILLA 식을 쓰기 전에 거부 | `evaluate` 는 일반 재배치의 type 을 보지 않음(읽음) | ✅ 넣음(i386 에서 바뀌면 회귀에서 드러남) |
-| 순수 C 로는 2 바이트 필드·절 사이 SECTDIFF 가 보장되지 않음; 실제로 나온 재배치 목록을 기록하고 받을 것 | 원칙 | ✅ 탐침 결과의 형식·폭·pcrel·extern 조합을 python 으로 세어 기록, 나오지 않은 조합은 "미검증" 으로 남김. §409 PIC 탐침(SECTDIFF)도 대조에 넣음 |
-| `ld -arch m68k -static` 직접 호출은 시작 파일·라이브러리를 붙이지 않음; 모든 외부를 정의할 것 | 탐침이 두 파일 안에서 모든 외부를 정의하도록 함; 결과는 실측 | ✅ |
-| 12 개 파일이 macho_obj 를 import 하고, 거부가 풀리면 빅엔디언 객체가 리틀엔디언 가정 도구로 들어감: `objc_place.py:24`·`:38`, `zerofill_check.py:41`·`:88`·`:161`, `m1_version_diff.py:107`, `l2_coverage.py:75`·`:89`, `l2_place.py:74`·`:238` | python AST 로 import 파일 12 개 확인(앞서 내가 적은 13 은 틀림); 각 줄 sed 확인 | ✅ 그 도구들에 i386 전용 확인을 넣음 |
-| 회귀가 L2·커버리지·zerofill 까지 가야 함(기준 문서 6 절 `:186`·`:187`) | 기준 문서 읽음 | ✅ 회귀 스크립트: 기존 시험 5 개, 402 객체 `check_macho_obj`, `m0_slice_l1 selftest`, `m1_version_diff selftest/run`, `l2_place`(+selftest), `l2_coverage`(기본·`L2_COVER=s6l1`) 를 고치기 전후로 돌려 출력 비교. 빌드 도구(kr_run·stage_headers·l2_rebuild·l2_link)는 바꾸지 않으므로 x86 재빌드는 해당 없음 |
-| `next-gcc-2.7.2/config` 에는 i386 말고 `next/`(nextstep.h·nextstep.def)도 있음 | `ls config/next` | ✅ 사실 정정(m68k 백엔드 없음이라는 결론은 그대로) |
-| m68k 분기 기준 근거 `audit_m68k_all_type19_direct_transfers.py:27` | `:27` 은 `def decoder(...)` 줄 | ⏭️ 옮기지 않음 |
+| 기대 변위의 원본 근거 확인: `_init_task` 0x4002dec `tstl a0@(0x4c)`·0x4002df2 `movel a0@(0x48)`, 0x4049464–6e `bset #4,a0@(0x54)`(0x40494ae `bclr`), `_task_info` 0x4052588 `movel a0@(0x10),d3`, `_panic` 0x400bcb8–c4 | §430–437 기록과 이번 세션 원본 목록 확인(`_panic` 줄은 §437.1 에서 읽음) | ✅ 주소를 기록에 인용 |
+| `mg_anim_run`(0x30e)의 근거는 `_panic` 이 아니라 0x408a490·0x408acaa·0x40946e6 의 `movel aN@(0x30e),d0`(4 B) | 원본 목록 세 주소 grep: 셋 다 `movel a1/a4@(0x30e:w),d0` | ✅ 근거 인용 |
+| 정렬 4 라도 pcb·pmap 은 같은 변위 → 컴파일러 ABI 를 실제로 시험하는 것은 mon_global·regs 뿐 | 설계 확인 | ✅ 기록에 적음 |
+| **작성하지 않은 Mach 구조체도 원본 바이트로 대조**: `sizeof(struct task)` 0x80(`_task_init` 0x4051ddc `pea 0x80`, zinit), `sizeof(struct thread)` 0x184(`_thread_init` 0x40527ec `pea 0x184`), `offsetof(thread, pcb)` 0x24, `offsetof(task, map)` 0x8, `offsetof(vm_map, pmap)` 0x20 | 원본 목록 0x4051dc8–ddc·0x40527e0–ec grep(`pea 0x80`·`pea 0x184` 가 zinit 인자 자리) | ✅ 탐침에 더함(진짜 "탐침 대 원본" 대조) |
+| `reg.h:174 #if MONITOR` — 0x40 은 MONITOR 미정의일 때만; 스테이징·명령에 정의 없음 | grep: `reg.h` 174·186 행, generated·cc.cmd 0 건 | ✅ 가정으로 적음 |
+| 선례 탐침 `probes/c_layout.c` 의 `KR_OFF` 매크로·표시 낱말·비정적 전역을 씀 | 파일 1–20 행 읽음 | ✅ |
+| 머리는 명시 경로로(`<machdep/m68k/thread.h>`·`<machdep/m68k/pmap.h>`·`<mon/global.h>`·`<bsd/m68k/reg.h>`), 비트필드 주소 대신 `sizeof(struct excp_frame)` 8·`sizeof(struct regs)` 0x48 | 설계(빌드로 확인) | ✅ |
+| diag3 에는 `d_struct_blocks` 키가 없음 → 도구가 종류를 직접 셈; X·R 덩어리는 "구조체 아님" 의 증명이 아님 | diag2 키 확인(§443 사실 출력), diag3 요약 형태 확인 | ✅ 기록 문구에 한계 명시 |
+| "생성 코드 GCC 2.7 규칙" 은 `--check`·MIG 일치만으로는 부족 → 그것을 실제로 쓴 m68k 컴파일 run(cc-744.13, `m3p441-cc1`)과 `08_build/GCC27_COMPATIBILITY.md` 규칙 대조를 인용 | 설계 | ✅ 기록에 run 과 해당 문서 절 인용 |
+| 원본 `sizeof(struct pcb)`·`sizeof(struct mon_global)` 은 비교 불가 | 설계 | ✅ "비교 안 함" 으로 표시 |
+| 스테이징 경로는 `src/probe/…`, 명령 줄 경로는 `src/src/probe/…`(run 의 src 아래) | `cc.cmd` 의 `src/src/kern/ast.c` 꼴 | ✅ 둘 다 명시 |
 
-### 411.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-tools-m68k-20261009.json`
+고친 탐침 목록(실행 전 고정): 표시 `KRM3`…`END!` 사이에 다음 순서로 둡니다.
+- pcb 3, pmap 1, mon_global 4
+- regs: `r_evec`·`r_pc`·`sizeof(struct excp_frame)`·`sizeof(struct regs)`
+- task·thread: `sizeof(struct task)`·`sizeof(struct thread)`·`offsetof(struct thread, pcb)`·`offsetof(struct task, map)`·`offsetof(struct vm_map, pmap)`
 
-바꾼 것:
-- `macho_obj.py`: 빅엔디언 재배치 읽기(scattered 는 같은 수치 배치, 일반 형식은 MSB 우선), `RELOC_TYPES_GENERIC`(0–3), `reloc_types(cputype)`(i386·m68k 만, 그 밖은 None), `require_i386()`.
-- `l1_compare.py`: 필드 읽기의 바이트 순서를 객체의 것으로, 형식 표를 `types_of(obj)`(SPARC·HPPA 거부)로, 객체와 이미지의 cputype·바이트 순서가 다르면 거부,
-  일반 재배치의 type 이 0 이 아니면 계산하지 않고 미확인, `R_ABS`(절 0)는 미확인(`evaluate`·`infer` 두 곳). 모듈 변수 `TYPE` 은 기존 호출자를 위해 남김.
-- i386 전용 확인(`require_i386`)을 넣은 도구: `objc_meta.py`, `objc_place.py`, `zerofill_check.py`, `l2_coverage.py`, `l2_place.py`, `m1_version_diff.py`.
-- `check_macho_obj.py`: i386 이 아니면 형식을 숫자로 비교(llvm-objdump 가 m68k·SPARC 형식을 숫자로 출력).
-- 새 시험 `test_l1_m68k.py`, 회귀 스크립트 `regress_m0p411.sh`.
+기대값은 위 근거대로입니다(`sizeof` 둘은 원본 근거 없음 — 기록만).
 
-검증:
-- 실제 NeXT 객체 대조(`libcc.a` 각 조각의 모든 `.o` 46 개 × 3): m68k 46/46 AGREE(재배치 97, 모두 일반 형식), i386 46/46 AGREE(101).
-  SPARC 28/46 AGREE — 나머지 18 개 객체의 불일치 113 행은 모두 SPARC 의 비-scattered type 1·symbolnum 0xffffff 항목으로, 필드 값은 llvm 과 같고 대조 도구가 참조 절 이름을 못 붙인 것뿐입니다(SPARC 는 읽기만).
-- 탐침 `m0p411-pr1`(실기 kr_run, DONE): `cc -static -O2` 6 객체와 `ld -arch m68k|i386 -static -e _kr_a` 링크 둘 모두 성공. llvm 대조: m68k·i386 4 객체 AGREE, SPARC 2 객체는 같은 PAIR 표기 불일치만.
-  m68k 에서 실제로 나온 재배치: `__text` 외부 절대 4·외부 pc 5·지역 절대 17·지역 pc 3·scattered 1, `__data` 외부 3·지역 2·scattered 1 — 모두 4 바이트 VANILLA.
-  **2 바이트 필드와 링크 비교에서의 SECTDIFF 는 이번에 나오지 않아 m68k 에서 미검증**입니다(SECTDIFF 읽기는 §409 PIC 탐침에서 AGREE).
-- `test_l1_m68k.py` 10/10: m68k·i386 객체 4 개가 각 링크와 OBJECT_MATCH(→ F + S − Δ(P) 등 일반 식이 NeXT ld 의 m68k 링크와 맞음), 조작 사본 4 종(필드 밖 바이트, 외부 pc 필드, `__data` 외부 필드, 지역 절대 필드) 모두 DIFF/NOT_MATCH,
-  m68k 객체 대 i386 이미지 거부, SPARC 객체 거부.
-- 원본 m68k 커널(`03_original/m68k/binaries/mach_kernel`)을 `l1_compare.Image` 로 읽음: cputype 6, big, 절 6, 외부 기호 이름 3,808.
-- x86 회귀(고치기 전후 같은 명령, `08_build/artifacts/m0p411/{base,after}`): 출력 435 파일 중 433 바이트 동일, 나머지 둘은 출력 경로 문자열과 `l1_compare.py` 자신의 해시만 다름(python 으로 정규화해 확인).
-  여기에 402 객체 L1 상세 JSON, 기존 시험 5 개, `l2_place`(+selftest), `l2_coverage`(기본·s6l1), `m1_version_diff` 가 들어 있습니다. 반환 코드도 같습니다.
-  기준선에서 이미 실패하던 것(zerofill 시험 3/14 — 이번에 고른 알려진 배치 목록이 plan 302 때와 다름; `check_macho_obj` 396/402 — `-g` 객체의 STAB 기호 줄)은 전후 같게 남았습니다.
+### 443.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m3-m68k-closure-20261009.json`
 
-## 412. M0-3 세부 계획 — m68k ABI 탐침: C·Objective-C·어셈블리·MIG 를 `cc-744.13 -arch m68k` 로 컴파일하고 목적 파일 검사(07·기존 탐침·도구 변경 없음; 코딩 전, 2026-10-09)
+도구는 `10_tools/reconstruction/m3_m68k_offsets.py`(0848118…) 입니다. 실행 전후 해시가 같습니다(`08_build/artifacts/m3p443/tools-pre.sha`).
+- 스테이징 `m0p443-stage` = `m0p441-stage` + `src/probe/m68k_offsets.c` 이고, 889 파일입니다.
+- run `m3p443-pr1` 은 1 명령이 종료 0 이고 게시되었습니다. 명령은 `kern/ast.c` 와 같은 플래그(cc-744.13 `-arch m68k … -g -O2`)입니다.
 
-목적: GCC27 문서 완료 판정 2 를 m68k 에 대해 채웁니다(기준 문서 M0-3, D066 m68k 먼저). 측정만 하며, 원본 m68k 커널의 구조체 오프셋과 맞추는 일은 M3 끝 조건입니다.
+탐침 결과: 원본 근거가 있는 **15/15 가 기대값과 같습니다**.
 
-확인한 사실(이 세션에서 읽거나 실행):
-- 기존 i386 탐침(§11 A3, `10_tools/reconstruction/probes/`): `c_layout.c`·`c_codegen.c`·`objc_probe.m`·`asm_probe.s`(i386 문법)·`mig_probe.defs` 와 명령 두 벌. 결과 `09_validation/reconstruction/toolchain/c-layout-probe-20261001.json`.
-- 실기 `/usr/bin/mig` 는 49 줄 sh 스크립트입니다. `-arch A` 이면 `CPP=/lib/A/cpp` 로 전처리하고 `/usr/lib/migcom`(실기에서는 i386 단일 파일, §409)에 넘깁니다. 즉 m68k MIG 출력은 "m68k cpp + i386 migcom" 입니다.
-- `/lib/m68k/` 의 백엔드(`as`·`cc1obj`·`cpp` 등)는 §409 기록(`m0-toolchain-cross-20261009.json`)에 해시가 있습니다. `kr_run.py` 는 실행 때 `/bin/cc` 등 허용 도구만 i386 기록과 대조하고 `/lib/m68k/*` 는 대조하지 않습니다.
-- m68k 역어셈블러 셋: 실기 `/bin/otool -tv`(1997-04-23, `m0p411-pr1` 의 `a-m68k.o` 를 읽음), 호스트 `llvm-objdump-14`(대상 목록에 m68k), python capstone 4.0.2(`CS_ARCH_M68K`).
-- `m0p411-pr1` 의 `-O2` m68k 코드는 `pea a6@; movel sp,a6` 로 프레임을 만들고, 포인터 반환을 `movel a0,d0` 로 d0 에 둡니다(otool 출력) — 호출 규약은 이번에 체계적으로 잽니다.
-- NeXTMach `mk-108.1/conf/Makefile.NeXT:26` 의 m68k 플래그는 `-O -fwritable-strings -fcombine-regs` 입니다(GCC 1 시절 옵션; 원본 1997 m68k 커널의 플래그는 미확인).
+| 항목 | 탐침 값 | 원본 근거 |
+|---|---|---|
+| `pcb.pcb_regs`·`pcb_regs_valid`·`pcb_flags` | 0x48·0x4c·0x54 | `_init_task` 0x4002df2·0x4002dec, aston 0x404946e |
+| `pmap.stats.resident_count` | 0x10 | `_task_info` 0x4052588 |
+| `mon_global` `mg_minor`·`mg_seq`·`mg_anim_run`·`mg_major` | 0x30a·0x30c·0x30e·0x312 | `_panic` 0x400bcbe·cb8·cc4, 0x408a490 등 |
+| `regs.r_evec`·`r_pc` | 0x40·0x42 | `_ptrace` 0x400aee8·0x400af40, `_execve` 0x4005044 |
+| `sizeof(struct task)`·`sizeof(struct thread)` | 0x80·0x184 | `_task_init` 0x4051ddc·`_thread_init` 0x40527ec 의 zinit 인자 |
+| `thread.pcb`·`task.map`·`vm_map.pmap` | 0x24·0x8·0x20 | `_init_task`·`_task_info` |
+
+- 기록만 하는 값은 `sizeof(struct excp_frame)` 8, `sizeof(struct regs)` 0x48 입니다(원본 근거 없음).
+- pcb·pmap 은 정렬 2·4 어느 쪽이든 같으므로, 컴파일러 ABI(정렬 2)를 실제로 시험한 것은 `mon_global`·`regs` 입니다(§443.1).
+
+근거 집계:
+- 명령 수준 진단의 덩어리 종류:
+  - §431: CALL 31·X 48·D-frame 20·R 167·INS 37·IMM 6·DEL 7.
+  - §436: INS 3·R 58·X 17·CALL 3·DEL 2.
+  - 두 진단 모두 **D-struct(구조체 변위만 다른 덩어리) 0** 입니다. X·R 은 구조체 차이가 없다는 증명이 아닙니다.
+- 생성물: `gen_config_headers.py` x86·m68k `--check` 종료 0, MIG 24/24(§434). 이 머리·출력을 실제로 쓴 m68k 컴파일은 cc-744.13 run `m3p441-cc1`(205 명령 종료 0)입니다.
+- 현재 m68k 수치: 205 중 OBJECT_MATCH 148, 정확 객체 306(`__text` 78.89 %).
+
+**M3 끝 조건 판정**
+- (1) 구조체 오프셋: M0-3 ABI 탐침(§412, 정렬 2)과 이번 탐침이 원본 바이트 근거 15/15 와 맞고, 진단 D-struct 0 입니다. → **충족**.
+- (2) 생성 코드: 구성 머리는 표와 명령으로, MIG 는 재생성 해시가 일치하며, 둘 다 cc-744.13 m68k 로 컴파일되었습니다. → 머리·생성물 범위에서 **충족**.
+- `08_build/GCC27_COMPATIBILITY.md` "완료 판정" 3–5(전체 번역 단위 컴파일·링크·부팅 입력)는 M4–M8 에서 채웁니다.
+- 따라서 **M3 를 닫습니다.** 넘기는 항목은 다음과 같습니다.
+  - M5(공통부 소스): `mach_process`·`kern_exec` PCH/PCL, `ns_timer` m68k 나눗셈, `_hardclock` `clock_value`·`last_hardclock`, `kern_uname`, PMON, `spldma`, `_byte_swap_*`·`_us_spin`·ObjC 호출 제거, `in_pcb`·`ip_output`·`ip_icmp`·`tcp_input`·`vfs_dnlc` 소스 꼴, `ufs_vfsops` `copyinmsg`·프레임, 비청정 30.
+  - M4(기계 의존부): m68k 전용 파일 후보 106·묶음 4·미배정 33·자료만 16, trap 의 `need_ast` 참조, `mon/global.h` 전체판.
+  - 구성 미룸 6(§438).
+
+## 444. M5-1 세부 계획 — m68k `mach_process.c`·`kern_exec.c` 의 PC 쓰기를 SDK `PCH`/`PCL` 로 작성(D024; x86 트리 변경 없음; 코딩 전, 2026-10-09)
+
+배경: §442.1 에서 두 소스가 m68k 에서 컴파일되지 않는 이유가 `PC` 하나임을 확인했습니다. SDK m68k `reg.h` 에는 `PS 16`·`PCH 16`·`PCL 17` 이 있고, 원본은 PC 를 둘로 나눠 씁니다. NeXTMach 에 이 꼴의 코드가 없으므로 원본 바이트에서 작성합니다(D024).
+
+확인한 사실(원본 목록 직접 읽음):
+- `_ptrace` 0x400aed0–0x400aef4(07 `mach_process.c:162-170` PT_STEP/PT_CONTINUE):
+  - `locr0`(a3) = `thread->_uthread->uu_ar0` 이고, `movel a2@(0x8),d0`(uap->addr), `moveq #1; cmpl; beq`(addr != 1) 입니다.
+  - `swap d0; extl d0; orl d0,a3@(0x40)` → `locr0[PCH] |= (int)uap->addr >> 16`
+  - `movew a2@(0xa),d0; swap d0; clrw d0; orl d0,a3@(0x44)` → `locr0[PCL] |= (int)uap->addr << 16`
+  - 지우는 `andl` 이 없으므로 대입이 아니라 OR 입니다.
+- `_execve` 0x400503c–0x400505e(07 `kern_exec.c:482`):
+  - `movel u,a0; movel a0@,a0`(u.u_ar0)·`movew a6@(0xff78),a0@(0x42)` → PCH 슬롯의 하위 반에 `entry_point` 의 상위 반을 씁니다.
+  - 다시 `u.u_ar0` 를 읽어 `movel a6@(0xff78),d0; swap; clrw; orw a0@(0x46),d0; movel d0,a0@(0x44)` → `u.u_ar0[PCL] = (entry << 16) | (u.u_ar0[PCL] & 0xffff)` 꼴입니다.
+  - 첫 줄의 C 꼴은 후보 `u.u_ar0[PCH] = (u.u_ar0[PCH] & 0xffff0000) | ((unsigned)entry >> 16)` 입니다(GCC 가 하위 반 `movew` 로 바꾸는지는 실행이 판정).
+- 기계 판별: §430 시험 스테이징의 Darwin 배정 머리 `#elif defined (__m68k__)` 가 m68k 가지를 골랐으므로 cc-744.13 `-arch m68k` 는 `__m68k__` 를 정의합니다.
 
 방법:
-1. 탐침 소스(새 파일, 프로젝트 작성, 참고 코드 없음; 기존 i386 탐침 파일은 고치지 않고 그대로 재사용):
-   - `probes/c_abi.c`: 컴파일 시점 상수만 담은 초기화 전역 배열(실행 없이 `__data` 에서 읽음) — `long long`·`long double` 크기와 `{char; T}` 오프셋(T = short·int·long·float·double·포인터·long long·long double),
-     `enum` 크기, `struct {char}`·`struct {char[3]}`·`struct {short; char}`·`union {char; short}` 크기, 구조체 안 구조체 정렬, 비트필드(12+12+12, `{char; int b:4}`, `int :0`) 크기,
-     `char` 부호(`(char)-1 < 0`). 그리고 값을 넣은 인스턴스: 비트필드 구조체 `{unsigned a:3, b:5, c:9; char x}` = {5, 17, 300, 0x5a} 와 `{char; int; short}` 값 — 바이트로 비트 순서·채움·바이트 순서를 봅니다.
-     `long long`·`long double` 은 GNU 확장으로 표시하고 측정만 합니다(커널 사용 여부는 M3).
-   - `probes/c_call.c`: 외부 함수 호출로 인자 전달(char·short·int·long·포인터, float·double, 작은·큰 구조체 값, 가변 인자)과 반환(char·short·포인터·float·double·long long·작은/큰 구조체),
-     레지스터를 많이 쓰는 함수 하나(호출 측 보존 레지스터 집합). 모두 프로토타입 있음.
-   - `probes/asm_pp_m68k.s`: m68k(MIT 문법) 함수 하나·데이터 둘(상수, 함수 주소)·외부 호출 하나. `#define` 상수를 써서 `cc -c` 가 `.s` 를 전처리하는지 봅니다.
-2. 명령(kr_run, 새 ID `m0p412-abi1`, 결정성 확인용 같은 입력 `m0p412-abi2`). 옵션 세 벌 × C 탐침(`c_layout`·`c_codegen`·`c_abi`·`c_call`):
-   D 기본(`-arch m68k -c`), O 커널 후보 비-디버그(`-static -fwritable-strings -traditional-cpp -nostdinc -O3 -fno-omit-frame-pointer`), G = O + `-g`(x86 최종 플래그와 같은 꼴).
-   ObjC `objc_probe.m`(D·G), 어셈블리 `asm_pp_m68k.s`(G 꼴, `-nostdinc` 제외), MIG `mig -arch m68k` 로 생성한 User·Server 를 G 로 컴파일. 대조군으로 `c_abi`·`c_call`·MIG 생성을 `-arch i386`(G) 로도 만듭니다.
-   실행 전후에 gcds 로 `/lib/m68k/*`·`/bin/cc`·`/bin/as`·`/usr/bin/mig`·`/usr/lib/migcom` 을 `krsha256` 로 해시해 §409 기록과 같아야 합니다(읽기 전용).
-3. 검사(호스트 python 새 도구 `10_tools/reconstruction/m0_abi_probe.py`, 결과 `09_validation/reconstruction/m0-abi-m68k-20261009.json`):
-   a. 두 실행의 출력 해시가 모두 같음(결정성).
-   b. D·O m68k 객체 전부 `check_macho_obj.py` AGREE(G 는 알려진 STAB 줄 한계가 있어 기록만).
-   c. 배치 표: `c_layout`·`c_abi` 의 표를 `macho_obj` 로 읽고(빅엔디언), 같은 값을 `llvm-objdump-14 --macho -s` 의 16 진 출력에서 따로 python 으로 풀어 일치 확인. D·O·G 세 벌이 같아야 하고,
-      i386 대조군 `c_layout` 값은 §11.2 기록과 같아야 합니다(판독 경로 확인).
-   d. 호출 규약: `c_call` 의 각 함수를 otool·llvm-objdump-14·capstone 으로 역어셈블해 명령 경계(주소 목록)가 셋 모두 같은지 python 으로 확인하고, 인자 읽기 위치(`a6@(n)`)·반환 레지스터(d0/d1, fp0, a0/a1)·
-      구조체 반환 방식·저장 레지스터를 목록 줄 인용과 함께 표로 기록(관찰 사실; 해석에 계산이 들면 python).
-   e. ObjC: m68k 와 i386 `objc_probe.o` 의 절 이름 집합이 같은지, 절 크기·재배치 수 표. 메타데이터 내부 해석은 `objc_meta` 확장(M0-5) 뒤로 미룹니다.
-   f. 어셈블리: `#define` 값이 명령 바이트에 들어갔는지(전처리 여부), 재배치(외부 pc·데이터 절대)를 `macho_obj` 와 llvm 으로 확인.
-   g. MIG: m68k·i386 생성 `.c`·`.h` 를 python 으로 비교해 다른 줄 목록을 기록(다르면 원인 후보만 적고 판단은 보류), m68k 생성 코드가 G 로 컴파일됨.
-4. 기록: 이 절 결과, 기준 문서 12 절, GCC27 문서 툴체인 확인 상태 한 줄(m68k probe 결과 인용). 07·06·기존 탐침·도구는 바꾸지 않습니다.
+1. 덮어쓰기 두 소스는 07 본 파일에 표시 묶음(`plan 444 (m68k) begin`…`end`)을 끼웁니다. 원래 줄은 지우지 않고 `#else` 가지에 남깁니다(파생 검사는 끼우기만 허용).
+   - `mach_process.c`: 169 행 `if` 뒤에 `#ifdef __m68k__` + `{ locr0[PCH] |= …; locr0[PCL] |= …; }` + `#else` 를 끼우고, 170 행 뒤에 `#endif` 를 끼웁니다.
+   - `kern_exec.c`: 482 행 앞에 `#ifdef __m68k__` + 두 줄 + `#else` 를 끼우고, 뒤에 `#endif` 를 끼웁니다.
+   - 묶음은 파일마다 둘(시작·끝 위치가 갈림)입니다. `MARKERS` 에 줄 수를 등록합니다.
+2. `stage_m68k.py --plan 444`(예외는 §441 과 같음)로 스테이징합니다. 시험 run 은 이 두 객체만 컴파일합니다(§430 `cc.cmd` 의 두 줄, 접두 `P444__`).
+   - 스테이징 차이가 이 두 `.c` 뿐임을 매니페스트로 확인합니다. 그러면 다른 205 객체는 입력이 같으므로 다시 컴파일하지 않습니다.
+3. 비교(미리 정한 기준):
+   - 두 객체가 컴파일되어야 합니다.
+   - 원본에 없는 새 미정의 기호 0 이어야 합니다.
+   - 외부 구간 `_ptrace`·`_execve` 의 해당 덩어리(§436 도구 방식 진단)에서 PC 쓰기 부분이 원본과 같아야 합니다.
+   - 객체 전체 OBJECT_MATCH 여부와 그 밖의 차이는 측정·진단합니다(다른 소스 차이가 있을 수 있음 — 관문 아님).
+   - PC 쓰기 부분이 원본과 다르면 C 꼴을 바꿔 새 run 으로 다시 시험합니다(시도마다 기록).
+4. 기록: PROVENANCE·MODIFICATIONS(작성 줄, D024), diff `06_reconstruction/evidence/m68k-pc-split.diff`, `09_validation/reconstruction/m5-m68k-pc-split-20261009.json`.
 
-끝 조건: 모든 RUN 종료 0·게시, a–g 통과(g 는 차이가 있어도 기록되면 통과), 도구 해시 전후 동일. SPARC 는 이번 범위가 아닙니다(D066).
-미해결로 남기는 것: 원본 1997 컴파일러와의 코드 동일성(M0-2), 원본 커널 구조체 오프셋 대조(M3), m68k VM 의 m68k `migcom` 출력과의 비교.
+### 444.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-### 412.1 codex 교차검토(gpt-6.1-sol, kb35a8gso) 판정과 계획 수정
-
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| `llvm-objdump-14` 는 m68k 명령을 제대로 풀지 못함(`--triple` 없으면 대상 없음, 있으면 `invalid instruction encoding`) | `m0p411-pr1/out/a-m68k.o` 에 두 명령 실행: `unable to get target for ''`, `--triple=m68k` 는 경고 3 줄과 기호 줄만 출력 | ✅ 역어셈블 대조에서 llvm 을 뺌(절·기호·재배치·16 진 출력에는 계속 씀) |
-| capstone 4.0.2 는 확장 정밀 즉시값 `fmove.x` 를 잘못 풂 | python capstone(`CS_MODE_M68K_040`)에 `f23c4800 3fff8000 00000000` → `fmove.x invalid, fp0`, 12 B 중 4 B 만 소비; `4856`→`pea.l (a6)`, `207900000172`→`movea.l $172.l, a0` 는 정상 | ✅ capstone 단독 판정 금지. 대신 **컴파일러 자신의 어셈블리(`-S`)** 를 기준으로 두고, otool·capstone 의 명령 수·경계·길이를 그와 대조, 불일치는 기록 |
-| LLVM D142080·D147480, capstone #3013·#3016 | 열지 않음 | ⏭️ 옮기지 않음 |
-| G(`-nostdinc`)로 `objc_probe.m` 을 빌드하면 `<objc/Object.h>` 를 못 찾음 | `objc_probe.m:2` `#import <objc/Object.h>`, 계획 412 의 "ObjC `objc_probe.m`(D·G)" | ✅ 머리가 필요한 탐침은 `-nostdinc` 없는 H 세트(= G − `-nostdinc`)로; 읽은 머리는 `-E` 줄 표시로 기록 |
-| i386 대조군에 `c_layout`·`objc_probe` 가 빠짐 | 계획 412 의 대조군 문장(`c_abi`·`c_call`·MIG 만) | ✅ 더함 |
-| `check_macho_obj` AGREE 는 절 내용·정렬을 검사하지 않음(이름·크기·주소만) | `check_macho_obj.py:37`–`:38` 의 비교 튜플 `(sectname, size, addr)` | ✅ 배치 표 바이트는 따로 대조(3c), 절 정렬은 `macho_obj` 값으로 기록 |
-| `run.json` 에 실행 ID·수집 시각이 있어 "출력 해시 전부 같음" 이 성립할 수 없음 | 기존 `run.json` 키: `id`, `prepared_utc`, `collected_utc` … | ✅ 결정성 비교는 `run.json`·`_log` 를 뺀 산출물로 |
-| 모든 명령이 종료 0 이어야 게시됨(기대 실패 시험은 따로) | `kr_run.py` collect 의 `need(rc == '0', …)` | ✅ 거부가 예상되는 옵션 시험은 넣지 않음 |
-| `mig` 는 작업 디렉터리에서 `"$base".d` 를 지움 | 실기 `/usr/bin/mig` 본문(`rm -f "$base".d "$base".d~`) | ✅ `RUNIN stage/mig_m68k`·`stage/mig_i386` 로 분리 |
-| `EXPECT` 는 `stage/` 없이 씀 | `kr_run.py` collect 의 `os.path.join(rdir, 'stage', e)` | ✅ |
-| C 인라인 asm 제약자 탐침이 없음 | GCC27 문서 `:35`(inline assembly 확인)·`:39`(operand/constraint); 참고 `mk-108.1` 의 m68k 인라인 asm 은 `=a`·`a`·`=dm`·`=m`·`Jdm` 사용(`next/spl.h:42`·`:43`, `kern/lock.c:187`, grep) | ✅ 같은 제약자 글자만 쓰는 프로젝트 작성 탐침 `c_iasm.c`(문장은 새로 씀) |
-| 정렬 종류(멤버·집합체·배열 보폭·전역·스택), 비트필드 멤버 위치·부호, 좁은 정수 인자, 구조체 모양별 반환(호출·피호출 양쪽), 가변 인자 피호출, 옛 형식 정의, enum 범위, `long long`·`long double` 인자, 보조 함수 기호 | 계획 412 목록과 대조(없음) | ✅ 탐침에 넣음(아래) |
-| `((unsigned long)&((T*)0)->f)` 정적 초기화는 C89 상수식이 아니며 접혔는지 확인 필요 | `c_layout.c:8` | ✅ 표 범위에 재배치가 하나도 없어야 함, 컴파일 진단(`_log/*.err`) 비어야 함 |
-| `-fwritable-strings` 효과는 D→O 묶음에 섞임 | 계획 412 옵션 정의 | ✅ 문자열 탐침 `c_str.c` 만 O 와 O − `-fwritable-strings` 둘로 |
-| m68k 기본 CPU·FPU 설정을 확인할 것 | §409 `m0p409-xc1/out/_log/00.err`: `cc1obj … -arch m68k -quiet … -dynamic -fPIC`(`-m` 옵션 없음), `GNU Obj-C version 2.7.2.1 (68k, MIT syntax)` | ✅ `-v` 출력과 생성 명령(68040/68881 명령 사용 여부)을 기록 |
-| `-g` 에서 코드 바이트가 같을 필요 없음 | GCC27 문서 `:18`(`-g` 에서만 인라인 판단이 다른 사례) | ✅ G 는 배치 표 값만 같아야 함 |
+| 원본 판독은 맞고(OR, `andl` 없음), 구조체 `->r_pc` 꼴은 제외: 같은 원본 `_sendsig` 0x409488a·`_sigreturn` 0x409495c 는 `r_pc` 를 `movel …,a2@(0x42)` 한 번으로 씀 | 원본 목록 두 주소 grep | ✅ 후보 (c) 제외 |
+| `_execve` 는 두 문장(0x400504a 에서 `u` 를 다시 읽음); PCH 줄은 짧은 낱말 대입 꼴 `((short *)&u.u_ar0[PCH])[1] = entry >> 16` 이 가장 그럴듯, 그다음 and/or 꼴 | 판독은 §444 사실과 같음; 순위는 미검증 의견 | ⚖️ 후보를 모두 시험 컴파일로 판정 |
+| `_ptrace` 의 PCL 쪽은 `movew a2@(0xa)`(하위 반만 읽기)라 `(int)uap->addr << 16` 이 아니라 `& 0xffff` 또는 `(u_short)` 꼴일 가능성(같은 컴파일러가 `_execve` 에서는 `movel` 로 읽음) | `_execve` 0x4005052 `movel a6@(0xff78),d0` 와 `_ptrace` 0x400aeec `movew a2@(0xa),d0` 비교 | ✅ 후보에 더함 |
+| 시도마다 run 을 돌리지 말고 후보 꼴을 한 run 에서 탐침 파일로 컴파일(§443 선례) | 설계 | ✅ 변형 파일 방식으로 바꿈 |
+| 기계 판별은 07 관례대로 `#if m68k`(`kern/time_stamp.c:55·68`, `kern_sig.c:181 #ifdef i386`) | 두 파일 grep | ✅ `#if m68k` 사용 |
+| 한 파일에 같은 표시 묶음 여럿 가능; 한 줄짜리 `#endif` 는 묶음이 아닌 단순 표시 줄 | `check_derived` 설계(§441) | ✅ |
+| `EXCEPTS[444]` 가 없으면 `--plan 444` 거부 | §438 경험 | ✅ 도구 변경에 넣음 |
+| 원본 `_execve` 에는 PMON 호출(0x4005150–516c `btst #4,0x40b60c0` … `bsr _pmonlogexec`)이 있고 07 에는 없음 → `kern_exec` 은 PC 가 맞아도 OBJECT_MATCH 아님 | 원본 목록 0x4005150–516c 읽음, `_pmonlogexec` 0x4092b56 | ✅ 예측에 넣음 |
+| D024 는 객체마다 OBJECT_MATCH 를 조건으로 함 → `kern_exec` 은 PMON 전까지 "중간 상태" 로 기록 | DECISIONS 28 행 읽음 | ✅ |
+| 비교 기록을 쓰는 도구를 명시할 것 | — | ✅ 새 도구 `m5_m68k_pc.py` |
 
-수정된 방법(412 의 1–3 을 대신함):
-1. 새 탐침 소스(`10_tools/reconstruction/probes/`): `c_abi.c`(자료만), `c_call.c`(호출·반환·옛 형식·레지스터 압박·보조 함수), `c_vararg.c`(SDK `<stdarg.h>` 로 가변 인자 피호출), `c_iasm.c`, `c_str.c`, `asm_pp_m68k.s`.
-2. 세트: D(`-arch A -c`), O(`-static -fwritable-strings -traditional-cpp -nostdinc -O3 -fno-omit-frame-pointer`), G(O + `-g`), H(G − `-nostdinc`, 머리가 필요한 것), W(O − `-fwritable-strings`, `c_str` 만).
-   m68k: `c_layout`·`c_codegen`·`c_abi`·`c_call`·`c_iasm`·`c_str` × D·O·G, `c_vararg`·`objc_probe` × D·H, `c_str` × W, O 세트 C 탐침과 `c_vararg`(H)의 `-S`, `asm_pp_m68k.s`(H), MIG(RUNIN, H 로 컴파일), `-v` 한 줄.
-   i386 대조: `c_layout`·`c_abi`·`c_call`·`c_str` × O, `c_vararg`·`objc_probe` × H, `-S`(O), MIG(H).
-3. 검사: a 결정성(`run.json`·`_log` 제외 산출물 해시 동일), b D·O 객체 `check_macho_obj` AGREE(G·H 의 불일치는 STAB 줄인지 하나씩 분류), c 배치 표·값 인스턴스를 `macho_obj` 와 llvm 16 진 출력에서 각각 찾아 풀어 일치·표 범위 재배치 0·세트 간 동일·i386 `c_layout` 이 §11.2 와 같음,
-   d 역어셈블: 컴파일러 `-S` 를 기준으로 otool(실기, 게시 뒤 읽기 전용)·capstone 의 명령 수·주소·길이 대조, 불일치 목록, 호출 규약 관찰은 `-S` 줄 인용으로 표, e ObjC 절 집합·크기(관찰), f `.s` 전처리 값·재배치, g MIG 차이 줄, h 정해 둔 기호·관찰이 모두 있음, i 도구 해시 전후 동일.
+고친 방법(실행 전 고정):
+1. **변형 시험 run**(새 도구 `10_tools/reconstruction/m5_m68k_pc.py`)
+   - 스테이징 `m0p441-stage` 를 복사하고, `src/probe/pc/` 에 07 본 파일 + 후보 블록인 변형 소스를 둡니다.
+   - `mach_process` 변형:
+     - P1 `|= (int)uap->addr >> 16` / `|= (int)uap->addr << 16`
+     - P2 PCL `|= ((int)uap->addr & 0xffff) << 16`
+     - P3 PCL `|= (u_short)(int)uap->addr << 16`
+   - `kern_exec` 변형:
+     - E1 PCH and/or 꼴 + PCL `& 0xffff`
+     - E2 PCH 짧은 낱말 대입 + PCL `& 0xffff`
+     - E3 짧은 낱말 + PCL `(u_short)`
+     - E4 and/or + PCL `(u_short)`
+   - §430 `cc.cmd` 의 두 줄과 같은 플래그로 컴파일합니다(접두 `P444__`).
+2. 실기 `otool -tv`(읽기 전용)로 변형 객체를 풉니다. 원본의 PC 쓰기 명령열과 비교합니다(주소·`a6` 변위는 가리고 명령·레지스터·나머지 피연산자는 그대로).
+   - `_ptrace` 기준: 0x400aeda–0x400aef4 의 10 명령
+   - `_execve` 기준: 0x400503c–0x400505e 의 8 명령
+   - 같은 변형이 정확히 하나면 그 꼴을 고릅니다. 없으면 진단만 하고 멈춥니다.
+3. 고른 꼴을 07 덮어쓰기 두 소스에 `#if m68k` 묶음으로 끼웁니다(`plan 444 (m68k)`). `MARKERS`·`EXCEPTS[444]` 를 더하고, 덮어쓰기 스테이징으로 두 객체를 컴파일합니다(스테이징 차이 = 두 `.c` 확인, x86 관문 포함).
+   - 기준: 컴파일 성공, 원본에 없는 새 미정의 기호 0, PC 쓰기 명령열이 원본과 같음.
+   - `mach_process` OBJECT_MATCH 여부와 `kern_exec` 의 PMON 차이는 측정해 기록합니다(`kern_exec` 은 중간 상태).
 
-### 412.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-abi-m68k-20261009.json`
+### 444.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m5-m68k-pc-variants-20261009.json`(변형), `m5-m68k-pc-split-20261009.json`(최종)
 
-실행: kr_run `m0p412-abi1`·`m0p412-abi2`(실기, 같은 입력, 명령 49 개, 모두 종료 0·게시). 컴파일러 진단은 없고(`_log/*.err` 는 `-v` 한 줄짜리 실행만 비어 있지 않음),
-도구 17 개(`/lib/m68k/*` 7, `/lib/i386/*` 5, `/bin/cc`·`/bin/as`·`/usr/bin/mig`·`/usr/lib/migcom`·`/bin/otool`)의 해시는 실행 전후 같고 `/bin/otool` 말고는 §409 기록과 같습니다(`/bin/otool` 은 §409 목록에 없음).
-새 파일: 탐침 소스 6 개(`probes/c_abi.c`·`c_call.c`·`c_vararg.c`·`c_iasm.c`·`c_str.c`·`asm_pp_m68k.s`), 검사 도구 `10_tools/reconstruction/m0_abi_probe.py`. otool 출력은 `08_build/artifacts/m0p412/otool/`(무시 대상).
+변형 시험(run `m5p444-var1`, 7 명령 종료 0, 실기 otool 목록 SHA 대조):
+- 원본 PC 쓰기 명령열과 모양이 같은 것은 P2·P3·E1·E2·E3·E4 입니다.
+- P1(`(int)uap->addr << 16`)은 원본의 `movew a2@(0xa)` 대신 `movel a2@(0x8)` 로 읽어 다릅니다(검토 예측대로).
+- P2·P3 끼리, E1–E4 끼리는 비 STABS 객체 전체가 같아 바이트로 구별되지 않습니다.
+- 미리 정한 "정확히 하나" 규칙은 성립하지 않았고, 사용자 결정 **D072** 로 단순 꼴(P2·E1)을 골랐습니다.
 
-검사(모두 python):
-- a 결정성: `run.json`·`_log` 를 뺀 산출물 53 개의 해시가 두 실행에서 모두 같습니다.
-- b llvm 대조: 객체 34 개 중 D·O·W·`.s` 20 개 AGREE, `-g` 객체 14 개는 차이가 모두 STAB 줄(개수가 `macho_obj` 의 STAB 수와 같음)로 분류됨. 원천 파일 이름 STAB(`N_SO`)은 이름에 `:` 가 없어 처음 분류식이 놓쳤고, 실제 STAB 이름과 대조하도록 고쳤습니다.
-- c 배치: 표 두 개(`_kr_layout` 21 칸, `_kr_abi` 52 칸)를 `macho_obj` 와 llvm 16 진 출력에서 따로 찾아 읽어 같고, 표 범위의 재배치 0, m68k D·O·G 세 벌이 같고, i386 `c_layout` 은 §11.2 기록과 같습니다.
-  값 인스턴스 11 개의 필드 가설 19 개(m68k 는 빅엔디언 정수에서 최상위 비트부터, i386 은 리틀엔디언에서 최하위 비트부터)가 모두 초기값과 같습니다.
-- d 역어셈블: 함수 53 개. 컴파일러 `-S` 와 otool 의 명령 수는 `-S` 가 있는 52 개 중 51 개가 같고, 다른 하나(`_kr_switch`)는 `__text` 안 점프 표 `.long` 7 개(otool 이 `orb` 7 개로 풂)만큼 다릅니다.
-  otool·capstone 경계는 36 개가 같고 17 개가 다른데, 17 개 모두 capstone 4.0.2 결함으로 분류됩니다: `bsr.l`(0x61ff, 68020 32 비트 변위)를 2 바이트로 읽음 15, 확장 정밀도(`.x`) 메모리 원천 FPU 명령 2(그중 하나는 거기서 멈춤). 같은 자리를 otool 은 `-S` 와 맞게 풉니다.
-  llvm-objdump-14 는 m68k 명령을 풀지 못합니다(412.1).
-- 관찰 37 건은 `-S` 의 줄을 인용하고, 도구가 그 줄에 인용 문자열이 있는지 확인합니다(처음 적은 줄 번호 4 개가 틀려 고침).
-- e ObjC: m68k·i386(H) `objc_probe.o` 의 절 21 개 이름 집합이 같고, 크기는 `__text`(92·91 B) 말고 모두 같으며, 정렬이 다릅니다(m68k 2^1, i386 2^2). D(PIC) 에는 `__picsymbol_stub`·`__la_symbol_ptr` 가 더 있습니다.
-- f 어셈블리: `.s` 는 전처리됩니다 — `addql #KR_VAL,d0` 가 `5a80`(= `addql #5,d0`, python 으로 부호화), `.long KR_VAL` 이 5. 재배치는 외부 `jsr` 절대 1·`.long _kr_pp` 지역 절대 1.
-- g MIG: `mig -arch m68k`(m68k cpp + i386 migcom) 와 `-arch i386` 의 `krprobe.h`·`krprobeUser.c`·`krprobeServer.c` 가 줄 단위로 같고(23·213·212 줄), H 로 컴파일됩니다.
-- h 정해 둔 기호가 모든 객체에 있습니다.
+07 덮어쓰기와 기록:
+- `v183.34/m68k/src/bsd/kern/mach_process.c` 는 `#if m68k` 묶음 7 줄, `kern_exec.c` 는 5 줄입니다. 07 줄은 `#else` 에 남겼습니다.
+- diff 는 `06_reconstruction/evidence/m68k-pc-split.diff` 입니다.
+- `MARKERS` 와 `EXCEPTS[444]` 를 더했습니다. 덮어쓰기 `.c` 6 개는 파생 검사를 모두 통과했습니다.
+- PROVENANCE 1073 → 1075, MODIFICATIONS 597 → 599(덧붙이기만).
 
-m68k(`cc-744.13 -arch m68k`) ABI 측정값(i386 대조와 다른 것 위주; 근거는 기록의 `c_tables`·`d_observations`):
-- 크기: char 1, short 2, int·long·포인터·float 4, double·long long 8, long double 12(68881 확장: 지수 16 비트, 0 채움 16 비트, 명시 정수 비트가 있는 가수 64 비트). char 는 부호 있음, enum 은 4 바이트·음수 허용.
-- **정렬은 최대 2 바이트**: 2 바이트 이상인 형은 모두 `__alignof__` 2, `{char; T}` 의 T 오프셋은 모두 2, 전역도 2 바이트 경계(`_kr_g_c1` 272 → `_kr_g_i` 274). 구조체는 최소 정렬·크기 단위가 2(`struct {char}` 2 B, `struct {char[3]}` 4 B, 그 배열 보폭 4).
-  예: `{char; int; short}` 8 B(i386 12), `{char; double}` 10 B(i386 12), 기존 `s4` 18 B(i386 24).
-- 비트필드: 최상위 비트부터 채우고 저장 단위 경계를 넘을 수 있음(`u:12×3` 6 B, i386 8 B), `int :0` 은 2 바이트 경계로(`{u:4; int:0; u:4}` 4 B, i386 8 B), `{char; int b:4}` 2 B, 이름 없는 `int` 비트필드는 부호 있음(`bfexts`).
-- 호출: 인자는 오른쪽부터 스택에 쌓고 모두 4 바이트 칸(char·short 는 칸의 오른쪽 끝, 8 바이트 형도 4 바이트 경계), 프로토타입 있는 float 는 4 바이트, 프로토타입 없거나 옛 형식이면 double 로 승격, 구조체 값은 크기대로 칸에(2 바이트 구조체는 오른쪽 끝). 가변 인자도 같은 칸 배치.
-- 반환: 정수·포인터 d0(char·short 는 피호출 쪽이 32 비트로 확장), long long·double d0:d1(상위 d0), **float 도 d0**(fp0 아님), long double 은 a1 이 가리키는 곳에 쓰고 a1 을 d0 에도 둠,
-  구조체는 4 바이트 이하 d0, `{int,int}` d0:d1, `{int[3]}`·`{double}`(8 B 이지만) 은 호출 쪽이 a1 으로 준 곳(주소를 d0 에도 둠).
-- 보존 레지스터: d2–d7·a2–a5, FP 는 fp2·fp3 (fp4–fp7 은 이번 탐침에서 쓰이지 않아 미확인; 관찰: `moveml #0x3f3c` = d2–d7,a2–a5, `fmovem #0xc` = fp2,fp3 — 마스크는 python 으로 풂), a6 프레임 포인터. 잎 함수는 `link` 대신 `pea a6@; movel sp,a6`.
-- 명령 집합: 68020 이상(`bsr.l`, `bfexts`/`bfextu`/`bfins`, `extbl`, `mulsl`)과 68881(`fmovex` 등)을 기본으로 냅니다(`-m` 옵션 없이; cc1obj 판 문자열 "68k, MIT syntax").
-  double→int 변환은 FPCR 반올림을 0 방향으로 바꿨다가 되돌립니다.
-- 보조 함수(정의되지 않은 기호): m68k `__ashldi3`·`__divdi3`·`__fixdfdi`·`__floatdidf`·`__umoddi3`, i386 `__divdi3`·`__umoddi3`.
-- 인라인 asm: 제약자 `=a`·`a`·`=dm`·`=m`·`Jdm`, 일치 제약 `"0"`, 덮어쓰기 `"cc"`·`"memory"` 를 받아들입니다(진단 없음). `Jdm` 에 상수를 주면 즉시값(`movw #9984,sr`).
-- 문자열: `-fwritable-strings` 이면 리터럴이 `__DATA,__data` 에 하나씩(같은 문자열도 합치지 않음), 빼면 `__TEXT,__cstring` 에 합쳐 놓입니다.
+최종 run `m5p444-fin1`:
+- 스테이징 `m0p444-stage` 는 888 파일이고, `m0p441-stage` 대비 다른 파일은 두 `.c` 뿐입니다. 그래서 다른 205 객체는 입력이 같아 다시 컴파일하지 않았습니다. x86 관문 7 스테이징은 같습니다.
+- 2 명령이 종료 0 입니다. 맨 `m68k` 가 미리 정의돼 있음이 컴파일 성공으로 확인되었습니다(아니면 `#else` 의 `PC` 에서 실패).
+- 두 객체 모두 PC 쓰기 명령열이 원본과 같고(각 1 곳), 원본에 없는 미정의 기호는 0 입니다.
+- **`x86-mach_process` 는 OBJECT_MATCH** 입니다.
+- `x86-kern_exec` 은 NOT_MATCH(`_execve` 만 다름; 객체 2218 B 대 원본 2258 B) 입니다.
+  - 덩어리는 PMON 블록 하나입니다: 원본에만 `btst #4,_pmon_flags` → `bsr _pmonlogexec`(0x400514c–, `kern_exec.c:537` 근처)와 그 앞뒤 스택 정리(X 1·DEL 1)가 있습니다.
+  - D024 조건(객체 OBJECT_MATCH)을 아직 채우지 못한 **중간 상태** 로 둡니다(PMON 항목에서 마무리).
+- 도구 해시: 변형 run 뒤 `cmd2`·`final` 명령을 더해 도구가 바뀌었습니다. 첫 판 해시(026cd263…)는 변형 run 기록, 마지막 판(4d0b7761…)은 최종 기록과 같습니다(`08_build/artifacts/m5p444/tools-pre.sha`).
+- m68k 누계: 이름 대응 공통부 C 208 중 **207 컴파일**(`ns_timer` 만 남음), OBJECT_MATCH **149**.
 
-판단: GCC27 문서 완료 판정 2 의 m68k 작은 탐침(C·ObjC·어셈블리·MIG·구조체 배치)이 `cc-744.13` 으로 통과했습니다. 측정 범위는 이 컴파일러와 D·O·G·H·W 옵션이고,
-1997 원본 컴파일러와의 코드 동일성(M0-2), 원본 m68k 커널 구조체 오프셋 대조(M3), ObjC 메타데이터 내부 해석(`objc_meta` 확장), SPARC 는 남았습니다.
+## 445. M5-2 세부 계획 — m68k PMON 1: `kern_exec` 의 `pmonlogexec` 호출(D024; x86 트리 변경 없음; 코딩 전, 2026-10-09)
 
-## 413. M0-2 세부 계획 — m68k: `cc-744.13` 과 1997 원본 m68k 컴파일러의 코드 동일성 측정(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09)
+배경: 원본 m68k 공통부에서 PMON 호출은 세 객체에만 있습니다(python 으로 원본 목록 전체 검색).
+- `kern_exec`: `_pmonlogexec` 1 회(0x400516c)
+- `vm_fault`: `_pmonlogcontextflush`·`_pmonlogevent` 각 1 회(0x405cf38·0x405cf82)
+- `vm_pageout`: 같은 쌍 2 회(0x40604e0·0x4060522·0x40605f6·0x4060638)
 
-배경: 기준 문서 M0-2. 원본 m68k 커널(mk-183.34, 1997-04-27)을 만든 컴파일러가 실기 `cc-744.13` 과 같은 코드를 내는지 모릅니다. i386 에서는 §409 가 정황을 주었고
-(1997 i386 조각에서 재빌드 객체 대부분 통과), m68k 백엔드는 같은 fat 파일이라는 정황뿐입니다. 이번에는 **아키텍처에 따라 전처리 결과가 바뀌지 않는 소스**만 골라
-m68k 로 컴파일하고 원본 m68k 커널과 L1 로 비교해, 소스·머리 요인을 줄인 상태에서 컴파일러 요인을 잽니다.
+세 곳 모두 `_pmon_flags`(`__common` 0x40b607c, 160 B = int 40 개)의 `+0x44`(= `[17]`)를 검사합니다. x86 원본에는 PMON 기호가 없습니다. NeXTMach 1990 `next/kernel_pmon.h` 는 `DEBUG` 전용 인라인 `pmon_log_event` 이고, 소스 번호·사건 값(`next/pmon_targets.h`)이 1997 원본의 17·0x10000000 등과 맞지 않습니다. 그래서 원본 바이트에서 작성합니다(D024). 이 절은 가장 단순한 `kern_exec` 만 하고, `vm_fault`·`vm_pageout` 은 인자 계산을 따로 분석한 뒤 다음 절에서 다룹니다.
 
-확인한 사실(이번 세션, python, 읽기 전용):
-- §409 기록(`m0-i386-18334-l1-20261009.json`)에서 등급 A·ObjC 아님·x86 과 1997 i386 조각 모두 OBJECT_MATCH 이고, `__TEXT,__text` 의 외부 기호가 모두
-  원본 m68k 기호표(`03_original/m68k/inventory/symbols.tsv` 의 `defined_external`)에 있는 객체가 195 개(`__text` 394,952 B)입니다. 모두 `s6l4-g1a` 의 평범한 `RUN /bin/cc` 줄로 만들어졌습니다.
-- 그 입력 스테이징 `08_build/runs/tools/s6l4-g1a-stage` 는 매니페스트 837 파일과 디스크 837 파일이 같고 SHA 가 모두 맞습니다.
-- 스테이징의 `machine/` 머리는 `ARCH_INCLUDE` 나 `__i386__` 분기로 i386 머리를 고릅니다(예: `src/bsd/machine/endian.h`, `src/machdep/machine/features.h` 는 그 밖이면 `#error`).
-  따라서 이 머리를 거치는 소스는 m68k 로 그대로 컴파일되지 않거나 다른 텍스트가 됩니다.
+확인한 사실(원본 목록 0x4005134–0x400517e):
+- `bcopy(pn.pn_buf, utask->uu_comm, pn_pathlen + 1)` 에서 `lea a4@(0x8),a2` 로 `&utask->uu_comm` 을 a2 에 둡니다.
+- 바로 다음이 `btst #4,_pmon_flags+0x44; beq` → `movel a2,sp@-; movel _active_threads,sp@-; movel #0x10000000,sp@-; pea 0x11; bsr _pmonlogexec; addqw #8; addqw #8` 입니다.
+- 그 뒤가 `movel a4@,a0; bset #7,a0@(0x28)` = 07 `kern_exec.c:532` `utask->uu_procp->p_flag |= SEXEC` 입니다.
+- `btst #4` 는 바이트 +0x44 의 비트 4 = int `[17]` 의 0x10000000 입니다(§431 의 aston 과 같은 변환).
+- 따라서 C 꼴은 `if (pmon_flags[17] & 0x10000000) pmonlogexec(17, 0x10000000, current_thread(), utask->uu_comm);` 입니다.
 
 방법:
-1. 후보: 위 195 개 중 C 소스(`.c`)만. 객체마다 s6l4 의 컴파일 줄을 그대로 쓰고 `-arch` 와 출력만 바꿉니다(최적화·`-g`·정의·포함 경로 동일; `-O` 는 `__OPTIMIZE__` 를 바꾸므로 `-E` 에도 그대로 둠).
-2. run 1 `m0p413-pp1`(실기 kr_run, 입력은 위 스테이징): 후보마다 `-arch i386 … -E -o stage/NNN.i386.i`. 호스트에서 python 으로 줄 표시(`# n "file"`)를 읽어 포함 파일 목록을 만들고,
-   (a) 경로 요소에 `i386`·`m68k`·`machine` 이 있거나 `ARCH_INCLUDE.h` 를 포함한 객체, (b) 소스·포함 파일 원문에 아키텍처 이름(`i386`·`__i386__`·`m68k`·`mc68000`·`__BIG_ENDIAN__`·`__LITTLE_ENDIAN__`·`BYTE_ORDER`·`sparc`·`hppa`·`ppc`)이 나오는 객체를 뺍니다.
-   (b) 는 보수적 거르기이고(실패하는 m68k 컴파일로 run 전체가 게시되지 않는 것을 막음), 판정의 근거는 3 의 비교입니다.
-3. run 2·3 `m0p413-m68k1`·`m0p413-m68k2`: 남은 객체마다 `-arch m68k … -E -o stage/NNN.m68k.i` 와 `-arch m68k … -c -o stage/NNN.o`. 두 run 의 산출물 SHA 가 같아야 합니다(결정성).
-   m68k 백엔드(`/lib/m68k/*`) 해시는 run 전후 목록으로 보충합니다(§412 와 같은 방법). 호스트에서 객체마다 i386 `.i` 와 m68k `.i` 가 **바이트 동일**한지 봅니다.
-   다르면 비교 대상에서 빼고 이유를 적습니다(다른 줄 수).
-4. 비교: `.i` 가 같은 객체를 `l1_compare.py --image 03_original/m68k/binaries/mach_kernel --obj NNN.o --place-from-image` 로 비교합니다.
-   python 집계: 객체 판정, 이유 종류, `__TEXT,__text` 함수 판정 수·바이트(MATCH·MATCH_UNVERIFIED·DIFF·미배치), 경로(디렉터리)별. 대조군으로 같은 객체의 s6l4 i386 객체가 x86 원본에서 OBJECT_MATCH 인 것은 §409 기록으로 둡니다.
-5. DIFF 함수의 진단(판정과 분리): 함수 크기(원본은 다음 외부 기호까지, 객체는 기호 범위)의 같음/다름, 처음 다른 바이트 위치. 명령 수준 비교가 필요하면 실기 `otool` 로 원본과 객체를 읽기 전용으로 풀어 봅니다
-   (capstone 은 `bsr.l`·`.x` 메모리 원천 FPU 명령을 잘못 읽으므로 쓰지 않음, §412.2).
-6. 해석 규칙(미리 정함): MATCH 함수 = "`cc-744.13 -arch m68k` 와 기록된 플래그·07 소스·스테이징 머리로 만든 객체가 그 함수에서 이 도구의 비교를 원본 m68k 커널과 통과함"
-   — 그 함수에 대해 1997 m68k 컴파일러와 구별되지 않는다는 근거입니다. DIFF 는 원인(소스 판 183.34 ↔ 183.34.4, 구성 값 H-meta, 플래그, 컴파일러)을 가르지 않습니다.
-   MATCH 가 많으면 컴파일러 동일의 정황이 강해지고, 적어도 컴파일러 차이의 증명은 아닙니다. m68k 의 2 바이트 재배치·SECTDIFF 가 나오면 §411 의 미검증 항목이므로 따로 셉니다.
-7. 기록: 이 절 결과, `09_validation/reconstruction/m0-m68k-cc-l1-20261009.json`(객체별 상세는 무시 대상 `08_build/artifacts/m0p413/`, SHA 로 묶음), 새 도구 `10_tools/reconstruction/m0_m68k_l1.py`
-   (명령 파일 생성·`.i` 대조·L1 실행·집계). 07·x86 표·기존 도구는 바꾸지 않으므로 x86 회귀는 해당하지 않습니다. 로컬 기준 문서 M0-2 문단 갱신.
+1. 07 덮어쓰기 `kern_exec.c`(§444 판)의 532 행 앞에 `#if m68k` 묶음(`plan 445 (m68k)`)을 끼웁니다.
+   - 블록 안에 `extern int pmon_flags[]; extern void pmonlogexec();` 를 둡니다(새 머리를 만들지 않음).
+   - 값은 숫자로 씁니다. 1997 이름은 알 수 없어 지어내지 않습니다.
+2. `MARKERS`·`EXCEPTS[445]`(= 444) 를 더합니다. 스테이징 차이 = `kern_exec.c` 하나를 확인하고 x86 관문을 봅니다. 객체 하나를 컴파일합니다.
+3. 미리 정한 기준:
+   - `x86-kern_exec` OBJECT_MATCH
+   - 원본에 없는 새 미정의 기호 0(`_pmon_flags`·`_pmonlogexec` 는 원본에 있음)
+   - 아니면 진단만 합니다.
+4. `pmon_flags` 의 정의(COMMON)는 이번에 넣지 않습니다(UNDF). §441 과 같은 B2-1 판단이 필요하며, 링크(M7) 전에 정합니다.
+5. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-pmon-exec.diff`, `09_validation/reconstruction/m5-m68k-pmon-exec-20261009.json`.
 
-### 413.1 codex 교차검토(gpt-6.1-sol, klfatek4s) 판정과 계획 수정
+### 445.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| 2 의 거르기로는 195 개가 모두 빠짐(기존 `-M` 의존 목록 기준) | `08_build/runs/s6l4-g1a/run.cmd` 의 `-M` RUN 312 개와 `out/_log/NN.out` 를 python 으로 대응: `.c` 194 개 모두 경로 요소 `i386`·`machine` 또는 `ARCH_INCLUDE.h` 를 거침, 나머지 1 개는 `.s`(`start.s`). 가장 흔한 것 `ARCH_INCLUDE.h` 185·`mach/machine/boolean.h` 184 | ✅ 결론 사실(codex 의 186+9 분할은 내 규칙과 달라 옮기지 않음). 방법을 바꿈(아래) |
-| 원시 `.i` 동일은 보수적 거르기일 뿐이고 줄 표시와 확장 코드 차이를 구분해야 함 | §412 `m0p412-abi1/out/m68k_H_c_vararg.i` 의 줄 표시 형식 확인(`# n "file" flags`) | ✅ 줄 표시로 줄마다 출처 파일을 붙여 차이를 출처별로 분류 |
-| `-imacros meta_features.h` 가 가져오는 머리는 `-M` 목록에 안 나옴; `__ARCHITECTURE__`·`__TARGET_ARCHITECTURE__` 도 아키텍처 단어 | `06.out` 에 `cpus.h`·`confdep.h` 0 건(grep); `ARCH_INCLUDE.h` 가 `__TARGET_ARCHITECTURE__`←`__ARCHITECTURE__` 로 경로를 만듦(파일 읽음); `meta_features.h` 의 `#import` 50 개 파일에 `i386`·`m68k`·`__ARCHITECTURE__` 0 건(grep -l 빈 출력) | ✅ 생성 머리는 아키텍처 단어 없음을 기록. 판정은 `.i` 출처 분류로 함 |
-| 실패한 RUN 하나가 게시를 막음; `-E -o` 는 이미 됨; EXPECT 는 `stage/` 없이 | `kr_run.py:328–329`(rc≠0 이면 거부), `:141–144`·`:340–345`(EXPECT 는 `stage/` 를 붙여 찾음), `m0p412-abi1/run.cmd:33`(`-E -o`)·EXPECT 줄 | ✅ 전처리 run 을 먼저 따로 하고, 실패 객체는 로그로 확인해 다음 run 에서 뺌 |
-| 배치는 한 절의 모든 대응 기호가 같은 델타일 때만 됨; 함수 하나 크기가 다르면 그 절 전체가 미배치 | `l1_compare.py:466–478`(`placements_from_image`, `len(ds) == 1`) | ✅ 미배치는 DIFF 로 세지 않고 따로 셈. 보조 진단으로 함수마다 원본 기호 주소에서 재배치 필드를 가린 바이트 대조(판정 아님) |
-| 추론은 4 바이트 필드만 씀; 좁은·pc 상대 리터럴 참조는 미확인; 외부 재배치는 type≠0 검사 전에 반환 | `l1_compare.py:266`(`if w == 4 else None`), `:340–342`, `:188–197`(extern 분기가 `:198` 의 type 검사보다 앞) | ✅ 객체마다 재배치 종류(외부·pc·폭·type)를 세고, 1·2 바이트 필드·type≠0 이 들어간 함수는 MATCH 라도 따로 표시 |
-| 리터럴은 `S_CSTRING`·`S_LITPTR` 만 내용 대조, 절 전체는 비교 안 함; `-fwritable-strings` 이면 문자열이 `__data` | `l1_compare.py:101–105`, `:307–310`; §412.2 문자열 결과 | ✅ 해석에 적음(`__data` 배치 결과가 플래그 가설의 시험이 됨) |
-| 함수 "크기" 는 기호 범위이고 원본은 이름 없는 정적 함수를 품을 수 있음; STAB 정보는 무시 | `l1_compare.py:372–381`(객체 기호로 범위) | ⚖️ 범위가 기호 범위인 것은 사실. 객체 쪽 정적 함수는 `-g` 객체에서 비-STAB 지역 기호로도 있으므로 "STAB 에만 있어 합쳐짐" 은 이번 객체에 그대로 맞지 않음. "기호 범위" 로 적음 |
-| DIFF 는 코드 바이트 차이 없이 참조 데이터 절 실패로도 생김; 추론은 원본 값을 씀 | `l1_compare.py:383–384`, `:245–266` | ✅ DIFF 를 코드 바이트·재배치·의존 절로 나눠 셈 |
-| 같은 이름이라도 다른 구현(예: m68k `_strlen` 은 어셈블리) | 이번 후보에서 자기 파일이 `i386/` 아래인 18 개(`machdep/i386/libc/*` 포함)는 이미 빠짐(python) | ⏭️ 예시는 대상 밖이라 옮기지 않음. 일반 원칙은 해석에 적음 |
-| 강하게 고른 부분집합이므로 거르기 단계별 수를 보고하고 일반화하지 말 것 | 설계 판단 | ✅ |
-| 결정성은 `.i`·`.o` 만 대조, 도구·입력 해시로 묶을 것 | §412 방법(`run.json` 제외) | ✅ |
+| 판독 확인(인자 순서·`_active_threads`·`_pmonlogexec`·`[17]`·0x10000000); `SEXEC` 는 0x80000000(`proc.h:569`)이고 `p_flag` 는 int 라 `bset #7,…@(0x28)` | `proc.h` grep(569 행), F444 목록 663 행 `bset #7,a0@(0x28:w)` | ✅ (내 질문의 0x80 은 틀림 — 판독에는 영향 없음) |
+| F444 와 원본 `_execve` 의 차이는 0x400513c 부근뿐(원본 `lea a4@(8),a2; movel a2,sp@-` 대 객체 `pea a4@(8)`, SEXEC 줄 위치, PMON 블록 없음) → 끼울 자리가 맞음 | §444.2 의 덩어리 진단(X 1·CALL 1·DEL 1)과 같은 내용 | ✅ |
+| CSE 로 `&uu_comm` 이 a2 에 남는지는 컴파일로만 확인 가능(위험 낮음–중간) | — | ⏭️ 실행이 판정 |
+| C89 에서 문장 뒤의 블록 범위 `extern` 은 `{ … }` 안에 있어야 함 | C89 규칙 | ✅ 중괄호 포함(줄 수에 셈) |
+| `pmon_flags`·`pmonlogexec` 는 07·스테이징 어디에도 없음(충돌 없음); `current_thread()` = `active_threads[cpu_number()]`, `cpu_number()` = 0 | grep 0 건, 스테이징 `kern/thread.h:345` | ✅ |
+| `MARKERS` 에 `plan 445` 항목(`kern_exec.c`: 묶음 전체 줄 수), `EXCEPTS[445]` 필요; 444 항목은 유지 | `check_derived` 설계 | ✅ |
+| 한 객체 컴파일·비교 도구가 계획에 없음(`m5_m68k_pc.py` 는 444·`F444__`·두 파일 고정) | 도구 읽음 | ✅ `cmd2`·`final` 을 절 번호·대상 파일 인자로 일반화(444 기록은 그대로) |
+| `pmon_flags` 참조는 `__text` 세 곳(+0x44)뿐이고 처음 언급자는 `kern_exec`; `__common` 에서 `kern_exec` 의 COMMON(`_init_exec_args`·`_vm_info_zone`) 사이에 놓임 → 정의 미룸은 B2-1 상 문제없음 | §445 사실(python 검색)과 같음 | ✅ |
+| 끼울 자리는 덮어쓰기 판 **537 행**(532 는 07 본 파일 번호) | 덮어쓰기 파일 grep: 537 행 | ✅ **내 오류** 정정 |
+| §444 의 `kern_exec` 중간 상태 기록은 445 결과로 갱신된다고 밝힐 것 | — | ✅ |
 
-추가로 확인한 사실(이번 세션):
-- `.c` 194 개 중 자기 파일이 `i386/` 아래 18, `machdep/`·`dev/`·`driverkit` 의 아키텍처 머리를 거치는 100 을 빼면 **76 개(`__text` 93,677 B)** 가 남고(python), 이들이 거치는 아키텍처 머리는 24 개입니다.
-  그중 22 개는 실기 SDK `/NextDeveloper/Headers/…/i386/` 의 사본(스테이징 매니페스트 주석), `bsd/i386/reboot.h`·`spl.h` 2 개는 프로젝트 작성본입니다.
-- 실기 SDK 의 m68k 디렉터리(`ls`, 읽기 전용): `architecture/m68k` 6 개(`fpu.h`·`frame.h`·`sel.h` 없음), `ansi/m68k` 7, `bsd/m68k` 17, `bsd/rpc/m68k` 1, `kernserv/m68k` 2, `mach/m68k` 9.
+### 445.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m5-m68k-pmon-exec-20261009.json`
 
-고친 방법(앞의 2–4 를 대체):
-2'. **m68k 스테이징**: 위 여섯 SDK m68k 디렉터리의 모든 파일을 실기에서 `cat` 으로 무시 대상 `08_build/artifacts/m0p413/sdk-m68k/` 에 복사하고 실기 `krsha256` 과 호스트 SHA 를 대조합니다(D017: SDK 사본은 로컬).
-   `s6l4-g1a-stage` 를 새 무시 대상 `08_build/runs/tools/m0p413-stage` 로 복사하고, i386 짝이 놓인 자리(`components/architecture/m68k`, `nextdev/ansi/m68k`, `src/bsd/m68k`, `src/bsd/rpc/m68k`, `src/kernserv/m68k`, `src/mach/m68k`)에 더합니다.
-   기존 파일은 바꾸지 않습니다(같은 이름이 이미 있으면 SHA 가 같을 때만 둠). 매니페스트를 새로 씁니다.
-3'. 대상: 76 개 중 프로젝트 작성 머리(`bsd/i386/reboot.h`·`spl.h`)나 SDK m68k 짝이 없는 머리(`architecture/i386/{fpu,frame,sel}.h`)를 거치는 객체를 뺀 것.
-4'. run A `m0p413-pp1`: 대상마다 `-arch i386 … -E` 와 `-arch m68k … -E`(같은 새 스테이징). 실패가 있으면 로그로 원인을 적고 그 객체를 빼서 새 ID 로 다시 합니다.
-   호스트 python: 줄 표시로 줄마다 출처 파일을 붙이고, 두 `.i` 의 차이(줄 표시 제외)가 모두 아키텍처 디렉터리(`/i386/`·`/m68k/`) 출처인 객체를 "공유 텍스트 같음" 으로, 아니면 "공유 텍스트 다름" 으로 나눕니다(뒤의 것도 비교하되 따로 셈).
-5'. run B·C `m0p413-cc1`·`m0p413-cc2`: 남은 객체마다 `-arch m68k … -c`(s6l4 줄 그대로, `-arch` 만 바꿈). 두 run 의 `.o` SHA 동일(결정성). m68k 백엔드 해시는 run 전후 목록(§412 방법).
-6'. 비교·집계는 앞의 4–6 과 같고, 413.1 판정대로 미배치·재배치 종류·DIFF 원인을 나눠 셉니다. 거르기 단계별 수(195 → … → 비교 대상)를 기록합니다.
-   해석에 더함: 머리는 1997 커널 빌드의 내부 머리가 아니라 같은 시기 SDK 의 m68k 머리이므로 머리 요인이 남습니다.
+- 07 덮어쓰기 `v183.34/m68k/src/bsd/kern/kern_exec.c` 의 537 행(SEXEC) 앞에 9 줄 묶음(`plan 445 (m68k)`, `#if m68k` 안에 중괄호 블록·블록 범위 `extern` 둘·`if … pmonlogexec(…)`)을 끼웠습니다.
+  - diff 는 `06_reconstruction/evidence/m68k-pmon-exec.diff`(07 본 파일 대비, §444 묶음 포함)입니다.
+  - PROVENANCE 의 이 파일 행(§444 에서 오늘 쓴 행)을 갱신했고(행 수 1075 그대로), MODIFICATIONS 는 599 → 600 입니다.
+- 도구:
+  - `stage_m68k.py` 에 `MARKERS`(`plan 445`: `kern_exec.c` 9)·`EXCEPTS[445]` 를 더했습니다. 덮어쓰기 `.c` 파생 검사는 통과했습니다.
+  - `m5_m68k_pc.py` 의 `cmd2`·`final` 을 절 번호·대상 파일 인자로 일반화했습니다.
+  - 첫 `final` 실행은 내 코드의 변수 이름 겹침(`names`)으로 멈췄고, 고쳐 다시 실행했습니다. 해시는 `08_build/artifacts/m5p445/tools-pre.sha` 에 있고 마지막 판이 기록과 같습니다.
+- 스테이징 `m0p445-stage` 는 `m0p444-stage` 대비 `kern_exec.c` 하나만 다릅니다. x86 관문 7 스테이징은 같습니다.
+- run `m5p445-fin1` 은 1 명령 종료 0 이고, 실기 otool 목록 SHA 를 대조했습니다.
+- 결과: **`x86-kern_exec` OBJECT_MATCH**(외부 구간 모두 같음). PC 쓰기 명령열(§444)도 그대로이고, 원본에 없는 새 미정의 기호는 0 입니다.
+  - §444 의 "중간 상태" 는 해소되었습니다(D024 조건 충족).
+- `pmon_flags` 정의(COMMON)는 미룹니다(§445.1; `kern_exec`·`vm_fault`·`vm_pageout` 은 UNDF 로 참조).
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 150**.
 
-### 413.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-m68k-cc-l1-20261009.json`
+## 446. M5-3 세부 계획 — m68k PMON 2: `vm_fault` 의 사건 마스크 누적과 `pmonlogevent`(D024; x86 트리 변경 없음; 코딩 전, 2026-10-09)
 
-준비:
-- 실기 SDK m68k 머리 42 개를 `cat` 으로 복사, 실기 `krsha256` 과 호스트 SHA 42/42 같음. 새 스테이징 `m0p413-stage` 는 기존 837 파일 + 41 개(`bsd/m68k/fptrace.h` 1 개는 같은 SHA 로 이미 있음) = 878 파일, 매니페스트와 디스크가 같음(도구 assert).
-- 거르기(python, `m0_m68k_l1.py select`): 402 → 등급 A·비 ObjC·두 이미지 OBJECT_MATCH 아님 143, 외부 `__text` 기호 없음 12, m68k 원본에 없는 기호 52, `.c` 아님 1, 자기 파일이 `i386/` 18,
-  i386 머리가 SDK 사본이 아니거나 SDK m68k 짝 없음 130(가장 많은 것 `machdep/i386/machspl.h` 37·`architecture/i386/frame.h` 26·`bsd/i386/spl.h` 26) → **대상 46 객체**(i386 `__text` 50,252 B).
-- 실기 도구 12 경로 해시: run 전후 같고 §412 기록과도 같음.
+배경: §431 진단에서 `_vm_fault` 의 차이는 다음 셋입니다.
+- PMON 사건 마스크(d5)를 함수 곳곳에서 쌓는 덩어리 8 개(INS)
+- `pmap_enter` 앞의 기록 블록(CALL)
+- 그에 따른 레지스터·프레임 차이(R 48·D-frame 11·X 8)
 
-전처리(run `m0p413-pp1`, 92 명령 모두 종료 0, 게시):
-- `.i` 비교(python): 아키텍처 디렉터리 밖 차이 없음 2, `expansion` 44 — 공유 텍스트의 차이는 `TRUE`/`FALSE`(i386 `((boolean_t) 1)` ↔ m68k `(1)`), 바이트 순서 매크로(`NXSwapBigLongToHost(…)` ↔ 그대로) 등
-  머리 매크로 펼침이고, `.c` 자체에서 줄이 생기거나 사라진 객체(`source_structural`)는 0, 46 개 `.c` 원문에 아키텍처 이름 0(단어 경계 검사; 처음 검색의 `inp_ppcb` 같은 부분 일치는 오탐).
+1997 PMON API 는 NeXTMach 1990 과 다릅니다(§445).
 
-컴파일(run `m0p413-cc1`·`cc2`, 46 명령씩 모두 종료 0, 게시):
-- 두 run 의 `.o` 46/46 SHA 같음. 컴파일 경고가 있는 객체 15, 46/46 이 같은 객체의 s6l4 i386 컴파일과 경고 내용이 같음(파일:줄 앞부분 제외).
-- 재배치(`__text`): 외부 pc 723·외부 절대 547·지역 절대 231·지역 pc 143·scattered 19, 모두 4 바이트 VANILLA. 1·2 바이트 필드나 type≠0 은 0 → §411 의 m68k 미검증 형식은 이번 판정에 들어가지 않음.
+확인한 사실(원본 목록 `_vm_fault` 0x405c43c–0x405d07e, python 으로 분기 대상 조사):
+- 시작: `movel #0x2000000,d5` 가 `vm_stat.faults++`(`addql #1,0x40c2404`, 07 114 행) 앞에 있습니다 → `int pmon_event = 0x2000000;` 선언 초기화.
+- 마스크 누적 7 곳(`moveq #N,d4; orl d4,d5`):
 
-원본 m68k 커널과 L1(python 집계):
-- 객체: **OBJECT_MATCH 18**(`__text` 7,480 B, 15.67 %), NOT_MATCH 28. `__text` 가 배치된 객체 33, 미배치 13(19,118 B — 같은 절 기호들의 델타가 하나가 아님).
-- 함수(`__TEXT,__text`, 46 객체 47,724 B): **MATCH 105 개 12,296 B(25.76 %)**, MATCH_UNVERIFIED 5 개 2,144 B(4.49 %), DIFF 57 개 14,166 B(29.68 %), 나머지는 미배치.
-  DIFF 원인(겹침): 코드 바이트 54, 재배치 값 37, 참조 데이터 절 실패 7.
-- 보조 진단(판정 아님): 외부 함수 221 개를 원본 기호 주소에서 재배치 필드를 가리고 대조 — **173 개(78.28 %) 같음**, 그중 166 개는 원본의 다음 외부 기호까지 거리와 크기도 같음.
-  OBJECT_MATCH 객체에는 `tcp_subr`(10 함수)·`ufs_lockf`(13)·`uipc_domain`(6)·`queue`(7)·`if_loop`(4) 등이 있습니다.
-- DIFF 예시(python 바이트 + capstone m68k 로 확인, `bsr.l`·`.x` 결함 명령 제외):
-  `_chdir` — 크기 82 같음, 재배치 밖 차이는 변위 0x15a ↔ 원본 0x156 뿐(구조체 필드 오프셋 4 차이, 머리·구성 요인으로 보임);
-  `__authenticate` — 크기 90 같음, 같은 명령의 기본 블록 순서가 다름; `_ku_sendto_mbuf` — 크기 216 같음, 주소 레지스터 배정(a1 ↔ a0)이 다름.
-  뒤의 둘은 같은 07 소스가 1997 i386 조각에서는 통과한 객체이므로, 원인 후보는 m68k 빌드 플래그(46 개 모두 x86 의 `-g -O3` 를 그대로 씀), 원 소스의 m68k 전용 분기, m68k 구성 값, 컴파일러입니다. 가르지 않았습니다.
+| 원본 | 값 | 07 자리 | 블록 |
+|---|---|---|---|
+| 0x405c5a4 | 8 | 331(`first_m = VM_PAGE_NULL`)과 332(`vm_page_zero_fill(m)`) 사이 | — |
+| 0x405c656 | 1 | 372(`vm_stat.reactivations++`) 뒤, `if (m->inactive)` 블록 안 | 0x405c626 의 분기가 `orl` 뒤로 감 |
+| 0x405c6c0 | 2 | 392(`vm_stat.reactivations++`) 뒤, `if (m->free)` 블록 안 | 0x405c690 의 분기가 `orl` 뒤로 감 |
+| 0x405c73c | 16 | 473(`#if NeXT`)과 474(`rc = vm_pager_get(…)`) 사이 | 앞 `if` 블록 뒤 공통 경로 |
+| 0x405c86c | 8 | 563(`vm_page_zero_fill(m)`)과 564(`zero_fill_count++`) 사이 | 호출 뒤 |
+| 0x405c8ce | 32 | 625(`vm_page_copy(m, first_m)`) 앞 | 쓰기 경로 |
+| 0x405c98a | 64 | 693–695 블록 선언 뒤, 697 주석·`if ((fault_type & VM_PROT_WRITE) == 0)` 앞 | `first_object->copy != NULL` 블록 안 |
 
-판단(413 의 해석 규칙대로):
-- `cc-744.13 -arch m68k` 는 이 부분집합에서 **1997 원본 m68k 커널과 바이트가 같은 함수 105 개(18 객체는 객체 전체)를 다시 만듭니다.** 재배치를 가린 대조로는 외부 함수의 78 % 가 같습니다.
-  이 함수들에 대해 1997 m68k 컴파일러와 구별되지 않습니다. M0-2 의 "작은 객체로 먼저 측정" 은 이 결과로 답했고, m68k 재구성에 `cc-744.13` 을 쓰는 근거가 됩니다.
-- 남은 차이는 원인을 가르지 않았습니다(컴파일러 차이의 증명도 아님). 강하게 고른 46 객체의 결과이므로 커널 전체로 일반화하지 않습니다.
-- 다음 후보: DIFF·미배치 28 객체에 플래그 격자(`-O2`/`-O3`/`-O4`, `-g` 유무 등)를 대어 플래그 요인을 분리, 구조체 오프셋 차이는 M3(머리·구성)에서 다룸.
-
-새 파일: `10_tools/reconstruction/m0_m68k_l1.py`, 위 검증 JSON. 07·x86 표·기존 도구는 바꾸지 않았습니다.
-
-## 414. M0-2 후속 — §413 의 m68k 차이 원인 분리: 플래그 격자, 머리 구조 차이, 명령 수준 분류(07·x86 표·기존 도구 변경 없음; 코딩 전, 2026-10-09)
-
-배경: §413 에서 외부 함수 221 개 중 48 개가 재배치를 가려도 원본 m68k 와 다릅니다(같은 크기 14, 다른 크기 34; python). 원인 후보는 m68k 빌드 플래그, 머리·구성 값, 원 소스의 차이, 컴파일러입니다.
-
-확인한 사실(이번 세션, 읽기 전용):
-- **§413 기록의 정정**: `ppcheck` 의 `expansion` 은 `.c` 에서 줄이 생기거나 사라지지 않았다는 뜻일 뿐, 공유 머리 안의 조건부 구조 차이를 걸러내지 않았습니다.
-  예: `src/bsd/sys/user.h`(스테이징, 출처 `07_kernel/nextdev/bsd/sys/user.h`) 146–148 행 `#ifdef i386 … uu_sigreturn` 때문에 `struct utask` 가 m68k `.i` 에서 한 줄 짧습니다(두 `.i` 의 구조체 본문 python 대조: 40 ↔ 39 줄).
-  §413.2 의 "공유 텍스트의 차이는 머리 매크로 펼침" 은 이런 구조 차이를 빠뜨린 설명입니다.
-- `_umask`(`vfs_syscalls`) 는 실기 `otool -tv -p _umask` 로 원본과 객체를 풀면 `uu_cmask` 변위만 다릅니다(원본 `0x164`, 객체 `0x168`). 객체의 STABS 에서 m68k `struct utask` 의 `uu_cmask` 는 360 B(0x168), `uu_cdir` 346 B(0x15a) 입니다(python).
-  `_chdir` 의 `0x15a ↔ 0x156` 도 같은 4 B 차이입니다. 즉 이번 스테이징 머리의 m68k `struct utask` 가 원본보다 그 앞 어딘가에서 4 B 큽니다.
-- 원본 m68k 커널은 `not stripped`(실기 `file`), 실기 `/bin/otool -tv -p SYM` 이 원본과 m68k 객체를 모두 MIT 문법으로 풉니다(위 출력). capstone 4.0.2 는 `bsr.l`(0x61ff)을 2 바이트로 읽어 이후를 깨뜨립니다(이번 세션 `_nb_alloc` 등에서 재확인).
-- 참고 구성: Darwin 0.1 `kernel/conf/MASTER.i386:81` gdb 구성 `-g -O3 -fno-omit-frame-pointer`, `MASTER.ppc:81` gdb 구성 `-g -O2`, 두 파일 82 행 비 gdb `-O3`; `Makefile.ppc` 의 `MACHINE_CFLAGS` 에 `-finline -fno-keep-inline-functions`;
-  KCC 에 `-fno-builtin`; NeXTMach `mk-108.1/conf/Makefile.NeXT:26` m68k `-O -fwritable-strings -fcombine-regs`(GCC 1 옵션). m68k 의 1997 `MASTER` 는 없습니다(01_resources 에 `MASTER.m68k` 0 건, find).
-- 바이트 예시(capstone, `bsr.l` 결함 부분 제외): `_raw_attach`·`_dnlc_lookupSymLink` 는 `if (…) return 오류값;` 블록의 놓는 자리가 다르고(방향은 함수마다 반대), `_pn_set` 은 인자 적재 순서, `_nb_alloc` 은 레지스터 배정과 크기(84 ↔ 80)가 다릅니다.
+- `pmap_enter`(07 1140 행) 앞의 기록 블록(0x405cef0–0x405cf88):
+  - `if (prot & VM_PROT_WRITE) pmon_event |= 0x100;`(`btst #1,a6@(0xfff3)` = `prot` 의 하위 바이트).
+  - `vmstat = (vmlog_send++ & 1) ? vm_page_free_count : (vm_page_inactive_count | 0x8000);`(`moveq #1; andl _vmlog_send; addql #1,_vmlog_send; tstl`). `_vmlog_send` 는 원본 `__common` 0x40c2c28 이고 x86 에는 없습니다.
+  - `if (pmon_flags[17] & 0x01000000) pmonlogcontextflush(17, 0x01000000);`(`btst #0` = 상위 바이트 비트 0).
+  - `if (pmon_flags[17] & pmon_event) pmonlogevent(17, pmon_event, (atop(vaddr) << 16) | atop(VM_PAGE_TO_PHYS(m)), (pmap_resident_count(map->pmap) << 16) | vmstat, current_thread());`(`lsrl _page_shift` = `atop`, `mach/vm_param.h:118`).
 
 방법:
-1. **플래그 격자 run `m0p414-fg1`**(실기 kr_run, 입력 `m0p413-stage`, 대상 §413 의 46 객체): s6l4 컴파일 줄에서 `-g -O3 -fno-omit-frame-pointer` 세 낱말만 아래 변형으로 바꿉니다(`-arch m68k`, 출력 `stage/Vk__BASE.o`).
-   V0 `-g -O3 -fno-omit-frame-pointer`(§413 재현 — 46/46 이 `m0p413-cc1` 과 SHA 같아야 함), V1 `-g -O2`, V2 `-g -O2 -fno-omit-frame-pointer`, V3 `-g -O3`, V4 `-g -O`, V5 `-O3`, V6 `-O2`, V7 `-g -O3 -fno-omit-frame-pointer -fno-builtin`.
-   46×8 = 368 명령. 하나라도 실패하면 게시되지 않으므로 로그로 원인을 적고 그 변형을 빼서 새 ID 로 다시 합니다. 실기 도구 12 경로 해시는 run 전후(§413 방법).
-2. **격자 비교**(호스트 python, 새 도구 `10_tools/reconstruction/m0_m68k_cause.py`, `m0_m68k_l1.py` 의 함수를 가져다 씀): 변형·객체마다 `l1_compare.py --place-from-image` 와 §413 의 재배치 가림 대조.
-   집계: 변형별 OBJECT_MATCH 수, 함수 MATCH 수·바이트, 가림 대조 같음 수(221 중). 함수마다 같음이 되는 변형 집합.
-   미리 정한 해석: V0 에서 같던 것을 하나도 잃지 않고 더 얻는 변형이 있으면 그것을 "m68k 플래그 후보" 로 적습니다(역사적 사실 아님). 얻는 것이 변형마다 갈리면 결론 내지 않고 표만 둡니다.
-   플래그로 같아지는 함수는 "플래그 요인" 으로 분류합니다.
-3. **머리 구조 차이 재분류**(새 run 없음, `m0p413-pp1` 의 `.i`): 공유(아키텍처 디렉터리 밖) 파일에서 줄이 생기거나 사라진 차이를 파일별로 세어 객체마다 `header_structural` 여부와 그 파일·줄을 적습니다. §413 의 분류표는 고치지 않고 이번 기록에 정정으로 둡니다.
-4. **남은 함수의 명령 수준 분류**: 2 의 최선 변형(없으면 V0)에서 아직 다른 함수를 실기 `/bin/otool -tv -p SYM` 으로 원본과 객체 모두 풉니다(읽기 전용 gcds, 출력은 호스트 파일; capstone 은 쓰지 않음).
-   python 정규화: 주소 열 제거, 분기 대상은 함수 안 상대 위치로, 절대 주소 피연산자(재배치 자리)는 `ADDR` 로 바꿉니다. 분류(겹치지 않게 앞에서부터):
-   D — 명령 줄 수·연산 부호·레지스터가 모두 같고 변위·즉치값만 다름(머리·구성 값 후보; 다른 값 쌍과 차이를 적음),
-   R — 연산 부호 열은 같고 레지스터 이름만 다름(레지스터 배정),
-   O — 정규화한 명령의 다중집합이 같고 순서만 다름(블록 배치·명령 순서),
-   X — 그 밖. D 는 변위가 `struct utask` 필드(객체 STABS 의 오프셋)와 맞는지 표시합니다.
-5. 해석 규칙(미리 정함): 플래그 요인은 2 의 결과로만, 머리 요인은 D 이면서 변위 차이가 머리 구조 차이(3)로 설명될 때만 붙입니다. R·O·X 는 "원 소스 또는 컴파일러" 로 남기고, 같은 07 소스가 1997 i386 에서 통과한 함수인지(§409 기록)를 함께 적습니다. 컴파일러 판 차이를 증명하거나 반증하지 않습니다.
-6. 기록: 이 절 결과, `09_validation/reconstruction/m0-m68k-cause-20261009.json`(상세는 무시 대상 `08_build/artifacts/m0p414/`, SHA 로 묶음), 새 도구. 07·x86 표·기존 도구는 바꾸지 않습니다.
+1. 07 덮어쓰기 `v183.34/m68k/src/vm/vm_fault.c` 를 만들고, 위 자리마다 `#if m68k` 묶음(`plan 446 (m68k)`)을 끼웁니다.
+   - 선언 1 개, 누적 7 개, 기록 블록 1 개입니다.
+   - 기록 블록 안의 블록 범위 `extern int pmon_flags[], vmlog_send; extern void pmonlogevent(), pmonlogcontextflush();` 와 지역 `int vmstat;` 는 중괄호 블록 안에 둡니다.
+   - 값은 숫자로 씁니다.
+2. 컴파일 → 실기 otool → 원본 `_vm_fault` 와 전체 정규화 비교(§436 방식, 덩어리 목록)를 합니다.
+   - 미리 정한 기준: 최종적으로 `x86-vm_fault` OBJECT_MATCH, 원본에 없는 새 미정의 기호 0.
+   - 첫 시도에서 덩어리가 남으면 덩어리별로 원인을 적고 C 꼴을 고쳐 새 run 으로 다시 시험합니다(시도마다 기록; 같은 덩어리가 두 번 연속 줄지 않으면 멈추고 보고).
+3. `vmlog_send`·`pmon_flags` 정의(COMMON)는 미룹니다(§445 와 같음).
+4. `vm_pageout` 은 다음 절(§447)입니다.
+5. 기록: PROVENANCE·MODIFICATIONS, diff, `09_validation/reconstruction/m5-m68k-pmon-fault-20261009.json`.
 
-### 414.1 codex 교차검토(gpt-6.1-sol, k0b327maz) 판정과 계획 수정
+### 446.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| `cc.cmd` 46 줄 모두 `-g -O3 -fno-omit-frame-pointer` 가 한 번씩 연속으로 있고 다른 `-O` 없음 → 세 낱말 치환 안전 | python: 46 줄 모두 `count(' -g -O3 -fno-omit-frame-pointer ')==1`, `-O*` 낱말 46·`-g` 46 | ✅ |
-| `-g` 를 뺀 `-O3 -fno-omit-frame-pointer`·`-O2 -fno-omit-frame-pointer` 를 더해야 `-g` 요인이 프레임 포인터와 분리됨 | 격자 설계 검토(V5·V6 은 `-fno-omit-frame-pointer` 없음) | ✅ V8·V9 로 더함 |
-| `-fno-thread-jumps`·`-fno-caller-saves`·`-fno-force-mem`·`-fno-defer-pop`·`-fno-inline` 후보(GNU 2.8 `toplev.c` 근거) | 외부 GNU 2.8 소스는 cc-744.13 의 근거가 아니며 열지 않음; 실기에서 인식 여부 미확인 | ⏭️ 이번 격자에 넣지 않음(인식 안 되면 run 전체가 막힘). 격자 결과가 갈리면 다음 절에서 실기 탐침 후 검토 |
-| kr_run 에 RUN 수 제한 없음, 로그 번호 `%02d` 는 최소 폭, `EXPECT` 는 `stage/` 없이, 0 아닌 종료가 하나라도 있으면 게시 거부, `wait` 1800 초 고정 | `kr_run.py:245–253`(`'%02d' % i`), `:326–329`(`need(rc == '0')`), `:340–345`(`os.path.join(rdir,'stage',e)`), `:364`(`def wait(rid, limit=1800)`) 읽음 | ✅ |
-| 가림 대조의 "같음" 은 객체 범위만큼의 앞부분 같음이고 재배치 대상은 확인하지 않음; `_xdr_callhdr` 는 객체 116 ↔ 원본 범위 272 인데 같음 | `m0_m68k_l1.py:385–392` 읽음; `report.json` python: `_xdr_callhdr` object_size 116·image_extent 272·masked_equal True, 같음이면서 범위가 다른 함수 7 | ✅ 변형 비교에서 엄격 L1 MATCH 집합과 "가림 같음 + 범위 같음" 집합을 따로 셈. §413 의 173 중 범위까지 같은 것은 이미 166 으로 적혀 있음 |
-| `-g` 는 코드에 영향을 줄 수 있는 실험 요인; 새로 같아진 함수는 "이 입력에서 플래그에 반응함" 이지 역사적 원인 확정 아님 | GCC27 문서 19 행(`sched_prim.c` 는 `-g` 에서만 일치) | ✅ 문구 수정 |
-| `read_i()` 는 줄 표시의 줄 번호를 버리고, 전역 difflib 정렬은 다른 머리의 같은 줄을 맞출 수 있으며, 길이 같은 치환이 매크로 펼침의 증명이 아님 | `m0_m68k_l1.py:239–252`(파일 이름과 본문만 보관), `:267–276` 읽음 | ✅ 3 을 (파일, 원 줄 번호) 열쇠 방식으로 바꿈(아래) |
-| `otool -p SYM` 은 함수가 아니라 절 끝까지 출력 | 이번 세션 실기 `otool -tv -p _umask` 출력이 `_vhangup:` 으로 이어짐 | ✅ 범위를 기호표로 자름 |
-| 객체의 `0x0:l` 자리는 재배치 기록으로 대상을 붙여야 하고, 분기 대상·pc 상대·점프 표 데이터(명령으로 잘못 풀림)에 주의 | `08_build/artifacts/m0p412/otool/m68k_O_c_codegen.txt:24`(`bsr 0x0:l`), `:51–52`(`jmp a0@` 뒤 `orb` 줄 = 표 데이터) 읽음 | ✅ 재배치·원본 기호표로 `기호+차이` 로 바꾸고, `jmp …@(…)` 뒤 표가 있는 범위는 `table` 로 표시 |
-| D 는 분기 대상 변화를 빼야 하고, R 은 일관된 레지스터 대응이어야 하며, O 의 다중집합은 휴리스틱; 머리·구성은 R·O·X 의 원인도 될 수 있음 | 설계 검토 | ✅ 분기 대상은 D 판정에서 제외 표기, R 은 일대일 대응 검사, O 는 "휴리스틱" 으로 적고, 5 의 나머지를 "원 소스·머리·구성·컴파일러" 로 넓힘 |
-| "`struct utask` 가 4 B 크다" 는 과함 — 관찰한 필드가 4 B 뒤에 있을 뿐, 크기·원인 필드 미확정 | 계획 문구 대조 | ✅ "관찰한 필드(`uu_cdir`·`uu_ttyp`·`uu_cmask`)가 원본보다 4 B 뒤" 로 고침 |
+| 시작 초기화·누적 7 곳의 07 자리와 블록 소속이 모두 맞음(호출 대상 0x4061846 `_vm_page_zero_fill`, 0x406185e `_vm_page_copy`; 0x405c5a4 는 호출 앞, 0x405c86c 는 호출 뒤) | 기호표 grep(두 주소), §446 분기 대상 조사 출력 | ✅ |
+| 기록 블록 판독(`prot` = a6@(0xfff0), `vmlog_send` 짝수면 inactive\|0x8000, flush 비트 0x01000000, 인자 순서, `phys_addr` +0x22, `map->pmap` +0x20, `atop`) 맞음 | `_vmlog_send` 0x40c2c28 기호, §446 판독과 같음 | ✅ |
+| 블록 자리는 1128(panic) 뒤 — 1130 `vm_object_unlock(object)` 앞이든 뒤든 사이에 명령 없음; 1130 뒤 권고 | 07 1115–1132 행 읽음 | ✅ 1130 뒤에 둠 |
+| 비 PMON 덩어리는 모두 레지스터·프레임 효과(copy_offset 가 레지스터→프레임으로 밀림, `_vm_page_free` 주소 끌어올림·꼬리 합치기 차이) — PMON 변수 하나로 함께 풀릴 가능성(미검증) | §431 덩어리 목록 | ⏭️ 실행이 판정 |
+| `movel #pmon_flags+0x44,d3` 를 두 번 쓰는 꼴이 나올지는 미검증 | — | ⏭️ |
+| 선언은 지역 변수 끝(112 행 `next_object` 뒤)에 `int` 로 먼저; R 덩어리가 남으면 `register`·선언 순서 변형을 별도 run 으로 | 설계 | ✅ |
+| 64 비트 자리의 기준 줄은 700(`if ((fault_type & VM_PROT_WRITE) == 0)`), 697 은 주석 | 07 690–701 행 읽음 | ✅ 695 행(`vm_page_t copy_m;`) 뒤·697 주석 앞에 끼움 |
+| `0x100`·`0x8000` 은 `orw`, 작은 값은 `moveq;orl` 로 나오는지는 미검증 | — | ⏭️ |
+| 멈춤 기준에 "R 만 남으면 선언 변형을 별도 run 으로" 추가 | 설계 | ✅ |
 
-추가 확인: 원본 m68k 기호표(`symbols.tsv`, debug 0)는 모두 `defined_external=1` 입니다(python). 원본에는 정적 함수 이름이 없으므로 명령 수준 비교의 단위는 "외부 기호에서 다음 외부 기호까지" 로 양쪽을 같게 잡습니다(객체 쪽은 그 사이 정적 함수를 포함하고 그 사실을 표시).
+### 446.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m5-m68k-pmon-fault-20261009.json`, 진단 `08_build/artifacts/m5p446/a1-diag.json`
 
-고친 방법:
-1'. 변형은 V0–V9(V8 `-O3 -fno-omit-frame-pointer`, V9 `-O2 -fno-omit-frame-pointer`), 46×10 = 460 명령, `EXPECT Vk__BASE.o`.
-2'. 변형마다 집합 둘: 엄격 L1 함수 MATCH, 외부 구간 가림 같음 + 구간 길이 같음. 해석 규칙은 각 집합에 따로 적용하고, 결론은 "이 입력에서 플래그에 반응함".
-3'. 머리 구조: `.i` 의 줄 표시로 (파일, 원 줄 번호) 마다 비어 있지 않은 출력 줄을 모아, 한쪽에만 있는 (파일, 줄) 을 "조건부 구조 차이", 양쪽에 있으나 본문이 다른 것을 "펼침 차이" 로 셉니다(아키텍처 디렉터리 밖만). 구조 차이가 있는 줄은 머리 원문 줄을 함께 적습니다.
-4'. 명령 수준: 단위는 외부 구간. 객체는 재배치 기록, 원본은 기호표로 절대 피연산자를 `기호+차이` 로, 구간 안 분기 대상은 상대 위치로 바꿉니다. 분류 D/R/O/X 는 위 판정대로 좁히고, 점프 표가 있으면 `table` 표시.
-5'. 머리 요인은 "D 이고 변위 차이가 관찰된 구조 차이와 맞음" 일 때만 붙이며, 나머지는 "원 소스·머리·구성·컴파일러 중 미분리" 로 둡니다.
+- 07 덮어쓰기 `v183.34/m68k/src/vm/vm_fault.c`(새 파일)는 07 본 파일(출처 darwin01, APSL·CMU 고지 그대로)에 `#if m68k` 묶음 9 개(46 줄, `plan 446 (m68k)`)를 끼운 것입니다.
+  - 선언은 112 행 뒤, 누적 7 곳은 331·372·392·473·563·624(빈 줄, 625 `vm_page_copy` 앞)·695 행 뒤, 기록 블록은 1130 행 뒤입니다.
+  - diff 는 `06_reconstruction/evidence/m68k-pmon-fault.diff` 입니다. PROVENANCE 1075 → 1076, MODIFICATIONS 600 → 601 입니다.
+- 도구:
+  - `stage_m68k.py` 에 `MARKERS`(`plan 446`: `vm_fault.c` 46)·`EXCEPTS[446]` 를 더했습니다. 파생 검사는 통과했습니다.
+  - `m5_m68k_pc.py` 에 `vm_fault` 와 구간 진단 명령 `diag`(§436 방식)를 더했습니다.
+- 스테이징 `m0p446-a1-stage` 는 `m0p445-stage` 대비 `vm_fault.c` 하나만 다릅니다. x86 관문 7 스테이징은 같습니다.
+- **시도 1**(run `m5p446-a1`, 1 명령 종료 0, 실기 otool SHA 대조)에서 이미 `_vm_fault` 구간 3138 B 가 원본과 같습니다(덩어리 0).
+  - 객체 L1 은 **OBJECT_MATCH** 입니다(외부 구간 `_vm_fault`·`_vm_fault_wire`·`_vm_fault_unwire`·`_vm_fault_copy_entry`·`_vm_fault_wire_fast` 모두 같음). 원본에 없는 새 미정의 기호는 0 입니다.
+  - §431 의 비 PMON 덩어리(레지스터 R 48·프레임·`_vm_page_free` 호출 꼴)는 PMON 변수가 레지스터 하나를 차지하면서 모두 함께 풀렸습니다(§446.1 의 예측대로).
+  - `final` 기록의 "shape" 항목은 §444 의 PC 쓰기 기준이므로 `vm_fault` 와 무관합니다(0 은 정상).
+- `pmon_flags`·`vmlog_send` 정의(COMMON)는 미룹니다.
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 151**.
 
-### 414.2 중간 결과와 추가 단계(코딩 전 계획 덧붙임, 2026-10-09)
+## 447. M5-4 세부 계획 — m68k PMON 2b: `vm_pageout_scan` 의 두 기록 자리(D024; x86 트리 변경 없음; 코딩 전, 2026-10-09)
 
-중간 결과(run `m0p414-fg1`, 460 명령 모두 종료 0·게시; 실기 도구 12 경로 해시 run 전후 같음; 변형마다 경고 내용 같음):
-- V0 이 `m0p413-cc1` 의 46 객체와 SHA 가 모두 같습니다(도구 assert). `-g`·`-fno-omit-frame-pointer` 는 이번 46 객체의 `__TEXT` 를 바꾸지 않았습니다(`-O2` 무리 V1·V2·V6·V9 46/46, `-O3` 무리 V0·V3·V5·V7·V8 45/46 같음; V7 `-fno-builtin` 에서 1 객체 다름).
-- **`-O2`(V1)**: OBJECT_MATCH 18 → **30**, 함수 MATCH 105 → **216**(25,958 B), V0 에서 MATCH 이던 함수 중 잃은 것 0. 외부 구간(가림 같음 + 길이 같음) 167 → 195(+32, −4). 잃은 4 개는 모두 `vfs_dnlc`(`-O3` 에서만 같음 — 정적 함수 인라인과 관련, 미분리). `-g -O`(V4)는 크게 나빠짐(MATCH 33).
-- V1 에서 남은 외부 구간 26 개를 실기 `otool -tv` 로 분류(정규화 수정 셋 반영: 한 명령의 재배치 여러 개를 차례대로 대응, 객체 지역 분기 대상을 구간 안 상대 위치로, `jmp aN@` 뒤 점프 표를 바이트로 읽어 `.long L+off`): D 8, X 18.
-  D 8 개는 모두 변위만 다릅니다: `vfs_syscalls` 7 개(`struct utask` 필드가 원본보다 4 B 뒤 — `uu_cdir`·`uu_rdir`·`uu_ttyp`·`uu_cmask` 와 `0x14a ↔ 0x146`)와 `_host_info`(`0x144 ↔ 0x13c`, 8 B).
-- X 의 일부(`_acct`·`_unp_externalize`·`_lookuppn`)는 utask 변위 차이에 더해 **문자열 상수 참조**가 다릅니다: 객체는 `__DATA,__data`(`-fwritable-strings`), 원본은 `__TEXT,__cstring` 을 가리킵니다.
-  원본 절 크기(python): m68k `__cstring` 28,920 B·`__data` 22,552 B, 1997 i386 조각 `__cstring` 13,892 B·`__data` 46,692 B — m68k 가 문자열을 `__cstring` 에 두었다는 정황입니다. Darwin `Makefile.i386:53`·`Makefile.ppc:57`, NeXTMach `Makefile.NeXT:26` 은 모두 `-fwritable-strings` 를 씁니다(1997 m68k Makefile 은 없음).
+확인한 사실(원본 `_vm_pageout_scan` 0x4060422–0x406070c 읽음; 07 `vm/vm_pageout.c` 는 darwin01 출처):
+- 구조는 07 과 같습니다. `MACH_SLOCKS 0` 이라 `vm_object_lock_try` 는 상수가 되어 사라집니다.
+- 원본에만 PMON 이 있습니다. 루프 앞에서 `lea _pmon_flags+0x44,a4` 로 `&pmon_flags[17]` 을 끌어올립니다.
+- 자리 A(0x40604d0–0x406052c, clean 경로):
+  - 앞뒤 문맥은 `did_work = TRUE`(`moveq #1,d4`)·`m->busy = TRUE`(`orb #0x80,a2@(0x20)`) 뒤, `pmap_remove_all`(0x4097e9c) 앞입니다.
+  - 문장 1: `if (pmon_flags[17] & 0x01000000) pmonlogcontextflush(17, 0x01000000);`
+  - 문장 2: `if (pmon_flags[17] & 0x04000001) pmonlogevent(17, 0x04000001, atop(VM_PAGE_TO_PHYS(m)), (vm_page_inactive_count << 16) | (vm_page_free_count & 0xffff), current_thread());`
+  - `orw 0x40c2c0e` 는 `vm_page_free_count` 의 하위 반입니다. §444 E1 처럼 `& 0xffff` 가 `orw mem+2` 로 나옴을 이미 봤습니다.
+- 자리 B(0x40605e6–0x4060642, dirty 경로): pager 를 마련하는 `if` 블록 뒤, `pageout_succeeded = FALSE`(`clrl d2`) 앞입니다. 같은 꼴이며 사건 값은 0x04000002 입니다.
+- §431 의 비 PMON 덩어리(저장 레지스터 집합에 a4 추가, d2/d3 교대, 끝의 루프 조건 꼴)는 PMON 포인터가 a4 를 차지하는 데서 오는 것으로 봅니다(미검증, 실행이 판정).
 
-추가 단계(이 절 안, 미리 정함):
-7. run `m0p414-fg2`: 46 객체 × 변형 둘 — V10 = V1 에서 `-fwritable-strings` 뺌(`-g -O2`), V11 = V0 에서 뺌(`-g -O3 -fno-omit-frame-pointer`). 다른 낱말은 그대로. `gridcmd` 에 변형 목록 인자를 더해 만듭니다.
-8. V10·V11 을 2 와 같은 방법으로 비교하고, V10 에서 남은 구간을 4 의 방법으로 다시 분류합니다. 해석: V1 에서 같던 것을 잃지 않고 얻으면 "`-fwritable-strings` 없음" 을 m68k 플래그 후보로 적습니다(역사적 사실 아님). 잃는 객체가 있으면 파일별 차이로 적고 결론 내지 않습니다.
+방법:
+1. 07 덮어쓰기 `v183.34/m68k/src/vm/vm_pageout.c` 를 만듭니다.
+   - 자리 A: 07 의 clean 블록 `vm_page_unlock_queues();` 뒤(`pmap_remove_all` 앞)에 둡니다.
+   - 자리 B: pager `if` 블록의 닫는 중괄호 뒤(`pageout_succeeded = FALSE;` 앞)에 둡니다.
+   - 각 자리에 `#if m68k` 묶음(`plan 447 (m68k)`, 블록 범위 `extern` 은 중괄호 안)을 끼웁니다.
+2. `MARKERS`·`EXCEPTS[447]`·`m5_m68k_pc.py` 의 `FILES` 에 `vm_pageout` 을 더합니다. 컴파일 → otool → `_vm_pageout_scan` 진단 → `final` 순으로 합니다.
+3. 미리 정한 기준:
+   - `x86-vm_pageout` OBJECT_MATCH, 원본에 없는 새 미정의 기호 0.
+   - 아니면 덩어리별로 진단해 다시 시도합니다(§446 의 멈춤 기준 같음).
+4. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-pmon-pageout.diff`, `09_validation/reconstruction/m5-m68k-pmon-pageout-20261009.json`.
 
-### 414.3 codex 교차검토(gpt-6.1-sol, kdi97zn7i) 판정, 결과(2026-10-09) — 기록 `09_validation/reconstruction/m0-m68k-cause-20261009.json`
+### 447.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
 
-414.2 검토 판정:
-
-| codex 주장 | 내 검증 방법 | 결과 |
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| NeXT GCC 2.7.2 는 `flag_writable_strings` 이면 문자열 상수를 data 로, 아니면 cstring 으로(NUL 이 든 문자열은 const) 보냄 | `01_resources/upstream/next-gcc-2.7.2/config/next/nextstep.h:628–639`(`SELECT_SECTION`) 읽음 | ✅ 해석 근거에 더함 |
-| 원본 `_lookuppn` 의 `"."` 참조 둘이 같은 주소(문자열 합침), 객체는 따로 | 이번 세션 정규화 출력: 원본 두 줄 모두 `__TEXT,__cstring+713`, 객체 `_metalinks+33`·`+38` | ✅ |
-| `m0p412-abi1` 에 `m68k_W_c_str.o`(쓰기 가능 문자열 탐침)가 있음 | `ls 08_build/runs/m0p412-abi1/out/` 에 `m68k_W_c_str.o` 있음 | ✅(내용 대조는 하지 않음 — 결론에 쓰지 않음) |
-| `cmd_grid` 가 전역 `VARIANTS` 를 돌고 V0 를 전제함 → V10·V11 만 있는 run 은 그대로 못 씀 | 도구 읽음(내가 쓴 코드) | ✅ `GRID_RUNS` 로 run 두 개를 합쳐 12 변형을 한 번에 비교, V1 기준 증감도 셈 |
-| `l1_compare.py` 는 참조된 cstring 내용만 보고 리터럴 절 전체는 비교하지 않음 | `l1_compare.py:137–144`, `:307–310` 읽음 | ✅ 해석에 적음(OBJECT_MATCH 가 문자열 절 전체 같음을 뜻하지 않음) |
-| 32 비트 피연산자를 재배치 수로 대응하면 재배치 없는 즉치값과 섞임(합성 예 `movel #0x400:l,0x0:l`) | 고친 뒤 같은 합성 예를 python 으로 돌림: `#0x400:l,@_x+0` | ✅ 재배치 필드에 저장된 값과 같은 피연산자에 대응하도록 고침 |
-| `dbf d1,0x…` 형식을 분기로 못 읽음 | 원본 목록 `otool-V1/image.txt:1228` 읽음 | ✅ `dN,` 앞붙이를 허용 |
-| 기호 주소 안의 숫자 차이(`@L+8`↔`@L+10`, `_foo+4`↔`_foo+8`)가 D 로 분류됨 | 고친 뒤 합성 예 python: 둘 다 X, `a0@(0x15a:w)`↔`0x156` 는 D | ✅ 기호 피연산자는 그대로 비교 |
-| 점프 표 검출이 자료 흐름 없이 앞의 주소만 봄 | 설계 검토 | ✅ `movel aN@(0x0:b,Rm:l:4),aN` + `jmp aN@` 짝일 때만 표로 읽음(`_tcp_input` 는 첨자가 `a2` 라 `[ad]` 로 넓힘) |
-| 원본에 쓰기 가능 문자열이 보이면 "모든 파일에 그 플래그 없음" 이 반증됨 | 설계 판단 | ✅ 결론을 이 46 객체로 한정 |
+| 자리 A·B 의 원본 순서와 07 줄(172 뒤 / 282 의 `}` 뒤·284 앞) 맞음; 호출 대상 0x4097e9c `_pmap_remove_all`·0x406093c `_vm_pager_allocate`·0x405ffea `_vm_object_setpager` | 기호표 grep 세 주소, 07 280–285 행 읽음 | ✅ |
+| `vm_page_unlock_queues()` 는 `simple_unlock` 이고 `MACH_SLOCKS 0` 에서 빈 매크로 → 172 앞뒤 어디든 같은 코드 | 스테이징 `vm/vm_page.h:393`, `kern/lock.h:103-104` 읽음 | ✅ |
+| 인자 판독(17, 0x4000001/2, `atop(phys)`, `(inactive << 16) \| low16(free)`, `current_thread()`) 맞음 | §447 사실과 같음 | ✅ |
+| `& 0xffff` 는 §444 처럼 `(u_short)` 과 바이트로 구별되지 않을 수 있는 꼴 → D072(단순 꼴)를 인용 | §444.2 기록 | ✅ |
+| 루프 앞 `lea …,a4` 는 두 자리의 `pmon_flags[17]` 을 루프 불변으로 끌어올린 것으로 보임(미검증); 비 PMON 덩어리(루프 끝 조건·d2/d3·a2 대 d2)는 그 결과로 설명 가능, 함수 끝(331–353)에 따로 소스 차이 없음 | §431 덩어리 목록(INS 1·CALL 2 외는 R·X·D-frame) | ⏭️ 실행이 판정 |
+| 덮어쓰기는 새 파일이고 darwin01 APSL·CMU 고지를 그대로 유지; `MARKERS` 줄 수와 PROVENANCE(1076 → 1077)·MODIFICATIONS(601 → 602) 기대값을 적을 것 | — | ✅ |
 
-실행(실기, 모두 종료 0·게시, 실기 도구 12 경로 해시 run 전후 같음, 같은 객체의 경고 내용은 변형 사이에 같음):
-`m0p414-fg1`(V0–V9, 460 명령), `m0p414-fg2`(V10·V11, 92 명령). V0 은 §413 객체 46/46 과 SHA 가 같습니다.
+### 447.2 결과(2026-10-09) — 기록 `09_validation/reconstruction/m5-m68k-pmon-pageout-20261009.json`, 진단 `08_build/artifacts/m5p447/a1-diag.json`
 
-플래그 격자(python 집계, 원본 m68k 커널과 L1; 외부 구간 221 개):
+- 07 덮어쓰기 `v183.34/m68k/src/vm/vm_pageout.c`(새 파일, darwin01 APSL·CMU 고지 그대로)는 172 행 뒤(자리 A)와 282 행 뒤(자리 B)에 `#if m68k` 묶음 둘(26 줄, `plan 447 (m68k)`)을 끼운 것입니다.
+  - 꼴은 D072 의 단순 꼴(`& 0xffff`)입니다.
+  - diff 는 `06_reconstruction/evidence/m68k-pmon-pageout.diff` 입니다. PROVENANCE 1076 → 1077, MODIFICATIONS 601 → 602(미리 적은 기대값과 같음)입니다.
+- 도구: `MARKERS`(`vm_pageout.c` 26)·`EXCEPTS[447]`, `m5_m68k_pc.py` `FILES` 에 `vm_pageout` 을 더했습니다. 실행 전후 해시가 같습니다(`08_build/artifacts/m5p447/tools-pre.sha`).
+- 스테이징 차이는 `vm_pageout.c` 하나이고, x86 관문 7 스테이징은 같습니다.
+- **시도 1**(run `m5p447-a1`)에서 `_vm_pageout_scan` 748 B 가 원본과 같습니다(덩어리 0).
+  - 객체 L1 은 **OBJECT_MATCH** 이고, 원본에 없는 새 미정의 기호는 0 입니다.
+  - §431 의 비 PMON 덩어리(저장 레지스터 a4·d2/d3·루프 끝 조건)도 함께 풀렸습니다.
+- PMON 정리: 원본 공통부의 PMON 호출 세 객체(`kern_exec`·`vm_fault`·`vm_pageout`)가 모두 OBJECT_MATCH 입니다. 남은 것은 `pmon_flags`·`vmlog_send` 의 정의(COMMON, 링크 전)와 기계 의존부의 PMON 함수(`_pmonlogevent` 등, M4)입니다.
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 152**.
 
-| 변형 | 플래그 | OBJECT_MATCH | 함수 MATCH | MATCH 바이트 | 구간 같음 |
-|---|---|---|---|---|---|
-| V0 | `-g -O3 -fno-omit-frame-pointer` (§413) | 18 | 105 | 12,296 B(25.76 %) | 167 |
-| V1 | `-g -O2` | 30 | 216 | 25,958 B(55.08 %) | 195 |
-| V4 | `-g -O` | 7 | 33 | 1,572 B | 99 |
-| **V10** | `-g -O2`, `-fwritable-strings` 없음 | **34** | **240** | **33,734 B(71.58 %)** | 195 |
-| V11 | V0, `-fwritable-strings` 없음 | 20 | 112 | 15,172 B | 167 |
+## 448. M5-5 세부 계획 — m68k `ns_timer.c`: `ns_div`·`ns_div_val` 의 68020 나눗셈 판(D024; x86 트리 변경 없음; 코딩 전, 2026-10-09)
 
-- `-g`·`-fno-omit-frame-pointer` 는 46 객체의 `__TEXT` 를 바꾸지 않았습니다(`-O2` 무리 46/46, `-O3` 무리 45/46 같음 — 다른 하나는 V7 `-fno-builtin` 의 `nfs_server`). V2·V6·V9 는 V1 과, V3·V5·V8 은 V0 과 같은 수입니다.
-- V1 은 V0 의 함수 MATCH 를 하나도 잃지 않고 111 개를 더 얻고, V10 은 V1 의 MATCH 를 잃지 않고 24 개를 더 얻습니다. 미리 정한 규칙대로 **`-O2` 와 `-fwritable-strings` 없음은 이 46 객체에서 m68k 플래그 후보**입니다
-  (Darwin `MASTER.ppc:81` 의 gdb 구성도 `-g -O2`; 역사적 플래그를 확정한 것은 아님). 구간 비교에서는 V1 이 V0 보다 4 개를 잃는데 모두 `vfs_dnlc`(`-O3` 에서만 같음)입니다.
-- 머리 조건부 구조(§413 의 `expansion` 정정): 46 객체 중 44 에 공유 머리의 조건부 구조 차이가 있습니다 — `byte_order.h` 44(i386 에만 펼쳐지는 인라인 함수), `vm_param.h` 39(i386 에만 있는 `extern` 선언), `user.h` 15(`uu_sigreturn`), `ip.h` 6·`ip_var.h` 5·`tcp.h` 3(비트 필드 순서).
+배경: 이름 대응 공통부 C 208 가운데 m68k 에서 컴파일되지 않는 마지막 하나가 `kern/ns_timer.c` 입니다. 07 판은 x86 원본에서 작성한 것(계획 234, D024)이고, `static inline` `ns_div`·`ns_div_val` 이 i386 `divl` 인라인 어셈블리와 리틀엔디언 낱말 순서(`lsw = [0]`, `msw = [1]`)를 씁니다.
 
-V10 에서 남은 외부 구간 26 개(실기 `otool -tv` 정규화 분류 D 11·X 15, 원인은 목록을 직접 읽어 적음):
+확인한 사실(원본 m68k 객체 m68k-166 [0x404e420, 0x404eaae), 함수 19 개 기호 순서는 07 과 같음):
+- `_ns_time_to_timeval`(0x404e712) 은 다음과 같습니다.
+  - `a1 = &ll[0]`(빅엔디언 상위)·`a0 = &ll[1]` 입니다.
+  - `clrl d0; movel a1@,d3; divull #1000000000,d0,d3`(32 비트 나눗셈, 나머지 d0)·`movel d3,a1@`(`*msw = quo`) 입니다.
+  - `movel d0,d4; movel a0@,d3; divul #1000000000,d4,d3`(64 비트 피제수 d4:d3, 나머지 d4) 뒤 `*remain = d4`, `*lsw = d3` 입니다.
+  - 곧 x86 판과 같은 두 단계 나눗셈을 m68k 낱말 순서로 한 것입니다.
+- `_sched_usec_elapsed`(0x404e85c) 의 `ns_div_val` 펼침은 첫 몫을 다시 `*msw` 에 씁니다(`movel d2,a6@(0xfff4)`). 이 점이 x86 판(쓰지 않음)과 다르고, 둘째 나눗셈의 몫을 돌려줍니다.
+- NeXTMach 의 1990 도구 역어셈(`stand/ot`)은 `divsll …,d1:d2` 처럼 쌍점 꼴(MIT 문법)입니다. 1997 otool 출력은 쉼표 꼴이므로 어셈블러가 받는 꼴은 시험으로 정합니다.
 
-| 원인 | 수 | 함수 |
+방법:
+1. 07 덮어쓰기 `v183.34/m68k/src/kern/ns_timer.c` 를 만듭니다. 두 `static inline` 함수 앞에 `#if m68k` 판을 끼우고, 07 i386 판은 `#else`…`#endif` 로 남깁니다(끼우기만, `plan 448 (m68k)` 묶음).
+   - `ns_div`(m68k):
+     - `msw = &((unsigned int *)ll)[0]; lsw = …[1];`
+     - `asm("divull %2,%1:%0" : "=d" (quo), "=d" (rem) : "dmi" (divisor), "0" (*msw), "1" (0)); *msw = quo;`
+     - `asm("divul %2,%1:%0" : "=d" (quo), "=d" (*remain) : "dmi" (divisor), "0" (*lsw), "1" (rem)); *lsw = quo;`
+   - `ns_div_val`(m68k): 같은 두 단계에 `*msw = quo` 를 넣고 둘째 몫을 돌려줍니다.
+2. 변형 시험(한 run)을 합니다.
+   - V1 은 쌍점 꼴 `%1:%0`, V2 는 쉼표 꼴 `%1,%0` 입니다.
+   - 어셈블러가 받고 원본과 같은 쪽을 고릅니다. 둘 다 받고 결과가 같으면 1990 NeXT 문법인 쌍점 꼴을 씁니다.
+3. 고른 꼴로 덮어쓰기를 확정하고 컴파일한 뒤 객체 전체를 비교합니다(외부 구간 19 개).
+   - 미리 정한 기준: `x86-ns_timer` OBJECT_MATCH, 원본에 없는 새 미정의 기호 0. 아니면 구간별 진단 후 다시 시도합니다.
+   - 참고: §423 은 이 객체 둘레의 정적 참조 다리(run 172)를 미결로 두었습니다.
+4. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-ns_timer.diff`, `09_validation/reconstruction/m5-m68k-ns_timer-20261009.json`. 이것으로 이름 대응 공통부 C 208 이 모두 m68k 로 컴파일됩니다.
+
+### 448.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정 — 범위를 좁힘
+
+| 검토 주장 | 내 검증 방법 | 결과 |
 |---|---|---|
-| 머리·구성: `struct utask` 필드가 원본보다 4 B 앞(변위만 다름, `uu_ofile` 0x14a 부터 `uu_start` 0x236 까지 관찰) | 10 | `vfs_syscalls` 7, `_acct`, `_unp_externalize`, `_lookuppn` |
-| 머리·구성: `struct processor` 의 `slot_num` 이 8 B 앞(0x144 ↔ 0x13c) | 1 | `_host_info` |
-| 구성: 원본에 `simple_lock` 호출 없음, `processor_set` 필드 4–8 B 앞 | 1 | `_compute_mach_factor` |
-| 머리: 원본은 `splx`·`splimp` 를 `movew sr` 인라인으로, 객체는 함수 호출(실기 SDK `kernserv/m68k/spl.h` 에 그 인라인 정의가 있으나 이 07 소스의 포함 사슬에는 없음) | 2 | `_ku_sendto_mbuf`, `_VENIP_RIF` |
-| 머리 후보: 원본은 `ti_len` 을 두 번 저장(`HTONS` 가 대입형인 정의로 보임), 점프 표 주소는 그 결과로 4 B 밀림 | 1 | `_tcp_input` |
-| 배치: 객체 코드는 같고 원본 구간이 이름 없는 정적 함수를 더 품음(`_venip_config` 는 정적 함수 주소만 다름) | 3 | `_xdr_fhstatus`, `_nfs_svc`, `_venip_config` |
-| 인라인: `-O3` 변형에서만 같음 | 4 | `_dnlc_init`·`_dnlc_enter`·`_dnlc_lookup`·`_dnlc_purge1` |
-| 미분리 | 4 | `_dnlc_enterSymLink`(어느 변형에서도 다름; 같은 객체의 `_dnlc_lookupSymLink` 는 `-O2`·`-O` 에서만 같음), `_icmp_sendMaskPacket`(명령 1 개), `_tcp_mss`(0 확장 1 곳), `_uname`(레지스터 배정, 원본만 점프 표) |
+| 인라인 나눗셈 자리는 넷(`ns_time_to_timeval`·`ns_time_to_tsval`·`get_calendar_time_value` 의 `ns_div`, `sched_usec_elapsed` 의 `ns_div_val`)이고 모두 계획한 C 꼴과 맞음(첫 나눗셈 32/32·나머지 0 입력·`*msw = quo`, 둘째 64/32); `microtime`·`microboot` 는 `bsr 0x404e712` | §448 사실의 두 함수 목록 읽음, 나머지는 검토자 판독(확장 낱말 해독 포함) | ⚖️ 둘은 확인, 둘은 실행으로 확인 |
+| 제수 제약은 `"dmi"`(NeXT gcc-2.7.2 `longlong.h:436-441` `udiv_qrnnd` 와 같음); MIT 꼴은 `divu%.l %4,%1:%0` → `divul ea,Dr:Dq` | 검토자 인용(직접 미확인) | ⏭️ 변형 시험이 판정 |
+| **m68k `ns_timer.c` 는 다른 구현(콜아웃 큐)**: `_ns_timeout` 이 `_ns_abstimeout(proc, arg, 64 비트 시각, pri)` 를 부름, `_ns_timer_init` 이 정적 처리기 0x404e458 을 `__set_timer_expire_func` 에 등록, 공통 기호 `_ns_callfree`·`_ns_callout`·`_ns_calltodo`·`_hardclock_pc`·`_hardclock_ps` 는 m68k 에만 있음 | 원본 0x404e53a–0x404e57e·0x404e3f8–0x404e41e 읽음, 두 기호표 grep(x86 에는 0 건) | ✅ |
+| 객체 범위는 [0x404e3a8, 0x404eaae)(`_ns_callout_init`·`_ns_timer_init` 포함), 외부 함수 19 + 정적 1; 함수 크기: `ns_abstimeout` 230·`ns_untimeout` 106 B 등 | 기호 사이 거리 python 계산 출력 | ✅ "19 개 07 과 같음" 은 **내 오류** |
+| 참고 코드 없음: Darwin `kern/ns_timer.c` 는 `ns_abstimeout` 이름만 같고 큐·`set_timer_expire_func` 없음 | Darwin 파일 grep(이름 줄만), NeXTMach grep 0 건 | ✅ 큐 구현은 원본 바이트에서 작성해야 함(D024) |
+| 끼우기 묶음 꼴(`#if m68k … #else` + `#endif`)은 파생 검사와 맞음 | §444 선례 | ✅ |
+| `ns_sleep` 의 pri 1(원본 `pea 0x1`) 등 그 밖의 차이 | 미확인 | ⏭️ 진단 대상 |
 
-판단:
-- §413 의 차이 대부분은 **플래그**(`-O2`, 문자열 상수 위치)로 설명됩니다. 남은 26 구간 중 15 개는 머리·구성 값(구조체 오프셋·NCPUS 계열·인라인 spl·`HTONS`), 3 개는 비교 구간의 경계 문제, 4 개는 `vfs_dnlc` 의 인라인 판단, 4 개는 미분리입니다.
-- `vfs_dnlc` 는 같은 객체 안에서 `-O2` 에서만 같은 함수와 `-O3` 에서만 같은 함수가 섞여 있어 한 벌의 플래그로 설명되지 않습니다(원 소스의 `inline` 등 소스 요인 후보, 미확정).
-- 컴파일러 판 차이를 가리키는 사례는 이번 분류에서 나오지 않았습니다(증명도 반증도 아님). 머리·구성 요인은 M3(m68k 머리·구성)에서 다룹니다.
-- 분류는 46 객체에 한정합니다. 원인 칸은 목록을 읽은 해석이며, `D` 판정만 도구가 자동으로 냅니다.
+고친 범위(실행 전 고정):
+- **§448(이번)**: `ns_div`·`ns_div_val` 의 m68k 판만 넣어 `ns_timer.c` 를 m68k 로 **컴파일**되게 합니다(이름 대응 공통부 C 208/208).
+- 미리 정한 기준(변경):
+  - 컴파일 성공, 원본에 없는 새 미정의 기호 수를 기록합니다(`_calloutDispatchDelayed`·`_calloutRemove` 는 원본에 없을 것으로 예상 — 큐 구현 전의 알려진 차이).
+  - 인라인 자리 네 함수의 외부 구간이 원본과 같아야 합니다.
+  - 객체 OBJECT_MATCH 는 이번 목표가 아닙니다.
+- 어셈블러 꼴: 변형 V1(쌍점)·V2(쉼표) 를 한 run 에서 시험합니다.
+- **다음 절**: m68k 콜아웃 큐(`ns_callout_init`·`ns_timer_init`·정적 처리기·`ns_timeout`·`ns_abstimeout`·`ns_untimeout`·`ns_sleep` pri, 공통 기호 정의 자리)를 원본에서 작성합니다.
 
-새 파일: `10_tools/reconstruction/m0_m68k_cause.py`(`m0_m68k_l1.py` 의 함수를 가져다 씀), 위 검증 JSON. 상세(`grid.json`·`hdr.json`·`class-V*.json`·otool 목록)는 무시 대상 `08_build/artifacts/m0p414/` 에 두고 SHA 로 묶었습니다. 07·x86 표·기존 도구는 바꾸지 않았습니다.
+### 448.2 결과(2026-10-09) — 미리 정한 기준 불성립, 멈춤(07 변경 없음)
+
+도구 `10_tools/reconstruction/m5_m68k_ns.py`(변형 생성·컴파일 명령·구간 비교). 해시는 `08_build/artifacts/m5p448/tools-pre.sha` 에 있습니다(둘째 run 전에 도구를 고쳐 둘째 줄 추가; 처음 고친 판은 `reorder` 개수 검사가 틀려 실행 전에 바로잡음).
+- 시도 1(run `m5p448-var1`): V1(쌍점 `%1:%0`)·V2(쉼표 `%1,%0`) 를 시험했습니다.
+  - 둘 다 어셈블되었고 객체도 같습니다(STABS 제외, `canon` 비교).
+  - 외부 구간 17 가운데 `set_calendar_time_value`·`ticks_to_ns_time`·`timeval_to_ns_time` 셋만 원본과 같습니다. 인라인 나눗셈 네 함수는 다릅니다.
+  - 원본에 없는 미정의 기호는 0 입니다(`_calloutDispatchDelayed`·`_calloutRemove` 도 원본에 있음).
+- 시도 2(run `m5p448-var2`): 입력 피연산자 순서 B·C(NeXT gcc-2.7.2 `longlong.h:436-441` `udiv_qrnnd` 꼴)·D 를 시험했습니다. 세 변형 모두 V1 과 같은 명령열이었습니다.
+- 남은 차이(`_ns_time_to_timeval`, 실기 otool 목록):
+  - 원본은 `clrl d0` 을 값 적재(`movel a1@,d3`)보다 먼저 합니다.
+  - 둘째 나눗셈에서 원본은 나머지 d4·몫 d3(`divul #…,d4,d3`)인데, 다시 만든 객체는 나머지 d3·몫 d4 입니다.
+  - 즉 asm 출력 피연산자 쪽의 레지스터 배정 차이이고, 입력 순서로는 바뀌지 않습니다.
+- 판정:
+  - 같은 덩어리가 두 시도 연속 줄지 않았으므로 §446 의 멈춤 기준에 따라 멈춥니다.
+  - `ns_timer` 덮어쓰기는 07 에 넣지 않았습니다(컴파일은 되지만 인라인 자리 기준 불성립).
+  - 콜아웃 큐(§448.1) 때문에 객체 OBJECT_MATCH 는 어차피 다음 절의 작성 뒤에야 가능합니다.
+- 다음 후보(사용자 확인):
+  - (가) 출력 순서 바꾸기(`"=d" (rem), "=d" (quo)` 와 `%0:%1`)·`register` 변수 묶기 등 asm 꼴 변형을 한 run 에 더 시험합니다.
+  - (나) 먼저 m68k 콜아웃 큐를 원본에서 작성하고 나눗셈은 그 뒤에 다룹니다.
+
+## 449. M5-6 세부 계획 — m68k `ufs_vnodeops`·`ufs_inode` 에서 i386 바이트 교환 빼기(NeXTMach 꼴 복원; x86 트리 변경 없음; 코딩 전, 2026-10-10)
+
+배경: §448 은 멈췄고(사용자 선택 없음), 근거가 분명한 i386 전용 코드 제거(M5)로 넘어갑니다. 07 의 두 파일은 x86 원본에 맞춰 리틀엔디언 디스크 형식용 바이트 교환을 넣은 것입니다(계획 215·217). m68k(빅엔디언) 원본에는 그 호출이 없습니다.
+
+확인한 사실:
+- `ufs_vnodeops` §436:
+  - 원본 대비 차이는 `_rwip` 의 `byte_swap_dir_block_in`/`_out` 호출과 그 조건(07 `ufs_vnodeops.c:399-400`·`402-403`, "plan 217") 및 그에 딸린 `movel d1,d0` 하나뿐입니다(원본 시작 0x403a056, 54 B).
+  - NeXTMach `ufs/ufs_vnodeops.c` 에는 그 줄이 없습니다(grep `byte_swap` 0 건).
+- `ufs_inode` §431:
+  - `_iget` 에서 원본은 `lea a3@(0x62),a2; pea 0x80; …; bsr _bcopy` 이고, 07 은 `bsr _byte_swap_inode_in` 입니다.
+  - `_iupdat` 에서 원본은 `pea 0x80; …; pea a3@(0x62); bsr _bcopy` 이고, 07 은 `_byte_swap_inode_out` 입니다.
+  - 나머지 덩어리는 레지스터(R 45)·프레임(원본에만 `movel a1,a6@(0xfffc)`, `linkw #0xfffc`) 입니다.
+  - 07 `ufs_inode.c:471`(`byte_swap_inode_in(dp, ip);`, plan 215)·`646`(`byte_swap_inode_out(ip, dp);`) 은 NeXTMach `ufs/ufs_inode.c:431` `ip->i_ic = dp->di_ic;`·`606/616` `dp->di_ic = ip->i_ic;`(구조체 대입) 을 바꾼 것입니다.
+  - 128 B 구조체 대입은 GCC 가 `_bcopy` 호출로 내는 것으로 봅니다(미검증, 실행이 판정).
+
+방법:
+1. 07 덮어쓰기 두 파일(새 파일, NeXTMach 출처 고지 그대로)을 만듭니다.
+   - `ufs_vnodeops.c`: 399·400 과 402·403 을 각각 `#ifndef m68k` … `#endif` 로 감쌉니다(끼운 줄 4 개, `plan 449 (m68k)`).
+   - `ufs_inode.c`: 471 행 앞에 `#if m68k` + `ip->i_ic = dp->di_ic;` + `#else` 를, 뒤에 `#endif` 를 끼웁니다. 646 행도 같은 꼴로 `dp->di_ic = ip->i_ic;` 을 끼웁니다(NeXTMach 줄).
+2. `MARKERS`·`EXCEPTS[449]`·`m5_m68k_pc.py` `FILES` 에 두 파일을 더하고, 두 객체를 컴파일합니다. 스테이징 차이 = 두 `.c`, x86 관문.
+3. 미리 정한 기준:
+   - 두 객체 OBJECT_MATCH, 원본에 없는 새 미정의 기호 0(바이트 교환 기호가 빠짐).
+   - 아니면 구간 진단을 하고 두 시도 연속 줄지 않으면 멈춥니다.
+4. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-ufs-byteswap.diff`, `09_validation/reconstruction/m5-m68k-ufs-byteswap-20261010.json`.
+
+### 449.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 원본 `_iget`(0x4037588) 0x4037854–0x403786a: `lea a3@(0x62),a2; pea 0x80; movel a2,sp@-; …; movel d0,sp@-; bsr _bcopy` = `bcopy(dp, &ip->i_ic, 128)`; `_iupdat`(0x4037c0c) 0x4037d08 은 `bcopy(&ip->i_ic, dp, 128)` | 기호표 grep 세 기호, 원본 0x4037850–0x403786c 읽음 | ✅(`_iupdat` 쪽은 §431 덩어리와 검토자 인용) |
+| `icommon` 128 B, `i_ic` +0x62 | 검토자 인용(SDK `inode.h:101-135`) + 원본 `pea 0x80` | ✅ |
+| 128 B 구조체 대입이 `_bcopy` 로 나오는지는 컴파일러 원본으로 확인 불가 | — | ⏭️ 실행이 판정 |
+| 07 642–658 행 = NeXTMach 601–617 행; 646 은 NeXTMach 606(`#if NeXT` 안), 657 은 `#else` 의 죽은 사본 → 되살릴 것은 606 하나 | 두 범위 나란히 읽음 | ✅ "606/616 짝" 은 **내 문구 오류** |
+| 07 의 다른 x86 동기 줄(`architecture/byte_order.h` 가져오기, `NXSwapHostLongToBig` 2 줄 등)은 빅엔디언에서 항등이고 `_iupdat` 진단에 차이 없음 → 남기되 기록 | 07 652–654 행 읽음(`NXSwapHostLongToBig`) | ✅ MODIFICATIONS 에 "남김" 명시 |
+| `ufs_vnodeops` 덩어리 4 개는 모두 `_rwip`, 크기 합 54 = 8150 − 8096 | §436.2 기록과 같음 | ✅ |
+| 표시 줄은 모두 `plan 449 (m68k)` 를 달고, `begin`/`end` 묶음을 쓸 거면 `#else` 줄에서 닫아야 원래 줄이 묶음에 먹히지 않음; 등록 수 `ufs_vnodeops.c` 4·`ufs_inode.c` 8 | `check_derived` 규칙(§437–441) | ✅ 묶음 없이 줄마다 표시 |
+| `EXCEPTS[449]`·`FILES` 등록 | — | ✅ |
+| `ufs_dir.c` 에도 바이트 교환 호출 12 곳(다음 대상, 링크 전 필요) | 검토자 grep 인용 | ⏭️ 다음 항목 |
+
+### 449.2 결과(2026-10-10) — 기록 `09_validation/reconstruction/m5-m68k-ufs-byteswap-20261010.json`
+
+- 07 덮어쓰기(새 파일 둘, NeXTMach 고지 그대로)와 기록:
+  - `v183.34/m68k/src/bsd/ufs/ufs_vnodeops.c` 는 표시 줄 4 개입니다(`#ifndef m68k`/`#endif` 두 쌍).
+  - `ufs_inode.c` 는 표시 줄 8 개입니다(`#if m68k` 구조체 대입·`#else`·`#endif` 두 벌).
+  - diff 는 `06_reconstruction/evidence/m68k-ufs-byteswap.diff` 입니다. PROVENANCE 1077 → 1079, MODIFICATIONS 602 → 604 입니다.
+  - 남긴 x86 동기 줄(`NXSwapHostLongToBig` 등, 빅엔디언에서 항등)은 MODIFICATIONS 에 적었습니다.
+- 도구: `MARKERS`(`plan 449`: 4·8)·`EXCEPTS[449]`(이전 둘 + 두 ufs 객체), `m5_m68k_pc.py` `FILES` 에 두 파일을 더했습니다. 실행 전후 해시가 같습니다.
+- 스테이징 차이는 두 `.c` 이고, x86 관문 7 스테이징은 같습니다.
+- **시도 1**(run `m5p449-a1`, 2 명령 종료 0, 실기 otool SHA 대조): **`x86-ufs_vnodeops`·`x86-ufs_inode` 모두 OBJECT_MATCH** 이고, 원본에 없는 새 미정의 기호는 0 입니다.
+  - 128 B 구조체 대입은 `_bcopy` 호출로 나왔습니다(§449 의 미검증 예측 확인).
+  - `_iget` 의 레지스터·프레임 차이도 함께 풀렸습니다.
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 154**.
+- 다음 바이트 교환 후보: `ufs_vfsops`(바이트 교환 + `copyinmsg`·프레임, §439), `ufs_alloc`·`ufs_dir`(i386 도우미 함수 `_verify_and_swap_cg`·`_brelse_and_swap`).
+
+## 450. M5-7 세부 계획 — m68k `ufs_vfsops`: i386 바이트 교환 7 문장 빼기와 `mountfs` 프레임 자리 메움 크기(x86 트리 변경 없음; 코딩 전, 2026-10-10)
+
+확인한 사실:
+- §439 a 쪽 관문 기록(`m2-m68k-boundaries-built-20261009.json` k=130)의 덩어리:
+  - 바이트 교환 7 문장(07 `ufs_vfsops.c` 257–258·308·329·337·416·691·715, 모두 "plan 216")이고, 크기는 14·10·8·8·14·10·16 = 80 B 입니다(python).
+  - `bwrite` 정렬 쌍(−8·+10)이 있습니다.
+  - `mountfs` 프레임 차이(`linkw` 80 대 76, 지역 변위 +6 이동, python)가 있습니다.
+  - 257 행 `fsp = tp->b_un.b_fs;` 도 원본 m68k 에 없습니다(덩어리 14 B = `movel a4@(0x20),a2` 4 B 포함).
+- **§439 해석 정정**: `_copyin` 과 `_copyinmsg` 는 원본 m68k 에서 같은 주소(0x40016d0)의 별칭입니다(python: 두 이름 모두 호출 56 곳, 같은 함수 목록). §439 의 "`ufs_mount` 의 원본 `copyinmsg`" 는 진단 도구의 기호 이름 고르기에서 생긴 것이라 실제 차이가 아닙니다.
+- 07 `mountfs` 의 `char unused[64];`(206–207 행)는 x86 원본 프레임(0x40 더 큼)에 맞춰 넣은 자리 메움입니다(계획 216.1, "이름·자리 추정"). m68k 원본은 이 크기가 다른 것으로 보입니다.
+
+방법:
+1. 변형 시험(한 run): 07 본 파일에서 바이트 교환 7 문장을 뺀 판에 `unused` 크기 64(바꾸지 않음)·62·60·58·56 을 시험합니다(새 도구 `10_tools/reconstruction/m5_m68k_vfsops.py`). 외부 구간 비교로 `mountfs` 를 담은 구간·`_ufs_mount`·`_sbupdate` 가 원본과 같은 크기를 고릅니다.
+   - 같은 결과의 크기가 여럿이면 D072 처럼 사용자에게 묻습니다.
+   - 하나도 없으면 진단 뒤 멈춥니다.
+2. 고른 꼴로 07 덮어쓰기 `v183.34/m68k/src/bsd/ufs/ufs_vfsops.c` 를 만듭니다(새 파일).
+   - 바이트 교환 줄은 `#ifndef m68k`/`#endif` 로 감쌉니다.
+   - `unused` 는 `#if m68k` + `char unused[N];` + `#else` 로 감싸 07 줄을 `#else` 에 남깁니다.
+   - 표시는 `plan 450 (m68k)` 입니다.
+3. 미리 정한 기준: `x86-ufs_vfsops` OBJECT_MATCH, 원본에 없는 새 미정의 기호 0.
+4. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-ufs-vfsops.diff`, `09_validation/reconstruction/m5-m68k-ufs-vfsops-20261010.json`.
+
+### 450.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `_copyin`·`_copyinmsg` 같은 주소 → §439 의 차이는 이름 산물 | 기호표 grep: 둘 다 0x40016d0 | ✅ |
+| 바이트 교환 7 덩어리의 크기·줄이 계획과 같고 합 80; 257 행도 원본에 없음(REMOUNT 경로는 NeXTMach 245–247 행처럼 `bp = mp->m_bufp; goto modify_now;` 만) | §450 사실의 python 합과 같음; REMOUNT 판독은 검토자 인용 | ✅(판독은 실행으로 확인) |
+| `unused` 는 207 행 하나(206 은 `{`) | 07 206–207 행 읽음 | ✅ 문구 정정 |
+| 프레임은 4 의 배수로 올림(원본 `linkw` 828 개 모두 4 의 배수) → 크기 57·58 이 프레임 76·변위 +6 모두와 맞음; `devbsize` 는 레지스터라 무관 | python: `linkw` 828 개 중 4 의 배수 828 | ✅ |
+| 크기로는 고를 수 없음(변위 길이가 같음) → **바이트 일치(OBJECT_MATCH)로 고를 것**; 시험에 57 을 더할 것 | 설계 | ✅ 후보 64·62·60·58·57·56 |
+| 그 밖의 덩어리(D-frame +6·스택 조정 합치기·`bwrite` 자리·분기 `.w`/`.b` 4 B)는 제거·프레임의 부수 효과 | §439 덩어리 목록 | ⏭️ 실행이 판정 |
+| 표시 줄 18(`#ifndef`/`#endif` 7 쌍 + `unused` 4 줄), `EXCEPTS[450]`·`--plan` 목록 | 설계 | ✅ |
+| 한 크기로 두 아키텍처를 맞출 수 없음(x86 64, m68k 57/58) → `#if m68k` 분기 필요; 실제 지역 변수는 아키텍처마다 배치가 다른 것(구조체 등)일 수 있음(미검증) | — | ✅ 기록 |
+
+고친 고르기 규칙(실행 전 고정): 객체 OBJECT_MATCH 인 크기가 하나면 그 크기를 씁니다. 여럿이고 그 객체들이 비 STABS 로 서로 같으면, D072 와 같은 경우로 보고 사용자에게 묻습니다.
+
+### 450.2 결과(2026-10-10) — 기록 `09_validation/reconstruction/m5-m68k-ufs-vfsops-variants-20261010.json`(변형), `m5-m68k-ufs-vfsops-20261010.json`(최종)
+
+변형 시험(도구 `10_tools/reconstruction/m5_m68k_vfsops.py`, run `m5p450-var1`, 6 명령 종료 0, 실행 전후 해시 같음):
+- 바이트 교환 7 문장을 뺀 판에서 `unused` 크기 64·62·60·58·57·56 을 시험했습니다.
+- **58·57 만 OBJECT_MATCH** 이고 두 객체는 서로 같습니다. 나머지는 불일치입니다.
+- 미리 정한 규칙대로 사용자에게 물었고 결정은 **D073 = 58** 입니다.
+
+07 덮어쓰기와 기록:
+- `v183.34/m68k/src/bsd/ufs/ufs_vfsops.c`(새 파일)는 표시 줄 18 개입니다(`#ifndef m68k`/`#endif` 7 쌍, `#if m68k char unused[58]` / `#else` 07 줄 / `#endif`).
+- diff 는 `06_reconstruction/evidence/m68k-ufs-vfsops.diff` 입니다. PROVENANCE 1079 → 1080, MODIFICATIONS 604 → 605 입니다.
+- 도구: `MARKERS`(18)·`EXCEPTS[450]`·`FILES`. 스테이징 차이는 이 `.c` 하나이고, x86 관문 7 스테이징은 같습니다.
+
+최종 run `m5p450-a1`:
+- **`x86-ufs_vfsops` OBJECT_MATCH**(시험 변형 N=58 과 비 STABS 같음)이고, 원본에 없는 새 미정의 기호는 0 입니다.
+- 외부 구간 비교에서 `_sbupdate` 만 "다름" 으로 나옵니다. 이는 객체의 마지막 외부 함수라 원본 쪽 구간이 다음 외부 기호(`ufs_vnodeops` 의 `_rdwri`, 0x403b6a2)까지 이어진 측정 산물입니다. 객체 쪽은 2798 B 에서 끝나고, 객체 L1 은 OBJECT_MATCH 입니다.
+- §439 의 차 82 대 86 의 남은 4 B 는 분기 `.w`/`.b` 두 개였고(검토 의견), 이번에 함께 맞았습니다.
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 155**.
+
+## 451. M5-8 세부 계획 — m68k `ufs_dir`: 디렉터리 바이트 교환을 매크로로 지우고 NeXTMach `brelse()` 되살리기(x86 트리 변경 없음; 코딩 전, 2026-10-10)
+
+확인한 사실:
+- 07 `ufs_dir.c` 는 x86 원본에 맞춰 다음을 넣었습니다(계획 355·370).
+  - 도우미 `brelse_and_swap(bp)`(78–91 행: `if (bp) { byte_swap_dir_block_out(bp); brelse(bp); }`)
+  - 단독 문장 `byte_swap_dir_block_out(…)` 9 곳과 `byte_swap_dir_block_in(…)` 1 곳(1406 행)
+  - NeXTMach `brelse(x)` 를 바꾼 `brelse_and_swap(x)` 8 곳
+- NeXTMach `ufs/ufs_dir.c` 와 07 의 diff: `brelse_and_swap` 자리는 모두 NeXTMach 에서 그냥 `brelse(x)` 이고, 교환 문장은 NeXTMach 에 없습니다(diff grep).
+- 교환 문장은 모두 조건이 없는 단독 문장입니다(10 곳 문맥 읽음; 1587 행은 `if (bp) { … }` 블록 안 첫 문장).
+- §429: `x86-ufs_dir` 은 등급 A·i386 조각 OBJECT_MATCH 이고, m68k 에서는 외부 구간 0/5 가 같으며 원본에 없는 `_brelse_and_swap` 이 있습니다.
+
+방법:
+1. 07 덮어쓰기 `v183.34/m68k/src/bsd/ufs/ufs_dir.c`(새 파일)를 만듭니다.
+   - 도우미 정의(주석 포함 78–91 행)를 `#ifndef m68k`/`#endif` 로 감쌉니다.
+   - 그 뒤에 `#if m68k` 묶음으로 매크로 셋을 둡니다: `#define brelse_and_swap(bp) brelse(bp)`, `#define byte_swap_dir_block_out(bp)`, `#define byte_swap_dir_block_in(addr, n)`.
+   - 전처리 뒤 함수 본문은 NeXTMach 문장과 같고(빈 문장 `;` 만 남음), 줄을 하나하나 고치지 않습니다. 표시는 `plan 451 (m68k)` 입니다.
+2. 등록·스테이징·컴파일은 앞 절들과 같습니다(`MARKERS`·`EXCEPTS[451]`·`FILES`, 스테이징 차이 = 이 `.c`, x86 관문).
+3. 미리 정한 기준:
+   - 원본에 없는 새 미정의 기호 0(`_brelse_and_swap`·`_byte_swap_*` 사라짐).
+   - `x86-ufs_dir` OBJECT_MATCH. 아니면 구간 진단을 하고, 다른 x86 동기 수정(계획 355·370 의 비 교환 줄)이 원인인지 가립니다(두 시도 연속 줄지 않으면 멈춤).
+4. `ufs_alloc` 은 교환 외에도 x86 동기 수정이 많아(계획 214: `getthetime`·`VOP_DEVBLOCKSIZE`·`NXSwapBigLongToHost`·레지스터 변형) 다음 절에서 따로 다룹니다.
+5. 기록: PROVENANCE·MODIFICATIONS, diff `06_reconstruction/evidence/m68k-ufs-dir.diff`, `09_validation/reconstruction/m5-m68k-ufs-dir-20261010.json`.
+
+### 451.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `brelse_and_swap` 호출 8 곳(169·270·491·544·633·857·1367·1607)은 NeXTMach 에서 모두 `brelse(x)`; 매크로로 `brelse(` 가 NeXTMach 의 12 개가 됨; 원본 m68k 객체의 `_brelse` 호출도 12 | python: 호출 줄 목록, NeXTMach `brelse(` 12, 원본 [0x40354be, 0x4036d3e) 에서 `bsr 0x4017aec` 12 | ✅ |
+| `_out` 는 도우미 밖 8 곳(+ 도우미 안 88 행), `_in` 1 곳(1406) — 계획의 "9 곳" 은 88 행 포함 | python 목록 | ✅ 문구 정정 |
+| 비 교환 차이(`#ifdef QUOTA`→`#if QUOTA`, `dirrename` 의 `EISDIR`, `dircheckforname` 분기 반전, 초기화 두 줄)는 m68k 바이트와도 맞음(원본 주소 인용) | 검토자 판독(일부 미검증) | ⏭️ 실행이 판정 |
+| 매크로는 91 행 뒤에 둬야 함(앞 프로토타입 `void byte_swap_dir_block_in();` 가 펼쳐지지 않게); 빈 문장 `;` 은 모든 자리에서 무해 | 75–76·78–91 행 위치(§451 사실), 자리 문맥 읽음 | ✅ |
+| 표시 줄 7(`#ifndef`·`#endif`·`#if`·`#define` 3·`#endif`); `EXCEPTS[451]` 는 450 의 다섯 + `x86-ufs_dir` | 설계 | ✅ |
+| 계획 1489 행 근처의 "바이트 교환 호출 12 곳" 은 낡은 문구 | §449.1 표 마지막 줄(검토 인용) | ✅ 기록(덮어쓰지 않음) |
+
+### 451.2 결과(2026-10-10) — 기록 `09_validation/reconstruction/m5-m68k-ufs-dir-20261010.json`
+
+- 07 덮어쓰기 `v183.34/m68k/src/bsd/ufs/ufs_dir.c`(새 파일)는 표시 줄 7 개입니다.
+  - 도우미 정의를 `#ifndef m68k` 로 뺐습니다.
+  - 91 행 뒤 `#if m68k` 에 매크로 셋을 두었습니다.
+  - diff 는 `06_reconstruction/evidence/m68k-ufs-dir.diff` 입니다. PROVENANCE 1080 → 1081, MODIFICATIONS 605 → 606 입니다.
+- 도구:
+  - `MARKERS`(7)·`EXCEPTS[451]`·`FILES` 를 더했습니다.
+  - `m5_m68k_pc.py cmd2` 가 §429 run(`m3p429-cc2`)의 컴파일 줄도 찾도록 고쳤습니다(`ufs_dir` 은 88 쪽). 고른 줄이 `-c` 컴파일 줄인지 확인했습니다.
+  - 실행 전후 해시가 같습니다.
+- 스테이징 차이는 이 `.c` 하나이고, x86 관문 7 스테이징은 같습니다.
+- **시도 1**(run `m5p451-a1`): **`x86-ufs_dir` OBJECT_MATCH** 이고, 원본에 없는 새 미정의 기호는 0 입니다(`_brelse_and_swap`·`_byte_swap_*` 사라짐).
+  - 비 교환 차이(`#if QUOTA`·`EISDIR`·분기 반전·초기화)는 m68k 에도 맞았습니다.
+  - 외부 구간 비교의 `_blkatoff` "다름" 은 마지막 외부 함수라 원본 구간이 다음 객체까지 이어진 측정 산물입니다. 객체 끝 6272 B = 원본 0x4036d3e, 원본 쪽 구간은 0x4037142 까지입니다.
+- m68k 누계: 207 컴파일, **OBJECT_MATCH 156**.
+
+## 452. M5-9 세부 계획 — m68k `ufs_alloc`: 실린더 그룹 바이트 교환과 `blkpref` 의 큰 끝 읽기를 빼고 NeXTMach 검사 꼴 되살리기(x86 트리 변경 없음; 코딩 전, 2026-10-10)
+
+확인한 사실:
+- 원본 m68k 기호표에 `verify_and_swap`·`byte_swap` 이 든 이름이 없습니다(grep 0).
+- 07 `ufs_alloc.c`(1414 행)와 NeXTMach `mk-108.1/ufs/ufs_alloc.c` 의 차이(계획 214·214.1·397)는 다음과 같습니다.
+  - 바이트 교환 관련: 도우미 `verify_and_swap_cg`(121–142 행), 그 호출 다섯 곳(817·878·1118·1206·1303 행; 878·1118 은 뒤따르는 `nbfree`/`nifree` 검사 블록과 함께), 단독 `byte_swap_cylgroup(…)` 문장들, `blkpref` 의 `prevblk`·`NXSwapBigLongToHost`(666·669–676·685·688·709–716 행).
+  - 바이트 교환과 무관: `getthetime(&tv)`, `btodb(…, VOP_DEVBLOCKSIZE(ITOV(ip)))` 세 곳, `fsfull` 의 `register` 와 `cmesg = umesg = 0`, `free_block` printf 의 `bno`(214.1), `ufs_alloc_const_4`(397), `#import <architecture/byte_order.h>`.
+- 원본 m68k 함수 판독(이미지 목록 `08_build/artifacts/m0p414/otool-V10/image.txt`, python):
+  - `_fragextend`·`_alloccg`·`_ialloccg`·`_free_block`·`_ifree` 는 각각 `btst #2,aN@(0x3)`(B_ERROR 0x4) 1 개와 `cmpl #0x90255,aM@(0x3d4)`(CG_MAGIC) 1 개, `_getthetime`(0x400a360) 호출 1 개를 가집니다. 검사 직후 실패하면 바로 `_brelse` 로 가므로 NeXTMach 의 합친 조건 꼴과 맞습니다.
+  - `_blkpref` 는 호출이 없고 `bap[indx - 1]` 을 `movel a2@(-4,d3:l:4),d0` 로 두 번(0x4033df4·0x4033e14) 직접 읽습니다. `bap && indx > 0` 검사는 없습니다 → NeXTMach 꼴입니다.
+  - `_fsfull` 의 패닉 앞 `clrl d3; clrl d2`(0x403376e) → `cmesg = umesg = 0` 은 m68k 에도 있습니다.
+  - `_free_block` 의 "freeing free block" printf 는 `d5`(dtogd 뒤 `bno`)를 넣습니다(0x40349ba) → 214.1 의 `bno` 와 맞습니다.
+  - `_alloc` 1 곳, `_realloccg` 2 곳의 `a0@` 간접 호출은 `VOP_DEVBLOCKSIZE` 로 보입니다(실행이 판정).
+- 이 객체의 컴파일 줄은 §429 run(`m3p429-cc2/run.cmd`)에 있고, 같은 파일의 `-M` 의존성 줄(144 행)도 있습니다. `m5_m68k_pc.py cmd2` 는 지금 두 줄 다 고르게 되어 있어 `-c` 줄만 고르도록 고쳐야 합니다.
+
+방법:
+1. 07 덮어쓰기 `v183.34/m68k/src/bsd/ufs/ufs_alloc.c`(새 파일, 표시 `plan 452 (m68k)`)를 만듭니다. 07 본 파일에 표시 줄만 끼워 넣습니다(64 줄).
+   - 도우미 121–142 행과 `prevblk` 선언(666 행)은 `#ifndef m68k`/`#endif` 로 감쌉니다.
+   - 142 행 뒤에 `#if m68k` `#define byte_swap_cylgroup(cgp)`(빈 매크로) `#endif` 를 둡니다. 단독 교환 문장은 빈 문장이 됩니다.
+   - `blkpref` 네 자리(669–676·685·688·709–716)와 호출 다섯 자리(817–818·878–884·1118–1124·1206–1207·1303–1304)는 `#if m68k` + NeXTMach 줄 + `#else` + 07 줄 + `#endif` 로 둡니다. 넣는 줄은 NeXTMach 634·643·646·667–671·771–774·830–834·1061–1065·1144–1147·1240–1243 행과 같은 글입니다(`time.tv_sec` 줄은 넣지 않음; `getthetime` 은 07 줄 유지).
+   - 바이트 교환과 무관한 차이는 07 그대로 둡니다(원본 판독과 맞음).
+2. 도구:
+   - `stage_m68k.py`: `MARKERS['plan 452 (m68k)'] = {'src/bsd/ufs/ufs_alloc.c': 64}`, `EXCEPTS[452]` = 451 의 여섯 + `x86-ufs_alloc`, `--plan` 목록에 452.
+   - `m5_m68k_pc.py`: `FILES['ufs_alloc']`, `cmd2` 는 `-c` 가 있는 줄만 고릅니다(§451 까지의 결과는 바뀌지 않음: 고른 줄이 같음을 확인).
+3. 스테이징 `--plan 452`, x86 관문, 스테이징 차이 = 이 `.c` 하나, `cmd2 452 ufs_alloc`, kr_run, otool, `final`.
+4. 미리 정한 기준:
+   - 원본에 없는 새 미정의 기호 0(`_verify_and_swap_cg`·`_byte_swap_cylgroup`·`_NXSwap*` 없음).
+   - `x86-ufs_alloc` OBJECT_MATCH. 아니면 구간 진단(`diag`)으로 원인을 가리고, 두 시도 연속 줄지 않으면 멈춥니다.
+   - `ufs_alloc_const_4`(`__TEXT,__const` 4 B)가 m68k 원본과 맞지 않아 불일치가 나면, 이를 따로 보고하고 바꾸지 않습니다(근거 없는 제거 금지).
+5. 기록: PROVENANCE·MODIFICATIONS 덧붙임, diff `06_reconstruction/evidence/m68k-ufs-alloc.diff`, `09_validation/reconstruction/m5-m68k-ufs-alloc-20261010.json`.
+
+### 452.1 교차검토(Opus 5.5 서브에이전트) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| **`cmd2` 의 `-M` 줄 문제는 없음**: 조건 `' src/src/%s '` 는 파일명 뒤 공백이 필요하고, `-M` 줄(run.cmd 144 행)은 파일명 뒤가 줄바꿈이라 걸리지 않음 | python: 9 개 파일 모두 고른 줄이 하나이고(`ufs_alloc` 은 296 번째 줄 = run.cmd 56 행), `' -c '` 를 더 걸어도 같음 | ✅ **제 오류 정정** — 도구는 고치지 않고 `FILES['ufs_alloc']` 만 더함 |
+| 바이트 교환 관련 차이를 모두 다루고, 빈 문장이 되는 교환 10 곳은 모두 중괄호 안 또는 `bdwrite` 앞이라 흐름이 NeXTMach 와 같음 | 07 824·847·889·908·922·928·941·1169·1267·1325 행 문맥(§452 준비 중 읽음)과 넣은 30 줄 = NeXTMach 줄(python 일치) | ✅ |
+| m68k 쪽 전처리 결과는 NeXTMach 와 유지한 차이(getthetime·btodb·fsfull·bno·const·import)만 다르며, 빈 줄 하나가 늘어남(120·143 행) | python: 07 120·143 행 모두 빈 줄 | ✅ (`__text` 무관) |
+| 원본 판독(검사·getthetime 각 1, blkpref 직접 읽기, fsfull `clrl`, printf `d5`) 맞음; `_realloccg` 에도 `btst #2` 2 개(0x4033a30·0x4033b6e)가 있으나 `bread` 오류 검사 | python grep | ✅ |
+| 표시 줄 64, 두 표시가 한 줄에 없음 | 생성기 출력 `marked 64`, 스테이징 검사가 다시 판정 | ✅ |
+| `#define byte_swap_cylgroup` 자리 안전(헤더에 선언 없음) | §452 준비 중 `grep -rn byte_swap_cylgroup 07_kernel/src --include=*.h` 0 건 | ✅ |
+| 기존 §429 객체에서 외부 구간 11 개가 이미 같고, 다른 것은 손대는 6 함수뿐이며 `_verify_and_swap_cg` 는 원본에 없음; 간접 호출 `a0@` 는 `VOP_DEVBLOCKSIZE` | python `compare_object`: 같음 11(`_alloc` … `_realloccg`), 다름 6(`_alloccg`·`_blkpref`·`_fragextend`·`_free_block`·`_ialloccg`·`_ifree`), 없음 1 | ✅ (간접 호출 판독은 같은 구간 일치로 갈음) |
+| `ufs_alloc_const_4` 의 m68k 일치 여부는 미확인 | — | ⏭️ 실행이 판정(§452 기준 4 그대로) |
+
+### 452.2 결과(2026-10-10) — 기록 `09_validation/reconstruction/m5-m68k-ufs-alloc-20261010.json`(최종), `m5-m68k-ufs-alloc-const-20261010.json`(상수 배치)
+
+- 07 덮어쓰기 `v183.34/m68k/src/bsd/ufs/ufs_alloc.c`(새 파일, 1478 행)는 표시 줄 64 개입니다.
+  - diff 는 `06_reconstruction/evidence/m68k-ufs-alloc.diff` 입니다. PROVENANCE 1081 → 1082, MODIFICATIONS 606 → 607 입니다.
+- 도구: `stage_m68k.py` 의 `MARKERS`(64)·`EXCEPTS[452]`·`--plan` 목록, `m5_m68k_pc.py` 의 `FILES['ufs_alloc']` 만 더했습니다(`cmd2` 는 고치지 않음, §452.1). 실행 전후 해시가 같습니다.
+- 스테이징 차이는 이 `.c` 하나이고, x86 관문 7 스테이징은 같습니다.
+- **시도 1**(run `m5p452-a1`, 1 명령):
+  - `__TEXT,__text` 바이트 차이 0, 참조 167 개 모두 같음, 외부 구간 17/17 같음, 원본에 없는 새 미정의 기호 0 입니다.
+  - 기본 L1(`--place-from-image`) 판정은 **NOT_MATCH, 이유는 `__TEXT,__const: unverified` 하나**입니다. 기호가 없는 static 상수 `ufs_alloc_const_4`(4 B)는 이미지에서 자리를 찾지 못합니다(x86 에서도 같은 원인이었고, 계획 397·398 에서 명시 배치로 확인했습니다).
+- 상수 배치 확인(소스 변경 없음, 측정만):
+  - 원본 m68k `__TEXT,__const`(0x40ace76, 2796 B)에서 `"swapfs\0"`(0x40acfdb–0x40acfe1) 바로 뒤 0x40acfe2 에 큰 끝 정수 4(`00 00 00 04`, 2 B 정렬)가 있고, 바로 뒤가 `_kern_serv_proto`(0x40acfe6)입니다. x86 의 순서(swapfs 0x1d1276 → ufs_alloc 0x1d1280 → kern_server)와 같습니다.
+  - `--place __TEXT,__const=0x40acfe2` 에서 **OBJECT_MATCH**(상수 바이트 차이 0)입니다. 대조 자리 0x40acfe6·0x40acfde 는 불일치(차이 1·4)입니다.
+- 판정: 미리 정한 기준 1(새 미정의 기호 0)은 충족합니다. 기준 2 는 기본 L1 로는 NOT_MATCH(상수 미배치만)이고, x86 선례와 같은 명시 배치로는 OBJECT_MATCH 입니다. 기준 4 의 "상수가 맞지 않으면" 경우는 일어나지 않았습니다(상수는 원본과 같음).
+- m68k 누계: 208 중 207 컴파일. OBJECT_MATCH 는 기본 L1 로 156 이고, 명시 배치 하나(`ufs_alloc` 0x40acfe2)를 넣으면 157 입니다.

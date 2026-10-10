@@ -1,0 +1,111 @@
+--- 07_kernel/src/vm/vm_fault.c
++++ 07_kernel/v183.34/m68k/src/vm/vm_fault.c
+@@ -110,6 +110,9 @@
+ 	boolean_t		page_exists;
+ 	vm_page_t		old_m;
+ 	vm_object_t		next_object;
++#if	m68k	/* plan 446 (m68k) begin: PMON event mask, original _vm_fault 0x405c448 (D024) */
++	int			pmon_event = 0x2000000;
++#endif	/* plan 446 (m68k) end */
+ 
+ 	vm_stat.faults++;		/* needs lock XXX */
+ /*
+@@ -329,6 +332,9 @@
+ 						vm_object_lock(object);
+ 					}
+ 					first_m = VM_PAGE_NULL;
++#if	m68k	/* plan 446 (m68k) begin: 0x405c5a4 */
++					pmon_event |= 8;
++#endif	/* plan 446 (m68k) end */
+ 					vm_page_zero_fill(m);
+ 					vm_stat.zero_fill_count++;
+ 					m->absent = FALSE;
+@@ -370,6 +376,9 @@
+ 				m->inactive = FALSE;
+ 				vm_page_inactive_count--;
+ 				vm_stat.reactivations++;
++#if	m68k	/* plan 446 (m68k) begin: 0x405c656 */
++				pmon_event |= 1;
++#endif	/* plan 446 (m68k) end */
+ 			} 
+ 
+ 			if (m->active) {
+@@ -390,6 +399,9 @@
+ 				m->free = FALSE;
+ 				vm_page_free_count--;
+ 				vm_stat.reactivations++;
++#if	m68k	/* plan 446 (m68k) begin: 0x405c6c0 */
++				pmon_event |= 2;
++#endif	/* plan 446 (m68k) end */
+ 			}
+ #endif	NeXT
+ 			vm_page_unlock_queues();
+@@ -471,6 +483,9 @@
+ 			continue;
+ #else	MACH_XP
+ #if	NeXT
++#if	m68k	/* plan 446 (m68k) begin: 0x405c73c */
++			pmon_event |= 16;
++#endif	/* plan 446 (m68k) end */
+ 			rc = vm_pager_get(object->pager, m, error);
+ #else	NeXT
+ 			rc = vm_pager_get(object->pager, m);
+@@ -561,6 +576,9 @@
+ 			first_m = VM_PAGE_NULL;
+ 
+ 			vm_page_zero_fill(m);
++#if	m68k	/* plan 446 (m68k) begin: 0x405c86c */
++			pmon_event |= 8;
++#endif	/* plan 446 (m68k) end */
+ 			vm_stat.zero_fill_count++;
+ 			m->absent = FALSE;
+ 			break;
+@@ -622,6 +640,9 @@
+ 			 *	first_object - use it.
+ 			 */
+ 
++#if	m68k	/* plan 446 (m68k) begin: 0x405c8ce */
++			pmon_event |= 32;
++#endif	/* plan 446 (m68k) end */
+ 			vm_page_copy(m, first_m);
+ 			first_m->absent = FALSE;
+ 
+@@ -693,6 +714,10 @@
+ 		vm_object_t		copy_object = first_object->copy;
+ 		vm_offset_t		copy_offset;
+ 		vm_page_t		copy_m;
++#if	m68k	/* plan 446 (m68k) begin: 0x405c98a */
++
++		pmon_event |= 64;
++#endif	/* plan 446 (m68k) end */
+ 
+ 		/*
+ 		 *	We only need to copy if we want to write it.
+@@ -1128,6 +1153,27 @@
+ 		panic("vm_fault: active or inactive before pmap_enter");
+ 
+ 	vm_object_unlock(object);
++#if	m68k	/* plan 446 (m68k) begin: PMON fault event, original 0x405cef0-0x405cf88 (D024) */
++	{
++		extern int	pmon_flags[], vmlog_send;
++		extern void	pmonlogevent(), pmonlogcontextflush();
++		int		vmstat;
++
++		if (prot & VM_PROT_WRITE)
++			pmon_event |= 0x100;
++		if (vmlog_send++ & 1)
++			vmstat = vm_page_free_count;
++		else
++			vmstat = vm_page_inactive_count | 0x8000;
++		if (pmon_flags[17] & 0x01000000)
++			pmonlogcontextflush(17, 0x01000000);
++		if (pmon_flags[17] & pmon_event)
++			pmonlogevent(17, pmon_event,
++			    (atop(vaddr) << 16) | atop(VM_PAGE_TO_PHYS(m)),
++			    (pmap_resident_count(map->pmap) << 16) | vmstat,
++			    current_thread());
++	}
++#endif	/* plan 446 (m68k) end */
+ 
+ 	/*
+ 	 *	Put this page into the physical map.

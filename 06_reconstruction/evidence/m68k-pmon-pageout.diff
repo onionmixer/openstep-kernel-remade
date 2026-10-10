@@ -1,0 +1,42 @@
+--- 07_kernel/src/vm/vm_pageout.c
++++ 07_kernel/v183.34/m68k/src/vm/vm_pageout.c
+@@ -170,6 +170,19 @@
+ 				did_work = TRUE;
+ 				m->busy = TRUE;
+ 				vm_page_unlock_queues();
++#if	m68k	/* plan 447 (m68k) begin: PMON pageout event, original _vm_pageout_scan 0x40604d0-0x4060528 (D024, D072) */
++				{
++					extern int	pmon_flags[];
++					extern void	pmonlogevent(), pmonlogcontextflush();
++
++					if (pmon_flags[17] & 0x01000000)
++						pmonlogcontextflush(17, 0x01000000);
++					if (pmon_flags[17] & 0x04000001)
++						pmonlogevent(17, 0x04000001, atop(VM_PAGE_TO_PHYS(m)),
++						    (vm_page_inactive_count << 16) | (vm_page_free_count & 0xffff),
++						    current_thread());
++				}
++#endif	/* plan 447 (m68k) end */
+ 
+ 				pmap_remove_all(VM_PAGE_TO_PHYS(m));
+ 				vm_page_lock_queues();
+@@ -280,6 +293,19 @@
+ 							pager, 0, FALSE);
+ 					}
+ 				}
++#if	m68k	/* plan 447 (m68k) begin: PMON pageout event, original _vm_pageout_scan 0x40605e6-0x406063e (D024, D072) */
++				{
++					extern int	pmon_flags[];
++					extern void	pmonlogevent(), pmonlogcontextflush();
++
++					if (pmon_flags[17] & 0x01000000)
++						pmonlogcontextflush(17, 0x01000000);
++					if (pmon_flags[17] & 0x04000002)
++						pmonlogevent(17, 0x04000002, atop(VM_PAGE_TO_PHYS(m)),
++						    (vm_page_inactive_count << 16) | (vm_page_free_count & 0xffff),
++						    current_thread());
++				}
++#endif	/* plan 447 (m68k) end */
+ 
+ 				pageout_succeeded = FALSE;
+ 				if (pager != vm_pager_null) {

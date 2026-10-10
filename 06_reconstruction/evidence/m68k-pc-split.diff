@@ -1,0 +1,32 @@
+--- 07_kernel/src/bsd/kern/mach_process.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/mach_process.c
+@@ -167,7 +167,14 @@
+ 		locr0 = thread->u_address.uthread->uu_ar0;
+ #endif	NeXT
+ 		if ((int)uap->addr != 1)
++#if	m68k	/* plan 444 (m68k) begin: SDK PCH/PCL, original _ptrace 0x400aee4-0x400aef4 (D024, D072) */
++		{
++			locr0[PCH] |= (int)uap->addr >> 16;
++			locr0[PCL] |= ((int)uap->addr & 0xffff) << 16;
++		}
++#else	/* plan 444 (m68k) end */
+ 			locr0[PC] = (int)uap->addr;
++#endif	/* plan 444 (m68k) */
+ 		if ((unsigned)uap->data > NSIG)
+ 			goto error;
+ 
+--- 07_kernel/src/bsd/kern/kern_exec.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_exec.c
+@@ -479,7 +479,12 @@
+ 		u.u_ar0[SP] = sp;
+ 		(void) suword((caddr_t)sp, load_result.mach_header);
+ 	}
++#if	m68k	/* plan 444 (m68k) begin: SDK PCH/PCL, original _execve 0x4005044-0x400505e (D024, D072) */
++	u.u_ar0[PCH] = (u.u_ar0[PCH] & 0xffff0000) | ((unsigned)load_result.entry_point >> 16);
++	u.u_ar0[PCL] = (load_result.entry_point << 16) | (u.u_ar0[PCL] & 0xffff);
++#else	/* plan 444 (m68k) end */
+ 	u.u_ar0[PC] = load_result.entry_point;	/* plan 291 */
++#endif	/* plan 444 (m68k) */
+ 
+ 	/*
+ 	 * Reset caught signals.  Held signals

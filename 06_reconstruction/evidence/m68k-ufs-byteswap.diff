@@ -1,0 +1,44 @@
+--- 07_kernel/src/bsd/ufs/ufs_vnodeops.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_vnodeops.c
+@@ -396,11 +396,15 @@
+ 			brelse(bp);
+ 			goto out;
+ 		}
++#ifndef	m68k	/* plan 449 (m68k): i386 directory byte swap (plan 217) not in the m68k original */
+ 		if ((ip->i_mode & IFMT) == IFDIR)	/* plan 217 (original 0x144138) */
+ 			byte_swap_dir_block_in(bp->b_un.b_addr, bp->b_bcount);
++#endif	/* plan 449 (m68k) */
+ 		u.u_error = uiomove(bp->b_un.b_addr+on, n, rw, uio);
++#ifndef	m68k	/* plan 449 (m68k) */
+ 		if ((ip->i_mode & IFMT) == IFDIR)	/* plan 217 (original 0x144173) */
+ 			byte_swap_dir_block_out(bp);
++#endif	/* plan 449 (m68k) */
+ 		if ((ioflag & IO_SYNC) && (ip->i_mode & ISVTX) && stickyhack
+ 		  && (ip->i_mode & execmask) == 0)
+ 		      bp->b_flags |= B_NOCACHE;
+--- 07_kernel/src/bsd/ufs/ufs_inode.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_inode.c
+@@ -468,7 +468,11 @@
+ 	}
+ 	dp = bp->b_un.b_dino;
+ 	dp += itoo(fs, ino);
++#if	m68k	/* plan 449 (m68k): NeXTMach ufs_inode.c structure assignment (original _bcopy, 0x80) */
++	ip->i_ic = dp->di_ic;	/* plan 449 (m68k) */
++#else	/* plan 449 (m68k) */
+ 	byte_swap_inode_in(dp, ip);	/* plan 215 (original 0x140b29) */
++#endif	/* plan 449 (m68k) */
+ 	VN_INIT(ITOV(ip), mp->m_vfsp, IFTOVT(ip->i_mode), ip->i_rdev);
+ 	if (ino == (ino_t)ROOTINO) {
+ 		ITOV(ip)->v_flag |= VROOT;
+@@ -643,7 +647,11 @@
+ 			|| ((dp->di_gen + 1 == ip->i_gen)
+ 			&& (ip->i_flag & IFREE)));
+ 		ip->i_flag &= ~IFREE;
++#if	m68k	/* plan 449 (m68k): NeXTMach ufs_inode.c structure assignment (original _bcopy, 0x80) */
++		dp->di_ic = ip->i_ic;	/* plan 449 (m68k) */
++#else	/* plan 449 (m68k) */
+ 		byte_swap_inode_out(ip, dp);	/* plan 215 (original 0x140fc7) */
++#endif	/* plan 449 (m68k) */
+ 		/*
+ 		 * If this is a user mounted filesystem, we need to
+ 		 * restore the real uid and gid before updating the inode.
