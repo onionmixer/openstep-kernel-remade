@@ -1,0 +1,17 @@
+--- 07_kernel/src/bsd/netinet/ip_output.c
++++ 07_kernel/v183.34/m68k/src/bsd/netinet/ip_output.c
+@@ -320,8 +320,14 @@
+ 	 * Loop through length of segment after first fragment,
+ 	 * make new header and copy data of each part and link onto chain.
+ 	 */
++#if	m68k	/* plan 459 (m68k) begin: first fragment offset set before the loop (original off in a2; D077) */
++	off = hlen;
++	mhlen = sizeof (struct ip);
++	for (off += len; off < ip->ip_len; off += len) {
++#else	/* plan 459 (m68k) end */
+ 	mhlen = sizeof (struct ip);
+ 	for (off = hlen + len; off < ip->ip_len; off += len) {
++#endif	/* plan 459 (m68k) */
+ 		nb = ifp->if_getbuf(ifp);
+ 		if (nb == 0) {
+ 			error = ENOBUFS;

@@ -30,6 +30,12 @@ Decision D019 (plan 84, 84.1): when everything passes except the negative check,
 and the only reason is that there is a single reference (one record, neither
 scattered nor pc-relative, so its field target is range-checked), the
 conclusion is 'reference-inferred-single' instead of 'fail'.
+
+Plan 464: object and image must have the same cputype and byte order; relocation
+names come from l1_compare.types_of and fields are read in the object's byte order.
+For a CPU other than i386, a relocation touching the zero-fill section that is not
+a 4-byte, absolute VANILLA record is a problem (not inferred); i386 behaviour is
+unchanged.
 """
 import argparse, bisect, csv, hashlib, json, os, sys
 
@@ -63,14 +69,16 @@ def source_deltas(obj, imgsyms):
     return {k: (next(iter(v)) if len(v) == 1 else None) for k, v in out.items()}
 
 
-def infer(obj, ob, zidx, deltas, read):
-    """Per-reference Delta(Z) records; read(va, width) gives the image field."""
+def infer(obj, ob, zidx, deltas, read, types=TYPE, endian='little', strict=False):
+    """Per-reference Delta(Z) records; read(va, width) gives the image field.
+    plan 464: types/endian of the object; strict rejects non-VANILLA, narrow or
+    pc-relative records touching Z (used for CPUs other than i386)."""
     z = [s for s in obj['sections'] if s['index'] == zidx][0]
     recs, problems = [], []
     for s in obj['sections']:
         rels = s['relocs']
         for i, r in enumerate(rels):
-            kind = TYPE.get(r['type'])
+            kind = types.get(r['type'])
             if r['scattered']:
                 tgt = sect_of(obj, r['value'])
                 if kind in ('PAIR', 'SECTDIFF', 'LOCAL_SECTDIFF'):
@@ -84,8 +92,12 @@ def infer(obj, ob, zidx, deltas, read):
                 if r['extern'] or r['symbolnum'] != zidx:
                     continue
                 base = None
+            if strict and (kind != 'VANILLA' or r['length'] != 2 or r['pcrel']):   # plan 464
+                problems.append('unsupported %s length %d pcrel %d relocation to the zero-fill section at %s+%#x'
+                                % (kind, r['length'], r['pcrel'], s['sectname'], r['address']))
+                continue
             w = 1 << r['length']
-            F = int.from_bytes(ob[s['offset'] + r['address']:s['offset'] + r['address'] + w], 'little')
+            F = int.from_bytes(ob[s['offset'] + r['address']:s['offset'] + r['address'] + w], endian)
             dP = deltas.get(s['index'])
             if dP is None:
                 problems.append('referring section %s has no symbol placement' % s['sectname'])
@@ -127,8 +139,10 @@ def main():
     obj = macho_obj.parse(ob)
     img = L.Image(a.image)
     imd = macho_obj.parse(open(a.image, 'rb').read())
-    macho_obj.require_i386(obj, 'zerofill_check')  # plan 411: i386 little-endian only
-    macho_obj.require_i386(imd, 'zerofill_check')
+    if (obj['cputype'], obj['endian']) != (imd['cputype'], imd['endian']):   # plan 464 (was require_i386, plan 411)
+        sys.exit('object %s/%s vs image %s/%s' % (obj['cputype'], obj['endian'], imd['cputype'], imd['endian']))
+    types = L.types_of(obj)                       # plan 464: refuses CPUs without relocation names
+    strict = obj['cputype'] != macho_obj.CPU_I386
     rows = list(csv.DictReader(open(a.symbols), delimiter='\t'))
     imgsyms = {x['name']: int(x['value'], 16) for x in rows}
     zs = [s for s in obj['sections'] if s['segname'] == seg and s['sectname'] == sect]
@@ -160,8 +174,8 @@ def main():
                 continue
             deltas[s['index']] = dl
             delta_source[s['index']] = 'l1-inferred' if e.get('placement') == 'inferred, verified by L1d' else 'l1'   # plan 339
-    rd = lambda va, w: int.from_bytes(img.read(va, w), 'little')
-    recs, problems = infer(obj, ob, z['index'], deltas, rd)
+    rd = lambda va, w: int.from_bytes(img.read(va, w), obj['endian'])   # plan 464
+    recs, problems = infer(obj, ob, z['index'], deltas, rd, types, obj['endian'], strict)
     problems = l1problems + problems
     ds = sorted({r['delta'] for r in recs})
     res = dict(tool='zerofill_check.py', tool_sha256=sha(os.path.abspath(__file__)),
@@ -199,7 +213,7 @@ def main():
     if recs:
         bad = recs[0]['image_va']
         rd2 = lambda va, w: (rd(va, w) + (4 if va == bad else 0)) % (1 << (8 * w))
-        r2, p2 = infer(obj, ob, z['index'], deltas, rd2)
+        r2, p2 = infer(obj, ob, z['index'], deltas, rd2, types, obj['endian'], strict)
         res['negative_check'] = dict(perturbed_va=bad, distinct_deltas=len({r['delta'] for r in r2}),
                                      detected=len({r['delta'] for r in r2}) > 1 or bool(p2))
         ok = ok and res['negative_check']['detected']

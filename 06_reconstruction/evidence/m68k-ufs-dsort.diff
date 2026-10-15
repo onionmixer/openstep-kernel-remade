@@ -1,0 +1,66 @@
+--- 07_kernel/src/bsd/ufs/ufs_dsort.c
++++ 07_kernel/v183.34/m68k/src/bsd/ufs/ufs_dsort.c
+@@ -52,6 +52,7 @@
+ #import <kern/thread.h>
+ #endif	NeXT
+ 
++#ifndef	m68k	/* plan 457 (m68k): no classic disksort in the m68k original (NeXTMach #if NeXT / #else NeXT) */
+ #if	1	/* plan 206: the classic disksort is in the original (0x13f90c) */
+ disksort(dp, bp)
+ 	register struct buf *dp, *bp;
+@@ -132,6 +133,7 @@
+ 		dp->b_actl = bp;
+ }
+ #endif	NeXT
++#endif	/* plan 457 (m68k) */
+ 
+ #if	NeXT
+ ds_call_t ds_call;
+@@ -388,11 +390,15 @@
+ 	int s;
+ 
+ 	ds_dbg(("enter buf 0x%x in queue 0x%x with pri %d\n", bp, dsq, pri));
++#if	m68k	/* plan 457 (m68k): NeXTMach spldma() (original movew #0x2600,sr) */
++	s = spldma();	/* plan 457 (m68k) */
++#else	/* plan 457 (m68k) */
+ #if	NeXT
+ 	s = splbio();	/* plan 206.1 (original calls _splbio) */
+ #else	NeXT
+ 	s = spldma();
+ #endif	NeXT
++#endif	/* plan 457 (m68k) */
+ 	simple_lock(&dsq->lock);
+ 
+ 	if (queue_empty(&dsq->activeq)) {
+@@ -593,11 +599,15 @@
+ 	if (dsq->indirect)
+ 		return (*ds_call.first)(dsq);
+ 
++#if	m68k	/* plan 457 (m68k): NeXTMach spldma() (original movew #0x2600,sr) */
++	s = spldma();	/* plan 457 (m68k) */
++#else	/* plan 457 (m68k) */
+ #if	NeXT
+ 	s = splbio();	/* plan 206.1 (original calls _splbio) */
+ #else	NeXT
+ 	s = spldma();
+ #endif	NeXT
++#endif	/* plan 457 (m68k) */
+ 	simple_lock(&dsq->lock);
+ 	if (queue_empty(&dsq->activeq)) {
+ 		simple_unlock(&dsq->lock);
+@@ -628,11 +638,15 @@
+ 	if (dsq->indirect)
+ 		return (*ds_call.remove)(dsq, bp);
+ 
++#if	m68k	/* plan 457 (m68k): NeXTMach spldma() (original movew #0x2600,sr) */
++	s = spldma();	/* plan 457 (m68k) */
++#else	/* plan 457 (m68k) */
+ #if	NeXT
+ 	s = splbio();	/* plan 206.1 (original calls _splbio) */
+ #else	NeXT
+ 	s = spldma();
+ #endif	NeXT
++#endif	/* plan 457 (m68k) */
+ 	simple_lock(&dsq->lock);
+ 
+ 	if (queue_empty(&dsq->activeq)) {

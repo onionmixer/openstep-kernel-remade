@@ -1,0 +1,57 @@
+--- 07_kernel/src/bsd/netinet/in_pcb.c
++++ 07_kernel/v183.34/m68k/src/bsd/netinet/in_pcb.c
+@@ -4,6 +4,35 @@
+  * All rights reserved.  The CMU software License Agreement specifies
+  * the terms and conditions for use and redistribution.
+  */
++/* plan 458 (m68k) begin: notice for the lines marked "plan 458 (Darwin)" (D061 precedent) */
++/*
++ * The lines marked "plan 458 (Darwin)" follow Darwin 0.1
++ * kernel/bsd/netinet/in_pcb.c:450-451 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++/* plan 458 (m68k) end */
+ /*
+  * Copyright (c) 1982, 1986 Regents of the University of California.
+  * All rights reserved.
+@@ -241,11 +270,18 @@
+ 		if (IN_MULTICAST(ntohl(sin->sin_addr.s_addr)) &&
+ 		    inp->inp_moptions) {
+ 			struct ip_moptions *imo;
++#ifndef	m68k	/* plan 458 (m68k): no inner ifp; the outer ifp of this block is used (original register use) */
+ 			struct ifnet *ifp;
++#endif	/* plan 458 (m68k) */
+ 
+ 			imo = mtod(inp->inp_moptions, struct ip_moptions *);
++#if	m68k	/* plan 458 (m68k) begin: test the member first, then load ifp (original movel d0,a0 at 0x401fba2) */
++			if (imo->imo_multicast_ifp != NULL) {	/* plan 458 (Darwin): as Darwin 0.1 in_pcb.c:450 */
++				ifp = imo->imo_multicast_ifp;	/* plan 458 (Darwin): as Darwin 0.1 in_pcb.c:451 */
++#else	/* plan 458 (m68k) end */
+ 			ifp = imo->imo_multicast_ifp;
+ 			if (ifp) {
++#endif	/* plan 458 (m68k) */
+ 				for (ia = in_ifaddr; ia; ia = ia->ia_next)
+ 					if (ia->ia_ifp == ifp)
+ 						break;

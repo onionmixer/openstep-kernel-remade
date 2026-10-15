@@ -1,0 +1,81 @@
+--- 07_kernel/src/vm/vm_kern.c
++++ 07_kernel/v183.34/m68k/src/vm/vm_kern.c
+@@ -121,10 +121,17 @@
+  *	kmem_alloc_wired and kmem_alloc_zone).
+  */
+ static kern_return_t
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++kmem_alloc_prim(map, addrp, size, find_space, object, canblock)
++#else	/* plan 460 (m68k) end */
+ kmem_alloc_prim(map, addrp, size, object, canblock)
++#endif	/* plan 460 (m68k) */
+ 	register vm_map_t	map;
+ 	vm_offset_t		*addrp;
+ 	register vm_size_t	size;
++#if	m68k	/* plan 460 (m68k) */
++	boolean_t		find_space;	/* plan 460 (m68k): name as NeXTMach vm/vm_map.c:534 vm_map_find */
++#endif	/* plan 460 (m68k) */
+ 	vm_object_t		object;
+ 	boolean_t		canblock;
+ {
+@@ -132,13 +139,24 @@
+ 	kern_return_t		result;
+ 	vm_offset_t		offset = 0;
+ 
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++	if (find_space)
++		addr = vm_map_min(map);
++	else
++		addr = *addrp;
++#else	/* plan 460 (m68k) end */
+ 	addr = vm_map_min(map);
++#endif	/* plan 460 (m68k) */
+ 	size = round_page(size);
+ 
+ 	if (result = vm_map_find(map,
+ 				 (object != kernel_object) ?
+ 					object : VM_OBJECT_NULL,
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++				 offset, &addr, size, find_space)
++#else	/* plan 460 (m68k) end */
+ 				 (vm_offset_t) 0, &addr, size, TRUE)
++#endif	/* plan 460 (m68k) */
+ 			!= KERN_SUCCESS) {
+ 		if (object != kernel_object)
+ 			vm_object_deallocate(object);
+@@ -186,7 +204,11 @@
+ {
+ 	vm_object_t	object = vm_object_allocate(size);
+ 
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++	return(kmem_alloc_prim(map, addrp, size, TRUE, object, TRUE));
++#else	/* plan 460 (m68k) end */
+ 	return(kmem_alloc_prim(map, addrp, size, object, TRUE));
++#endif	/* plan 460 (m68k) */
+ }
+ 
+ /*
+@@ -248,7 +270,11 @@
+ 	vm_offset_t	*addrp;
+ 	vm_size_t	size;
+ {
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++	return(kmem_alloc_prim(map, addrp, size, TRUE, kernel_object, TRUE));
++#else	/* plan 460 (m68k) end */
+ 	return(kmem_alloc_prim(map, addrp, size, kernel_object, TRUE));
++#endif	/* plan 460 (m68k) */
+ }
+ 
+ /*
+@@ -487,7 +513,11 @@
+ 	vm_size_t	size;
+ 	boolean_t	canblock;
+ {
++#if	m68k	/* plan 460 (m68k) begin: fourth argument find_space of the m68k original (D024, D078) */
++	return(kmem_alloc_prim(map, addrp, size, TRUE, kernel_object, canblock));
++#else	/* plan 460 (m68k) end */
+ 	return(kmem_alloc_prim(map, addrp, size, kernel_object, canblock));
++#endif	/* plan 460 (m68k) */
+ }
+ 
+ /*

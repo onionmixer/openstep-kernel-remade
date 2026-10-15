@@ -6,10 +6,10 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
-stage    s6l4-g1a-stage (the x86 base) + the real-machine SDK m68k headers (plan 413, local
+stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082) + the real-machine SDK m68k headers (plan 413, local
          copy hash-checked against its target list) + 07_kernel/v183.34/common + 07_kernel/
          v183.34/m68k, copied in this order (a later file replaces an earlier one; D068 picks
          m68k, then common, then the 07 main tree).  STAGE_DIR.manifest.json: [path, origin,
@@ -18,8 +18,9 @@ stage    s6l4-g1a-stage (the x86 base) + the real-machine SDK m68k headers (plan
          right after '#import <sys/param.h>'; plan 437 generalisation).
 cmd      the 205 compile lines of the plan 429 (run m3p429-cc2, -c only) and plan 432 (run
          m3p432-int) runs, output prefix O433__.
-x86gate  re-stage every s6l4-g* x86 stage with stage_headers.py and its manifest options and
-         require the manifests to be unchanged (the x86 build does not read v183.34).
+x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466) with stage_headers.py and its
+         manifest options and require the manifests to be unchanged (the x86 build does not read
+         v183.34); all seven groups must be present.
 compare  every O433 object against the test-run object (non-STABS section bytes and
          relocations with external symbol numbers replaced by names) and L1 against the
          original; the pre-registered exceptions are x86-subr_kudp and x86-if_venip.
@@ -73,6 +74,169 @@ EXCEPTS = {433: {'x86-subr_kudp': 'SDK machparam.h spl import not taken (D069 pe
                  'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
                  'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
                  'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)'},
+           453: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)'},
+           454: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)'},
+           455: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)'},
+           456: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)'},
+           457: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)'},
+           458: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)'},
+           459: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)'},
+           460: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)',
+                 'x86-vm_kern': 'kmem_alloc_prim find_space argument in the m68k overlay (plan 460)'},
+           461: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)',
+                 'x86-vm_kern': 'kmem_alloc_prim find_space argument in the m68k overlay (plan 460)',
+                 'x86-ip_icmp': 'mask assignment test form in the m68k overlay (plan 461)'},
+           462: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)',
+                 'x86-vm_kern': 'kmem_alloc_prim find_space argument in the m68k overlay (plan 460)',
+                 'x86-ip_icmp': 'mask assignment test form in the m68k overlay (plan 461)',
+                 'x86-vfs_dnlc': 'static inline queue helpers in the m68k overlay (plan 462)'},
+           463: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)',
+                 'x86-vm_kern': 'kmem_alloc_prim find_space argument in the m68k overlay (plan 460)',
+                 'x86-ip_icmp': 'mask assignment test form in the m68k overlay (plan 461)',
+                 'x86-vfs_dnlc': 'static inline queue helpers in the m68k overlay (plan 462)',
+                 'x86-tcp_input': 'ti_len htons store and offer MIN in the m68k overlay (plan 463)'},
+           465: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
+                 'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (plan 438)',
+                 'x86-ufs_vnodeops': 'i386 byte swap removed in the m68k overlay (plan 449)',
+                 'x86-ufs_inode': 'NeXTMach structure assignment restored in the m68k overlay (plan 449)',
+                 'x86-ufs_vfsops': 'i386 byte swap removed, frame filler 58 in the m68k overlay (plan 450)',
+                 'x86-ufs_dir': 'i386 directory byte swap removed in the m68k overlay (plan 451)',
+                 'x86-ufs_alloc': 'i386 cylinder group byte swap removed, NeXTMach checks in the m68k overlay (plan 452)',
+                 'x86-kern_shutdown': 'DELAY instead of us_spin in the m68k overlay (plan 453)',
+                 'x86-init_main': 'no Objective-C/autoconf, ns_timer_init and softint thread in the m68k overlay (plan 454)',
+                 'x86-kern_clock': 'hardclock SIMPLE_CLOCK block in the m68k overlay (plan 455)',
+                 'x86-kern_uname': 'machine_type cases in the m68k overlay (plan 456)',
+                 'x86-ufs_dsort': 'no classic disksort, spldma in the m68k overlay (plan 457)',
+                 'x86-in_pcb': 'multicast ifp form in the m68k overlay (plan 458)',
+                 'x86-ip_output': 'fragment offset initialisation in the m68k overlay (plan 459)',
+                 'x86-vm_kern': 'kmem_alloc_prim find_space argument in the m68k overlay (plan 460)',
+                 'x86-ip_icmp': 'mask assignment test form in the m68k overlay (plan 461)',
+                 'x86-vfs_dnlc': 'static inline queue helpers in the m68k overlay (plan 462)',
+                 'x86-tcp_input': 'ti_len htons store and offer MIN in the m68k overlay (plan 463)',
+                 'x86-vm_pager': 'vm_pager_deallocate branch order in the m68k overlay (plan 465)'},
+           466: {},   # filled below: plan 465 + x86-kdp
            438: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
                  'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (expected to differ from the test run)'}}
 MARKERS = {'plan 435 (D070)': {'src/bsd/rpc/subr_kudp.c': 1, 'src/bsd/net/if_venip.c': 1},   # registered overlay
@@ -85,7 +249,40 @@ MARKERS = {'plan 435 (D070)': {'src/bsd/rpc/subr_kudp.c': 1, 'src/bsd/net/if_ven
            'plan 449 (m68k)': {'src/bsd/ufs/ufs_vnodeops.c': 4, 'src/bsd/ufs/ufs_inode.c': 8},
            'plan 450 (m68k)': {'src/bsd/ufs/ufs_vfsops.c': 18},
            'plan 451 (m68k)': {'src/bsd/ufs/ufs_dir.c': 7},
-           'plan 452 (m68k)': {'src/bsd/ufs/ufs_alloc.c': 64}}
+           'plan 452 (m68k)': {'src/bsd/ufs/ufs_alloc.c': 64},
+           'plan 453 (m68k)': {'src/bsd/kern/kern_shutdown.c': 4},
+           'plan 454 (m68k)': {'src/bsd/kern/init_main.c': 16},
+           'plan 455 (m68k)': {'src/bsd/kern/kern_clock.c': 75},
+           'plan 456 (m68k)': {'src/bsd/kern/kern_uname.c': 52},
+           'plan 457 (m68k)': {'src/bsd/ufs/ufs_dsort.c': 14},
+           'plan 458 (m68k)': {'src/bsd/netinet/in_pcb.c': 36},
+           'plan 459 (m68k)': {'src/bsd/netinet/ip_output.c': 6},
+           'plan 460 (m68k)': {'src/vm/vm_kern.c': 30},
+           'plan 461 (m68k)': {'src/bsd/netinet/ip_icmp.c': 33},
+           'plan 462 (m68k)': {'src/bsd/kern/vfs_dnlc.c': 16},
+           'plan 463 (m68k)': {'src/bsd/netinet/tcp_input.c': 9},
+           'plan 465 (m68k)': {'src/vm/vm_pager.c': 7}}
+EXCEPTS[466] = dict(EXCEPTS[465], **{'x86-kdp': 'kdp_regions range from VM_MIN/MAX_KERNEL_ADDRESS in the 07 main file (plan 466, D082)'})
+X86 = {433: 's6l4', 466: 's6l5'}            # plan 466: x86 rebuild prefix of the base and the x86 gate
+GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
+
+
+def x86_prefix():
+    return X86[max(k for k in X86 if k <= PLAN)]
+
+
+def base_stage():
+    return '08_build/runs/tools/%s-g1a-stage' % x86_prefix()
+
+
+def base_manifest():
+    b = base_stage()
+    m = json.load(open(b + '.manifest.json'))
+    for e in m['files']:
+        assert sha(os.path.join(b, e[0])) == e[2], e[0]
+    return m
+
+
 DERIVED = '#import <machine/spl.h>\t/* plan 435 (D070): m68k inline spl */\n'
 TEST_STAGE = '08_build/runs/tools/m0p432-stage-int'
 sha = C.sha
@@ -148,10 +345,10 @@ def check_derived(rel, src):
 
 
 def cmd_stage(stage):
-    m = L.base_manifest()
+    m = base_manifest()
     assert not os.path.exists(stage), stage
     files = L.sdk_files()
-    shutil.copytree(L.BASE_STAGE, stage, symlinks=True)
+    shutil.copytree(base_stage(), stage, symlinks=True)
     ent = collections.OrderedDict((e[0], list(e[:3])) for e in m['files'])
     for rel, h, dst in files:
         p = os.path.join(stage, dst)
@@ -180,7 +377,7 @@ def cmd_stage(stage):
     assert on_disk == sorted(ent), 'stage content differs from manifest'
     for e in ent.values():
         assert sha(os.path.join(stage, e[0])) == e[2], e[0]
-    json.dump(dict(plan=PLAN, base=L.BASE_STAGE, base_manifest_sha256=sha(L.BASE_STAGE + '.manifest.json'),
+    json.dump(dict(plan=PLAN, base=base_stage(), base_manifest_sha256=sha(base_stage() + '.manifest.json'),
                    sdk_list=L.SDK_SHA, sdk_list_sha256=sha(L.SDK_SHA), overlays=OVL, replaced=replaced, added=added,
                    files=list(ent.values())), open(stage + '.manifest.json', 'w'), indent=1)
     print('stage', stage, 'files', len(ent), 'overlay replaced', len(replaced), 'added', len(added))
@@ -209,7 +406,9 @@ def cmd_cmd(out):
 def cmd_x86gate(workdir):
     os.makedirs(workdir, exist_ok=True)
     rows = []
-    for p in sorted(glob.glob('08_build/runs/tools/s6l4-g*-stage.manifest.json')):
+    ps = sorted(glob.glob('08_build/runs/tools/%s-g*-stage.manifest.json' % x86_prefix()))
+    assert [os.path.basename(p) for p in ps] == ['%s-%s-stage.manifest.json' % (x86_prefix(), g) for g in sorted(GROUPS)], ps
+    for p in ps:
         m = json.load(open(p))
         name = os.path.basename(p)[:-len('.manifest.json')]
         out = os.path.join(workdir, name)

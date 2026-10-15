@@ -1,0 +1,63 @@
+--- 07_kernel/src/bsd/kern/init_main.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/init_main.c
+@@ -248,7 +248,13 @@
+ 	extern void	netisr_thread(), sched_thread();
+ 	extern void	lightning_bolt();
+ 	extern thread_t	newproc();
++#ifndef	m68k	/* plan 454 (m68k): Objective-C class handler not in the m68k original */
+ 	static int	classHandler();
++#endif	/* plan 454 (m68k) */
++#if	m68k	/* plan 454 (m68k) */
++	extern thread_t	softint_thread;	/* plan 454 (m68k): as NeXTMach bsd/init_main.c:257 */
++	extern void	softint_th(void);	/* plan 454 (m68k): as NeXTMach bsd/init_main.c:258 */
++#endif	/* plan 454 (m68k) */
+ 
+ 	/*
+ 	 * set up system process 0 (swapper)
+@@ -326,6 +332,9 @@
+ 						512*1024,
+ 						TRUE);
+ 	}
++#if	m68k	/* plan 454 (m68k) */
++	ns_timer_init();	/* plan 454 (m68k): original _main bsr _ns_timer_init */
++#endif	/* plan 454 (m68k) */
+ 	ns_hardclock_init();
+ 
+ 	mfs_init();
+@@ -379,11 +388,13 @@
+ 	(void) kernel_thread(kernel_task, sched_thread, 0);
+ 	(void) kernel_thread(kernel_task, netisr_thread, 0);
+ 
++#ifndef	m68k	/* plan 454 (m68k): no Objective-C, kmEnableAnimation, autoconf or setconf call in the m68k original _main */
+ 	_objcInit();
+ 	objc_setClassHandler(classHandler);
+ 	kmEnableAnimation();
+ 	autoconf();
+ 	setconf();
++#endif	/* plan 454 (m68k) */
+ 	loattach();
+ 
+ 	/*
+@@ -396,6 +407,9 @@
+ 	 *  Default to pausing process on these errors.
+ 	 */
+ 	u.u_rpause = (URPS_AGAIN|URPS_NOMEM|URPS_NFILE|URPS_NOSPC);
++#if	m68k	/* plan 454 (m68k) */
++	softint_thread = kernel_thread(kernel_task, (int(*)())softint_th, 0);	/* plan 454 (m68k): NeXTMach bsd/init_main.c:413 with the third argument of this file's kernel_thread calls */
++#endif	/* plan 454 (m68k) */
+ 
+ 	file_init();
+ 
+@@ -536,6 +550,7 @@
+ 	}
+ }
+ 
++#ifndef	m68k	/* plan 454 (m68k): Objective-C class handler not in the m68k original */
+ /*
+  * plan 232 (authored, D024; original 0x10307c, no symbol): the
+  * Objective-C class handler installed by main(); it accepts nothing.
+@@ -545,3 +560,4 @@
+ {
+ 	return (0);
+ }
++#endif	/* plan 454 (m68k) */

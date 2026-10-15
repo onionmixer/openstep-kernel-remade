@@ -1,0 +1,107 @@
+--- 07_kernel/src/bsd/kern/kern_clock.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_clock.c
+@@ -4,6 +4,35 @@
+  * All rights reserved.  The CMU software License Agreement specifies
+  * the terms and conditions for use and redistribution.
+  */
++/* plan 455 (m68k) begin: notice for the line marked "plan 455 (Darwin)" (D061 precedent) */
++/*
++ * The line marked "plan 455 (Darwin)" follows Darwin 0.1
++ * kernel/bsd/kern/kern_clock.c:171 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++/* plan 455 (m68k) end */
+ /*
+  * HISTORY
+  * 14-May-90  Gregg Kellogg (gk) at NeXT
+@@ -97,6 +126,37 @@
+ #import <kern/xpr.h>
+ 
+ #import <mach/boolean.h>	/* plan 233: NeXTMach sys/boolean.h */
++#if	SIMPLE_CLOCK	/* plan 455 (m68k) begin: hardclock elapsed time (original _hardclock 0x40033d2; D024, D074, D075) */
++#import <kernserv/clock_timer.h>
++extern ns_time_t	clock_value();
++ns_time_t	last_hardclock[NCPUS];	/* D075: original __common 0x40b605c; as Darwin 0.1 kern_clock.c */
++
++/*
++ * m68k 64-bit division by a 32-bit divisor (divull/divul); the high word of
++ * the quotient is written back, the low word returned (authored, D024).
++ */
++static inline unsigned int
++ns_div_val(ll, divisor)
++	ns_time_t	ll;
++	unsigned int	divisor;
++{
++	unsigned int	*msw, *lsw;
++	unsigned int	quo, rem;
++
++	msw = &((unsigned int *)&ll)[0];
++	lsw = &((unsigned int *)&ll)[1];
++
++	asm("divull %2,%0:%1"
++	    : "=d" (rem), "=d" (quo)
++	    : "dmi" (divisor), "1" (*msw), "0" (0));
++	*msw = quo;
++	asm("divul %2,%0:%1"
++	    : "=d" (rem), "=d" (quo)
++	    : "dmi" (divisor), "1" (*lsw), "0" (rem));
++	return (quo);
++}
++
++#endif	/* SIMPLE_CLOCK; plan 455 (m68k) end */
+ 
+ extern struct callout *callout;	/* plan 401: defined in conf/param.c (as NeXTMach sys/callout.h:48 extern) */
+ int ncallout;
+@@ -112,8 +172,20 @@
+ 	int ps;
+ {
+ 	register thread_t	thread;
++#if	SIMPLE_CLOCK	/* plan 455 (m68k) begin */
++	ns_time_t	new_hardclock;
++	ns_time_t	delta_hardclock;
++	unsigned int	myticks;
++#define	tick	myticks
++#endif	/* SIMPLE_CLOCK; plan 455 (m68k) end */
+ 
+ 	thread = current_thread();
++#if	SIMPLE_CLOCK	/* plan 455 (m68k) begin: time since the previous hardclock, in microseconds (D074) */
++	new_hardclock = clock_value(System);
++	delta_hardclock = new_hardclock - last_hardclock[cpu_number()];
++	myticks = ns_div_val(delta_hardclock, 1000);
++	last_hardclock[cpu_number()] = new_hardclock;	/* plan 455 (Darwin): as Darwin 0.1 kern_clock.c:171 */
++#endif	/* SIMPLE_CLOCK; plan 455 (m68k) end */
+ 
+ 	/*
+ 	 * Charge the time out based on the mode the cpu is in.
+@@ -167,6 +239,9 @@
+ 
+ 	gatherstats(pc, ps);
+ }
++#if	SIMPLE_CLOCK	/* plan 455 (m68k) begin */
++#undef	tick
++#endif	/* SIMPLE_CLOCK; plan 455 (m68k) end */
+ 
+ /*
+  * Gather statistics on resource utilization.

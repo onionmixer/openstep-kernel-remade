@@ -1,0 +1,14 @@
+--- 07_kernel/src/bsd/kern/kern_shutdown.c
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_shutdown.c
+@@ -103,7 +103,11 @@
+ 		        if (nbusy != obusy)
+ 				iter = 0;
+ 			obusy = nbusy;
++#if	m68k	/* plan 453 (m68k): SDK bsd/m68k/machparam.h DELAY -> delay (original _boot bsr _delay) */
++			DELAY(40000 * iter);	/* plan 453 (m68k): as NeXTMach next/machdep.c:1268 */
++#else	/* plan 453 (m68k) */
+ 			us_spin(40000 * iter);
++#endif	/* plan 453 (m68k) */
+ 		  }
+ 		}
+ 	}

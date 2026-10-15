@@ -1,0 +1,28 @@
+--- 07_kernel/src/bsd/netinet/tcp_input.c
++++ 07_kernel/v183.34/m68k/src/bsd/netinet/tcp_input.c
+@@ -258,7 +258,11 @@
+ 	ti->ti_next = ti->ti_prev = 0;
+ 	ti->ti_x1 = 0;
+ 	ti->ti_len = (u_short)tlen;
++#if	m68k	/* plan 463 (m68k) begin: second store of ti_len (as NeXTMach mk-108.1/netinet/tcp_input.c:229) */
++	ti->ti_len = htons((u_short)ti->ti_len);
++#else	/* plan 463 (m68k) end */
+ 	HTONS(ti->ti_len);
++#endif	/* plan 463 (m68k) */
+ 	if (ti->ti_sum = in_cksum(m, len)) {
+ 		tcpstat.tcps_rcvbadsum++;
+ 		goto drop;
+@@ -1461,8 +1465,13 @@
+ 	 * unless we received an offer at least that large from peer.
+ 	 * However, do not accept offers under 32 bytes.
+ 	 */
++#if	m68k	/* plan 463 (m68k) begin: offer limit as MIN (original reuses the extended offer; D024) */
++	if (offer)
++		mss = MIN(mss, offer);
++#else	/* plan 463 (m68k) end */
+ 	if (offer && mss > offer)	/* plan 368: original 0x129cec-0x129d04 */
+ 		mss = offer;
++#endif	/* plan 463 (m68k) */
+ 	mss = MAX(mss, 32);		/* sanity */
+ 	if (mss < tp->t_maxseg || offer != 0) {
+ 		/*

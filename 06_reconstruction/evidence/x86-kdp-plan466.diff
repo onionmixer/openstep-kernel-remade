@@ -1,0 +1,58 @@
+--- 07_kernel/src/kern/kdp.c (plan 257, SHA-256 cf9292ef)
++++ 07_kernel/src/kern/kdp.c
+@@ -3,12 +3,41 @@
+  *
+  * Written for this project from the OPENSTEP 4.2 x86 kernel object
+  * [0x161f4c, 0x1624a8) (D024).  Darwin 0.1 kern/kdp.c, a later form of
+- * this file, was consulted for structure only.  The request handling
++ * this file, was consulted for structure only, except the line marked
++ * "plan 466 (Darwin)" (D082).  The request handling
+  * is fixed by the bytes and may resemble Darwin's (D027).  Differences
+  * from Darwin 0.1: the packet copy buffer is on the stack, and the
+  * diagnostics are printed with safe_prf.
+  */
+ 
++/*
++ * The line marked "plan 466 (Darwin)" is the same as Darwin 0.1
++ * kernel/kern/kdp.c:439 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #import <mach/mach_types.h>
+ 
+ #import <sys/param.h>
+@@ -370,9 +399,9 @@
+     r = rp->regions;
+     rp->nregions = 0;
+ 
+-    /* one region: the kernel's first gigabyte */
+-    r->address = (void *) 0;
+-    r->nbytes = 0x40000000;
++    /* one region: the kernel's range, VM_MIN_KERNEL_ADDRESS to VM_MAX_KERNEL_ADDRESS */
++    r->address = (void *) VM_MIN_KERNEL_ADDRESS;	/* plan 466 (D082) */
++    r->nbytes = VM_MAX_KERNEL_ADDRESS - VM_MIN_KERNEL_ADDRESS;	/* plan 466 (Darwin): Darwin 0.1 kern/kdp.c:439 */
+     r->protection = VM_PROT_ALL; r++; rp->nregions++;
+ 
+     rp->hdr.len += rp->nregions * sizeof (kdp_region_t);

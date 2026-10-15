@@ -149,7 +149,13 @@ def cmd_compare(rid, odir, outj, prefix='P444__'):
 FILES = {'mach_process': MP, 'kern_exec': KE, 'vm_fault': 'vm/vm_fault.c', 'vm_pageout': 'vm/vm_pageout.c',
          'ufs_vnodeops': 'bsd/ufs/ufs_vnodeops.c', 'ufs_inode': 'bsd/ufs/ufs_inode.c',
          'ufs_vfsops': 'bsd/ufs/ufs_vfsops.c', 'ufs_dir': 'bsd/ufs/ufs_dir.c',
-         'ufs_alloc': 'bsd/ufs/ufs_alloc.c'}   # plans 446-452
+         'ufs_alloc': 'bsd/ufs/ufs_alloc.c', 'kern_shutdown': 'bsd/kern/kern_shutdown.c',
+         'init_main': 'bsd/kern/init_main.c', 'kern_clock': 'bsd/kern/kern_clock.c',
+         'kern_uname': 'bsd/kern/kern_uname.c', 'ufs_dsort': 'bsd/ufs/ufs_dsort.c',
+         'in_pcb': 'bsd/netinet/in_pcb.c', 'ip_output': 'bsd/netinet/ip_output.c',
+         'vm_kern': 'vm/vm_kern.c', 'ip_icmp': 'bsd/netinet/ip_icmp.c',
+         'vfs_dnlc': 'bsd/kern/vfs_dnlc.c', 'tcp_input': 'bsd/netinet/tcp_input.c',
+         'vm_pager': 'vm/vm_pager.c', 'kdp': 'kern/kdp.c'}   # plans 446-466
 
 
 def cmd_cmd2(out, plan='444', names='mach_process,kern_exec'):

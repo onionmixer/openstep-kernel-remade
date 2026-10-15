@@ -1,0 +1,51 @@
+--- 07_kernel/src/bsd/netinet/ip_icmp.c
++++ 07_kernel/v183.34/m68k/src/bsd/netinet/ip_icmp.c
+@@ -11,6 +11,35 @@
+  *
+  *	@(#)ip_icmp.c	7.7 (Berkeley) 12/7/87
+  */
++/* plan 461 (m68k) begin: notice for the line marked "plan 461 (Darwin)" (D061 precedent, D079) */
++/*
++ * The line marked "plan 461 (Darwin)" follows Darwin 0.1
++ * kernel/bsd/netinet/ip_icmp.c:744 (kernel-1), whose notice is:
++ */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++/* plan 461 (m68k) end */
+ 
+ #import <sys/param.h>
+ #import <sys/systm.h>
+@@ -536,8 +565,12 @@
+ 	icp = mtod(m, struct icmp *);
+ 	if (type == ICMP_MASKREPLY) {
+ 		icp->icmp_type = ICMP_MASKREPLY;
++#if	m68k	/* plan 461 (m68k) begin: assign the mask and test the assigned value (original movel ...,d0; movel d0,...) */
++		if ((icp->icmp_mask = htonl(ifa->ia_subnetmask)) == 0) {	/* plan 461 (Darwin): as Darwin 0.1 ip_icmp.c:744 */
++#else	/* plan 461 (m68k) end */
+ 		icp->icmp_mask = htonl(ifa->ia_subnetmask);
+ 		if (icp->icmp_mask == 0) {
++#endif	/* plan 461 (m68k) */
+ 			error = EINVAL;
+ 			goto errout;
+ 		}

@@ -1,0 +1,20 @@
+--- 07_kernel/src/vm/vm_pager.c
++++ 07_kernel/v183.34/m68k/src/vm/vm_pager.c
+@@ -94,10 +94,17 @@
+ {
+ 	if (pager == vm_pager_null)
+ 		panic("vm_pager_deallocate: null pager");
++#if	m68k	/* plan 465 (m68k) begin: vnode case first (original falls through to vnode_dealloc; D081) */
++	if (pager->is_device == 0)
++		vnode_dealloc(pager);
++	else
++		device_dealloc(pager);
++#else	/* plan 465 (m68k) end */
+ 	if (pager->is_device)
+ 		device_dealloc(pager);
+ 	else
+ 		vnode_dealloc(pager);
++#endif	/* plan 465 (m68k) */
+ }
+ 
+ vm_pager_t vm_pager_allocate(size)
