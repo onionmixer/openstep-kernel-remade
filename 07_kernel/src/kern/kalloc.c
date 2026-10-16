@@ -310,7 +310,7 @@ void *realloc(void *addr, unsigned int size)
 		return new;
 	*new = size+8;
 /* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
-	if (size < *sizep)
+	if (*sizep > size)	/* plan 471 (D089): the comparison of the m68k original */
 		bcopy(addr, new+2, size);
 	else
 		bcopy(addr, new+2, *sizep);

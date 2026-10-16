@@ -6,3 +6,9 @@ Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f148
 - Final L1 `09_validation/reconstruction/s5p220-it1-l1-mach_clock-F-20261002.json`: __text/__const 0 byte differences; __DATA,__bss reference-inferred only. Grade **P**.
 
 Object extent [0x15bc30, 0x15c100) 1232 B: clock_interrupt, init_timeout_element, set_timeout, reset_timeout, init_timeout, host_get_time, host_set_time, host_adjust_time, mach_clock_bootstrap and an unnamed callback at 0x15c0ac; after the confirmed lock object, 0x00 fill before compute_mach_factor. __DATA,__data [0x1dee30, 0x1dee68): hz, tick, time, timedelta, tickdelta, tickadj, bigadj, mtime and the string mappable_time_init (verified by L1). Diagnosis s5p220-d1 (Mach4 text) failed on the timer element layout. The codex review of plan 235 confirmed facts 0-7 and corrected the panic string spelling (mappable), adopted after reading the bytes. Build s5p220-it1: __text and __data match on the first build, relcheck 0; __bss (timer_lock) reference-inferred.
+
+## Plan 473 (D091, 2026-10-16): service_timer placement
+
+- The static `service_timer` is defined right after its forward declaration (after `clock_interrupt`), where the m68k original has it (0x404b0f0; -O2 emits functions in source order). x86 (-O3) gives the same object (`09_validation/reconstruction/m5-x86-mach-clock-variants-p473-20261016.json`, variant M3).
+- The m68k overlay also leaves out `time_of_boot` (plan 235, x86 only; no `_time_of_boot` in the m68k original). m68k OBJECT_MATCH (`m5-m68k-p473-final-20261016.json`).
+- x86 full rebuild s6la (`s6-l2-prefixdiff-s6l9-s6la-20261016.json`: only STABS of this object differ) and link `s6-l2-link-s6p473-ln1.json` identical to the original. Diff `x86-mach_clock-plan473.diff`.

@@ -35,3 +35,8 @@ diff against Darwin in `x86-kalloc.diff` (probe-4 diff kept as `x86-kalloc-probe
 - Grade **P** (single reference); functions: 9 high, `_kalloc_init` medium. To be re-judged if the neighbouring
   zero-fill becomes independently fixed (D019).
 - All 51 files named in `kalloc.i` already exist in 07_kernel; no header adopted.
+
+## Plan 471 (D089, 2026-10-16): realloc comparison
+
+- `realloc` tests `*sizep > size` (was `size < *sizep`, same branches): the m68k original compares `cmpl d0,a4; bcc` and only this spelling reproduces it with the m68k compiler (variants A1-A3, `09_validation/reconstruction/m5-m68k-kalloc-variants-p471-20261016.json`); x86 gives the same object either way (`m5-x86-kalloc-variants-p471-20261016.json`).
+- x86 full rebuild s6l8 (`s6-l2-prefixdiff-s6l7-s6l8-20261016.json`: only the run path differs) and link `s6-l2-link-s6p471-ln1.json` identical to the original. Diff `x86-kalloc-plan471.diff`.

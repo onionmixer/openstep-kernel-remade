@@ -1,0 +1,29 @@
+--- 07_kernel/src/kern/mach_clock.c	2026-10-16 17:28:44.338179560 +0900
++++ 07_kernel/v183.34/m68k/src/kern/mach_clock.c	2026-10-16 17:28:44.338179560 +0900
+@@ -60,7 +60,9 @@
+ 
+ 
+ 
++#ifndef	m68k	/* plan 473 (m68k): no _time_of_boot in the m68k original */
+ unsigned long long	time_of_boot;	/* plan 235: adjusted with timedelta */
++#endif	/* plan 473 (m68k) */
+ 
+ int		hz = HZ;		/* number of ticks per second */
+ int		tick = (1000000 / HZ);	/* number of usec per tick */
+@@ -179,12 +181,16 @@
+ 		if (timedelta < 0) {
+ 		    delta = usec - tickdelta;
+ 		    timedelta += tickdelta;
++#ifndef	m68k	/* plan 473 (m68k): no _time_of_boot in the m68k original */
+ 		    time_of_boot -= tickdelta * 1000;	/* plan 235 */
++#endif	/* plan 473 (m68k) */
+ 		}
+ 		else {
+ 		    delta = usec + tickdelta;
+ 		    timedelta -= tickdelta;
++#ifndef	m68k	/* plan 473 (m68k): no _time_of_boot in the m68k original */
+ 		    time_of_boot += tickdelta * 1000;	/* plan 235 */
++#endif	/* plan 473 (m68k) */
+ 		}
+ 		time_value_add_usec(&time, delta);
+ 	    }

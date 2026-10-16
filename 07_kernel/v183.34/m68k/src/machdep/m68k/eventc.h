@@ -101,16 +101,25 @@ static inline unsigned int event_get(void)
 
 
 /* fill in the timestamp structure with the current clock values */
+/* plan 473 (D091): one hardware read under splusclock, as the original m68k _kern_timestamp 0x4054aaa */
 static inline void event_set_ts(tsp)
 	struct tsval *tsp;
 {
-	register unsigned int temp;
-	
-	do {
-		temp = event_get();
-		tsp->high_val = *event_high;
-		tsp->low_val = event_get();
-	} while (tsp->low_val < temp);
+	int	s;
+	register unsigned int low;
+
+	s = splusclock();
+	low = *eventc_latch;
+	low = (*eventc_h << 16) | (*eventc_m << 8) | *eventc_l;
+	low &= EVENT_MASK;
+	if ((low ^ *event_middle) & EVENT_HIGHBIT) {
+		*event_middle += EVENT_HIGHBIT;
+		if ((*event_middle & (~(EVENT_MASK>>1))) == 0)
+			(*event_high)++;
+	}
+	tsp->high_val = *event_high;
+	tsp->low_val = low | *event_middle;
+	splx(s);
 }
 
 

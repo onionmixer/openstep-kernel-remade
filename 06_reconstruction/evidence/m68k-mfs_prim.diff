@@ -1,0 +1,18 @@
+--- 07_kernel/src/kern/mfs_prim.c	2026-10-08 20:54:04.226588919 +0900
++++ 07_kernel/v183.34/m68k/src/kern/mfs_prim.c	2026-10-16 16:01:35.314709102 +0900
+@@ -162,9 +162,15 @@
+ 	mfs_map = kmem_suballoc(kernel_map, &min, &max, mfs_map_size, TRUE);
+ 
+ 	/* plan 139: as Darwin 0.1 kern/mapfs.c mapfs_init (bytes checked, run s5p113-v2) */
++#if	m68k	/* plan 472 (m68k) begin: double, as the original m68k _mfs_init (D090) */
++	mfs_map_size = (int) ((double) MFS_MAP_SIZE_PER_UNIT /
++				(double) MFS_MEMORY_UNIT *
++				(double) machine_info.memory_size);
++#else	/* plan 472 (m68k) end */
+ 	mfs_map_size = (int) ((long long) MFS_MAP_SIZE_PER_UNIT /
+ 				(long long) MFS_MEMORY_UNIT *
+ 				(long long) machine_info.memory_size);
++#endif	/* plan 472 (m68k) */
+ 
+ 	if (mfs_map_size > MFS_MAP_SIZE_MAX)
+ 		mfs_map_size = MFS_MAP_SIZE_MAX;

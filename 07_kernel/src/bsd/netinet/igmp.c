@@ -54,9 +54,10 @@ struct igmpstat {
 /* fast timeouts per second (pr_fasttimo) */
 #define	PR_FASTHZ	5
 
+/* plan 474 (D092): ipstat.ips_total first, as the m68k original */
 #define IGMP_RANDOM_DELAY(multiaddr) \
-	((ntohl(IA_SIN(in_ifaddr)->sin_addr.s_addr) + \
-	  ipstat.ips_total + ntohl((multiaddr).s_addr)) % \
+	((ipstat.ips_total + ntohl(IA_SIN(in_ifaddr)->sin_addr.s_addr) + \
+	  ntohl((multiaddr).s_addr)) % \
 	 (IGMP_MAX_HOST_REPORT_DELAY * PR_FASTHZ) + 1)
 
 extern struct ifnet	*loifp;
@@ -211,6 +212,26 @@ igmp_leavegroup(inm)
 	/* nothing is sent when a group is left */
 }
 
+/* plan 474 (D092): traversal helpers of the m68k original (authored, D024) */
+static struct in_multi *
+igmp_next_multi(step)
+	struct in_multistep *step;
+{
+	struct in_multi *inm;
+
+	IN_NEXT_MULTI(*step, inm);
+	return (inm);
+}
+
+static struct in_multi *
+igmp_first_multi(step)
+	struct in_multistep *step;
+{
+	step->i_ia = in_ifaddr;
+	step->i_inm = NULL;
+	return (igmp_next_multi(step));
+}
+
 igmp_fasttimo()
 {
 	register struct in_multi *inm;
@@ -221,11 +242,10 @@ igmp_fasttimo()
 	if (!igmp_timers_are_running)
 		return;
 
-	(void) &step;	/* plan 251: the original keeps step in memory */
 	s = splnet();
 	igmp_timers_are_running = 0;
-	IN_FIRST_MULTI(step, inm, in_ifaddr);
-	while (inm != NULL) {
+	for (inm = igmp_first_multi(&step); inm != NULL;	/* plan 474 (D092) */
+	    inm = igmp_next_multi(&step)) {
 		if (inm->inm_timer == 0) {
 			/* do nothing */
 		} else if (--inm->inm_timer == 0) {
@@ -233,7 +253,6 @@ igmp_fasttimo()
 		} else {
 			igmp_timers_are_running = 1;
 		}
-		IN_NEXT_MULTI(step, inm);
 	}
 	splx(s);
 }

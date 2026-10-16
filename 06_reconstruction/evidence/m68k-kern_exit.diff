@@ -1,0 +1,25 @@
+--- 07_kernel/src/bsd/kern/kern_exit.c	2026-10-08 20:54:04.023585698 +0900
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_exit.c	2026-10-16 14:46:23.498956167 +0900
+@@ -96,6 +96,11 @@
+ #import <kern/thread.h>
+ #import <kern/parallel.h>
+ #import <kern/sched_prim.h>
++#if	m68k	/* plan 471 (m68k) begin: NeXT machine types as NeXTMach mk-108.1/next/scr.h:1,34,36 (D076 precedent) */
++/*	@(#)scr.h	1.0	12/02/86	(c) 1986 NeXT	*/
++#define	NeXT_CUBE	0
++#define	NeXT_X15	2
++#endif	/* plan 471 (m68k) end */
+ /* plan 213: time_value_t comes from mach/time_value.h (sys/time_value.h redefines it) */
+ 
+ /*
+@@ -196,6 +201,10 @@
+ 	utask->uu_rlimit[RLIMIT_FSIZE].rlim_cur = RLIM_INFINITY;
+ 	acct();
+ 	crfree(utask->uu_cred);
++#if	m68k	/* plan 471 (m68k) begin: original _do_exit 0x400566e-0x400568a; the call as NeXTMach mk-108.1/bsd/kern_exit.c:195 */
++	if (machine_type == NeXT_CUBE || machine_type == NeXT_X15)
++		od_unlock_check(p->p_pid);
++#endif	/* plan 471 (m68k) end */
+ 	if (*p->p_prev = p->p_nxt)		/* off allproc queue */
+ 		p->p_nxt->p_prev = p->p_prev;
+ 	if (p->p_nxt = zombproc)		/* onto zombproc */

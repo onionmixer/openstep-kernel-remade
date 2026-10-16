@@ -198,6 +198,25 @@ void clock_interrupt(usec, usermode, basepri)
  */
 static void service_timer();
 
+/* plan 473 (D091): defined here, after clock_interrupt, as in the m68k original */
+static void
+service_timer(telt)
+	timer_elt_t	telt;
+{
+	spl_t		s;
+	int		(*fcn)();
+	char		*param;
+
+	s = splsched();
+	simple_lock(&timer_lock);
+	fcn = telt->fcn;
+	param = telt->param;
+	telt->set = TELT_UNSET;
+	simple_unlock(&timer_lock);
+	splx(s);
+	(*fcn)(param);
+}
+
 /*
  * plan 235 (authored, D024; original _init_timeout_element 0x15bda8):
  * make the element's callout call service_timer with the element.
@@ -360,22 +379,4 @@ void mach_clock_bootstrap()
 	get_calendar_time_value(&time);
 	update_mapped_time(&time);
 	splx(s);
-}
-
-static void
-service_timer(telt)
-	timer_elt_t	telt;
-{
-	spl_t		s;
-	int		(*fcn)();
-	char		*param;
-
-	s = splsched();
-	simple_lock(&timer_lock);
-	fcn = telt->fcn;
-	param = telt->param;
-	telt->set = TELT_UNSET;
-	simple_unlock(&timer_lock);
-	splx(s);
-	(*fcn)(param);
 }

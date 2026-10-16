@@ -30,3 +30,7 @@ Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f148
 
 ## plan 404 고침(2026-10-08, D061)
 - notice added: lines marked plan 397 (Darwin): Apple APSL 1.0 (notice in file; 07_kernel/LICENSES/APSL-1.0.txt). 주석만 바뀌었습니다(07 파일 SHA-256 `c7b74013bab3110d752fa5405ddd731ae1685ed8403551097e59b259d3e02518`); diff 를 다시 만들었습니다.
+
+## Plan 472 (D090, 2026-10-16): m68k overlay
+
+- The original m68k `_mfs_init` converts `machine_info.memory_size` (unsigned) to double and back to int (no multiply: the ratio 1.0 folds), so the m68k overlay writes the three `(long long)` casts as `(double)`; x86 keeps `long long` (its original). Variants F1/F2/F4 OBJECT_MATCH on m68k (`09_validation/reconstruction/m5-m68k-mfs-prim-variants-p472-20261016.json`). Diff `m68k-mfs_prim.diff`.

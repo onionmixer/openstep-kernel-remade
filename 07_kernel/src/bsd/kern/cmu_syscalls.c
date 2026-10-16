@@ -453,9 +453,10 @@ table()
 				task_unlock(task);
 				u.u_error = ESRCH;
 				return;
+			} else {	/* plan 472 (D090): an else block, as the m68k original (stack pop after thread_reference) */
+				th = (thread_t) task->thread_list.next;
+				thread_reference(th);
 			}
-			th = (thread_t) task->thread_list.next;
-			thread_reference(th);
 			task_unlock(task);
 
 			fake = (struct user *)

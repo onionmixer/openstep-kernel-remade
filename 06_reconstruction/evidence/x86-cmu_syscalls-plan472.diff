@@ -1,0 +1,15 @@
+--- 07_kernel/src/bsd/kern/cmu_syscalls.c (before plan 472)	2026-10-08 20:54:04.018585618 +0900
++++ 07_kernel/src/bsd/kern/cmu_syscalls.c	2026-10-16 16:01:35.314709102 +0900
+@@ -453,9 +453,10 @@
+ 				task_unlock(task);
+ 				u.u_error = ESRCH;
+ 				return;
++			} else {	/* plan 472 (D090): an else block, as the m68k original (stack pop after thread_reference) */
++				th = (thread_t) task->thread_list.next;
++				thread_reference(th);
+ 			}
+-			th = (thread_t) task->thread_list.next;
+-			thread_reference(th);
+ 			task_unlock(task);
+ 
+ 			fake = (struct user *)

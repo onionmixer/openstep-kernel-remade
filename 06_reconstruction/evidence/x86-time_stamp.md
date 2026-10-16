@@ -15,3 +15,7 @@ SHA-256 `ba0ad972c2c0f97232156fa602fab383ce0d1dc99a15eea9221117a9068c5291`). Pla
 - Declarations are authored too: the 64-bit return type of `clock_value` is required by the bytes; `void` for
   `ns_time_to_tsval` and the parameter names are not evidenced. `System` = 1 (kern/clock.h:77-80).
 - 07_kernel adopted: `kern/clock.h`, `kern/time_stamp.c`, `machdep/i386/mach_param.h`, `machdep/machine/mach_param.h`.
+
+## Plan 473 (D091, 2026-10-16): m68k event_set_ts
+
+- The m68k branch calls `event_set_ts` of the m68k overlay `eventc.h`; the original `_kern_timestamp` reads the event counter once under `splusclock`, syncs `event_middle`/`event_high` and stores `low_val = low | *event_middle` (variants `09_validation/reconstruction/m5-m68k-time-stamp-variants{,2}-p473-20261016.json`). m68k OBJECT_MATCH (`m5-m68k-p473-final-20261016.json`). Diff `m68k-eventc-plan473.diff`.
