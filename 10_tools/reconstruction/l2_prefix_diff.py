@@ -2,7 +2,8 @@
 """l2_prefix_diff.py -- plan 466 (M5-23, D082): compare two full x86 rebuilds (l2_rebuild.py
 results of the seven groups under two RID prefixes, e.g. s6l4 and s6l5).
 
-  python3 10_tools/reconstruction/l2_prefix_diff.py OLD NEW RECORD.json
+  python3 10_tools/reconstruction/l2_prefix_diff.py OLD NEW RECORD.json [PLAN]
+  (PLAN: the record's plan number, 466 when absent; plan 467)
 
 stages   per group RID suffix (g1a g2aa g2ba g3a g4a g5a g6a): the two stage manifests
          (08_build/runs/tools/<prefix>-<g>-stage.manifest.json), every key and every
@@ -53,9 +54,10 @@ def obj_sig(p):
 
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in (4, 5):
         sys.exit(__doc__)
-    old, new, outj = sys.argv[1:]
+    old, new, outj = sys.argv[1:4]
+    plan = int(sys.argv[4]) if len(sys.argv) == 5 else 466
     st = []
     for g in GROUPS:
         a = json.load(open(T + '%s-%s-stage.manifest.json' % (old, g)))
@@ -91,7 +93,7 @@ def main():
              differing_non_stabs_equal=all(d['canon_equal'] and d['header_equal'] and d['sections_equal'] and d['symbols_equal']
                                            for d in diff),
              sha_differ_not_rid_only=[d['object'] for d in diff if not d['rid_normalized_equal']])
-    json.dump(dict(plan=466, tool='10_tools/reconstruction/l2_prefix_diff.py', tool_sha256=sha(os.path.abspath(__file__)),
+    json.dump(dict(plan=plan, tool='10_tools/reconstruction/l2_prefix_diff.py', tool_sha256=sha(os.path.abspath(__file__)),
                    old=old, new=new, records=dict(old=[[f, sha(f)] for f in ra], new=[[f, sha(f)] for f in rb]),
                    summary=S, stages=st, objects_differ=diff), open(outj, 'w'), indent=1)
     print(json.dumps(S, indent=1))

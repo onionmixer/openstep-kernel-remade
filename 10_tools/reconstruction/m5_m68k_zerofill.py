@@ -4,6 +4,7 @@ verified, and the x86 regression gate for the plan 464 change of zerofill_check.
 
   python3 10_tools/reconstruction/m5_m68k_zerofill.py x86replay OUTDIR RECORD.json
   python3 10_tools/reconstruction/m5_m68k_zerofill.py m68k OUTDIR RECORD.json
+  python3 10_tools/reconstruction/m5_m68k_zerofill.py objs OUTDIR RECORD.json PLAN OBJECT:OBJ:REF ...
 
 x86replay  re-runs every 09_validation/reconstruction/*zerofill-check*.json with its recorded
            command (input SHA-256 checked first), writing to OUTDIR instead of the recorded --out,
@@ -12,6 +13,13 @@ m68k       for each object in OBJECTS: the plan 441 object (by SHA-256 from the 
            l1_compare.py --place-from-image to OUTDIR, then zerofill_check.py --section
            __DATA,__bss --place-from-l1 with the m68k symbol table; candidate ranges must not
            overlap each other.
+objs       plan 467: for each OBJECT:OBJ:REF (x86 object id, final m68k object, the tested variant
+           object it must equal) assert: L1 (--place-from-image) reasons exactly
+           ['__DATA,__bss: unverified']; no undefined symbol missing from the original; OBJ equals
+           REF in m3_m68k_diag.canon and in Mach-O header, section headers and non-STABS symbols
+           (l2_prefix_diff.obj_sig, STABS count excluded); zerofill_check exit 0, conclusion
+           reference-inferred(-single), no problems; the new candidates together with the plan 464
+           record's candidates do not overlap.
 """
 import sys, os, json, glob, hashlib, shlex, subprocess
 
@@ -99,12 +107,64 @@ def m68k(outdir, outj):
         print(hex(a), hex(b), b - a, n)
 
 
+P464 = '09_validation/reconstruction/m5-m68k-zerofill-20261016.json'
+
+
+def objs(outdir, outj, plan, items):
+    import macho_obj
+    import m0_m68k_cause as C
+    import m3_m68k_diag as D
+    import l2_prefix_diff as PD
+    os.makedirs(outdir, exist_ok=True)
+    img = C.Img()
+    names = {y['name'] for y in img.img.o['symbols']}
+    rows = []
+    for it in items:
+        name, obj, ref = it.split(':')
+        assert os.path.exists(obj) and os.path.exists(ref), it
+        n = name[len('x86-'):]
+        l1 = os.path.join(outdir, 'l1-%s.json' % n)
+        subprocess.run([sys.executable, os.path.join(HERE, 'l1_compare.py'), '--image', IMG, '--obj', obj, '--place-from-image',
+                        '--out', l1], capture_output=True, check=True)
+        z = os.path.join(outdir, 'zerofill-%s.json' % n)
+        p = subprocess.run([sys.executable, os.path.join(HERE, 'zerofill_check.py'), '--image', IMG, '--obj', obj,
+                            '--section', '__DATA,__bss', '--symbols', SYMS, '--place-from-l1', l1, '--out', z],
+                           capture_output=True, text=True)
+        e = json.load(open(z)) if os.path.exists(z) else {}
+        l1d = json.load(open(l1))
+        o = macho_obj.parse(open(obj, 'rb').read())
+        undef = sorted({y['name'] for y in o['symbols'] if y['kind'] == 'UNDF' and not y['stab']} - names)
+        so, sr = PD.obj_sig(obj), PD.obj_sig(ref)
+        r = dict(object=name, obj=obj, obj_sha256=sha(obj), ref=ref, ref_sha256=sha(ref), l1=l1, l1_sha256=sha(l1),
+                 l1_verdict=l1d['object_verdict'], l1_reasons=l1d.get('object_reasons'), undefined_not_in_original=undef,
+                 ref_canon_equal=D.canon(obj) == D.canon(ref), ref_header_equal=so['header'] == sr['header'],
+                 ref_sections_equal=so['sections'] == sr['sections'], ref_symbols_equal=so['symbols'] == sr['symbols'],
+                 zerofill=z, zerofill_sha256=sha(z) if e else None, returncode=p.returncode, conclusion=e.get('conclusion'),
+                 candidate=e.get('candidate'), size=(e.get('section') or {}).get('size'), problems=e.get('problems'))
+        r['ok'] = (r['l1_reasons'] == ['__DATA,__bss: unverified'] and not undef and r['ref_canon_equal'] and r['ref_header_equal']
+                   and r['ref_sections_equal'] and r['ref_symbols_equal'] and p.returncode == 0 and not r['problems']
+                   and r['conclusion'] in ('reference-inferred', 'reference-inferred-single'))
+        rows.append(r)
+    old = [(int(a, 16), int(b, 16), n) for a, b, n in json.load(open(P464))['candidates']]
+    cands = sorted(old + [(r['candidate'][0], r['candidate'][1], r['object']) for r in rows if r.get('candidate')])
+    overlaps = [(a[2], b[2]) for a, b in zip(cands, cands[1:]) if b[0] < a[1]]
+    S = dict(objects=len(rows), ok=[r['object'] for r in rows if r['ok']], not_ok=[r['object'] for r in rows if not r['ok']],
+             overlaps=overlaps, candidates={r['object']: [hex(r['candidate'][0]), hex(r['candidate'][1])] for r in rows if r.get('candidate')})
+    json.dump(dict(plan=int(plan), tool='10_tools/reconstruction/m5_m68k_zerofill.py', tool_sha256=sha(os.path.abspath(__file__)),
+                   zerofill_check_sha256=sha(os.path.join(HERE, 'zerofill_check.py')), image_sha256=sha(IMG), symbols_sha256=sha(SYMS),
+                   plan464_record=P464, plan464_record_sha256=sha(P464), summary=S, rows=rows), open(outj, 'w'), indent=1)
+    print(json.dumps(S, indent=1))
+    assert not S['not_ok'] and not overlaps, S
+
+
 def main():
     a = sys.argv[1:]
     if a[:1] == ['x86replay'] and len(a) == 3:
         x86replay(a[1], a[2])
     elif a[:1] == ['m68k'] and len(a) == 3:
         m68k(a[1], a[2])
+    elif a[:1] == ['objs'] and len(a) >= 5:
+        objs(a[1], a[2], a[3], a[4:])
     else:
         sys.exit(__doc__)
 

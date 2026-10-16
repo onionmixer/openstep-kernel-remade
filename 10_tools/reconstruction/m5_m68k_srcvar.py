@@ -13,6 +13,8 @@ SPEC.json (kept under the ignored 08_build/artifacts, since variants may quote r
   Each [old, new] replaces text of the 07 main file 07_kernel/src/<rel>; every old text must occur
   exactly once in the 07 main file and the replaced ranges must not overlap (all are located in the
   unmodified main file, then applied from the end).
+  Optional key "source" (plan 469): the file whose text the replacements apply to instead of the 07
+  main file (e.g. a 07_kernel/v183.34/m68k overlay); recorded with its SHA-256.
 
 stage    copies the base staging after checking every manifest entry (path set and SHA-256), then
          writes src/<dir of rel>/p<plan>_<V>.c per variant; manifest beside the stage.
@@ -50,8 +52,13 @@ def load(spec):
     return s
 
 
+def source(s):
+    """plan 469: the text the variants are made from (default: the 07 main file)."""
+    return s.get('source', '07_kernel/src/' + s['rel'])
+
+
 def variant_text(s, v):
-    t = open('07_kernel/src/' + s['rel']).read()
+    t = open(source(s)).read()
     spans = []
     for old, new in s['variants'][v]:
         assert t.count(old) == 1, (v, old[:60])
@@ -171,7 +178,7 @@ def cmd_compare(spec, rid, outj):
              equal_groups=groups, missing=[r['variant'] for r in rows if r.get('missing')])
     json.dump(dict(plan=s['plan'], tool='10_tools/reconstruction/m5_m68k_srcvar.py', tool_sha256=sha(os.path.abspath(__file__)),
                    run=rid, spec_sha256=sha(spec), main_file='07_kernel/src/' + s['rel'], main_sha256=sha('07_kernel/src/' + s['rel']),
-                   base=s['base'], base_manifest_sha256=sha(s['base'] + '.manifest.json'), compile_line_sha256=shab(cc_line(s).encode()),
+                   source=source(s), source_sha256=sha(source(s)), base=s['base'], base_manifest_sha256=sha(s['base'] + '.manifest.json'), compile_line_sha256=shab(cc_line(s).encode()),
                    control_ref=s['control_ref'], control_ref_sha256=sha(s['control_ref']), summary=S, variants=rows),
               open(outj, 'w'), indent=1)
     print(json.dumps(S))

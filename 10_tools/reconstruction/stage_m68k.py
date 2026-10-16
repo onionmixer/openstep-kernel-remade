@@ -6,10 +6,10 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
-stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082) + the real-machine SDK m68k headers (plan 413, local
+stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469) + the real-machine SDK m68k headers (plan 413, local
          copy hash-checked against its target list) + 07_kernel/v183.34/common + 07_kernel/
          v183.34/m68k, copied in this order (a later file replaces an earlier one; D068 picks
          m68k, then common, then the 07 main tree).  STAGE_DIR.manifest.json: [path, origin,
@@ -18,7 +18,7 @@ stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082) + the
          right after '#import <sys/param.h>'; plan 437 generalisation).
 cmd      the 205 compile lines of the plan 429 (run m3p429-cc2, -c only) and plan 432 (run
          m3p432-int) runs, output prefix O433__.
-x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466) with stage_headers.py and its
+x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469) with stage_headers.py and its
          manifest options and require the manifests to be unchanged (the x86 build does not read
          v183.34); all seven groups must be present.
 compare  every O433 object against the test-run object (non-STABS section bytes and
@@ -237,6 +237,7 @@ EXCEPTS = {433: {'x86-subr_kudp': 'SDK machparam.h spl import not taken (D069 pe
                  'x86-tcp_input': 'ti_len htons store and offer MIN in the m68k overlay (plan 463)',
                  'x86-vm_pager': 'vm_pager_deallocate branch order in the m68k overlay (plan 465)'},
            466: {},   # filled below: plan 465 + x86-kdp
+           467: {},   # filled below: plan 466 + nfs_subr, nfs_vfsops
            438: {'x86-subr_prf': 'ROM Monitor line added in the m68k overlay (plan 437)',
                  'x86-kern_server': 'KERNOBJC 0 in the m68k overlay (expected to differ from the test run)'}}
 MARKERS = {'plan 435 (D070)': {'src/bsd/rpc/subr_kudp.c': 1, 'src/bsd/net/if_venip.c': 1},   # registered overlay
@@ -261,9 +262,14 @@ MARKERS = {'plan 435 (D070)': {'src/bsd/rpc/subr_kudp.c': 1, 'src/bsd/net/if_ven
            'plan 461 (m68k)': {'src/bsd/netinet/ip_icmp.c': 33},
            'plan 462 (m68k)': {'src/bsd/kern/vfs_dnlc.c': 16},
            'plan 463 (m68k)': {'src/bsd/netinet/tcp_input.c': 9},
-           'plan 465 (m68k)': {'src/vm/vm_pager.c': 7}}
+           'plan 465 (m68k)': {'src/vm/vm_pager.c': 7},
+           'plan 468 (m68k)': {'src/kern/ns_timer.c': 252}}
 EXCEPTS[466] = dict(EXCEPTS[465], **{'x86-kdp': 'kdp_regions range from VM_MIN/MAX_KERNEL_ADDRESS in the 07 main file (plan 466, D082)'})
-X86 = {433: 's6l4', 466: 's6l5'}            # plan 466: x86 rebuild prefix of the base and the x86 gate
+EXCEPTS[467] = dict(EXCEPTS[466], **{'x86-nfs_subr': 'rlock_awaken before rlock_timeout in the 07 main file (plan 467, D084)',
+                                    'x86-nfs_vfsops': 'unused hostpath under #if !MACH in the 07 main file (plan 467, D085)'})
+EXCEPTS[468] = dict(EXCEPTS[467])   # plan 468: the ns_timer overlay; ns_timer is not among the 205 reference lines
+EXCEPTS[469] = dict(EXCEPTS[468])   # plan 469: ns_timer main file and overlay (D088); not among the 205 reference lines
+X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7'}   # plans 466-469: x86 rebuild prefix of the base and the x86 gate
 GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
 
 

@@ -1137,6 +1137,16 @@ int	rlocktimeout;
 
 static void	rlock_awaken();
 
+/* plan 467 (D084): defined before rlock_timeout, as in the m68k original */
+static void			/* name is a reconstruction choice */
+rlock_awaken(rp)
+	struct rnode *rp;
+{
+	rlock_awaken_count++;
+	if (rp)
+		wakeup((caddr_t)rp);
+}
+
 int
 rlock_timeout(rp, secs)
 	register struct rnode *rp;
@@ -1165,14 +1175,5 @@ rlock_timeout(rp, secs)
 	rp->r_count++;
 	rp->r_flags |= RLOCKED;
 	return (0);
-}
-
-static void			/* name is a reconstruction choice */
-rlock_awaken(rp)
-	struct rnode *rp;
-{
-	rlock_awaken_count++;
-	if (rp)
-		wakeup((caddr_t)rp);
 }
 #endif	NeXT

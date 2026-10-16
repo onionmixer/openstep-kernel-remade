@@ -1,0 +1,43 @@
+--- 07_kernel/src/kern/ns_timer.c (before plan 469)	2026-10-08 20:54:04.230588983 +0900
++++ 07_kernel/src/kern/ns_timer.c	2026-10-16 13:02:57.786615697 +0900
+@@ -201,7 +201,7 @@
+ 
+ 	s = splusclock();
+ 	now = clock_value(Calendar);
+-	if (last_time > now && last_time - now < NSEC_PER_SEC)
++	if (now < last_time && last_time - now < NSEC_PER_SEC)	/* plan 469 (D088): as the m68k original */
+ 		now = last_time;
+ 	last_time = now;
+ 	splx(s);
+@@ -214,19 +214,28 @@
+ void
+ microboot(struct timeval *tvp)
+ {
+-	ns_time_to_timeval(clock_value(System), tvp);
++	ns_time_t	now;
++
++	now = clock_value(System);	/* plan 469 (D088): called before the outer call, as the m68k original */
++	ns_time_to_timeval(now, tvp);
+ }
+ 
+ void
+ us_timeout(func proc, void *arg, struct timeval *tvp, int pri)
+ {
+-	ns_timeout(proc, arg, timeval_to_ns_time(tvp), pri);
++	ns_time_t	time;
++
++	time = timeval_to_ns_time(tvp);	/* plan 469 (D088): called before the outer call, as the m68k original */
++	ns_timeout(proc, arg, time, pri);
+ }
+ 
+ void
+ us_abstimeout(func proc, void *arg, struct timeval *tvp, int pri)
+ {
+-	ns_abstimeout(proc, arg, timeval_to_ns_time(tvp), pri);
++	ns_time_t	time;
++
++	time = timeval_to_ns_time(tvp);	/* plan 469 (D088): called before the outer call, as the m68k original */
++	ns_abstimeout(proc, arg, time, pri);
+ }
+ 
+ boolean_t

@@ -155,7 +155,8 @@ FILES = {'mach_process': MP, 'kern_exec': KE, 'vm_fault': 'vm/vm_fault.c', 'vm_p
          'in_pcb': 'bsd/netinet/in_pcb.c', 'ip_output': 'bsd/netinet/ip_output.c',
          'vm_kern': 'vm/vm_kern.c', 'ip_icmp': 'bsd/netinet/ip_icmp.c',
          'vfs_dnlc': 'bsd/kern/vfs_dnlc.c', 'tcp_input': 'bsd/netinet/tcp_input.c',
-         'vm_pager': 'vm/vm_pager.c', 'kdp': 'kern/kdp.c'}   # plans 446-466
+         'vm_pager': 'vm/vm_pager.c', 'kdp': 'kern/kdp.c',
+         'nfs_subr': 'bsd/nfs/nfs_subr.c', 'nfs_vfsops': 'bsd/nfs/nfs_vfsops.c'}   # plans 446-467
 
 
 def cmd_cmd2(out, plan='444', names='mach_process,kern_exec'):

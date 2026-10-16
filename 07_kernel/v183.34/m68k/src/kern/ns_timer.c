@@ -1,0 +1,497 @@
+/*
+ * kern/ns_timer.c -- nanosecond timer support.
+ *
+ * plan 234 (authored, D024): written from the original OPENSTEP 4.2
+ * x86 kernel object [0x160478, 0x160adc).  The function list follows
+ * the original symbol order; no reference text was copied.
+ */
+/* plan 468 (m68k) begin: notices of the m68k callout queue (D013) and of the line marked "plan 468 (Darwin)" (D061 precedent) */
+/*
+ * m68k (plan 468, D024, D086): the callout queue -- ns_callout_init,
+ * ns_timer_init, the timer interrupt ns_timer_int, ns_abstimeout and
+ * ns_untimeout -- follows NeXTMach mk-108.1 next/us_timer.c (us_timer_int,
+ * us_abstimeout, us_untimeout) and next/machdep.c (the callout free list),
+ * moved to the nanosecond ns_time_t and fixed by the original m68k kernel
+ * object [0x404e3a8, 0x404e712).  The notices of those NeXTMach files are:
+ *
+ *	@(#)us_timer.c	1.0	12/8/87		(c) 1987 NeXT
+ *	Copyright (c) 1989 NeXT, Inc.			(next/us_timer.c)
+ *	Copyright (c) 1987, 1988, 1989 NeXT, Inc.	(next/machdep.c)
+ */
+/*
+ * The line marked "plan 468 (Darwin)" follows Darwin 0.1
+ * kernel/kern/ns_timer.c:110 (kernel-1), whose notice is:
+ */
+/*
+ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ * 
+ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
+ * Reserved.  This file contains Original Code and/or Modifications of
+ * Original Code as defined in and that are subject to the Apple Public
+ * Source License Version 1.0 (the 'License').  You may not use this file
+ * except in compliance with the License.  Please obtain a copy of the
+ * License at http://www.apple.com/publicsource and read it before using
+ * this file.
+ * 
+ * The Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
+ * License for the specific language governing rights and limitations
+ * under the License."
+ * 
+ * @APPLE_LICENSE_HEADER_END@
+ */
+/* plan 468 (m68k) end */
+
+#import <sys/param.h>
+#import <sys/kernel.h>
+#import <kernserv/clock_timer.h>
+#import <kernserv/ns_timer.h>
+#import <kern/time_stamp.h>
+#import <mach/time_value.h>
+
+#define	NSEC_PER_SEC	1000000000
+#define	NSEC_PER_USEC	1000
+
+extern ns_time_t	clock_value();
+extern void		set_clock();
+extern void		hardclock_init();
+extern void		calloutDispatchDelayed();
+extern void		calloutRemove();
+
+ns_time_t	ns_per_tick;
+
+/*
+ * Divide the 64-bit value *ll by divisor in place, one 32-bit word at
+ * a time with divl, and return the remainder through *remain.
+ */
+#if	m68k	/* plan 468 (m68k) begin: 68020 divull/divul, the form of the plan 455 kern_clock.c ns_div_val (D024) */
+static inline void
+ns_div(ll, divisor, remain)
+	ns_time_t	*ll;
+	unsigned int	divisor;
+	unsigned int	*remain;
+{
+	unsigned int	*msw, *lsw;
+	unsigned int	quo, rem;
+
+	msw = &((unsigned int *)ll)[0];
+	lsw = &((unsigned int *)ll)[1];
+
+	asm("divull %2,%0:%1"
+	    : "=d" (rem), "=d" (quo)
+	    : "dmi" (divisor), "1" (*msw), "0" (0));
+	*msw = quo;
+	asm("divul %2,%0:%1"
+	    : "=d" (*remain), "=d" (quo)
+	    : "dmi" (divisor), "1" (*lsw), "0" (rem));
+	*lsw = quo;
+}
+#else	/* plan 468 (m68k) end */
+static inline void
+ns_div(ll, divisor, remain)
+	ns_time_t	*ll;
+	unsigned int	divisor;
+	unsigned int	*remain;
+{
+	unsigned int	*msw, *lsw;
+	unsigned int	quo, rem;
+
+	lsw = &((unsigned int *)ll)[0];
+	msw = &((unsigned int *)ll)[1];
+
+	asm("divl %2"
+	    : "=a" (quo), "=d" (rem)
+	    : "rm" (divisor), "0" (*msw), "1" (0));
+	*msw = quo;
+	asm("divl %2"
+	    : "=a" (quo), "=d" (*remain)
+	    : "rm" (divisor), "0" (*lsw), "1" (rem));
+	*lsw = quo;
+}
+#endif	/* plan 468 (m68k) */
+#if	m68k	/* plan 468 (m68k) begin: callout queue (NeXTMach us_timer.c, machdep.c; original [0x404e3a8, 0x404e420)) */
+
+/*
+ * m68k callout queue: entries ordered by deadline (system clock), served
+ * by the timer interrupt handler ns_timer_int (as NeXTMach us_timer.c).
+ */
+struct ns_callout {
+	struct ns_callout	*c_next;	/* +0x00 */
+	ns_time_t		c_time;		/* +0x04 deadline */
+	void			*c_arg;		/* +0x0c */
+	func			c_func;		/* +0x10 */
+	int			c_pri;		/* +0x14 */
+};
+
+/* the m68k timer (machdep): the first field of timer_attributes(0) */
+struct ns_timer_attributes {
+	ns_time_t		max_value;
+	ns_time_t		resolution;
+};
+
+struct ns_callout	*ns_callfree, *ns_callout, ns_calltodo;
+int			hardclock_ps;
+vm_address_t		hardclock_pc;
+
+extern void		m68k_hardclock();
+extern void		callout_dispatch();
+extern boolean_t	callout_remove();
+extern const struct ns_timer_attributes	*timer_attributes();
+extern void		_set_timer_expire_func();
+extern void		_set_timer();
+
+static int	ns_timer_int(int arg, vm_address_t pc, int ps);
+
+void
+ns_callout_init()
+{
+	register unsigned int i;
+
+	ns_callfree = ns_callout;
+	for (i = 1; i < ncallout; i++)
+		ns_callout[i-1].c_next = &ns_callout[i];
+	ns_callout[ncallout-1].c_next = 0;
+}
+
+void
+ns_timer_init()
+{
+	int	s;
+
+	s = splusclock();
+	_set_timer_expire_func(0, ns_timer_int);
+	splx(s);
+}
+#endif	/* plan 468 (m68k) end */
+
+void
+ns_hardclock_init()
+{
+	ns_per_tick = NSEC_PER_SEC / hz;
+	hardclock_init(ns_per_tick);
+}
+
+#if	m68k	/* plan 468 (m68k) begin: the timer interrupt (NeXTMach us_timer.c us_timer_int; original 0x404e458) */
+/*
+ * The timer interrupt: run the callouts that are due, then load the
+ * timer for the next one.
+ */
+static int
+ns_timer_int(int arg, vm_address_t pc, int ps)
+{
+	register struct ns_callout	*p1;
+	ns_time_t			now, delta;
+
+	now = clock_value(System);
+again:
+	for (p1 = ns_calltodo.c_next;
+	    p1 && p1->c_time < now;
+	    p1 = ns_calltodo.c_next) {
+		if (p1->c_func == (func)m68k_hardclock) {
+			hardclock_ps = ps;
+			hardclock_pc = pc;
+		}
+		callout_dispatch(p1->c_pri, p1->c_func, p1->c_arg);
+		ns_calltodo.c_next = p1->c_next;
+		p1->c_next = ns_callfree;
+		ns_callfree = p1;
+	}
+	if (p1) {
+		if (now > p1->c_time)
+			goto again;
+		delta = p1->c_time - now;
+		if (delta > timer_attributes(0)->max_value)
+			delta = timer_attributes(0)->max_value;
+	} else
+		delta = timer_attributes(0)->max_value;
+	_set_timer(0, delta);
+	return 0;
+}
+
+#endif	/* plan 468 (m68k) end */
+/*
+ * Arrange that proc is called with arg after time nanoseconds.
+ */
+void
+ns_timeout(func proc, void *arg, ns_time_t time, int pri)
+{
+	time += clock_value(System);	/* plan 234.1: time read before the call (variant t1) */
+#if	m68k	/* plan 468 (m68k) begin: the m68k callout queue (D087) */
+	ns_abstimeout(proc, arg, time, pri);
+#else	/* plan 468 (m68k) end */
+	calloutDispatchDelayed(proc, arg, time);
+#endif	/* plan 468 (m68k) */
+}
+
+/*
+ * Arrange that proc is called with arg at deadline (system clock).
+ */
+#if	m68k	/* plan 468 (m68k) begin: NeXTMach us_abstimeout (original 0x404e57e) */
+void
+ns_abstimeout(func proc, void *arg, ns_time_t deadline, int pri)
+{
+	register struct ns_callout	*p1, *p2, *pnew;
+	register int			s;
+	ns_time_t			now, delta;
+
+	s = splusclock();
+	pnew = ns_callfree;
+	if (pnew == 0)
+		panic("ns_abstimeout table overflow");
+	ns_callfree = pnew->c_next;
+
+	pnew->c_pri = pri;
+	pnew->c_arg = arg;
+	pnew->c_func = proc;
+
+	for (p1 = &ns_calltodo;
+	    (p2 = p1->c_next) && p2->c_time < deadline;
+	    p1 = p2)
+		continue;
+	p1->c_next = pnew;
+	pnew->c_next = p2;
+	pnew->c_time = deadline;
+
+	/*
+	 * check to see if we need to load the timer.
+	 */
+	if (pnew == ns_calltodo.c_next) {
+		now = clock_value(System);
+		delta = 0;
+		if (now < deadline)
+			delta = deadline - now;
+		if (delta > timer_attributes(0)->max_value)
+			delta = timer_attributes(0)->max_value;
+		_set_timer(0, delta);
+	}
+	splx(s);
+}
+#else	/* plan 468 (m68k) end */
+void
+ns_abstimeout(func proc, void *arg, ns_time_t deadline, int pri)
+{
+	calloutDispatchDelayed(proc, arg, deadline);
+}
+#endif	/* plan 468 (m68k) */
+
+#if	m68k	/* plan 468 (m68k) begin: NeXTMach us_untimeout; a miss goes to callout_remove (original 0x404e664) */
+boolean_t
+ns_untimeout(func proc, void *arg)
+{
+	register struct ns_callout	*p1, *p2;
+	register int			s;
+
+	s = splusclock();
+	for (p1 = &ns_calltodo; (p2 = p1->c_next) != 0; p1 = p2) {
+		if (p2->c_func == proc && p2->c_arg == arg) {
+			p1->c_next = p2->c_next;
+			p2->c_next = ns_callfree;
+			ns_callfree = p2;
+			splx(s);
+			return TRUE;
+		}
+	}
+	splx(s);
+	return callout_remove(proc, arg);
+}
+#else	/* plan 468 (m68k) end */
+boolean_t
+ns_untimeout(func proc, void *arg)
+{
+	calloutRemove(proc, arg);
+	return (TRUE);
+}
+#endif	/* plan 468 (m68k) */
+
+void
+ns_sleep(ns_time_t delay)
+{
+	int	s;
+	extern void	wakeup();
+
+	s = splnet();
+#if	m68k	/* plan 468 (m68k) begin: CALLOUT_PRI_SOFTINT1 (original pea 0x1; D087) */
+	ns_timeout((func)wakeup, &delay, delay, CALLOUT_PRI_SOFTINT1);	/* plan 468 (Darwin): Darwin 0.1 kern/ns_timer.c:110 */
+#else	/* plan 468 (m68k) end */
+	ns_timeout((func)wakeup, &delay, delay, 0);
+#endif	/* plan 468 (m68k) */
+	sleep((caddr_t)&delay, PZERO - 1);
+	splx(s);
+}
+
+void
+ns_time_to_timeval(ns_time_t nano_time, struct timeval *tvp)
+{
+	ns_div(&nano_time, NSEC_PER_SEC, (unsigned int *)&tvp->tv_usec);
+	tvp->tv_sec = (unsigned int)nano_time;
+	tvp->tv_usec /= NSEC_PER_USEC;
+}
+
+ns_time_t
+timeval_to_ns_time(struct timeval *tvp)
+{
+	ns_time_t	a_time;
+
+	a_time = (ns_time_t)tvp->tv_sec * 1000000 + tvp->tv_usec;
+	a_time *= NSEC_PER_USEC;
+	return (a_time);
+}
+
+void
+ns_time_to_tsval(ns_time_t nano_time, struct tsval *tsp)
+{
+	unsigned int	remain;
+
+	ns_div(&nano_time, NSEC_PER_USEC, &remain);
+	tsp->low_val = (unsigned int)nano_time;
+	tsp->high_val = (unsigned int)(nano_time >> 32);
+}
+
+ns_time_t
+ticks_to_ns_time(unsigned int ticks)
+{
+	return (ticks * ns_per_tick);
+}
+
+/*
+ * Divide the 64-bit value ll by divisor and return the low word of
+ * the quotient.
+ */
+#if	m68k	/* plan 468 (m68k) begin: as the plan 455 kern_clock.c ns_div_val (D024); second division into junk and val (plan 469, D088) */
+static inline unsigned int
+ns_div_val(ll, divisor)
+	ns_time_t	ll;
+	unsigned int	divisor;
+{
+	unsigned int	*msw, *lsw;
+	unsigned int	quo, rem, junk, val;
+
+	msw = &((unsigned int *)&ll)[0];
+	lsw = &((unsigned int *)&ll)[1];
+
+	asm("divull %2,%0:%1"
+	    : "=d" (rem), "=d" (quo)
+	    : "dmi" (divisor), "1" (*msw), "0" (0));
+	*msw = quo;
+	asm("divul %2,%0:%1"
+	    : "=d" (junk), "=d" (val)
+	    : "dmi" (divisor), "1" (*lsw), "0" (rem));
+	return (val);
+}
+#else	/* plan 468 (m68k) end */
+static inline unsigned int
+ns_div_val(ll, divisor)
+	ns_time_t	ll;
+	unsigned int	divisor;
+{
+	unsigned int	*msw, *lsw;
+	unsigned int	quo, rem;
+
+	lsw = &((unsigned int *)&ll)[0];
+	msw = &((unsigned int *)&ll)[1];
+
+	asm("divl %2"
+	    : "=a" (quo), "=d" (rem)
+	    : "rm" (divisor), "0" (*msw), "1" (0));
+	asm("divl %1"
+	    : "=a" (quo)
+	    : "rm" (divisor), "0" (*lsw), "d" (rem));
+	return (quo);
+}
+#endif	/* plan 468 (m68k) */
+
+/*
+ * Microseconds since the previous call (system clock).
+ */
+unsigned int
+sched_usec_elapsed()
+{
+	static ns_time_t	last;
+	ns_time_t		now;
+	unsigned int		usec;
+
+	now = clock_value(System);
+	if (last == 0)
+		last = now;
+	usec = ns_div_val(now - last, NSEC_PER_USEC);
+	last = now;
+	return (usec);
+}
+
+void
+get_calendar_time_value(time_value_t *tvp)
+{
+	ns_time_t	now = clock_value(Calendar);	/* plan 234.1 (variant g1) */
+
+	ns_div(&now, NSEC_PER_SEC, (unsigned int *)&tvp->microseconds);
+	tvp->seconds = (unsigned int)now;
+	tvp->microseconds /= NSEC_PER_USEC;
+}
+
+void
+set_calendar_time_value(time_value_t *tvp)
+{
+	set_clock(Calendar, (ns_time_t)tvp->seconds * NSEC_PER_SEC +
+		  (ns_time_t)tvp->microseconds * NSEC_PER_USEC);
+}
+
+/*
+ * The calendar time as a timeval; never earlier than the previous
+ * answer by less than a second.
+ */
+void
+microtime(struct timeval *tvp)
+{
+	static ns_time_t	last_time = 0;
+	ns_time_t		now;
+	int			s;
+
+	s = splusclock();
+	now = clock_value(Calendar);
+	if (now < last_time && last_time - now < NSEC_PER_SEC)	/* plan 469 (D088): as the m68k original */
+		now = last_time;
+	last_time = now;
+	splx(s);
+	ns_time_to_timeval(now, tvp);
+}
+
+/*
+ * Time since boot as a timeval.
+ */
+void
+microboot(struct timeval *tvp)
+{
+	ns_time_t	now;
+
+	now = clock_value(System);	/* plan 469 (D088): called before the outer call, as the m68k original */
+	ns_time_to_timeval(now, tvp);
+}
+
+void
+us_timeout(func proc, void *arg, struct timeval *tvp, int pri)
+{
+	ns_time_t	time;
+
+	time = timeval_to_ns_time(tvp);	/* plan 469 (D088): called before the outer call, as the m68k original */
+	ns_timeout(proc, arg, time, pri);
+}
+
+void
+us_abstimeout(func proc, void *arg, struct timeval *tvp, int pri)
+{
+	ns_time_t	time;
+
+	time = timeval_to_ns_time(tvp);	/* plan 469 (D088): called before the outer call, as the m68k original */
+	ns_abstimeout(proc, arg, time, pri);
+}
+
+boolean_t
+us_untimeout(func proc, void *arg)
+{
+	return (ns_untimeout(proc, arg));
+}

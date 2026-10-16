@@ -1240,6 +1240,7 @@ itoa(n, str)
 	return (str);
 }
 
+#if	!MACH	/* plan 467 (D085): hostpath is used only by nfs_swapvp */
 static hostpath(name, shostname, path)	/* plan 281: static */
 	char *name;
 	char *shostname;
@@ -1253,6 +1254,7 @@ static hostpath(name, shostname, path)	/* plan 281: static */
 	*nm++ = ':';
 	(void) strcpy(nm, path);
 }
+#endif	!MACH
 
 /*
  * Convert a INET address into a string for printing

@@ -22,3 +22,10 @@ plan 280 (2026-10-04): the object does not end at 0x12fd1c. The byte after runlo
 - `extern int nrnode;` 를 `int nrnode = 0;` 로 바꿨습니다(D058; 원본 `_nrnode` 는 `__data` 0x1dc2c0, nfs_subr 데이터 오프셋 0). nfs_server.c 끝도 바이트로는 같아 사용자가 골랐습니다. 등급 P 그대로(`__bss` 만 미확정).
 - 진단(07 손대지 않음): s6p397-nr1·nr2. 최종: 07 에서 재빌드 s6l1-g1a(행 355, 06_reconstruction/l2_build_forms-s6p398.tsv), L1 `09_validation/reconstruction/s6l1-g1a-l1-355.json` NOT_MATCH, `cc -M` 의존 모두 07. 07 파일 SHA-256 `219ea0e0c32113ef1f25922f48f6bd54d2040f239fe1bf9400bba8b4b22bf8a9`.
 - diff `06_reconstruction/evidence/x86-nfs_subr.diff` 를 다시 만들었습니다.
+
+## plan 467 (2026-10-16)
+
+`rlock_awaken` is now defined before `rlock_timeout` (forward declaration kept; D084). The m68k original, compiled -O2, emits functions in source order and has the callback first (0x40296f8, its address passed to timeout/untimeout by the following function); x86 -O3 emits it after rlock_timeout either way. Variants A and B (declaration deleted) give the same objects on both architectures. The original bytes do not distinguish these forms. Diff `x86-nfs_subr-plan467.diff`.
+
+- x86: full rebuild s6l6 (402 rows: same as baseline 377, expected 25, problems 0); against s6l5 only the two NFS staging files differ and only the two NFS objects differ beyond the run path, with equal non-STABS content (`09_validation/reconstruction/s6-l2-prefixdiff-s6l5-s6l6-20261016.json`); link s6p467-ln1 identical to the original (`s6-l2-link-s6p467-ln1.json`).
+- m68k: run m5p467-a1, L1 only `__DATA,__bss: unverified`, equal to the tested variant in non-STABS content, bss reference-inferred without overlap (`09_validation/reconstruction/m5-m68k-nfs-20261016.json`, `m5-m68k-nfs-zerofill-20261016.json`).
