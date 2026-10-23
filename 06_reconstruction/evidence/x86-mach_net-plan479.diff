@@ -1,0 +1,22 @@
+--- 07_kernel/src/kern/mach_net.c (before plan 479)
++++ 07_kernel/src/kern/mach_net.c
+@@ -162,6 +162,9 @@
+ #define LOCK_BUCKET(b, ipl)	{ ipl = splnet(); simple_lock(&(b)->lock); }
+ #define UNLOCK_BUCKET(b, ipl)	{ simple_unlock(&(b)->lock); splx(ipl); }
+ 
++#if	m68k	/* plan 479 (D096): unoptimized, as the m68k original (NeXTMach mk-108.1 kern/mach_net.c:290) */
++#pragma CC_OPT_OFF
++#endif	m68k
+ kern_return_t	netipc_listen(server_port, _src_addr, _dst_addr,
+ 			      _src_port, _dst_port, _protocol, ipc_port)
+ 	port_t		server_port;	/* unused */
+@@ -204,6 +207,9 @@
+ 
+ 	return(KERN_SUCCESS);
+ }
++#if	m68k	/* plan 479 (D096): NeXTMach mk-108.1 kern/mach_net.c:337 */
++#pragma CC_OPT_RESTORE
++#endif	m68k
+ 
+ kern_return_t	netipc_ignore(server_port, ipc_port)
+ 	port_t		server_port;	/* unused */

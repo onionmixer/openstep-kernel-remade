@@ -246,3 +246,81 @@ PIC 수정본 부팅 관찰 (2026-10-01, `boot-nocd --snapshot`, `hd()mach_kerne
 - m68k: 사용자 설치 완료. 디스크 읽기 확인: 영수증 DeveloperTools·DeveloperLibs·DeveloperDoc·GNUSource·ProfileLibs, `nextufs fsck -n` 5 단계 뒤 경고 없음(33278 files, 506581 used). `/bin/cc` 는 NeXT `cc-744.13` 드라이버. `/lib/{i386,m68k,sparc}/` 에 `as`·`cc1obj`·`cc1objplus`·`cc1plus`·`cpp`·`cpp-precomp`·`specs` 가 있고 `cc1obj`·`cc1plus` 에 문자열 `2.7.2.1` — **GCC 2.7.2.1 기반 NeXT 컴파일러가 세 아키텍처 백엔드를 모두 갖는다**(실행 확인 전, 바이트의 문자열 관찰). `/usr/lib/migcom` 있음. 남은 공간 약 493 MB.
 - i386: 사용자 설치 완료(기존 1997+PIC 커널로 부팅). 디스크 읽기 확인: 영수증 5 개, `nextufs fsck -n` 경고 없음(37675 files, 521511 used), 세 커널 해시 불변(`00e49892…`, `33469393…`, `304cb696…`). `/lib/{i386,m68k,sparc}/cc1obj` SHA-256 앞 16 자리가 m68k 디스크와 같다(`33044bea…`, `694cec5b…`, `ed859c51…`) → 두 설치의 컴파일러 백엔드 파일이 같다. `/bin/cc`·`/bin/as`·`/bin/ld` 크기도 m68k 와 같고 `/usr/lib/migcom` 은 크기가 다르다(i386 91236, m68k 91256).
 - SPARC ESP 경합 대응(QEMU 수정)은 사용자 지시로 별도 인계 문서 `11_emulation/HANDOFF_SPARC_ESP.md`(git 무시, 로컬) 에 정리했다. 증거 `11_emulation/records/sparc-devtools-hang-20261001/`.
+
+## SPARC 에뮬레이터를 `jadenekotenshi/qemu` `sparcstep` 으로 바꾸는 계획 (2026-10-23, 사용자 지시, 코딩 전)
+
+사용자 지시(2026-10-23): `https://github.com/jadenekotenshi/qemu` 의 `sparcstep` 브랜치가 지금 SPARC 를 가장 안정적으로 돌린다고 증명된 브랜치이니, 우리 SPARC 환경을 이것으로 바꿔 씁니다.
+
+확인한 사실(복제본을 직접 읽음):
+- 원격 `sparcstep` HEAD 는 `a6abc3b5b0fe47da87ee5ab45bcaa156f4223f2b` 입니다(`git ls-remote`). 같은 저장소에 `master`·`sparcstep-fixes` 도 있습니다.
+- 복제본: `11_emulation/qemu-sparcstep/`(브랜치 하나, `--filter=blob:none`, 약 333 MiB). 루트 `.gitignore` 의 `/11_emulation/*` 로 무시됩니다. `VERSION` 은 11.1.50 이고, 작업 트리는 깨끗합니다(`git status --porcelain` 0 줄).
+- 첫 부모 줄기에서 포크 작성자의 고유 커밋은 62 개(2026-09-29 ~ 2026-10-15)입니다. 병합은 QEMU master 병합 넷과 `esp-irq-delay` 병합(`3d06a3ed53`) 하나입니다.
+- OPENSTEP 과 직접 관련된 것:
+  - `76e654f1e7`·`d6f66cf2d2`: `sparc32-espdma` 의 `esp-irq-delay-ns` 속성. 기본값은 500 µs(`76e654f1e7`) → 10 µs(`3adaf796c5`) → 200 µs(`d6f66cf2d2`)로 바뀌었고, 지금은 200 µs 입니다. `hw/dma/sparc32_dma.c` 의 주석은 OPENSTEP 4.2 SPARC 커널이 잠금을 놓기 직전에 인터럽트 레벨을 낮춰, 이미 걸려 있는 SCSI 인터럽트가 교착을 낸다고 설명합니다. 커밋 설명에는 10 µs 에서 6 회 중 3 회 멈춤, 100·200 µs 에서 8 회 중 0 회라고 적혀 있습니다(포크 작성자의 측정이며 이 저장소에서 잰 것은 아닙니다).
+  - 이것은 `11_emulation/SPARC_INSTALL_HANG_NOTES.md` 의 선택지 1(ESP 완료 인터럽트 지연)과 같은 방향이고, `HANDOFF_SPARC_ESP.md` 가 계획하던 대응입니다.
+  - 그 밖에 `hw/sparc/sun4m.c`(이름 없는 SBus 노드, `intr`), `hw/scsi/scsi-disk.c`(MODE SENSE page 0), `hw/display/tcx.c`(THC 주소) 등에 OPENSTEP 을 위한 수정이 있습니다.
+- OpenBIOS(`pc-bios/openbios-sparc32`)는 qemu-NeXT 와 SHA-256 이 같습니다(`bf6e231e…`).
+- 서브프로젝트 고정 판: `keycodemapdb`·`berkeley-softfloat-3`·`berkeley-testfloat-3`·`dtc` 는 qemu-NeXT 의 것과 같은 revision 입니다. `slirp` 는 다릅니다(포크는 upstream libslirp `26be815b…`, qemu-NeXT 는 NeXT BOOTP 용 `blanham/libslirp ff3ef960…`).
+- 남은 디스크 공간은 약 14 GB 입니다.
+- SPARC 디스크(`09_validation/images/sparc/openstep42-sparc-hdd.qcow2`)의 맨 위 상태는 2026-10-01 개발자 패키지 설치 중 멈춘 상태입니다. 내부 스냅샷은 `phase1-done`·`phase2-before-tcx`·`phase2-hang-q11`·`install-done`·`before-devtools` 다섯입니다.
+
+방법:
+1. 소스: `11_emulation/qemu-sparcstep/` 을 고치지 않고, 그 안에서 `configure` 하지 않습니다. HEAD `a6abc3b5…` 와 깨끗한 작업 트리를 빌드 전후에 확인합니다.
+2. 서브프로젝트: `keycodemapdb`·`berkeley-softfloat-3`·`berkeley-testfloat-3` 은 qemu-NeXT 의 사본을 복사합니다. 복사 전에 revision 이 wrap 의 값과 같고, softfloat·testfloat 의 `packagefiles` 가 같음을 확인합니다. 이 디렉터리들은 포크의 `subprojects/.gitignore` 에 있어 작업 트리를 더럽히지 않습니다. 다르면 복사하지 않고 meson 내려받기를 허용합니다(고정 revision).
+3. 빌드: 새 스크립트 `11_emulation/scripts/build-qemu-sparcstep.sh` 를 만듭니다.
+   - out-of-tree `11_emulation/build/qemu-sparcstep/` 에서 빌드합니다.
+   - 옵션: `--target-list=sparc-softmmu --enable-gtk --enable-slirp --disable-docs --disable-werror --disable-download --disable-fdt --disable-rust`. slirp 는 시스템 libslirp 를 씁니다(SPARC 은 NeXT BOOTP 가 아니라 hostconfig 정적 값).
+   - 대상은 `qemu-system-sparc`·`qemu-img` 만입니다. 끝에 SHA-256 과 `--version` 을 출력합니다.
+   - 기존 `build/qemu-NeXT-lab/` 와 `build-qemu.sh` 는 그대로 둡니다(i386·m68k 영향 없음).
+4. 실행 스크립트 `vm-sparc.sh`:
+   - 기본 실행 파일을 `build/qemu-sparcstep/qemu-system-sparc` 로 바꾸고, SHA-256 을 고정해 확인합니다(`vm-m68k.sh` 와 같은 방식).
+   - 이전 빌드는 `--lab`(11.0.90), Ubuntu 6.2 는 `--qemu62` 로 남깁니다.
+   - 기계 구성(SS-5, 64 MB, OpenBIOS, cg3/TCX, SCSI ID, `taskset -c 0`, RTC)은 바꾸지 않습니다. 에뮬레이터 하나만 바꿔야 결과의 원인을 가를 수 있습니다. `esp-irq-delay-ns` 는 포크 기본값(200 µs)을 씁니다.
+5. 시험(원래 디스크는 쓰지 않음):
+   - 디스크 사본을 scratchpad 에 만들고 `before-devtools` 스냅샷으로 되돌립니다(원본과 사본의 해시를 기록).
+   - S1(자동): 사본을 `vm-sparc.sh boot --snapshot` 으로 머리 없이(`-display vnc=unix:…`, §2 주의대로) 5 회 부팅합니다. QMP `screendump` 로 화면을 받습니다. **통과 조건(미리 정함): 5 회 모두 10 분 안에 로그인 창 또는 Workspace 가 보이고, QEMU 가 살아 있음.**
+   - S2(사람 조작): 멈춤을 냈던 부하(개발자 CD `--cd OS42_DEV_ISO` 에서 ProfileLibs·GNUSource 설치)를 사본에서 사용자가 해 봅니다. 결과는 기록만 합니다.
+6. 기록: `MANIFEST.json`(qemu_sparcstep 항목: remote·branch·head·빌드 옵션·SHA-256), `11_emulation/README.md` 표, `QEMU_VM_CONFIGURATIONS.md` §0.1·§2, `SPARC_INSTALL_HANG_NOTES.md` "현재 우회", DECISIONS(사용자 지시), 이 절의 결과.
+7. 되돌리기: 이전 두 실행 파일과 스크립트 옵션이 남으므로, `vm-sparc.sh --lab` 또는 `--qemu62` 로 언제든 돌아갈 수 있습니다.
+
+### 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| configure 는 tooling 묶음(pip ≥ 23.2.1, wheel ≥ 0.41.2)을 무조건 확인하는데 시스템 Python 은 pip 22.0.2·wheel 0.37.1 이라 실패함 | 포크 `pythondeps.toml` 38–45 행, `configure` 986 행 부근, `python3 -m pip --version`, `import wheel`; 이 호스트의 Python 은 3.10 하나뿐; qemu-NeXT 의 요구는 pip ≥ 20.3.4·wheel ≥ 0.34.2 라 이전 빌드는 통과 | ✅ 아래 수정 1 |
+| 옵션 이름은 유효하고, sparc 는 FDT 가 필요 없음 | `scripts/meson-buildoptions.sh` grep, `configs/targets/sparc-softmmu.mak` 에 `TARGET_NEED_FDT` 없음, `meson.build` 3347 행 | ✅ |
+| 서브프로젝트 셋을 복사하면 됨(이미 풀린 `meson.build` 를 그대로 받음) | revision·packagefiles 비교(위 사실) | ✅ 복사 뒤 configure 로 다시 확인 |
+| `vm_disk()` 는 SPARC 의 `--disk` 를 거부하므로 S1 이 사본을 고를 수 없음 | `vm-common.sh` 71–86 행 | ✅ 아래 수정 2 |
+| `vm-sparc.sh` 는 늘 `-display gtk` 를 주고, `-display vnc=…` 는 원격 접속만 더할 뿐 GTK 를 끄지 않음 | `vm-sparc.sh` 41 행, 포크 `system/vl.c` 1135–1147 행(`display_remote++` 뒤 return) | ✅ 아래 수정 3 |
+| SS-5 기본 CPU·TCX·cg3·`1024x768x8`·CD 블록 크기 속성은 그대로 지원 | 포크 `sun4m.c`, `scsi-disk.c` | ✅ 인자 그대로 |
+| 기본 NIC 는 그대로이나 SS-5 에 `sun-bpp` 가 생기고(`sun4m.c:1343`), CS4231 이 실제 DMA 를 하며, LEDMA 기준 주소 레지스터의 초기값이 바뀜(`sparc32_dma.c:252–260`) → 인자를 그대로 두어도 ESP 수정만 따로 가를 수는 없음 | 해당 줄을 읽음 | ✅ 이번 목적은 "검증된 브랜치를 쓰는 것"이므로 받아들이고, 게스트의 장치 인식을 기록함 |
+| 사본은 내부 스냅샷째 복사하고 오프라인으로 `before-devtools` 를 적용한 뒤 `-snapshot` 으로 띄우면 됨 | `qemu-img snapshot -l -U`(다섯 스냅샷) | ✅ |
+| VNC 용 `keymaps/en-us` 는 빌드에 생긴다는 보장이 없음 | 포크 `pc-bios/keymaps/meson.build` 43 행(`native_qemu_keymap` 이 있을 때만) | ✅ 빌드 뒤 확인, 없으면 §2 의 `-L` 우회 |
+| 화면과 살아 있는 프로세스만으로는 멈춘 Workspace 도 통과함 → 게스트 응답 확인이 필요하고, S1 은 부팅 수용 시험일 뿐 안정성 주장은 S2 반복이 필요함 | `SPARC_INSTALL_HANG_NOTES.md`(멈춤 때도 QEMU 는 running) | ✅ 아래 수정 4 |
+| 기본값 변천(500 → 10 → 200 µs), 병합 다섯, 333 MiB | `git show` 세 커밋, `git log --merges` | ✅ 위 사실을 고침 |
+| 컴파일러·Python·Meson 판, 확정 옵션, 공유 라이브러리, 펌웨어·keymap 해시를 기록할 것; 포크는 GPLv2 | 포크 `LICENSE` | ✅ 기록에 더함. 포크는 무시 대상이라 커밋하지 않음 |
+
+계획 수정(실행 전 고정):
+1. Python: `/usr/bin/python3.10` 으로 전용 venv `11_emulation/build/py-sparcstep/` 를 만들고 PyPI 에서 `pip==24.3.1`·`wheel==0.45.1` 만 받습니다(받은 파일 이름·해시를 기록). configure 에 `--python=11_emulation/build/py-sparcstep/bin/python3` 을 줍니다.
+2. `vm-common.sh` 의 `--disk`: 지금(i386 raw)에 더해 SPARC `boot` 에서도 받습니다. 조건은 `--snapshot` 필수, 읽을 수 있는 qcow2(머리 `QFI\xfb`)입니다. 원래 디스크는 쓰지 않습니다.
+3. `vm-sparc.sh`:
+   - `--vnc SOCK` 를 더합니다. 이때 화면 인자는 `-display vnc=unix:SOCK -monitor none` 이고 GTK 는 쓰지 않습니다.
+   - `--lab` 과 `--qemu62` 는 함께 쓸 수 없습니다.
+   - 되돌리기 예: `vm-sparc.sh boot --lab`.
+4. S1 통과 조건(미리 정함): 5 회 모두 10 분 안에 로그인 창이 보이고, QMP `send-key` 로 글자 하나를 넣은 뒤의 화면이 넣기 전과 달라야 합니다(게스트가 입력에 응답함). 매 회 QMP `quit` 로 끝냅니다. 화면(PNG)·`query-status` 를 `11_emulation/records/sparcstep-s1-20261023/` 에 남깁니다. S1 은 부팅 수용 시험입니다. 안정성은 S2 를 사용자가 되풀이한 결과로만 말합니다.
+5. 빌드 기록: gcc·Python·Meson 판, `meson introspect --buildoptions` 의 주요 값, `ldd` 공유 라이브러리, OpenBIOS·keymap 해시, 빌드 디렉터리 크기를 `MANIFEST.json` 과 구성 문서에 남깁니다.
+
+### 중간 결과(2026-10-23) — S1 은 아직 통과하지 못함
+
+빌드:
+- configure 는 Python ≥ 3.12 도 요구했습니다(계획에 없던 조건). 시스템 Python 은 3.10 뿐이라, uv 가 설치한 CPython 3.12.12(`~/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu`, 실행 파일 SHA-256 `4304de9f…`)로 전용 venv `11_emulation/build/py-sparcstep/` 를 만들고 `pip==24.3.1`·`wheel==0.45.1`·`setuptools==75.8.0` 을 받았습니다(`build-qemu-sparcstep.sh` 가 해시를 확인).
+- `11_emulation/build/qemu-sparcstep/`(233 MiB): `qemu-system-sparc` SHA-256 `d64a3948524cda028a29f5177420b8910ae988e46abccaaf97bbcb3fca7259d1`, `qemu-img` `20b1e17c…`, 판 `11.1.50 (v11.1.0-2482-ga6abc3b5b0)`. gcc 12.3.0, Meson 1.12.0, 시스템 libslirp 4.6.1. 빌드 전후 포크 HEAD·작업 트리는 그대로입니다.
+- `en-us` keymap 은 빌드에 생기지 않아(qemu-keymap 없음), 호스트 `qemu-system-data` 의 `keymaps/en-us`(SHA-256 `52cf4c52…`)만 담은 `build/sparcstep-keymaps/` 를 `--vnc` 일 때 `-L` 로 줍니다.
+- 스크립트: `vm-sparc.sh` 기본 = sparcstep(해시 고정), `--lab`·`--qemu62`(서로 배타), `--vnc SOCK`; `vm-common.sh` 의 `--disk` 가 SPARC `boot` 의 qcow2 를 받습니다(`--snapshot` 필수).
+
+S1 시험에서 본 것(디스크 사본, `before-devtools`; 원래 디스크의 SHA-256 은 시험 전후 `625c6284…` 로 같음):
+1. **부트로더 자동 시작의 예외**: `boot:` 가 찍히는 순간 OpenBIOS 의 예외 고리(PC 0x6658, `%l1` = 0x8a1bc, `%g1` = 0x21)로 떨어집니다. 0x8a1bc 는 부트로더의 `ld [%g1 + 0x1d0], %o1`(`%g1` = `[%fp-76]`)입니다. sparcstep·lab 모두 같고, GTK(실제 화면·Xvfb)·VNC 모두 같습니다. QEMU 6.2 도 같은 화면에서 멈췄습니다. §2 의 "`-display none` 에서만 멈춘다" 는 기록과 다릅니다.
+   - `boot:` 전에 Return 이 들어와 있으면 예외 없이 커널로 넘어갑니다. 그래서 시험 도구는 8 초부터 커널에 들어갈 때까지 0.5 초마다 Return 을 넣습니다(보통 2 회).
+2. **sparcstep 에서 커널 부팅**: 장치 등록(esp0, ledma0, tcx0, zs0/1, sd0, sd1 CD, TYPE5Keyboard0), `/dev/rsd0a: file system clean`, "Configuring SS5 Audio"(SunAudio) 까지 갑니다. lab 빌드에서 나오던 `sd0: Illegal request; FATAL. … op:Mode Sense` 가 sparcstep 에서는 없습니다.
+3. **로그인 전 대기**: "Setting tape block size for /dev/nrst1" 뒤 `◆` 줄이 약 15 초마다 계속 찍히고 로그인 창으로 가지 않습니다(10 분 상한까지). 일본어판(os42j)의 콘솔 메시지가 `◆` 로 보이는 것으로 추정합니다. 콘솔은 입력을 받습니다(`a`·`c` 가 찍힘). §2 의 "NetInfo 부모 검색에서 `c`" 를 넣어도 넘어가지 않았습니다. lab 빌드는 150 초에 아직 그 앞 단계였습니다(비교 미완).
+- 판정: 미리 정한 S1 통과 조건(5 회 모두 로그인 창)은 아직 시험하지 못했습니다. 3 은 에뮬레이터가 아니라 설치된 게스트의 설정(네트워크·NetInfo) 문제일 가능성이 크지만 확인하지 않았습니다.

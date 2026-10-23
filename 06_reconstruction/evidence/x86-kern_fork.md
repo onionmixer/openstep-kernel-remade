@@ -14,3 +14,8 @@ Object extent [0x106818, 0x106e30) (12 functions; 3 bytes padding). Diagnosis 13
 
 ## plan 404 고침(2026-10-08, D061)
 - notice added: line marked plan 400 (Darwin), u_thread_zone part: Apple APSL 1.0 (notice in file; 07_kernel/LICENSES/APSL-1.0.txt). 주석만 바뀌었습니다(07 파일 SHA-256 `f03f4b116fc7f8fb7c908b77e6df06e5cc2db59404c1a81cffd2b726ebc18a20`); diff 를 다시 만들었습니다.
+
+## Plan 475 (D093, 2026-10-16): absolute stores of the m68k original
+
+- `switch_unix_context` indexes `active_u` with `register int cpu = cpu_number();`. With the constant index `[0]` the m68k compiler binds `_active_u+4` to a register (`lea`); with an index variable (or a pointer) it stores to `_active_u+4` and `_active_u+0` with absolute addresses, as the original (0x4006700). Forms C, C2, R and P give the same object; R was chosen (D093).
+- x86 full rebuild s6lc (`s6-l2-prefixdiff-s6lb-s6lc-20261016.json`: only STABS of this object differ) and link `s6-l2-link-s6p475-ln1.json` identical to the original. m68k `x86-kern_fork` OBJECT_MATCH (`m5-m68k-p475-final-20261016.json`). 07 file SHA-256 `a7ecd42c2ea19ceb93548f3b1d7cabd10ee07c163987348542df510b77905ecb`.

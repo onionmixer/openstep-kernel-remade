@@ -70,13 +70,22 @@ vm_sockets() {
 
 # vm_disk ARCH [FORMAT] : the VM's disk, 09_validation/images/ARCH/openstep42-ARCH-hdd.FORMAT (raw by default).
 # plan 405: --disk RAW replaces that file for an i386 boot/boot-nocd run under --snapshot only
-# (a readable regular raw image; the run never writes it).
+# (a readable regular raw image; the run never writes it).  SPARC (2026-10-23): --disk QCOW2 for
+# a sparc boot run under --snapshot only (a copy of the SPARC disk, e.g. with another internal
+# snapshot applied).
 vm_disk() {
     disk_format="${2:-raw}"
     if [[ -n $disk_file ]]; then
-        [[ $1 == i386 && ( $mode == boot || $mode == boot-nocd ) ]] || { echo "--disk is only for i386 boot and boot-nocd" >&2; exit 2; }
+        [[ ( $1 == i386 && ( $mode == boot || $mode == boot-nocd ) ) || ( $1 == sparc && $mode == boot ) ]] ||
+            { echo "--disk is only for i386 boot and boot-nocd, and sparc boot" >&2; exit 2; }
         [[ $snapshot == 1 ]] || { echo "--disk needs --snapshot (the test disk is never written)" >&2; exit 2; }
         [[ -f $disk_file && -r $disk_file ]] || { echo "--disk: not a readable regular file: $disk_file" >&2; exit 1; }
+        if [[ $disk_format == qcow2 ]]; then
+            [[ "$(head -c 4 -- "$disk_file" | od -An -tx1 | tr -d ' \n')" == 514649fb ]] || { echo "--disk: not a qcow2 image: $disk_file" >&2; exit 1; }
+            disk="$(readlink -f -- "$disk_file")"
+            snap_args=(-snapshot)
+            return 0
+        fi
         python3 -c 'import os,sys; sys.exit(os.stat(sys.argv[1]).st_size % 512 != 0)' "$disk_file" || { echo "--disk: size is not a multiple of 512: $disk_file" >&2; exit 1; }
         [[ "$(head -c 4 -- "$disk_file" | od -An -tx1 | tr -d ' \n')" != 514649fb ]] || { echo "--disk: qcow2 image, raw expected: $disk_file" >&2; exit 1; }
         disk="$(readlink -f -- "$disk_file")"

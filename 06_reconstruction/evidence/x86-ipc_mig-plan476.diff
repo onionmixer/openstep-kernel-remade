@@ -1,0 +1,43 @@
+--- 07_kernel/src/kern/ipc_mig.c (before plan 476)	2026-10-08 20:54:04.191588364 +0900
++++ 07_kernel/src/kern/ipc_mig.c	2026-10-17 03:07:12.896578842 +0900
+@@ -24,6 +24,31 @@
+  * the rights to redistribute these changes.
+  */
+ 
++/* Parts marked "plan 476 (Darwin)" follow Darwin 0.1 kernel/kern/ipc_mig.c (kernel-1), whose notice is: */
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
++ * Reserved.  This file contains Original Code and/or Modifications of
++ * Original Code as defined in and that are subject to the Apple Public
++ * Source License Version 1.0 (the 'License').  You may not use this file
++ * except in compliance with the License.  Please obtain a copy of the
++ * License at http://www.apple.com/publicsource and read it before using
++ * this file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
++ * License for the specific language governing rights and limitations
++ * under the License."
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
+ #include <norma_vm.h>
+ #include <mach_ipc_compat.h>	/* plan 265 */
+ 
+@@ -549,6 +574,8 @@
+ 		ip_lock(dest);
+ 
+ 		if (dest->ip_receiver == ipc_space_kernel) {
++			ipc_mqueue_t	mqueue;	/* plan 476 (Darwin): D094; a separate mqueue in this branch gives the register allocation of the m68k original */
++
+ 			ip_unlock(dest);
+ 
+ 			kmsg = ipc_kobject_server(kmsg);

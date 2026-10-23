@@ -1,0 +1,62 @@
+--- 07_kernel/src/kern/miniMon.c (before plan 482)
++++ 07_kernel/src/kern/miniMon.c
+@@ -12,12 +12,13 @@
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <stdarg.h>
+-#import <kern/lock.h>
++#import <mach/machine/simple_lock.h>	/* plan 482 (D098): real lock calls on m68k, as the m68k original */
+ 
+ #define	TOSTR	0x8		/* prf: output to a string */
+ 
+-extern void	prf();
++extern int	prf();		/* plan 482 (D098): int, as defined in subr_prf.c */
+ extern void	kdp_reset();
++extern simple_lock_t	simple_lock_alloc(void);	/* plan 482 (D098) */
+ 
+ static boolean_t mm_continue(char *);
+ static boolean_t mm_help(char *);
+@@ -87,13 +88,7 @@
+ 	return (TRUE);
+ }
+ 
+-void
+-miniMonInit(void)
+-{
+-	_kernDebuggerLock = simple_lock_alloc();
+-	simple_lock_init(_kernDebuggerLock);
+-}
+-
++/* plan 482 (D098): defined here, as in the m68k original */
+ /*
+  * Read one line into line (at most len - 1 characters).
+  */
+@@ -138,6 +133,13 @@
+ 	}
+ }
+ 
++void
++miniMonInit(void)
++{
++	_kernDebuggerLock = simple_lock_alloc();
++	simple_lock_init(_kernDebuggerLock);
++}
++
+ static char	mm_line[128];
+ 
+ void
+@@ -169,10 +171,12 @@
+ 		}
+ 	}
+ 	safe_prf("NEXTSTEP Mini-monitor\n");
+-	do {
++	for (;;) {	/* plan 482 (D098): the command loop of the m68k original */
+ 		safe_prf("%s> ", prompt);
+ 		mm_getline(mm_line, sizeof (mm_line));
+-	} while (mm_parse(mm_line));
++		if (mm_parse(mm_line) == FALSE)
++			break;
++	}
+ }
+ 
+ static boolean_t

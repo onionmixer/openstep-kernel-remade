@@ -6,10 +6,10 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
-stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474) + the real-machine SDK m68k headers (plan 413, local
+stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474; s6lc from plan 475; s6ld from plan 476; s6le from plan 478; s6lf from plan 479; s6lg from plan 480; s6lh from plan 482) + the real-machine SDK m68k headers (plan 413, local
          copy hash-checked against its target list) + 07_kernel/v183.34/common + 07_kernel/
          v183.34/m68k, copied in this order (a later file replaces an earlier one; D068 picks
          m68k, then common, then the 07 main tree).  STAGE_DIR.manifest.json: [path, origin,
@@ -18,7 +18,7 @@ stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 
          right after '#import <sys/param.h>'; plan 437 generalisation).
 cmd      the 205 compile lines of the plan 429 (run m3p429-cc2, -c only) and plan 432 (run
          m3p432-int) runs, output prefix O433__.
-x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469, s6l8-g* from 471, s6l9-g* from 472, s6la-g* from 473, s6lb-g* from 474) with stage_headers.py and its
+x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469, s6l8-g* from 471, s6l9-g* from 472, s6la-g* from 473, s6lb-g* from 474, s6lc-g* from 475, s6ld-g* from 476, s6le-g* from 478, s6lf-g* from 479, s6lg-g* from 480, s6lh-g* from 482) with stage_headers.py and its
          manifest options and require the manifests to be unchanged (the x86 build does not read
          v183.34); all seven groups must be present.
 compare  every O433 object against the test-run object (non-STABS section bytes and
@@ -280,7 +280,13 @@ EXCEPTS[472] = dict(EXCEPTS[471], **{'x86-cmu_syscalls': 'table else block in th
 EXCEPTS[473] = dict(EXCEPTS[472], **{'x86-mach_clock': 'service_timer placement in the 07 main file, no time_of_boot in the m68k overlay (plan 473, D091)',
                                     'x86-time_stamp': 'event_set_ts of the m68k overlay eventc.h (plan 473, D091)'})
 EXCEPTS[474] = dict(EXCEPTS[473], **{'x86-igmp': 'IGMP_RANDOM_DELAY order and traversal helpers in the 07 main file (plan 474, D092)'})
-X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb'}   # plans 466-474: x86 rebuild prefix of the base and the x86 gate
+EXCEPTS[475] = dict(EXCEPTS[474], **{'x86-kern_fork': 'switch_unix_context cpu index in the 07 main file (plan 475, D093)'})
+EXCEPTS[476] = dict(EXCEPTS[475], **{'x86-ipc_mig': 'msg_rpc inner mqueue declaration in the 07 main file (plan 476, D094)'})
+EXCEPTS[478] = dict(EXCEPTS[476], **{'x86-ufs_subr': 'bufstats counts declaration under #if m68k in the 07 main file (plan 478, D095)'})
+EXCEPTS[479] = dict(EXCEPTS[478], **{'x86-mach_net': 'netipc_listen CC_OPT pragma pair under #if m68k in the 07 main file (plan 479, D096)'})
+EXCEPTS[480] = dict(EXCEPTS[479], **{'x86-netif': 'static function order, if_control call and #if i386 hostid block in the 07 main file (plan 480, D097)'})
+EXCEPTS[482] = dict(EXCEPTS[480], **{'x86-miniMon': 'lock header, prf/simple_lock_alloc declarations, mm_getline order and command loop in the 07 main file (plans 481-482, D098)'})
+X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb', 475: 's6lc', 476: 's6ld', 478: 's6le', 479: 's6lf', 480: 's6lg', 482: 's6lh'}   # plans 466-482: x86 rebuild prefix of the base and the x86 gate
 GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
 
 

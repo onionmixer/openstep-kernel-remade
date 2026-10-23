@@ -513,8 +513,10 @@ utask_zero(ta)
 switch_unix_context(th)
 	thread_t	th;
 {
-	active_u[0].uthread = th->_uthread;
-	active_u[0].utask = th->task->u_address;
+	register int	cpu = cpu_number();	/* plan 475 (D093): an index variable gives the absolute stores of the m68k original */
+
+	active_u[cpu].uthread = th->_uthread;
+	active_u[cpu].utask = th->task->u_address;
 }
 #endif	NeXT
 

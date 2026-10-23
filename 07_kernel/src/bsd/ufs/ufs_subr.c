@@ -413,7 +413,11 @@ bufstats()
 	int s, i, j, count;
 	register struct buf *bp, *dp;
 	/* plan 207: sized at run time from page_size (original 0x142e55-0x142e69) */
+#if	m68k	/* plan 478 (D095): constant size, as the m68k original */
+	int counts[MAXBSIZE/M68K_MIN_CLBYTES+1];	/* must be constant */
+#else	m68k
 	int counts[MAXBSIZE/CLBYTES+1];
+#endif	m68k
 	static char *bname[BQUEUES] = { "LOCKED", "LRU", "AGE", "EMPTY" };
 
 	for (bp = bfreelist, i = 0; bp < &bfreelist[BQUEUES]; bp++, i++) {

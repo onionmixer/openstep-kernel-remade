@@ -120,7 +120,7 @@ if_ioctl(
 					(void *)&ifr->ifr_ifru));
 		
 	case SIOCADDMULTI:	/* plan 153 (authored) */
-		return (ifp->if_control(netif, IFCONTROL_ADDMULTICAST,
+		return (if_control(netif, IFCONTROL_ADDMULTICAST,	/* plan 480 (D097): the direct call of the m68k original */
 					(void *)data));
 		
 	case SIOCDELMULTI:	/* plan 153 (authored) */
@@ -314,6 +314,20 @@ if_collisions_set(
 	((struct ifnet *)netif)->if_collisions = collisions;
 }
 
+/* plan 480 (D097): defined here, as in the m68k original */
+static void
+pingvirtuals(
+	     netif_t rnetif
+	     )
+{
+	virtual_dispatcher_t *vdp;
+	struct ifnet *newifp;
+	
+	for (vdp = if_dispatchers; vdp != NULL; vdp = vdp->vif_next) {
+		vdp->vif_attach(vdp->vif_private, rnetif);
+	}
+}
+
 /* plan 153 (authored): interface list walk and detach */
 netif_t
 iflist_first(void)
@@ -327,6 +341,20 @@ iflist_next(
 	    )
 {
 	return ((netif_t)((struct ifnet *)netif)->if_next);
+}
+
+/* plan 480 (D097): defined here, as in the m68k original */
+/* plan 153 (authored): handlers of a detached interface */
+static int
+if_null_func()
+{
+	return (EIO);
+}
+
+static netbuf_t
+if_null_getbuf()
+{
+	return (NULL);
 }
 
 void
@@ -348,19 +376,6 @@ if_detach(
 	ifp->if_input = if_null_func;
 	ifp->if_getbuf = if_null_getbuf;
 	ifp->if_private = NULL;
-}
-
-static void
-pingvirtuals(
-	     netif_t rnetif
-	     )
-{
-	virtual_dispatcher_t *vdp;
-	struct ifnet *newifp;
-	
-	for (vdp = if_dispatchers; vdp != NULL; vdp = vdp->vif_next) {
-		vdp->vif_attach(vdp->vif_private, rnetif);
-	}
 }
 
 netif_t 
@@ -426,6 +441,7 @@ if_attach(
 	}
 	if (ifp->if_class == NETIFCLASS_REAL) {
 		pingvirtuals((netif_t)ifp);
+#if	i386	/* plan 480 (D097): not in the m68k original */
 		if (hostid == 0) {	/* plan 153 (authored) */
 			u_char ea[6];
 
@@ -436,6 +452,7 @@ if_attach(
 				hostid = ntohl(*(long *)&ea[2]);
 			}
 		}
+#endif	i386
 	}
 	return ((netif_t)ifp);
 }
@@ -559,17 +576,4 @@ if_output_mbuf(
 	nb_shrink_bot(nb, nb_size(nb) - len);
 	m_freem(m);
 	return (ifp->if_output(ifp, nb, addr));
-}
-
-/* plan 153 (authored): handlers of a detached interface */
-static int
-if_null_func()
-{
-	return (EIO);
-}
-
-static netbuf_t
-if_null_getbuf()
-{
-	return (NULL);
 }

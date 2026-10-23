@@ -1,0 +1,15 @@
+--- 07_kernel/src/bsd/kern/kern_fork.c (before plan 475)	2026-10-16 22:16:34.961979686 +0900
++++ 07_kernel/src/bsd/kern/kern_fork.c	2026-10-16 22:20:55.264520140 +0900
+@@ -513,8 +513,10 @@
+ switch_unix_context(th)
+ 	thread_t	th;
+ {
+-	active_u[0].uthread = th->_uthread;
+-	active_u[0].utask = th->task->u_address;
++	register int	cpu = cpu_number();	/* plan 475 (D093): an index variable gives the absolute stores of the m68k original */
++
++	active_u[cpu].uthread = th->_uthread;
++	active_u[cpu].utask = th->task->u_address;
+ }
+ #endif	NeXT
+ 
