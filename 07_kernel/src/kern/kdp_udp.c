@@ -72,7 +72,7 @@ static char
     "Breakpoint"		/* EXC_BREAKPOINT */
 };
 
-static inline void	kdp_handler(void *);
+static void	kdp_handler(void *);	/* plan 483 (D099): not inline, as the m68k original */
 
 static inline void
 enaddr_copy(
@@ -280,7 +280,7 @@ kdp_poll(
 /*
  * Serve requests while the debugger keeps the machine halted.
  */
-static inline void
+static void	/* plan 483 (D099): not inline, as the m68k original */
 kdp_handler(
     void			*saved_state
 )
@@ -323,7 +323,7 @@ again:
 /*
  * Wait for a debugger to connect, or for 'c' or 'r' on the console.
  */
-static inline void
+static void	/* plan 483 (D099): not inline, as the m68k original */
 kdp_connection_wait(
     void
 )
@@ -373,7 +373,7 @@ kdp_connection_wait(
 /*
  * Report an exception to the connected debugger until it answers.
  */
-static inline void
+static void	/* plan 483 (D099): not inline, as the m68k original */
 kdp_send_exception(
     unsigned int		exception,
     unsigned int		code,

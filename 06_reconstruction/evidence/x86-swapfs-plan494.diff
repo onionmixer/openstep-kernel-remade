@@ -1,0 +1,486 @@
+--- 07_kernel/src/bsd/swapfs/swapfs.c (before plan 494)
++++ 07_kernel/src/bsd/swapfs/swapfs.c
+@@ -1,5 +1,5 @@
+ /*
+- * swapfs.c - compressed swap file system (plans 378, 387, 388; D054).
++ * swapfs.c - compressed swap file system (plans 378, 387, 388, 494; D054, D102).
+  *
+  * Written for this project from the OPENSTEP 4.2 kernel bytes (D024,
+  * __text [0x13a588, 0x13b714), __data [0x1dd7b4, 0x1dd964)).  No reference
+@@ -118,8 +118,24 @@
+ int		logswapindex;
+ struct logswap	logswp[2000];
+ 
++/*
++ * plan 494 (D102; m68k partial match): the functions below follow the
++ * order of the m68k original, from logswap to swapfs_getstats.  Only
++ * swapfs_fit is inline there.  swapfs_release (fragment bits given back,
++ * called by swapfs_alloc) and swapfs_setsysent (called by swapfs_mount)
++ * are separate functions in the m68k original; their names are not in
++ * the original and were chosen for this project (D024).  swapfs_rcache
++ * and swapfs_wcache take (sd, buffer, size, block, offset) as the
++ * original callers pass them; logswap is a K&R definition (no sign
++ * extension of its char arguments at the calls).  swapfs_unlock still
++ * differs from the m68k original by 3 bytes (register of the second mask).
++ */
+ void
+-logswap(int type, vm_offset_t offset, int page, char nfrag, char pos)
++logswap(type, offset, page, nfrag, pos)	/* plan 494 (D102) */
++	int type;
++	vm_offset_t offset;
++	int page;
++	char nfrag, pos;
+ {
+ 	if (logswapindex >= 2000)
+ 		logswapindex = 0;
+@@ -131,6 +147,36 @@
+ 	logswapindex++;
+ }
+ 
++static void
++swapfs_release(struct swapfs_data *sd, u_long block, int nfrag, int pos)	/* plan 494 (D102) */
++{
++	sd->sd_bitmap[block] |= ((1 << nfrag) - 1) << pos;
++}
++
++static vm_size_t
++swapfs_getmap(struct swapfs_data *sd, vm_offset_t offset, vm_offset_t *foffp,
++	vm_offset_t *fragoffp)
++{
++	u_long page = offset / page_size;
++
++	if (page >= sd->sd_nmap) {
++		if (swapfs_cangrow == 1)
++			panic("paging in beyond end-of-file");
++		*foffp = offset;
++		*fragoffp = 0;
++		return (page_size);
++	} else if (sd->sd_map[page].sm_nfrag == 0) {
++		printf("pagein from uninitialized data\n");
++		*foffp = offset;
++		*fragoffp = 0;
++		return (page_size);
++	} else {
++		*foffp = sd->sd_map[page].sm_block * page_size;
++		*fragoffp = sd->sd_map[page].sm_pos * sd->sd_fragsize;
++		return (sd->sd_map[page].sm_nfrag * sd->sd_fragsize);
++	}
++}
++
+ static inline int
+ swapfs_fit(u_char *bits, int nfrag)
+ {
+@@ -151,7 +197,7 @@
+ 	return (-1);
+ }
+ 
+-static inline int
++static int
+ swapfs_findblock(struct swapfs_data *sd, int nfrag, u_long *blockp)
+ {
+ 	u_long i;
+@@ -175,15 +221,12 @@
+ 	int pos;
+ 
+ 	if (sd->sd_map[page].sm_nfrag == 0) {
+-		sd->sd_bitmap[page] = 0xff;
++		swapfs_release(sd, page, 8, 0);	/* plan 494 (D102) */
+ 		if (page >= sd->sd_hipage)
+ 			swapfs_stats.hipage = sd->sd_hipage = page + 1;
+ 	} else {
+-		u_long oblock = sd->sd_map[page].sm_block;
+-		int onfrag = sd->sd_map[page].sm_nfrag;
+-		int opos = sd->sd_map[page].sm_pos;
+-
+-		sd->sd_bitmap[oblock] |= ((1 << onfrag) - 1) << opos;
++		swapfs_release(sd, sd->sd_map[page].sm_block,	/* plan 494 (D102) */
++		    sd->sd_map[page].sm_nfrag, sd->sd_map[page].sm_pos);
+ 	}
+ 	if (sd->sd_hint == sd->sd_rblock / page_size ||
+ 	    sd->sd_hint == sd->sd_wblock / page_size)
+@@ -235,7 +278,7 @@
+ 				last = *p;
+ 				*(int *)out = *p;
+ 				out += 4;
+-				if (size == out - dst)
++				if (out - dst == size)	/* plan 494 (D102) */
+ 					return (size);
+ 			}
+ 			p++;
+@@ -271,18 +314,7 @@
+ 	return (nwords);
+ }
+ 
+-static inline int
+-swapfs_write(struct vnode *vp, vm_offset_t addr, vm_size_t size,
+-	vm_offset_t offset)
+-{
+-	vm_size_t end = offset + size;
+-
+-	if (vp->vm_info->vnode_size < end)
+-		vp->vm_info->vnode_size = end;
+-	return (VOP_PAGEOUT(vp, addr, size, offset));
+-}
+-
+-static inline void
++static void
+ swapfs_lock(struct vnode *vp)
+ {
+ 	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
+@@ -294,7 +326,7 @@
+ 	sd->sd_flags |= SD_LOCKED;
+ }
+ 
+-static inline void
++static void
+ swapfs_unlock(struct vnode *vp)
+ {
+ 	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
+@@ -302,38 +334,39 @@
+ 
+ 	sd->sd_flags = flags & ~SD_LOCKED;
+ 	if (flags & SD_WANTED) {
+-		sd->sd_flags = flags & ~(SD_LOCKED|SD_WANTED);
++		sd->sd_flags &= ~(SD_LOCKED|SD_WANTED);	/* plan 494 (D102) */
+ 		wakeup((caddr_t)&sd->sd_flags);
+ 	}
+ }
+ 
+-static inline vm_size_t
+-swapfs_getmap(struct swapfs_data *sd, vm_offset_t offset, vm_offset_t *foffp,
+-	vm_offset_t *fragoffp)
++static void
++swapfs_invalidate(struct swapfs_data *sd, vm_offset_t block)
+ {
+-	u_long page = offset / page_size;
+-
+-	if (page >= sd->sd_nmap) {
+-		if (swapfs_cangrow == 1)
+-			panic("paging in beyond end-of-file");
+-		*foffp = offset;
+-		*fragoffp = 0;
+-		return (page_size);
+-	} else if (sd->sd_map[page].sm_nfrag == 0) {
+-		printf("pagein from uninitialized data\n");
+-		*foffp = offset;
+-		*fragoffp = 0;
+-		return (page_size);
+-	} else {
+-		*foffp = sd->sd_map[page].sm_block * page_size;
+-		*fragoffp = sd->sd_map[page].sm_pos * sd->sd_fragsize;
+-		return (sd->sd_map[page].sm_nfrag * sd->sd_fragsize);
++	if (sd->sd_wblock == block) {
++		swapfs_stats.winval++;
++		sd->sd_wblock = -1;
++	}
++	if (sd->sd_rblock == block) {
++		swapfs_stats.rinval++;
++		sd->sd_rblock = -1;
++		sd->sd_rdirty = 0;
+ 	}
+ }
+ 
+-static inline int
+-swapfs_rcache(struct swapfs_data *sd, vm_offset_t block, vm_offset_t off,
+-	vm_offset_t *srcp)
++static int
++swapfs_write(struct vnode *vp, vm_offset_t addr, vm_size_t size,
++	vm_offset_t offset)
++{
++	vm_size_t end = offset + size;
++
++	if (vp->vm_info->vnode_size < end)
++		vp->vm_info->vnode_size = end;
++	return (VOP_PAGEOUT(vp, addr, size, offset));
++}
++
++static int
++swapfs_rcache(struct swapfs_data *sd, vm_offset_t *srcp, vm_size_t size,	/* plan 494 (D102) */
++	vm_offset_t block, vm_offset_t off)
+ {
+ 	struct vm_page page_s;
+ 	int error;
+@@ -369,39 +402,11 @@
+ 	return (error);
+ }
+ 
+-static pager_return_t
+-swapfs_pagein(struct vnode *vp, vm_page_t m, vm_offset_t offset)
+-{
+-	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
+-	vm_offset_t foff;
+-	vm_offset_t fragoff;
+-	vm_size_t csize;
+-	vm_offset_t src;
+-	int error;
+-
+-	swapfs_lock(vp);
+-	csize = swapfs_getmap(sd, offset, &foff, &fragoff);
+-	if (csize == page_size) {
+-		swapfs_stats.uin++;
+-		error = VOP_PAGEIN(sd->sd_vp, m, foff);
+-		swapfs_unlock(vp);
+-		return (error);
+-	}
+-	if (error = swapfs_rcache(sd, foff, fragoff, &src)) {
+-		swapfs_unlock(vp);
+-		return (error);
+-	}
+-	uncompress_data_to_phys(src, csize, m->phys_addr, page_size,
+-	    (int)foff / 8192);
+-	swapfs_unlock(vp);
+-	return (0);
+-}
+-
+ int	swpgotcha = 0;
+ 
+-static inline int
+-swapfs_wcache(struct swapfs_data *sd, vm_offset_t src, vm_offset_t block,
+-	vm_offset_t off, vm_size_t size)
++static int
++swapfs_wcache(struct swapfs_data *sd, vm_offset_t src, vm_size_t size,	/* plan 494 (D102) */
++	vm_offset_t block, vm_offset_t off)
+ {
+ 	struct vm_page page_s;
+ 	int error;
+@@ -440,21 +445,72 @@
+ 	return (0);
+ }
+ 
+-static inline void
+-swapfs_invalidate(struct swapfs_data *sd, vm_offset_t block)
++static int
++swapfs_getattr(struct vnode *vp, struct vattr *vap, struct ucred *cred)
+ {
+-	if (sd->sd_wblock == block) {
+-		swapfs_stats.winval++;
+-		sd->sd_wblock = -1;
++	struct swapnode *sn = VTOSN(vp);
++	int error;
++
++	if (error = VOP_GETATTR(sn->sn_data.sd_vp, vap, cred))
++		return (error);
++	vap->va_size = sn->sn_data.sd_hipage * page_size;
++	vap->va_blocksize = page_size;
++	vap->va_blocks = vap->va_size >> 9;
++	vap->va_fsid |= 0xc000;
++	return (0);
++}
++
++static int
++swapfs_setattr(struct vnode *vp, struct vattr *vap, struct ucred *cred)
++{
++	struct swapnode *sn = VTOSN(vp);
++	vm_size_t size = sn->sn_data.sd_hipage * page_size;
++	int error;
++
++	if (vap->va_size < size)
++		vap->va_size = size;
++	if (error = VOP_SETATTR(sn->sn_data.sd_vp, vap, cred))
++		return (error);
++	sn->sn_data.sd_vp->vm_info->vnode_size = vap->va_size;
++	return (0);
++}
++
++static pager_return_t
++swapfs_pagein(struct vnode *vp, vm_page_t m, vm_offset_t offset)
++{
++	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
++	vm_offset_t foff;
++	vm_offset_t fragoff;
++	vm_size_t csize;
++	vm_offset_t src;
++	int error;
++
++	swapfs_lock(vp);
++	csize = swapfs_getmap(sd, offset, &foff, &fragoff);
++	if (csize == page_size) {
++		swapfs_stats.uin++;
++		error = VOP_PAGEIN(sd->sd_vp, m, foff);
++#if	m68k
++		goto out;	/* plan 494 (D102) */
++#else	m68k
++		swapfs_unlock(vp);
++		return (error);
++#endif	m68k
+ 	}
+-	if (sd->sd_rblock == block) {
+-		swapfs_stats.rinval++;
+-		sd->sd_rblock = -1;
+-		sd->sd_rdirty = 0;
++	if (error = swapfs_rcache(sd, &src, csize, foff, fragoff)) {	/* plan 494 (D102) */
++#if	m68k
++out:
++#endif	m68k
++		swapfs_unlock(vp);
++		return (error);
+ 	}
++	uncompress_data_to_phys(src, csize, m->phys_addr, page_size,
++	    (int)foff / 8192);
++	swapfs_unlock(vp);
++	return (0);
+ }
+ 
+-static inline int
++static int
+ swapfs_grow(struct vnode *vp)
+ {
+ 	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
+@@ -539,13 +595,38 @@
+ 	}
+ 	logswap(3, offset, (int)foff / 8192, (int)csize / 1024,
+ 	    (int)fragoff / 1024);
+-	error = swapfs_wcache(sd, sd->sd_cbuf, foff, fragoff, csize);
++	error = swapfs_wcache(sd, sd->sd_cbuf, csize, foff, fragoff);	/* plan 494 (D102) */
+ out:
+ 	swapfs_unlock(vp);
+ 	return (error);
+ }
+ 
+ static int
++swapfs_inactive(struct vnode *vp)
++{
++	struct swapnode *sn = VTOSN(vp);
++
++	if (sn->sn_data.sd_refcnt)
++		sn->sn_data.sd_refcnt--;
++	return (0);
++}
++
++static int
++swapfs_nlinks(struct vnode *vp, int *l)
++{
++	*l = 1;
++	return (0);
++}
++
++static void
++swapfs_setsysent(struct sysent *sp, short narg, short parallel, int (*call)())	/* plan 494 (D102) */
++{
++	sp->sy_narg = narg;
++	sp->sy_parallel = parallel;
++	sp->sy_call = call;
++}
++
++static int
+ swapfs_mount(struct vfs *vfsp, char *path, caddr_t data)
+ {
+ 	char *fname;
+@@ -556,6 +637,7 @@
+ 	vm_offset_t min, max;
+ 	vm_size_t nmap;
+ 	int error;
++	struct swapfs_data *sd;	/* plan 494 (D102) */
+ 
+ 	if (maxswapdevice > 0)
+ 		return (EBUSY);
+@@ -580,6 +662,7 @@
+ 	cbuf = wbuf + page_size;
+ 	sn = (struct swapnode *)kalloc(sizeof (struct swapnode));
+ 	bzero((caddr_t)sn, sizeof (struct swapnode));
++	sd = &sn->sn_data;	/* plan 494 (D102) */
+ 	swapfs_bit_map = kmem_suballoc(kernel_map, &min, &max, 0x19000, FALSE);
+ 	swapfs_rem_map = kmem_suballoc(kernel_map, &min, &max, 0x19000, FALSE);
+ 	sn->sn_data.sd_bitpages = 1;
+@@ -588,7 +671,7 @@
+ 	sn->sn_data.sd_mappages = 1;
+ 	nmap = page_size / 4;
+ 	sn->sn_data.sd_nmap = nmap;
+-	sn->sn_data.sd_fragsize = page_size / 8;
++	sd->sd_fragsize = page_size / 8;	/* plan 494 (D102) */
+ 	sn->sn_data.sd_rblock = -1;
+ 	sn->sn_data.sd_rdirty = 0;
+ 	sn->sn_data.sd_wblock = -1;
+@@ -615,73 +698,13 @@
+ 	vfsp->vfs_data = (caddr_t)sn;
+ 	vfsp->vfs_fsid = vp->v_vfsp->vfs_fsid;
+ 	vfsp->vfs_fsid.val[1] |= 0xc000;
+-	sysent[21].sy_narg = 1;
+-	sysent[21].sy_parallel = 0;
+-	sysent[21].sy_call = swapfs_getstats;
++	swapfs_setsysent(&sysent[21], 1, 0, swapfs_getstats);	/* plan 494 (D102) */
+ 	maxswapdevice++;
+ 	swapfs_enabled = 1;
+ 	return (0);
+ }
+ 
+ static int
+-swapfs_getstats()
+-{
+-	struct a {
+-		caddr_t	buf;
+-	} *uap = (struct a *)u.u_ap;
+-
+-	u.u_error = copyout((caddr_t)&swapfs_stats, uap->buf,
+-	    sizeof (swapfs_stats));
+-}
+-
+-static int
+-swapfs_getattr(struct vnode *vp, struct vattr *vap, struct ucred *cred)
+-{
+-	struct swapnode *sn = VTOSN(vp);
+-	int error;
+-
+-	if (error = VOP_GETATTR(sn->sn_data.sd_vp, vap, cred))
+-		return (error);
+-	vap->va_size = sn->sn_data.sd_hipage * page_size;
+-	vap->va_blocksize = page_size;
+-	vap->va_blocks = vap->va_size >> 9;
+-	vap->va_fsid |= 0xc000;
+-	return (0);
+-}
+-
+-static int
+-swapfs_setattr(struct vnode *vp, struct vattr *vap, struct ucred *cred)
+-{
+-	struct swapnode *sn = VTOSN(vp);
+-	vm_size_t size = sn->sn_data.sd_hipage * page_size;
+-	int error;
+-
+-	if (vap->va_size < size)
+-		vap->va_size = size;
+-	if (error = VOP_SETATTR(sn->sn_data.sd_vp, vap, cred))
+-		return (error);
+-	sn->sn_data.sd_vp->vm_info->vnode_size = vap->va_size;
+-	return (0);
+-}
+-
+-static int
+-swapfs_inactive(struct vnode *vp)
+-{
+-	struct swapnode *sn = VTOSN(vp);
+-
+-	if (sn->sn_data.sd_refcnt)
+-		sn->sn_data.sd_refcnt--;
+-	return (0);
+-}
+-
+-static int
+-swapfs_nlinks(struct vnode *vp, int *l)
+-{
+-	*l = 1;
+-	return (0);
+-}
+-
+-static int
+ swapfs_unmount(struct vfs *vfsp)
+ {
+ 	vn_rele(VTOSN((struct vnode *)vfsp->vfs_data)->sn_data.sd_vp);
+@@ -729,6 +752,17 @@
+ 	return (1024);
+ }
+ 
++static int
++swapfs_getstats()
++{
++	struct a {
++		caddr_t	buf;
++	} *uap = (struct a *)u.u_ap;
++
++	u.u_error = copyout((caddr_t)&swapfs_stats, uap->buf,
++	    sizeof (swapfs_stats));
++}
++
+ struct vfsops swapfs_vfsops = {
+ 	swapfs_mount,
+ 	swapfs_unmount,

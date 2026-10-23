@@ -60,13 +60,40 @@ static boolean_t		callout_initialized = FALSE;
 #define qe(x)		((queue_entry_t)(x))
 #define CE(x)		((callout_entry_t)(x))
 
-static void	callout_wakeup(void);
+static __inline__ void	callout_wakeup(void);	/* plan 485 (D100): inline, as the m68k original */
 static void	callout_thread_continue(void);
 static void	callout_activate_continue(void);
 static void	callout_activate_thread(void);
 static void	callout_delayed_interrupt(void);
 static void	callout_thread(void);
 
+void
+calloutInitialize(void)
+{
+	callout_entry_t		entry;
+
+	if (!callout_initialized) {
+		simple_lock_init(&callout_lock);
+
+		queue_init(&pending_entry_queue);
+		queue_init(&delayed_entry_queue);
+		queue_init(&internal_entry_free_queue);
+
+		for (entry = internal_entry_storage;
+		     entry < &internal_entry_storage[internal_entry_num];
+		     entry++)
+			enqueue_tail(&internal_entry_free_queue, qe(entry));
+
+		(void) kernel_thread(kernel_task,
+		    callout_activate_thread, (void *) 0);
+
+		set_timer_expire_func(0, callout_delayed_interrupt);
+
+		callout_initialized = TRUE;
+	}
+}
+
+/* plan 485 (D100): helpers defined after calloutInitialize, as in the m68k original */
 static __inline__ callout_entry_t
 internal_entry_allocate(void)
 {
@@ -151,7 +178,7 @@ delayed_entry_dequeue(
  * Run the timer until the deadline of entry, at most for the longest
  * interval the timer takes.
  */
-static __inline__ void
+static void	/* plan 485 (D100): not inline, as the m68k original */
 delayed_entry_set_timer(
 	callout_entry_t		entry)
 {
@@ -170,7 +197,7 @@ delayed_entry_set_timer(
 	set_timer(0, interval);
 }
 
-static __inline__ boolean_t
+static boolean_t	/* plan 485 (D100): not inline, as the m68k original */
 remove_from_pending_queue(
 	callout_func_t		func,
 	void			*arg,
@@ -198,10 +225,10 @@ remove_from_pending_queue(
 			entry = CE(queue_next(qe(entry)));
 	}
 
-	return (!remove_all ? removed : FALSE);
+	return (removed);	/* plan 485 (D100): as the m68k original */
 }
 
-static __inline__ boolean_t
+static boolean_t	/* plan 485 (D100): not inline, as the m68k original */
 remove_from_delayed_queue(
 	callout_func_t		func,
 	void			*arg,
@@ -229,33 +256,7 @@ remove_from_delayed_queue(
 			entry = CE(queue_next(qe(entry)));
 	}
 
-	return (!remove_all ? removed : FALSE);
-}
-
-void
-calloutInitialize(void)
-{
-	callout_entry_t		entry;
-
-	if (!callout_initialized) {
-		simple_lock_init(&callout_lock);
-
-		queue_init(&pending_entry_queue);
-		queue_init(&delayed_entry_queue);
-		queue_init(&internal_entry_free_queue);
-
-		for (entry = internal_entry_storage;
-		     entry < &internal_entry_storage[internal_entry_num];
-		     entry++)
-			enqueue_tail(&internal_entry_free_queue, qe(entry));
-
-		(void) kernel_thread(kernel_task,
-		    callout_activate_thread, (void *) 0);
-
-		set_timer_expire_func(0, callout_delayed_interrupt);
-
-		callout_initialized = TRUE;
-	}
+	return (removed);	/* plan 485 (D100): as the m68k original */
 }
 
 callout_time_t
@@ -531,8 +532,9 @@ calloutEntryDispatchWithArgumentDelayed(
 
 void
 calloutEntryRemove(
-	callout_entry_t		entry)
+	void			*e)	/* plan 485 (D100): untyped handle, as calloutEntryFree */
 {
+	callout_entry_t		entry = CE(e);	/* plan 485 (D100): the copy of the m68k original */
 	int			s;
 
 	s = splsched();
@@ -555,7 +557,7 @@ calloutEntryRemove(
  * Called with the lock held; releases it.  Wake a callout thread, and
  * the activation thread when the calls outnumber the threads.
  */
-static void
+static __inline__ void	/* plan 485 (D100): inline, as the m68k original */
 callout_wakeup(void)
 {
 	boolean_t		more_threads = FALSE;
@@ -619,6 +621,15 @@ callout_thread_continue(void)
 
 	thread_terminate(self);
 	thread_halt_self();
+}
+
+/* plan 485 (D100): defined here, as in the m68k original */
+static void
+callout_thread(void)
+{
+	stack_privilege(current_thread());
+
+	callout_thread_continue();
 }
 
 static void
@@ -694,12 +705,4 @@ callout_delayed_interrupt(void)
 
 	simple_unlock(&callout_lock);
 	splx(s);
-}
-
-static void
-callout_thread(void)
-{
-	stack_privilege(current_thread());
-
-	callout_thread_continue();
 }

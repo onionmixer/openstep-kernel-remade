@@ -6,10 +6,10 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482, 483, 485, 488, 494): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
-stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474; s6lc from plan 475; s6ld from plan 476; s6le from plan 478; s6lf from plan 479; s6lg from plan 480; s6lh from plan 482) + the real-machine SDK m68k headers (plan 413, local
+stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474; s6lc from plan 475; s6ld from plan 476; s6le from plan 478; s6lf from plan 479; s6lg from plan 480; s6lh from plan 482; s6li from plan 483; s6lj from plan 485; s6lk from plan 488; s6ll from plan 494) + the real-machine SDK m68k headers (plan 413, local
          copy hash-checked against its target list) + 07_kernel/v183.34/common + 07_kernel/
          v183.34/m68k, copied in this order (a later file replaces an earlier one; D068 picks
          m68k, then common, then the 07 main tree).  STAGE_DIR.manifest.json: [path, origin,
@@ -18,7 +18,7 @@ stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 
          right after '#import <sys/param.h>'; plan 437 generalisation).
 cmd      the 205 compile lines of the plan 429 (run m3p429-cc2, -c only) and plan 432 (run
          m3p432-int) runs, output prefix O433__.
-x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469, s6l8-g* from 471, s6l9-g* from 472, s6la-g* from 473, s6lb-g* from 474, s6lc-g* from 475, s6ld-g* from 476, s6le-g* from 478, s6lf-g* from 479, s6lg-g* from 480, s6lh-g* from 482) with stage_headers.py and its
+x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469, s6l8-g* from 471, s6l9-g* from 472, s6la-g* from 473, s6lb-g* from 474, s6lc-g* from 475, s6ld-g* from 476, s6le-g* from 478, s6lf-g* from 479, s6lg-g* from 480, s6lh-g* from 482, s6li-g* from 483, s6lj-g* from 485, s6lk-g* from 488, s6ll-g* from 494) with stage_headers.py and its
          manifest options and require the manifests to be unchanged (the x86 build does not read
          v183.34); all seven groups must be present.
 compare  every O433 object against the test-run object (non-STABS section bytes and
@@ -286,7 +286,11 @@ EXCEPTS[478] = dict(EXCEPTS[476], **{'x86-ufs_subr': 'bufstats counts declaratio
 EXCEPTS[479] = dict(EXCEPTS[478], **{'x86-mach_net': 'netipc_listen CC_OPT pragma pair under #if m68k in the 07 main file (plan 479, D096)'})
 EXCEPTS[480] = dict(EXCEPTS[479], **{'x86-netif': 'static function order, if_control call and #if i386 hostid block in the 07 main file (plan 480, D097)'})
 EXCEPTS[482] = dict(EXCEPTS[480], **{'x86-miniMon': 'lock header, prf/simple_lock_alloc declarations, mm_getline order and command loop in the 07 main file (plans 481-482, D098)'})
-X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb', 475: 's6lc', 476: 's6ld', 478: 's6le', 479: 's6lf', 480: 's6lg', 482: 's6lh'}   # plans 466-482: x86 rebuild prefix of the base and the x86 gate
+EXCEPTS[483] = dict(EXCEPTS[482], **{'x86-kdp_udp': 'kdp_handler, kdp_connection_wait and kdp_send_exception not inline in the 07 main file (plan 483, D099)'})
+EXCEPTS[485] = dict(EXCEPTS[483], **{'x86-callout': 'helper order and inline forms, remove return value, callout_thread order and calloutEntryRemove handle copy in the 07 main file (plans 484-485, D100)'})
+EXCEPTS[488] = dict(EXCEPTS[485], **{'x86-tty': 'u_char forms of the character tests, ttbreakc and ttyblkin, and the TS_TBLOCK test in the 07 main file (plans 486-488, D101)'})
+EXCEPTS[494] = dict(EXCEPTS[488], **{'x86-swapfs': 'm68k function order and inline forms, swapfs_release and swapfs_setsysent, rcache/wcache argument order, K&R logswap and the m68k pagein exit in the 07 main file (plans 489-494, D102)'})
+X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb', 475: 's6lc', 476: 's6ld', 478: 's6le', 479: 's6lf', 480: 's6lg', 482: 's6lh', 483: 's6li', 485: 's6lj', 488: 's6lk', 494: 's6ll'}   # plans 466-494: x86 rebuild prefix of the base and the x86 gate
 GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
 
 

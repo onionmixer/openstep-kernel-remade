@@ -168,7 +168,7 @@ struct	ttychars ttydefaults = {
 #define	SETSPEC(tp, c) \
 	((tp)->t_spec[(u_char)(c) >> 5] |= 1 << ((c) & 0x1f))
 #define	SPEC(tp, ch) \
-	{ char c = (ch); if (c != (char)0377) SETSPEC(tp, c); }
+	{ char c = (ch); if ((u_char)c != 0377) SETSPEC(tp, c); }	/* plan 488 (D101): unsigned test */
 
 ttysetspec(np)
 	register struct nty *np;
@@ -962,16 +962,16 @@ nullmodem(tp, flag)
 }
 
 /*
- * plan 245: is c the special character v?  (\377 means "not set")
+ * plan 245: is c the special character v?  (\377 means "not set"; plan 488 (D101): unsigned test, as the m68k original)
  */
-#define	CCEQ(v, c)	((char)(c) != (char)0377 && (char)(c) == (char)(v))
+#define	CCEQ(v, c)	((u_char)(c) != 0377 && (char)(c) == (char)(v))
 
 /*
- * Is c a break char for tp?  (plan 245: a macro in 4.2)
+ * Is c a break char for tp?  (plan 245: a macro in 4.2; plan 488 (D101): u_char casts, as the m68k original)
  */
 #define	ttbreakc(c, tp) \
 	((c) == '\n' || \
-	 (((c) == ((tp)->t_eofc&0377) || (c) == ((tp)->t_brkc&0377)) && \
+	 (((c) == (u_char)(tp)->t_eofc || (c) == (u_char)(tp)->t_brkc) && \
 	  (c) != 0377))
 
 /*
@@ -1007,7 +1007,7 @@ struct tty *tp;
 	 */
 	if (tp->t_rawq.c_cc + tp->t_canq.c_cc >= TTYHOG(tp)/2 && 
 	    ((tp->t_flags & (RAW|CBREAK)) || (tp->t_canq.c_cc > 0))) {
-		if ((tp->t_flags&TANDEM) && tp->t_stopc != (char)0377 &&	/* plan 245 */
+		if ((tp->t_flags&TANDEM) && (u_char)tp->t_stopc != 0377 &&	/* plan 245; plan 488 (D101): unsigned test */
 		    putc(tp->t_stopc, &tp->t_outq) == 0) {
 			tp->t_state |= TS_TBLOCK;
 			ttstart(tp);
@@ -1057,7 +1057,7 @@ ttyinput(c, tp)
 		tp->t_flags &= ~FLUSHO;
 		if ((np->t_pflags & TP_IEXTEN) &&	/* plan 245 */
 		    ((tp->t_flags & DECCTQ) == 0 ||
-		     (tp->t_stopc != (char)0377 && tp->t_startc == tp->t_stopc)))
+		     ((u_char)tp->t_stopc != 0377 && tp->t_startc == tp->t_stopc)))	/* plan 488 (D101): unsigned test */
 		   	tp->t_state &= ~TS_TTSTOP;
 	} else
 		ttcooked(c, np);		/* plan 245: struct nty */
@@ -1110,11 +1110,11 @@ struct tty *tp;
 		 */
 		if ((np->t_pflags & TP_IEXTEN) &&	/* plan 245 */
 		    ((tp->t_flags & DECCTQ) == 0 ||
-		     (tp->t_stopc != (char)0377 && tp->t_startc == tp->t_stopc)))
+		     ((u_char)tp->t_stopc != 0377 && tp->t_startc == tp->t_stopc)))	/* plan 488 (D101): unsigned test */
 			tp->t_state &= ~TS_TTSTOP;
 	} else {
 		while (--n >= 0)			/* plan 245 */
-			ttcooked(*cp++ & 0377, np);
+			ttcooked((u_char)*cp++, np);	/* plan 488 (D101): as the m68k original */
 	}
 	ttyflowctl(tp);
 	ttstart(tp);
@@ -1317,7 +1317,7 @@ cbreak:
 			if ((t_flags & EUCBKSP) && (c & 0200)
 			  && tp->t_rawq.c_cc) {
 				c = unputc(&tp->t_rawq);
-				if ((char)c != (char)0216)	/* EUC SS2 */
+				if ((u_char)c != 0216)	/* EUC SS2; plan 488 (D101): unsigned test */
 					ttyrub(c, np);
 			}
 		}
@@ -1806,8 +1806,8 @@ read:
 		s = spltty();
 		tp->t_state &= ~TS_INPUTFULL;
 		splx(s);
-		if ((tp->t_state&(TS_TBLOCK|TS_INPUTAVAIL)) == TS_TBLOCK &&
-		    tp->t_startc != (char)0377 &&
+		if ((tp->t_state&TS_TBLOCK) && (tp->t_state&TS_INPUTAVAIL) == 0 &&	/* plan 488 (D101): two tests, as the m68k original */
+		    (u_char)tp->t_startc != 0377 &&	/* plan 488 (D101): unsigned test */
 		    putc(tp->t_startc, &tp->t_outq) == 0) {
 			s = spltty();
 			tp->t_state &= ~TS_TBLOCK;
@@ -2194,7 +2194,7 @@ ttyretype(np)				/* plan 245: struct nty, nextc3 */
 	char *nextc3();
 	int s, c;
 
-	if (tp->t_rprntc != (char)0377)
+	if ((u_char)tp->t_rprntc != 0377)	/* plan 488 (D101): unsigned test */
 		ttyecho(tp->t_rprntc & 0377, np);
 	(void) ttyoutput('\n', tp);
 	s = spltty();
