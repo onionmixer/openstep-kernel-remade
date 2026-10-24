@@ -540,3 +540,34 @@ S1 시험에서 본 것(디스크 사본, `before-devtools`; 원래 디스크의
     - ⑤ 기본 NVRAM 이 없으면 `SS20_NVRAM: cannot read …` 로 rc 1
     - ①–③ 은 QMP `prelaunch` 를 확인한 뒤 끝냈고, 가짜 매체의 해시는 그대로입니다.
   - `QEMU_VM_CONFIGURATIONS.md` 2a 절, `README.md`, `site.conf.example` 을 맞췄습니다.
+
+## SS-20 에 개발자 CD 설치 (2026-10-25, 사용자 지시)
+
+사용자 지시: "현재 상태의 qemu-sparc 에 os42jdev.iso 를 설치하겠습니다. 설치는 제가 qemu 내에서 수동으로 진행하겠습니다. 그 결과물을 새로운 qemu-sparc 의 snapshot 으로 쓰겠습니다."
+
+- 설치 전 상태:
+  - 디스크 SHA-256 `f55b31ce…`(수정 시각 00:44). 위 결과의 `a4c2d63f…` 와 다릅니다. 그 뒤 `--snapshot` 없는 부팅이 한 번 있었던 것으로 보입니다(NVRAM 수정 시각 00:43, NVRAM 해시 `9cad19fe…` 는 같음). `nextufs fsck -n` 경고 없음, 22782 files.
+  - CD: `os42jdev.iso`(470542336 B, MD5 `d683fbfa…`), `site.conf` 의 `OS42_DEV_ISO` 와 바이트가 같습니다.
+- 방법:
+  1. QEMU 가 없음을 확인한 뒤 설치 전 디스크와 NVRAM 을 `09_validation/images/sparc/openstep42-sparc-ss20.base-cg14.raw`, `nvram-ss20.base-cg14.bin` 으로 복사합니다(git 무시, 해시 확인).
+  2. `vm-sparc20.sh boot --cd OS42_DEV_ISO`(`--snapshot` 없음)로 띄웁니다. 설치와 종료는 사용자가 합니다.
+  3. 끝난 뒤 `nextufs fsck -n` 과 영수증(`/NextLibrary/Receipts`)을 확인합니다. 그 상태를 `openstep42-sparc-ss20.devtools.raw`, `nvram-ss20.devtools.bin` 으로 복사해 고정합니다(해시 기록). 작업 디스크(`openstep42-sparc-ss20.raw`)는 설치 뒤 상태로 둡니다.
+- 위험: SS-5·QEMU 6.2 에서는 개발자 패키지 설치가 멈췄습니다(ESP 경합, `SPARC_INSTALL_HANG_NOTES.md`). 멈추면 1 의 사본으로 되돌립니다.
+
+### 결과 (2026-10-25)
+
+- 설치 전 백업: `openstep42-sparc-ss20.base-cg14.raw`(`f55b31ce…`)와 `nvram-ss20.base-cg14.bin`(`9cad19fe…`) 모두 해시 일치. 실행 중인 QEMU 명령줄(`/proc/<pid>/cmdline`)에 `-snapshot` 이 없고, CD 가 `os42jdev.iso` 임을 확인했습니다.
+- 사용자가 설치한 뒤 OPENSTEP 에서 power off 를 했고, QEMU 는 그 뒤에도 떠 있었습니다. 종료 상태는 다음으로 확인했습니다.
+  - 화면: "System shutdown. It's safe to turn off the computer."
+  - CPU(HMP `info registers`): pc `0xf009a038` = `_system_power_down+0x10`(심볼은 `03_original/sparc/inventory/symbols.tsv`), `%i7` = `0xf009a058` = `_md_do_shutdown+0x14`
+  - HMP `x /i`:
+    - `_system_power_down` 은 `0xf0099fc8`(`_halt_cpu+0x2c`)를 문자열 `0xf01171a0` = "System shutdown.\n It's safe to turn off the computer.\n" 로 부른 뒤, `b,a 0xf009a038` 로 제자리에서 돕니다.
+    - `_md_do_shutdown` 은 `howto & 0x10000` 이면 이 함수를 부릅니다.
+    - 커널이 일부러 머무는 마지막 상태입니다(이 기계에는 소프트웨어 전원 끄기가 없음).
+  - 디스크 슈퍼블록(`slice+0x2000`, `fs.h` 의 NeXT `fs_state` = 0xd1): `fs_state` 1(`FS_STATE_CLEAN`), `fs_fmod` 0, `fs_time` 01:40:37
+  - `nextufs fsck -n`: 경고 없음, 33529 files, 511658 used
+  - QMP `quit` 전후 디스크 SHA-256 이 `1cd6b27b…` 로 같음
+- 참고: 설치 전 백업 `base-cg14` 의 `fs_state` 는 2(`FS_STATE_DIRTY`)입니다. 00:43–00:44 의 `--snapshot` 없는 실행이 깨끗하게 내려가지 않은 상태로 보입니다(구조는 fsck 경고 없음). 이 사본으로 부팅하면 부팅 때 fsck 가 돕니다.
+- 영수증 `/NextLibrary/Receipts`: `DeveloperTools.pkg`·`DeveloperLibs.pkg`·`DeveloperDoc.pkg`·`GNUSource.pkg`·`ProfileLibs.pkg` 가 생겼습니다(기존 영수증 14 개는 그대로). SS-5·QEMU 6.2 에서 멈췄던 설치가 sparcstep·SS-20 에서는 끝났습니다.
+- NVRAM: `9cad19fe…` 에서 `a5acd937…` 로 바뀌었습니다. 다른 바이트는 5 개뿐입니다(0x1ce3 `00→14`, 0x1ce8–0x1ceb `00000000→ffffffff`, ID PROM 앞 영역). 무엇이 왜 썼는지는 확인하지 않았습니다.
+- 새 snapshot(읽기 전용, git 무시): `openstep42-sparc-ss20.devtools.raw`(`1cd6b27b…`), `nvram-ss20.devtools.bin`(`a5acd937…`). 작업 디스크 `openstep42-sparc-ss20.raw` 는 같은 상태입니다. `base-cg14` 두 사본도 읽기 전용으로 바꿨습니다.
