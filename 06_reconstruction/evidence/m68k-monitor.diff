@@ -1,0 +1,52 @@
+--- NeXTMach mk-108.1 nextdev/monitor.s
++++ 07_kernel/src/machdep/m68k/monitor.s
+@@ -9,10 +9,18 @@
+  **********************************************************************
+  */
+ 
+-#import <next/cframe.h>
+-#import <next/cpu.h>
+-#import <nextdev/monreg.h>
+-#import <next/spl.h>
++/*
++ * m68k: nextdev/monitor.s of the 1997 m68k kernel (plans 513-514, D103, D104,
++ * D108, D109): NeXTMach mk-108.1 nextdev/monitor.s (above notice) with the
++ * three dma_chip guards of the 1997 kernel (authored from the original
++ * bytes, D024; marked plan 513) and the include lines marked plan 514.
++ * next/cpu.h (NeXTMach, for P_MON and P_PRINTER) is for assembly only (D109).
++ */
++
++#import <m68k/cframe.h>	/* plan 514 (D104, D108): NeXTMach <next/cframe.h> */
++#import <next/cpu.h>	/* plan 514 (D109): NeXTMach next/cpu.h, assembly only */
++#import <dev/m68k/monreg.h>	/* plan 514 (D104): NeXTMach <nextdev/monreg.h> */
++#import <m68k/spl.h>	/* plan 514 (D109): SDK, NeXTMach <next/spl.h> */
+ 
+ 	.data
+ minit:	.long	0
+@@ -107,6 +115,8 @@
+  * How long we will have to sit here depends on how long it
+  * takes the DMA to get the next data request.
+  */
++	cmpw	#0x139,_dma_chip	/* plan 513 (D024): 1997 guard, original 0x4072504 */
++	bne	2f
+ 	btst	#7,a1@
+ 	beq	2f
+ 
+@@ -176,6 +186,8 @@
+ 	movel	sp@(8),d2		// operand...
+ 	movw	sr, d1			// disable interrupts
+ 	orw	#0x700, sr
++	cmpw	#0x139,_dma_chip	/* plan 513 (D024): 1997 guard, original 0x4072568 */
++	bne	9f
+ 	btst	#7,a0@
+ 	beq	9f			// if dma out is off then just 
+ 					// do the AND
+@@ -230,6 +242,8 @@
+ 	movel	sp@(8),d2		// operand...
+ 	movw	sr, d1			// disable interrupts
+ 	orw	#0x700, sr
++	cmpw	#0x139,_dma_chip	/* plan 513 (D024): 1997 guard, original 0x40725b4 */
++	bne	9f
+ 	btst	#7,a0@
+ 	beq	9f			// if dma out is off then just 
+ 					// do the AND

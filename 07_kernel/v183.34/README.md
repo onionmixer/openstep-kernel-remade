@@ -6,6 +6,8 @@
 - `common/`: 두 아키텍처에 공통인 183.34 차이(지금은 없음).
 - m68k 빌드는 m68k → common → 07 본 트리 순으로 파일을 고릅니다. 스테이징 도구는 `10_tools/reconstruction/stage_m68k.py` 입니다(바탕 스테이징 위에 common, m68k 를 차례로 덮어씀).
 - x86 빌드(`stage_headers.py`, s6l4 계열)는 이 디렉터리를 읽지 않습니다.
+- m68k 에만 있는 머신 의존 C 소스(M4)는 이 트리가 아니라 07 본 트리 `src/machdep/m68k/` 에 둡니다(D103). m68k 스테이징이 `--plan 497` 부터 덮어쓰기보다 먼저 넣습니다.
+- 그 소스가 쓰는 NeXTMach 전용 머리는 `07_kernel/nextmach/` 에 두고(D104), m68k 스테이징이 `--plan 506` 부터 `M4HEADERS` 로 넣습니다(덮어쓰기와 같은 경로면 멈춤).
 
 ## 생성 구성(계획 434)
 

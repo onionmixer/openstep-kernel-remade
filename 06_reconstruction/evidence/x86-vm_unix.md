@@ -6,3 +6,5 @@ Original SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f148
 - Final OBJECT_MATCH (`09_validation/reconstruction/s5p199-it2-l1-vm_unix-F-20261002.json`). Grade **A**.
 
 Object extent [0x17bd28, 0x17c4e0) between the confirmed vm_synchronize and vm_user. Diagnosis 13 failed on kern/ipc_globals.h; diagnosis build s5p199-d2 (NeXTMach text with header fixes, not 07) stopped on the Mach 2.5 u-area fields and kern_obj_t. The codex review of plan 221 found no wrong fact (the absence of a kern_obj_t cast is a reconstruction choice). Iterations: it1 only procdup differs; variants s5p199-v1 (conditional expression forms, no effect), s5p199-v2 (local inherit flag set by an if, l1), s5p199-v3 (file table size from the child's uu_lastfile); it2 all 16 functions match, extern relocation names match (relcheck 0).
+
+- m68k (plans 498-500): the same 07 file compiles to the m68k original vm_unix object; see `m68k-vm_unix.md`.

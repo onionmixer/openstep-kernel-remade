@@ -1,0 +1,82 @@
+--- NeXTMach mk-108.1 next/next_table.c
++++ 07_kernel/src/machdep/m68k/next_table.c
+@@ -8,6 +8,18 @@
+  **********************************************************************
+  */
+ 
++/*
++ * m68k: next/next_table.c of the 1997 m68k kernel (plans 507-508, D103, D104,
++ * D106).  Base: NeXTMach mk-108.1 next/next_table.c (above notice).
++ * machine_table follows the original: TBL_NeXT_CPU_REV returns the global
++ * cpu_rev, TBL_NeXT_CPU_REV2 cpu_clk, TBL_NeXT_HAS_NeXTbus nbic_present (names
++ * from the SDK m68k/table.h), and table id 16 (no name in the reference
++ * headers, D106) returns 32 bytes whose first int tells whether the machine
++ * type (upper four bits of cpu_rev) is not 3, 5 or 9.  The include lines use
++ * the OPENSTEP paths (D104); next/scr.h is not included (its scr1 is not in
++ * the original).  Lines marked plan 508 differ from NeXTMach.
++ */
++
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <sys/dir.h>
+@@ -26,9 +38,10 @@
+ #import <sys/table.h>
+ #import <sys/socket.h>
+ #import <net/if.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
+-#import <nextdev/busvar.h>
++#import <m68k/cpu.h>	/* plan 508 (D104): NeXTMach <next/cpu.h> */
++#import <dev/busvar.h>	/* plan 508 (D104): NeXTMach <nextdev/busvar.h>; <next/scr.h> not included */
++
++extern int nbic_present;	/* plan 508 (D106) */
+ 
+ /*
+  * Machine dependent table routines.
+@@ -43,7 +56,7 @@
+ 	u_int			size;
+ 	struct	tbl_ioinfo	ti;
+ 	struct	tbl_diskinfo	td;
+-	u_char			cpu_rev;
++	int			info[8];	/* plan 508 (D106): was u_char cpu_rev */
+ 	struct proc		*p;
+ 
+ 	switch (id) {
+@@ -104,8 +117,7 @@
+ 		/*
+ 		 * Return the cpu revision of the machine.
+ 		 */
+-		cpu_rev = scr1->s_cpu_rev;
+-		data = (caddr_t)&cpu_rev;
++		data = (caddr_t)&cpu_rev;	/* plan 508: the global cpu_rev */
+ 		size = sizeof(cpu_rev);
+ 		break;
+ #ifdef	DEBUG
+@@ -120,6 +132,27 @@
+ 		size = sizeof (struct fptrace_data); 
+ 		break;
+ #endif	DEBUG
++	case TBL_NeXT_CPU_REV2:	/* plan 508 */
++		data = (caddr_t)&cpu_clk;
++		size = sizeof(cpu_clk);
++		break;
++	case TBL_NeXT_HAS_NeXTbus:	/* plan 508 */
++		data = (caddr_t)&nbic_present;
++		size = sizeof(nbic_present);
++		break;
++	case 16:	/* plan 508 (D106) */
++		switch (cpu_rev >> 4) {
++		case 3:
++		case 5:
++		case 9:
++			info[0] = 0;
++			break;
++		default:
++			info[0] = 1;
++		}
++		data = (caddr_t)info;
++		size = sizeof(info);
++		break;
+ 	default:
+ 		return TBL_MACHDEP_NONE;
+ 	}

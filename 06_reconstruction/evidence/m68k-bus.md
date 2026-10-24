@@ -1,0 +1,9 @@
+# m68k `src/machdep/m68k/bus.c` (plans 503-504, D103, D104, 2026-10-24)
+
+Original `03_original/m68k/binaries/mach_kernel`. 07 file `07_kernel/src/machdep/m68k/bus.c`, SHA-256 `7c0b4844c4d56f4fdc989316f2df512850a6e3681625d2577d28e3b9401f6d46`: NeXTMach mk-108.1 `nextdev/bus.c` (https://github.com/johnsonjh/NeXTMach.git f6bdb9c3268f0eadc545d41bcc0564453b17001e; functions `busgo` line 19, `busdone` line 54) with one comment block and the include line `<nextdev/busvar.h>` written as the OPENSTEP path `<dev/busvar.h>` (marked plan 504, D104; diff `m68k-bus.diff`). The NeXTMach file has only its SCCS line `(c) 1987 NeXT`, kept as it is.
+
+- Object `m68k-211` of `06_reconstruction/m68k-m4-inventory.tsv`: [0x406632c, 0x4066410), 228 B, functions `_busgo`, `_busdone`.
+- `dev/busvar.h` comes from `07_kernel/nextmach/nextdev/busvar.h` (D039), byte-identical to NeXTMach `nextdev/busvar.h`.
+- Plan 503: the NeXTMach header (N), the rewritten include (A) and an alias header (B) gave the same object, OBJECT_MATCH (`09_validation/reconstruction/m4-m68k-probe-p503-20261024.json`).
+- Compile line: borrowed template, the x86 line of `machdep/i386/dkbad.c` in `08_build/runs/tools/s6l4-g1a.cmd` with the plan 429 replacements (its -D/-I equal the M5 m68k line, plan 496); bus.c has no x86 counterpart.
+- Plan 504 final run `m4p504-a1` from stage `m0p504-a1-stage` (`09_validation/reconstruction/m4-m68k-p504-final-20261024.json`, checks `m4-m68k-p504-checks-20261024.json`): OBJECT_MATCH, `__TEXT,__text` 228 B placed at 0x406632c, external text symbols equal to the original names, no undefined symbol missing from the original, no warning, no i386 header; object equal (canon, obj_sig) to the plan 503 A object `08_build/runs/m4p503-p1/stage/Q503__bus_A.o` (SHA-256 `12471a89a8eb232cc5a1c090cd9fd70b13acd1e201984ea054ee8dd4b7e6804d`); defined/COMMON symbols equal. Object SHA-256 `8c249a310d5af1fdc86e56d4e1dbe874bddcb04b7c2f1aae58521dd47c0a32b5`.

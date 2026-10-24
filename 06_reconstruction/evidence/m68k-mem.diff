@@ -1,0 +1,57 @@
+--- NeXTMach mk-108.1 next/mem.c
++++ 07_kernel/src/machdep/m68k/mem.c
+@@ -19,6 +19,17 @@
+  */
+ 
+ /*
++ * m68k: next/mem.c of the 1997 m68k kernel (plans 509-510, D103, D104, D107).
++ * Base: NeXTMach mk-108.1 next/mem.c (above notices).  The include lines use
++ * the OPENSTEP paths (D104); next/mmu.h and nextdev/snd_dspreg.h come from
++ * 07_kernel/nextmach (snd_dspreg.h without its next/cpu.h import, D107).
++ * The next/cpu.h names this file needs are defined here (D107); P_MEMSIZE
++ * is written from the original bytes (the memory size depends on dma_chip
++ * and machine_type in the 1997 kernel).  Lines marked plan 510 differ from
++ * NeXTMach.
++ */
++
++/*
+  * Memory special file
+  */
+ 
+@@ -31,13 +42,21 @@
+ #import <sys/uio.h>
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 510 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_page.h>
+-#import <next/mmu.h>
+-#import <nextdev/busvar.h>
+-#import <nextdev/snd_dspreg.h>
++#import <m68k/mmu.h>	/* plan 510 (D104): NeXTMach <next/mmu.h> */
++#import <dev/busvar.h>	/* plan 510 (D104): NeXTMach <nextdev/busvar.h> */
++#import <dev/m68k/snd_dspreg.h>	/* plan 510 (D104): NeXTMach <nextdev/snd_dspreg.h> */
+ #import <machine/spl.h>
+ 
++extern int slot_id, slot_id_bmap;	/* plan 510 (D107) */
++
++#define	SLOT_ID		slot_id	/* plan 510 (D107): NeXTMach next/cpu.h */
++#define	SLOT_ID_BMAP	slot_id_bmap	/* plan 510 (D107): NeXTMach next/cpu.h */
++#define	P_MAINMEM	(SLOT_ID+0x04000000)	/* plan 510 (D107): NeXTMach next/cpu.h */
++#define	P_MEMSIZE	(dma_chip == 313 ? (machine_type == 3 ? 0x02000000 : 0x04000000) : 0x08000000)	/* plan 510 (D107, D024): from the original bytes */
++#define	P_DSP		(SLOT_ID_BMAP+0x02008000)	/* plan 510 (D107): NeXTMach next/cpu.h */
++
+ /*
+  *	Memory interface minor device number definitions.
+  */
+--- NeXTMach mk-108.1 nextdev/snd_dspreg.h
++++ 07_kernel/nextmach/nextdev/snd_dspreg.h
+@@ -9,7 +9,7 @@
+ #ifndef	_SND_DSPREG_
+ #define	_SND_DSPREG_
+ 
+-#import <next/cpu.h>
++/* plan 510 (D107): #import <next/cpu.h> removed (its tentative definitions, e.g. disk_chip, are not in the original) */
+ 
+ /* structure view of dsp registers */
+ struct dsp_regs {

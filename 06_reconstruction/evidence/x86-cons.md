@@ -14,3 +14,5 @@ Object extent [0x1948f8, 0x194bf4) 764 B (762 B text + 00 00): cnopen, cnread, c
 
 ## plan 404 고침(2026-10-08, D061)
 - notice added: line marked plan 400 (Darwin), cons part: Apple APSL 1.0 (notice in file; 07_kernel/LICENSES/APSL-1.0.txt). 주석만 바뀌었습니다(07 파일 SHA-256 `29f8cd2375330c095f93fa5431ebcc9eec5a1ccb56873344a27392adf25b1772`); diff 를 다시 만들었습니다.
+
+- m68k (plans 499-502): an m68k copy with one authored line is `07_kernel/src/machdep/m68k/cons.c`; see `m68k-cons.md`. This x86 file is unchanged.

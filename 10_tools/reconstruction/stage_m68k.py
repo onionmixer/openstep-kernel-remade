@@ -6,7 +6,7 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482, 483, 485, 488, 494): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482, 483, 485, 488, 494, 497, 502, 504, 506, 508, 510, 512, 514): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
 stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474; s6lc from plan 475; s6ld from plan 476; s6le from plan 478; s6lf from plan 479; s6lg from plan 480; s6lh from plan 482; s6li from plan 483; s6lj from plan 485; s6lk from plan 488; s6ll from plan 494) + the real-machine SDK m68k headers (plan 413, local
@@ -15,7 +15,15 @@ stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 
          m68k, then common, then the 07 main tree).  STAGE_DIR.manifest.json: [path, origin,
          sha256] per file.  An overlay .c file must be its 07 main file plus inserted lines
          that each carry a registered marker (MARKERS; plan 435's D070 line at most once,
-         right after '#import <sys/param.h>'; plan 437 generalisation).
+         right after '#import <sys/param.h>'; plan 437 generalisation).  From plan 497 (D103) the
+         m68k-only sources 07_kernel/src/machdep/m68k/*.c go to src/machdep/m68k/ before the
+         overlays (no file may be there yet); the manifest lists them in m4_sources.  From plan
+         502 only the files registered in M4FILES for the plan are staged, and every .c of that
+         directory must be registered (plan 512: .s sources too; m68k assembly is compiled with
+         -DASSEMBLER, D108).  From plan 506 (D104, D105) the NeXTMach-only headers of
+         M4HEADERS (07_kernel/nextmach/<mk-108.1 path> -> stage path) are staged after the SDK
+         copy (no file may be there yet, no overlay may have the path); the manifest lists them in
+         m4_headers.
 cmd      the 205 compile lines of the plan 429 (run m3p429-cc2, -c only) and plan 432 (run
          m3p432-int) runs, output prefix O433__.
 x86gate  re-stage every s6l4-g* x86 stage (s6l5-g* from plan 466, s6l6-g* from 467, s6l7-g* from 469, s6l8-g* from 471, s6l9-g* from 472, s6la-g* from 473, s6lb-g* from 474, s6lc-g* from 475, s6ld-g* from 476, s6le-g* from 478, s6lf-g* from 479, s6lg-g* from 480, s6lh-g* from 482, s6li-g* from 483, s6lj-g* from 485, s6lk-g* from 488, s6ll-g* from 494) with stage_headers.py and its
@@ -36,6 +44,23 @@ import m3_m68k_wide as W
 import m3_m68k_diag as D
 
 OVL = ['07_kernel/v183.34/common', '07_kernel/v183.34/m68k']
+M4SRC = '07_kernel/src/machdep/m68k'      # plan 497 (D103): m68k-only main-tree sources
+M4FILES = {497: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c'],              # plan 502: files staged per plan
+           502: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c'],
+           504: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c'],
+           506: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c'],
+           508: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c'],
+           510: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c'],
+           512: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s'],
+           514: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s', 'monitor.s']}
+M4HEADERS = {506: [('next/bmap.h', 'src/bsd/m68k/bmap.h')],   # plan 506 (D104): 07_kernel/nextmach/<path> -> stage path
+             510: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 510 (D107)
+                   ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h')],
+             512: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 512 (D108)
+                   ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h'), ('next/cframe.h', 'src/bsd/m68k/cframe.h')],
+             514: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 514 (D109): next/cpu.h for assembly only
+                   ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h'), ('next/cframe.h', 'src/bsd/m68k/cframe.h'),
+                   ('next/cpu.h', 'src/bsd/next/cpu.h'), ('nextdev/monreg.h', 'src/bsd/dev/m68k/monreg.h')]}
 REFS = [('m3p429-cc2', 'W429__'), ('m3p432-int', 'A432__')]
 PLAN = 433                                # set by --plan (plan 435)
 EXCEPTS = {433: {'x86-subr_kudp': 'SDK machparam.h spl import not taken (D069 pending)',
@@ -290,6 +315,14 @@ EXCEPTS[483] = dict(EXCEPTS[482], **{'x86-kdp_udp': 'kdp_handler, kdp_connection
 EXCEPTS[485] = dict(EXCEPTS[483], **{'x86-callout': 'helper order and inline forms, remove return value, callout_thread order and calloutEntryRemove handle copy in the 07 main file (plans 484-485, D100)'})
 EXCEPTS[488] = dict(EXCEPTS[485], **{'x86-tty': 'u_char forms of the character tests, ttbreakc and ttyblkin, and the TS_TBLOCK test in the 07 main file (plans 486-488, D101)'})
 EXCEPTS[494] = dict(EXCEPTS[488], **{'x86-swapfs': 'm68k function order and inline forms, swapfs_release and swapfs_setsysent, rcache/wcache argument order, K&R logswap and the m68k pagein exit in the 07 main file (plans 489-494, D102)'})
+EXCEPTS[497] = dict(EXCEPTS[494])   # plan 497 (D103): m68k-only sources added, no x86 object changes
+EXCEPTS[502] = dict(EXCEPTS[497])   # plan 502: m68k cons.c added to M4FILES, no x86 object changes
+EXCEPTS[504] = dict(EXCEPTS[502])   # plan 504: m68k bus.c added to M4FILES, no x86 object changes
+EXCEPTS[506] = dict(EXCEPTS[504])   # plan 506: m68k nbic.c and next/bmap.h, no x86 object changes
+EXCEPTS[508] = dict(EXCEPTS[506])   # plan 508: m68k next_table.c, no x86 object changes
+EXCEPTS[510] = dict(EXCEPTS[508])   # plan 510: m68k mem.c, next/mmu.h and nextdev/snd_dspreg.h, no x86 object changes
+EXCEPTS[512] = dict(EXCEPTS[510])   # plan 512: m68k libc.s and next/cframe.h, no x86 object changes
+EXCEPTS[514] = dict(EXCEPTS[512])   # plan 514: m68k monitor.s, next/cpu.h and nextdev/monreg.h, no x86 object changes
 X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb', 475: 's6lc', 476: 's6ld', 478: 's6le', 479: 's6lf', 480: 's6lg', 482: 's6lh', 483: 's6li', 485: 's6lj', 488: 's6lk', 494: 's6ll'}   # plans 466-494: x86 rebuild prefix of the base and the x86 gate
 GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
 
@@ -386,6 +419,32 @@ def cmd_stage(stage):
         shutil.copyfile(os.path.join(L.SDK, rel), p)
         assert sha(p) == h
         ent[dst] = [dst, 'real machine ' + L.SDK_ROOT + rel, h]
+    m4h = []
+    if PLAN >= 506:                       # plan 506 (D104, D105)
+        ovl = {rel for root in OVL for rel, _ in overlay_files(root)}
+        for rel, dst in M4HEADERS[max(k for k in M4HEADERS if k <= PLAN)]:
+            src = os.path.join('07_kernel', 'nextmach', rel)
+            assert os.path.isfile(src) and not os.path.islink(src), src
+            q = os.path.join(stage, dst)
+            assert not os.path.exists(q) and dst not in ent and dst not in ovl, 'file already at ' + dst
+            os.makedirs(os.path.dirname(q), exist_ok=True)
+            shutil.copyfile(src, q)
+            ent[dst] = [dst, src, sha(q)]
+            m4h.append(dst)
+    m4 = []
+    if PLAN >= 497:                       # plan 497 (D103)
+        on_dir = [rel for rel, _ in overlay_files(M4SRC)]
+        assert set(on_dir) <= set().union(*M4FILES.values()), ('unregistered', sorted(set(on_dir) - set().union(*M4FILES.values())))
+        for rel in M4FILES[max(k for k in M4FILES if k <= PLAN)]:
+            src = os.path.join(M4SRC, rel)
+            assert rel.endswith(('.c', '.s')) and os.sep not in rel and os.path.isfile(src) and not os.path.islink(src), rel   # plan 512: .s
+            dst = 'src/machdep/m68k/' + rel
+            q = os.path.join(stage, dst)
+            assert not os.path.exists(q), 'file already at ' + dst
+            os.makedirs(os.path.dirname(q), exist_ok=True)
+            shutil.copyfile(src, q)
+            ent[dst] = [dst, src, sha(q)]
+            m4.append(dst)
     replaced, added = [], []
     for root in OVL:
         for rel, src in overlay_files(root):
@@ -404,9 +463,14 @@ def cmd_stage(stage):
     assert on_disk == sorted(ent), 'stage content differs from manifest'
     for e in ent.values():
         assert sha(os.path.join(stage, e[0])) == e[2], e[0]
-    json.dump(dict(plan=PLAN, base=base_stage(), base_manifest_sha256=sha(base_stage() + '.manifest.json'),
-                   sdk_list=L.SDK_SHA, sdk_list_sha256=sha(L.SDK_SHA), overlays=OVL, replaced=replaced, added=added,
-                   files=list(ent.values())), open(stage + '.manifest.json', 'w'), indent=1)
+    man = dict(plan=PLAN, base=base_stage(), base_manifest_sha256=sha(base_stage() + '.manifest.json'),
+               sdk_list=L.SDK_SHA, sdk_list_sha256=sha(L.SDK_SHA), overlays=OVL, replaced=replaced, added=added)
+    if PLAN >= 497:
+        man['m4_sources'] = m4
+    if PLAN >= 506:
+        man['m4_headers'] = m4h
+    man['files'] = list(ent.values())
+    json.dump(man, open(stage + '.manifest.json', 'w'), indent=1)
     print('stage', stage, 'files', len(ent), 'overlay replaced', len(replaced), 'added', len(added))
 
 
