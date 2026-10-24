@@ -13,7 +13,7 @@ records.
 |---|---|---|
 | `QEMU_VM_CONFIGURATIONS.md` | yes | Current VM configuration for all three machines |
 | `MANIFEST.json` | yes | Source revision, lab-diff hash, binary and firmware hashes |
-| `scripts/vm-i386.sh`, `vm-sparc.sh`, `vm-m68k.sh`, `vm-common.sh` | yes | One launcher per VM |
+| `scripts/vm-i386.sh`, `vm-sparc.sh`, `vm-sparc20.sh`, `vm-m68k.sh`, `vm-common.sh` | yes | One launcher per VM (`vm-sparc20.sh`: SPARCstation 20 with a real Sun PROM) |
 | `scripts/build-qemu.sh` | yes | Builds the three emulators and `qemu-img` |
 | `scripts/site.conf.example` | yes | Variable names for the host's media paths |
 | `site.conf` | no | This host's media paths |
@@ -63,6 +63,7 @@ bash 11_emulation/scripts/build-qemu.sh
 ```sh
 bash 11_emulation/scripts/vm-i386.sh  install|boot|boot-nocd [--cd ISO|KEY] [--disk RAW --snapshot] [--snapshot] [--gdb-wait] [-- QEMU args]
 bash 11_emulation/scripts/vm-sparc.sh install|boot [--qemu62] [--cd ISO|KEY] [--snapshot] [--gdb-wait] [--serial] [-- QEMU args]
+bash 11_emulation/scripts/vm-sparc20.sh boot [--snapshot] [--cd ISO|KEY] [--disk RAW --snapshot] [--gdb-wait] [--vnc SOCK] [--no-pin] [-- QEMU args]
 bash 11_emulation/scripts/vm-m68k.sh  install|boot [--cd ISO|KEY] [--snapshot] [--gdb-wait] [-- QEMU args]
 ```
 
@@ -72,3 +73,10 @@ position; it takes a path or a `site.conf` key such as `OS42_DEV_ISO`.
 `--disk RAW` (i386 `boot`/`boot-nocd`, only together with `--snapshot`) boots a
 raw test disk image instead of `09_validation/images/i386/openstep42-i386-hdd.raw`;
 the image is never written (plan 405).
+
+`vm-sparc20.sh` runs a SPARCstation 20 with a real Sun PROM (`SS20_PROM`), cg14
+1152x900, the installed raw disk `SS20_DISK` at SCSI 3, the NVRAM file
+`SS20_NVRAM` (`-drive if=mtd`, 0 or 8192 bytes) and an empty CD at SCSI 6. It
+needs `build/qemu-sparcstep` (the only build with cg14). Without `--snapshot` it
+writes the disk and the NVRAM file; QEMU rewrites the NVRAM ID PROM from the MAC
+at every start, even when paused. Use `--snapshot` for reconstructed kernels.

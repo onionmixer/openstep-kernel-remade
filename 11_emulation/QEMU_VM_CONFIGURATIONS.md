@@ -25,6 +25,7 @@
 |---|---|---|
 | `scripts/vm-i386.sh` | `install`, `boot`, `boot-nocd` | `09_validation/images/i386/openstep42-i386-hdd.raw` |
 | `scripts/vm-sparc.sh` | `install`, `boot` | `09_validation/images/sparc/openstep42-sparc-hdd.qcow2` |
+| `scripts/vm-sparc20.sh` | `boot` | `site.conf` 의 `SS20_DISK`(raw, 사용자 설치본; 2절 뒤 "SPARCstation 20") |
 | `scripts/vm-m68k.sh` | `install`, `boot` | `09_validation/images/m68k/openstep42-m68k-hdd.raw` |
 
 옵션:
@@ -131,6 +132,29 @@ $QI snapshot -a NAME $D     # 되돌리기
 주의: `-display none` 으로 디스크 부팅하면 두 버전 모두 OPENSTEP booter 가 `Unhandled Exception 0x00000021`(PC `0x0008a1bc`)로 멈춘다. 헤드리스 시험은 `-display vnc=unix:/tmp/kr-sparc-vnc.sock` 을 쓴다(유닉스 소켓 경로는 108 바이트 미만). 이 빌드에는 VNC keymap 이 없어 `could not find keymap file for language 'en-us'` 로 끝나므로, `keymaps/en-us` 만 담은 디렉터리를 `-L` 로 더한다(펌웨어 탐색은 그대로).
 
 설치 뒤 확인할 것(NeXTSTEP 3.3 SPARC 설치 기록에서): 첫 부팅이 단일 사용자로 떨어지면 `/etc/fstab` 의 root 장치(`sd0a`/`sd1a`), 네트워크는 hostconfig 정적 값(`INETADDR=10.0.2.15`, `ROUTER=10.0.2.2`, `IPNETMASK=255.255.255.0`, `IPBROADCAST=10.0.2.255`), DNS 는 `10.0.2.3`. 부팅 중 NetInfo 부모 검색에서 기다리면 `c` 로 넘기거나, NetInfo 의 `/machines/broadcasthost` 에서 `serves` 속성을 지운다.
+
+---
+
+## 2a. SPARC — SPARCstation 20 (실 Sun PROM; 2026-10-24 준비, 부팅 시험 전)
+
+사용자가 쓰던 실행 인자를 `scripts/vm-sparc20.sh` 로 옮겼다. 계획과 확인 기록은 `02_plan/EMULATION_PLATFORM_PLAN.md` 의 "SPARCstation 20(실 Sun PROM) 실행 준비 계획".
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| QEMU | `build/qemu-sparcstep/qemu-system-sparc`(해시 고정, `vm-sparc.sh` 와 같음) | `cg14` 는 이 빌드에만 있다(lab·6.2 에는 `tcx`·`cg3` 만) |
+| 기계·메모리 | `-M SS-20 -smp 1 -m 448` | SS-20 상한 안. PROM 의 메모리 검사는 미확인 |
+| 펌웨어 | `-bios` = `site.conf` 의 `SS20_PROM`(사용자의 `ss20_v2.25.rom`) | `firmware/` 의 SS-20 PROM 은 2.22 다. sparcstep 의 2.25 전용 처리(`sun4m.c:699–722`)는 cg14 1920x1080 에만 쓰인다 |
+| 화면 | `-vga cg14 -g 1152x900x24`, 기본 `-display sdl`(모니터는 터미널), `--vnc SOCK` 이면 VNC | cg14 는 깊이 속성이 없어 `x24` 는 화면 크기만 정하고 깊이는 게스트가 정한다 |
+| HDD | `SS20_DISK`(raw) 를 `scsi-hd`, SCSI ID 3, `vendor=SUN,product=SUN2.1G,removable=off,dpofua=off` | `--disk RAW`(`--snapshot` 과 함께만)로 재조립 커널을 넣은 사본을 쓴다 |
+| NVRAM | `SS20_NVRAM` 을 `-drive if=mtd,format=raw`(m48t08, 8192 B) | 빈 파일은 8192 B 로 늘어나고, 다른 크기는 거부된다. 시작할 때마다 ID PROM(0x1fd8–)을 MAC·기종 값으로 다시 쓰고, 0 으로 찬 NVRAM 은 기본값으로 채운다(멈춘 채 `-S` 여도) |
+| NIC | `-net nic,model=lance,macaddr=…,netdev=net0 -netdev user,id=net0` | MAC 은 `SS20_MAC`(없으면 `08:00:20:C0:FF:EE`) |
+| CD | 빈 `scsi-cd`, SCSI ID 6. `--cd ISO|KEY` 로 넣는다 | 512 B 블록 설정은 넣지 않았다(사용자 인자와 같게) |
+| 호스트 코어 | `taskset -c 0`(`--no-pin` 으로 끔) | `vm-sparc.sh` 의 관례. 고정해도 멈춘 기록이 있어 해결책은 아니다 |
+| 소켓 | `/tmp/kr-sparc20-qmp.sock`, `/tmp/kr-sparc20-gdb.sock` | SS-5 VM 과 겹치지 않는다 |
+
+- `--snapshot` 이 없으면 디스크와 NVRAM 파일에 쓴다. 재조립 커널은 `--snapshot`(필요하면 `--disk` 사본)으로 먼저 띄운다.
+- 시작 때 PROM·디스크·NVRAM(·CD)의 크기와 SHA-256, 실제 QEMU 명령 전체를 찍는다.
+- 확인(2026-10-24, 버릴 매체와 PROM 2.22 사본으로, `-S` 멈춘 채): 장치(cg14·lance·scsi-hd SUN/SUN2.1G SCSI 3·scsi-cd SCSI 6·m48t08)와 블록 연결을 QMP 로 확인했다. `--snapshot` 이면 일부러 쓴 디스크·초기화된 NVRAM 모두 파일이 그대로였고, 없으면 둘 다 바뀌었다. 실제 PROM 2.25·설치 디스크로의 부팅은 매체가 이 호스트에 없어 시험하지 않았다.
 
 ---
 

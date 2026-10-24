@@ -324,3 +324,99 @@ S1 시험에서 본 것(디스크 사본, `before-devtools`; 원래 디스크의
 2. **sparcstep 에서 커널 부팅**: 장치 등록(esp0, ledma0, tcx0, zs0/1, sd0, sd1 CD, TYPE5Keyboard0), `/dev/rsd0a: file system clean`, "Configuring SS5 Audio"(SunAudio) 까지 갑니다. lab 빌드에서 나오던 `sd0: Illegal request; FATAL. … op:Mode Sense` 가 sparcstep 에서는 없습니다.
 3. **로그인 전 대기**: "Setting tape block size for /dev/nrst1" 뒤 `◆` 줄이 약 15 초마다 계속 찍히고 로그인 창으로 가지 않습니다(10 분 상한까지). 일본어판(os42j)의 콘솔 메시지가 `◆` 로 보이는 것으로 추정합니다. 콘솔은 입력을 받습니다(`a`·`c` 가 찍힘). §2 의 "NetInfo 부모 검색에서 `c`" 를 넣어도 넘어가지 않았습니다. lab 빌드는 150 초에 아직 그 앞 단계였습니다(비교 미완).
 - 판정: 미리 정한 S1 통과 조건(5 회 모두 로그인 창)은 아직 시험하지 못했습니다. 3 은 에뮬레이터가 아니라 설치된 게스트의 설정(네트워크·NetInfo) 문제일 가능성이 크지만 확인하지 않았습니다.
+
+## SPARCstation 20(실 Sun PROM) 실행 준비 계획 (2026-10-24, 사용자 지시, 코딩 전)
+
+사용자 지시: "qemu-sparc 을 실행한 argument 는 다음과 같습니다. 참고해서 qemu-sparc 구동시에 사용될 수 있도록 미리 준비해주세요." 받은 명령의 뜻은 다음과 같습니다.
+- 기종·자원: `-M SS-20 -smp 1 -m 448`, 실 Sun PROM `-bios ss20_v2.25.rom`
+- 화면: `-display sdl`, `-vga cg14 -g 1152x900x24`
+- 디스크: raw `os42j-sparc.img` 를 SCSI 3 에(`vendor="SUN"`, `product="SUN2.1G"`, `removable=off`, `dpofua=off`)
+- NVRAM: `nvram-sparc.bin` 을 `-drive if=mtd`
+- 네트워크: `lance` NIC, MAC `08:00:20:C0:FF:EE`, user net
+- 빈 CD 드라이브를 SCSI 6 에
+
+확인한 사실(이번 세션):
+- 세 파일(`ss20_v2.25.rom`·`os42j-sparc.img`·`nvram-sparc.bin`)은 이 호스트의 루트 파일 시스템, 작업 영역, 홈 디렉터리에서 찾지 못했습니다(이름 검색 0). `11_emulation/firmware/` 의 SS-20 PROM 은 2.22 입니다. PATH 에는 `qemu-system-sparc` 가 없습니다.
+- 세 빌드 가운데 `cg14` 를 가진 것은 sparcstep(`build/qemu-sparcstep`, 11.1.50, SHA-256 `d64a3948…`, `vm-sparc.sh` 의 고정값과 같음)뿐입니다. lab(11.0.90)·Ubuntu 6.2 는 `tcx`·`cg3` 만 있습니다.
+- sparcstep 은 SS-20·`sdl`·`lance`·`scsi-hd` 의 `vendor`·`product`·`removable`·`dpofua` 를 받습니다.
+- sparcstep `hw/sparc/sun4m.c:1239` 는 `drive_get(IF_MTD, 0, 0)` 을 m48t08 NVRAM 에 붙입니다. `:699–722` 는 SS-20 PROM 2.25 의 1920x1080 선택을 고치는 처리입니다.
+- `hw/rtc/m48t59.c:579–586` 은 NVRAM 파일 길이가 장치 크기와 다르면 파일 길이를 바꿉니다(쓰기). `-snapshot` 이면 모든 드라이브(NVRAM 포함)의 쓰기가 임시 파일로 갑니다.
+- 기존 `vm-sparc.sh` 는 SS-5·OpenBIOS·저장소 qcow2 디스크 VM 입니다. `vm-common.sh` 는 "VM 하나에 스크립트 하나" 꼴입니다.
+
+방법:
+1. 새 실행 스크립트 `11_emulation/scripts/vm-sparc20.sh`(git 추적). 받은 명령을 그대로 만들되, 이 저장소의 규칙을 더합니다.
+   - QEMU 는 sparcstep 고정 빌드(해시 확인).
+   - 매체는 `site.conf` 의 새 키 `SS20_PROM`·`SS20_DISK`·`SS20_NVRAM` 에서 받습니다(위치는 커밋하지 않음). MAC 은 `SS20_MAC`(없으면 받은 값)입니다.
+   - 실행 전에 PROM·디스크·NVRAM 의 크기와 SHA-256 을 찍습니다(기록용; 값은 고정하지 않음).
+   - 디스크가 qcow2 이면 멈춥니다(raw 만).
+   - `boot` 한 모드입니다.
+     - 선택: `--snapshot`(디스크·NVRAM 모두 쓰지 않음), `--cd ISO|KEY`(빈 CD 자리에 넣음), `--disk RAW`(`--snapshot` 과 함께만; 재조립 커널을 넣은 시험 디스크 사본), `--gdb-wait`, `--vnc SOCK`(SDL 대신; `vm-sparc.sh` 와 같은 keymap 처리), `-- QEMU args`
+     - 기본 화면은 `sdl` 이고 모니터는 이 터미널입니다.
+   - QMP·GDB 소켓은 `vm_sockets sparc20`(`/tmp/kr-sparc20-*.sock`)이고, 다른 VM 과 겹치지 않습니다.
+   - 호스트 코어 고정(`taskset -c 0`)은 `vm-sparc.sh` 와 같게 기본으로 둡니다(ESP 경합 기록, `SPARC_INSTALL_HANG_NOTES.md`). 받은 명령과 같게 하려면 `--no-pin` 을 씁니다.
+2. `scripts/site.conf.example` 에 키 넷과 설명을 더합니다. 이 호스트의 `site.conf`(무시됨)에는 빈 키를 덧붙입니다. 경로는 사용자가 채웁니다.
+3. `README.md` 의 Run 절과 `QEMU_VM_CONFIGURATIONS.md` 에 SS-20 구성을 적습니다.
+4. 확인(실제 매체 없이):
+   - `bash -n`
+   - scratchpad 에 스크립트 사본·가짜 `site.conf`·빈 raw 디스크(qemu-img)·0 으로 채운 8 KiB NVRAM·`firmware/` 의 SS-20 PROM 2.22 를 두고, `-S`(멈춘 채) + `--vnc` 로 띄웁니다. QMP 로 `query-status`·장치 목록(`info qtree` 의 cg14·lance·scsi-hd·scsi-cd)을 확인한 뒤 끝냅니다.
+   - `--snapshot` 이면 가짜 디스크·NVRAM 의 해시가 그대로임을 확인합니다.
+   - 저장소의 실제 SPARC 디스크·매체는 건드리지 않습니다.
+
+하지 않는 것: PROM 2.25 의 입수·저장소 반입(사용자 파일), 실제 부팅 시험(매체가 이 호스트에 없음; 사용자가 경로를 채운 뒤).
+
+### 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+제 오류: "NVRAM 파일 길이가 장치 크기와 다르면 파일 길이를 바꿈" 은 틀렸습니다. `m48t59.c:578–592` 는 **빈** 파일만 장치 크기(m48t08, 8192 B)로 늘리고, 비어 있지 않은데 크기가 다르면 "NVRAM backing file must be … bytes" 로 멈춥니다.
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `cg14` 는 세 빌드 가운데 sparcstep 에만 있음; `IF_MTD` NVRAM | 이번 세션 `-vga help`·`sun4m.c:1239` | ✅ |
+| PROM 2.25 처리는 cg14 1920x1080 에만 쓰이고 1152x900 에는 해당 없음 | `sun4m.c:699–722` 읽음 | ✅ 계획 문구를 한정 |
+| NVRAM 크기 처리 | `m48t59.c:578–592` 읽음 | ✅ 제 오류 |
+| 실행 때마다 NVRAM ID PROM(0x1fd8–)을 MAC·기종 값으로 다시 쓰고, 설정이 없는 NVRAM 이면 기본값 전체를 씀; `-S` 로도 일어남 | `sun4m.c:148–190` 읽음 | ✅ 문서에 적음 |
+| `-snapshot` 은 받은 `-drive` 들(mtd 포함)의 쓰기를 임시로 돌림(드라이브가 `snapshot=off` 이면 예외) | 설계(스크립트는 `snapshot=off` 를 쓰지 않음) | ✅ |
+| `-bios` 는 주어진 경로를 먼저 그대로 읽음 → 절대 경로로 줄 것 | `util/datadir.c:33–40` 읽음 | ✅ |
+| 448 MiB 는 SS-20 상한 0xf00000000 안; `-smp 1` 은 CPU 1 개(최대 4) | `sun4m.c` ss20 hwdef(이번 세션) | ✅ PROM 의 메모리 검사는 미확인 |
+| `cg14` 는 깊이 속성이 없어 `x24` 가 화소 모드를 고정하지 않음 | `cg14.c:670–673` 속성 목록 | ✅ 문서에 적음 |
+| `-net nic,…,netdev=` 꼴은 그대로 됨; `vendor="SUN"` 의 따옴표는 셸에서 사라지므로 값에 따옴표를 넣지 않음; 경로의 쉼표는 `,,` 로 | QEMU 옵션 규칙 | ✅ |
+| 빈 CD 는 `file=` 없이 됨; `vm_cd` 는 `--cd` 가 있을 때만 부를 것(없으면 기본 ISO 를 요구); 기존 스크립트의 512 B CD 블록·RTC·boot 순서·cache 설정을 들여오지 않음 | `vm-common.sh:46–52`(이번 세션 읽음) | ✅ |
+| `vm_disk` 는 이 VM 에 맞지 않음 → 디스크 선택·검사(정규 파일, 0 아님, 512 배수, qcow2 아님)를 스크립트가 직접 | `vm-common.sh:76–99` | ✅ |
+| `--vnc`·`--no-pin` 은 스크립트가 직접 해석, `--serial` 은 거부; `SS20_MAC` 은 `vm_media` 로 읽지 못함(파일 검사) | `vm-common.sh:13–42` | ✅ |
+| `taskset` 은 관례이지 해결책이 아님(고정해도 멈춘 기록 있음) | `SPARC_INSTALL_HANG_NOTES.md`(미재확인) | ⚖️ 기본 유지, 문서에 "관례" 로 적음 |
+| 시험은 분리한 사본 트리·가짜 설정·버릴 매체·시험 전용 소켓 이름으로; `-S` 로도 NVRAM 은 쓰이므로 NVRAM 해시 비교가 snapshot 보호를 시험함; 디스크는 일부러 쓴 뒤 해시 비교; `query-block` 으로 선택 파일·빈 CD·덮개 확인; 상태는 `running:false` | 설계 | ✅ |
+
+설계 수정(코딩 전 고정):
+- `SS20_NVRAM` 은 정규 파일이고 크기 0 또는 8192 B 여야 합니다. `--snapshot` 이 없으면 쓰기 가능해야 합니다.
+- 실행 때 NVRAM 이 쓰인다는 것(ID PROM 다시 씀, 빈 NVRAM 은 기본값)을 배너와 문서에 적습니다.
+- 경로는 절대 경로로 바꾸고, `-drive` 값의 쉼표는 `,,` 로 바꿉니다. 실제 실행 명령 전체를 찍습니다.
+- 시험(`scratchpad` 사본 트리, 소켓 이름 `sparc20test`):
+  - 부정 시험: 키 없음, qcow2 디스크, 512 배수 아님, NVRAM 크기 틀림, `--disk` 를 `--snapshot` 없이, `--serial`
+  - 긍정 시험(`--snapshot --vnc … -- -S`): QMP `query-status`(`running` false), `query-block`(disk0·mtd·cd0), `info qtree`(cg14·lance·scsi-hd vendor/product·scsi-cd); `qemu-io disk0 "write 0 512"` 로 디스크에 쓴 뒤 끝내고 가짜 디스크·NVRAM 해시가 그대로인지
+  - 대조: `--snapshot` 없이 같은 시험을 하면 가짜 NVRAM 이 바뀌는지(문서화한 동작의 확인)
+
+### 결과(2026-10-24) — 준비 완료, 실제 매체로의 부팅은 시험 전
+
+- `11_emulation/scripts/vm-sparc20.sh`(새 파일, 실행 권한은 `vm-sparc.sh` 와 같음). `bash -n` 통과.
+- `scripts/site.conf.example` 에 `SS20_PROM`·`SS20_DISK`·`SS20_NVRAM`·`SS20_MAC` 와 설명을 더했습니다.
+- 이 호스트의 `site.conf`(git 제외)에는 빈 키 넷만 덧붙였고, 기존 값은 그대로입니다(덧붙이기 전 사본은 scratchpad).
+- `README.md`(배치 표·Run·설명 한 덩이)와 `QEMU_VM_CONFIGURATIONS.md`(0.2 표 한 줄, 새 절 "2a. SPARC — SPARCstation 20")를 고쳤습니다.
+- 시험(scratchpad 사본 트리, 소켓 `sparc20test`, 버릴 매체: 64 MiB raw 디스크, 0 으로 찬 8192 B NVRAM, `firmware/` SS-20 PROM 2.22 사본, 실제 저장소 이미지·소켓은 쓰지 않음):
+  - 부정 시험 8 개가 모두 정한 오류로 멈춤:
+    - 모드 없음, `--serial`
+    - `--disk` 를 `--snapshot` 없이
+    - qcow2 디스크, 512 배수가 아닌 디스크
+    - NVRAM 크기 100 B
+    - `SS20_PROM` 키 없음
+    - 틀린 MAC
+  - 긍정 시험(`--snapshot --vnc … -- -S`):
+    - QMP `query-status` 는 `running` false(`prelaunch`)
+    - `query-block`: `disk0`·`mtd0` 은 임시 qcow2 덮개 아래 원래 raw 파일, `cd0` 은 빈 채
+    - `info qtree`: `cg14`·`lance`·`scsi-hd`(`vendor "SUN"`·`product "SUN2.1G"`·SCSI 3)·`scsi-cd`(SCSI 6)·`sysbus-m48t08`
+    - `qemu-io disk0` 로 0x5a 를 512 B 쓰고 같은 무늬로 읽으면 통과, 0 으로 읽으면 "Pattern verification failed"(쓰기가 실제로 됨)
+    - 끝낸 뒤 가짜 디스크·NVRAM 해시가 그대로이고, 소켓 파일이 남지 않음
+  - 대조(`--snapshot` 없이): 같은 시험 뒤 디스크와 NVRAM 파일이 둘 다 바뀜(문서에 적은 동작과 같음).
+- 시험하지 않은 것:
+  - SDL 창(이 시험은 VNC)
+  - 사용자 PROM 2.25 의 실행
+  - 설치 디스크로의 부팅·로그인
+  - 이 호스트에는 세 파일이 없습니다. 사용자가 `site.conf` 에 경로를 채운 뒤 `bash 11_emulation/scripts/vm-sparc20.sh boot --snapshot` 으로 먼저 확인합니다.
