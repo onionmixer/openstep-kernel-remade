@@ -80,3 +80,6 @@ the image is never written (plan 405).
 needs `build/qemu-sparcstep` (the only build with cg14). Without `--snapshot` it
 writes the disk and the NVRAM file; QEMU rewrites the NVRAM ID PROM from the MAC
 at every start, even when paused. Use `--snapshot` for reconstructed kernels.
+An unset or empty `SS20_PROM`/`SS20_DISK`/`SS20_NVRAM` takes the repository
+default that boots to the Workspace: `firmware/sun-ss20-obp-2.22-…ROM`,
+`09_validation/images/sparc/openstep42-sparc-ss20.raw` and `nvram-ss20.bin`.

@@ -25,7 +25,7 @@
 |---|---|---|
 | `scripts/vm-i386.sh` | `install`, `boot`, `boot-nocd` | `09_validation/images/i386/openstep42-i386-hdd.raw` |
 | `scripts/vm-sparc.sh` | `install`, `boot` | `09_validation/images/sparc/openstep42-sparc-hdd.qcow2` |
-| `scripts/vm-sparc20.sh` | `boot` | `site.conf` 의 `SS20_DISK`(raw, 사용자 설치본; 2절 뒤 "SPARCstation 20") |
+| `scripts/vm-sparc20.sh` | `boot` | `SS20_DISK`(없으면 `09_validation/images/sparc/openstep42-sparc-ss20.raw`; 2a 절) |
 | `scripts/vm-m68k.sh` | `install`, `boot` | `09_validation/images/m68k/openstep42-m68k-hdd.raw` |
 
 옵션:
@@ -135,7 +135,7 @@ $QI snapshot -a NAME $D     # 되돌리기
 
 ---
 
-## 2a. SPARC — SPARCstation 20 (실 Sun PROM; 2026-10-24 준비, 부팅 시험 전)
+## 2a. SPARC — SPARCstation 20 (실 Sun PROM; 2026-10-24 준비, 2026-10-25 Workspace 까지 부팅)
 
 사용자가 쓰던 실행 인자를 `scripts/vm-sparc20.sh` 로 옮겼다. 계획과 확인 기록은 `02_plan/EMULATION_PLATFORM_PLAN.md` 의 "SPARCstation 20(실 Sun PROM) 실행 준비 계획".
 
@@ -143,10 +143,10 @@ $QI snapshot -a NAME $D     # 되돌리기
 |---|---|---|
 | QEMU | `build/qemu-sparcstep/qemu-system-sparc`(해시 고정, `vm-sparc.sh` 와 같음) | `cg14` 는 이 빌드에만 있다(lab·6.2 에는 `tcx`·`cg3` 만) |
 | 기계·메모리 | `-M SS-20 -smp 1 -m 448` | SS-20 상한 안. PROM 의 메모리 검사는 미확인 |
-| 펌웨어 | `-bios` = `site.conf` 의 `SS20_PROM`(사용자의 `ss20_v2.25.rom`) | `firmware/` 의 SS-20 PROM 은 2.22 다. sparcstep 의 2.25 전용 처리(`sun4m.c:699–722`)는 cg14 1920x1080 에만 쓰인다 |
+| 펌웨어 | `-bios` = `SS20_PROM`, 없으면 `firmware/sun-ss20-obp-2.22-SunOBP2-22_535-1377-07.ROM`(OBP 2.22, 부팅 확인) | sparcstep 의 2.25 전용 처리(`sun4m.c:699–722`)는 cg14 1920x1080 에만 쓰인다. 2.25 는 시험하지 않았다 |
 | 화면 | `-vga cg14 -g 1152x900x24`, 기본 `-display sdl`(모니터는 터미널), `--vnc SOCK` 이면 VNC | cg14 는 깊이 속성이 없어 `x24` 는 화면 크기만 정하고 깊이는 게스트가 정한다 |
-| HDD | `SS20_DISK`(raw) 를 `scsi-hd`, SCSI ID 3, `vendor=SUN,product=SUN2.1G,removable=off,dpofua=off` | `--disk RAW`(`--snapshot` 과 함께만)로 재조립 커널을 넣은 사본을 쓴다 |
-| NVRAM | `SS20_NVRAM` 을 `-drive if=mtd,format=raw`(m48t08, 8192 B) | 빈 파일은 8192 B 로 늘어나고, 다른 크기는 거부된다. 시작할 때마다 ID PROM(0x1fd8–)을 MAC·기종 값으로 다시 쓰고, 0 으로 찬 NVRAM 은 기본값으로 채운다(멈춘 채 `-S` 여도) |
+| HDD | `SS20_DISK`(raw), 없으면 `09_validation/images/sparc/openstep42-sparc-ss20.raw` 를 `scsi-hd`, SCSI ID 3, `vendor=SUN,product=SUN2.1G,removable=off,dpofua=off` | 기본 디스크는 qcow2 스냅샷 `before-devtools` 를 raw 로 푼 것에 CG14 화면 드라이버 설정을 넣은 것이다(SHA-256 `a4c2d63f…`, 아래). `--disk RAW`(`--snapshot` 과 함께만)로 재조립 커널을 넣은 사본을 쓴다 |
+| NVRAM | `SS20_NVRAM`, 없으면 `09_validation/images/sparc/nvram-ss20.bin` 을 `-drive if=mtd,format=raw`(m48t08, 8192 B) | 빈 파일은 8192 B 로 늘어나고, 다른 크기는 거부된다. 시작할 때마다 ID PROM(0x1fd8–)을 MAC·기종 값으로 다시 쓰고, 0 으로 찬 NVRAM 은 기본값으로 채운다(멈춘 채 `-S` 여도) |
 | NIC | `-net nic,model=lance,macaddr=…,netdev=net0 -netdev user,id=net0` | MAC 은 `SS20_MAC`(없으면 `08:00:20:C0:FF:EE`) |
 | CD | 빈 `scsi-cd`, SCSI ID 6. `--cd ISO|KEY` 로 넣는다 | 512 B 블록 설정은 넣지 않았다(사용자 인자와 같게) |
 | 호스트 코어 | `taskset -c 0`(`--no-pin` 으로 끔) | `vm-sparc.sh` 의 관례. 고정해도 멈춘 기록이 있어 해결책은 아니다 |
@@ -154,6 +154,12 @@ $QI snapshot -a NAME $D     # 되돌리기
 
 - `--snapshot` 이 없으면 디스크와 NVRAM 파일에 쓴다. 재조립 커널은 `--snapshot`(필요하면 `--disk` 사본)으로 먼저 띄운다.
 - 시작 때 PROM·디스크·NVRAM(·CD)의 크기와 SHA-256, 실제 QEMU 명령 전체를 찍는다.
+- 기본값: `SS20_PROM`·`SS20_DISK`·`SS20_NVRAM` 이 `site.conf` 에 없거나 비어 있으면 위의 저장소 경로를 쓴다. 값이 있는데 읽을 수 없으면 멈춘다.
+- 부팅(2026-10-25): OBP 2.22 → `boot disk` → `/dev/rsd0a: file system clean` → Workspace(1152x900)까지 약 3 분 걸렸다.
+  - 설치는 SS-5·TCX 에서 했으므로 화면 드라이버는 S24FrameBuffer 하나뿐이었고, WindowServer 가 `No Display drivers loaded!` 를 냈다. 디스크의 `CG14FrameBuffer.config` 를 System.config 의 "Boot Drivers" 에 넣고 `Instance0.table`(= `Default.table`)을 만들어(nextufs, 호스트) 고쳤다.
+  - 빈 NVRAM 은 OBP 가 "Incorrect configuration checksum" 으로 기본값(`diag-switch?` true → 네트워크 부팅)을 쓴다. `--snapshot` 은 NVRAM 쓰기도 버리므로, 디스크에만 `snapshot=on` 을 준 한 번의 실행에서 `setenv diag-switch? false` 를 저장했다(NVRAM SHA-256 `9cad19fe…`). 그 뒤 `--snapshot` 부팅은 입력 없이 디스크로 자동 부팅한다.
+  - OPENSTEP 의 power off 뒤에도 QEMU 는 끝나지 않는다. QMP `quit` 나 창을 닫아 끝낸다.
+  - 기록: `02_plan/EMULATION_PLATFORM_PLAN.md` "SS-20 첫 부팅 관찰과 CG14 화면 드라이버 설정 계획".
 - 확인(2026-10-24, 버릴 매체와 PROM 2.22 사본으로, `-S` 멈춘 채): 장치(cg14·lance·scsi-hd SUN/SUN2.1G SCSI 3·scsi-cd SCSI 6·m48t08)와 블록 연결을 QMP 로 확인했다. `--snapshot` 이면 일부러 쓴 디스크·초기화된 NVRAM 모두 파일이 그대로였고, 없으면 둘 다 바뀌었다. 실제 PROM 2.25·설치 디스크로의 부팅은 매체가 이 호스트에 없어 시험하지 않았다.
 
 ---

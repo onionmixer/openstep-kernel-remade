@@ -420,3 +420,123 @@ S1 시험에서 본 것(디스크 사본, `before-devtools`; 원래 디스크의
   - 사용자 PROM 2.25 의 실행
   - 설치 디스크로의 부팅·로그인
   - 이 호스트에는 세 파일이 없습니다. 사용자가 `site.conf` 에 경로를 채운 뒤 `bash 11_emulation/scripts/vm-sparc20.sh boot --snapshot` 으로 먼저 확인합니다.
+
+## SS-20 첫 부팅 관찰과 CG14 화면 드라이버 설정 계획 (2026-10-25, 코딩 전)
+
+사용자 지시: PROM 2.22 로 부팅하고, 부팅을 확인한 뒤 `vm-sparc20.sh` 의 기본값을 성공한 값으로 채웁니다. 화면 문제는 "호스트에서 nextufs 로 고침"(사용자 선택), 디스크 바탕은 내부 스냅샷 `before-devtools`(사용자 선택, 2026-10-25).
+
+관찰(2026-10-24, `vm-sparc20.sh boot --snapshot`, PROM 2.22, 디스크 = qcow2 맨 위 층을 raw 로 바꾼 것 `8c5a1cc9…`, 빈 NVRAM):
+- OBP 2.22 가 cg14 에서 뜹니다(448 MB, MAC 8:0:20:c0:ff:ee). `probe-scsi` 는 Target 3 `SUN SUN2.1G`, Target 6 QEMU CD-ROM 을 보입니다.
+- 빈 NVRAM 은 기본값으로 채워져 `diag-switch?` 가 true 이고, 그래서 네트워크 부팅을 시도합니다. 세션마다 `setenv diag-switch? false` 와 `boot disk` 로 디스크 부팅했습니다(`--snapshot` 이라 NVRAM 은 남지 않음).
+- 커널은 "Starting OPENSTEP" 까지 갑니다. 첫 부팅은 파일 시스템 검사 뒤 다시 시작했고, 둘째 부팅은 "Configuring Network" 뒤 WindowServer 가 `InitDrivers: Help! No Display drivers loaded!` 를 되풀이했습니다.
+
+원인(디스크를 nextufs 로 읽어 확인):
+- `/NextLibrary/Devices`(= `/private/Drivers/sparc`, 같은 inode 18816)의 `System.config/Instance0.table`(266 B): `"Boot Drivers" = "S24FrameBuffer SunLe SCSAController TYPE5Keyboard";`, `"Active Drivers" = "SUNMouse SunAudio";`. 설치는 SS-5·TCX 에서 했으므로 화면 드라이버는 S24FrameBuffer(`"Prom Name" = "SUNW,tcx"`) 하나뿐입니다.
+- `CG14FrameBuffer.config` 는 있습니다(`CG14FrameBuffer_reloc`, `Default.table` 366 B, `Display.modes`, `English.lproj`). `Default.table` 의 `"Prom Name" = "cgfourteen"` 은 OBP 의 cg14 장치 이름과 같습니다. 그러나 `Instance0.table` 이 없고 Boot Drivers 에도 없습니다.
+- 비교: `S24FrameBuffer.config/Instance0.table`(308 B, 0644 root/0)은 그 `Default.table`(308 B, 0444)과 같은 키·값을 순서만 바꿔 담고 있습니다.
+- 디스크 상태: 맨 위 층은 2026-10-01 개발자 패키지 설치 중 멈춘 상태라 `nextufs fsck -n` 이 고아 파일 9 개, 길이 0 디렉터리(`/NextLibrary/Receipts/ProfileLibs.pkg`), 블록 수·링크 수·비트맵 오류를 냅니다(종료 코드 8). 스냅샷 `before-devtools`(= `install-done`, raw SHA-256 `6d9bb001…`)는 경고가 없습니다(22781 files, 225815 used). System.config 내용은 두 상태가 같습니다.
+
+계획:
+1. 바탕 디스크: 지금의 `09_validation/images/sparc/openstep42-sparc-ss20.raw`(맨 위 층, `8c5a1cc9…`; qcow2 에서 언제든 다시 만들 수 있음)를 지우고, `qemu-img convert -U -f qcow2 -O raw -l snapshot.name=before-devtools` 로 같은 이름에 다시 만듭니다. 조건: SHA-256 `6d9bb001…`, `nextufs fsck -n` 경고 없음. qcow2(`625c6284…`)는 바뀌지 않아야 합니다.
+2. 쓸 내용(scratchpad 의 호스트 파일, Python 으로 만들고 바이트를 확인):
+   - `System.config/Instance0.table`: 원래 266 B 에서 Boot Drivers 줄만 `"Boot Drivers" = "S24FrameBuffer CG14FrameBuffer SunLe SCSAController TYPE5Keyboard";` 로 바꿉니다(S24 는 남겨 TCX 기계에서도 같은 디스크가 쓰이게 함). 다른 바이트는 그대로입니다.
+   - `CG14FrameBuffer.config/Instance0.table`: 같은 디렉터리의 `Default.table` 366 B 를 바이트 그대로 씁니다.
+3. 쓰기(QEMU 가 꺼져 있음을 확인한 뒤, 디스크 사본이 아닌 SS20_DISK 에):
+   - `nextufs mkfile --overwrite DISK /NextLibrary/Devices/System.config/Instance0.table "<내용>"`(인자 하나로 전달; NUL 없음)
+   - `nextufs mkfile --from-file DISK /NextLibrary/Devices/CG14FrameBuffer.config/Instance0.table HOSTFILE` (새 파일은 0644, uid 0, gid 0 = S24 의 Instance0.table 과 같음)
+4. 쓴 뒤 게이트(모두 통과해야 부팅):
+   - `nextufs fsck -n` 5 단계 뒤 경고 줄 없음(종료 코드가 아니라 출력으로 판정), 파일 수 22782.
+   - 두 파일을 nextufs 로 찾아 inode 의 블록에서 다시 읽은 바이트 = 2 의 바이트. 모드·uid·gid·nlink 확인.
+   - 바탕(1 의 raw 와 해시가 같은 scratchpad 사본)과 1 KiB 단위로 비교해, 바뀐 조각마다 이름을 붙입니다(슈퍼블록, cg 헤더, cs 요약, inode 조각, 디렉터리 조각, 두 파일의 데이터 조각). 이름이 붙지 않는 조각이 하나라도 있으면 실패입니다. inode 조각은 128 B 칸 단위로 보고, 두 파일의 inode 와 그 디렉터리(`CG14FrameBuffer.config`) inode 밖의 칸이 바뀌면 실패입니다.
+5. 부팅 시험(`vm-sparc20.sh boot --snapshot`, SDL 화면 + QMP): `setenv diag-switch? false` → `boot disk`. 통과 조건(미리 정함): 15 분 안에 로그인 창 또는 Workspace 화면에 도달하고, 그동안 `No Display drivers loaded!` 가 나오지 않음. QMP `screendump` 로 남깁니다.
+6. NVRAM: 5 가 통과하면 `--snapshot` 없이 띄워 OBP `ok` 에서 `setenv diag-switch? false` 만 하고(`printenv` 로 확인) OS 를 부팅하지 않은 채 QEMU 를 끝냅니다. 조건: 디스크 SHA-256 불변, NVRAM 8192 B. 이어서 `--snapshot` 부팅이 사람 입력 없이 디스크로 자동 부팅하는지 확인합니다.
+7. `vm-sparc20.sh` 기본값: `site.conf` 에 키가 없거나 비어 있으면 성공한 매체의 저장소 상대 경로를 씁니다(`11_emulation/firmware/sun-ss20-obp-2.22-SunOBP2-22_535-1377-07.ROM`, `09_validation/images/sparc/openstep42-sparc-ss20.raw`, `09_validation/images/sparc/nvram-ss20.bin`). 저장소 밖 경로·계정은 적지 않습니다. `site.conf.example`·README·`QEMU_VM_CONFIGURATIONS.md` 를 맞춥니다.
+
+하지 않는 것: qcow2 와 그 내부 스냅샷 변경, 게스트 안 Configure.app 사용, 드라이버 바이너리·`Display.modes` 변경, `diag-switch?` 이외 NVRAM 설정.
+
+### 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+제 오류:
+- 위 원인 절의 `CG14FrameBuffer.config` 목록은 잘린 출력에서 옮긴 것입니다. 디렉터리 조각 전체(1024 B)를 읽은 결과 항목은 `English.lproj`·`CG14FrameBuffer_reloc`·`Default.table`·`Display.modes`·`CG14FrameBuffer`·`Japanese.lproj`·`Swedish.lproj`·`Spanish.lproj`·`Italian.lproj`·`German.lproj`·`French.lproj` 이고, `Instance0.table` 은 없습니다(전체 읽기로 확인). 마지막 항목의 남는 칸은 728 B 이고, 새 이름에 필요한 칸은 24 B 라 디렉터리가 커지지 않습니다.
+- 계획 3 의 "새 파일은 gid 0" 은 틀렸습니다. 새 파일의 gid 는 부모 디렉터리의 gid 를 받습니다(`nextufs/src/mutate/mutate.c:100–109`). 여기서는 부모 gid 가 0 이라 결과는 같습니다.
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| inode 는 0 으로 채운 128 B 에 아는 필드만 써서 다시 씀(시각의 여분 칸·끝 여분 칸은 0 이 됨) → inode 칸은 필드 단위로 비교해야 함 | `nextufs/src/core/layout.c:222–250` 읽음 | ✅ 게이트에 반영 |
+| 요약 갱신은 주 슈퍼블록(`slice+0x2000`)과 cs 요약 항목만 고침; 예비 슈퍼블록은 바뀌지 않아야 함 | `layout.c:253–295` 읽음 | ✅ 예비 슈퍼블록·라벨·부트 영역은 바이트 불변을 요구 |
+| cg 에서 바뀔 수 있는 것: inode·조각 비트맵, `cg_cs`, `cg_frsum`, 블록 표, `cg_time`, `cg_irotor`(그리고 할당 경로의 rotor) | `alloc.c:23–90` 읽음(inode 할당: 비트, `cg_irotor`, `cg_cs`, `cg_time`) | ⚖️ cg 는 fsck 5 단계가 inode 에서 다시 계산해 비교하므로, 게이트는 비트맵 차이가 기대한 비트(새 inode, 새 조각, 풀린 옛 조각)와 정확히 같은지만 더 봅니다 |
+| `--overwrite` 는 새 저장소를 잡고 같은 inode 를 쓴 뒤 옛 저장소를 풂; 세 시각이 바뀜 | `mutate.c:227–252`, `624–680` 읽음 | ✅ |
+| 새 파일 gid 는 부모에서 받음 | `mutate.c:100–109` 읽음 | ✅ 제 오류(위) |
+| 도구는 트랜잭션이 아님 → 실패하면 바탕에서 다시 만들 것 | `mutate.c:235–251`(inode 를 쓴 뒤 옛 저장소를 풂) | ✅ 규칙으로 추가 |
+| 디렉터리 남는 칸이 충분해야 함 | 위 디렉터리 조각 전체 읽기(Python) | ✅ 728 B ≥ 24 B |
+| 6 단계는 `--snapshot` 없이 디스크를 쓰기 가능하게 엶 → OBP 에서 멈춰도 쓰기를 막지 못함; 드라이브 단위 `snapshot=on` 이 있음 | `vm-sparc20.sh:62–64,84`, `qemu-sparcstep/blockdev.c:517,576–578` 읽음 | ✅ 6 단계를 고침 |
+| 빈 NVRAM 은 QEMU 가 기본 영역 전체를 쓰고, 설정이 있으면 ID PROM(0x1fd8–)만 다시 씀 | `sun4m.c:148–190` 읽음 | ✅ NVRAM 은 전후 바이트를 모두 보관 |
+| ID PROM 형식: type 1, 기종 바이트, MAC, 날짜, hostid = MAC 뒤 3 바이트, 앞 15 바이트 XOR | `include/hw/nvram/sun_nvram.h:6–35`, `sun4m.c:1638`(SS-20 `nvram_machine_id = 0x72`) 읽음 | ✅ 검사 추가 |
+| NVRAM 파일 쓰기 실패는 `error_report` 만 하고 계속함 | `hw/rtc/m48t59.c:348–356` 읽음 | ✅ stderr 를 보관해 검사 |
+| QEMU 정지 확인을 1 단계 앞으로 | 계획 1·3 의 순서 | ✅ |
+| 7 단계: `vm_media` 는 키가 없거나 비면 종료하므로 그 뒤에 기본값을 둘 수 없음 | `vm-common.sh:33–41` 읽음 | ✅ SS-20 전용 해석 함수(빈 값이면 `$repo_dir` 기준 기본값, 값이 있는데 읽을 수 없으면 오류) |
+| Instance0 를 여는 근거는 Darwin(i386 시대) DriverKit 이지 OPENSTEP SPARC 의 증거가 아님 | `01_resources/upstream/darwin01/driverkit-1/libDriver/User/IOConfigTable.m:149–151`(`Instance%d`), `notes/lono_driver_config:34–45`(Boot Drivers 는 인스턴스 0) 읽음 | ✅ 이 수정은 시험할 가설로 둠 |
+| S24 를 남기면 TCX 에서도 쓸 수 있다는 것은 근거 없음 | 시험하지 않음 | ✅ 주장을 지움(S24 는 원래 값이라 남길 뿐) |
+| 데이터 할당은 통째로 빈 블록을 씀(조각만 남으면 ENOSPC) | ⏭️ 빈 블록 97904 개라 영향 없음 | ⏭️ |
+
+수정한 계획(앞 계획의 해당 단계를 대신함):
+- 1 단계 앞: `pgrep -af qemu-system-sparc` 로 SS-20 QEMU 가 없음을 확인한 뒤 바탕을 만듭니다.
+- 4 단계 게이트(바탕 사본과 비교, Python):
+  - 바뀐 1 KiB 조각은 다음에만 있어야 합니다: 주 슈퍼블록, cs 요약의 해당 cg 항목, 해당 cg 블록, 세 inode(System.config 의 `Instance0.table` 194897, 새 inode, `CG14FrameBuffer.config` 25536)가 든 inode 조각, 디렉터리 조각 116744, 두 파일의 새 데이터 조각. 예비 슈퍼블록, 라벨, 부트 영역, 그 밖의 모든 바이트는 그대로여야 합니다.
+  - inode 칸: 194897 은 size·db·blocks·세 시각만, 25536 은 mtime·ctime(과 atime)만, 새 inode 는 바탕에서 비어 있던 칸이어야 하고 mode 0100644·nlink 1·uid 0·gid(부모 = 0)·size·db·blocks 를 봅니다. 다른 칸은 바이트 불변입니다.
+  - 새 데이터 조각은 바탕에서 비어 있던 조각(cg 비트맵)이고, 내용 뒤는 조각 끝까지 0 입니다.
+  - 비트맵 차이는 새 inode 비트 1 개 설정, 새 조각 설정, 옛 조각 891152 해제와 정확히 같아야 합니다.
+  - 디렉터리 조각: 기존 항목의 이름·inode 는 그대로이고, `French.lproj` 의 reclen 이 줄고 그 뒤에 `Instance0.table` 항목이 생깁니다.
+  - `nextufs fsck -n` 은 전체 출력을 보관하고, 5 단계 뒤 요약 줄(`22782 files`)까지 나오며 경고 줄이 없어야 합니다.
+  - 어느 명령이든 실패하면 이어서 고치지 않고 1 단계부터 다시 합니다.
+- 6 단계: 스크립트를 거치지 않고 같은 구성의 QEMU 명령을 한 번 직접 실행합니다. 디스크 드라이브에만 `snapshot=on` 을 주고 NVRAM 은 그대로 씁니다. OBP 에서 `setenv diag-switch? false` 를 한 뒤 끝냅니다. 그다음 확인할 것:
+  - 디스크 SHA-256 불변
+  - NVRAM 8192 B, 실행 전후 바이트 보관
+  - ID PROM: type 1, 기종 0x72, MAC 08:00:20:c0:ff:ee, hostid = c0:ff:ee, XOR 검사 일치
+  - stderr 에 NVRAM 쓰기 오류 없음
+  - 새 QEMU 에서 `printenv` 로 `diag-switch?`·`auto-boot?`·`boot-device`·`boot-file` 과 `devalias disk` 를 봅니다. 자동 부팅은 이 값들과 `--snapshot` 부팅 관찰로 판정합니다.
+
+### 실행 결과 (2026-10-25)
+
+- 1 단계: SS-20 QEMU 가 없음을 확인했습니다. 옛 raw(`8c5a1cc9…`, qcow2 맨 위 층)를 지우고 `before-devtools` 에서 다시 만들었습니다. 결과는 `6d9bb001…` 이고, `nextufs fsck -n` 경고가 없습니다(22781 files). qcow2 는 `625c6284…` 그대로입니다.
+- 2·3 단계: 두 명령 모두 종료 코드 0 이었습니다.
+  - `System.config/Instance0.table`: 266 B 에서 282 B 로 바뀌었습니다. 내용 SHA-256 `146b0e89…` 이고, `diff` 로 보면 Boot Drivers 줄만 다릅니다.
+  - `CG14FrameBuffer.config/Instance0.table`: inode 25563, 366 B, SHA-256 `94671b57…`(= `Default.table`)
+  - 디스크 SHA-256 은 `a4c2d63f…` 입니다.
+- 4 단계 게이트(`ufsgate.py`, scratchpad): 통과했습니다.
+  - 바뀐 조각 11 개가 모두 허용 목록 안에 있습니다: 주 슈퍼블록 8, cs 요약 88·94, cg 57·435 블록, inode 조각 3 개, 디렉터리 116744, 새 데이터 891176·116928.
+  - 슈퍼블록에서는 `fs_time` 과 cstotal 바이트만 바뀌었습니다.
+  - 비트맵은 기대한 대로 바뀌었습니다(새 inode, 새 조각 둘, 옛 조각 891152 해제).
+  - inode 칸은 허용한 필드만 바뀌었고, 새 데이터 조각의 끝은 0 입니다.
+  - `fsck -n` 은 경고 없이 22782 files 입니다.
+  - 게이트 첫 실행은 `blocks` 2 건으로 실패했습니다. 원인은 게이트가 `di_blocks` 를 512 B 단위로 계산한 제 오류였습니다. 이 파일 시스템은 1024 B 단위(`fsbtodb` 0, `DEV_BSIZE` 1024)이고, 바탕 디스크의 한 조각짜리 파일 4 개도 1 입니다. 단위만 고쳐 다시 돌렸고, 다른 기준은 바꾸지 않았습니다.
+- 5 단계 부팅(`vm-sparc20.sh boot --snapshot`, SDL):
+  - 빈 NVRAM 이라 OBP 가 "Incorrect configuration checksum" 을 내고 기본값을 씁니다(`diag-switch?` true, 네트워크 부팅).
+  - Stop-A 를 누르고 `setenv diag-switch? false` 를 했습니다. 이때 본 값은 `auto-boot?` true, `boot-device` `disk net`, `boot-file` 빈 값, `devalias disk` = `/iommu/sbus/espdma@f,400000/esp@f,800000/sd@3,0` 입니다.
+  - `boot disk` 를 넣었습니다(00:27:50).
+  - 커널 메시지: `/dev/rsd0a: file system clean: skipping check` → 장치 설정 → 00:31:00 화면에서 Workspace(File Viewer, Dock, 1152x900)
+  - 그동안 받은 화면에 `No Display drivers loaded!` 는 없었습니다.
+  - 미리 정한 통과 조건(15 분 안에 로그인 창 또는 Workspace)을 충족했습니다. 사용자도 화면이 뜬 것을 확인했습니다.
+- 5 단계 끝: OPENSTEP 의 power off 뒤에도 QEMU 는 끝나지 않아 QMP `quit` 로 끝냈습니다. 디스크 `a4c2d63f…` 와 NVRAM 0 B 는 그대로였습니다.
+- 6 단계(스크립트 밖 한 번의 실행, 명령은 scratchpad `ss20nvram/run.sh`):
+  - 디스크 드라이브에 `snapshot=on` 을 주었습니다. QMP `query-block` 에서 `disk0` 은 `/var/tmp` 의 임시 qcow2 덮개 아래 raw 이고, `mtd0` 은 NVRAM 파일에 직접 붙어 있었습니다.
+  - QEMU 가 빈 파일을 8192 B 로 늘렸고, OBP 는 다시 "Incorrect configuration checksum" 으로 기본값을 썼습니다.
+  - Stop-A 를 누르고 `setenv diag-switch? false` 를 했습니다. `printenv` 결과는 `diag-switch?` false, `auto-boot?` true, `boot-device` `disk net`, `boot-file` 빈 값, `devalias disk` sd@3,0 입니다. 이어서 QMP `quit` 로 끝냈습니다.
+  - 결과:
+    - 디스크 SHA-256 `a4c2d63f…` 불변, 임시 덮개 남지 않음, QEMU stderr 비어 있음
+    - NVRAM 8192 B, SHA-256 `9cad19fe…`, 전후 사본은 scratchpad
+    - ID PROM `0172080020c0ffee00000000c0ffee5b`: type 1, 기종 0x72, MAC 08:00:20:c0:ff:ee, hostid c0ffee, XOR 5b 일치
+    - 설정 영역에 OBP 문자열(`disk net`, `keyboard`, `screen`, `9600,8,n,1,-`)이 있음
+  - 확인: 새 프로세스 `vm-sparc20.sh boot --snapshot` 은 입력 없이 디스크로 자동 부팅해 "Starting OPENSTEP" 그래픽 화면으로 갔습니다(사용자도 확인).
+- 7 단계: `vm-sparc20.sh` 에 `ss20_media KEY DEFAULT` 를 두었습니다.
+  - `site.conf` 값이 없거나 비면 `$repo_dir` 기준 기본값(PROM 2.22, `openstep42-sparc-ss20.raw`, `nvram-ss20.bin`)을 씁니다.
+  - 값이 있는데 읽을 수 없으면 키 이름과 함께 멈춥니다.
+  - `site.conf` 가 없을 때 `set -e` 로 끝나지 않도록 `site_value` 가 0 을 돌려주게 했습니다.
+  - 시험(scratchpad 사본 트리, 소켓 `sparc20test`, `--snapshot --vnc … -- -S`):
+    - ① 키가 있으면 그 경로를 씀
+    - ② 키가 비면 기본 경로
+    - ③ `site.conf` 가 없으면 기본 경로
+    - ④ 읽을 수 없는 키 값이면 `SS20_DISK: cannot read …` 로 rc 1
+    - ⑤ 기본 NVRAM 이 없으면 `SS20_NVRAM: cannot read …` 로 rc 1
+    - ①–③ 은 QMP `prelaunch` 를 확인한 뒤 끝냈고, 가짜 매체의 해시는 그대로입니다.
+  - `QEMU_VM_CONFIGURATIONS.md` 2a 절, `README.md`, `site.conf.example` 을 맞췄습니다.

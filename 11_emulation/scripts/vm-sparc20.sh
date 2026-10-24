@@ -8,6 +8,9 @@
 # Only build/qemu-sparcstep has cg14 (the lab and 6.2 builds do not).
 # Media come from 11_emulation/site.conf: SS20_PROM, SS20_DISK (raw),
 # SS20_NVRAM (0 or 8192 bytes), SS20_MAC (optional, default 08:00:20:C0:FF:EE).
+# An unset or empty media key takes the repository default that booted to the
+# Workspace (2026-10-25, 02_plan/EMULATION_PLATFORM_PLAN.md): PROM OBP 2.22 in
+# firmware/, the raw disk and NVRAM file in 09_validation/images/sparc/.
 # Without --snapshot QEMU writes the disk and the NVRAM file: at every start it
 # rewrites the NVRAM ID PROM (0x1fd8-) from the MAC and machine, and fills an
 # all-zero NVRAM with defaults (hw/sparc/sun4m.c nvram_init), even with -S.
@@ -37,24 +40,32 @@ want=d64a3948524cda028a29f5177420b8910ae988e46abccaaf97bbcb3fca7259d1
     { echo "$qemu missing or not the pinned sparcstep build (build-qemu-sparcstep.sh)" >&2; exit 1; }
 
 # site.conf value that is not a file (vm_media requires a readable file)
-site_value() { [[ -r "$site_conf" ]] && sed -n "s/^$1=//p" "$site_conf" | tail -n 1; }
+site_value() { [[ -r "$site_conf" ]] || return 0; sed -n "s/^$1=//p" "$site_conf" | tail -n 1; }
 # a value inside a QEMU -drive option: commas are doubled
 qopt() { printf '%s' "${1//,/,,}"; }
+# ss20_media KEY DEFAULT : site.conf value of KEY, or DEFAULT (relative to the
+# repository) when KEY is unset or empty; either must be a readable file
+ss20_media() {
+    local val; val="$(site_value "$1")"
+    [[ -n $val ]] || val="$repo_dir/$2"
+    [[ -r $val ]] || { echo "$1: cannot read $val" >&2; exit 1; }
+    printf '%s\n' "$val"
+}
 
-prom="$(readlink -f -- "$(vm_media SS20_PROM)")"
+prom="$(readlink -f -- "$(ss20_media SS20_PROM 11_emulation/firmware/sun-ss20-obp-2.22-SunOBP2-22_535-1377-07.ROM)")"
 [[ -f $prom ]] || { echo "SS20_PROM: not a regular file: $prom" >&2; exit 1; }
 if [[ -n $disk_file ]]; then
     [[ $snapshot == 1 ]] || { echo "--disk needs --snapshot (the test disk is never written)" >&2; exit 2; }
     disk="$(readlink -f -- "$disk_file")"
 else
-    disk="$(readlink -f -- "$(vm_media SS20_DISK)")"
+    disk="$(readlink -f -- "$(ss20_media SS20_DISK 09_validation/images/sparc/openstep42-sparc-ss20.raw)")"
 fi
 python3 -c 'import os,sys
 p=sys.argv[1]
 ok=os.path.isfile(p) and os.access(p,os.R_OK) and os.path.getsize(p)>0 and os.path.getsize(p)%512==0
 sys.exit(0 if ok and open(p,"rb").read(4)!=b"QFI\xfb" else 1)' "$disk" ||
     { echo "disk: needs a readable non-empty raw image whose size is a multiple of 512: $disk" >&2; exit 1; }
-nvram="$(readlink -f -- "$(vm_media SS20_NVRAM)")"
+nvram="$(readlink -f -- "$(ss20_media SS20_NVRAM 09_validation/images/sparc/nvram-ss20.bin)")"
 python3 -c 'import os,sys
 p=sys.argv[1]
 sys.exit(0 if os.path.isfile(p) and os.path.getsize(p) in (0, 8192) else 1)' "$nvram" ||
