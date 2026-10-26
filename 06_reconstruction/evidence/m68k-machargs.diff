@@ -1,0 +1,133 @@
+--- nextmach/mk-108.1/next/machargs.c
++++ 07_kernel/src/machdep/m68k/machargs.c
+@@ -7,6 +7,19 @@
+  *	Added mach_ldebug.
+  */
+ 
++/*
++ * m68k: next/machargs.c of the 1997 m68k kernel (plans 515-517, D103, D104, D110).
++ * Base: NeXTMach mk-108.1 next/machargs.c (above notice).  The kernargs table
++ * and the getargs block after the name match are written from the original
++ * bytes (_kernargs at 0x40b28ee, _getargs at 0x4093192); the 1997 x86
++ * i386_init.c has the same getargs block without the printf.  next/cpu.h
++ * (NeXTMach) is not used in C (D109); the SDK <m68k/cpu.h> is imported and the
++ * two next/cpu.h names this file needs are defined here.  NOD is 1 and
++ * SHOW_SPACE, MACH_LDEBUG, MALLOCDEBUG, EVENTMETER are 0 in the m68k
++ * configuration (06_reconstruction/config_options-m68k.tsv).  Lines marked
++ * plan 517 differ from NeXTMach.
++ */
++
+ #import <show_space.h>
+ #import <mach_ldebug.h>
+ #import <gdb.h>
+@@ -19,16 +32,18 @@
+ #import <sys/kernel.h>
+ #import <kern/xpr.h>
+ #import <next/event_meter.h>
+-#import <next/cpu.h>
++#import <m68k/cpu.h>	/* plan 517 (D110): NeXTMach <next/cpu.h> */
++extern int slot_id_bmap;	/* plan 517 (D110): NeXTMach next/cpu.h */
++#define	P_DSP		(SLOT_ID_BMAP+0x02008000)	/* plan 517 (D110): NeXTMach next/cpu.h:152 */
+ 
+-extern int cache, hz, phz, nbuf, bufpages,
++extern int cache, hz, phz, nbuf, nmfsbuf, bufpages,	/* plan 517 (D110): nmfsbuf */
+ 	nmi_cont, nmi_gdb, nmi_mon, nmi_help, nmi_halt, nmi_msg,
+ 	nmi_stay, nmi_reboot, nmi_big, ncallout, pagesize, mem, rootrw,
+ 	astune_rate, astune_calls;
+ extern char init_program_name[], rootname[], rootdevice[];
+ 
+ int	debug;		/* general purpose kernel debug flag */
+-int	maxphys = 8192;	/* max physio size due to DMA chip bug */
++/* plan 517 (D110): no maxphys (no _maxphys in the original) */
+ 
+ #if	DEBUG
+ extern int endbug, timer_debug, dmadbug, show_info, timer_dbug,
+@@ -60,6 +75,7 @@
+ #if	GDB
+ extern int breakpoint;
+ extern int rmtdebug;
++extern int kdb_ipaddr;	/* plan 517 (D110): original _kdb_ipaddr (__common), defined elsewhere */
+ #endif	GDB
+ 
+ #import <od.h>
+@@ -74,6 +90,7 @@
+ extern int od_dbug1;
+ #endif	DEBUG
+ #endif	NOD
++extern int scc_buffer;	/* plan 517 (D110): original _scc_buffer (__data, 112 bytes), defined elsewhere; actual type unknown */
+ 
+ #import <iplmeas.h>
+ #if NIPLMEAS
+@@ -110,7 +127,7 @@
+ #endif	XPR_DEBUG
+ 	"cache", &cache, 0,
+ 	"hz", &hz, 0,
+-	"phz", &phz, 0,
++/* plan 517 (D110): no phz entry */
+ #if	EVENTMETER
+ 	"em_chirp", &em_chirp, 0,
+ 	"p0", &em.pid[0], 0,
+@@ -118,6 +135,7 @@
+ 	"p2", &em.pid[2], 0,
+ #endif	EVENTMETER
+ 	"nbuf", &nbuf, 0,
++	"nmfsbuf", &nmfsbuf, 0,	/* plan 517 (D110) */
+ 	"bufpages", &bufpages, 0,
+ 	"pagesize", &pagesize, 0,
+ 	"mem", &mem, 0,
+@@ -137,7 +155,7 @@
+ 	"dspm", 0, (u_char *)(P_DSP+6),
+ 	"dspl", 0, (u_char *)(P_DSP+7),
+ 	"debug", &debug, 0,
+-	"maxphys", &maxphys, 0,
++/* plan 517 (D110): no maxphys entry */
+ 	"ncallout", &ncallout, 0,
+ #if	DEBUG
+ 	"endbug", &endbug, 0,
+@@ -170,7 +188,7 @@
+ #endif	SHOW_SPACE
+ #if	GDB
+ 	"breakpoint", &breakpoint, 0,
+-	"rmtdebug", &rmtdebug, 0,
++	"kdb_ipaddr", &kdb_ipaddr, 0,	/* plan 517 (D110): replaces rmtdebug */
+ #endif	GDB
+ #if	NOD
+ 	"od_frmr", &od_frmr, 0,
+@@ -185,12 +203,7 @@
+ 	"od_write_retry", &od_write_retry, 0,
+ 	"od_flgstr1", (int*)&od_flgstr[0], 0,
+ 	"od_flgstr2", (int*)&od_flgstr[4], 0,
+-	"mi_rv_delay", &mi_rv_delay, 0,
+-	"mi_expire", &mi_expire, 0,
+-	"mi_expire_sh", &mi_expire_sh, 0,
+-	"mi_expire_sh2", &mi_expire_sh2, 0,
+-	"mi_expire_jmp", &mi_expire_jmp, 0,
+-	"mi_expire_max", &mi_expire_max, 0,
++	/* plan 517 (D110): no mi_* entries */
+ 	"od_errmsg_filter", &od_errmsg_filter, 0,
+ 	"od_id_r", &od_id_r, 0,
+ 	"od_id_v", &od_id_v, 0,
+@@ -201,6 +214,8 @@
+ 	"od_dbug1", &od_dbug1, 0,
+ #endif	DEBUG
+ #endif	NOD
++	"scc_buffer", &scc_buffer, 0,	/* plan 517 (D110) */
++	"sb", &scc_buffer, 0,	/* plan 517 (D110) */
+ #if	MALLOCDEBUG
+ 	"mallocdebug", &mallocdebug, 0,
+ #endif	MALLOCDEBUG
+@@ -290,6 +305,14 @@
+ 				if (strncmp(args, kp->name, i))
+ 					continue;
+ 				*cp = c;
++				/* plan 517 (D110): from the original bytes, 0x409332e-0x4093356 and 0x40932a6-0x40932b8 */
++				while (isargsep (*cp))
++					cp++;
++				if (*cp == '=' && c != '=') {
++					printf("no spaces surrounding '=' allowed\n");
++					args = cp+1;
++					goto gotit;
++				}
+ 				if (interactive && *cp == '=' &&
+ 				    isargsep(*(cp+1))) {
+ 				    	if (kp->i_ptr)

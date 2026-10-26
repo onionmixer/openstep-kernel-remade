@@ -653,7 +653,7 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
 - §507 M4-13 세부 계획 — `next_table` 의 1997 년 꼴 진단(07 변경 없음; 코딩 전, 2026-10-24) → [plans/RECONSTRUCTION_PLAN-495-508.md](plans/RECONSTRUCTION_PLAN-495-508.md)
 - §508 M4-14 D106 구현 계획 — 07 `src/machdep/m68k/next_table.c`(코딩 전, 2026-10-24) → [plans/RECONSTRUCTION_PLAN-495-508.md](plans/RECONSTRUCTION_PLAN-495-508.md)
 
-## 현재 상태와 다음 일 (2026-10-24)
+## 현재 상태와 다음 일 (2026-10-26)
 
 - x86: 07 소스로 다시 만든 커널이 원본과 바이트 단위로 같습니다. x86 이 쓰는 07 파일을 고칠 때마다 x86 전체 재빌드·링크 `cmp` 로 다시 확인합니다(마지막 s6ll·`s6p494-ln1`). x86 이 읽지 않는 07 추가(§497 의 `src/machdep/m68k`)는 x86gate 와 `m4_x86_inputs.py`(forms·명령·소스 목록)로 x86 입력이 그대로임을 확인합니다.
 - m68k M5(공통부 208 객체): 206 개(99.0%)가 코드 검증되었습니다. OBJECT_MATCH 177, 명시 배치 `ufs_alloc` 1, "코드 검증 + bss 추정" 28 입니다(§488.5).
@@ -662,11 +662,12 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
   - `swapfs`: §490–494 에서 부분 개선을 07 에 넣었습니다(D102). 숫자를 가린 실기 목록에서 29 함수 가운데 28 개가 원본과 같고, `swapfs_unlock` 만 둘째 마스크의 레지스터(3 B)가 다릅니다. L1 은 `__TEXT,__text: fail` 이므로 집계는 그대로입니다. 시도한 꼴은 §493 에 있습니다(`kdp_udp` 는 §483, `callout` 은 §484–485, `tty` 는 §486–488 에서 해결).
 - 남은 객체에서 자주 나온 원인(§479–488; `tty` 에서는 부호 있는 바이트 상수 비교의 즉시값 `ffff`/`00ff` 와 `(u_char)` 0 확장 꼴도 나옴): x86 `-O3` 와 m68k `-O2` 의 정적 함수 출력 순서·인라인 차이, x86 바이트로 정해지지 않던 m68k 전용 줄(`#if i386`·`#if m68k`), 선언 형(`void`/`int`)이 바꾸는 레지스터, `#pragma CC_OPT_OFF`.
 - m68k M4(머신 의존부): 목록 `06_reconstruction/m68k-m4-inventory.tsv`(§495; 188 행, 묶음 A–I)와 받아들인 객체 표 `06_reconstruction/m68k-m4-status.tsv`(§500, 도구 `m4_m68k_status.py`)가 기준입니다.
-  - 받아들인 객체 10 개: `vm_unix`(07 공통 소스 그대로, §500), `checksum_16`·`dkbad`·`ufs_machdep`(§497), `cons`(§502), `bus`(§504), `nbic`(§506), `next_table`(§508), `mem`(§510), 어셈블리 `libc.s`(§512; 1194 B, 행 277–290)·`monitor.s`(§514). §495 행 28/188, 행 최소 바이트 합 6244 B = M4 최소 바이트의 2.89% 입니다.
-  - 정한 것: D103(m68k 전용 C 는 07 `src/machdep/m68k/`), D104(include 는 OPENSTEP 경로·아키텍처 머리는 `<m68k/…>`, NeXTMach 전용 머리는 `07_kernel/nextmach/` 에 두고 m68k 스테이징 `M4HEADERS` 로 넣음, §506), D105(`nbic`), D106(`next_table`), D107(`mem`: 파일 안 매크로 이름, NeXTMach 머리 `next/mmu.h`·고친 `nextdev/snd_dspreg.h`), D108(어셈블리: `-DASSEMBLER`, `cframe.h` 는 NeXTMach 사본, `gdb.h` 는 `-imacros` 경유), D109(`monitor.s`: NeXTMach `next/cpu.h` 는 어셈블리 전용으로 `<next/cpu.h>`, `spl.h` 는 SDK). 참고 머리에 이름이 없는 값은 D105·D106 에서는 숫자로, D107 에서는 파일 안 매크로로 썼습니다(사용자 선택).
+  - 받아들인 객체 12 개: `vm_unix`(07 공통 소스 그대로, §500), `checksum_16`·`dkbad`·`ufs_machdep`(§497), `cons`(§502), `bus`(§504), `nbic`(§506), `next_table`(§508), `mem`(§510), 어셈블리 `libc.s`(§512; 1194 B, 행 277–290)·`monitor.s`(§514), `machargs`(§517; 행 292–293, 1298 B + 표 660 B). §495 행 30/188, 행 최소 바이트 합 7542 B = M4 최소 바이트의 3.49% 입니다.
+  - 정한 것: D103(m68k 전용 C 는 07 `src/machdep/m68k/`), D104(include 는 OPENSTEP 경로·아키텍처 머리는 `<m68k/…>`, NeXTMach 전용 머리는 `07_kernel/nextmach/` 에 두고 m68k 스테이징 `M4HEADERS` 로 넣음, §506), D105(`nbic`), D106(`next_table`), D107(`mem`: 파일 안 매크로 이름, NeXTMach 머리 `next/mmu.h`·고친 `nextdev/snd_dspreg.h`), D108(어셈블리: `-DASSEMBLER`, `cframe.h` 는 NeXTMach 사본, `gdb.h` 는 `-imacros` 경유), D109(`monitor.s`: NeXTMach `next/cpu.h` 는 어셈블리 전용으로 `<next/cpu.h>`, `spl.h` 는 SDK), D110(`machargs`: m68k 구성 `NOD 1`·`SHOW_SPACE`·`MACH_LDEBUG`·`MALLOCDEBUG`·`EVENTMETER` 0 생성 머리, `next/event_meter.h` 사본, 새 `extern` 은 `extern int`, C 는 SDK `<m68k/cpu.h>` + 파일 안 `P_DSP`·`slot_id_bmap`). 참고 머리에 이름이 없는 값은 D105·D106 에서는 숫자로, D107 에서는 파일 안 매크로로 썼습니다(사용자 선택).
   - 주의: NeXTMach `next/cpu.h`·`next/scr.h` 를 그대로 들이면 원본에 없는 COMMON(`_disk_chip`·`_scr1`)이 생깁니다(§505·§507). 컴파일 줄은 `machdep/i386/dkbad.c` 의 x86 줄에 §429 치환을 한 틀을 빌려 씁니다(§496·§503).
   - 다음 후보: `in_bootp`(m68k 판 글 필요, §499.2), `tty_pty` 꼬리 `_ptsputc`(`m68k-036`, §498), `in_cksum`(원본이 `_oc_cksum`(`m68k-273`)을 부름, §496).
-  - M7 링크 의무: `slot_id`·`machine_type`·`dma_chip` 등 COMMON 정의를 낼 객체, 머리의 임시 정의와 다른 객체의 `__data` 정의의 합침(§506·§508), m68k `.s` 의 `-DASSEMBLER`(§512), `next/cpu.h` 는 어셈블리 전용(§514).
+  - M7 링크 의무: `slot_id`·`machine_type`·`dma_chip` 등 COMMON 정의를 낼 객체, 머리의 임시 정의와 다른 객체의 `__data` 정의의 합침(§506·§508), m68k `.s` 의 `-DASSEMBLER`(§512), `next/cpu.h` 는 어셈블리 전용(§514), `_kdb_ipaddr`·`_scc_buffer`(형 모름)의 정의 객체(§517).
+  - m68k 생성 머리(`07_kernel/v183.34/m68k/generated/`)는 모든 m68k 스테이징에 들어가므로, 바꿀 때는 M5 205 줄을 이전 스테이징과 새 스테이징에서 컴파일해 객체마다 비교합니다(§517).
   - 어셈블리 경로(묶음 A)는 §511–512 에서 세웠습니다. probe 도구는 경계가 정확하지 않은 행이 섞인 구간을 근거와 함께 명시 구간으로 받습니다(§511).
 - SPARC: 에뮬레이터를 sparcstep 포크로 바꾸는 작업이 진행 중입니다(`02_plan/EMULATION_PLATFORM_PLAN.md`; 부팅 시험 S1 미완).
 
@@ -1136,3 +1137,300 @@ SHA-256 `33469393…`. SPARC·m68k 는 x86 이후(8 절).
   - MODIFICATIONS 셋(658 → 661 행)
   - DECISIONS D109(112 → 113 행)
   - 근거 문서 `06_reconstruction/evidence/m68k-monitor.md`
+
+## 515. M4-21 세부 계획 — `next/machargs.c` 진단(07 변경 없음; 코딩 전, 2026-10-26)
+
+확인한 사실(이번 세션, python):
+- §495 행 `m68k-292`(이름표 `x86-i386_init`, 1126 B)와 `m68k-293`(`next/machargs.c`, 172 B)은 둘 다 정확 경계이고 이어집니다. 구간은 [0x4093192, 0x40936a4), 1298 B 입니다. 앞 행 `m68k-291` 은 미배정, 뒤 행 `m68k-294` 는 `next/machdep.c` 입니다.
+- 구간 안 함수(`06_reconstruction/m68k-functions.tsv`)는 `_getargs` 796, `_isargsep` 40, `_argstrcpy` 54, `_getval` 236, `_machparam` 172 B 입니다. NeXTMach mk-108.1 `next/machargs.c` 의 정의 순서(240·344·353·365·427 행)와 같습니다.
+- 원본 `__cstring` 에 NeXTMach `getargs` 의 printf 문자열이 있습니다(`init arg: %s`, `kernel flag %s = 0x%x`, `kernel flag %s = `, `kernel flag %s unknown`; `strings.tsv`). x86 07 `i386_init.c` 의 같은 함수(§248)는 x86 판이라 printf 가 없습니다.
+- 자료:
+  - `_kernargs` 는 `__DATA,__data` 0x40b28ee, 660 B = 12 B × 55 항목입니다(다음 기호 `_nbuf` 까지).
+  - 원본 바이트로 푼 항목(이름 문자열·`i_ptr` 기호·`c_ptr` 값)과 NeXTMach 표의 차이:
+    - 빠짐: `phz`, `maxphys`, `rmtdebug`, `mi_rv_delay`·`mi_expire`·`mi_expire_sh`·`mi_expire_sh2`·`mi_expire_jmp`·`mi_expire_max`
+    - 새로 생김: `nmfsbuf`(`nbuf` 뒤), `kdb_ipaddr`(`breakpoint` 뒤), `scc_buffer`·`sb`(둘 다 `_scc_buffer`, `od_dbug` 뒤)
+    - 거짓인 조건부 항목: `DEBUG`·`XPR_DEBUG`·`EVENTMETER`·`FP_DEBUG`·`MACH_LDEBUG`·`SHOW_SPACE`·`MALLOCDEBUG`·`NIPLMEAS`
+    - 참인 조건부 항목: `GDB`(`breakpoint`), `NOD`(`od_*`)
+    - `dsp*` 일곱 항목은 `c_ptr` 0x2008000–0x2008007(`SLOT_ID_BMAP` 0 의 `P_DSP+n`)입니다.
+  - `_debug` 는 `__common`(0x40c9498)에 있고, `_maxphys` 기호는 원본에 없습니다.
+- 머리(바탕 스테이징 `m0p514-a1-stage`, M5 m68k 줄의 `-I`):
+  - 있음: `next/cpu.h`(NeXTMach 사본, D109 로 어셈블리 전용), `generated/gdb.h`(m68k, `GDB 1`), `generated/iplmeas.h`(m68k, 0)
+  - `generated/od.h` 는 x86 의 `07_kernel/generated/od.h`(`NOD 0`)입니다. 그러나 원본 표에는 `od_*` 가 있고, m68k 목록에 `nextdev/od.c`(`m68k-234`)가 있습니다.
+  - 없음: `show_space.h`·`mach_ldebug.h`·`mallocdebug.h`, NeXTMach 에만 있는 `next/event_meter.h`(`sound.h` 는 `#if DEBUG` 안)
+
+방법(진단; 명세 `08_build/artifacts/m4p515/spec.json`, run `m4p515-p1`, 바탕 `m0p514-a1-stage`, 줄 틀 `machdep/i386/dkbad.c`(§496), `m4_id` = [`m68k-292`, `m68k-293`]):
+- 변형 G: NeXTMach `machargs.c` 그대로입니다. `inc` 로 공급하는 것:
+  - NeXTMach `next/event_meter.h` 사본
+  - 진단용 대역 구성 머리 `show_space.h`(`SHOW_SPACE 0`), `mach_ldebug.h`(`MACH_LDEBUG 0`), `mallocdebug.h`(`MALLOCDEBUG 0`). 0 인 근거는 원본 표에 그 항목이 없다는 것이고, 07 에는 넣지 않습니다.
+  - `od.h` 는 `-I` 순서상 `inc` 로 덮을 수 없어 `NOD 0` 그대로입니다.
+- 변형 T: G 에서 `kernargs` 표와 그에 쓰이는 `extern` 선언만 원본 55 항목대로 고칩니다(위 차이). `maxphys` 변수와 항목은 지웁니다. `od_*` 는 진단을 위해 조건 없이 둡니다. 함수 본문은 고치지 않습니다.
+- 측정:
+  - `compare`: 명령 종료·경고·i386 머리, L1, `__text` 크기, 외부 기호, 원본에 없는 미정의 기호, G·T 객체 같음
+  - 실기 `otool -tv` 로 `funcs`(함수별 명령 수, 숫자를 가린 같음)
+  - python: 객체 `__data` 의 `kernargs` 를 재배치를 따라 풀어 원본 55 항목(이름 문자열, `i_ptr` 기호와 덧셈, `c_ptr`)과 비교하고, 정의·COMMON 기호를 원본과 견줍니다(`_debug` COMMON, `_maxphys` 없음)
+
+판정(미리 정함; 진단이므로 07 은 바꾸지 않음): 변형마다 함수별 같음, 표 같음, 기호 차이를 적습니다. 사용자께 여쭐 것(결과에 따라):
+- `NOD` 를 m68k 구성(`06_reconstruction/config_options-m68k.tsv` → `gen_config_headers.py`)으로 1 로 둘지, `od_*` 항목을 조건 없이 쓸지(바이트로 구분 안 됨)
+- 없는 구성 머리 셋을 m68k 생성 머리(값 0)로 둘지, include 줄을 지울지
+- C 에서 `next/cpu.h` 가 필요할 때 D109 와의 관계(`P_DSP` 를 D107 처럼 파일 안 매크로로 둘지 등)
+
+### 515.1 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+제 오류:
+- "12 B × 55 항목" 은 끝 표시(0,0,0)를 넣은 수입니다. 이름이 있는 항목은 54 개이고 끝 표시는 0x40b2b76 에서 시작합니다(python).
+- `dsp*` 의 `c_ptr` 을 "0x2008000–0x2008007" 로 적어 빠진 4 를 가렸습니다. 실제 덧셈은 0·1·2·3·5·6·7 입니다.
+- "조건이 거짓/참" 은 표의 항목 유무에서 미룬 추정입니다. NeXTMach 에서 `#if GDB` 는 `breakpoint`·`rmtdebug` 를 함께 담는데(`machargs.c:171–174`) 원본에는 `breakpoint` 만 있습니다. `#if NOD` 도 지워진 `mi_*` 를 담습니다. 원래 조건 구조가 그대로였다는 보장은 없습니다.
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| NeXTMach `next/event_meter.h` 는 `KERNEL` 이고 `KERNEL_FEATURES` 가 없으면 `<eventmeter.h>` 를 들이는데, 스테이징에 없음 | `event_meter.h:15–19` 읽음, 스테이징 `find` 0 건 | ✅ 대역 `eventmeter.h`(`EVENTMETER 0`) 추가 |
+| C 에서 `next/cpu.h` 는 `master_cpu`·`dma_chip`·`disk_chip`·`machine_type`·`board_rev`·`cpu_type`·`intrmask`·`intr_mask`·`slot_id`·`slot_id_bmap` 을 임시 정의함(`_disk_chip` 은 원본에 없음) | `cpu.h:42–106` grep·읽음 | ✅ 깨끗한 변형 C 추가, 정의·COMMON 을 모두 기록 |
+| `candidate`·L1 `OBJECT_MATCH` 는 COMMON 깨끗함을 보이지 않음(`full_span` 은 텍스트 크기·외부 텍스트 이름·미정의·배치만) | `m4_m68k_probe.py:328–341` 읽음 | ✅ |
+| `od.h` 는 `meta_features.h` 가 `-imacros` 로도 들이므로 `inc` 로 못 덮음 | 스테이징 `meta_features.h:41` 읽음, `probe.py:202–204`(`inc` 는 마지막 `-I` 뒤) | ✅ |
+| L1 은 `--place-from-image` 로 놓인 `__data` 의 바이트와 재배치 칸을 비교하고, `__cstring` 은 참조마다 내용으로 비교함(통째 배치는 보지 않음) | `l1_compare.py:133–140,300–330,460–475` 읽음 | ✅ L1 결과를 그대로 남기고, 표 순서 비교는 따로 python 으로 |
+| 해독: `_kernargs` 는 4 로 나눈 나머지 2(올림 금지), 객체 재배치(일반·지역·흩어진)와 덧셈 유지, `_od_flgstr+4`, `scc_buffer`·`sb` 는 같은 기호의 다른 항목 | python(`0x40b28ee % 4 = 2`), 위 해독 출력 | ✅ |
+| `refs` 가 없으면 `diag_gate` 실패가 종료 코드를 바꾸지 않음; `funcs` 는 16 진 숫자를 가려 상수·대상을 못 봄 | `probe.py:359–370` 읽음 | ✅ `diag_gate` 와 옵션을 따로 확인, `funcs` 는 진단용으로만 |
+| `NOD 1` 과 조건 없는 항목, 값 0 대역 머리와 include 삭제를 각각 시험할 것 | 설계 | ⚖️ 이 둘은 전처리 뒤 같은 글이 되도록 짤 수 있어 바이트로 가려지지 않는다는 점을 기록하고 사용자 결정으로 넘김(별도 바탕 스테이징은 만들지 않음) |
+| D103–D109 는 `02_plan/DECISIONS.md:107–113` | 읽음 | ✅ |
+
+수정한 방법(앞 방법을 대신함):
+- 변형 G: NeXTMach 원문 그대로. `inc` = NeXTMach `next/event_meter.h` 사본과 진단 대역 `eventmeter.h`(`EVENTMETER 0`), `show_space.h`(`SHOW_SPACE 0`), `mach_ldebug.h`(`MACH_LDEBUG 0`), `mallocdebug.h`(`MALLOCDEBUG 0`).
+- 변형 T: G 에서 표와 그 `extern` 만 원본 54 항목대로 고칩니다. `maxphys` 변수·항목은 지우고, `od_*` 는 조건 없이 둡니다.
+- 변형 C: T 에서 `#import <next/cpu.h>` 를 지웁니다. 대신 파일 안에 `P_DSP` 매크로(D107 꼴, NeXTMach `cpu.h:152` 의 식)와 `extern int slot_id_bmap;` 을 둡니다. C 에서 `next/cpu.h` 를 쓰지 않는 깨끗한 변형입니다.
+- 모든 변형의 함수 본문 토큰은 NeXTMach 와 같아야 합니다(python 확인). 다르면 run 전에 멈춥니다.
+- 표 비교 도구 `10_tools/reconstruction/m68k_kernargs.py`(읽기 전용):
+  - 원본: `_kernargs` 에서 12 B 씩, 끝 표시까지 읽습니다.
+  - 객체: `__data` 의 `_kernargs` 기호부터 재배치를 따라 이름 문자열 내용, `i_ptr` 기호와 덧셈, `c_ptr` 을 풉니다.
+  - 순서대로 맞대어 같음과 차이를 냅니다.
+- 기록: `compare`(`diag_gate`, 옵션, L1 의 `__data` 주소·크기·바이트 차이·참조 차이, 정의·COMMON 기호 전부), 실기 `otool -tv` 와 `funcs`, 표 비교.
+
+### 515.2 결과(2026-10-26)
+
+- run `m4p515-p1`(스테이징 `m4p515-stage` 922 파일, 6 명령 모두 종료 0·경고 0·i386 머리 0, 옵션 = M5 줄; 기록 `09_validation/reconstruction/m4-m68k-probe-p515-20261026.json`). T·C 의 함수 본문 토큰은 NeXTMach 와 같습니다(1119 토큰, python).
+- 세 변형 모두 `__text` 는 1238 B 로, 원본 구간 1298 B 보다 60 B 작습니다. L1 은 `NOT_MATCH`(`__TEXT,__text: unverified`)입니다.
+- 정의 기호:
+  - G·T: `next/cpu.h` 의 COMMON 10 개(`_disk_chip` 포함)가 생깁니다. G 는 `_maxphys` 도 정의하고, 원본에 없는 미정의 `_phz`·`_rmtdebug` 가 있습니다.
+  - C: 함수 다섯, `_kernargs`, COMMON `_debug`(4 B)뿐입니다.
+  - T·C 는 canon 이 같습니다(기호 표만 다름).
+- 표(`m68k_kernargs.py`, 새 도구; 기록 `m4-m68k-kernargs-p515-{G,T,C}-20261026.json`):
+  - T·C 의 `__data` 는 660 B 로 `_kernargs` 하나이고, 55 항목(끝 표시 포함) 모두 원본과 같습니다. 이름 내용, `i_ptr` 기호와 덧셈(`_od_flgstr+4` 포함), `c_ptr` 을 봤습니다.
+  - G 는 36 항목이고 차이가 32 개입니다.
+  - L1 도 T·C 의 `__data` 에 실패 사유가 없습니다.
+- 함수별(실기 `otool -tv`, `08_build/artifacts/m4p515/otool/`; 기록 `m4-m68k-funcs-p515-20261026.json`):
+  - `isargsep`·`argstrcpy`·`getval`·`machparam` 은 숫자를 가린 명령 열이 원본과 같습니다.
+  - `getargs` 만 다릅니다(원본 250, 객체 235 명령). 원본을 문자열·기호와 함께 풀어 보면, 이름 비교가 맞은 뒤 `*cp = c;` 다음에 다음이 있습니다(0x409332e–0x4093356, 0x40932a6–0x40932b8).
+    - `while (isargsep(*cp)) cp++;`
+    - `if (*cp == '=' && c != '=') { printf("no spaces surrounding '=' allowed\n"); args = cp+1; goto gotit; }`
+    - x86 1997 판(07 `i386_init.c:419–424`, 바이트 검증; §517.3 에서 줄 번호 정정)에도 printf 만 빠진 같은 덩이가 있습니다.
+  - 나머지 차이는 `args` 레지스터 배정(a5 대 d2)과 그에 따른 이동입니다.
+  - `switch` 표(19 칸, `'a'`–`'s'`)는 경우→대상 묶음이 같습니다. 원본은 절대 주소, 객체는 객체 주소를 담고, 대상이 모두 6 B 차이입니다(python).
+
+## 516. M4-22 세부 계획 — `getargs` 의 1997 덩이를 넣은 변형 D 진단(07 변경 없음; 코딩 전, 2026-10-26)
+
+근거: §515.2 의 원본 `getargs` 풀이(0x409332e–0x4093356, 0x40932a6–0x40932b8)와 x86 1997 판 `07_kernel/src/machdep/i386/i386_init.c:419–424`(§517.3 에서 줄 번호 정정).
+
+방법:
+- 변형 D = §515 의 C 에 한 덩이만 더합니다. 자리는 `getargs` 의 `*cp = c;` 바로 뒤, `if (interactive && *cp == '=' &&` 앞입니다. 글은 x86 1997 판의 줄에 m68k 원본 문자열의 printf 한 줄을 더한 것입니다.
+  ```c
+  				while (isargsep (*cp))
+  					cp++;
+  				if (*cp == '=' && c != '=') {
+  					printf("no spaces surrounding '=' allowed\n");
+  					args = cp+1;
+  					goto gotit;
+  				}
+  ```
+- python 확인: D 와 C 의 차이는 이 7 줄 삽입뿐이고, 다른 토큰은 같아야 합니다.
+- run `m4p516-p1`(명세 `08_build/artifacts/m4p516/spec.json`, 바탕 `m0p514-a1-stage`, `inc` 는 §515 와 같음, `m4_id` [`m68k-292`, `m68k-293`]). 변형은 D 와 대조용 C(§515 재현)입니다.
+- 측정: `compare`(`diag_gate`, 옵션, `__text` 크기, L1, `full_span`, 정의·COMMON), `m68k_kernargs.py`, 맞지 않으면 실기 `otool -tv` 와 `funcs`.
+
+판정(미리 정함): D 가 `candidate`(`full_span`, L1 `OBJECT_MATCH`)이고, 표가 같고, 정의 기호가 원본 기호표에 있으며 COMMON 이 `_debug` 뿐이면, 07 구현 계획(§517)으로 갑니다. 그 전에 바이트로 정해지지 않는 꼴을 사용자께 여쭙니다(`NOD`, 없는 구성 머리, `next/cpu.h` 대신 파일 안 `P_DSP`, 새 `extern` 의 형, printf 덩이의 글 꼴). 아니면 차이를 기록하고 멈춥니다.
+
+### 516.1 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+제 오류: §515 에서 만든 `m68k_kernargs.py` 에 거짓 "같음" 을 낼 수 있는 결함이 셋 있었습니다(아래 1–3). §515.2 의 T·C 결과는 고친 도구로 다시 돌려도 같습니다.
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| 1. 일반 지역 재배치의 `r_symbolnum`(섹션 번호)을 보지 않고 저장 값으로 섹션을 고름 | `m68k_kernargs.py:113`(고치기 전) 읽음. C 객체 사본의 첫 이름 재배치 섹션을 `__cstring`(3)에서 `__data`(2)로 바꾸면, 고친 도구는 "target outside its section" 으로 멈춤 | ✅ 고침 |
+| 2. 흩어진 재배치가 문자열을 가리킬 때 덧셈(저장 값 − `r_value`)을 버림 | `:109–110` 읽음. 흩어진 VANILLA 로 바꾸고 저장 값 +1 인 사본은 이름이 `''` 로 풀려 차이로 잡힘 | ✅ 고침(실효 대상 = 저장 값, `r_value` 의 섹션 안이어야 함) |
+| 3. 재배치 형을 보지 않음 | `:107` 읽음. 형을 PB_LA_PTR(3)로 바꾼 사본은 "unsupported relocation" 으로 멈춤 | ✅ VANILLA·4 B·PC 상대 아님만 받음 |
+| 5. 표·문자열 읽기에 섹션 경계가 없고, 끝 표시가 없으면 깔끔히 멈추지 않음 | 코드 읽음 | ✅ 경계 검사와 표 크기(`extent`)·원본의 다음 기호까지 거리를 기록 |
+| 6. 바깥 덧셈을 부호 없이 다룸; 기록에 해석 입력(`macho.json`·`symbols.tsv`·`macho_obj.py`) 해시가 없음 | 코드 읽음 | ✅ 부호 있게, 입력 해시 기록 |
+| 4. §516 판정에 `diag_gate`·옵션, C 재현(재배치·COMMON 포함), 정의 집합과 `_debug` 크기, 표 크기를 필수로 | `m4_m68k_probe.py:328–341,359–377` 읽음(`candidate` 는 명령 결과·COMMON 크기와 무관) | ✅ 판정에 넣음 |
+| 삽입 자리(`*cp = c;` 뒤, interactive 시험 앞)와 문자열이 맞음; 그 밖의 동작 차이 없음 | 이번 세션 원본 목록 0x40932f2–0x4093356·0x40932a6–0x40932b8 읽음, 원본 바이트로 문자열 34 B(끝 LF) 확인, `__cstring` 순서(`init arg` 0xac35e → 이 문자열 0xac36c → `kernel flag` 0xac38f)가 소스 순서와 맞음 | ✅ |
+
+고친 도구 재실행(T·C): 55 항목 같음, 표 크기 660 = 객체 `__data` 660 = 원본 `_kernargs`→`_nbuf` 660 B, 재배치 종류는 일반 지역·바깥 VANILLA 뿐입니다.
+
+수정한 판정(앞 판정을 대신함). 다음을 모두 만족하면 사용자 결정으로 넘어가고, 아니면 차이를 기록하고 멈춥니다.
+- `diag_gate` 참, 옵션 = M5 줄.
+- C 재현: 객체 SHA-256 이 §515 의 C(`cd69b33b…`)와 같음.
+- D 가 `candidate`(`full_span`, L1 `OBJECT_MATCH`).
+- D 의 정의 집합 = 함수 다섯 + `_kernargs` + COMMON `_debug` 4 B 이고, 모두 원본 기호표에 있음.
+- `m68k_kernargs.py` 로 표 같음, 표 크기 660 = `__data` 크기.
+
+### 516.2 결과(2026-10-26)
+
+- run `m4p516-p1`(스테이징 `m4p516-stage` 916 파일, 4 명령 모두 종료 0·경고 0·i386 머리 0, 옵션 = M5 줄; 기록 `09_validation/reconstruction/m4-m68k-probe-p516-20261026.json`).
+- C 재현: 객체 SHA-256 `cd69b33b…` = §515 의 C.
+- D(`08_build/artifacts/m4p516/src/machargs_D.c`, C 에 7 줄만 더함):
+  - `candidate`: `full_span` 참, L1 `OBJECT_MATCH`(사유 없음), `__text` 1298 B 가 0x4093192 에 놓임, `__data` 660 B 가 0x40b28ee(`_kernargs`)에 놓임, `__cstring` 567 B 는 참조마다 내용 같음
+  - 객체 SHA-256 `447498bb…`
+  - 정의는 함수 다섯 + `_kernargs` + COMMON `_debug` 4 B 로 예상과 같고, 모두 원본 기호표에 있음(`_debug` 는 섹션 6 `__common`)
+  - 원본에 없는 미정의 0
+  - 표(`m68k_kernargs.py`, 고친 판; `m4-m68k-kernargs-p516-{C,D}-20261026.json`): 55 항목 같음, 크기 660 = `__data` 660
+- 판정: §516.1 의 조건을 모두 만족합니다. 07 구현 전에 바이트로 정해지지 않는 꼴을 사용자께 여쭙니다.
+- M7 에 넘길 것(원본 기호, python):
+  - `_kdb_ipaddr` 는 `__common` 4 B 로 `_debug` 바로 뒤에 있습니다. 어느 객체가 정의하는지는 객체 바이트로 정해지지 않습니다.
+  - `_scc_buffer` 는 `__data` 0x40b23be, 다음 기호까지 112 B 이고 정의 객체는 모릅니다.
+  - `_nbuf`·`_nmfsbuf` 는 `_kernargs` 바로 뒤의 `__data` 입니다(다음 객체 `next/machdep.c` 쪽으로 보임).
+
+### 516.3 사용자 결정(2026-10-26)과 SDK `m68k/cpu.h` 시험 계획(코딩 전)
+
+사용자 결정(AskUserQuestion, D110 으로 적을 예정):
+- `NOD`: m68k 구성에 `NOD 1` 을 둡니다(`06_reconstruction/config_options-m68k.tsv` → `gen_config_headers.py`). `machargs.c` 의 `#if NOD` 구조는 NeXTMach 그대로입니다.
+- 없는 구성 머리: m68k 생성 머리 값 0 으로 둡니다(`SHOW_SPACE`·`MACH_LDEBUG`·`MALLOCDEBUG`·`EVENTMETER`). NeXTMach `next/event_meter.h` 는 D104 대로 `07_kernel/nextmach/` 에 둡니다. include 줄은 NeXTMach 그대로입니다.
+- 새 `extern`: `nmfsbuf`·`kdb_ipaddr`·`scc_buffer` 모두 `extern int` 로 쓰고 표시 주석을 답니다(`scc_buffer` 의 실제 형은 모름, M7 의무).
+- `next/cpu.h`: SDK `m68k/cpu.h` 를 시험한 뒤 정합니다.
+
+확인한 사실(이번 세션):
+- 스테이징 SDK `src/bsd/m68k/cpu.h`(실기 `/NextDeveloper/Headers/bsd/m68k/cpu.h`, 78 줄)는 `dma_chip`·`cpu_rev`·`cpu_clk`·`machine_type`·`board_rev`·`cpu_type`·`mon_rev` 의 `extern` 선언과 `MC68030/MC68040`·`cpu_number()` 만 있습니다.
+- `P_DSP`·`slot_id_bmap` 은 없습니다. 로컬 SDK 사본(707 파일, 위 `cpu.h` 와 바이트 같음) 전체 grep 에서도 `P_DSP`·`slot_id_bmap`·`SLOT_ID_BMAP`·`0x02008000` 은 0 건입니다. 따라서 SDK 머리를 들여도 이 둘은 파일 안에 있어야 합니다.
+
+시험(run `m4p516-p2`, 바탕·`inc`·`m4_id` 는 §516 과 같음):
+- 변형 E = D 에서 `extern int slot_id_bmap;` 앞에 `#import <m68k/cpu.h>` 한 줄을 더한 것(NeXTMach `next/cpu.h` 자리)
+- 대조로 D 를 다시 돌림(SHA-256 `447498bb…` 재현)
+- 판정: E 가 D 와 canon·obj_sig 가 같고 정의 집합이 같으면 "SDK 머리는 바이트에 영향 없음, 파일 안 매크로는 어느 쪽이든 필요" 로 적고, 둘 중 어느 꼴로 할지 사용자께 다시 여쭙니다. 다르면 차이를 기록합니다.
+
+#### 516.3 교차검토와 결과
+
+- codex 판정:
+  - ✅ D 는 이미 `sys/user.h:345` 의 `#import <machine/cpu.h>` 로 SDK `m68k/cpu.h` 를 들입니다(D 의 의존 목록 `m4p516-p1/stage/_log/03.out:20`, 이번 세션 읽음). E 는 같은 머리를 한 번 더 들이는 시험입니다.
+  - ✅ `cpus.h` 는 `generated/cpus.h` 로 풀리고 충돌이 없습니다.
+  - ❌ "SDK 사본 708 파일" 은 틀렸습니다. python 으로 일반 파일 707, 심볼릭 링크를 포함한 이름 709 입니다.
+- run `m4p516-p2`(4 명령 종료 0·경고 0·i386 머리 0, 옵션 = M5 줄; 기록 `09_validation/reconstruction/m4-m68k-probe-p516-p2-20261026.json`):
+  - D 재현 `447498bb…`
+  - E(`08_build/artifacts/m4p516/src/machargs_E.c`)는 `OBJECT_MATCH`·`candidate` 이고, D 와 canon·obj_sig 가 같습니다. 객체 SHA-256 `eb578b00…` 이 D 와 다른 것은 줄 하나가 늘어 생긴 차이로 보입니다(canon 에서 제외되는 부분).
+  - 정의 집합이 같고, 두 변형의 의존 목록에 든 cpu 머리(`bsd/m68k/cpu.h`·`bsd/machine/cpu.h`)도 같습니다.
+- 결론: SDK `m68k/cpu.h` 를 명시해도 바이트는 같습니다. `P_DSP`·`slot_id_bmap` 은 어느 쪽이든 파일 안에 둬야 합니다.
+
+## 517. M4-23 D110 구현 계획 — 07 `src/machdep/m68k/machargs.c`, m68k 구성 머리 다섯, NeXTMach `next/event_meter.h`(코딩 전, 2026-10-26)
+
+사용자 결정(D110, §516.3 과 그 뒤 질문): `NOD 1`(m68k 구성), 없는 구성 머리는 m68k 생성 머리 값 0, 새 `extern` 은 `extern int` 와 표시 주석, NeXTMach `#import <next/cpu.h>` 는 `#import <m68k/cpu.h>`(SDK) 로 바꾸고 그 뒤에 `extern int slot_id_bmap;` 과 `P_DSP` 매크로를 둠(변형 E 꼴).
+
+확인한 사실(이번 세션):
+- m68k 생성 머리는 `07_kernel/v183.34/m68k/generated/` 에 있고, `stage_m68k.py` 의 덮어쓰기(`OVL`)로 모든 계획의 m68k 스테이징에 들어갑니다(계획 번호로 가르지 않음). 지금 그곳의 `od.h` 는 없어서 x86 `07_kernel/generated/od.h`(`NOD 0`)가 쓰입니다.
+- `meta_features.h`(x86 것, `-imacros`)가 `od.h` 를 들이므로 `NOD` 는 모든 m68k 컴파일에 보입니다. 그러나 스테이징 전체(`m0p514-a1-stage`)에서 `NOD` 를 쓰는 곳은 `generated/od.h` 하나입니다(grep).
+- `SHOW_SPACE`(`vm_resident.c`)·`MACH_LDEBUG`(`kern/lock.h`)를 쓰는 곳은 있지만, `show_space.h`·`mach_ldebug.h`·`mallocdebug.h`·`eventmeter.h`·`event_meter.h` 를 들이는 파일은 스테이징에 없습니다(grep). 새 머리는 `machargs.c` 만 들입니다.
+- NeXTMach `next/event_meter.h`(116 줄)의 변수 정의(`em`, `em_chirp`)는 `#if EVENTMETER` 안에 있어, 값 0 에서는 정의가 생기지 않습니다(읽음).
+
+방법:
+1. 구성: `06_reconstruction/config_options-m68k.tsv` 에 다섯 행을 덧붙입니다(6 → 11 행).
+   - `od NOD od.h 1`: 근거는 §515–516 의 원본 `kernargs` `od_*` 항목 21 개, m68k 목록의 `nextdev/od.c`(`m68k-234`), D110
+   - `show_space SHOW_SPACE show_space.h 0`, `mach_ldebug MACH_LDEBUG mach_ldebug.h 0`, `mallocdebug MALLOCDEBUG mallocdebug.h 0`, `eventmeter EVENTMETER eventmeter.h 0`: 근거는 원본 표에 그 조건의 항목이 없음(바이트로는 구분 안 됨), D110
+   - 상태는 모두 `hypothesis` 이고, 6 의 결과 뒤 근거 칸에 run 을 적습니다(값은 그대로).
+   - `gen_config_headers.py --arch m68k` 로 쓰고 `--check` 를 확인합니다. 기존 m68k 머리 다섯은 바뀌지 않아야 합니다.
+2. `07_kernel/nextmach/next/event_meter.h` = NeXTMach 그대로(바이트 같음).
+3. `07_kernel/src/machdep/m68k/machargs.c` = NeXTMach `next/machargs.c` 에 다음만 바꾼 글입니다. 바꾼 줄마다 표시 주석 `/* plan 517 (D110): … */` 를 답니다. 주석을 뺀 토큰은 5 의 확인 변형 L 과 같아야 합니다(python).
+   - `#import <next/cpu.h>` → `#import <m68k/cpu.h>`, 그 뒤 `extern int slot_id_bmap;` 과 `#define P_DSP (SLOT_ID_BMAP+0x02008000)`
+   - `extern` 목록에 `nmfsbuf`, `#if GDB` 안에 `extern int kdb_ipaddr;`, `#endif NOD` 뒤에 `extern int scc_buffer;`(실제 형 모름 주석)
+   - `int maxphys = 8192;` 와 항목 `phz`·`maxphys`·`rmtdebug`·`mi_*` 6 개를 지움
+   - 항목 `nmfsbuf`(`nbuf` 뒤), `kdb_ipaddr`(`breakpoint` 뒤, `#if GDB` 안), `scc_buffer`·`sb`(`#endif NOD` 뒤, 조건 없음)를 더함
+   - `#if NOD` 구조는 그대로 둡니다(D110)
+   - `getargs` 의 7 줄(§516)
+4. `stage_m68k.py`: `M4FILES[517]` = 514 목록 + `machargs.c`, `M4HEADERS[517]` = 514 목록 + (`next/event_meter.h`, `src/bsd/next/event_meter.h`), `EXCEPTS[517]` = `EXCEPTS[514]`, 문서 줄.
+   - 회귀: `--plan 514` 로 다시 만든 매니페스트와 `m0p514-a1-stage` 의 차이가 생성 머리 다섯(`od.h` 바뀜, 넷 더함)뿐이어야 합니다.
+   - `--plan 517 stage m0p517-a1-stage` 와 `--plan 514` 재생성의 차이는 `machargs.c`·`event_meter.h` 둘입니다.
+5. 확인 run `m4p517-p1`(명세 `08_build/artifacts/m4p517/confirm/spec.json`, 바탕 `m0p517-a1-stage`, `inc` 없음, `m4_id` [`m68k-292`, `m68k-293`]): 변형 F = `@machdep/m68k/machargs.c`.
+   - 관문: `diag_gate`, 옵션 = M5 줄, `candidate`, 정의 집합 = 함수 다섯 + `_kernargs` + COMMON `_debug` 4 B, `m68k_kernargs.py` 같음(크기 660)
+   - 의존 목록에 `generated/od.h`(07 m68k 생성, `NOD 1`)와 새 머리 넷, `next/event_meter.h`(07 nextmach)가 들어 있는지 봅니다.
+   - E(§516.3)와 canon·obj_sig 같음
+6. M5 회귀(새 생성 머리 때문): `stage_m68k.py --plan 517 cmd` 의 205 줄을 run `m3p517-cc1` 로 컴파일하고 `compare` 합니다. 모든 객체가 기준과 같아야 합니다(예외는 `EXCEPTS[514]` 그대로).
+7. x86 입력 불변: `m4_x86_inputs.py s6ll`(`L2_FORMS`·`L2_EXPECT` 명시), `--plan 517 x86gate`.
+8. 최종 run `m4p517-a1`(명세 `08_build/artifacts/m4p517/spec.json`, `refs` = 5 의 객체): `gate.ok`, python 확인(5 의 관문 + 입력 사슬 07 = 스테이징 = run 사본).
+9. 상태표(근거 문서 먼저)와 기록:
+   - `m4_m68k_status.py` 의 `ACCEPTED` 에 p517 을 더함(예상 12 객체, 행 30/188, 바이트는 python 으로 셈)
+   - PROVENANCE 새 행(`machargs.c`, `event_meter.h`, 생성 머리 다섯)
+   - MODIFICATIONS, DECISIONS D110
+   - diff `06_reconstruction/evidence/m68k-machargs.diff`, 근거 문서 `m68k-machargs.md`
+   - M7 의무: `_kdb_ipaddr`·`_scc_buffer` 정의 객체, `scc_buffer` 의 형, `_nbuf`·`_nmfsbuf` 는 다음 객체
+
+관문(어긋나면 멈춤): 명령 종료 0·경고 0·i386 머리 0, 회귀 차이가 예상과 같음, M5 205 객체 같음, x86 입력 불변.
+
+### 517.1 교차검토(codex `gpt-6.1-sol`) 판정과 계획 수정
+
+제 오류:
+- 1 의 근거 "원본 `od_*` 항목 21 개" 는 틀렸습니다. python 으로 18 개(`od_frmr` … `od_dbug`)입니다.
+- 3 이 "5 의 L" 을 가리키는데 5 에는 F 만 있었습니다.
+- 5 의 "의존 목록에 `generated/od.h`" 관문은 성립하지 않습니다. `od.h` 는 `meta_features.h` 를 거쳐 `-imacros` 로 먼저 들어오므로 `-M` 에 나오지 않습니다. E 의 의존 목록(`m4p516-p2/stage/_log/03.out`)에서 `od.h` 는 0 건입니다.
+
+| 검토 주장 | 내 검증 방법 | 결과 |
+|---|---|---|
+| `od.h` 는 `-imacros` 경유라 `-M` 에 안 나옴 → D108 처럼 명령의 `-imacros`, `meta_features.h` 의 import, 스테이징·run 사본의 `od.h` 해시·내용으로 확인 | 위 grep 0 건 | ✅ |
+| `stage_m68k.py compare` 는 예외 객체의 차이를 제한하지 않고, 결과를 단언하지 않음; canon 은 기호표 전체를 보지 않음 | `stage_m68k.py:540–585` 읽음 | ✅ 보존된 `m0p514-a1-stage` 로 같은 205 줄 기준 run 을 만들어 객체마다 비교 |
+| 기존 소스에 `NOD` 를 쓰는 곳이 없으므로 M5 회귀는 `NOD 1` 이 보임을 보이지 못함 → 입력 사슬과 `machargs` 표(조건 `#if NOD` 안)가 그 근거 | 스테이징 grep(§517 확인한 사실) | ✅ |
+| L 을 E 에서 `#if NOD` 줄만 되살린 글로 정의; 주석을 뺀 07 = L, 전처리 토큰(07, `NOD 1`) = E; 실제 `-traditional-cpp` 명령으로 확인 | 설계; `scc_buffer` 의 `extern`·항목 자리는 `#endif NOD` 뒤(E 의 순서 유지) | ✅ |
+| `phz`·`rmtdebug`·`mi_*` 의 `extern` 은 E 대로 남기고 표 항목만 지움 | E 소스 읽음 | ✅ |
+| 최종 관문에 새 입력 전부(생성 머리 포함)의 07 → 스테이징 → run 사본 해시, D109 격리 검사(`next/cpu.h` 를 들이는 파일은 `monitor.s` 뿐)를 다시 | §514 관문 | ✅ |
+| 기록: 상류 커밋·함수 줄, `P_DSP` 의 `next/cpu.h:152` 출처, 고친 곳의 원본 주소(D024), 확인 기록 이름·해시, 상태표 앞 행 불변·출력 재현 | `DECISIONS.md:28`, §514.2 | ✅ |
+| 생성기·스테이징 가정(머리별 묶음, `undetermined` 건너뜀, `--plan 514` 파일 차이는 생성 머리 다섯, `machargs.c` 는 스테이징 전에 등록해야 함) | `gen_config_headers.py:30–50` 읽음, `stage_m68k.py:425,437,449` 읽음 | ✅ `M4FILES` 등록을 07 파일보다 먼저(같은 단계에서) |
+
+수정한 방법(앞 계획의 해당 단계를 대신함):
+- 1: `od` 행의 근거는 "원본 `kernargs` 의 `od_*` 18 개(§515)" 입니다.
+- 3: L = `08_build/artifacts/m4p516/src/machargs_E.c` 에서 `#if NOD`/`#endif NOD` 네 줄을 되살린 글(`08_build/artifacts/m4p517/src/machargs_L.c`).
+  - `scc_buffer` 의 `extern` 은 `extern` 쪽 `#endif NOD` 뒤에 둡니다.
+  - 항목 `scc_buffer`·`sb` 는 표의 `#endif NOD` 뒤, `#if MALLOCDEBUG` 앞에 둡니다.
+  - 07 = L + 표시 주석(줄 끝 `/* … */` 또는 따로 선 줄; 지시문을 걸치지 않음)입니다.
+  - 확인: 주석을 뺀 토큰 07 = L(python), 실기에서 실제 컴파일 줄에 `-E` 를 둔 전처리 출력으로 L·07 이 같음(`NOD 1` 스테이징).
+- 4: `M4FILES[517]` 등록과 `machargs.c` 추가를 같은 단계에서 합니다. 그 뒤에 어느 계획이든 스테이징합니다.
+- 5(확인 run `m4p517-p1`): 변형 F 와 대조 L(같은 스테이징)이 canon·obj_sig 같아야 합니다.
+  - `od.h` 는 명령의 `-imacros src/generated/meta_features.h`, 스테이징 `meta_features.h:41` 의 `#import <od.h>`, 스테이징·run 사본 `generated/od.h` 의 해시·내용 `#define NOD 1` 로 확인합니다.
+  - `-M` 에는 새 머리 넷과 `next/event_meter.h` 가 있어야 합니다.
+  - F 는 E 와 canon·obj_sig 가 같아야 합니다.
+- 6(M5 회귀): run `m3p517-b514`(보존된 `m0p514-a1-stage`, `--plan 514 cmd` 의 205 줄)와 run `m3p517-cc1`(`m0p517-a1-stage`, `--plan 517 cmd`)을 만듭니다.
+  - 객체마다 canon 과 비 STABS 기호(이름·종류·섹션·값, COMMON 크기)가 같아야 합니다(python).
+  - `stage_m68k.py compare` 보고에서 `differ_unexpected`·`lost` 가 비어 있어야 합니다(단언).
+- 8: 최종 관문에 생성 머리 다섯·`event_meter.h`·`machargs.c` 의 07 → 스테이징 → run 사본 해시와 D109 격리 검사(주석을 뺀 `.c`·`.h`·`.s`·`.m` 에서 `<next/cpu.h>` 를 들이는 파일은 `monitor.s` 뿐)를 더합니다.
+
+### 517.2 진행 결과(2026-10-26, 6 단계 관문에서 멈춤)
+
+- 1: `config_options-m68k.tsv` 6 → 11 행(고치기 전 사본은 scratchpad).
+  - 원본 기호표 확인(python): `_em`·`_em_chirp`·`_mallocdebug`·`_mach_ldebug` 는 없습니다. `_show_space` 는 있습니다(`__common` 0x40b6024). 이 정의는 07 `bsd/kern/init_main.c:175` 의 조건 없는 `int show_space;` 이고, `vm_resident.c`(`m68k-202`, M5 코드 검증)는 `#if SHOW_SPACE` 가 꺼진 채 맞습니다. 이 사실을 `show_space` 행 근거에 적었습니다.
+  - `gen_config_headers.py --arch m68k` 로 새 머리 다섯(`od.h` `NOD 1`, 나머지 넷 0)을 만들었습니다. `--check` 통과, 기존 다섯은 그대로입니다(`git status` 는 새 파일 다섯뿐).
+- 2: `07_kernel/nextmach/next/event_meter.h` = NeXTMach(`cmp` 같음).
+- 3: `08_build/artifacts/m4p517/src/machargs_L.c` 와 07 `src/machdep/m68k/machargs.c`(484 행, SHA-256 `d5214107…`).
+  - L 은 E 에 `#if NOD`/`#endif NOD` 네 줄만 더한 글입니다.
+  - 07 은 주석을 뺀 토큰 2361 개와 지시문 줄이 L 과 같습니다.
+  - 실기 `-E`(run `m4p517-e2`; `m4p517-e1` 은 EXPECT 줄이 없어 prepare 가 거부해 등록되지 않음)에서 07·L 의 전처리 토큰 4085 개가 같습니다. 표에 `"od_frmr"` 가 있고 `maxphys`·`rmtdebug`·`"phz"` 는 없습니다.
+- 4: `stage_m68k.py` 605 → 612 행(고치기 전 사본 `08_build/artifacts/m4p517/stage_m68k.py.before517`).
+  - `--plan 514` 재생성(`08_build/artifacts/m4p517/re514-stage`)과 `m0p514-a1-stage` 의 파일 차이는 생성 머리 다섯(`od.h` 바뀜, 넷 더함)입니다.
+  - `--plan 517 stage m0p517-a1-stage`(910 파일)와의 차이는 `machargs.c`·`event_meter.h` 둘입니다.
+- 5: run `m4p517-p1`(4 명령 종료 0·경고 0·i386 머리 0, 옵션 = M5 줄; 기록 `09_validation/reconstruction/m4-m68k-probe-p517-20261026.json`).
+  - F(07)·L 모두 `OBJECT_MATCH`·`candidate` 이고, 서로 그리고 E(§516.3)와 canon·obj_sig 가 같습니다.
+  - 정의는 함수 다섯 + `_kernargs` + COMMON `_debug` 4 B 입니다.
+  - 표 55 항목 같음, 크기 660(`m4-m68k-kernargs-p517-F-20261026.json`).
+  - `-M` 에 새 머리 넷과 `next/event_meter.h` 가 07 출처로 있고, `next/cpu.h` 는 없습니다.
+  - `od.h`: 4 명령 모두 `-imacros src/generated/meta_features.h`, 그 41 행이 `#import <od.h>`, run 사본·스테이징·07 의 `od.h` SHA-256 `fa666633…` 이 같고 내용은 `#define NOD 1` 입니다.
+- 7: x86 입력 불변(`m4-x86-inputs-p517-20261026.json` ok; `--plan 517 x86gate` 일곱 묶음 `same`, v183 경로 0).
+- 6: run `m3p517-b514`(보존된 `m0p514-a1-stage`, `--plan 514 cmd`)와 run `m3p517-cc1`(`m0p517-a1-stage`, `--plan 517 cmd`). 두 명령 파일은 출력 접두사만 다릅니다.
+  - 각 205 명령 종료 0, `collect` 로 공개했습니다.
+  - stderr 비어 있지 않은 파일은 둘 다 52 개이고, 내용이 모두 같습니다.
+  - 객체 205 쌍이 **모두 바이트 같음**입니다(canon·obj_sig·비 STABS 기호도 같음, python).
+  - `stage_m68k.py compare`(역사 기준 W429/A432 대비): 두 run 의 보고(`m3-m68k-p517-compare-20261026.json`, `m3-m68k-p517-b514-compare-20261026.json`)가 모든 요약 항목에서 같습니다. `lost` 는 빈칸, `object_match` 146 → 175 입니다.
+  - 그러나 `differ_unexpected` = [`x86-vm_fault`, `x86-vm_pageout`] 입니다. 이 둘은 plan 446·447 의 m68k 덮어쓰기(`MARKERS`)로 바뀌어 `gained`(OBJECT_MATCH 얻음)에 있는 객체인데, `EXCEPTS` 에 등록된 적이 없습니다.
+  - 미리 정한 관문 "`differ_unexpected` 가 빔" 은 문자 그대로는 충족되지 않습니다. 이번 변경 전(`m3p517-b514`)에도 같으므로 기준을 바꾸지 않고 사용자께 여쭙니다.
+
+### 517.3 결과(2026-10-26, 사용자 결정 뒤 이어서)
+
+- 6(이어서): 사용자 결정(D110 ⑤)대로 `EXCEPTS[517]` 에 `x86-vm_fault`·`x86-vm_pageout`(plan 446·447 의 m68k 덮어쓰기)을 등록했습니다(`stage_m68k.py` 612 → 615 행).
+  - `compare` 를 다시 돌린 결과(`09_validation/reconstruction/m3-m68k-p517-compare2-20261026.json`): `differ_unexpected`·`lost` 가 비었습니다. 그 밖의 요약 항목과 객체 행은 첫 보고와 같습니다(python 단언).
+- 8: run `m4p517-a1`(명세 `08_build/artifacts/m4p517/spec.json`, REF = L 객체 `6785508d…`; 기록 `09_validation/reconstruction/m4-m68k-p517-final-20261026.json`).
+  - `gate` 모두 참, 객체 SHA-256 `128e2f60…` 은 확인 run 의 F 와 같습니다.
+  - python 확인(`m4-m68k-p517-checks-20261026.json`, `ok` 참): 정의 집합, 입력 사슬 일곱(`machargs.c`·`event_meter.h`·생성 머리 다섯) 07 = 스테이징 = run 사본, `-M` 의 새 머리 다섯이 07 출처, `next/cpu.h` 없음, `-imacros` 2 명령 모두, `meta_features.h` 의 `od.h` import, `od.h` = `#define NOD 1`, D109 격리(`<next/cpu.h>` 를 들이는 파일은 `monitor.s` 하나), 표 55 항목 같음, 옵션 = M5 줄.
+- 9:
+  - 근거 문서 `06_reconstruction/evidence/m68k-machargs.md`, diff `m68k-machargs.diff`(133 행)
+  - 상태표 12 객체, 행 30/188, 7542 B(3.49%; python; `m4_m68k_status.py` 113 → 114 행, 앞 11 행 그대로, 두 번 돌린 출력 같음; 기록 `m4-m68k-status-p517-20261026.json`)
+  - PROVENANCE 1115 → 1122 행(경로 중복 0), MODIFICATIONS 661 → 668 행, DECISIONS D110(113 → 114 행)
+  - 구성 표 다섯 행의 근거 칸에 run 을 적음(`--check` 통과)
+- 제 오류(정정): §515.2·§516 의 x86 줄 번호 `i386_init.c:415–421` 은 `419–424` 입니다(덩이는 419 행 `while` 부터 424 행 `}` 까지). 근거 문서의 "table line 89" 는 `struct kernargs` 89 행·`kernargs[]` 93 행으로 고쳤습니다.
+- 도구 실수: `m4p517-e1` 은 명령 파일에 EXPECT 줄이 없어 `prepare` 가 거부했고(등록되지 않음), 뒤이은 `wait` 가 없는 run 을 기다려 멈췄습니다. 그 명령을 끝내고 새 ID `m4p517-e2` 로 돌렸습니다.

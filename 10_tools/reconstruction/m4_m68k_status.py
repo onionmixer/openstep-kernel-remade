@@ -32,6 +32,7 @@ ACCEPTED = [
     ('09_validation/reconstruction/m4-m68k-p510-final-20261024.json', '7cdd7e9a47cecc763bf9b9dc6862cdb98bae944e8fb78b63e33e7eca1201d47f'),
     ('09_validation/reconstruction/m4-m68k-p512-final-20261024.json', 'b1194545b5937709d0662380b0b0db538d82b526b59acc1d5249609585d60be7'),
     ('09_validation/reconstruction/m4-m68k-p514-final-20261024.json', 'c30016d32daacb04b8a73f5b73515d8e0fad7bc8f318b3c8cd5fb0f97d963c1c'),
+    ('09_validation/reconstruction/m4-m68k-p517-final-20261026.json', 'fd9bd4a19a745c847e77811e794b6a0052081ab8552be3528f7bea6b1fa29794'),
 ]
 COLS = ['name', 'source', 'rows', 'groups', 'kinds', 'start', 'end', 'bytes', 'plan', 'record', 'l1', 'obj_sha256', 'evidence']
 

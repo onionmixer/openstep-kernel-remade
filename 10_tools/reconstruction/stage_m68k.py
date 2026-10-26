@@ -6,7 +6,7 @@ reproduction of the plan 429/432 test results.
   python3 10_tools/reconstruction/stage_m68k.py cmd CC.cmd
   python3 10_tools/reconstruction/stage_m68k.py x86gate WORKDIR
   python3 10_tools/reconstruction/stage_m68k.py compare RUN_ID STAGE_DIR WORKDIR GATE.json RECORD.json
-  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482, 483, 485, 488, 494, 497, 502, 504, 506, 508, 510, 512, 514): the
+  Every command takes an optional leading --plan N (433 when absent; 435, 437, 438, 441, 444, 445, 446, 447, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 465, 466, 467, 468, 469, 471, 472, 473, 474, 475, 476, 478, 479, 480, 482, 483, 485, 488, 494, 497, 502, 504, 506, 508, 510, 512, 514, 517): the
   record's plan number, the output prefix O<N>__ and the pre-registered exception list.
 
 stage    s6l4-g1a-stage (the x86 base; s6l5-g1a-stage from plan 466, D082; s6l6 from plan 467; s6l7 from plan 469; s6l8 from plan 471; s6l9 from plan 472; s6la from plan 473; s6lb from plan 474; s6lc from plan 475; s6ld from plan 476; s6le from plan 478; s6lf from plan 479; s6lg from plan 480; s6lh from plan 482; s6li from plan 483; s6lj from plan 485; s6lk from plan 488; s6ll from plan 494) + the real-machine SDK m68k headers (plan 413, local
@@ -52,7 +52,9 @@ M4FILES = {497: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c'],              # pl
            508: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c'],
            510: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c'],
            512: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s'],
-           514: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s', 'monitor.s']}
+           514: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s', 'monitor.s'],
+           517: ['checksum_16.c', 'dkbad.c', 'ufs_machdep.c', 'cons.c', 'bus.c', 'nbic.c', 'next_table.c', 'mem.c', 'libc.s', 'monitor.s',
+                 'machargs.c']}
 M4HEADERS = {506: [('next/bmap.h', 'src/bsd/m68k/bmap.h')],   # plan 506 (D104): 07_kernel/nextmach/<path> -> stage path
              510: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 510 (D107)
                    ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h')],
@@ -60,7 +62,11 @@ M4HEADERS = {506: [('next/bmap.h', 'src/bsd/m68k/bmap.h')],   # plan 506 (D104):
                    ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h'), ('next/cframe.h', 'src/bsd/m68k/cframe.h')],
              514: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 514 (D109): next/cpu.h for assembly only
                    ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h'), ('next/cframe.h', 'src/bsd/m68k/cframe.h'),
-                   ('next/cpu.h', 'src/bsd/next/cpu.h'), ('nextdev/monreg.h', 'src/bsd/dev/m68k/monreg.h')]}
+                   ('next/cpu.h', 'src/bsd/next/cpu.h'), ('nextdev/monreg.h', 'src/bsd/dev/m68k/monreg.h')],
+             517: [('next/bmap.h', 'src/bsd/m68k/bmap.h'), ('next/mmu.h', 'src/bsd/m68k/mmu.h'),   # plan 517 (D110)
+                   ('nextdev/snd_dspreg.h', 'src/bsd/dev/m68k/snd_dspreg.h'), ('next/cframe.h', 'src/bsd/m68k/cframe.h'),
+                   ('next/cpu.h', 'src/bsd/next/cpu.h'), ('nextdev/monreg.h', 'src/bsd/dev/m68k/monreg.h'),
+                   ('next/event_meter.h', 'src/bsd/next/event_meter.h')]}
 REFS = [('m3p429-cc2', 'W429__'), ('m3p432-int', 'A432__')]
 PLAN = 433                                # set by --plan (plan 435)
 EXCEPTS = {433: {'x86-subr_kudp': 'SDK machparam.h spl import not taken (D069 pending)',
@@ -323,6 +329,10 @@ EXCEPTS[508] = dict(EXCEPTS[506])   # plan 508: m68k next_table.c, no x86 object
 EXCEPTS[510] = dict(EXCEPTS[508])   # plan 510: m68k mem.c, next/mmu.h and nextdev/snd_dspreg.h, no x86 object changes
 EXCEPTS[512] = dict(EXCEPTS[510])   # plan 512: m68k libc.s and next/cframe.h, no x86 object changes
 EXCEPTS[514] = dict(EXCEPTS[512])   # plan 514: m68k monitor.s, next/cpu.h and nextdev/monreg.h, no x86 object changes
+EXCEPTS[517] = dict(EXCEPTS[514], **{   # plan 517 (D110): m68k machargs.c, next/event_meter.h, five m68k generated headers;
+    # the two m68k overlays below changed these objects (OBJECT_MATCH gained) but were never registered here (user, 2026-10-26)
+    'x86-vm_fault': 'm68k overlay src/vm/vm_fault.c (plan 446 MARKERS)',
+    'x86-vm_pageout': 'm68k overlay src/vm/vm_pageout.c (plan 447 MARKERS)'})
 X86 = {433: 's6l4', 466: 's6l5', 467: 's6l6', 469: 's6l7', 471: 's6l8', 472: 's6l9', 473: 's6la', 474: 's6lb', 475: 's6lc', 476: 's6ld', 478: 's6le', 479: 's6lf', 480: 's6lg', 482: 's6lh', 483: 's6li', 485: 's6lj', 488: 's6lk', 494: 's6ll'}   # plans 466-494: x86 rebuild prefix of the base and the x86 gate
 GROUPS = ['g1a', 'g2aa', 'g2ba', 'g3a', 'g4a', 'g5a', 'g6a']
 
