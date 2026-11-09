@@ -91,6 +91,7 @@
 2. 1단계: `vm-m68k.sh install` 후 `NeXT>` 에서 `bfd`.
 3. 1단계가 끝나 게스트가 재부팅하면 ROM 으로 돌아온다. QEMU 를 끄고 `vm-m68k.sh boot` 로 다시 띄워 `bsd` 로 2단계를 이어 간다.
 4. 설치 뒤에도 `vm-m68k.sh boot` 후 `bsd`. 단일 사용자는 `bsd -s`.
+5. 시험 디스크로 부팅(plan 788): `vm-m68k.sh boot --disk RAW --snapshot` — `--snapshot` 일 때만 받으며 그 디스크에 쓰지 않는다. 다른 커널 파일은 ROM 에서 `bsd 이름 [-s]` 로 고른다(plan 788 에서 확인).
 
 네트워크:
 - 이 빌드는 게스트의 NeXT 형식 BOOTP 에 응답해 `en0` 가 `10.0.2.15` 를 받는다. qemu-NeXT 는 호스트명(BOOTPARAM `whoami`)과 넷마스크(ICMP mask; 고정 libslirp 는 이 요청을 버린다)를 알려 주지 않는다.

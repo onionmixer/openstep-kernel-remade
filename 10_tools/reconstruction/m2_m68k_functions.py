@@ -16,6 +16,7 @@ byte covered by reached rows or tables, (e) no non-call branch to another entry 
 edge from another candidate into the range.  Entries that are data (off the listing, or whose
 first row is invalid or a zero word) are a separate class.
 Tests: the plan 414 V10 OBJECT_MATCH functions, a drop test and a split test.
+Plan 616: EXTRA_ENTRIES adds entries (address: reason) that the plan 418 entries lack (user decision).
 Read-only apart from the two output files.
 """
 import sys, os, re, json, csv, bisect, collections
@@ -33,6 +34,7 @@ IDA = '05_ida/exports/m68k/initial-functions.json'
 sha = T415.sha
 BR = re.compile(r'^(bra|b(hi|ls|cc|cs|ne|eq|vc|vs|pl|mi|ge|lt|gt|le)|db\w+|fb\w+)$')
 TGT = re.compile(r'0x([0-9a-f]+)(?::[bwl])?$')
+EXTRA_ENTRIES = {0x409ab9c: 'plan 616: FPSP constant table after the rts of _pagemove (0x409ab9a); user decision'}
 
 
 class Text:
@@ -211,12 +213,13 @@ def main(out_tsv, out_json):
     X = Text()
     res = D418.main(extend=True)
     entries = set(res['entries'])
+    entries |= set(EXTRA_ENTRIES)
     tok, names = res['tok'], {}
     M = json.load(open('09_validation/reconstruction/m2-m68k-text-map-20261009.json'))
     for g in M['groups']:
         names[int(g['address'], 16)] = g['names']
     E, R = analyse(X, entries)
-    assert len(E) == 3570
+    assert len(E) == 3570 + len(EXTRA_ENTRIES)
 
     # validation: plan 414 V10 OBJECT_MATCH functions
     G = json.load(open(GRID))

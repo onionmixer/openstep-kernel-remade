@@ -15,6 +15,8 @@ SPEC.json (kept under the ignored 08_build/artifacts; it names reference files, 
   Optional "refs" (plan 497): {name: [ref object, sha256]} for every object; compare then also checks
   each variant object against its REF (canon, obj_sig) and exits 1 unless every command exits 0 with
   no warning (plan 500: or, for a target in "known_warnings", a compile stderr equal to its listed lines), no dependency listing has an i386 header and every variant is a 'candidate' equal to REF.
+  Optional "bss_inferred" (plan 526, D113; needs refs): object names whose variants must be 'provisional' instead
+  (full span, L1 reasons exactly ['__DATA,__bss: unverified']); their bss place is checked by m5_m68k_zerofill.py objs.
 stage    copy of the base stage plus the copied variant files (no quote includes allowed);
          STAGE_DIR.manifest.json lists [path, origin, sha256] and must equal the base manifest plus
          the added files.
@@ -54,7 +56,10 @@ def sha(p):
 
 def load(spec):
     s = json.load(open(spec))
-    assert {'plan', 'base', 'm5_line', 'objects'} <= set(s) <= {'plan', 'base', 'm5_line', 'objects', 'refs', 'known_warnings'}, sorted(s)
+    assert {'plan', 'base', 'm5_line', 'objects'} <= set(s) <= {'plan', 'base', 'm5_line', 'objects', 'refs', 'known_warnings', 'bss_inferred'}, sorted(s)
+    if 'bss_inferred' in s:                   # plan 526 (D113): objects accepted as 'provisional' (L1 reason __bss only)
+        assert 'refs' in s and isinstance(s['bss_inferred'], list) and s['bss_inferred'], s['bss_inferred']
+        assert set(s['bss_inferred']) <= {o['name'] for o in s['objects']}, sorted(s['bss_inferred'])
     if 'known_warnings' in s:                 # plan 500: exact stderr lines accepted for a target's compile
         assert set(s['known_warnings']) <= {o['name'] for o in s['objects']}, sorted(s['known_warnings'])
         assert all(isinstance(v, list) and v for v in s['known_warnings'].values())
@@ -68,6 +73,11 @@ def load(spec):
                 assert set(p) in ({'src', 'inc'}, {'src', 'inc', 'defs'}) and all(len(x) == 2 and not x[0].startswith('/') and '..' not in x[0] for x in p['inc']), (o['name'], v)
                 assert all(re.match(r'^-D[A-Za-z_][A-Za-z0-9_]*(=[^\s]+)?$', d) for d in p.get('defs', [])), (o['name'], v)   # plan 511
     return s
+
+
+def partial_rows(ids):
+    """plan 537: the split rows of an explicit range (empty for every other m4_id form)"""
+    return sorted(ids.get('partial', [])) if isinstance(ids, dict) else []
 
 
 def vsrc(o, v):
@@ -141,20 +151,30 @@ def span(inv, ids):
     """plan 499: the address range of one plan 495 row or of a list of adjoining exact rows;
     plan 511: or {"range": [lo, hi], "rows": [...], "basis": "..."}, an explicit range whose bounds are
     function-table entry boundaries (lo an entry, hi the end of the last entry in the range), whose
-    overlapping plan 495 rows ([start_lo, end_hi)) are exactly "rows" and lie inside it"""
+    overlapping plan 495 rows ([start_lo, end_hi)) are exactly "rows" and lie inside it;
+    plan 537: an optional "partial" lists the overlapping rows the range splits: each is not an exact row
+    (plan 639, D145: an exact row may be split too), is not inside the range, and has lo or hi inside its possible bounds; "rows" may then be empty;
+    the returned rows are the wholly covered ones (partial_rows() gives the others)"""
     if isinstance(ids, dict):
-        assert set(ids) == {'range', 'rows', 'basis'} and isinstance(ids['basis'], str) and ids['basis'].strip(), sorted(ids)
+        assert {'range', 'rows', 'basis'} <= set(ids) <= {'range', 'rows', 'basis', 'partial'} and isinstance(ids['basis'], str) and ids['basis'].strip(), sorted(ids)
         lo, hi = (int(x, 16) for x in ids['range'])
         rows = list(ids['rows'])
-        assert lo < hi and rows and len(set(rows)) == len(rows) and all(i in inv for i in rows), ids
+        part = list(ids.get('partial', []))
+        assert 'partial' not in ids or part, ids
+        assert lo < hi and (rows or part) and len(set(rows)) == len(rows) and len(set(part)) == len(part), ids
+        assert not set(rows) & set(part) and all(i in inv for i in rows + part), ids
         fun = [l.split('\t') for l in open(FUNCS).read().split('\n') if l and not l.startswith('#')][1:]
         es = sorted((int(f_[0], 16), int(f_[1], 16)) for f_ in fun if lo <= int(f_[0], 16) < hi)
         assert es and es[0][0] == lo and es[-1][1] == hi, ('range not on entry boundaries', ids['range'])
         assert all(a[1] == b[0] for a, b in zip(es, es[1:])), ('gap in the range', ids['range'])
         ov = sorted(r['id'] for r in inv.values() if r['start_lo'] and r['end_hi']
                     and int(r['start_lo'], 16) < hi and int(r['end_hi'], 16) > lo)
-        assert ov == sorted(rows), ('rows', sorted(set(ov) ^ set(rows)))
+        assert ov == sorted(rows + part), ('rows', sorted(set(ov) ^ set(rows + part)))
         assert all(lo <= int(inv[i]['start_lo'], 16) and int(inv[i]['end_hi'], 16) <= hi for i in rows), 'row outside range'
+        for i in part:                               # plan 537: a split row
+            s, e = int(inv[i]['start_lo'], 16), int(inv[i]['end_hi'], 16)
+            assert not (lo <= s and e <= hi), ('partial row inside the range', i)
+            assert s <= lo < e or s < hi < e, ('range bounds outside the partial row', i)
         return lo, hi, sorted(rows, key=lambda i: int(inv[i]['start_lo'], 16))
     ids = [ids] if isinstance(ids, str) else list(ids)
     assert ids and len(set(ids)) == len(ids) and all(i in inv for i in ids), ids
@@ -325,6 +345,8 @@ def cmd_compare(spec, rid, outj):
                          undefined_not_in_original=undef, l1_verdict=d['object_verdict'], l1_reasons=reasons)
                 placed = d['sections'].get('__TEXT,__text', {}).get('address') if isinstance(d['sections'], dict) else None
                 r.update(range=[hex(lo), hex(hi)], rows=ids, unnamed_entries=unnamed, placed_text=hex(placed) if placed is not None else None)
+                if partial_rows(o['m4_id']):              # plan 537
+                    r['partial_rows'] = partial_rows(o['m4_id'])
                 full = tsz == hi - lo and set(ext) == set(onames) and not undef and placed == lo
                 r['full_span'] = full
                 if alt:
@@ -364,7 +386,8 @@ def cmd_compare(spec, rid, outj):
         rec['gate'] = dict(commands_ok=all(c['rc'] == 0 and (c['err_lines'] == kw[c['target']] if c['kind'] == 'compile' and c['target'] in kw
                                                              else c['warnings'] == 0) for c in cmds),
                            no_i386_headers=all(c.get('i386_headers', 1) == 0 for c in cmds if c['kind'] == 'deps'),
-                           all_candidates=bool(vs) and all(o.get('judgement') == 'candidate' for o in vs),
+                           all_candidates=bool(vs) and all(o.get('judgement') == ('provisional' if o['object'] in s.get('bss_inferred', []) else 'candidate')
+                                                           for o in vs),   # plan 526: 'provisional' only for a listed bss_inferred object
                            refs_equal=bool(vs) and all(o.get('ref_sha256_ok') and o.get('ref_canon_equal') and o.get('ref_sig_equal') for o in vs))
         rec['gate']['ok'] = all(rec['gate'].values())
     json.dump(rec, open(outj, 'w'), indent=1)

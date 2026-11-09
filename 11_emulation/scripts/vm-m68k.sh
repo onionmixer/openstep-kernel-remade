@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vm-m68k.sh install|boot [--cd ISO|KEY] [--snapshot] [--gdb-wait] [-- QEMU args]
+# vm-m68k.sh install|boot [--cd ISO|KEY] [--disk RAW --snapshot] [--snapshot] [--gdb-wait] [-- QEMU args]
 #   install  startup floppy + CD; at the ROM "NeXT>" prompt type:  bfd
 #   boot     CD + NIC + NetInfo server; at "NeXT>" type:  bsd   (single user: bsd -s)
 #            Use it for phase 2 after phase 1 ends, and for the installed system.

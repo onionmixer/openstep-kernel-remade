@@ -72,12 +72,12 @@ vm_sockets() {
 # plan 405: --disk RAW replaces that file for an i386 boot/boot-nocd run under --snapshot only
 # (a readable regular raw image; the run never writes it).  SPARC (2026-10-23): --disk QCOW2 for
 # a sparc boot run under --snapshot only (a copy of the SPARC disk, e.g. with another internal
-# snapshot applied).
+# snapshot applied).  m68k (plan 788): --disk RAW for an m68k boot run under --snapshot only.
 vm_disk() {
     disk_format="${2:-raw}"
     if [[ -n $disk_file ]]; then
-        [[ ( $1 == i386 && ( $mode == boot || $mode == boot-nocd ) ) || ( $1 == sparc && $mode == boot ) ]] ||
-            { echo "--disk is only for i386 boot and boot-nocd, and sparc boot" >&2; exit 2; }
+        [[ ( $1 == i386 && ( $mode == boot || $mode == boot-nocd ) ) || ( $1 == sparc && $mode == boot ) || ( $1 == m68k && $mode == boot ) ]] ||
+            { echo "--disk is only for i386 boot and boot-nocd, and sparc and m68k boot" >&2; exit 2; }
         [[ $snapshot == 1 ]] || { echo "--disk needs --snapshot (the test disk is never written)" >&2; exit 2; }
         [[ -f $disk_file && -r $disk_file ]] || { echo "--disk: not a readable regular file: $disk_file" >&2; exit 1; }
         if [[ $disk_format == qcow2 ]]; then
