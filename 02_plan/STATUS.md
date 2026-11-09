@@ -1,4 +1,4 @@
-# 현재 상태 — 2026-10-08
+# 현재 상태 — 2026-11-09
 
 ## x86(Intel) — 재구성 완료(L2 바이트 동일, QEMU L3)
 
@@ -17,9 +17,19 @@
 
 남은 x86 항목: PIC 없는 대조 부팅, 실기 부팅(사용자 작업), L4 회귀 시험, PROVENANCE 의 "license TBD"(D017) 판단.
 
+## m68k — 재구성 완료(L2 바이트 동일, QEMU L3)
+
+- **지금의 07 로 한 번에 다시 만든 커널이 원본과 바이트 단위로 같습니다.** 링크 입력 296 객체(M4 76·M5 204·R 3·D 13)를 OPENSTEP 4.2 실기의 `cc-744.13 -arch m68k` 로 한 run 에서 컴파일하고(`m7p787-cc1`), `ld -arch m68k` 와 `strip -x` 로 만든 결과(`m7p787-ln1`)가 `03_original/m68k/binaries/mach_kernel`(SHA-256 `dff6c51c…`, 832,196 B)과 같습니다(`RECONSTRUCTION_PLAN.md` §787).
+- **QEMU m68k 부팅(L3)**: 시험 디스크 사본에 `/sdmachl2` 로 넣고 `--snapshot` 으로 단일 사용자 `hostinfo`, 다중 사용자 로그인 창, 로그인 뒤 Workspace 와 Terminal `hostinfo` 까지 확인했습니다(§788). 이 커널은 디스크에 설치된 `/sdmach` 와 같은 바이트이므로, 부팅은 절차 확인이고 소스에 대한 증거는 재빌드입니다. 실기 부팅은 없습니다(D067).
+- 받아들인 M4 76 객체: `OBJECT_MATCH` 54, `CODE+BSS_INFERRED` 22(`06_reconstruction/m68k-m4-status.tsv`). M5 코드 검증 208/208. `__data` 22,552 B 가운데 22,547 B 를 객체로 검증했고 나머지 5 B 는 1 B 정렬 채움입니다. 전체 파일이 원본과 같으므로 링크 수준에서는 모두 일치합니다.
+- 재현: `HOWTOCOMPILE.md` 10 절, 명령 파일 `06_reconstruction/m68k-l2-compile.cmd`·`m68k-l2-link.cmd`.
+- 한계: 링크 옵션과 객체별 컴파일 줄은 바이트와 맞는 후보이며 원래 빌드 명령의 증거가 아닙니다. 일부 이름(`fpsp_cnt0`–`8` 등)은 가칭입니다. 바이트 일치는 원본 소스의 증명이 아닙니다.
+
+남은 m68k 항목: L4 회귀 시험(M9), 실기 부팅(실기 없음).
+
 ## 다른 아키텍처
 
-- m68k·SPARC 는 정적 분석(아래 이전 기록)까지 했고 재구성은 시작 전입니다. 둘 다 mk-183.34(1997-04-27)로 x86(mk-183.34.4)과 판이 다릅니다.
+- SPARC 는 정적 분석(아래 이전 기록)까지 했고 재구성은 시작 전입니다. mk-183.34(1997-04-27)로 x86(mk-183.34.4)과 판이 다릅니다.
   작업 기준은 로컬 전용 문서 `02_plan/MULTIARCH_RECONSTRUCTION_STANDARD.md`(`.gitignore` 대상)에 있습니다.
 
 ## 사용법

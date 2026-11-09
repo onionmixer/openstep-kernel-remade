@@ -1,10 +1,11 @@
-# HOWTOCOMPILE — OPENSTEP 4.2 실기에서 x86 커널 빌드하기
+# HOWTOCOMPILE — OPENSTEP 4.2 실기에서 커널 빌드하기(x86, m68k)
 
 이 문서는 `07_kernel/` 의 복원 소스를 OPENSTEP 4.2 i386 실기에서 컴파일하고 링크해
 `mach_kernel` 을 만드는 방법을 적습니다. 2026-10-08 에 이 절차로 만든 커널은 원본
 `03_original/x86/binaries/mach_kernel` 과 바이트 단위로 같았습니다(run `s6p404-ln1`,
 SHA-256 `33469393c0843fc741942c3ae9d91d838467d72abd647dcf2e5bf499a3f14890`,
 1,117,920 B). 근거와 경위는 `02_plan/RECONSTRUCTION_PLAN.md` 393–405 절에 있습니다.
+m68k 커널은 10 절을 봅니다.
 
 ## 1. 준비물
 
@@ -179,3 +180,36 @@ python3 10_tools/runtime/make_i386_pic_kernel.py --in 08_build/runs/$RID/out/mac
   호스트에서 SHA-256 을 확인하십시오.
 - gcds 로 `ps` 를 실행하면 멈출 수 있습니다. 실기 `sort` 는 `-k` 대신 `+N` 을 씁니다.
 - 07 을 고친 뒤에는 5–7 절을 다시 돌려, 결과가 원본과 같은지 확인합니다.
+
+## 10. m68k 커널 빌드(296 객체)
+
+2026-11-09 에 이 절차로 만든 커널은 원본 `03_original/m68k/binaries/mach_kernel` 과 바이트 단위로 같았습니다(run `m7p787-cc1`·`m7p787-ln1`, SHA-256 `dff6c51c952add68ce326d861150df799737b9476bad95e51976b36683ba5d75`, 832,196 B). 근거는 `02_plan/RECONSTRUCTION_PLAN.md` 787 절입니다.
+
+- 입력(저장소에 없는 로컬 전용 포함): `08_build/runs/tools/s6ln-g1a-stage` 와 그 `.manifest.json`(x86 G1 스테이지), `08_build/artifacts/m0p413/sdk-m68k` 와 `sdk-m68k.target-sha.txt`, `07_kernel/nextdev/`·`07_kernel/nextdev_private/`.
+- 컴파일러: 같은 i386 실기의 `/bin/cc -arch m68k`(`/lib/m68k/*`). `kr_run` 은 `/lib/m68k/*` 를 해시하지 않으므로, 기준 지문(`08_build/artifacts/m0p413/tools-post.txt`)과 같은지 실기의 `krsha256-default` 로 따로 확인합니다.
+- 소스: `07_kernel/src/`, m68k 오버레이 `07_kernel/v183.34/m68k/`, NeXTMach 유래 머리 `07_kernel/nextmach/`.
+- 명령 파일: `06_reconstruction/m68k-l2-compile.cmd`(`RUN` 296 줄)와 `m68k-l2-link.cmd`(`ld`·`strip`)입니다. 컴파일 줄은 객체를 받아들일 때 쓴 줄에서 `-o` 출력 경로만 정리한 것이며 옵션 묶음이 18 가지입니다. 커널 Makefile 을 재현한 것은 아닙니다.
+
+스테이징과 빌드(호스트에서; `RID` 는 소문자, 재사용 금지):
+
+```sh
+python3 10_tools/reconstruction/stage_m68k.py --plan 786 stage 08_build/runs/tools/m68k-stage
+
+A=<컴파일 RID>
+python3 10_tools/reconstruction/kr_run.py prepare $A 08_build/runs/tools/m68k-stage 06_reconstruction/m68k-l2-compile.cmd
+python3 10_tools/reconstruction/kr_run.py launch $A
+python3 10_tools/reconstruction/kr_run.py wait $A
+python3 10_tools/reconstruction/kr_run.py collect $A
+
+B=<링크 RID>; SRC=08_build/runs/tools/$B-src
+[ ! -e "$SRC" ] && mkdir -p "$SRC/o" && cp 08_build/runs/$A/out/*.o "$SRC/o/"   # SRC 는 새 디렉터리여야 합니다
+python3 10_tools/reconstruction/kr_run.py prepare $B $SRC 06_reconstruction/m68k-l2-link.cmd
+python3 10_tools/reconstruction/kr_run.py launch $B
+python3 10_tools/reconstruction/kr_run.py wait $B
+python3 10_tools/reconstruction/kr_run.py collect $B
+
+cmp 08_build/runs/$B/out/mach_kernel 03_original/m68k/binaries/mach_kernel
+```
+
+- 링크 꼴: `/bin/ld -arch m68k -static -seg1addr 0x4000000 -e _start -segalign 4 -noseglinkedit -force_cpusubtype_ALL`, 그 뒤 `/bin/strip -x`. 입력 순서는 명령 파일에 있습니다. 바이트와 맞는 후보이며 원래 빌드 명령의 증거가 아닙니다.
+- 모든 명령의 종료 상태와 `collect` 결과를 확인합니다. strip 하지 않은 `mach_kernel.sys` 는 원본과 같지 않습니다(기호표·STABS 가 남음).

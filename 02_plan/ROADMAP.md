@@ -21,7 +21,7 @@ OPENSTEP 유저랜드·커널 서버/DriverKit ABI 호환, 대상 환경의 부�
 | P4 x86 복원 | 기반 헤더→기계의존부→공통 Mach→BSD→DriverKit/서버→링크 통합 | 07_kernel 전체 소스·생성 코드를 GCC 2.7로 컴파일하고 Mach-O 커널로 링크. 빌드 로그·미해결 항목·함수 증거 목록 |
 | P5 x86 검증 | 정적 ABI/차분, 기존 커널 부팅 baseline, 복원 커널 부팅, 회귀 | 콘솔·루트 마운트·init·다중 프로세스·VM·IPC·파일/네트워크·모듈의 로그와 결과 |
 | P6 SPARC | 해당 플랫폼 원본·SDK·부트 계약 확보, endian/MMU/trap/context ABI 복원 | SPARC용 GCC 2.7 빌드와 해당 플랫폼 기준의 부팅 검증; x86 결과로 대체하지 않음 |
-| P7 후속 CPU | “mach 아키텍처” 의미 확정 후 별도 기준 바이너리와 플랫폼 확보 | m68k를 뜻한다면 CPU/보드/부트 ROM·MMU·예외 프레임까지 명세 후 복원 |
+| P7 후속 CPU | “mach 아키텍처” 의미 확정 후 별도 기준 바이너리와 플랫폼 확보 | m68k 는 2026-11-09 에 L2 바이트 동일과 QEMU 부팅까지 끝냈습니다([STATUS](STATUS.md)). m68k를 뜻한다면 CPU/보드/부트 ROM·MMU·예외 프레임까지 명세 후 복원 |
 
 ## x86 작업 순서
 

@@ -1,4 +1,6 @@
-# HOWTOUSE — 복원한 x86 커널 쓰기
+# HOWTOUSE — 복원한 커널 쓰기(x86, m68k)
+
+m68k 커널은 6 절을 봅니다. 아래 1–5 절은 x86 입니다.
 
 `HOWTOCOMPILE.md` 의 절차로 만든 커널을 확인하고, QEMU 에서 부팅해 보는 방법을 적습니다.
 2026-10-08 에 이 절차로 07 에서 만든 커널이 원본과 바이트 단위로 같았고, 그 커널에 QEMU 용 12 B PIC 수정을
@@ -108,3 +110,32 @@ bash 11_emulation/scripts/vm-i386.sh boot-nocd \
 - 호스트의 GDB 는 Mach-O 를 읽지 못합니다. `mach_kernel.sys` 의 기호를 쓰려면 ELF 기호 파일로 바꿔야 합니다
   (아직 도구가 없음). 함수 주소는 `03_original/x86/inventory/symbols.tsv` 에서 찾을 수 있습니다.
 - 소스를 고치고 다시 만드는 방법은 `HOWTOCOMPILE.md` 를 봅니다.
+
+## 6. m68k 커널
+
+빌드는 `HOWTOCOMPILE.md` 10 절을 봅니다. 결과 `mach_kernel` 은 원본 `03_original/m68k/binaries/mach_kernel`(SHA-256 `dff6c51c…`, 832,196 B)과 같으며, VM 디스크에 설치된 `/sdmach` 와도 같은 바이트입니다.
+
+시험 디스크(저장소 디스크는 쓰지 않습니다; QEMU 는 꺼 둡니다. 저장소 최상위에서):
+
+```sh
+D=09_validation/images/m68k; S=$D/openstep42-m68k-hdd.raw; T=$D/openstep42-m68k-hdd.l2test.raw
+NU=11_emulation/nextufs/nextufs
+[ ! -e "$T" ] && [ ! -L "$T" ] && cp "$S" "$T"   # 이미 있으면 멈춥니다. T 가 S 와 같은 파일이 아니어야 합니다
+$NU fsck -n "$T"
+$NU mkfile --from-file "$T" /sdmachl2 <빌드한 mach_kernel>
+$NU mkfile --chmod "$T" /sdmachl2 0444
+$NU fsck -n "$T"
+```
+
+`fsck -n` 은 종료 코드만으로 판정하지 말고 다섯 단계와 요약 줄이 모두 나왔고 오류 출력이 없는지 봅니다.
+
+부팅(항상 `--snapshot`):
+
+```sh
+bash 11_emulation/scripts/vm-m68k.sh boot --disk "$PWD/09_validation/images/m68k/openstep42-m68k-hdd.l2test.raw" --snapshot
+```
+
+- ROM 의 `NeXT>` 에서 `bsd sdmachl2 -s`(단일 사용자) 또는 `bsd sdmachl2`(다중 사용자)를 입력합니다.
+- 다중 사용자에서 hostname 대기는 `c` 또는 Ctrl+C, NetInfo 대기는 `c` 로 넘어갑니다(`11_emulation/QEMU_VM_CONFIGURATIONS.md` 1 절).
+- `hostinfo` 의 판 문자열: `NeXT Mach 4.2: Sun Apr 27 13:42:14 PDT 1997; root(rcbuilder):Objects/mk-183.34.obj~4/RELEASE_M68K`.
+- 끄기: QEMU 모니터에서 `quit`. `commit` 은 쓰지 않습니다.

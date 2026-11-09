@@ -4,7 +4,7 @@ This project remakes the OPENSTEP 4.2 kernel from its original binaries. The ori
 evidence base: every reconstructed object is compiled with the historical toolchain and compared byte by
 byte with the original image.
 
-## Current status (2026-10-08)
+## Current status (2026-11-09)
 
 **x86: the kernel rebuilt from `07_kernel/` is byte-identical to the original.** All 402 objects are
 compiled from the reconstructed sources on an OPENSTEP 4.2 i386 machine with the original compiler
@@ -24,8 +24,24 @@ Workspace, and `hostinfo` reports the original version string.
 | Whole-kernel link | identical to the original (`cmp`, SHA-256, symbols 3,751, commons 417) |
 | QEMU i386 boot | PIC-fixed build boots to the Workspace (the unmodified build, like the original, locks IDE interrupts in this QEMU; that control boot has not been run) |
 
-The m68k and SPARC kernels have been analysed statically (provenance, Mach-O layout, symbols,
-cross-references); their reconstruction has not started.
+**m68k: the kernel rebuilt from `07_kernel/` is byte-identical to the original.** All 296 link inputs are
+compiled in one run from the current sources on the same OPENSTEP 4.2 machine (`cc-744.13 -arch m68k`), then
+linked with `ld -arch m68k` and `strip -x`. The result has the same SHA-256 as the original `mach_kernel`
+(`dff6c51c…`, 832,196 bytes). In QEMU (NeXTstation Color, ROM v66) it boots OPENSTEP 4.2 to the Workspace and
+`hostinfo` reports the original version string. The file equals the kernel already installed on that disk, so
+the boot checks the procedure; the evidence about the sources is the rebuild.
+
+![OPENSTEP 4.2 running in QEMU on the reconstructed m68k kernel; hostinfo shows NeXT Mach 4.2 mk-183.34 RELEASE_M68K](docs/images/qemu-m68k-reconstructed-kernel-hostinfo-20261109.png)
+
+| m68k item | Result |
+|---|---|
+| Link inputs | 296 objects: 76 machine-dependent, 204 common, 3 refreshed common, 13 data-only |
+| Whole-kernel link | identical to the original (`cmp`, SHA-256, symbols 3,809, commons 613) |
+| QEMU m68k boot | single user, then login window and Workspace; no real-machine boot |
+| Limits | the link options and per-object compile lines match the bytes but are not the original build commands; some names are provisional; byte equality does not prove the original source text |
+
+The SPARC kernel has been analysed statically (provenance, Mach-O layout, symbols, cross-references); its
+reconstruction has not started.
 
 How to build and use the kernel: [HOWTOCOMPILE.md](HOWTOCOMPILE.md), [HOWTOUSE.md](HOWTOUSE.md).
 The plan and the evidence for every step are in [02_plan/RECONSTRUCTION_PLAN.md](02_plan/RECONSTRUCTION_PLAN.md)
@@ -99,7 +115,7 @@ The m68k and SPARC files are byte ranges cut from the fat container at the offse
 
 **SDK header copies, build runs, toolchain records and VM disks.** `07_kernel/nextdev/` and
 `07_kernel/nextdev_private/` (OPENSTEP 4.2 SDK headers and overlays on them), `08_build/runs/` (build
-runs and their objects), `08_build/toolchains/` (tool copies and hash records) and `09_validation/images/`
+runs and their objects), `08_build/artifacts/` (per-run records, the m68k SDK copy and tool fingerprints), `08_build/toolchains/` (tool copies and hash records) and `09_validation/images/`
 (VM disks and kernel copies) are local only. `HOWTOCOMPILE.md` lists what a build needs.
 
 **IDA databases, Ghidra projects and the IDA SDK.** `05_ida/databases/`, `05_ida/snapshots/` and `04_ghidra/projects/` are excluded because they are derived from the excluded binaries and are large. `10_tools/vendor-cache/` keeps the pinned GhidraDec bundle and the built headless plugins, but not the Hex-Rays IDA SDK bundle, which is not redistributable; its pinned commit and hash are listed in `10_tools/vendor-cache/README.md`.
