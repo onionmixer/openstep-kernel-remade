@@ -252,6 +252,8 @@ typedef struct snd_stream_msg {
 	msg_header_t	header;
 	msg_type_t	data_tagType;
 	int		data_tag;		// tag for this request, 0 def
+	msg_type_t	ownerType;	/* plan 559 (D125, D024): 1997 m68k; names as Darwin 0.1 bsd/dev/snd_msgs.h */
+	port_t		streamOwner;		// stream owner port for 3.0
 } snd_stream_msg_t;
 
 typedef struct {
@@ -560,7 +562,8 @@ kern_return_t snd_reply_timed_out (
 	int		data_tag);	// tag from region
 kern_return_t snd_reply_ret_samples (
 	port_t		remote_port,	// who to send it to.
-	int		nsamples);	// number of bytes of data to record
+	int		nsamples,	// number of bytes of data to record
+	int		timeStamp);	/* plan 554 (D123, D024): 1997 m68k third argument */
 kern_return_t snd_reply_ret_device (
 	port_t		remote_port,	// who to send it to.
 	port_t		device_port);	// returned port.
@@ -573,6 +576,13 @@ kern_return_t snd_reply_ret_parms (
 kern_return_t snd_reply_ret_volume (
 	port_t		remote_port,	// who to send it to.
 	u_int	volume);
+kern_return_t snd_reply_ret_formats (	/* plan 554 (D123, D024): 1997 m68k */
+	port_t		remote_port,
+	u_int		rates,
+	u_int		low,
+	u_int		high,
+	u_int		encodings,
+	u_int		chans);
 kern_return_t snd_reply_overflow (
 	port_t		remote_port,	// who to send it to.
 	int		data_tag);	// from region

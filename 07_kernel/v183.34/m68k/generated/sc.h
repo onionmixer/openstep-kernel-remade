@@ -1,0 +1,1 @@
+#define NSC 1

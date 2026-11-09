@@ -42,3 +42,7 @@
 `m68k-functions.tsv`(계획 424, M2-10): m68k 원본 진입점 3,570 의 함수 후보 표입니다. `confirmed=1` 은 RECONSTRUCTION_PLAN `:78` 함수 범위 규칙을 목록 도달 분석으로 적용해 [진입점, 다음 진입점) 이 함수 범위로 확인된 것(내용 일치 아님), 아니면 사유를 적습니다. `class` 의 `data label` 은 `__text` 안 자료 이름입니다(기록 `09_validation/reconstruction/m2-m68k-functions-20261009.json`).
 `config_options-m68k.tsv`(계획 434, D068): m68k 가 x86 `config_options.tsv` 와 다르거나 x86 표에 없는 구성 값(덮어쓰기)입니다. 열은 x86 표와 같고, `gen_config_headers.py --arch m68k` 가 `07_kernel/v183.34/m68k/generated/` 를 만듭니다. m68k 실효 구성 = x86 표 + 이 표.
 `m68k-text-boundaries-built.tsv`(계획 439): §418 경계 표에 다시 만든 m68k 객체(run `m3p438-cc1`)로 정한 결과 열(`decided_439`·`boundary_439`·`basis_439`)을 더한 새 판입니다. 규칙: 한쪽 OBJECT_MATCH 의 L1 자리(·끝), 둘 다 아니면 가린 첫 64 B 의 진입점 유일 일치 + a 쪽 전체 비교 관문. 계획 439 에서 k=191·193 이 결정되었고, k=130 은 관문 불통과 뒤 계획 440 의 규칙 4(a 꼬리 64 B + b 머리 64 B 가 한 진입점에서 맞닿음; 사용자 지시로 결과를 본 뒤 정한 규칙, 음성 시험 172 맞음·0 틀림)로 0x403a056 이 되었습니다.
+
+`m68k-m4-status.tsv`(계획 500): 받아들인 m68k M4 객체 표입니다(도구 `m4_m68k_status.py`). `acceptance` 는 `OBJECT_MATCH` 또는 `CODE+BSS_INFERRED`(정적 bss 자리를 객체 단독으로 정하지 못함) 입니다.
+`m68k-data-status.tsv`(계획 774·781): 객체로 검증한 m68k `__DATA,__data` 범위입니다(도구 `m4_m68k_data.py`). 행은 겹칠 수 있으므로 합계는 구간 합집합으로 냅니다.
+`m68k-l2-compile.cmd`·`m68k-l2-link.cmd`(계획 787): m68k 전체 재빌드의 `kr_run` 명령 파일입니다(`HOWTOCOMPILE.md` 10 절).

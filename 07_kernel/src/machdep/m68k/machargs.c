@@ -14,7 +14,7 @@
  * bytes (_kernargs at 0x40b28ee, _getargs at 0x4093192); the 1997 x86
  * i386_init.c has the same getargs block without the printf.  next/cpu.h
  * (NeXTMach) is not used in C (D109); the SDK <m68k/cpu.h> is imported and the
- * two next/cpu.h names this file needs are defined here.  NOD is 1 and
+ * two next/cpu.h names this file needs are defined here.  NOD is 2 (plan 683) and
  * SHOW_SPACE, MACH_LDEBUG, MALLOCDEBUG, EVENTMETER are 0 in the m68k
  * configuration (06_reconstruction/config_options-m68k.tsv).  Lines marked
  * plan 517 differ from NeXTMach.

@@ -1,0 +1,1 @@
+#define NKM 1

@@ -758,3 +758,4 @@ kern_return_t	init_process()
 
 
 
+#import <m68k/scr.h>	/* plan 779 (m68k): scr2/brightness tentative definitions of NeXTMach next/scr.h; written to match the original bytes (D178, D024, plan 778.15) */

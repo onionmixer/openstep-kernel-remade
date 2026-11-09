@@ -55,4 +55,8 @@ typedef struct pmap *pmap_t;
 #define pmap_resident_count(pmap)	((pmap)->stats.resident_count)
 #define pmap_phys_address(frame)	((vm_offset_t) (m68k_ptob(frame)))	/* (Darwin) */
 #define pmap_phys_to_frame(phys)	((unsigned int) (m68k_btop(phys)))	/* (Darwin) */
+#ifdef	KERNEL	/* plan 779 (D178): NeXTMach next/pmap.h:186 form (pv_lock_table is not in the original) */
+struct pv_entry	*pv_head_table;
+struct zone	*pv_list_zone;
+#endif	/* KERNEL */
 #endif

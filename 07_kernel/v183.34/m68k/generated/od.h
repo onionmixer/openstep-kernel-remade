@@ -1,1 +1,2 @@
-#define NOD 1
+#define NOD 2
+#define NOC 1

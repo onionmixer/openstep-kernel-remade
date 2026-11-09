@@ -663,3 +663,5 @@ static void tputchar(int c, int flags, struct tty * tp)
 		(*sp)++;
 	}
 }
+#import <mon/tftp.h>	/* plan 779 (m68k): mon/tftp.h (NeXTMach mon/global.h:40 chain) for its tentative definitions; mon/global.h unchanged (D133) */
+#import <m68k/bmap.h>	/* plan 779 (m68k): bmap_chip tentative definition; written to match the original bytes (D178, D024, plan 778.15) */

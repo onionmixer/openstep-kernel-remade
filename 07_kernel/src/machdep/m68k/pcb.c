@@ -1,0 +1,568 @@
+/*
+ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
+ *
+ * @APPLE_LICENSE_HEADER_START@
+ * 
+ * "Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
+ * Reserved.  This file contains Original Code and/or Modifications of
+ * Original Code as defined in and that are subject to the Apple Public
+ * Source License Version 1.0 (the 'License').  You may not use this file
+ * except in compliance with the License.  Please obtain a copy of the
+ * License at http://www.apple.com/publicsource and read it before using
+ * this file.
+ * 
+ * The Original Code and all software distributed under the License are
+ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
+ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT.  Please see the
+ * License for the specific language governing rights and limitations
+ * under the License."
+ * 
+ * @APPLE_LICENSE_HEADER_END@
+ */
+
+/* Modified 2026-10-31: see 07_kernel/MODIFICATIONS.md */
+
+/*
+ * Copyright (c) 1992 NeXT Computer, Inc.
+ *
+ * Intel386 Family:	Machine dependent thread module.
+ *
+ * HISTORY
+ *
+ * 6 April 1992 ? at NeXT
+ *	Created.
+ */
+
+/* 
+ * NeXTMach next/pcb.c:
+ * Copyright (c) 1987, 1988 NeXT, Inc.
+ */
+
+/*
+ * m68k: the machine-dependent thread module of the 1997 m68k kernel
+ * (plans 623-627, D024, D103, D142, D143), the original range
+ * [0x40967be, 0x4096e20) (inventory rows m68k-308, m68k-309; 18 functions in
+ * the original order).  Notices above: Apple APSL 1.0 and NeXT 1992 of
+ * machdep/i386/pcb.c (Darwin 0.1, the frame: order, signatures and locals of
+ * stack_attach .. start_initial_context, thread_userstack, thread_entrypoint,
+ * thread_dup, pcb_terminate), and NeXTMach mk-108.1 next/pcb.c, whose
+ * thread_setstatus (152-228), thread_getstatus (235-314) and thread_dup
+ * comment (340-342) lines are used with the m68k flavor names of the SDK
+ * <mach/m68k/thread_status.h>.  The bodies are written from the original
+ * bytes: kernel stack top stack + KERNEL_STACK_SIZE (0xff4), pmove_crp of the
+ * new task pmap when the task changes and it is not kernel_pmap, the locore
+ * _switch_context/_switch_context_discard/_stack_handoff/_switch_context0/
+ * _return_with_state calls, the lazily allocated save area of 312 or 580
+ * bytes (cpu_type) holding the user struct regs at its end, user SR masking,
+ * the kernel_privilege thread_start path, no 68882 state on set and 0 on get,
+ * the user stack default 0x04000000.  The forms of thread_user_state (D5),
+ * stack_attach (two statements), the kfree cast and the file name are user
+ * decisions (D143).  The marks give each function's source.
+ */
+#import <mach/mach_types.h>
+#import <kern/mach_param.h>
+#import <kern/thread.h>
+#import <kern/task.h>
+#import <kern/zalloc.h>
+#import <kern/kalloc.h>
+#import <kern/kernel_stack.h>
+#import <kern/sched_prim.h>
+#import <vm/vm_map.h>
+#import <mach/m68k/thread_status.h>
+
+/* U**X crap!! */
+#import <sys/param.h>
+#import <sys/proc.h>
+#import <m68k/psl.h>
+
+zone_t		pcb_zone;
+vm_offset_t	stack_pointers[NCPUS];
+
+extern void	pmove_crp();			/* plan 627 (D143): locore; no header declares it */
+extern thread_t	_switch_context(), _switch_context_discard();	/* plan 627 (D143): locore; no header declares them */
+extern void	_switch_context0(), _stack_handoff(), _return_with_state();	/* plan 627 (D143): locore; no header declares them */
+extern void	check_for_ast();		/* plan 627 (D143): trap.c; no header declares it */
+extern void	thread_start();			/* plan 627 (D143): kern/thread.c; no header declares it */
+
+void
+stack_attach(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x40967be */
+    thread_t		thread,
+    vm_offset_t		stack,
+    void		(*continuation)(void)
+)
+{
+    struct pcb		*pcb = thread->pcb;
+    extern void		_stack_attach(void);
+
+    thread->kernel_stack = stack;
+
+    pcb->pcb_r.r_fp = stack + KERNEL_STACK_SIZE;
+    pcb->pcb_r.r_sp = stack + KERNEL_STACK_SIZE;
+    pcb->pcb_r.r_areg[1] = (unsigned int)_stack_attach;
+    pcb->pcb_r.r_areg[2] = (unsigned int)continuation;
+}
+
+vm_offset_t
+stack_detach(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x40967f2 */
+    thread_t		thread
+)
+{
+    vm_offset_t		stack;
+
+    stack = thread->kernel_stack;
+    thread->kernel_stack = 0;
+
+    return (stack);
+}
+
+void
+stack_handoff(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096806 */
+    thread_t		old,
+    thread_t		new
+)
+{
+    vm_offset_t		stack = stack_detach(old);
+
+    stack_attach(new, stack, 0);
+
+    current_thread() = new;
+
+    /*
+     * Change software state.
+     */
+    if (new->task != old->task) {
+	pmap_t		pmap = vm_map_pmap(new->task->map);
+
+	if (pmap != kernel_pmap)
+	    pmove_crp(pmap);
+    }
+
+    _stack_handoff(old->pcb, new->pcb);
+}
+
+thread_t
+switch_context(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096872 */
+    thread_t		old,
+    void		(*continuation)(void),
+    thread_t		new
+)
+{
+    current_thread() = new;
+    current_stack() = new->kernel_stack;
+    current_stack_pointer() = new->kernel_stack + KERNEL_STACK_SIZE;
+
+    /*
+     * Change software state.
+     */
+    if (new->task != old->task) {
+	pmap_t		pmap = vm_map_pmap(new->task->map);
+
+	if (pmap != kernel_pmap)
+	    pmove_crp(pmap);
+    }
+
+    if (old->swap_func = continuation)
+    	return _switch_context_discard(old->pcb, new->pcb, old);
+    else
+    	return _switch_context(old->pcb, new->pcb, old);
+}
+
+void
+pcb_module_init(void)	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x40968fa */
+{
+    pcb_zone = zinit(
+		    sizeof (struct pcb),
+		    THREAD_MAX * sizeof (struct pcb),
+		    THREAD_CHUNK * sizeof (struct pcb),
+		    FALSE, "pcb");
+}
+
+/*
+ * Initialize a pcb for a
+ * new thread.
+ */
+void pcb_init(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096924 */
+    thread_t		thread
+)
+{
+    struct pcb			*pcb;
+
+    /*
+     * Allocate a new pcb.
+     */
+    thread->pcb = pcb = (void *)zalloc(pcb_zone);
+    bzero(pcb, sizeof (struct pcb));
+}
+
+void *
+thread_user_state(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096952 */
+    thread_t		thread
+)
+{
+    struct pcb		*pcb = thread->pcb;
+    void		*save_area = pcb->pcb_save_area;
+
+    if (save_area == 0) {
+	struct regs	*saved_state;
+	vm_size_t	size = cpu_type ? 580 : 312;
+
+	pcb->pcb_save_area = save_area = (void *)kalloc(size);
+	saved_state = (struct regs *)((vm_offset_t)save_area + size) - 1;
+	pcb->saved_regs = saved_state;
+	bzero(saved_state, sizeof (*saved_state));
+
+	return (saved_state);
+    }
+    else
+	return (pcb->saved_regs);
+}
+
+/*
+ * Entry point for new user
+ * threads.
+ */
+void
+thread_bootstrap_return(void)	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x40969b4 */
+{
+    thread_exception_return();
+    /* NOTREACHED */
+}
+
+void
+thread_exception_return(void)	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x40969c2 */
+{
+    thread_t			thread = current_thread();
+    struct regs			*saved_state = USER_REGS(thread);
+
+    check_for_ast(saved_state);		// *may* not return
+
+    _return_with_state(saved_state);
+    /* NOTREACHED */
+}
+
+void __volatile__
+thread_syscall_return(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096a02 */
+    kern_return_t	result
+)
+{
+    thread_t			thread = current_thread();
+    struct regs			*saved_state = USER_REGS(thread);
+
+    saved_state->r_dreg[0] = result;
+
+    check_for_ast(saved_state);		// *may* not return
+
+    _return_with_state(saved_state);
+    /* NOTREACHED */
+}
+
+void
+thread_set_syscall_return(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096a46 */
+    thread_t		thread,
+    kern_return_t	result
+)
+{
+    struct regs			*saved_state = USER_REGS(thread);
+
+    saved_state->r_dreg[0] = result;
+}
+
+/*
+ * Called from locore to
+ * startup the first thread. (never returns)
+ */
+void
+start_initial_context(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096a70 */
+    thread_t		thread
+)
+{
+    struct pcb		*pcb = thread->pcb;
+
+   current_thread() = thread;
+   current_stack() = thread->kernel_stack;
+   current_stack_pointer() = thread->kernel_stack + KERNEL_STACK_SIZE;
+
+    _switch_context0(0, pcb, 0);
+}
+
+kern_return_t thread_setstatus(thread, flavor, tstate, count)	/* plan 627 (D024, D143): NeXTMach next/pcb.c:152-228, body from the original bytes 0x4096aa8 */
+	thread_t		thread;
+	int			flavor;
+	thread_state_t		tstate;
+	unsigned int		count;
+{
+	register int i;
+	register struct m68k_thread_state_regs	*state_regs;
+	register struct m68k_thread_state_68882	*state_68882;
+	register struct m68k_thread_state_user_reg *state_user_reg;
+	register struct pcb			*pcb;
+	register struct regs			*saved_state;
+
+	switch (flavor) {
+	/*
+	 *	Normal register state (68030).
+	 */
+	case M68K_THREAD_STATE_REGS:
+		if (count < M68K_THREAD_STATE_REGS_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_regs = (struct m68k_thread_state_regs *) tstate;
+		if (thread->task->kernel_privilege) {
+			pcb = thread->pcb;
+			for (i = 0; i < 8; i++) {
+				pcb->pcb_r.r_dreg[i] = state_regs->dreg[i];
+				pcb->pcb_r.r_areg[i] = state_regs->areg[i];
+			}
+			thread_start(thread, state_regs->pc);
+			break;
+		}
+		saved_state = USER_REGS(thread);
+		for (i = 0; i < 8; i++) {
+			saved_state->r_dreg[i] = state_regs->dreg[i];
+			saved_state->r_areg[i] = state_regs->areg[i];
+		}
+		saved_state->r_sr = state_regs->sr;
+		saved_state->r_pc = state_regs->pc;
+
+		/*
+		 *	Carefully set user bits
+		 */
+		saved_state->r_sr &= ~SR_USERCLR;
+		saved_state->r_sr |= SR_USER;
+		if ((saved_state->r_sr & (SR_TSINGLE|SR_TFLOW)) == (SR_TSINGLE|SR_TFLOW))
+			saved_state->r_sr &= ~SR_TFLOW;
+		break;
+	/*
+	 *	FPC state (68882).
+	 */
+	case M68K_THREAD_STATE_68882:
+		if (count < M68K_THREAD_STATE_68882_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_68882 = (struct m68k_thread_state_68882 *) tstate;
+		pcb = thread->pcb;
+		bcopy(&state_68882->regs, &pcb->pcb_fpc_e.regs,
+				sizeof(state_68882->regs));
+		pcb->pcb_fpc_e.cr = state_68882->cr;
+		pcb->pcb_fpc_e.sr = state_68882->sr;
+		pcb->pcb_fpc_e.iar = state_68882->iar;
+		break;
+	/*
+	 *	User register (also settable via fast trap).
+	 */
+	case M68K_THREAD_STATE_USER_REG:
+		if (count < M68K_THREAD_STATE_USER_REG_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_user_reg = (struct m68k_thread_state_user_reg *) tstate;
+		pcb = thread->pcb;
+		pcb->thread_user_reg = state_user_reg->user_reg;
+		break;
+	default:
+		return(KERN_INVALID_ARGUMENT);
+	}
+
+	return (KERN_SUCCESS);
+}
+
+/*
+ *	thread_getstatus:
+ *
+ *	Get the status of the specified thread.
+ */
+kern_return_t thread_getstatus(thread, flavor, tstate, count)	/* plan 627 (D024, D143): NeXTMach next/pcb.c:235-314, body from the original bytes 0x4096bd0 */
+	register thread_t	thread;
+	int			flavor;
+	thread_state_t		tstate;		/* pointer to OUT array */
+	unsigned int		*count;		/* IN/OUT */
+{
+	register int i;
+	register struct thread_state_flavor	*flavor_regs;
+	register struct m68k_thread_state_regs	*state_regs;
+	register struct m68k_thread_state_68882	*state_68882;
+	register struct m68k_thread_state_user_reg *state_user_reg;
+	register struct pcb			*pcb;
+	register struct regs			*saved_state;
+
+	switch (flavor) {
+	case THREAD_STATE_FLAVOR_LIST:
+		if (*count < M68K_THREAD_STATE_MAXFLAVOR*2) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		flavor_regs = (struct thread_state_flavor *) tstate;
+		flavor_regs->flavor = M68K_THREAD_STATE_REGS;
+		flavor_regs->count = M68K_THREAD_STATE_REGS_COUNT;
+		flavor_regs++;
+		flavor_regs->flavor = M68K_THREAD_STATE_68882;
+		flavor_regs->count = M68K_THREAD_STATE_68882_COUNT;
+		flavor_regs++;
+		flavor_regs->flavor = M68K_THREAD_STATE_USER_REG;
+		flavor_regs->count = M68K_THREAD_STATE_USER_REG_COUNT;
+		*count = M68K_THREAD_STATE_MAXFLAVOR*2;
+		break;
+	case M68K_THREAD_STATE_REGS:
+		if (*count < M68K_THREAD_STATE_REGS_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_regs = (struct m68k_thread_state_regs *) tstate;
+		saved_state = USER_REGS(thread);
+		for (i = 0; i < 8; i++) {
+			state_regs->dreg[i] = saved_state->r_dreg[i];
+			state_regs->areg[i] = saved_state->r_areg[i];
+		}
+		state_regs->sr = saved_state->r_sr;
+		state_regs->pc = saved_state->r_pc;
+		*count = M68K_THREAD_STATE_REGS_COUNT;
+		break;
+	case M68K_THREAD_STATE_68882:
+		if (*count < M68K_THREAD_STATE_68882_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_68882 = (struct m68k_thread_state_68882 *) tstate;
+		pcb = thread->pcb;
+		bcopy(&pcb->pcb_fpc_e.regs, &state_68882->regs,
+				sizeof(state_68882->regs));
+		state_68882->cr = pcb->pcb_fpc_e.cr;
+		state_68882->sr = pcb->pcb_fpc_e.sr;
+		state_68882->iar = pcb->pcb_fpc_e.iar;
+		state_68882->state = 0;
+		*count = M68K_THREAD_STATE_68882_COUNT;
+		break;
+	case M68K_THREAD_STATE_USER_REG:
+		if (*count < M68K_THREAD_STATE_USER_REG_COUNT) {
+			/* invalid size structure */
+			return (KERN_INVALID_ARGUMENT);
+		}
+
+		state_user_reg = (struct m68k_thread_state_user_reg *) tstate;
+		pcb = thread->pcb;
+		state_user_reg->user_reg = pcb->thread_user_reg;
+		*count = M68K_THREAD_STATE_USER_REG_COUNT;
+		break;
+	default:
+		return(KERN_INVALID_ARGUMENT);
+	}
+	return (KERN_SUCCESS);
+}
+
+/*
+ * Duplicate parent state in child
+ * for U**X fork.
+ */
+thread_dup(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096ce2 */
+    thread_t		parent,
+    thread_t		child
+)
+{
+    struct regs	*parent_state, *child_state;
+
+    parent_state = USER_REGS(parent);
+    child_state = thread_user_state(child);
+
+    *child_state = *parent_state;
+
+    child_state->r_dreg[0] = child->task->proc->p_pid;
+    child_state->r_dreg[1] = 1;
+    child_state->r_sr &= ~(SR_TSINGLE|SR_TFLOW|SR_C);
+	/*
+	 *	Major hack follows!!!!  If a0 == sp, assume new calling
+	 *	conventions and don't pop stack.
+	 */
+	if (child_state->r_areg[0] != child_state->r_sp)
+		child_state->r_sp += NBPW;	/* pop SYS_fork arg in child */
+}
+
+kern_return_t
+thread_userstack(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096d5a */
+    thread_t		thread,
+    int			flavor,
+    thread_state_t	tstate,
+    unsigned int	count,
+    vm_offset_t		*user_stack
+)
+{
+    struct m68k_thread_state_regs	*state;
+
+    /*
+     * Set a default.
+     */
+    if (*user_stack == 0)
+	*user_stack = 0x04000000;		/* plan 627 (D143): default from the original bytes */
+
+    switch (flavor) {
+
+    case M68K_THREAD_STATE_REGS:
+	if (count < M68K_THREAD_STATE_REGS_COUNT)
+	    return (KERN_INVALID_ARGUMENT);
+
+	state = (struct m68k_thread_state_regs *) tstate;
+
+	/*
+	 * If a valid user stack is specified, use it.
+	 */
+	*user_stack = state->areg[7] ? state->areg[7]: 0x04000000;
+	break;
+    }
+
+    return (KERN_SUCCESS);
+}
+
+kern_return_t
+thread_entrypoint(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096da2 */
+    thread_t		thread,
+    int			flavor,
+    thread_state_t	tstate,
+    unsigned int	count,
+    vm_offset_t		*entry_point
+)
+{
+    struct m68k_thread_state_regs	*state;
+
+    switch (flavor) {
+
+    case M68K_THREAD_STATE_REGS:
+	if (count < M68K_THREAD_STATE_REGS_COUNT)
+	    return (KERN_INVALID_ARGUMENT);
+
+	state = (struct m68k_thread_state_regs *) tstate;
+
+	*entry_point = state->pc;
+	break;
+    }
+
+    return (KERN_SUCCESS);
+}
+
+/*
+ * Release resources on
+ * thread termination.
+ */
+pcb_terminate(	/* plan 627 (D024, D143): i386 frame, body from the original bytes 0x4096dcc */
+    thread_t		thread
+)
+{
+    struct pcb		*pcb = thread->pcb;
+
+    /*
+     * Free save area.
+     */
+    if (pcb->pcb_save_area)
+    	kfree((vm_offset_t)pcb->pcb_save_area, cpu_type ? 580 : 312);
+
+    thread->pcb = 0;
+    zfree(pcb_zone, (vm_offset_t) pcb);
+}
