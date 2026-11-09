@@ -1,0 +1,1353 @@
+--- NeXTMach mk-108.1/next/pmap.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/pmap.c (plan 687, D160)
+@@ -61,6 +61,36 @@
+  *	to which processors are currently using which maps,
+  *	and to when physical maps must be made correct.
+  */
++/*
++ * plan 687 (D160, D013, D024, D104, D110, D154): the 1997 m68k pmap.c.
++ * NeXTMach mk-108.1 next/pmap.c with the include lines in OPENSTEP paths, the
++ * NeXT_ names renamed m68k_ (the 1997 names, as in the SDK mach/m68k/
++ * vm_param.h) and these changes, from the original bytes [0x4096e20, 0x40990ba):
++ *	data		page_table_alloc_size, page_table_memory_size and
++ *			managed_page_count without initializer; no map_size, no
++ *			pv_lock_table; m68k_cache_inhibit_serial and _nonserial
++ *	pt_alloc	kmem_alloc_wired()
++ *	pt_free		the page scan only when pmap_phys_to_index() != -1
++ *	pmap_set_page_size	the two cache inhibit modes
++ *	pmap_size	max_virtual_size when the argument is 0 (signed)
++ *	pmap_map, pmap_enter, pmap_enter_mapping	a serial argument that
++ *			selects the cache inhibit mode
++ *	pmap_bootstrap	rewritten (see its comment)
++ *	pmap_init	kmem_alloc_wired(), no pv_lock_table
++ *	pmap_extract, pmap_resident_extract	a pte that is not DT_PTE also
++ *			takes the transparent translation test
++ *	pmap_expand_kernel	clears the new page table
++ *	pmap_tt		no cache unless cache is set; PCB_TT1 0x80000000
++ *	pmap_attribute, compress_data_from_phys, uncompress_data_to_phys	new
++ * The machine pmap definitions are in this file (see below).  These spellings
++ * are this project's choices (the bytes do not show them; D160): the in-file
++ * definitions, MSG_BSIZE, the vidGetFBAddrAndSize declaration, the argument
++ * and local names, numbers for addresses without a NeXTMach name.  The
++ * SET_CACHE lines outside pmap_bootstrap are not compiled and only renamed
++ * (pmap_bootstrap's SET_CACHE and !BMAP_TBI lines went with its rewrite).
++ * Lines marked plan 687 differ from NeXTMach (a marked BEGIN/END region as a
++ * whole).
++ */
+ 
+ /* get around a current BMAP chip bug */
+ #define	BMAP_TBI 1
+@@ -71,6 +101,235 @@
+ 
+ #import <cpus.h>
+ #import <show_space.h>
++/*
++ * plan 687 (D160, D013, D104): BEGIN the machine pmap definitions this file
++ * uses.  The shared 07 machdep/m68k/pmap.h (struct pmap with the offsets
++ * that other objects use, no page table types) is skipped by defining its
++ * guard here; the lines below are NeXTMach mk-108.1 next/pmap.h lines 25-235
++ * with the NeXT_ names renamed m68k_ and without pv_lock_table.  Its notice:
++ */
++/* 
++ * Copyright (c) 1987, 1988, 1989, 1990 NeXT, Inc.
++ */
++#define _MACHDEP_M68K_PMAP_H_
++#import <sys/types.h>
++#import <kern/zalloc.h>
++#import <kern/lock.h>
++#import <mach/m68k/vm_param.h>
++#import <m68k/mmu.h>
++#import <mach/vm_statistics.h>
++/* first level page table entry */
++struct pt1_030_entry {
++u_long		lower:1,
++		limit:15,
++		:7,
++		super:1,
++		:4,
++		refer:1,		/* entry has been used */
++		write_prot:1,		/* write protection */
++		desctype:2;		/* descriptor type */
++u_long		l2ptr:28,		/* pointer to level 2 table */
++		:4;
++};
++
++#define	PT1_030_SHIFT	3
++#define	PT1_030_L2PTR	4
++
++struct pt1_040_entry {
++u_long		l2ptr:23,		/* pointer to level 2 table */
++		: 5,
++		refer:1,		/* entry has been used */
++		write_prot:1,		/* write protection */
++		desctype:2;		/* descriptor type */
++};
++
++#define	PT1_040_SHIFT	2
++#define	PT1_040_L2PTR	9
++
++union pt1 {
++	struct pt1_030_entry	pt1_030;
++	struct pt1_040_entry	pt1_040;
++};
++typedef	union pt1	pt1_t;
++
++/* fields that occupy similar bit positions in both page table types */
++#define	pt1_lower	pt1_030.lower
++#define	pt1_limit	pt1_030.limit
++#define	pt1_refer	pt1_030.refer
++#define	pt1_write_prot	pt1_030.write_prot
++#define	pt1_desctype	pt1_030.desctype
++
++#define	phys_to_l2ptr(p)	((int)(p) >> m68k_pt1_l2ptr)
++#define	l2ptr_to_phys(p)	((int)(p) << m68k_pt1_l2ptr)
++
++/* second level page table entry (68040 only) */
++struct pt2_040_entry {
++u_long		pt2_l3ptr:25,		/* pointer to level 3 table */
++		: 3,
++		pt2_refer:1,		/* entry has been used */
++		pt2_write_prot:1,	/* write protection */
++		pt2_desctype:2;		/* descriptor type */
++};
++typedef struct pt2_040_entry pt2_t;
++
++#define	PT2_040_SHIFT	2
++#define	PT2_040_L3PTR	7
++
++#define	phys_to_l3ptr(p)	((int)(p) >> m68k_pt2_l3ptr)
++#define	l3ptr_to_phys(p)	((int)(p) << m68k_pt2_l3ptr)
++
++/* highest level page table entry */
++struct pt2_030_entry {
++u_long		pfn:24,			/* page frame number */
++		reserved:1,		/* reserved */
++		cm:1,			/* cache mode */
++#define	CM_030_CACHED		0
++#define	CM_030_CACHE_INH	1
++		wired:1,		/* wired down (software-only field) */
++		modify:1,		/* page has been modified */
++		refer:1,		/* page has been referenced (used) */
++		write_prot:1,		/* write protection */
++		desctype:2;		/* descriptor type */
++};
++
++#define	PT2_030_SHIFT	2
++#define	PT2_030_PFN	8
++
++struct pt3_040_entry {
++u_long		pfn:20,			/* page frame number */
++		wired:1,		/* wired down (software-only field) */
++		global:1,		/* global (kernel) pte */
++		u1:1,			/* user pte attribute */
++		reserved:1,		/* reserved */
++		super:1,		/* super mode access only */
++		cm:2,			/* cache mode */
++#define	CM_040_WRITETHRU	0
++#define	CM_040_COPYBACK		1	/* copyback mode */
++#define	CM_040_INH_SERIAL	2	/* serialized mode so devices will work */
++#define	CM_040_INH_NONSERIAL	3
++		modify:1,		/* page has been modified */
++		refer:1,		/* page has been referenced (used) */
++		write_prot:1,		/* write protection */
++		desctype:2;		/* descriptor type */
++};
++
++#define	PT3_040_SHIFT	2
++#define	PT3_040_PFN	12
++
++/* note: significant assumption that pte is same size for both processors */
++union pte {
++	struct pt2_030_entry	pte_030;
++	struct pt3_040_entry	pte_040;
++	u_long			bits;
++};
++typedef	union pte	pte_t;
++
++/* fields that occupy the same bit positions in both pte types */
++#define	pte_wired	pte_030.wired
++#define	pte_modify	pte_030.modify
++#define	pte_refer	pte_030.refer
++#define	pte_write_prot	pte_030.write_prot
++#define	pte_desctype	pte_030.desctype
++
++#define	phys_to_pfn(p)	((int)(p) >> m68k_pte_pfn)
++#define	pfn_to_phys(p)	((int)(p) << m68k_pte_pfn)
++
++/* residency codes */
++#define	PT1_UPPER_NULL		-5	/* order sensitive */
++#define	PT1_ENTRY_NULL		-4
++#define	PT2_ENTRY_NULL		-3
++#define	PTE_UPPER_NULL		-2
++#define	PTE_LOWER_NULL		-1
++#define	PTE_ENTRY_NULL		0
++
++/* Descriptor type */
++#define	DT_INVALID	0		/* out-of-bounds or not resident */
++#define	DT_PTE		1		/* valid page table entry */
++#define	DT_SHORT	2		/* valid short format page table */
++#define	DT_LONG		3		/* valid long format page table */
++
++struct pmap {
++	struct mmu_rp	rp;		/* root pointer of pte map */
++	pt1_t		*pt1;		/* address of level 1 page table */
++	int		ref_count;	/* reference count */
++	decl_simple_lock_data(, lock)	/* lock on map */
++	struct pmap_statistics stats;	/* map statistics */
++};
++
++typedef struct pmap	*pmap_t;
++#define	PMAP_NULL	((pmap_t) 0)
++
++/*
++ *	Machine dependent routines that are used only for NeXT.
++ */
++pte_t		*pmap_pte(), *pmap_pte_valid();
++vm_offset_t	pmap_resident_extract();
++
++/*
++ *	For each vm_page_t, there is a list of all currently
++ *	valid virtual mappings of that page.  An entry is
++ *	a pv_entry_t; the list is the pv_table.  [Indexing on the
++ *	pv_table is identical to the vm_page_array.]
++ */
++typedef struct pv_entry {
++	struct pv_entry	*next;		/* next pv_entry */
++	pmap_t		pmap;		/* pmap where mapping lies */
++	vm_offset_t	va;		/* virtual address for mapping */
++} *pv_entry_t;
++
++#define	PV_ENTRY_NULL	((pv_entry_t) 0)
++
++#ifdef	KERNEL
++pv_entry_t	pv_head_table;		/* array of entries, one per page */
++zone_t		pv_list_zone;		/* zone of pv_entry structures */
++
++/*
++ *	Each entry in the pv_head_table is locked by a bit in the 
++ *	pv_lock_table.  The lock bits are accessed by the physical
++ *	address of the page they lock.
++ */
++#define	pai_to_pvh(pai)		(&pv_head_table[pai])
++
++/* plan 687 (D024, D160): char *pv_lock_table removed (not in the original) */
++#define	pv_lock_table_size(n)	(((n)+BYTE_SIZE-1)/BYTE_SIZE)
++#if	!defined(KERNEL_FEATURES)
++#import <cpus.h>
++#else	!defined(KERNEL_FEATURES)
++#import <sys/features.h>
++#endif	!defined(KERNEL_FEATURES)
++#if	NCPUS > 1
++/* FIXME: replace while loop with something better? */
++#define LOCK_PVH(pai) { while (bbssi (pai, pv_lock_table)); }
++#define UNLOCK_PVH(pai) { bbcci (pai, pv_lock_table); }
++#else	NCPUS > 1
++#define LOCK_PVH(pai)
++#define UNLOCK_PVH(pai)
++#endif	NCPUS > 1
++#endif	KERNEL
++
++/*
++ *	Macros for speed.
++ */
++#define	PMAP_ACTIVATE(pmap, th, cpu) \
++	pmove_crp (&pmap->rp);
++
++#define	PMAP_DEACTIVATE(pmap, th, cpu)
++
++/*
++ *	PMAP_CONTEXT: update any thread-specific hardware context that
++ *		is managed by pmap module.
++ */
++
++#define PMAP_CONTEXT(pmap, thread)
++
++#define	pmap_resident_count(pmap)	((pmap)->stats.resident_count)
++
++#define		PMAP_TT_DISABLE		0
++#define		PMAP_TT_ENABLE		1
++#define		PMAP_TT_NON_CACHEABLE	0
++#define		PMAP_TT_CACHEABLE	1
++void		pmap_tt();
++/* plan 687 (D160): END of the machine pmap definitions */
+ 
+ #import <sys/types.h>
+ #import <kern/thread.h>
+@@ -82,33 +341,51 @@
+ #import <vm/pmap.h>
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
+-#import <vm/vm_prot.h>
++#import <mach/vm_param.h>	/* plan 687 (D104): NeXTMach <vm/vm_param.h> */
++#import <mach/vm_prot.h>	/* plan 687 (D104): NeXTMach <vm/vm_prot.h> */
++#import <mach/vm_attributes.h>	/* plan 687 (D160): vm_machine_attribute_t for pmap_attribute */
+ #import <vm/vm_page.h>
+-#import <next/vm_param.h>
+-#import <next/pcb.h>
+-#import <next/mmu.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
++#import <mach/m68k/vm_param.h>	/* plan 687 (D104): NeXTMach <next/vm_param.h> */
++/* plan 687 (D104, D024, D160): NeXTMach #import <next/pcb.h> left out; its PCB_TT1 (next/pcb.h:34)
++   with the 1997 value, bit 7 of byte +0x54 of the int pcb_flags (as TRACE_PENDING in trap.c, D144) */
++#define	PCB_TT1		0x80000000
++#import <m68k/mmu.h>	/* plan 687 (D104): NeXTMach <next/mmu.h> */
++#import <m68k/cpu.h>	/* plan 687 (D110): NeXTMach <next/cpu.h> */
++/* plan 687 (D110, D160): BEGIN NeXTMach next/cpu.h names used here (next/cpu.h:95-128, 188) */
++extern int	slot_id;
++#define	SLOT_ID		slot_id
++#define	P_EPROM		(SLOT_ID+0x00000000)
++#define P_EPROM_BMAP	(SLOT_ID+0x01000000)
++#define	P_EPROM_SIZE	(128 * 1024)
++#define	P_DEV_SPACE	(SLOT_ID+0x02000000)
++#define	P_DEV_BMAP	(SLOT_ID+0x02100000)
++#define	P_MAINMEM	(SLOT_ID+0x04000000)
++/* plan 687 (D110, D160): NeXTMach #import <next/scr.h> left out; its names used here (next/scr.h:34-37) */
++#define	NeXT_CUBE	0
++#define	NeXT_WARP9	1
++#define	NeXT_X15	2
++#define	NeXT_WARP9C	3
++/* plan 687 (D110, D160): END */
+ #import <machine/spl.h>
++#import <sys/msgbuf.h>	/* plan 687 (D160): MSG_BSIZE */
+ 
+ struct pmap	kernel_pmap_store;	/* the kernel pmap structure */
+ pmap_t		kernel_pmap;		/* pointer to above */
+ struct zone	*pmap_zone;		/* zone of pmap structures */
+ lock_data_t	pmap_lock;		/* read/write lock for pmap system */
+-long		map_size;		/* kernel map size */
++/* plan 687 (D024, D160): long map_size removed (a local of pmap_bootstrap) */
+ 
+ /*
+  *	Macros to extract page table index bits from a virtual address.
+  */
+ #define	PT1_INDEX(va) \
+-	(((va) & NeXT_pt1_mask) >> NeXT_pt1_shift)
++	(((va) & m68k_pt1_mask) >> m68k_pt1_shift)
+ #define	PT2_INDEX(va) \
+-	(((va) & NeXT_pt2_mask) >> NeXT_pt2_shift)
++	(((va) & m68k_pt2_mask) >> m68k_pt2_shift)
+ #define	PTE_INDEX(va) \
+-	(((va) & NeXT_pte_mask) >> NeXT_pte_shift)
++	(((va) & m68k_pte_mask) >> m68k_pte_shift)
+ #define	VA_INDEX(va) \
+-	((va) & NeXT_page_mask)
++	((va) & m68k_page_mask)
+ 
+ #define	PT1(pt1, index) \
+ 	((pt1_t*) ((int)(pt1) + ((index) << PT1_040_SHIFT)))
+@@ -233,50 +510,51 @@
+  *	When there is a shortage of bits the highest level page table is
+  *	sized to completely fill a physical page.
+  */
+-int	NeXT_page_size,		/* bytes per NeXT page */
+-	NeXT_page_mask,		/* mask for page offset */
+-	NeXT_page_shift,	/* number of bits to shift for pages */
+-	NeXT_tia,		/* table index a */
+-	NeXT_tib,		/* table index b */
+-	NeXT_tic,		/* table index c */
+-	NeXT_pt1_desctype,	/* page table descriptor types */
+-	NeXT_pt2_desctype,
+-	NeXT_pt1_elemsize,	/* size of an individual level 1 pte element */
+-	NeXT_pte_elemsize,
+-	NeXT_pt1_entries,	/* number of entries per level 1 page table */
+-	NeXT_pt2_entries,
+-	NeXT_pte_entries,
+-	NeXT_pt1_size,		/* size of a single level 1 page table */
+-	NeXT_pt2_size,
+-	NeXT_pte_size,
+-	NeXT_pt1_shift,		/* bits to shift for pt1 index */
+-	NeXT_pt2_shift,
+-	NeXT_pte_shift,
+-	NeXT_pt1_mask,		/* mask to apply for pt1 index */
+-	NeXT_pt2_mask,
+-	NeXT_pte_mask,
+-	NeXT_pt2_maps,		/* a single pt2 maps this much VA space */
+-	NeXT_pte_maps,
+-	NeXT_pt1_l2ptr,		/* phys <-> page table pointer shift factors */
+-	NeXT_pt2_l3ptr,
+-	NeXT_pte_pfn,
+-	NeXT_ptes_per_page,	/* number of ptes in a MI page */
++int	m68k_page_size,		/* bytes per NeXT page */
++	m68k_page_mask,		/* mask for page offset */
++	m68k_page_shift,	/* number of bits to shift for pages */
++	m68k_tia,		/* table index a */
++	m68k_tib,		/* table index b */
++	m68k_tic,		/* table index c */
++	m68k_pt1_desctype,	/* page table descriptor types */
++	m68k_pt2_desctype,
++	m68k_pt1_elemsize,	/* size of an individual level 1 pte element */
++	m68k_pte_elemsize,
++	m68k_pt1_entries,	/* number of entries per level 1 page table */
++	m68k_pt2_entries,
++	m68k_pte_entries,
++	m68k_pt1_size,		/* size of a single level 1 page table */
++	m68k_pt2_size,
++	m68k_pte_size,
++	m68k_pt1_shift,		/* bits to shift for pt1 index */
++	m68k_pt2_shift,
++	m68k_pte_shift,
++	m68k_pt1_mask,		/* mask to apply for pt1 index */
++	m68k_pt2_mask,
++	m68k_pte_mask,
++	m68k_pt2_maps,		/* a single pt2 maps this much VA space */
++	m68k_pte_maps,
++	m68k_pt1_l2ptr,		/* phys <-> page table pointer shift factors */
++	m68k_pt2_l3ptr,
++	m68k_pte_pfn,
++	m68k_ptes_per_page,	/* number of ptes in a MI page */
+ #if	SET_CACHE
+-	NeXT_cache_k,
++	m68k_cache_k,
+ #endif	SET_CACHE
+-	NeXT_cache,		/* cache mode values */
+-	NeXT_cache_inhibit;
+-
+-struct mmu_rp NeXT_kernel_mmu_rp;	/* kernel mode MMU registers */
+-struct mmu_030_tc NeXT_kernel_mmu_030_tc;
+-struct mmu_030_tt NeXT_kernel_mmu_030_tt;
+-struct mmu_040_tc NeXT_kernel_mmu_040_tc;
+-struct mmu_040_tt NeXT_kernel_mmu_040_tt;
+-
+-vm_size_t	page_table_alloc_size = 0;
++	m68k_cache,		/* cache mode values */
++	m68k_cache_inhibit_serial,	/* plan 687 (D024, D160) */
++	m68k_cache_inhibit_nonserial;
++
++struct mmu_rp m68k_kernel_mmu_rp;	/* kernel mode MMU registers */
++struct mmu_030_tc m68k_kernel_mmu_030_tc;
++struct mmu_030_tt m68k_kernel_mmu_030_tt;
++struct mmu_040_tc m68k_kernel_mmu_040_tc;
++struct mmu_040_tt m68k_kernel_mmu_040_tt;
++
++vm_size_t	page_table_alloc_size;	/* plan 687 (D024, D160) */
+ int		pmap_gc = 1;
+-vm_size_t	page_table_memory_size = 0;
+-long		managed_page_count = 0;
++vm_size_t	page_table_memory_size;	/* plan 687 (D024, D160) */
++long		managed_page_count;	/* plan 687 (D024, D160) */
+ extern int	cache;
+ 
+ /*
+@@ -292,10 +570,10 @@
+ 			pte_index = PTE_INDEX(va);
+ 
+ 	pt1 = PT1(pmap->pt1, pt1_index);
+-	if (pt1->pt1_desctype != NeXT_pt1_desctype)
++	if (pt1->pt1_desctype != m68k_pt1_desctype)
+ 		return((pte_t*) PT1_ENTRY_NULL);
+ 	pt2 = (pt2_t*) l2ptr_to_phys(pt1->pt1_040.l2ptr) + pt2_index;
+-	if (pt2->pt2_desctype != NeXT_pt2_desctype)
++	if (pt2->pt2_desctype != m68k_pt2_desctype)
+ 		return((pte_t*) PT2_ENTRY_NULL);
+ 	return((pte_t*) l3ptr_to_phys(pt2->pt2_l3ptr) + pte_index);
+ }
+@@ -358,7 +636,7 @@
+  *	full access.  There are no write only pages.  Also note that
+  *	the kernel always has at least read access.
+  */
+-int NeXT_protection_init()
++int m68k_protection_init()
+ {
+ 	int	*p, prot;
+ 
+@@ -384,7 +662,7 @@
+ 	}
+ }
+ 
+-#define NeXT_protection(pmap, prot) (protection_codes[prot])
++#define m68k_protection(pmap, prot) (protection_codes[prot])
+ 
+ /*
+  *	pt_alloc() will return page table zone memory aligned to the correct boundary
+@@ -449,7 +727,7 @@
+ 		zone->alloc += PAGE_SIZE;
+ 		simple_unlock (&zone->lock);
+ 		splx(s);
+-		newmem = (vm_offset_t) kmem_alloc (kernel_map, newsize);
++		kmem_alloc_wired (kernel_map, &newmem, newsize);	/* plan 687 (D024, D160) */
+ 		newmem = pmap_resident_extract (kernel_pmap, newmem);
+ 		s = splvm();
+ 		simple_lock (&zone->lock);
+@@ -490,13 +768,14 @@
+ 	simple_lock (&zone->lock);
+ 	
+ 	/* see if we can free an entire page */
+-	ASSERT(pmap_phys_to_index (addr) != -1);
++	/* plan 687 (D024, D160): no ASSERT(pmap_phys_to_index (addr) != -1); the test is below */
+ 	((pt_hdr_t*)addr)->magic = PT_HDR_MAGIC;
+ 	free_count = 0;
+ 	/*
+ 	 * Only scan if we are guaranteed to leave some memory in the zone.
+ 	 */
+-	if (zone->free_count > zone->elems_per_page) {
++	if (pmap_phys_to_index (addr) != -1 &&	/* plan 687 (D024, D160) */
++	    zone->free_count > zone->elems_per_page) {
+ 		pt_base = trunc_page (addr);
+ 		for (pt = pt_base; pt < pt_base + PAGE_SIZE;
+ 				pt += zone->elem_size) {
+@@ -558,66 +837,68 @@
+ {
+ 	int i;
+ 
+-	NeXT_page_mask = NeXT_page_size - 1;
+-	for (NeXT_page_shift = 0, i = 1; i != NeXT_page_size; i <<= 1)
+-		NeXT_page_shift++;
+-
+-	if (NeXT_page_size == 4096)
+-		NeXT_tic = 6;
++	m68k_page_mask = m68k_page_size - 1;
++	for (m68k_page_shift = 0, i = 1; i != m68k_page_size; i <<= 1)
++		m68k_page_shift++;
++
++	if (m68k_page_size == 4096)
++		m68k_tic = 6;
+ 	else
+-		NeXT_tic = 5;
+-	NeXT_pte_elemsize = 1 << PT3_040_SHIFT;
+-	NeXT_pte_entries = 1 << NeXT_tic;
+-	NeXT_pte_size = NeXT_pte_entries << PT3_040_SHIFT;
+-	NeXT_pte_shift = NeXT_page_shift;
+-	NeXT_pte_mask = (NeXT_pte_entries - 1) << NeXT_pte_shift;
+-	NeXT_pte_maps = NeXT_pte_entries << NeXT_pte_shift;
++		m68k_tic = 5;
++	m68k_pte_elemsize = 1 << PT3_040_SHIFT;
++	m68k_pte_entries = 1 << m68k_tic;
++	m68k_pte_size = m68k_pte_entries << PT3_040_SHIFT;
++	m68k_pte_shift = m68k_page_shift;
++	m68k_pte_mask = (m68k_pte_entries - 1) << m68k_pte_shift;
++	m68k_pte_maps = m68k_pte_entries << m68k_pte_shift;
+ 	if (cpu_type == MC68030)
+-		NeXT_pte_pfn = PT2_030_PFN;
++		m68k_pte_pfn = PT2_030_PFN;
+ 	else
+-		NeXT_pte_pfn = PT3_040_PFN;
+-
+-	NeXT_tib = 7;
+-	NeXT_pt2_entries = 1 << NeXT_tib;
+-	NeXT_pt2_size = NeXT_pt2_entries << PT2_040_SHIFT;
+-	NeXT_pt2_shift = NeXT_pte_shift + NeXT_tic;
+-	NeXT_pt2_mask = (NeXT_pt2_entries - 1) << NeXT_pt2_shift;
+-	NeXT_pt2_maps = NeXT_pt2_entries << NeXT_pt2_shift;
+-	NeXT_pt2_desctype = DT_SHORT;
+-	NeXT_pt2_l3ptr = PT2_040_L3PTR;
+-
+-	NeXT_tia = 7;
+-	NeXT_pt1_elemsize = 1 << PT1_040_SHIFT;
+-	NeXT_pt1_entries = 1 << NeXT_tia;
+-	NeXT_pt1_size = NeXT_pt1_entries << PT1_040_SHIFT;
+-	NeXT_pt1_shift = NeXT_pt2_shift + NeXT_tib;
+-	NeXT_pt1_mask = (NeXT_pt1_entries - 1) << NeXT_pt1_shift;
+-	NeXT_pt1_desctype = DT_SHORT;
+-	NeXT_pt1_l2ptr = PT1_040_L2PTR;
++		m68k_pte_pfn = PT3_040_PFN;
++
++	m68k_tib = 7;
++	m68k_pt2_entries = 1 << m68k_tib;
++	m68k_pt2_size = m68k_pt2_entries << PT2_040_SHIFT;
++	m68k_pt2_shift = m68k_pte_shift + m68k_tic;
++	m68k_pt2_mask = (m68k_pt2_entries - 1) << m68k_pt2_shift;
++	m68k_pt2_maps = m68k_pt2_entries << m68k_pt2_shift;
++	m68k_pt2_desctype = DT_SHORT;
++	m68k_pt2_l3ptr = PT2_040_L3PTR;
++
++	m68k_tia = 7;
++	m68k_pt1_elemsize = 1 << PT1_040_SHIFT;
++	m68k_pt1_entries = 1 << m68k_tia;
++	m68k_pt1_size = m68k_pt1_entries << PT1_040_SHIFT;
++	m68k_pt1_shift = m68k_pt2_shift + m68k_tib;
++	m68k_pt1_mask = (m68k_pt1_entries - 1) << m68k_pt1_shift;
++	m68k_pt1_desctype = DT_SHORT;
++	m68k_pt1_l2ptr = PT1_040_L2PTR;
+ #if	SET_CACHE
+-	NeXT_cache = cache? CM_040_COPYBACK: CM_040_INH_NONSERIAL;
+-	NeXT_cache_k = cache? CM_040_COPYBACK : CM_040_INH_NONSERIAL;
++	m68k_cache = cache? CM_040_COPYBACK: CM_040_INH_NONSERIAL;
++	m68k_cache_k = cache? CM_040_COPYBACK : CM_040_INH_NONSERIAL;
+ #else	SET_CACHE
+-	NeXT_cache = cache? CM_040_COPYBACK : CM_040_INH_NONSERIAL;
++	m68k_cache = cache? CM_040_COPYBACK : CM_040_INH_NONSERIAL;
+ #endif	SET_CACHE
+-	NeXT_cache_inhibit = CM_040_INH_SERIAL;
+-	NeXT_kernel_mmu_040_tc.tc_enable = TRUE;
+-	if (NeXT_page_size == 8192)
+-		NeXT_kernel_mmu_040_tc.tc_8k_pagesize = TRUE;
++	m68k_cache_inhibit_serial = CM_040_INH_SERIAL;	/* plan 687 (D024, D160) */
++	m68k_cache_inhibit_nonserial = CM_040_INH_NONSERIAL;
++	m68k_kernel_mmu_040_tc.tc_enable = TRUE;
++	if (m68k_page_size == 8192)
++		m68k_kernel_mmu_040_tc.tc_8k_pagesize = TRUE;
+ 
+ 	if (cpu_type == MC68030) {
+-		NeXT_cache = cache? CM_030_CACHED : CM_030_CACHE_INH;
+-		NeXT_cache_inhibit = CM_030_CACHE_INH;
++		m68k_cache = cache? CM_030_CACHED : CM_030_CACHE_INH;
++		m68k_cache_inhibit_serial = CM_030_CACHE_INH;	/* plan 687 (D024, D160) */
++		m68k_cache_inhibit_nonserial = CM_030_CACHE_INH;
+ #if	SET_CACHE
+-		NeXT_cache_k = NeXT_cache;
++		m68k_cache_k = m68k_cache;
+ #endif	SET_CACHE
+-		NeXT_kernel_mmu_030_tc.tc_enable = TRUE;
+-		NeXT_kernel_mmu_030_tc.tc_sre = TRUE;
+-		NeXT_kernel_mmu_030_tc.tc_ps = NeXT_page_shift;
+-		NeXT_kernel_mmu_030_tc.tc_is = 0;
+-		NeXT_kernel_mmu_030_tc.tc_tia = NeXT_tia;
+-		NeXT_kernel_mmu_030_tc.tc_tib = NeXT_tib;
+-		NeXT_kernel_mmu_030_tc.tc_tic = NeXT_tic;
++		m68k_kernel_mmu_030_tc.tc_enable = TRUE;
++		m68k_kernel_mmu_030_tc.tc_sre = TRUE;
++		m68k_kernel_mmu_030_tc.tc_ps = m68k_page_shift;
++		m68k_kernel_mmu_030_tc.tc_is = 0;
++		m68k_kernel_mmu_030_tc.tc_tia = m68k_tia;
++		m68k_kernel_mmu_030_tc.tc_tib = m68k_tib;
++		m68k_kernel_mmu_030_tc.tc_tic = m68k_tic;
+ 	}
+ }
+ 
+@@ -634,11 +915,12 @@
+ 	vm_size_t	memsize;
+ {
+ 	long	l2_tables, num_ptes;
+-
+-	l2_tables = howmany (max_virtual_size, NeXT_pt2_maps);
+-	return (NeXT_pt1_size +
+-		l2_tables * NeXT_pt2_size +
+-		l2_tables * (NeXT_pt2_entries * NeXT_pte_size));
++	long	size = memsize ? memsize : max_virtual_size;	/* plan 687 (D024, D160) */
++
++	l2_tables = howmany (size, m68k_pt2_maps);	/* plan 687 (D024, D160) */
++	return (m68k_pt1_size +
++		l2_tables * m68k_pt2_size +
++		l2_tables * (m68k_pt2_entries * m68k_pte_size));
+ }
+ 
+ #if	BMAP_TBI
+@@ -646,7 +928,7 @@
+  *	Map memory at initialization.  The physical addresses being
+  *	mapped are not managed and are never unmapped.
+  */
+-vm_offset_t pmap_map(virt, start, end, prot, cacheable)
++vm_offset_t pmap_map(virt, start, end, prot, cacheable, serial)	/* plan 687 (D024, D160) */
+ 	register vm_offset_t	virt;
+ 	register vm_offset_t	start;
+ 	register vm_offset_t	end;
+@@ -657,7 +939,7 @@
+ 
+ 	ps = PAGE_SIZE;
+ 	while (start < end) {
+-		pmap_enter_mapping(kernel_pmap, virt, start, prot, FALSE, cacheable);
++		pmap_enter_mapping(kernel_pmap, virt, start, prot, FALSE, cacheable, serial);	/* plan 687 (D024, D160) */
+ 		virt += ps;
+ 		start += ps;
+ 	}
+@@ -676,146 +958,125 @@
+  *	virtual_avail	VA of first available page (after kernel bss)
+  *	virtual_end	VA of last avail page (end of kernel address space)
+  */
+-void pmap_bootstrap(avail_start, avail_end, virtual_avail, virtual_end)
+-	vm_offset_t	*avail_start;	/* IN/OUT */
+-	vm_offset_t	*avail_end;	/* IN/OUT */
++/*
++ * plan 687 (D024, D160): BEGIN the 1997 pmap_bootstrap, written from the original
++ * bytes [0x40974a0, 0x40979c0) up to the 68030 branch: five arguments (as
++ * m68k_init calls it), no zone_alignment, the kernel page table from
++ * mem_region[0], map_size a local (also the size in the region loop), the
++ * 68040 mappings by machine type (vidGetFBAddrAndSize, the regions above
++ * SLOT_ID + 0x08000000, the message buffer) and tt0 from lbase/lmask.
++ * Addresses without a NeXTMach name are numbers.
++ */
++void pmap_bootstrap(mem_region, num_regions, virtual_avail, virtual_end, msgbuf)
++	mem_region_t	mem_region;	/* IN/OUT */
++	int		num_regions;
+ 	vm_offset_t	*virtual_avail;	/* OUT */
+ 	vm_offset_t	*virtual_end;	/* OUT */
++	vm_offset_t	msgbuf;
+ {
+ 	int		i, align;
+-	vm_offset_t	vaddr;
+-	vm_offset_t	ptbr;
++	vm_offset_t	ptbr, avail, first;
++	vm_size_t	map_size;
+ 	pte_t		*pte;
+-	extern int	zone_alignment;
+-
+-#if	SET_CACHE
+-	{
+-		NeXT_cache = cache? ((debug & 0x100)? ((debug >> 4) & 0xf) :
+-			CM_040_COPYBACK) : CM_040_INH_NONSERIAL;
+-		NeXT_cache_k = cache? ((debug & 0x100)? (debug & 0xf) :
+-			CM_040_COPYBACK) : CM_040_INH_NONSERIAL;
+-		if (cpu_type == MC68030) {
+-			NeXT_cache = cache? CM_030_CACHED : CM_030_CACHE_INH;
+-			NeXT_cache_k = NeXT_cache;
+-		}
+-	}
+-#endif	SET_CACHE
+-
+-	/*
+-	 *  Assumes that NeXT_pt1_size == NeXT_pt2_size for the 68040
+-	 *  so only a single zone is used for level 1 & 2 page tables.
+-	 */
+-	pt_init (pt_zone, NeXT_pt1_size);
+-	pt_init (pte_zone, NeXT_pte_size);
+-
+-	if (cpu_type == MC68030)
+-		zone_alignment = 15;	/* for level 1 ptes */
+-
+-	NeXT_protection_init();
+-	NeXT_ptes_per_page = NeXT_btop(PAGE_SIZE);
+-
+-	/*
+-	 *	The kernel's pmap is statically allocated so we don't
+-	 *	have to use pmap_create, which is unlikely to work
+-	 *	correctly at this part of the boot sequence.
+-	 */
++	int		lbase, lmask;
++	vm_offset_t	fbaddr;
++	vm_size_t	fbsize;
++	extern void	vidGetFBAddrAndSize();	/* plan 687 (D160): no header declares it */
++
++	pt_init (pt_zone, m68k_pt1_size);
++	pt_init (pte_zone, m68k_pte_size);
++	m68k_protection_init();
++	m68k_ptes_per_page = m68k_btop(PAGE_SIZE);
+ 	kernel_pmap = &kernel_pmap_store;
+ 	lock_init(&pmap_lock, FALSE);
+ 	simple_lock_init(&kernel_pmap->lock);
+-
+-	/*
+-	 *	Allocate the kernel page table from the front of available
+-	 *	physical memory.
+-	 */
+ 	if (cpu_type != MC68030) {
+-		align = NeXT_pt1_entries * NeXT_pt1_elemsize;
++		align = m68k_pt1_entries * m68k_pt1_elemsize;
+ 	} else {
+ 		align = l1ptr_to_phys(1);
+ 	}
+-	*avail_start = roundup(*avail_start, align);
+-	ptbr = *avail_start;
++	avail = roundup(mem_region[0].first_phys_addr, align);
++	ptbr = avail;
+ 	kernel_pmap->pt1 = (pt1_t*) ptbr;
+-	map_size = pmap_size(mem_size);
+-	avail_kernel_map = ptbr + NeXT_pt1_size;
++	map_size = pmap_size(0);
++	avail_kernel_map = ptbr + m68k_pt1_size;
+ 	max_kernel_map = ptbr + map_size;
+-	*avail_start += map_size;
+-#if	SHOW_SPACE
+-	if (show_space)
+-		printf("kernel ptes %d@%x-%x\n",
+-			map_size, ptbr, *avail_start);
+-#endif	SHOW_SPACE
++	avail += map_size;
++	mem_region[0].first_phys_addr = avail;
+ 	kernel_pmap->ref_count = 1;
+ 	kernel_pmap->rp.rp_desc_type = DT_SHORT;	/* ignored by 68040 */
+-	kernel_pmap->rp.rp_limit = NeXT_pt1_entries - 1;
++	kernel_pmap->rp.rp_limit = m68k_pt1_entries - 1;
+ 	kernel_pmap->rp.rp_ptbr = phys_to_l1ptr(ptbr);
+-	NeXT_kernel_mmu_rp = kernel_pmap->rp;
++	m68k_kernel_mmu_rp = kernel_pmap->rp;
+ 	bzero(ptbr, map_size);
+-
+-	/*
+-	 *	Use MMU tt0 to transparently map all of physical memory,
+-	 *	device space and video memory.
+-	 *	This will effectively map the kernel text/data/bss,
+-	 *	interrupt stack and system page tables.
+-	 *
+-	 *	Systems with the built-in color frame buffer have the frame buffer
+-	 *	starting at 0x06000000, replacing the high 32 Mb of DRAM on
+-	 *	the X15 board.  We set the tt_lmask up to also grant access
+-	 *	to this address space. The color frame buffer is cacheable.
+-	 */
++	pmap_map(trunc_page(0xf0fffff0), trunc_page(0xf0fffff0), round_page(0xf0fffff0 + 4),
++		VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
+ 	if (cpu_type != MC68030) {
+-#if	BMAP_TBI
+ 		pmap_map(P_EPROM, P_EPROM, P_EPROM + P_EPROM_SIZE,
+-			VM_PROT_READ, TRUE);
++			VM_PROT_READ, TRUE, FALSE);
+ 		pmap_map(P_EPROM_BMAP, P_EPROM_BMAP, P_EPROM_BMAP + P_EPROM_SIZE,
+-			VM_PROT_READ, TRUE);
+-		pmap_map(P_DEV_SPACE, P_DEV_SPACE, P_DEV_SPACE + DEV_SPACE_SIZE +
+-			SLOT_ID_BMAP, VM_PROT_WRITE|VM_PROT_READ, FALSE);
+-		NeXT_kernel_mmu_040_tt.tt_lbase = P_MAINMEM >> 24;
+-		NeXT_kernel_mmu_040_tt.tt_lmask = ~0xfc;
+-		NeXT_kernel_mmu_040_tt.tt_e = 1;
+-		NeXT_kernel_mmu_040_tt.tt_super = TT_040_SUPER;
+-#if	SET_CACHE
+-		NeXT_kernel_mmu_040_tt.tt_cm = cache? ((debug & 0x100)? (debug & 0xf) :
+-			TT_040_CM_COPYBACK) : TT_040_CM_INH_NONSERIAL;
+-#else	SET_CACHE
+-		NeXT_kernel_mmu_040_tt.tt_cm =
+-			cache? TT_040_CM_COPYBACK : TT_040_CM_INH_NONSERIAL;
+-#endif	SET_CACHE
+- 		switch (machine_type) {
++			VM_PROT_READ, TRUE, FALSE);
++		pmap_map(P_DEV_SPACE, P_DEV_SPACE, P_DEV_SPACE + 0xc0040,
++			VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++		pmap_map(P_DEV_BMAP, P_DEV_BMAP, P_DEV_BMAP + 0x1e000,
++			VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++		switch (machine_type) {
+ 		    case NeXT_WARP9C:
+-			/*
+-			 * Warp 9C has 32 Mbyte DRAM area followed by 
+-			 * the frame buffer.  No mapping needed.
+-			 */
+-			 break;
+-		    case NeXT_CUBE:
++			lbase = P_MAINMEM >> 24;
++			lmask = ~0xd4;
++			break;
+ 		    case NeXT_WARP9:
+ 		    case NeXT_X15:
+-			pmap_map(P_VIDEOMEM, P_VIDEOMEM, P_VIDEOMEM + 0x40000,
+-				VM_PROT_WRITE|VM_PROT_READ, FALSE);
++			lbase = P_MAINMEM >> 24;
++			lmask = ~0xfc;
++			vidGetFBAddrAndSize(&fbaddr, &fbsize);
++			pmap_map(fbaddr, fbaddr, fbaddr + fbsize,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++			break;
++		    case 4:
++		    case 5:
++		    default:
++			lbase = P_MAINMEM >> 24;
++			lmask = ~0xfc;
++			vidGetFBAddrAndSize(&fbaddr, &fbsize);
++			pmap_map(SLOT_ID + 0x02200000, SLOT_ID + 0x02200000, SLOT_ID + 0x02209000,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++			pmap_map(SLOT_ID + 0x02210000, SLOT_ID + 0x02210000, SLOT_ID + 0x02210004,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++			pmap_map(SLOT_ID + 0x03e00000, SLOT_ID + 0x03e00000, SLOT_ID + 0x03e80000,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, FALSE);
++			pmap_map(fbaddr, fbaddr, fbaddr + fbsize,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
++			for (i = 0; i < num_regions; i++) {
++				first = mem_region[i].first_phys_addr;
++				if (first >= SLOT_ID + 0x08000000) {
++					map_size = pmap_size(mem_region[i].last_phys_addr - first);
++					max_kernel_map += map_size;
++					avail += map_size;
++					mem_region[0].first_phys_addr = avail;
++					pmap_map(first, first, mem_region[i].last_phys_addr,
++						VM_PROT_WRITE|VM_PROT_READ, TRUE, FALSE);
++				}
++			}
++			pmap_map(msgbuf, msgbuf, msgbuf + MSG_BSIZE,
++				VM_PROT_WRITE|VM_PROT_READ, FALSE, TRUE);
+ 			break;
+ 		}
+-#else	BMAP_TBI
+-		NeXT_kernel_mmu_040_tt.tt_lbase = P_EPROM >> 24;
+-		NeXT_kernel_mmu_040_tt.tt_lmask = ~0xf0;
+-		NeXT_kernel_mmu_040_tt.tt_e = 1;
+-		NeXT_kernel_mmu_040_tt.tt_super = TT_040_SUPER;
+-#if	SET_CACHE
+-		NeXT_kernel_mmu_040_tt.tt_cm = cache? ((debug & 0x100)? (debug & 0xf) :
+-			TT_040_CM_COPYBACK) : TT_040_CM_INH_NONSERIAL;
+-#else	SET_CACHE
+-		NeXT_kernel_mmu_040_tt.tt_cm =
++		m68k_kernel_mmu_040_tt.tt_lbase = lbase;
++		m68k_kernel_mmu_040_tt.tt_lmask = lmask;
++		m68k_kernel_mmu_040_tt.tt_e = 1;
++		m68k_kernel_mmu_040_tt.tt_super = TT_040_SUPER;
++		m68k_kernel_mmu_040_tt.tt_cm =
+ 			cache? TT_040_CM_COPYBACK : TT_040_CM_INH_NONSERIAL;
+-#endif	SET_CACHE
+-#endif	BMAP_TBI
++/* plan 687 (D024, D160): END; the rest of pmap_bootstrap is the NeXTMach text */
+ 	} else {
+-		NeXT_kernel_mmu_030_tt.tt_lbase = P_EPROM >> 24;
+-		NeXT_kernel_mmu_030_tt.tt_lmask = ~0xf0;
+-		NeXT_kernel_mmu_030_tt.tt_e = 1;
+-		NeXT_kernel_mmu_030_tt.tt_rwmask = 1;
+-		NeXT_kernel_mmu_030_tt.tt_fcbase = ~(FC_SUPERI ^ FC_SUPERD);
+-		NeXT_kernel_mmu_030_tt.tt_fcmask = FC_SUPERI ^ FC_SUPERD;
+-		NeXT_kernel_mmu_030_tt.tt_ci = cache? 0 : 1;
++		m68k_kernel_mmu_030_tt.tt_lbase = P_EPROM >> 24;
++		m68k_kernel_mmu_030_tt.tt_lmask = ~0xf0;
++		m68k_kernel_mmu_030_tt.tt_e = 1;
++		m68k_kernel_mmu_030_tt.tt_rwmask = 1;
++		m68k_kernel_mmu_030_tt.tt_fcbase = ~(FC_SUPERI ^ FC_SUPERD);
++		m68k_kernel_mmu_030_tt.tt_fcmask = FC_SUPERI ^ FC_SUPERD;
++		m68k_kernel_mmu_030_tt.tt_ci = cache? 0 : 1;
+ 	}
+ 
+ 	/*
+@@ -830,7 +1091,7 @@
+ 	*virtual_avail += PAGE_SIZE*NCPUS;
+ 	phys_map_vaddr2 = *virtual_avail;
+ 	*virtual_avail += PAGE_SIZE*NCPUS;
+-	for (i = phys_map_vaddr1 ; i < *virtual_avail ; i += NeXT_page_size)
++	for (i = phys_map_vaddr1 ; i < *virtual_avail ; i += m68k_page_size)
+ 		if ((int) (pte = pmap_pte(kernel_pmap, i)) < PTE_ENTRY_NULL)
+ 			pmap_expand_kernel(i, pte);
+ 	phys_map_pte1 = pmap_pte_valid(kernel_pmap, phys_map_vaddr1);
+@@ -876,10 +1137,9 @@
+ 		rp = &mem_region[i];
+ 		npages += rp->num_pages;
+ 	}
+-	s = (vm_size_t) (sizeof(struct pv_entry) * npages +
+-				pv_lock_table_size(npages));
++	s = (vm_size_t) (sizeof(struct pv_entry) * npages);	/* plan 687 (D024, D160) */
+ 	s = round_page(s);
+-	addr = (vm_offset_t) kmem_alloc(kernel_map, s);
++	kmem_alloc_wired(kernel_map, &addr, s);	/* plan 687 (D024, D160) */
+ 	bzero(addr, s);
+ 
+ 	/*
+@@ -891,7 +1151,7 @@
+ 	s = (vm_size_t) sizeof(struct pv_entry);
+ 	pv_list_zone = zinit(s, 100000*s, 0, FALSE, "pv_list"); /* XXX */
+ 	pv_head_table = (pv_entry_t) addr;
+-	pv_lock_table = (char *) addr + (npages * sizeof(struct pv_entry));
++	/* plan 687 (D024, D160): no pv_lock_table */
+ 	managed_page_count = npages;
+ }
+ 
+@@ -927,7 +1187,7 @@
+ 	pmap->ref_count = 1;
+ 	simple_lock_init(&pmap->lock);
+ 	pmap->rp.rp_desc_type = DT_SHORT;	/* ignored by 68040 */
+-	pmap->rp.rp_limit = NeXT_pt1_entries - 1;
++	pmap->rp.rp_limit = m68k_pt1_entries - 1;
+ 	pmap->pt1 = (pt1_t*) pt_alloc(pt_zone);
+ 	pmap->rp.rp_ptbr = phys_to_l1ptr(pmap->pt1);
+ 	return(pmap);
+@@ -974,13 +1234,13 @@
+ 	pte_t	*pte;
+ 	int	l1;
+ 
+-	for (l1 = 0; l1 < NeXT_pt1_entries; l1++) {
++	for (l1 = 0; l1 < m68k_pt1_entries; l1++) {
+ 		pt1 = PT1(pt1_base, l1);
+-		if (pt1->pt1_desctype != NeXT_pt1_desctype)
++		if (pt1->pt1_desctype != m68k_pt1_desctype)
+ 			continue;
+ 		pt2_base = (pt2_t*) l2ptr_to_phys(pt1->pt1_040.l2ptr);
+-		for (pt2 = pt2_base; pt2 < pt2_base + NeXT_pt2_entries; pt2++) {
+-			if (pt2->pt2_desctype != NeXT_pt2_desctype)
++		for (pt2 = pt2_base; pt2 < pt2_base + m68k_pt2_entries; pt2++) {
++			if (pt2->pt2_desctype != m68k_pt2_desctype)
+ 				continue;
+ 			pt_free(pte_zone, (pte_t*) l3ptr_to_phys(pt2->pt2_l3ptr));
+ 		}
+@@ -1041,11 +1301,11 @@
+ 		spte = pmap_pte(pmap, va);
+ 		if ((int) spte < PTE_ENTRY_NULL) {
+ 			if ((int) spte == PT2_ENTRY_NULL) {
+-				va &= ~(NeXT_pte_maps - 1);
+-				va += NeXT_pte_maps;
++				va &= ~(m68k_pte_maps - 1);
++				va += m68k_pte_maps;
+ 			} else {	/* PT1_ENTRY_NULL */
+-				va &= ~(NeXT_pt2_maps - 1);
+-				va += NeXT_pt2_maps;
++				va &= ~(m68k_pt2_maps - 1);
++				va += m68k_pt2_maps;
+ 			}
+ 			
+ 			/* watch out for wraparound when e is near 2^32! */
+@@ -1059,8 +1319,8 @@
+ 		 * of the inclusive ptes are in the same lower level group as the
+ 		 * starting pte.
+ 		 */
+-		epte = spte + NeXT_btop(e - va);
+-		pg_pte = pmap_pte(pmap, roundup(va+1, NeXT_pte_maps) - 1) + 1;
++		epte = spte + m68k_btop(e - va);
++		pg_pte = pmap_pte(pmap, roundup(va+1, m68k_pte_maps) - 1) + 1;
+ 		if (pg_pte < epte)
+ 			epte = pg_pte;
+ 
+@@ -1079,7 +1339,7 @@
+ 		 *	Remove each pte from the PV list.
+ 		 */
+ 		for (cpte = spte; cpte < epte;
+-		     cpte += NeXT_ptes_per_page, va += PAGE_SIZE) {
++		     cpte += m68k_ptes_per_page, va += PAGE_SIZE) {
+ 
+ 			/*
+ 			 * Get the physical address, skipping this
+@@ -1139,8 +1399,8 @@
+ 		/*
+ 		 * Zero the individual ptes if we missed some above.
+ 		 */
+-		if (NeXT_ptes_per_page > 1)
+-			bzero((caddr_t) spte, (epte-spte) * NeXT_pte_elemsize);
++		if (m68k_ptes_per_page > 1)
++			bzero((caddr_t) spte, (epte-spte) * m68k_pte_elemsize);
+ 	}
+ 	CHECK_PV;
+ }
+@@ -1228,8 +1488,8 @@
+ 		} else
+ 			pv_h->pmap = PMAP_NULL;
+ 
+-		end_pte = pte + NeXT_ptes_per_page;
+-		for (; pte < end_pte; pte++, va += NeXT_page_size) {
++		end_pte = pte + m68k_ptes_per_page;
++		for (; pte < end_pte; pte++, va += m68k_page_size) {
+ 			if (pte->pte_modify && pte->pte_desctype == DT_PTE && m)
+ 				vm_page_set_modified(m);
+ 
+@@ -1259,7 +1519,7 @@
+ 	if (pmap == kernel_pmap || pmap_coll == 0)
+ 		return;
+ 	spte = pte - PTE_INDEX(va);
+-	epte = spte + NeXT_pte_entries;
++	epte = spte + m68k_pte_entries;
+ 	for (cpte = spte; cpte < epte; cpte++) {
+ 		if (cpte->pte_desctype == DT_PTE)
+ 			return;
+@@ -1269,9 +1529,9 @@
+ 	pt_free(pte_zone, (pte_t*) l3ptr_to_phys(pt2->pt2_l3ptr));
+ 	pt2->pt2_desctype = DT_INVALID;
+ 	spt2 = pt2 - PT2_INDEX(va);
+-	ept2 = spt2 + NeXT_pt2_entries;
++	ept2 = spt2 + m68k_pt2_entries;
+ 	for (cpt2 = spt2; cpt2 < ept2; cpt2++) {
+-		if (cpt2->pt2_desctype == NeXT_pt2_desctype)
++		if (cpt2->pt2_desctype == m68k_pt2_desctype)
+ 			return;
+ 	}
+ 	pt_free (pt_zone, spt2);
+@@ -1324,7 +1584,7 @@
+ 		 *	if there is a mapping, change the protections.
+ 		 */
+ 		pte = pmap_pte_valid(pmap, pv_e->va);
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++) {
+ 			if (pte->pte_desctype == DT_PTE) {
+ 				pte->pte_write_prot = TRUE;
+@@ -1366,7 +1626,7 @@
+ 		return;
+ 	}
+ 
+-	vp = NeXT_protection(pmap, prot);
++	vp = m68k_protection(pmap, prot);
+ 
+ 	LOCK_PMAP(pmap,s);
+ 
+@@ -1374,12 +1634,12 @@
+ 	TBIA(pmap);
+ 
+ 	while (start < end) {
+-		next_range = start & ~(NeXT_pte_maps - 1);
+-		next_range += NeXT_pte_maps;
++		next_range = start & ~(m68k_pte_maps - 1);
++		next_range += m68k_pte_maps;
+ 		pte = pmap_pte(pmap, start);
+ 		if ((int)pte > PTE_ENTRY_NULL) {
+ 			if (end < next_range)
+-				end_pte = pte + NeXT_btop(end - start);
++				end_pte = pte + m68k_btop(end - start);
+ 			else
+ 				end_pte = pmap_pte(pmap, next_range - 1) + 1;
+ 
+@@ -1416,10 +1676,10 @@
+ {
+ 	void		pmap_enter_mapping();
+ 
+-	pmap_enter_mapping(pmap, v, p, prot, wired, TRUE);
+-}
+-
+-void pmap_enter_mapping(pmap, v, p, prot, wired, cacheable)
++	pmap_enter_mapping(pmap, v, p, prot, wired, TRUE, FALSE);	/* plan 687 (D024, D160) */
++}
++
++void pmap_enter_mapping(pmap, v, p, prot, wired, cacheable, serial)	/* plan 687 (D024, D160) */
+ 	pmap_t		pmap;
+ 	vm_offset_t	v;
+ 	vm_offset_t	p;
+@@ -1438,13 +1698,13 @@
+ 
+ #if	SET_CACHE
+ 	{
+-		NeXT_cache = cache? ((debug & 0x100)? ((debug >> 4) & 0xf) :
++		m68k_cache = cache? ((debug & 0x100)? ((debug >> 4) & 0xf) :
+ 			CM_040_COPYBACK) : CM_040_INH_NONSERIAL;
+-		NeXT_cache_k = cache? ((debug & 0x100)? (debug & 0xf) :
++		m68k_cache_k = cache? ((debug & 0x100)? (debug & 0xf) :
+ 			CM_040_COPYBACK) : CM_040_INH_NONSERIAL;
+ 		if (cpu_type == MC68030) {
+-			NeXT_cache = cache? CM_030_CACHED : CM_030_CACHE_INH;
+-			NeXT_cache_k = NeXT_cache;
++			m68k_cache = cache? CM_030_CACHED : CM_030_CACHE_INH;
++			m68k_cache_k = m68k_cache;
+ 		}
+ 	}
+ #endif	SET_CACHE
+@@ -1464,7 +1724,7 @@
+ 	if (!cacheable || (managed_page_count && pmap_phys_to_index(p) == -1))
+ 		cache_inhibit = TRUE;
+ 
+-	vp = NeXT_protection(pmap, prot);
++	vp = m68k_protection(pmap, prot);
+ 
+ 	/*
+ 	 *	Must allocate a new pv_list entry while we're unlocked;
+@@ -1567,15 +1827,16 @@
+ 		 *	active pmap.
+ 		 */
+ 		TBIA(pmap); /* necessary??? XXX */
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++) {
+ 			pte->pte_write_prot = vp;
+ 			PTE(pte, wired) = wired;
+ #if	SET_CACHE
+-			PTE(pte, cm) = cache_inhibit? NeXT_cache_inhibit :
+-				(pmap == kernel_pmap? NeXT_cache_k : NeXT_cache);
++			PTE(pte, cm) = cache_inhibit? m68k_cache_inhibit :
++				(pmap == kernel_pmap? m68k_cache_k : m68k_cache);
+ #else	SET_CACHE
+-			PTE(pte, cm) = cache_inhibit? NeXT_cache_inhibit : NeXT_cache;
++			PTE(pte, cm) = cache_inhibit? (serial? m68k_cache_inhibit_serial :	/* plan 687 (D024, D160) */
++			m68k_cache_inhibit_nonserial) : m68k_cache;
+ #endif	SET_CACHE
+ 		}
+ 	} else {
+@@ -1594,16 +1855,17 @@
+ 			((struct pt3_040_entry*)ppte)->global = 1;
+ 		PTE(ppte, wired) = wired;
+ #if	SET_CACHE
+-		PTE(ppte, cm) = cache_inhibit? NeXT_cache_inhibit :
+-			(pmap == kernel_pmap? NeXT_cache_k : NeXT_cache);
++		PTE(ppte, cm) = cache_inhibit? m68k_cache_inhibit :
++			(pmap == kernel_pmap? m68k_cache_k : m68k_cache);
+ #else	SET_CACHE
+-		PTE(ppte, cm) = cache_inhibit? NeXT_cache_inhibit : NeXT_cache;
++		PTE(ppte, cm) = cache_inhibit? (serial? m68k_cache_inhibit_serial :	/* plan 687 (D024, D160) */
++			m68k_cache_inhibit_nonserial) : m68k_cache;
+ #endif	SET_CACHE
+ 		PTE(ppte, pfn) = phys_to_pfn(pa);
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++) {
+ 			*pte = *ppte;
+-			ppte->bits += NeXT_page_size;
++			ppte->bits += m68k_page_size;
+ 		}
+ 
+ 	}
+@@ -1638,7 +1900,7 @@
+ 
+ 	TBIA(pmap);
+ 	if (pte->pte_desctype == DT_PTE) {
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++)
+ 			PTE(pte, wired) = wired;
+ 	}
+@@ -1665,17 +1927,18 @@
+ 	unsigned	s;
+ 
+ 	LOCK_PMAP(pmap,s);
+-	if ((int)(pte = pmap_pte(pmap, va)) < PTE_ENTRY_NULL) {
++	if ((int)(pte = pmap_pte(pmap, va)) < PTE_ENTRY_NULL ||	/* plan 687 (D024, D160) */
++	    pte->pte_desctype != DT_PTE) {
+ 
+ 		/* check for kernel transparent translation */
+ 		if (cpu_type != MC68030) {
+-			enable = NeXT_kernel_mmu_040_tt.tt_e;
+-			lbase = NeXT_kernel_mmu_040_tt.tt_lbase;
+-			lmask = NeXT_kernel_mmu_040_tt.tt_lmask;
++			enable = m68k_kernel_mmu_040_tt.tt_e;
++			lbase = m68k_kernel_mmu_040_tt.tt_lbase;
++			lmask = m68k_kernel_mmu_040_tt.tt_lmask;
+ 		} else {
+-			enable = NeXT_kernel_mmu_030_tt.tt_e;
+-			lbase = NeXT_kernel_mmu_030_tt.tt_lbase;
+-			lmask = NeXT_kernel_mmu_030_tt.tt_lmask;
++			enable = m68k_kernel_mmu_030_tt.tt_e;
++			lbase = m68k_kernel_mmu_030_tt.tt_lbase;
++			lmask = m68k_kernel_mmu_030_tt.tt_lmask;
+ 		}
+ 		if (pmap == kernel_pmap && enable && ((va >> 24)  & ~lmask) == lbase)
+ 			pa = va;
+@@ -1705,17 +1968,18 @@
+ 	pte_t	*pte;
+ 	int	enable, lbase, lmask;
+ 
+-	if ((int)(pte = pmap_pte(pmap, va)) < PTE_ENTRY_NULL) {
++	if ((int)(pte = pmap_pte(pmap, va)) < PTE_ENTRY_NULL ||	/* plan 687 (D024, D160) */
++	    pte->pte_desctype != DT_PTE) {
+ 
+ 		/* check for kernel transparent translation */
+ 		if (cpu_type != MC68030) {
+-			enable = NeXT_kernel_mmu_040_tt.tt_e;
+-			lbase = NeXT_kernel_mmu_040_tt.tt_lbase;
+-			lmask = NeXT_kernel_mmu_040_tt.tt_lmask;
++			enable = m68k_kernel_mmu_040_tt.tt_e;
++			lbase = m68k_kernel_mmu_040_tt.tt_lbase;
++			lmask = m68k_kernel_mmu_040_tt.tt_lmask;
+ 		} else {
+-			enable = NeXT_kernel_mmu_030_tt.tt_e;
+-			lbase = NeXT_kernel_mmu_030_tt.tt_lbase;
+-			lmask = NeXT_kernel_mmu_030_tt.tt_lmask;
++			enable = m68k_kernel_mmu_030_tt.tt_e;
++			lbase = m68k_kernel_mmu_030_tt.tt_lbase;
++			lmask = m68k_kernel_mmu_030_tt.tt_lmask;
+ 		}
+ 		if (pmap == kernel_pmap && enable && ((va >> 24)  & ~lmask) == lbase)
+ 			return(va);	/* va is the pa */
+@@ -1749,12 +2013,12 @@
+ 	if (reason == PT1_ENTRY_NULL) {
+ 		avail_kernel_map = roundup(avail_kernel_map, l2ptr_to_phys(1));
+ 		pt2 = (pt2_t*) avail_kernel_map;
+-		bzero (pt2, NeXT_pt2_size);
+-		avail_kernel_map += NeXT_pt2_size;
++		bzero (pt2, m68k_pt2_size);
++		avail_kernel_map += m68k_pt2_size;
+ 		pt1->pt1_040.l2ptr = phys_to_l2ptr(pt2);
+ 		pt1->pt1_write_prot = FALSE;
+ 		pt1->pt1_refer = TRUE;
+-		pt1->pt1_desctype = NeXT_pt1_desctype;
++		pt1->pt1_desctype = m68k_pt1_desctype;
+ 	} else
+ 		pt2 = (pt2_t*) l2ptr_to_phys(pt1->pt1_040.l2ptr);
+ 
+@@ -1767,14 +2031,15 @@
+ 	 */
+ 	avail_kernel_map = roundup(avail_kernel_map, l3ptr_to_phys(1));
+ 	pte = (pte_t*) avail_kernel_map;
+-	avail_kernel_map += NeXT_pte_size;
++	avail_kernel_map += m68k_pte_size;
+ 	if (avail_kernel_map > max_kernel_map)
+ 		panic("No more room in kernel map");
++	bzero (pte, m68k_pte_size);	/* plan 687 (D024, D160) */
+ 	pt2 += PT2_INDEX(va);
+ 	pt2->pt2_l3ptr = phys_to_l3ptr(pte);
+ 	pt2->pt2_write_prot = FALSE;
+ 	pt2->pt2_refer = TRUE;
+-	pt2->pt2_desctype = NeXT_pt2_desctype;
++	pt2->pt2_desctype = m68k_pt2_desctype;
+ 	CHECK_PV;
+ }
+ 
+@@ -1819,7 +2084,7 @@
+ 		pt1->pt1_040.l2ptr = phys_to_l2ptr(pt2);
+ 		pt1->pt1_write_prot = FALSE;
+ 		pt1->pt1_refer = TRUE;
+-		pt1->pt1_desctype = NeXT_pt1_desctype;
++		pt1->pt1_desctype = m68k_pt1_desctype;
+ 	} else {
+ 		pt2 = (pt2_t*) l2ptr_to_phys(pt1->pt1_040.l2ptr);
+ 	}
+@@ -1828,7 +2093,7 @@
+ 	pt2->pt2_l3ptr = phys_to_l3ptr(pte);
+ 	pt2->pt2_write_prot = FALSE;
+ 	pt2->pt2_refer = TRUE;
+-	pt2->pt2_desctype = NeXT_pt2_desctype;
++	pt2->pt2_desctype = m68k_pt2_desctype;
+ 	UNLOCK_PMAP_U(pmap);
+ 	CHECK_PV;
+ }
+@@ -1913,7 +2178,7 @@
+ 	 *	can't allocate memory under the lock, so allocate
+ 	 *	the new map here.
+ 	 */
+-	pt1size = NeXT_pt1_entries * NeXT_pt1_elemsize;
++	pt1size = m68k_pt1_entries * m68k_pt1_elemsize;
+ 	newpt1 = (pt1_t*) pt_alloc(pt_zone);
+ 	if (newpt1 == 0)
+ 		return;		/* not important to do this now */
+@@ -1977,6 +2242,18 @@
+ 	boolean_t	pageable;
+ {
+ }
++
++/* plan 687 (D024, D160): BEGIN the 1997 pmap_attribute (original 0x4098c1e) */
++kern_return_t pmap_attribute(pmap, address, size, attribute, value)
++	pmap_t				pmap;
++	vm_offset_t			address;
++	vm_size_t			size;
++	vm_machine_attribute_t		attribute;
++	vm_machine_attribute_val_t	*value;
++{
++	return (KERN_INVALID_ARGUMENT);
++}
++/* plan 687 (D024, D160): END */
+ 
+ /*
+  *	Clear the modify bits on the specified physical page.
+@@ -2016,7 +2293,7 @@
+ 
+ 		va = pv_h->va;
+ 		pte = pmap_pte_valid(pmap, va);
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++) {
+ 			pte->pte_modify = 0;
+ 		}
+@@ -2073,7 +2350,7 @@
+ 
+ 		va = pv_h->va;
+ 		pte = pmap_pte_valid(pmap, va);
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; pte < end_pte; pte++) {
+ 			pte->pte_refer = 0;
+ 		}
+@@ -2132,7 +2409,7 @@
+ 		va = pv_h->va;
+ 		pte = pmap_pte_valid(pmap, va);
+ 
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; is_referenced == FALSE && pte < end_pte; pte++) {
+ 			if (pte->pte_refer)
+ 				is_referenced = TRUE;
+@@ -2193,7 +2470,7 @@
+ 		va = pv_h->va;
+ 		pte = pmap_pte_valid(pmap, va);
+ 
+-		end_pte = pte + NeXT_ptes_per_page;
++		end_pte = pte + m68k_ptes_per_page;
+ 		for (; is_modified == FALSE && pte < end_pte; pte++) {
+ 			if (pte->pte_modify)
+ 				is_modified = TRUE;
+@@ -2344,6 +2621,27 @@
+ {
+ 	bcopy(virt, phys, size);
+ }
++
++/* plan 687 (D024, D160): BEGIN the 1997 compressed paging helpers (original 0x4098f64,
++   0x4098f7e); the arguments go on unchanged */
++int compress_data_from_phys(src, size, dst)
++	vm_offset_t	src;
++	vm_size_t	size;
++	vm_offset_t	dst;
++{
++	return (compress_data(src, size, dst));
++}
++
++int uncompress_data_to_phys(src, srcsize, dst, dstsize, index)
++	vm_offset_t	src;
++	vm_size_t	srcsize;
++	vm_offset_t	dst;
++	vm_size_t	dstsize;
++	int		index;
++{
++	return (uncompress_data(src, srcsize, dst, dstsize, index));
++}
++/* plan 687 (D024, D160): END */
+ #endif	notdef
+ 
+ /*
+@@ -2356,6 +2654,8 @@
+ {
+ 	struct pcb	*pcb = th->pcb;
+ 	
++	if (!cache)	/* plan 687 (D024, D160) */
++		cacheable = FALSE;
+ 	/* setup MMU tt1 register */
+ 	bzero (&pcb->mmu_tt1, sizeof pcb->mmu_tt1);
+ 	if (cpu_type != MC68030) {

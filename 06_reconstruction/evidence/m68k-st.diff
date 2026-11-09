@@ -1,0 +1,156 @@
+--- NeXTMach mk-108.1/nextdev/st.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/st.c (plan 652, D150; plan 663, D153)
+@@ -25,6 +25,29 @@
+  */ 
+  
+ /*
++ * plan 652 (D150, D013, D024, D104, D110, D149): the 1997 m68k st.c.
++ * NeXTMach mk-108.1 nextdev/st.c with the include lines in OPENSTEP paths
++ * and these changes (plans 647-651); the behavior is from the original bytes
++ * [0x408844e, 0x4089786), the place of the st_rw declaration is this
++ * project's choice (the bytes cannot show it):
++ *	stslave		ir_revision[4] cleared; "%s Rev %s as " also prints
++ *			the revision; the 1997 per-target, per-lun count in
++ *			sc_lunmask is incremented (D149)
++ *			plan 663 (D153): the device-type test names the 1997
++ *			inquiry_reply fields ir_qual and ir_devicetype (the
++ *			compiler merges them into the original byte compare)
++ *	stinit		DMA_BEGINALIGN of the 1997 public dma.h (NeXTMach
++ *			DMA_ALIGN, removed from the 07 nextdev/dma.h)
++ *	st_rw		static, declared before stread/stwrite; the 1997
++ *			kmem_alloc_wired() for the request, then for the DMA
++ *			buffer (the request is freed if the second fails);
++ *			SIL on every variable-length read
++ *	stioctl		MTIOCSRQ: the 1997 kmem_alloc_wired()
++ *	st_mtop		the 1997 kmem_alloc_wired()
++ * The other functions are the NeXTMach text unchanged.  Lines marked plan 652
++ * differ from NeXTMach.
++ */
++/*
+  * Four different devices are implemented here:
+  *
+  *	rst - generic SCSI tape, rewind on close
+@@ -60,16 +83,16 @@
+ #import <kern/xpr.h>
+ #import <kern/queue.h>
+ #import <sys/mtio.h>
+-#import <next/psl.h>
+-#import <next/cpu.h>
+-#import <next/printf.h>
+-#import <nextdev/busvar.h>
+-#import <nextdev/disk.h>
++#import <m68k/psl.h>	/* plan 652 (D104): NeXTMach <next/psl.h> */
++#import <m68k/cpu.h>	/* plan 652 (D110): NeXTMach <next/cpu.h> */
++#import <kernserv/printf.h>	/* plan 652 (D104): NeXTMach <next/printf.h> */
++#import <dev/busvar.h>	/* plan 652 (D104): NeXTMach <nextdev/busvar.h> */
++#import <dev/disk.h>	/* plan 652 (D104): NeXTMach <nextdev/disk.h> */
+ #import <nextdev/dma.h>
+ #import <nextdev/screg.h>
+ #import <nextdev/scvar.h>
+-#import <nextdev/scsireg.h>
+-#import <nextdev/scsivar.h>
++#import <dev/m68k/scsireg.h>	/* plan 652 (D104, D113): NeXTMach <nextdev/scsireg.h> */
++#import <dev/m68k/scsivar.h>	/* plan 652 (D104, D113): NeXTMach <nextdev/scsivar.h> */
+ #import <nextdev/stvar.h>
+ #import <machine/spl.h>
+ #import <vm/vm_kern.h>
+@@ -177,6 +200,7 @@
+ 	long resid, 
+ 	int io_status);
+ static int st_mtop(dev_t dev, struct mtop *mtopp);
++static int st_rw(dev_t dev, struct uio *uiop, int rw_flag);	/* plan 652 (D150): static, called before its definition */
+ static int st_fixed(struct scsi_tape_device *stdp, 
+ 	int blocksize, 
+ 	int polling);
+@@ -211,7 +235,7 @@
+ 	 * slave fails
+ 	 */
+ 	irp = stdp->std_irp;
+-	if (error || irp->ir_devicetype != DEVTYPE_TAPE) {
++	if (error || irp->ir_qual || irp->ir_devicetype != DEVTYPE_TAPE) {	/* plan 663 (D153): 1997 inquiry_reply, 0x40884b8 */
+ 		stdp->std_sdp = NULL;		/* indicates no device */
+ 		return(0);
+ 	}
+@@ -220,14 +244,15 @@
+ 	for (cp=irp->ir_revision-1; cp >= irp->ir_vendorid && *cp == ' '; cp--)
+ 		continue;
+ 	*++cp = '\0';
++	irp->ir_revision[4] = '\0';	/* plan 652 (D024): 1997, 0x40884e8 */
+ 	if (cp != irp->ir_vendorid)
+-		printf("%s as ", irp->ir_vendorid);
++		printf("%s Rev %s as ", irp->ir_vendorid, irp->ir_revision);	/* plan 652 (D024): 1997, 0x40884f4 */
+ 		
+ 	/* for now, set default of variable block size */
+ 	st_fixed(stdp, 0, ST_WAIT);
+ 	
+ 	/* reserve this lun as ours */
+-	sdp->sd_scp->sc_lunmask[sdp->sd_target] |= 1 << sdp->sd_lun;
++	sdp->sd_scp->sc_lunmask[sdp->sd_target][sdp->sd_lun]++;	/* plan 652 (D024, D149): 1997 count table, 0x408852c */
+ 	bdp->bd_slave = SCSI_SLAVE(sdp->sd_target, sdp->sd_lun);
+ 	
+ 	/* one more to clear attention - Exabyte */
+@@ -267,10 +292,10 @@
+ 
+ 	bzero(stdp, sizeof(struct scsi_tape_device));
+ 	stdp->std_sdp = sdp;
+-	stdp->std_erp = DMA_ALIGN(struct esense_reply *, &stdp->std_erbuf);
+-	stdp->std_irp = DMA_ALIGN(struct inquiry_reply *, &stdp->std_irbuf);
+-	stdp->std_crp = DMA_ALIGN(struct capacity_reply *, &stdp->std_crbuf);
+-	stdp->std_mspp = DMA_ALIGN(struct modesel_parms *, &stdp->std_msbuf);
++	stdp->std_erp = DMA_BEGINALIGN(struct esense_reply *, &stdp->std_erbuf);	/* plan 652 (D150): NeXTMach DMA_ALIGN */
++	stdp->std_irp = DMA_BEGINALIGN(struct inquiry_reply *, &stdp->std_irbuf);	/* plan 652 (D150): NeXTMach DMA_ALIGN */
++	stdp->std_crp = DMA_BEGINALIGN(struct capacity_reply *, &stdp->std_crbuf);	/* plan 652 (D150): NeXTMach DMA_ALIGN */
++	stdp->std_mspp = DMA_BEGINALIGN(struct modesel_parms *, &stdp->std_msbuf);	/* plan 652 (D150): NeXTMach DMA_ALIGN */
+ 	stdp->std_flags = 0;
+ 	queue_init(&stdp->std_io_q);
+ 	stdp->std_state = STDSTATE_STARTINGCMD;
+@@ -543,10 +568,12 @@
+ 	 * FIXME: should wire user's memory and DMA from there, avoiding
+ 	 * a copyin() or copyout().
+ 	 */
+-	srp = (struct scsi_req *) kmem_alloc (kernel_map,sizeof(*srp));
+-	dmap = (caddr_t)kmem_alloc(kernel_map, uiop->uio_iov->iov_len);
+-	if((srp == 0) || (dmap == 0))
+-		return(ENOMEM);
++	if (kmem_alloc_wired(kernel_map, (vm_offset_t *)&srp, sizeof(*srp)) != KERN_SUCCESS)	/* plan 652 (D024, D150): 1997, 0x4088ab4 */
++		return(ENOMEM);	/* plan 652 (D024) */
++	if (kmem_alloc_wired(kernel_map, (vm_offset_t *)&dmap, uiop->uio_iov->iov_len) != KERN_SUCCESS) {	/* plan 652 (D024, D150): 1997, 0x4088ad8 */
++		kmem_free(kernel_map, (vm_offset_t)srp, sizeof(*srp));	/* plan 652 (D024): 1997, 0x4088af2 */
++		return(ENOMEM);	/* plan 652 (D024) */
++	}	/* plan 652 (D024) */
+ 	
+ 	/* build a CDB */
+ 	cdbp = &(srp->sr_cdb.cdb_c6s);
+@@ -562,8 +589,7 @@
+ 	else {
+ 		cdbp->c6s_len = srp->sr_dma_max = uiop->uio_iov->iov_len;
+ 		if(rw_flag == SR_DMA_RD)
+-			if(stdp->std_flags & STF_SIL)
+-			    cdbp->c6s_opt |= C6OPT_SIL;
++			cdbp->c6s_opt |= C6OPT_SIL;	/* plan 652 (D024): 1997, no STF_SIL test, 0x4088b88 */
+ 	}
+ 		
+ 	if(cdbp->c6s_len > C6S_MAXLEN) {
+@@ -967,8 +993,8 @@
+ 		 * in the user's data if a DMA write is expected.
+ 		 */
+ 		if (srp->sr_dma_max != 0) {
+-			if ((ap = (caddr_t)kmem_alloc(kernel_map,
+-			    srp->sr_dma_max)) == 0) {
++			if (kmem_alloc_wired(kernel_map, (vm_offset_t *)&ap,	/* plan 652 (D024, D150): 1997, 0x4089284 */
++			    srp->sr_dma_max) != KERN_SUCCESS) {	/* plan 652 (D150) */
+ 				XDBG(("        ...kmem_alloc() failed\n"));
+ 				srp->sr_io_status = SR_IOST_MEMALL;
+ 				return(ENOMEM);
+@@ -1024,9 +1050,8 @@
+ 	 * scsi_req, build a cdb, and pass it to stcmd().
+ 	 */
+ 	 
+-	srp = (struct scsi_req *) kmem_alloc (kernel_map, 
+-		sizeof(struct scsi_req));
+-	if(srp == 0) 
++	if (kmem_alloc_wired(kernel_map, (vm_offset_t *)&srp,	/* plan 652 (D024, D150): 1997, 0x4089378 */
++	    sizeof(struct scsi_req)) != KERN_SUCCESS)	/* plan 652 (D150) */
+ 		return(ENOMEM);
+ 		
+ 	/* build a CDB */

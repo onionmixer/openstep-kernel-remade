@@ -1,0 +1,921 @@
+--- nextmach/mk-108.1/next/machdep.c
++++ 07_kernel/src/machdep/m68k/machdep.c
+@@ -82,6 +82,42 @@
+  **********************************************************************
+  */ 
+ 
++/*
++ * plan 600 (D134, D013, D024, D104, D105, D110, D116): the 1997 m68k
++ * machdep.c.  NeXTMach mk-108.1 next/machdep.c with the include lines in
++ * OPENSTEP paths and the 1997 changes written from the original bytes
++ * [0x40936a4, 0x4094a7c) and data [0x40b2b82, 0x40b2b92) (plans 580-599):
++ *	mon_call	adb_watchdog(0)/(1) around trap #13; no movl of boot_action
++ *	kernel_thread_noblock, kernel_thread_noblock_start
++ *			new here (NeXTMach has a reaper form in kern/thread.c):
++ *			callout_dispatch of kernel_thread(kernel_task, start, 0)
++ *	halt_thread, reboot_mach
++ *			boot(RB_BOOT, how, "") (three arguments)
++ *	nmi		NMI status and parity error registers when dma_chip != 313
++ *	mini_mon	serial console (zsopen/zstrygetc), no restart = 1,
++ *			adb_watchdog, kdbg_connect(1), kdb_ipaddr help line
++ *	softint_sched	a wrapper of the new callout_dispatch (the NeXTMach
++ *			softint_sched body); new callout_remove
++ *	softint_run	nmi_big through callout_dispatch; the RETRACE list is
++ *			detached and run once
++ *	startup_early	ns_callout instead of callout/us_callout; bufpages,
++ *			nbuf (16..254) and nmfsbuf defaults
++ *	startup		ns_callout_init(); mb_map of nmbclusters * MCLBYTES;
++ *			animation through callout_dispatch; adb_initialize()
++ *	as_tune		mg_seq >= 60 and mg_as_tune test at splhigh
++ *	sendsig		no TRACE_AST block
++ *	addupc		the 1997 chained-buffer form (as machdep/i386/machdep.c)
++ *	data		nmfsbuf added, nsoftint 50; nrnode and waittime not here
++ * Removed (not in the original object): setregs, boot, unmount_all,
++ * kill_tasks, physstrat, and with them the en.h, od.h and sys/vfs.h
++ * imports.  vmtime, cpu_number and dumpsys are not compiled (as NeXTMach).
++ * Forms and names not fixed by the bytes are user decisions (D134):
++ * the casts on intrstat, the parity address expression, the authored
++ * names P_NMI_STAT, P_PERR_CLR and P_PERR_ADDR, kernel_thread_noblock_start,
++ * struct ns_callout in this file, atop(mem_size / 10 / 2), the MG() forms
++ * and the 07 NeXTMach copy of next/scb.h.  Changed lines and blocks are
++ * marked plan 600; removed code is marked where it was.
++ */
+ #import <cpus.h>
+ #import <confdep.h>
+ #import <cputypes.h>
+@@ -129,26 +165,44 @@
+ #endif	NCPUS > 1
+ #import <kern/xpr.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 600 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_page.h>
+-#import <next/vmparam.h>
++#import <m68k/vmparam.h>	/* plan 600 (D104): NeXTMach <next/vmparam.h> */
+ #import <next/autoconf.h>
+-#import <next/cpu.h>
+-#import <next/reg.h>
+-#import <next/psl.h>
+-#import <next/pcb.h>
+-#import <next/scr.h>
+-#import <next/scb.h>
+-#import <next/cons.h>
++#import <m68k/cpu.h>	/* plan 600 (D110): NeXTMach <next/cpu.h> */
++/* plan 600 (D134, D024): NeXTMach next/cpu.h names used here (next/cpu.h:96,98,152,153,213,216,262) */
++#define	P_MAINMEM	(SLOT_ID+0x04000000)	/* plan 600 (D134, D024): next/cpu.h:188 */
++#define	I_PFAIL		I(7,1,30)	/* plan 600 (D134, D024): next/cpu.h:221 */
++#define	P_NMI_STAT	(SLOT_ID+0x02200020)	/* plan 600 (D134): authored name */
++#define	P_PERR_CLR	(SLOT_ID+0x02200004)	/* plan 600 (D134): authored name */
++#define	P_PERR_ADDR	(SLOT_ID+0x02200008)	/* plan 600 (D134): authored name */
++extern int slot_id, slot_id_bmap;
++#define	SLOT_ID		slot_id
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_DSP		(SLOT_ID_BMAP+0x02008000)
++#define	P_MON		(SLOT_ID+0x0200e000)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))
++#define	I_POWER		I(3,11,2)
++#import <m68k/reg.h>	/* plan 600 (D104): NeXTMach <next/reg.h> */
++#import <m68k/psl.h>	/* plan 600 (D104): NeXTMach <next/psl.h> */
++/* plan 600 (D134, D024): NeXTMach #import <next/pcb.h> left out (struct pcb of the staged machdep/m68k/thread.h) */
++/* plan 600 (D134, D024): NeXTMach next/scr.h not imported; its names used here */
++#define	SCR2_LOCALINT	0x01000000
++#define	SCR2_EKG_LED	0x00000001
++extern volatile int *scr2;
++#import <next/scb.h>	/* plan 600 (D134): the 07 NeXTMach copy 07_kernel/nextmach/next/scb.h */
++#import <m68k/cons.h>	/* plan 600 (D104): NeXTMach <next/cons.h> */
+ #import <next/event_meter.h>
+-#import <next/us_timer.h>
+-#import	<next/bmap.h>
+-#import <nextdev/monreg.h>
++#import <kernserv/m68k/us_timer.h>	/* plan 600 (D104): NeXTMach <next/us_timer.h> */
++/* plan 600 (D134): NeXTMach next/us_timer.h us_callfree and us_callout not declared (the 1997 startup_early allocates ns_callout) */
++#import	<m68k/bmap.h>	/* plan 600 (D105): NeXTMach <next/bmap.h> */
++#import <dev/m68k/monreg.h>	/* plan 600 (D104): NeXTMach <nextdev/monreg.h> */
+ #import <nextdev/kmreg.h>
+-#import <nextdev/video.h>
++#import <dev/m68k/video.h>	/* plan 600 (D116): NeXTMach <nextdev/video.h>, the SDK header */
+ #import <nextdev/dma.h>
+ #import <mon/global.h>
+-#import <nextdev/snd_dspreg.h>
++#import <dev/m68k/snd_dspreg.h>	/* plan 600 (D104): NeXTMach <nextdev/snd_dspreg.h> */
+ 
+ #import <machine/spl.h>
+ 
+@@ -164,16 +218,13 @@
+ #else
+ int	nbuf = 0;
+ #endif
++int	nmfsbuf = 0;	/* plan 600 (D134, D024) */
+ #ifdef	BUFPAGES
+ int	bufpages = BUFPAGES;
+ #else
+ int	bufpages = 0;
+ #endif
+-#ifdef	NRNODE
+-int	nrnode = NRNODE;
+-#else
+-int	nrnode = 0;
+-#endif
++/* plan 600 (D134, D024): NeXTMach nrnode removed (defined elsewhere in the original) */
+ #if	SHOW_SPACE
+ int	show_space;
+ #endif	SHOW_SPACE
+@@ -205,15 +256,32 @@
+ mon_call (action)
+ 	char *action;
+ {
++	adb_watchdog(0);	/* plan 600 (D134, D024) */
+ 	boot_action = action;
+-	asm ("movl _boot_action, d0");
+-	asm ("trap #13");
++	asm ("trap #13");	/* plan 600 (D134, D024): no movl _boot_action, d0 */
++	adb_watchdog(1);	/* plan 600 (D134, D024) */
++}
++
++/* plan 600 (D134, D024): 1997 kernel_thread_noblock (original 0x4093792, 0x40937ac) */
++static void
++kernel_thread_noblock_start(start)
++	void (*start)();
++{
++	kernel_thread(kernel_task, start, 0);
++}
++
++void
++kernel_thread_noblock(task, start)
++	task_t task;
++	void (*start)();
++{
++	callout_dispatch(CALLOUT_PRI_THREAD, kernel_thread_noblock_start, start);
+ }
+ 
+ int reboot_how;
+ 
+ halt_thread() {
+-	boot (RB_BOOT, reboot_how);
++	boot (RB_BOOT, reboot_how, "");	/* plan 600 (D134, D024) */
+ }
+ 
+ reboot_mach (how)
+@@ -222,7 +290,7 @@
+ 		reboot_how = how;
+ 		kernel_thread_noblock(kernel_task, halt_thread);
+ 	} else
+-		boot(RB_BOOT, how|RB_NOSYNC);
++		boot(RB_BOOT, how|RB_NOSYNC, "");	/* plan 600 (D134, D024) */
+ }
+ 
+ /* nmi mini-monitor */
+@@ -232,55 +300,80 @@
+ int	nmi_xpr, nmi_xprclear;
+ #endif	XPR_DEBUG
+ 
+-nmi(ksp, usp, isp, pc, sr)
++nmi(ksp, usp, isp, pc, sr)	/* plan 600 (D134, D024): 1997 nmi from the original bytes 0x409382c */
+ {
+ 	register struct monitor *mon = (struct monitor*) P_MON;
+ 	union kybd_event ke;
++	int do_mon = 0, do_restart = 0;
++	extern int *intrstat;	/* as mini_mon */
+ 
+-	ke.data = mon->mon_km_data;
+-	mon->mon_csr.km_clr_nmi = 1;
+-	if (ke.k.up_down == 1)		/* ignore up transitions */
+-		return;
+-	if (ke.k.command_left && ke.k.command_right)
++	if (dma_chip != 313 && (*(volatile int *)P_NMI_STAT & 1)) {	/* plan 600 (D134, D024) */
++		*(volatile int *)P_NMI_STAT = 0;
++		do_mon = 1;
++	} else {
++		ke.data = mon->mon_km_data;
++		mon->mon_csr.km_clr_nmi = 1;
++		if (ke.k.up_down != 1) {
++			if (ke.k.command_left && ke.k.command_right)
++				do_mon = 1;
++			else if (ke.k.command_left == 0)
++				do_restart = 1;
++		}
++	}
++	if (dma_chip != 313 && (*(volatile int *)intrstat & I_BIT(I_PFAIL))) {
++		u_int simm;
++		caddr_t mainmem;	/* plan 600 (D134, D024) */
++
++		*(volatile int *)P_PERR_CLR = 0;	/* plan 600 (D134, D024) */
++		*(volatile int *)P_PERR_CLR = 0;
++		simm = (*(volatile u_int *)P_PERR_ADDR -	/* plan 600 (D134, D024) */
++			(u_int)(mainmem = (caddr_t)P_MAINMEM)) /
++			(0x08000000 / num_regions);
++		printf("parity error at address 0x%x, SIMM memory sockets %d and %d (%s)\n",
++			*(volatile int *)P_PERR_ADDR, simm & ~1, (simm & ~1) | 1,
++			(simm & 1) ? "back" : "front");
++		panic("parity error");
++	}
++	if (do_mon)
+ 		mini_mon("nmi", "NMI Mini-Monitor (type \"?\" for help)",
+ 			ksp, usp, isp, pc, sr);
+-	else
+-	
+-	/* only allow command-right to cause restart request */
+-	if (ke.k.command_left == 0)
++	else if (do_restart)
+ 		mini_mon("restart", "Restart/Power-Off");
+ }
+ 
+ mini_mon(prompt, title, ksp, usp, isp, pc, sr)
+ 	char *prompt, *title;
+ {
+-	register int i, saved = 0, s = splhigh(), restart, c, panic;
++	register int i, saved = 0, s = splhigh(), restart, c, panic, serial;	/* plan 600 (D134, D024) */
+ 	char line[256];
++	extern int zsopen();	/* plan 600 (D134, D024) */
+ 	extern int *intrstat;
+ 	extern struct mon_global *mon_global;
+ 	struct mon_global *mg = mon_global;
+ 
+ 	restart = strcmp(prompt, "restart") == 0;
+ 	panic = strcmp(prompt, "panic") == 0;
+-	if (cons_tp != &cons || (km.flags & KMF_SEE_MSGS) == 0) {
++	serial = cdevsw[major(cons_tp->t_dev)].d_open == zsopen;	/* plan 600 (D134, D024) */
++	if ((cons_tp != &cons || (km.flags & KMF_SEE_MSGS) == 0) && !serial) {	/* plan 600 (D134, D024) */
+ 		saved = 1;
+-		if (restart) {
++		if (restart)	/* plan 600 (D134, D024): NeXTMach restart = 1 removed */
+ 			kmpopup(title, POPUP_ALERT, 50, 6, 0);
+-			restart = 1;
+-		} else
++		else
+ 			kmpopup(title, POPUP_NOM, 0, 0, 0);
+-		if (strcmp(prompt, "panic") == 0) {
++		if (panic) {	/* plan 600 (D134, D024) */
+ 			kmioctl(0, KMIOCDUMPLOG, 0, 0);
+ 			if ((ksp & RB_DEBUG) == 0)
+ 				return;
++			printf("\n");	/* plan 600 (D134, D024) */
+ 		}
+ 	} else
+ 		nmi_prf("\n");
++	adb_watchdog(0);	/* plan 600 (D134, D024) */
+ 	if (restart) {
+ 		nmi_prf("Restart or power off?  Type r to restart,\n");
+ 		nmi_prf("press Power key to power off.  Type n to cancel.\n");
+ 		while (1) {
+-			c = kmtrygetc();
++			c = serial ? zstrygetc(cons_tp->t_dev) : kmtrygetc();	/* plan 600 (D134, D024) */
+ 			if (c == 'r')
+ 				reboot_mach(RB_AUTOBOOT);
+ 			if (c == 'h')
+@@ -305,16 +398,17 @@
+ 		
+ 		/* check for network debugger connection */
+ 		do {
+-			c = kmtrygetc();
++			c = serial ? zstrygetc(cons_tp->t_dev) : kmtrygetc();	/* plan 600 (D134, D024) */
+ #if	GDB
+-			if (kdbg_connect())
++			if (kdbg_connect(1))	/* plan 600 (D134, D024) */
+ 				goto cont;
+ #endif	GDB
+ 		} while (c == -1);
+ 		line[0] = c;
+-		if (c == '\n' || c == '\r')
++		if (c == '\n' || c == '\r') {
+ 			nmi_prf("\n");
+-		else {
++			line[0] = 0;	/* plan 600 (D134, D024) */
++		} else {
+ 			nmi_prf("%c", c);
+ 			gets(line, &line[1]);
+ 		}
+@@ -323,6 +417,7 @@
+ 			nmi_prf("commands are: (can be abbreviated)\n"
+ #if	GDB
+ 				"\tgdb - break to debugger\n"
++				"\tkdb_ipaddr=n - set default ip address\n"	/* plan 600 (D134, D024) */
+ #endif	GDB
+ 				"\t?, help - print this list\n");
+ #if	XPR_DEBUG
+@@ -347,7 +442,7 @@
+ #if	GDB
+ 		if (nmi_gdb) {
+ 			nmi_gdb = 0;
+-			asm("trap #14");	/* return to gdb */
++			asm("trap #15");	/* return to gdb */	/* plan 600 (D134, D024) */
+ 			break;
+ 		} else
+ #endif	GDB
+@@ -514,6 +609,7 @@
+ 		kmrestore();
+ 	nmi_stay = 0;
+ 	resynctime();
++	adb_watchdog(1);	/* plan 600 (D134, D024) */
+ 	splx(s);
+ }
+ 
+@@ -528,7 +624,7 @@
+ /*
+  *	Routines that implement software interrupts.
+  */
+-int	nsoftint = 100;			/* number of simultaneous softints */
++int	nsoftint = 50;	/* plan 600 (D134, D024): NeXTMach 100 */			/* number of simultaneous softints */
+ 
+ struct	softint {
+ 	struct	softint *si_next;	/* pointer to next cell */
+@@ -540,7 +636,15 @@
+ thread_t softint_thread;
+ decl_simple_lock_data(static,	softint_th_lock)
+ 
+-softint_sched (level, proc, arg)
++softint_sched (level, proc, arg)	/* plan 600 (D134, D024) */
++	int level;
++	func proc;
++	caddr_t arg;
++{
++	callout_dispatch(level, proc, arg);
++}
++
++callout_dispatch (level, proc, arg)	/* plan 600 (D134, D024) */
+ 	register int level;
+ 	register func proc;
+ 	register caddr_t arg;
+@@ -550,8 +654,8 @@
+ 	int softint_run();
+ 
+ 	if (level < 0 || level >= N_CALLOUT_PRI) {
+-		printf("softint_sched(%d, 0x%x, %d)\n", level, proc, arg);
+-		panic("softint_sched");
++		printf("callout_dispatch(%d, 0x%x, %d)\n", level, proc, arg);	/* plan 600 (D134, D024) */
++		panic("callout_dispatch");
+ 	}
+ 
+ 	if (level == CALLOUT_PRI_NOW) {
+@@ -592,18 +696,48 @@
+ 	case CALLOUT_PRI_DSP:
+ 		((struct dsp_regs *)P_DSP)->icr |= ICR_TREQ;
+ 		break;
+-	case CALLOUT_PRI_THREAD:
+-		if (curipl() >= IPLSCHED)
+-			softint_sched(CALLOUT_PRI_SOFTINT0,
+-				thread_wakeup, (int)softint_thread);
+-		else
+-			thread_wakeup((int)softint_thread);
++	case CALLOUT_PRI_THREAD:	/* plan 600 (D134, D024) */
++		callout_dispatch(CALLOUT_PRI_SOFTINT0,
++			thread_wakeup, (int)softint_thread);
+ 		break;
+ 	}
+ out:
+ 	splx(s);
+ }
+ 
++/* plan 600 (D134, D024): 1997 callout_remove (original 0x4093fb8) */
++int
++callout_remove(proc, arg)
++	register func proc;
++	register caddr_t arg;
++{
++	register struct softint *si, *psi, **head, **tail;
++	register int level, s;
++
++	s = spldma();
++	for (level = 0; level < N_CALLOUT_PRI; level++) {
++		head = &softint_head[level];
++		tail = &softint_tail[level];
++		for (psi = si = *head; si; psi = si, si = si->si_next) {
++			if (proc == si->si_proc && arg == si->si_arg) {
++				if (si == *head) {
++					*head = si->si_next;
++					psi = 0;
++				} else
++					psi->si_next = si->si_next;
++				if (si == *tail)
++					*tail = psi;
++				si->si_next = softint_free;
++				softint_free = si;
++				splx(s);
++				return 1;
++			}
++		}
++	}
++	splx(s);
++	return 0;
++}
++
+ void softint_th(void)
+ {
+ 	int s;
+@@ -625,7 +759,7 @@
+ softint_run (level)
+ 	register int level;
+ {
+-	register struct softint *si, *psi, *ssi, **head;
++	register struct softint *si, *psi, *ssi, **head, **tail, *lhead, *ltail;	/* plan 600 (D134, D024) */
+ 	register func proc;
+ 	register caddr_t arg;
+ 	register int s;
+@@ -646,7 +780,7 @@
+ 		int km_big();
+ 		
+ 		nmi_big = 0;
+-		softint_sched(CALLOUT_PRI_THREAD, km_big, 0);
++		callout_dispatch(CALLOUT_PRI_THREAD, km_big, 0);	/* plan 600 (D134, D024) */
+ 	}
+ 
+ 	switch (level) {
+@@ -689,22 +823,25 @@
+ 		}
+ 		break;
+ 
+-	case CALLOUT_PRI_RETRACE:
+-#ifdef DEBUG
+-		ipl = curipl();
+-#endif DEBUG
+-		/* run routine once, dequeueing only if requested */
++	case CALLOUT_PRI_RETRACE:	/* plan 600 (D134, D024): run the detached list once */
+ 		head = &softint_head[level];
+-		si = *head;
+-		psi = 0;
+-		while (si) {
++		tail = &softint_tail[level];
++		s = spldma();
++		lhead = *head;
++		ltail = *tail;
++		*tail = 0;
++		*head = 0;
++		splx(s);
++		for (si = lhead, psi = 0; si; ) {
+ 			proc = si->si_proc;
+ 			arg = si->si_arg;
+ 			if ((proc)(arg) == 0) {
+-				if (psi)
++				if (psi) {
+ 					psi->si_next = si->si_next;
+-				else
+-					*head = softint_tail[level] = 0;
++					if (ltail == si)	/* plan 600 (D134, D024) */
++						ltail = psi;
++				} else if ((lhead = si->si_next) == 0)
++					ltail = 0;
+ 				s = spldma();
+ 				ssi = si->si_next;
+ 				si->si_next = softint_free;
+@@ -715,14 +852,16 @@
+ 				psi = si;
+ 				si = si->si_next;
+ 			}
+-#ifdef DEBUG
+-			if (curipl() != ipl) {
+-				XPR(XPR_MEAS, ("BAD CALLOUT IPL: func 0x%x "
+-				    "old ipl %d new ipl %d\n",
+-				    proc, ipl, curipl()));
+-			}
+-#endif DEBUG
+ 		}
++		s = spldma();
++		if (*head == 0) {
++			*head = lhead;
++			*tail = ltail;
++		} else {
++			ltail->si_next = *head;
++			*head = lhead;
++		}
++		splx(s);
+ 		break;
+ 	}
+ }
+@@ -730,6 +869,16 @@
+ /*
+  * Machine-dependent early startup code
+  */
++/* plan 600 (D134, D024): the m68k callout entry of 07_kernel/v183.34/m68k/src/kern/ns_timer.c:123-129 */
++struct ns_callout {
++	struct ns_callout	*c_next;
++	ns_time_t		c_time;
++	void			*c_arg;
++	func			c_func;
++	int			c_pri;
++};
++extern struct ns_callout *ns_callout;	/* plan 600 (D134, D024) */
++
+ startup_early()
+ {
+ 	register caddr_t firstaddr, v;
+@@ -753,8 +902,7 @@
+ 	(name) = (type *)(v); (v) = (caddr_t)((lim) = ((name)+(num)));
+ #endif	SHOW_SPACE
+ 	valloc(cfree, struct cblock, nclist);
+-	valloc(callout, struct callout, ncallout);
+-	valloc(us_callout, struct callout, ncallout);
++	valloc(ns_callout, struct ns_callout, ncallout);	/* plan 600 (D134, D024) */
+ 	valloc(softint, struct softint, nsoftint);
+ 	valloc(ncache, struct ncache, ncsize);
+ #if	QUOTA
+@@ -768,16 +916,18 @@
+ 	 * of private pages.
+ 	 */
+  	if (bufpages == 0)
+-		bufpages = atop(mem_size / 10);
+-	if (nbuf == 0)
+-#if	PRIVATE_BUFS
+-		nbuf = 100;
+-#else	PRIVATE_BUFS
+-		nbuf = 16;
+-#endif	PRIVATE_BUFS
++		bufpages = atop(mem_size / 10 / 2) & ~1;	/* plan 600 (D134, D024) */
++	if (nbuf == 0) {	/* plan 600 (D134, D024) */
++		if ((nbuf = bufpages) < 16)
++			nbuf = 16;
++	}
++	if (nbuf > 254)
++		nbuf = 254;
+ 	if (bufpages > nbuf * (MAXBSIZE / PAGE_SIZE))
+ 		bufpages = nbuf * (MAXBSIZE / PAGE_SIZE);
+ 	valloc(buf, struct buf, nbuf);
++	if (nmfsbuf == 0)	/* plan 600 (D134, D024) */
++		nmfsbuf = nbuf / 2;
+ #undef	valloc
+ #undef	valloclim
+ 
+@@ -953,15 +1103,7 @@
+ 	/*
+ 	 * Initialize callouts
+ 	 */
+-	callfree = callout;
+-	for (i = 1; i < ncallout; i++)
+-		callout[i-1].c_next = &callout[i];
+-	callout[ncallout-1].c_next = 0;
+-	
+-	us_callfree = us_callout;
+-	for (i = 1; i < ncallout; i++)
+-		us_callout[i-1].c_next = &us_callout[i];
+-	us_callout[ncallout-1].c_next = 0;
++	ns_callout_init();	/* plan 600 (D134, D024) */
+ 
+ 	/*
+ 	 * Initialize softints
+@@ -976,13 +1118,13 @@
+ 	 * and user page table maps.
+ 	 */
+ 	mb_map = kmem_suballoc(kernel_map, &mbutl, &embutl,
+-		ptoa((nmbclusters)), FALSE);
++		nmbclusters * MCLBYTES, FALSE);	/* plan 600 (D134, D024): NeXTMach ptoa(nmbclusters) */
+ 
+ 	/* boot icon animation */
+-	if ((km.flags & KMF_SEE_MSGS) == 0 && console_o == CONS_O_BITMAP &&
+-	    *MG(short*, MG_seq) >= 24 && *MG(short*, MG_seq) <= 99 &&
++	if ((km.flags & KMF_SEE_MSGS) == 0 && console_o == CONS_O_BITMAP &&	/* plan 600 (D134, D024) */
++	    *MG(short*, MG_seq) >= 24 &&
+ 	    *MG(int*, MG_anim_run))
+-		softint_sched(CALLOUT_PRI_RETRACE,
++		callout_dispatch(CALLOUT_PRI_RETRACE,
+ 			*MG(int*, MG_anim_run), 0);
+ 
+ 	/*
+@@ -998,6 +1140,8 @@
+ 	/*
+ 	 * Configure the system.
+ 	 */
++	if (dma_chip != 313)	/* plan 600 (D134, D024) */
++		adb_initialize();
+ 	configure();
+ 
+ #if	SHOW_SPACE
+@@ -1013,10 +1157,11 @@
+ 	struct mon_global *mg = mon_global;
+ 	int s;
+ 
+-	s = splhigh();
+-	if (mg->mg_seq >= 46 && mg->mg_as_tune)
++	if (mg->mg_seq >= 60 && mg->mg_as_tune) {	/* plan 600 (D134, D024) */
++		s = splhigh();
+ 		mg->mg_as_tune();
+-	splx(s);
++		splx(s);
++	}
+ 	if (++calls < astune_calls)
+ 		timeout (as_tune, calls, astune_rate*hz);
+ }
+@@ -1039,21 +1184,7 @@
+ }
+ #endif
+ 
+-/*
+- * Clear registers on exec
+- */
+-setregs(entry)
+-	u_long entry;
+-{
+-	register struct regs *r = (struct regs*) u.u_ar0;
+-	register int *rp;
+-
+-	for (rp = &r->r_dreg[0]; rp < &r->r_areg[7];)
+-		*rp++ = 0;
+-	r->r_pc = entry;
+-	r->r_sr = SR_USER;
+-	u.u_eosys = JUSTRETURN;
+-}
++/* plan 600 (D134, D024): NeXTMach setregs removed (not in the original object) */
+ 
+ #if	DEBUG
+ int signaltrace;
+@@ -1137,10 +1268,7 @@
+ 	 *	instead of AST requested.
+ 	 */
+ 
+-	if ((current_thread()->pcb->pcb_flags & TRACE_AST) &&
+-	    (r->r_sr & SR_TSINGLE)) {
+-		sc.sc_ps &= ~SR_TSINGLE;
+-	}
++	/* plan 600 (D134, D024): NeXTMach TRACE_AST/pcb_flags test removed (the original sendsig 0x40947be has none) */
+ 	if (copyout((caddr_t) &sc, (caddr_t) scp, sizeof(sc)))
+ 		goto bad;
+ 	r->r_sp = (int)sfp;
+@@ -1197,7 +1325,7 @@
+ 	return;
+ }
+ 
+-#import <sys/machine.h>
++#import <mach/machine.h>	/* plan 600 (D104): NeXTMach <sys/machine.h> */
+ halt_cpu()
+ {
+ 	machine_slot[cpu_number()].running = FALSE;
+@@ -1205,209 +1333,11 @@
+ 		asm("stop #0");		/* FIXME: good enough? */
+ }
+ 
+-int	waittime = -1;
+-
+-boot(paniced, howto, command)
+-	int paniced, howto;
+-	char *command;
+-{
+-	register int i;
+-	int s;
+-	extern struct vnode *acctp;
+-
+-	if ((howto&RB_NOSYNC)==0 && waittime < 0 && bfreelist[0].b_forw) {
+-		waittime = 0;
+-
+-		/*
+-		 * Disable accounting before unmounting so we can be
+-		 * sure everything will be unmounted cleanly.
+-		 * Ultimately we should call something in kern_acct to
+-		 * do this work instead of having to understand how it
+-		 * works ourselves.
+-		 */
+-		if (acctp) {
+-			struct vnode *temp;
+-
+-			temp = acctp;
+-			acctp = NULL;
+-			VN_RELE(temp);
+-		}
+-		
+-		/*
+-		 * Call sync() to flush any NFS buffers, then wait awhile
+-		 * before actually disabling the network interfaces to
+-		 * prevent further I/O requests.
+-		 */
+-		sync();
+-		unmount_all();
+-
+-		/*
+-		 * Can't just use an splnet() here to disable the network
+-		 * because that will lock out softints which the disk
+-		 * drivers depend on to finish DMAs.
+-		 */
+-#import <en.h>
+-		for (i = 0; i < NEN; i++)
+-			en_down(i);
+-
+-		{ register struct buf *bp;
+-		  int iter, nbusy;
+-		  int obusy = 0;
+-
+-		  for (iter = 0; iter < 20; iter++) {
+-			nbusy = 0;
+-			for (bp = &buf[nbuf]; --bp >= buf; )
+-				if ((bp->b_flags & (B_BUSY|B_DONE)) == B_BUSY)
+-					nbusy++;
+-			if (nbusy == 0)
+-				break;
+-			printf("%d ", nbusy);
+-		        if (nbusy != obusy)
+-				iter = 0;
+-			obusy = nbusy;
+-			DELAY(40000 * iter);
+-		  }
+-		}
+-	}
+-#import	<od.h>
+-#if	NOC > 0
+-
+-	/*
+-	 *  Update optical tables after regular I/O has finished.
+-	 */
+-	od_update();
+-	if ((howto & RB_EJECT) && kernel_task)
+-		od_eject();
+-#endif	NOC > 0
+-#if	NCPUS > 1
+-#define	LOOPCOUNT	1000
+-#define	WAITCOUNT	1000
+-
+-	for (i = 0; i < NCPUS; i++) {
+-		processor_t	thisprocessor;
+-
+-		thisprocessor = cpu_to_processor(i);
+-		if (thisprocessor->state != PROCESSOR_OFF_LINE &&
+-		    thisprocessor != current_processor()) {
+-			register int j,k;
+-
+-			processor_shutdown(thisprocessor);
+-
+-			j = 0;
+-			while ( machine_slot[i].running && j < LOOPCOUNT) {
+-			    for (k=0; k< WAITCOUNT; k++) DELAY(1);
+-			    j++;
+-			}
+-			
+-			if (!machine_slot[i].running)
+-				printf("Processor %d Halted.\n", i);
+-			else
+-				printf("Processor %d won't halt.\n", i);
+-		}
+-	}
+-#endif	NCPUS > 1
+-	if (howto & RB_POWERDOWN) {
+-		rtc_power_down();
+-	}
+-	s = splhigh();			/* extreme priority */
+-	if (howto & RB_HALT) {
+-		printf ("halting...\n");
+-		mon_call ("-h");
+-	} else {
+-		if (paniced == RB_PANIC) {
+-#if	0
+-			dumpsys();	/* FIXME: make this work someday? */
+-#endif
+-		}
+-		printf("rebooting Mach...\n");
+-		if (howto & RB_COMMAND)
+-			mon_call(command);
+-		else
+-			mon_boot(howto & RB_SINGLE? "-s" : 0);
+-	}
+-	splx(s);
+-}
+-
+-#import <sys/vfs.h>
++/* plan 600 (D134, D024): NeXTMach boot (and waittime) removed (not in the original object) */
+ 
+-unmount_all()
+-{
+-	struct vfs		*vfsp, *next;
+-	extern struct vfs	*rootvfs;
+-	extern struct vnode	*rootdir;
+-	int			error;
+-
+-	proc_shutdown();		/* handle live procs (deallocate their
+-					   root and current directories). */
+-	kill_tasks();			/* get rid of all task memory */
+-	mfs_cache_clear();		/* clear the MFS cache */
+-	vm_object_cache_clear();	/* clear the object cache */
+-	fd_shutdown();			/* close all open file descriptors */
+-
+-	vm_object_shutdown();
+-	vnode_pager_shutdown();		/* NO MORE PAGING - release vnodes */
+-
+-	vfsp = rootvfs->vfs_next;	/* skip root */
+-	while (vfsp != (struct vfs *)0) {
+-		printf("unmounting /%s ... ", vfsp->vfs_name);
+-		next = vfsp->vfs_next;
+-		error = dounmount(vfsp);
+-		if (error)
+-			printf("FAILED\n");
+-		else
+-			printf("done\n");
+-		vfsp = next;
+-	}
+-	VN_RELE(rootdir);	/* release reference from bootstrap */
+-	error = dounmount(rootvfs);
+-	if (error)
+-		printf("Root unmount FAILED\n");
+-}
++/* plan 600 (D134, D024): NeXTMach unmount_all (and its sys/vfs.h import) removed (not in the original object) */
+ 
+-kill_tasks()
+-{
+-	processor_set_t	pset;
+-	task_t		task;
+-	vm_map_t	map, empty_map;
+-
+-	empty_map = vm_map_create(pmap_create(0), 0, 0, TRUE);
+-
+-	/*
+-	 * Destroy all but the default processor_set.
+-	 */
+-	simple_lock(&all_psets_lock);
+-	pset = (processor_set_t) queue_first(&all_psets);
+-	while (!queue_end(&all_psets, (queue_entry_t) pset)) {
+-		if (pset == &default_pset) {
+-			pset = (processor_set_t) queue_next(&pset->all_psets);
+-			continue;
+-		}
+-		simple_unlock(&all_psets_lock);
+-		processor_set_destroy(pset);
+-		simple_lock(&all_psets_lock);
+-	}
+-	simple_unlock(&all_psets_lock);
+-
+-	/*
+-	 * Kill all the tasks in the default processor set.
+-	 */
+-	pset = &default_pset;
+-	pset_lock(pset);
+-	task = (task_t) queue_first(&pset->tasks);
+-	while (pset->task_count) {
+-		pset_remove_task(pset, task);
+-		map = task->map;
+-		if ((map != kernel_map) && (map != empty_map)) {
+-			task->map = empty_map;
+-			vm_map_reference(empty_map);
+-			pset_unlock(pset);
+-			vm_map_remove(map, vm_map_min(map), vm_map_max(map));
+-			pset_lock(pset);
+-		}
+-		task = (task_t) queue_first(&pset->tasks);
+-	}
+-	pset_unlock(pset);
+-}
++/* plan 600 (D134, D024): NeXTMach kill_tasks removed (not in the original object) */
+ 
+ #if 0
+ int	dumpmag = 0x8fca0101;	/* magic number for savecore */
+@@ -1474,21 +1404,7 @@
+ }
+ #endif
+ 
+-physstrat(bp, strat, prio)
+-	struct buf *bp;
+-	int (*strat)(), prio;
+-{
+-	int s;
+-
+-	(*strat)(bp);
+-	/* pageout daemon doesn't wait for pushed pages */
+-	if (bp->b_flags & B_DIRTY)
+-		return;
+-	s = splbio();
+-	while ((bp->b_flags & B_DONE) == 0)
+-		sleep((caddr_t)bp, prio);
+-	splx(s);
+-}
++/* plan 600 (D134, D024): NeXTMach physstrat removed (not in the original object) */
+ 
+ #if	NCPUS > 1
+ /*
+@@ -1541,28 +1457,29 @@
+ 	splx(s);
+ }
+ 
+-/* FIXME: efficient enough? */
++/* plan 600 (D134, D024): the 1997 addupc (chained buffers), as 07 machdep/i386/machdep.c:162-186 */
+ addupc(pc, pr, ticks)
+ 	register int pc;
+-	register struct uprof *pr;
++	register struct uuprof *pr;
+ {
++	register struct uuprof *p;
+ 	register short *cell;
+ 	short count;
+ 	long off;
+ 
+-	off = (((pc - pr->pr_off)&0xffff0000) >> 16)*pr->pr_scale +
+-		((((pc - pr->pr_off)&0xffff)*pr->pr_scale)>>16);
+-
+-/*	cell = pr->pr_base +
+-		(((pc - pr->pr_off) * pr->pr_scale) >> 16) / (sizeof *cell);*/
+-	cell = pr->pr_base + off / (sizeof *cell);
+-	if (cell >= pr->pr_base &&
+-	    cell < (short*) (pr->pr_size + (int) pr->pr_base)) {
+-		if (copyin (cell, (caddr_t) &count, sizeof(count))) {
+-			pr->pr_scale = 0;
+-		} else {
+-			count += ticks;
+-			copyout((caddr_t) &count, cell, sizeof(count));
++	for (p = pr; p; p = p->pr_next) {
++		off = (((pc - p->pr_off)&0xffff0000) >> 16)*p->pr_scale +
++			((((pc - p->pr_off)&0xffff)*p->pr_scale)>>16);
++		cell = p->pr_base + off / (sizeof *cell);
++		if (cell >= p->pr_base &&
++		    cell < (short*) (p->pr_size + (int) p->pr_base)) {
++			if (copyin (cell, (caddr_t) &count, sizeof(count))) {
++				pr->pr_scale = 0;
++			} else {
++				count += ticks;
++				copyout((caddr_t) &count, cell, sizeof(count));
++			}
++			return;
+ 		}
+ 	}
+ }

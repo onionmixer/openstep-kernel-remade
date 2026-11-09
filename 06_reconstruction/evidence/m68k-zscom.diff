@@ -1,0 +1,64 @@
+--- NeXTMach mk-108.1/nextdev/zscom.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/zscom.c (plan 674, D156)
+@@ -3,15 +3,38 @@
+ /* 
+  * HISTORY
+  */ 
++/*
++ * plan 674 (D156, D013, D024, D104, D110, D113, D121): the 1997 m68k
++ * zscom.c.  NeXTMach mk-108.1 nextdev/zscom.c with the include lines in
++ * OPENSTEP paths and two changes read from the original bytes
++ * [0x408d706, 0x408d9aa) (plans 672-673):
++ *	zsrelease	writes 0 to channel register 1 before the release
++ *			(as zsnullintr)
++ *	zsintsetup	first sets the SCC clock select register: 0x0a for
++ *			the 313 DMA chip, else PCLK_10_MHZ
++ * The NeXTMach next/cpu.h and next/scr.h names used here are defined in
++ * this file (as fd_io.c); the 1997 SDK architecture/m68k/zsreg.h takes the
++ * place of nextdev/zsreg.h.  The spellings of both changes are this
++ * project's choices (the bytes do not show them; D156).  Lines marked
++ * plan 674 differ from NeXTMach.
++ */
+ #import <zs.h>
+ 
+ #import <next/autoconf.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
+-#import <nextdev/zsreg.h>
++#import <m68k/cpu.h>	/* plan 674 (D110): NeXTMach <next/cpu.h> */
++/* plan 674 (D113, D121): NeXTMach next/cpu.h and next/scr.h names used here */
++extern int slot_id_bmap;
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_SCC		(SLOT_ID_BMAP+0x02018000)
++#define	P_SCC_CLK	(SLOT_ID_BMAP+0x02018004)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_SCC		I(5,0,17)
++#define	NeXT_CUBE	0
++/* plan 674 (D121): NeXTMach #import <next/scr.h> removed; its name used here (NeXT_CUBE) is defined above */
++#import <architecture/m68k/zsreg.h>	/* plan 674 (D104, D156): NeXTMach <nextdev/zsreg.h>; the 1997 SDK header */
+ #import <nextdev/zscom.h>
+ #import <sys/errno.h>
+-#import <next/spl.h>
++#import <machine/spl.h>	/* plan 674 (D104): NeXTMach <next/spl.h> */
+ #import <kern/xpr.h>
+ #import	<mon/global.h>
+ 
+@@ -45,7 +68,10 @@
+ zsrelease(int unit)
+ {
+ 	struct zs_com *zcp = &zs_com[unit];
++	register volatile struct zsdevice *zsaddr;	/* plan 674 (D024, D156) */
+ 
++	zsaddr = (unit == 0) ? ZSADDR_A : ZSADDR_B;	/* plan 674 (D024, D156) */
++	ZSWRITE(zsaddr, 1, 0);	/* plan 674 (D024, D156) */
+ 	zcp->zc_user = ZCUSER_NONE;
+ 	zcp->zc_intrsw = &zi_null;
+ }
+@@ -125,6 +151,7 @@
+ 	extern int console_i, console_o;
+ 	int wr5;
+ 	
++	*(u_char *) P_SCC_CLK = (dma_chip == 313) ? PCLK_3684_MHZ | SCLKB_4_MHZ | SCLKA_4_MHZ : PCLK_10_MHZ;	/* plan 674 (D024, D156) */
+ 	install_polled_intr (I_SCC, zsint);
+ 
+ 	/*

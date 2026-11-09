@@ -1,0 +1,425 @@
+--- 07_kernel/src/machdep/i386/machine_clock.c
++++ 07_kernel/src/machdep/m68k/machine_clock.c
+@@ -1,95 +1,115 @@
++/*	@(#)us_timer.c	1.0	12/8/87		(c) 1987 NeXT	*/
++
++/* 
++ * Copyright (c) 1989 NeXT, Inc.
++ */
++
+ /*
+- * machdep/i386/machine_clock.c -- the i386 system clock and timer
+- * (8254 counter 0).
++ * machdep/m68k/machine_clock.c -- the m68k system clock and timer of the
++ * 1997 kernel (plans 539-542, D024, D103, D118).
+  *
+- * plans 240, 386, 389, 390 (authored, D024): written from the original
+- * OPENSTEP 4.2 x86 kernel bytes (__text [0x187844, 0x187fe9),
+- * __const [0x1d14a0, 0x1d14dc), __data [0x1e17f8, 0x1e1841)).  No
+- * reference function text was copied.
++ * Written for this project from the original m68k bytes (__text
++ * [0x4091e18, 0x4092436), __const 48 B at 0x40ad8ca, __bss 24 B at
++ * 0x40b55ac) with the layout of this project's machdep/i386/machine_clock.c.
++ * Taken from NeXTMach mk-108.1 next/us_timer.c (https://github.com/johnsonjh/
++ * NeXTMach.git f6bdb9c3268f0eadc545d41bcc0564453b17001e; notices above, its
++ * lines 1 and 4): timer_set() (lines 110-119), delay() (lines 498-507) and the
++ * name us_timer_int (line 226).  ns_div() is this project's m68k
++ * kern/ns_timer.c ns_div (plan 468, D024).  The event counter code is the
++ * m68k eventc.h inlines.  Forms fixed by the bytes: ns_div in _set_timer,
++ * the word-wise copy into now and the early returns of clock_value (plans
++ * 539-541).
+  */
+-
+ #import <mach/mach_types.h>
+ #import <kernserv/clock_timer.h>
+ #import <kernserv/ns_timer.h>
+ #import <sys/time.h>
+-#import <machdep/i386/io_inline.h>
+-#import <machdep/i386/timer.h>
+-#import <machdep/i386/timer_inline.h>
+-#import <machdep/i386/intr_exported.h>
+-#import <machdep/i386/thread.h>
++#import <sys/kernel.h>
++#import <machdep/m68k/eventc.h>
++#import <m68k/machparam.h>
++#import <m68k/cpu.h>
++
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_TIMER		I(6,0,29)
++#define	SCR2_TIMERIPL7	0x00008000
++#define	TIMER_ENABLE	0x80
++#define	TIMER_UPDATE	0x40
++
++extern volatile u_char	*timer_csr, *timer_high, *timer_low;
++extern volatile int	*scr2;
++extern ns_time_t	ns_per_tick;
++extern int		hardclock_ps;
++extern vm_address_t	hardclock_pc;
++extern struct timeval	rtc_get();
++extern ns_time_t	clock_value();
++void			m68k_hardclock(void);
+ 
+-#define	MC_NSEC_PER_TICK	10000000	/* 100 Hz */
+-#define	CLKNUM		1193167		/* 8254 input clock, Hz */
+-
+-extern int			tick;
+-extern unsigned long long	time_of_boot;
+-
+-/* attributes of a clock or timer (the original's 16-byte records) */
+ struct mc_attributes {
+ 	ns_time_t	max_value;
+ 	ns_time_t	resolution;
+ };
+ 
+ static const struct mc_attributes clock_attrs[] = {
+-	{ 0xffffffffffffffffULL, MC_NSEC_PER_TICK },	/* System */
+-	{ 0xffffffffffffffffULL, 1000000000 },		/* Calendar */
++	{ 0xffffffffffffffffULL, 1000 },	/* System */
++	{ 0xffffffffffffffffULL, 1000 },	/* Calendar */
+ };
+ 
+ static const struct mc_attributes timer_attrs = {
+-	0xffffffffffffffffULL, MC_NSEC_PER_TICK
++	65535000, 500000
+ };
+ 
+-unsigned int	us_spin_us_const = 0x2000;
+-
+-static ns_time_t	system_time;		/* at the last tick */
+-static unsigned short	last_count;		/* counter at the last read */
+-static unsigned short	reload;			/* counter reload value */
+-static ns_time_t	timer_deadline;
+-static void		(*timer_expire)();
+-static boolean_t	hardclock_enabled;
+-
+-/* the interrupted context handed to the BSD clock code */
+-struct mc_frame {
+-	unsigned int	pc;
+-	unsigned int	ps;
+-	unsigned int	ipl;
+-};
+-
+-static void	machine_hardclock(struct mc_frame *);
+-static ns_time_t	system_time_stamp(void);
++static ns_time_t	calendar_offset;
++static ns_time_t	hardclock_next;
++static int		(*timer_intr)();
++static func		timer_expire;
++
++static inline void timer_set(t)	/* NeXTMach next/us_timer.c:110-119 */
++{
++	*timer_csr = 0;
++	*timer_low = 0xff;
++	*timer_high = t>>8;
++	*timer_low = t;
++	*timer_csr = (TIMER_ENABLE|TIMER_UPDATE);
++	*timer_low = 0xff;
++	*timer_high = 0xff;
++}
++
++static inline void
++ns_div(ll, divisor, remain)	/* 07 m68k kern/ns_timer.c ns_div (plan 468, D024) */
++	ns_time_t	*ll;
++	unsigned int	divisor;
++	unsigned int	*remain;
++{
++	unsigned int	*msw, *lsw;
++	unsigned int	quo, rem;
++
++	msw = &((unsigned int *)ll)[0];
++	lsw = &((unsigned int *)ll)[1];
++
++	asm("divull %2,%0:%1"
++	    : "=d" (rem), "=d" (quo)
++	    : "dmi" (divisor), "1" (*msw), "0" (0));
++	*msw = quo;
++	asm("divul %2,%0:%1"
++	    : "=d" (*remain), "=d" (quo)
++	    : "dmi" (divisor), "1" (*lsw), "0" (rem));
++	*lsw = quo;
++}
+ 
+-void
+-system_timer_dispatch(int irq, thread_saved_state_t *state, int ipl)
++static void
++us_timer_int(int arg, vm_address_t pc, int ps)
+ {
+-	struct mc_frame	frame;
+-	register int	level = ipl;	/* plan 240.1: read first (variant d5) */
+-
+-	system_time += MC_NSEC_PER_TICK;
+-	last_count = reload;
+-	if (state) {
+-		frame.pc = state->frame.eip;
+-		if ((state->frame.eflags & EFL_VM) == 0)
+-			frame.ps = state->frame.cs.rpl;
+-		else
+-			frame.ps = 3;
+-	} else {
+-		frame.pc = 0;
+-		frame.ps = 0;
+-	}
+-	frame.ipl = level;
+-	if (hardclock_enabled)
+-		machine_hardclock(&frame);
+-	if (timer_expire && timer_deadline != 0 &&
+-	    timer_deadline <= system_time) {
+-		timer_deadline = 0;
+-		(*timer_expire)(0, 0, 0);
+-	}
++	(void) *timer_csr;		/* clears the interrupt */
++	event_sync();
++	if (timer_intr)
++		(*timer_intr)(arg, pc, ps);
+ }
+ 
+ void
+-hardclock_init(ns_time_t ns_per_tick)
++hardclock_init(void)
+ {
+-	hardclock_enabled = TRUE;
++	hardclock_next = clock_value(System) + ns_per_tick;
++	ns_abstimeout((func)m68k_hardclock, 0, hardclock_next, 1);
+ }
+ 
+ void
+@@ -97,109 +117,57 @@
+ {
+ }
+ 
+-static void
+-machine_hardclock(struct mc_frame *frame)
+-{
+-	clock_interrupt(tick, frame->ps == 3, frame->ipl == 0);
+-	hardclock(frame->pc, (frame->ipl << 8) | frame->ps);
+-}
+-
+-/*
+- * Scale us_spin by timing a 1-unit spin with counter 0.
+- */
+ void
+-us_spin_calibrate(void)
++m68k_hardclock(void)
+ {
+-	timer_ctl_reg_t	reg;
+-	timer_cnt_val_t	leftover;
+-	int		s;
++	int	s;
+ 
+-	reg = (timer_ctl_reg_t){ 0 };
+-	reg.rw = TIMER_CTL_RW_BOTH;
+-	timer_set_ctl(reg);
+-	s = splusclock();
+-	timer_write(TIMER_CNT0_SEL, TIMER_COUNT_MAX);
+-	us_spin(1);
+-	timer_latch(TIMER_CNT0_SEL);
+-	leftover = timer_read(TIMER_CNT0_SEL);
++	s = splclock();
++	clock_interrupt(tick, USERMODE(hardclock_ps), BASEPRI(hardclock_ps));
++	hardclock(hardclock_pc, hardclock_ps);
+ 	splx(s);
+-	us_spin_us_const = (CLKNUM / (int)(TIMER_COUNT_MAX - leftover)) * us_spin_us_const / 1000000;
+-}
+-
+-static inline unsigned int
+-clock_timer_constant(void)
+-{
+-	ns_time_t	res;
+-	unsigned int	count;
+-	int		i;
+-
+-	res = timer_attrs.resolution;
+-	count = CLKNUM;
+-	for (i = 0; res > 1; i++)
+-		res /= 10;
+-	if (res == 0)
+-		panic("clock_timer_constant 1");
+-	i = 9 - i;
+-	if ((unsigned)i > 5)
+-		panic("clock_timer_constant 2");
+-	while (i > 0) {
+-		count /= 10;
+-		i--;
+-	}
+-	return (count);
++	hardclock_next += ns_per_tick;
++	while (clock_value(System) > hardclock_next)
++		hardclock_next += ns_per_tick;
++	ns_abstimeout((func)m68k_hardclock, 0, hardclock_next, 1);
+ }
+ 
+ void
+ clock_timer_init(void)
+ {
+-	struct timeval	tv;
+-	timer_ctl_reg_t	reg;
+-	int		s;
+-	unsigned int	count;
+-	timer_cnt_val_t	c;
+-
+-	intr_register_irq(0, (intr_handler_t)system_timer_dispatch, 0, 6);
+-	intr_enable_irq(0);
+-	tv.tv_usec = 0;
+-	readtodc(&tv);
+-	time_of_boot = timeval_to_ns_time(&tv);
++	int	s;
+ 
++	startrtclock();
++	calendar_offset = 0;
++	time = rtc_get();
++	calendar_offset = timeval_to_ns_time(&time) - clock_value(System);
+ 	s = splusclock();
+-	reg = (timer_ctl_reg_t){ 0 };
+-	reg.mode = TIMER_NDIVMODE;
+-	reg.rw = TIMER_CTL_RW_BOTH;
+-	timer_set_ctl(reg);
+-	count = clock_timer_constant();
+-	if (count > 0xffff)
+-		panic("clock_timer_constant 3");
+-	/*
+-	 * plan 390: last_count is assigned after the counter is written;
+-	 * the compiler moves that store up to the copy of count (original
+-	 * [0x187b47, 0x187b56)).
+-	 */
+-	c = count;
+-	reload = c;
+-	timer_write(TIMER_CNT0_SEL, c);
+-	last_count = c;
++	if (dma_chip == 313)
++		*scr2 &= ~SCR2_TIMERIPL7;
++	install_scanned_intr(I_TIMER, us_timer_int, 0);
++	timer_set(0xffff);
+ 	splx(s);
+ }
+ 
+ ns_time_t
+ clock_value(int which)
+ {
+-	ns_time_t	now = system_time_stamp();
++	struct tsval	ts;
++	ns_time_t	now;
+ 
++	event_set_ts(&ts);
++	((unsigned int *)&now)[0] = ts.high_val;
++	((unsigned int *)&now)[1] = ts.low_val;
++	now *= 1000;
+ 	switch (which) {
+ 	case System:
+-		break;
++		return (now);
+ 	case Calendar:
+-		now += time_of_boot;
+-		break;
++		now += calendar_offset;
++		return (now);
+ 	default:
+-		now = 0;
+-		break;
++		return (0);
+ 	}
+-	return (now);
+ }
+ 
+ void
+@@ -210,10 +178,10 @@
+ 
+ 	if (which == Calendar) {
+ 		s = splusclock();
+-		time_of_boot = ns - system_time;
++		calendar_offset = ns - clock_value(System);
+ 		splx(s);
+ 		ns_time_to_timeval(ns, &tv);
+-		writetodc(&tv);
++		rtc_set(&tv);
+ 	}
+ }
+ 
+@@ -239,54 +207,53 @@
+ }
+ 
+ void
+-set_timer_expire_func(int which, void (*expire)())
++set_timer_expire_func(int which, func expire)
+ {
+-	if (timer_expire == 0)
+-		timer_expire = expire;
++	timer_expire = expire;
++}
++
++void
++_set_timer_expire_func(int which, int (*intr)())
++{
++	timer_intr = intr;
+ }
+ 
+ void
+ set_timer(int which, ns_time_t interval)
+ {
+-	int		s;
+-	ns_time_t	t;
++	ns_untimeout(timer_expire, 0);
++	ns_timeout(timer_expire, 0, interval, 0);
++}
++
++void
++_set_timer(int which, ns_time_t interval)
++{
++	unsigned int	rem;
++	unsigned int	t;
+ 
++	ns_div(&interval, 1000, &rem);
+ 	if (which == 0) {
+-		t = (interval + MC_NSEC_PER_TICK - 1) / MC_NSEC_PER_TICK *
+-		    MC_NSEC_PER_TICK;
+-		s = splusclock();
+-		timer_deadline = system_time + t;
+-		splx(s);
++		t = (unsigned int)interval;
++		if (t < 500)
++			t = 500;
++		else if (t > 0xffff)
++			t = 0xffff;
++		timer_set(t);
+ 	}
+ }
+ 
+-/*
+- * The system time now: the time of the last tick plus the part of
+- * the current tick counter 0 has counted down.
+- */
+-static ns_time_t
+-system_time_stamp(void)
++void
++clear_timer(void)
+ {
+-	ns_time_t	delta, now;
+-	int		s;
+-	timer_cnt_val_t	last, count;
+-
+-	s = splusclock();
+-	now = system_time;
+-	last = last_count;
+-	timer_latch(TIMER_CNT0_SEL);
+-	count = timer_read(TIMER_CNT0_SEL);
+-	last_count = count;
+-	splx(s);
+-	if (count > last)
+-		now += MC_NSEC_PER_TICK;
+-	delta = reload - count;
+-	delta *= 1000000000;
+-	return (now + delta / CLKNUM);
+ }
+ 
+-unsigned int
+-event_get(void)
++/*
++ *	Delay for the specified number of microseconds.
++ */
++void delay(unsigned int n)	/* NeXTMach next/us_timer.c:498-507 */
+ {
+-	return ((unsigned int)system_time_stamp());
++	register int d = event_get();
++
++	while (event_delta(d) < (n+1))
++		continue;
+ }

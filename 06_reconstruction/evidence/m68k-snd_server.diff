@@ -1,0 +1,1170 @@
+--- NeXTMach mk-108.1 nextdev/snd_server.c
++++ 07_kernel/src/machdep/m68k/snd_server.c
+@@ -64,15 +64,46 @@
+  * is destroyed internal resources are deallocated and the device is reset.
+  * There also exist ownership ports for the DSP and sound in.
+  */
+-#import <sys/notify.h>
++/*
++ * plan 759 (D170, D013, D024, D104): the 1997 m68k snd_server.c.
++ * NeXTMach mk-108.1 nextdev/snd_server.c with its notice and HISTORY kept and the
++ * 1997 changes, written from the original bytes [0x4085920, 0x4087272) (plans
++ * 757-759):
++ *	functions that differ from NeXTMach: snd_port_alloc, snd_server_loop, snd_device_port_msg, snd_stream_port_msg, snd_port_gone
++ *	new functions: snd_audio_not_loaded, snd_owner_add, snd_get_owner, snd_owner_remove, snd_get_stream_formats, snd_nx_encoding, snd_set_stream_format
++ *	The owners of sound in and sound out are queues of struct snd_owner entries
++ *	(snd_var.sndin_owners, snd_var.sndout_owners; snd_get_owner() finds one by its
++ *	port) instead of one port each; the streams of sound in and sound out and the
++ *	device parameters are reached through the audio layer, the twenty function
++ *	pointers __NXAudio* (defined here, all snd_audio_not_loaded() until the audio
++ *	driver is loaded; declared in <nextdev/snd_audio.h>, this project's header),
++ *	and only the dsp streams use the NeXTMach region queues; the ports are
++ *	allocated in snd_var.task_space.  The functions snd_get_stream_formats,
++ *	snd_nx_encoding and snd_set_stream_format and the structure of the message
++ *	handlers were written from the bytes with the structure of Darwin 0.1
++ *	driverkit-1/libDriver/Kernel/snd_server.m as a reference (no text of it is
++ *	included; the forms are nearly the same as that file's).
++ * The original has no symbols for its static functions and static data: the
++ * NeXTMach statics keep their names; snd_owner_add, snd_owner_remove,
++ * snd_get_stream_formats, snd_nx_encoding, snd_set_stream_format, the field names
++ * of struct snd_owner and the local names added in the marked regions are given by
++ * this project (D170).  The loops of NEW_DEVICE_PORT that do not advance their
++ * variable, the empty-queue tests and the order of the statements are forms that
++ * give the original bytes, not evidence of the original source.  The file compiles
++ * with the known warnings of the acceptance record (kfree and thread_wakeup
++ * argument types, as NeXTMach).  Lines marked plan 759, and the lines of a plan
++ * 759 BEGIN/END region (which may include unchanged lines), differ from NeXTMach.
++ */
++
++#import <mach/notify.h>	/* plan 759 (D104): NeXTMach <sys/notify.h> */
+ #import <kern/kern_port.h>
+-#import <kern/ipc_copyin.h>
+-#import <kern/ipc_copyout.h>
++/* plan 759 (D024): NeXTMach lines 69-70 removed (not in the 1997 kernel) */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_snd.h>
+ #import <nextdev/snd_dsp.h>
+ #import <kern/host.h>
+ #import <kern/xpr.h>
++#import <nextdev/snd_audio.h>	/* plan 759 (D170): this project's audio layer declarations (07 nextdev/snd_audio.h) */
+ 
+ #if	XPR_DEBUG
+ extern int sdbgflag;
+@@ -83,9 +114,38 @@
+ #define snd_dbug2(f)
+ #endif	XPR_DEBUG
+ 
+-snd_var_t snd_var;
+-extern ll_snd_var_t ll_snd_var;
++snd_var_t snd_var;	/* plan 759 (D170): a COMMON definition, as NeXTMach */
+ extern dsp_var_t dsp_var;
++/* plan 759 (D024, D170) BEGIN: declarations and data */
++extern void panic();
++extern int snd_dsp_cmd_port_msg();
++
++extern int snd_link_abort();	/* plan 759 (D024): K&R declaration; snd_link_abort() is not in the 1997 snd_var.h */
++
++int snd_audio_not_loaded();
++caddr_t _NXAudioSndoutDevice = 0;
++caddr_t _NXAudioSndinDevice = 0;
++int (*__NXAudioGetBufferOptions)() = snd_audio_not_loaded;
++int (*__NXAudioSetBufferOptions)() = snd_audio_not_loaded;
++int (*__NXAudioAddStream)() = snd_audio_not_loaded;
++int (*__NXAudioGetSndoutOptions)() = snd_audio_not_loaded;
++int (*__NXAudioSetSndoutOptions)() = snd_audio_not_loaded;
++int (*__NXAudioGetSpeaker)() = snd_audio_not_loaded;
++int (*__NXAudioSetSpeaker)() = snd_audio_not_loaded;
++int (*__NXAudioStreamControl)() = snd_audio_not_loaded;
++int (*__NXAudioStreamInfo)() = snd_audio_not_loaded;
++int (*__NXAudioRemoveStream)() = snd_audio_not_loaded;
++int (*__NXAudioPlayStream)() = snd_audio_not_loaded;
++int (*__NXAudioRecordStream)() = snd_audio_not_loaded;
++int (*__NXAudioPlayStreamData)() = snd_audio_not_loaded;
++int (*__NXAudioRecordStreamData)() = snd_audio_not_loaded;
++int (*__NXAudioSetStreamParameters)() = snd_audio_not_loaded;
++int (*__NXAudioGetSamplingRates)() = snd_audio_not_loaded;
++int (*__NXAudioGetDataEncodings)() = snd_audio_not_loaded;
++int (*__NXAudioGetChannelCountLimit)() = snd_audio_not_loaded;
++int (*__NXAudioInitLinkedStream)() = snd_audio_not_loaded;
++int (*__NXAudioPortToStream)() = snd_audio_not_loaded;
++/* plan 759 END */
+ 
+ /*
+  * Locally used functions
+@@ -94,20 +154,33 @@
+ static int snd_stream_port_msg(snd_stream_msg_t *msg);
+ static void snd_port_gone(port_name_t port);
+ 
++/* plan 759 (D024, D170) BEGIN: snd_audio_not_loaded, snd_port_alloc */
++int snd_audio_not_loaded()
++{
++	static int warned = 0;
++
++	if (!warned) {
++		printf("SoundDSP: audio driver not loaded!\n");
++		warned = 1;
++	}
++	return 5;
++}
++
+ static void snd_port_alloc(port_name)
+ {
+ 	port_name_t new_port;
+ 
+-	if (port_allocate(snd_var.task, &new_port) != KERN_SUCCESS)
++	if (port_allocate(snd_var.task_space, &new_port) != KERN_SUCCESS)
+ 		panic("sound: can't allocate port");
+ 
+ 	if (new_port != port_name)
+-	    if (port_rename(snd_var.task, new_port, port_name) != KERN_SUCCESS)
++	    if (port_rename(snd_var.task_space, new_port, port_name) != KERN_SUCCESS)
+ 		panic("sound: can't rename port");
+ 
+-	if (port_set_add(snd_var.task, snd_var.portset, port_name))
++	if (port_set_add(snd_var.task_space, snd_var.portset, port_name))
+ 		panic("sound: can't add port to port_set");
+ }
++/* plan 759 END */
+ 
+ 
+ void snd_server_loop(void)
+@@ -124,6 +197,7 @@
+ snd_server_loop2()
+ {
+ #endif	DEBUG
++/* plan 759 (D024, D170) BEGIN: snd_device_port_msg, snd_get_owner, snd_get_stream_formats, snd_nx_encoding, snd_owner_add, snd_owner_remove, snd_port_gone, snd_server_loop, snd_set_stream_format, snd_stream_port_msg */
+ 	msg_return_t	r;
+ 	port_name_t	my_notify;
+ 	port_name_t	new_port;
+@@ -141,23 +215,25 @@
+ 
+ 	snd_var.task = current_task();
+ 	snd_var.task->kernel_vm_space = TRUE;
+-	snd_var.task->kernel_ipc_space = FALSE;
+-	current_thread()->ipc_kernel = TRUE;
++	snd_var.task_space = snd_var.task->itk_space;
+ 
+ 	snd_var.task_port = task_self();
+ 	snd_var.task_map = current_task()->map;
+ 
+-	r = port_set_allocate(snd_var.task, &snd_var.portset);
++	queue_init(&snd_var.sndout_owners);
++	queue_init(&snd_var.sndin_owners);
++
++	r = port_set_allocate(snd_var.task_space, &snd_var.portset);
+ 	if (r != KERN_SUCCESS)
+ 		panic("sound: can't allocate port set");
+ 
+-	r = port_allocate(snd_var.task, &my_notify);
++	r = port_allocate(snd_var.task_space, &my_notify);
+ 	if (r != KERN_SUCCESS)
+ 		panic("sound: can't allocate port notify port");
+ 
+ 	if (!object_copyin(snd_var.task, my_notify,
+ 			   MSG_TYPE_PORT, FALSE,
+-			   (kern_obj_t *) &kport))
++			   &kport))
+ 		panic("sound: object_copyin(notify) failed");
+ 
+ 	r = task_set_special_port(snd_var.task, TASK_NOTIFY_PORT,
+@@ -165,18 +241,19 @@
+ 	if (r != KERN_SUCCESS)
+ 		panic("sound: task_set_special_port(notify)");
+ 
+-	r = port_set_add(snd_var.task, snd_var.portset, my_notify);
++	r = port_set_add(snd_var.task_space, snd_var.portset, my_notify);
+ 	if (r != KERN_SUCCESS)
+ 		panic("sound: port_set_add(notify)");
+ 
+-	object_copyout(snd_var.task, realhost.host_priv_self,
++	kport = (kern_port_t)ipc_port_copy_send(realhost.host_priv_self);
++	object_copyout(snd_var.task, kport,
+ 			MSG_TYPE_PORT, &snd_var.host_priv_self);
+ 
+ 	/*
+ 	 * Allocate Device port.
+ 	 */
+-	if (   port_allocate(snd_var.task, &snd_var.dev_port) != KERN_SUCCESS
+-	    ||    port_set_add(snd_var.task, snd_var.portset, snd_var.dev_port)
++	if (   port_allocate(snd_var.task_space, &snd_var.dev_port) != KERN_SUCCESS
++	    ||    port_set_add(snd_var.task_space, snd_var.portset, snd_var.dev_port)
+ 	       != KERN_SUCCESS)
+ 		panic("sound: can't allocate device port\n");
+ 
+@@ -191,7 +268,6 @@
+ 	 * Initialize lower levels.
+ 	 */
+ 	snd_device_init(SND_DIR_PLAY);
+-	snd_device_init(SND_DIR_RECORD);
+ 	dsp_dev_init();
+ 	dsp_dev_reset_hard();
+ 	snd_stream_init();
+@@ -256,6 +332,98 @@
+ 	}
+ }
+ 
++static void snd_owner_add(queue_t q, port_name_t port)
++{
++	struct snd_owner *o = (struct snd_owner *)kalloc(sizeof(struct snd_owner));
++
++	o->port = port;
++	o->stream = 0;
++	queue_enter(q, o, struct snd_owner *, link);
++}
++
++struct snd_owner *snd_get_owner(queue_t q, port_name_t port)
++{
++	struct snd_owner *o;
++
++	if (queue_empty(q))
++		return 0;
++	o = (struct snd_owner *)queue_first(q);
++	for (;;) {
++		if (o->port != port) {
++			o = (struct snd_owner *)queue_next(&o->link);
++			if (queue_end(q, (queue_t)o))
++				return 0;
++		} else
++			return o;
++	}
++}
++
++static void snd_owner_remove(queue_t q, struct snd_owner *o)
++{
++	queue_remove(q, o, struct snd_owner *, link);
++	kfree(o, sizeof(struct snd_owner));
++}
++
++static void snd_get_stream_formats(void *dev, int *rates,
++				   int *low_rate, int *high_rate,
++				   int *encodings, int *chans)
++{
++	int parms[_NXAUDIO_PARAM_MAX];
++	int count, continuous, i;
++
++	(*__NXAudioGetSamplingRates)(dev, &continuous, low_rate,
++				     high_rate, parms, &count);
++
++	*rates = 0;
++	if (continuous)
++		*rates |= SND_STREAM_FORMAT_RATE_CONTINUOUS;
++	for (i = 0; i < count; i++) {
++		if (parms[i] >= 8000 && parms[i] <= 8013)
++			*rates |= SND_STREAM_FORMAT_RATE_8000;
++		else switch (parms[i]) {
++		case 11025:
++			*rates |= SND_STREAM_FORMAT_RATE_11025;
++			break;
++		case 16000:
++			*rates |= SND_STREAM_FORMAT_RATE_16000;
++			break;
++		case 22050:
++			*rates |= SND_STREAM_FORMAT_RATE_22050;
++			break;
++		case 32000:
++			*rates |= SND_STREAM_FORMAT_RATE_32000;
++			break;
++		case 44100:
++			*rates |= SND_STREAM_FORMAT_RATE_44100;
++			break;
++		case 48000:
++			*rates |= SND_STREAM_FORMAT_RATE_48000;
++			break;
++		default:
++			break;
++		}
++	}
++
++	(*__NXAudioGetDataEncodings)(dev, parms, &count);
++
++	*encodings = 0;
++	for (i = 0; i < count; i++)
++		switch (parms[i]) {
++		case NX_SoundStreamDataEncoding_Mulaw8:
++			*encodings |= SND_STREAM_FORMAT_ENCODING_MULAW_8;
++			break;
++		case NX_SoundStreamDataEncoding_Linear8:
++			*encodings |= SND_STREAM_FORMAT_ENCODING_LINEAR_8;
++			break;
++		case NX_SoundStreamDataEncoding_Linear16:
++			*encodings |= SND_STREAM_FORMAT_ENCODING_LINEAR_16;
++			break;
++		default:
++			break;
++		}
++	(*__NXAudioGetChannelCountLimit)(dev, chans);
++}
++
+ static int snd_device_port_msg(msg_header_t *msg)
+ {
+ 	register int r = SND_NO_ERROR;
+@@ -264,6 +432,8 @@
+ 	case SND_MSG_GET_STREAM: {
+ 		snd_get_stream_t *get_stream = (snd_get_stream_t *)msg;
+ 		int local_port;
++		port_t new_stream;
++		struct snd_owner *o;
+ 		if (msg->msg_size != sizeof(snd_get_stream_t))
+ 			return SND_BAD_PARM;
+ 		
+@@ -283,11 +453,27 @@
+ 		 * Reply port must be owner port to get this guy.
+ 		 */
+ 		if (get_stream->stream == SND_GD_SIN) {
+-			if (get_stream->owner != snd_var.sndinowner)
++			o = snd_get_owner(&snd_var.sndin_owners,
++					  get_stream->owner);
++			if (o == 0)
+ 				return SND_NOT_OWNER;
++			if (o->stream == 0) {
++				(*__NXAudioAddStream)(_NXAudioSndinDevice,
++					&new_stream, o->port, 0, 1);
++				o->stream = (caddr_t)
++					(*__NXAudioPortToStream)(new_stream);
++			}
+ 		} else if (snd_gd_isdevice(get_stream->stream)) {
+-			if (get_stream->owner != snd_var.sndoutowner)
++			o = snd_get_owner(&snd_var.sndout_owners,
++					  get_stream->owner);
++			if (o == 0)
+ 				return SND_NOT_OWNER;
++			if (o->stream == 0) {
++				(*__NXAudioAddStream)(_NXAudioSndoutDevice,
++					&new_stream, o->port, 0, 1);
++				o->stream = (caddr_t)
++					(*__NXAudioPortToStream)(new_stream);
++			}
+ 		} else {
+ 			if (get_stream->owner != snd_var.dspowner)
+ 				return SND_NOT_OWNER;
+@@ -306,21 +492,47 @@
+ 	}
+ 	case SND_MSG_SET_PARMS: {
+ 		snd_set_parms_t *set_parms = (snd_set_parms_t *)msg;
++		u_int new_parms = 0;
+ 
+ 		if (msg->msg_size != sizeof(snd_set_parms_t))
+ 			return SND_BAD_PARM;
+ 
+-		snd_device_set_parms(set_parms->parms);
++		(*__NXAudioGetSndoutOptions)(_NXAudioSndoutDevice,
++					     &new_parms);
++		if (set_parms->parms&SND_PARM_ZEROFILL)
++			new_parms |= _NXAUDIO_SNDOUT_ZEROFILL;
++		else
++			new_parms &= ~_NXAUDIO_SNDOUT_ZEROFILL;
++		if (set_parms->parms&SND_PARM_SPEAKER)
++			new_parms |= _NXAUDIO_SNDOUT_SPEAKER_ON;
++		else
++			new_parms &= ~_NXAUDIO_SNDOUT_SPEAKER_ON;
++		if (set_parms->parms&SND_PARM_LOWPASS)
++			new_parms |= _NXAUDIO_SNDOUT_DEEMPHASIS;
++		else
++			new_parms &= ~_NXAUDIO_SNDOUT_DEEMPHASIS;
++		(*__NXAudioSetSndoutOptions)(_NXAudioSndoutDevice, 0,
++					     new_parms);
+ 		break;
+ 	}
+ 	case SND_MSG_GET_PARMS: {
+ 		snd_get_parms_t *get_parms = (snd_get_parms_t *)msg;
++		u_int new_parms;
++		u_int parms = 0;
+ 
+ 		if (msg->msg_size != sizeof(snd_get_parms_t))
+ 			return SND_BAD_PARM;
+ 
+-		(void) snd_reply_ret_parms(msg->msg_remote_port,
+-				   snd_device_get_parms());
++		(*__NXAudioGetSndoutOptions)(_NXAudioSndoutDevice,
++					     &new_parms);
++		if (new_parms&_NXAUDIO_SNDOUT_ZEROFILL)
++			parms |= SND_PARM_ZEROFILL;
++		if (new_parms&_NXAUDIO_SNDOUT_SPEAKER_ON)
++			parms |= SND_PARM_SPEAKER;
++		if (new_parms&_NXAUDIO_SNDOUT_DEEMPHASIS)
++			parms |= SND_PARM_LOWPASS;
++
++		(void) snd_reply_ret_parms(msg->msg_remote_port, parms);
+ 		r = 0;
+ 		break;
+ 	}
+@@ -344,13 +556,55 @@
+ 		r = 0;
+ 		break;
+ 	}
++	case SND_MSG_GET_SNDOUT_FORMATS: {
++		snd_get_stream_formats_t *get_formats =
++			(snd_get_stream_formats_t *)msg;
++		int rates, low, high, encodings, chans;
++
++		if (msg->msg_size != sizeof(snd_get_stream_formats_t))
++			return SND_BAD_PARM;
++
++		snd_get_stream_formats(_NXAudioSndoutDevice, &rates, &low,
++				       &high, &encodings, &chans);
++		(void) snd_reply_ret_formats(msg->msg_remote_port, rates,
++				low, high, encodings, chans);
++		r = 0;
++		break;
++	}
++	case SND_MSG_GET_SNDIN_FORMATS: {
++		snd_get_stream_formats_t *get_formats =
++			(snd_get_stream_formats_t *)msg;
++		int rates, low, high, encodings, chans;
++
++		if (msg->msg_size != sizeof(snd_get_stream_formats_t))
++			return SND_BAD_PARM;
++
++		snd_get_stream_formats(_NXAudioSndinDevice, &rates, &low,
++				       &high, &encodings, &chans);
++		(void) snd_reply_ret_formats(msg->msg_remote_port, rates,
++				low, high, encodings, chans);
++		r = 0;
++		break;
++	}
+ 	case SND_MSG_SET_RAMP: {
+ 		snd_set_parms_t *set_parms = (snd_set_parms_t *)msg;
++		u_int new_parms = 0;
+ 
+ 		if (msg->msg_size != sizeof(snd_set_parms_t))
+ 			return SND_BAD_PARM;
+ 
+-		snd_device_set_ramp(set_parms->parms);
++		(*__NXAudioGetSndoutOptions)(_NXAudioSndoutDevice,
++					     &new_parms);
++		if (set_parms->parms&SND_PARM_RAMPUP)
++			new_parms |= _NXAUDIO_SNDOUT_RAMPUP;
++		else
++			new_parms &= ~_NXAUDIO_SNDOUT_RAMPUP;
++		if (set_parms->parms&SND_PARM_RAMPDOWN)
++			new_parms |= _NXAUDIO_SNDOUT_RAMPDOWN;
++		else
++			new_parms &= ~_NXAUDIO_SNDOUT_RAMPDOWN;
++		(*__NXAudioSetSndoutOptions)(_NXAudioSndoutDevice, 0,
++					     new_parms);
+ 		break;
+ 	}
+ 	case SND_MSG_SET_DSPOWNER: {
+@@ -391,59 +645,62 @@
+ 	}
+ 	case SND_MSG_SET_SNDINOWNER: {
+ 		snd_set_owner_t *set_owner = (snd_set_owner_t *)msg;
++		struct snd_owner *o;
++		struct timeval time_now;
+ 		if (msg->msg_size != sizeof(snd_set_owner_t))
+ 			return SND_BAD_PARM;
+ 
+-		snd_dbug(("snd_device_port_msg: sndin owner 0x%x\n",
+-			set_owner->owner));
+-		/*
+-		 * A reset operation can be done without giving up
+-		 * ownership by setting the owner again.
+-		 */
+-		if (snd_var.sndinowner == set_owner->owner)
+-			snd_device_reset(SND_DIR_RECORD);
+-		else if (snd_var.sndinowner != PORT_NULL) {
+-			/*
+-			 * Return the owner of the port in the error message.
+-			 */
+-			(void) snd_reply_illegal_msg(snd_var.sndinnegotiation,
++		if (_NXAudioSndinDevice == 0) {
++			(void) snd_reply_illegal_msg(PORT_NULL,
+ 						msg->msg_remote_port,
+ 						msg->msg_id, SND_PORT_BUSY);
+ 			return 0;
++		}
++		if (queue_empty(&snd_var.sndin_owners)) {
++			snd_port_alloc(snd_stream_port_name(SND_GD_SIN, 1));
++			snd_owner_add(&snd_var.sndin_owners, set_owner->owner);
++		} else if ((o = snd_get_owner(&snd_var.sndin_owners,
++					      set_owner->owner)) == 0) {
++			snd_owner_add(&snd_var.sndin_owners, set_owner->owner);
+ 		} else {
+-			snd_port_alloc(snd_stream_port_name(SND_GD_SIN, 1));
+-		}
+-
+-		snd_var.sndinowner = set_owner->owner;
+-		snd_var.sndinnegotiation = set_owner->negotiation;
+-		snd_device_init(SND_DIR_RECORD);
++			/*
++			 * Abort (reset) stream if asserting same owner port.
++			 */
++			timerclear(&time_now);
++			(*__NXAudioStreamControl)(o->stream,
++						  _NXAUDIO_STREAM_ABORT,
++						  time_now);
++		}
++
+ 		break;
+ 	}
+ 	case SND_MSG_SET_SNDOUTOWNER: {
+ 		snd_set_owner_t *set_owner = (snd_set_owner_t *)msg;
++		struct snd_owner *o;
++		struct timeval time_now;
+ 		if (msg->msg_size != sizeof(snd_set_owner_t))
+ 			return SND_BAD_PARM;
+ 
+-		snd_dbug(("snd_device_port_msg: sndout owner 0x%x\n",
+-			set_owner->owner));
+-		if (snd_var.sndoutowner == set_owner->owner)
+-			snd_device_reset(SND_DIR_PLAY);
+-		else if (snd_var.sndoutowner != PORT_NULL) {
+-			/*
+-			 * Return the owner of the port in the error message.
+-			 */
+-			(void) snd_reply_illegal_msg(snd_var.sndoutnegotiation,
++		if (_NXAudioSndoutDevice == 0) {
++			(void) snd_reply_illegal_msg(PORT_NULL,
+ 						msg->msg_remote_port,
+ 						msg->msg_id, SND_PORT_BUSY);
+ 			return 0;
+-		} else {
++		}
++		if (queue_empty(&snd_var.sndout_owners)) {
+ 			snd_port_alloc(snd_stream_port_name(SND_GD_SOUT_44,1));
+ 			snd_port_alloc(snd_stream_port_name(SND_GD_SOUT_22,1));
+-		}
+-
+-		snd_var.sndoutowner = set_owner->owner;
+-		snd_var.sndoutnegotiation = set_owner->negotiation;
+-		snd_device_init(SND_DIR_PLAY);
++			snd_owner_add(&snd_var.sndout_owners, set_owner->owner);
++		} else if ((o = snd_get_owner(&snd_var.sndout_owners,
++					      set_owner->owner)) == 0) {
++			snd_owner_add(&snd_var.sndout_owners, set_owner->owner);
++		} else {
++			timerclear(&time_now);
++			(*__NXAudioStreamControl)(o->stream,
++						  _NXAUDIO_STREAM_ABORT,
++						  time_now);
++		}
++
+ 
+ 		break;
+ 	}
+@@ -459,14 +716,16 @@
+ 			return SND_NOT_OWNER;
+ 
+ 		if (dsp_proto->proto&SND_DSP_PROTO_LINKOUT) {
+-			if (snd_var.dspowner != snd_var.sndoutowner)
++			if (!snd_get_owner(&snd_var.sndout_owners,
++					   snd_var.dspowner))
+ 				return SND_NOT_OWNER;
+ 			if (!dsp_var.chan[DSP_SO_CHAN])
+ 				return SND_BAD_CHAN;
+ 		}
+ 
+ 		if (dsp_proto->proto&SND_DSP_PROTO_LINKIN) {
+-			if (snd_var.dspowner != snd_var.sndinowner)
++			if (!snd_get_owner(&snd_var.sndin_owners,
++					   snd_var.dspowner))
+ 				return SND_NOT_OWNER;
+ 			if (!dsp_var.chan[DSP_SI_CHAN])
+ 				return SND_BAD_CHAN;
+@@ -502,6 +761,8 @@
+ 	}
+ 	case SND_MSG_NEW_DEVICE_PORT: {
+ 		snd_new_device_t *new_device = (snd_new_device_t *)msg;
++		struct snd_owner *o;
++		register queue_t q;
+ 
+ 		/*
+ 		 * Re-allocate the device port.  All connections are
+@@ -517,26 +778,30 @@
+ 		if (new_device->priv != snd_var.host_priv_self)
+ 			return SND_BAD_HOST_PRIV;
+ 
+-		if (snd_var.sndoutowner) {
+-			snd_port_gone(snd_var.sndoutowner);
+-			(void) port_deallocate(snd_var.task,
+-					       snd_var.sndoutowner);
+-			snd_var.sndoutowner = PORT_NULL;
+-		}
+-		if (snd_var.sndinowner) {
+-			snd_port_gone(snd_var.sndinowner);
+-			(void) port_deallocate(snd_var.task,
+-					       snd_var.sndinowner);
+-			snd_var.sndinowner = PORT_NULL;
++		q = &snd_var.sndout_owners;
++		if (!queue_empty(q)) {
++			o = (struct snd_owner *)queue_first(q);
++			do {
++				snd_port_gone(o->port);
++				(void) port_deallocate(snd_var.task_space, o->port);
++			} while (!queue_end(q, (queue_t)o));
++		}
++		q = &snd_var.sndin_owners;
++		if (!queue_empty(q)) {
++			o = (struct snd_owner *)queue_first(q);
++			do {
++				snd_port_gone(o->port);
++				(void) port_deallocate(snd_var.task_space, o->port);
++			} while (!queue_end(q, (queue_t)o));
+ 		}
+ 		if (snd_var.dspowner) {
+ 			snd_port_gone(snd_var.dspowner);
+-			(void) port_deallocate(snd_var.task, snd_var.dspowner);
++			(void) port_deallocate(snd_var.task_space, snd_var.dspowner);
+ 			snd_var.dspowner = PORT_NULL;
+ 		}
+-		(void) port_deallocate(snd_var.task, snd_var.dev_port);
+-		(void) port_allocate(snd_var.task, &snd_var.dev_port);
+-		(void )port_set_add(snd_var.task, snd_var.portset,
++		(void) port_deallocate(snd_var.task_space, snd_var.dev_port);
++		(void) port_allocate(snd_var.task_space, &snd_var.dev_port);
++		(void )port_set_add(snd_var.task_space, snd_var.portset,
+ 			snd_var.dev_port);
+ 		(void) snd_reply_ret_device(msg->msg_remote_port,
+ 				   snd_var.dev_port);
+@@ -557,10 +822,10 @@
+ 		if (reset_owner->old_owner != snd_var.dspowner)
+ 			return SND_NOT_OWNER;
+ 
+-		port_deallocate(snd_var.task, snd_var.dspowner);
++		port_deallocate(snd_var.task_space, snd_var.dspowner);
+ 		snd_var.dspowner = reset_owner->new_owner;
+ 		
+-		port_deallocate(snd_var.task, snd_var.dspnegotiation);
++		port_deallocate(snd_var.task_space, snd_var.dspnegotiation);
+ 		snd_var.dspnegotiation = reset_owner->new_negotiation;
+ 		r = 0;
+ 		break;
+@@ -568,6 +833,7 @@
+ 
+ 	case SND_MSG_RESET_SNDINOWNER: {
+ 		snd_reset_owner_t *reset_owner = (snd_reset_owner_t *)msg;
++		struct snd_owner *o;
+ 		
+ 		/*
+ 		 * Change the owner of this port from old_owner to
+@@ -576,20 +842,19 @@
+ 		if (msg->msg_size != sizeof(snd_reset_owner_t))
+ 			return SND_BAD_PARM;
+ 
+-		if (reset_owner->old_owner != snd_var.sndinowner)
++		if ((o = snd_get_owner(&snd_var.sndin_owners,
++				       reset_owner->old_owner)) == 0)
+ 			return SND_NOT_OWNER;
+ 
+-		port_deallocate(snd_var.task, snd_var.sndinowner);
+-		snd_var.sndinowner = reset_owner->new_owner;
+-		
+-		port_deallocate(snd_var.task, snd_var.sndinnegotiation);
+-		snd_var.sndinnegotiation = reset_owner->new_negotiation;
++		port_deallocate(snd_var.task_space, o->port);
++		o->port = reset_owner->new_owner;
+ 		r = 0;
+ 		break;
+ 	}
+ 
+ 	case SND_MSG_RESET_SNDOUTOWNER: {
+ 		snd_reset_owner_t *reset_owner = (snd_reset_owner_t *)msg;
++		struct snd_owner *o;
+ 		
+ 		/*
+ 		 * Change the owner of this port from old_owner to
+@@ -598,14 +863,12 @@
+ 		if (msg->msg_size != sizeof(snd_reset_owner_t))
+ 			return SND_BAD_PARM;
+ 
+-		if (reset_owner->old_owner != snd_var.sndoutowner)
++		if ((o = snd_get_owner(&snd_var.sndout_owners,
++				       reset_owner->old_owner)) == 0)
+ 			return SND_NOT_OWNER;
+ 
+-		port_deallocate(snd_var.task, snd_var.sndoutowner);
+-		snd_var.sndoutowner = reset_owner->new_owner;
+-		
+-		port_deallocate(snd_var.task, snd_var.sndoutnegotiation);
+-		snd_var.sndoutnegotiation = reset_owner->new_negotiation;
++		port_deallocate(snd_var.task_space, o->port);
++		o->port = reset_owner->new_owner;
+ 		r = 0;
+ 		break;
+ 	}
+@@ -616,6 +879,39 @@
+ 	}
+ 
+ 	return r;
++}
++
++static int snd_nx_encoding(int encoding)
++{
++	switch (encoding) {
++	case SND_STREAM_FORMAT_ENCODING_LINEAR_16:
++		return NX_SoundStreamDataEncoding_Linear16;
++	case SND_STREAM_FORMAT_ENCODING_LINEAR_8:
++		return NX_SoundStreamDataEncoding_Linear8;
++	case SND_STREAM_FORMAT_ENCODING_MULAW_8:
++	default:
++		return NX_SoundStreamDataEncoding_Mulaw8;
++	}
++}
++
++static void snd_set_stream_format(int dir, void *stream,
++				  int srate, int encoding, int chans,
++				  int low_water, int high_water)
++{
++	int parray[] = { NX_SoundStreamLowWaterMark,
++			 NX_SoundStreamHighWaterMark,
++			 NX_SoundStreamSamplingRate,
++			 NX_SoundStreamDataEncoding,
++			 NX_SoundStreamChannelCount };
++	int pcount = sizeof(parray)/sizeof(int);
++	int pvalues[pcount];
++
++	pvalues[0] = low_water;
++	pvalues[1] = high_water;
++	pvalues[2] = srate;
++	pvalues[3] = snd_nx_encoding(encoding);
++	pvalues[4] = chans;
++	(*__NXAudioSetStreamParameters)(stream, parray, pcount, pvalues);
+ }
+ 
+ static int snd_stream_port_msg(snd_stream_msg_t *msg)
+@@ -630,41 +926,30 @@
+ 	register int size;
+ 	register port_name_t lport = msg->header.msg_local_port;
+ 	int data_tag = msg->data_tag;
++	register port_name_t owner_port = msg->streamOwner;
++	caddr_t stream;
++	boolean_t is_dsp = FALSE;
+ 	int snd_control = 0;
+-	boolean_t need_nsamples = FALSE;
+ 	boolean_t deactivate = TRUE;
+ 	int options;
+ 	int direction = -1;
+ 	int chan;
+-	snd_region_t *new_reg;
+ 	snd_queue_t *q;
+ 	port_name_t reply_port;		// stored in region for event returns
++	int sample_rate = 0, data_encoding = 0, chan_count = 0;
++	boolean_t set_format = FALSE;
++	struct timeval time_now;
++	struct snd_owner *o;
++	queue_t oq;
+ 
+ 	/*
+ 	 * Figure out which queue we are.
+ 	 */
+-	if (snd_gd_isdevice(lport))
+-		q = &ll_snd_var.dma[lport==(SND_GD_SIN|SND_PN_ASSIGNED)].sndq;
+-	else {
++	if (!snd_gd_isdevice(lport)) {
+ 		if (!dsp_var.chan[snd_gd_chan(lport)])
+ 			return SND_BAD_CHAN;
+ 		q = &dsp_var.chan[snd_gd_chan(lport)]->sndq;
+-		
+-	}
+-
+-	switch (msg->header.msg_id) {
+-	case SND_MSG_STREAM_MSG:
+-		break;	// handled after this
+-	case SND_MSG_STREAM_NSAMPLES: {
+-		/*
+-		 * Return number of samples played/recorded.
+-		 */
+-		snd_reply_ret_samples(msg->header.msg_remote_port, q->nxfer);
+-
+-		return 0;
+-	}
+-	default:
+-		return SND_BAD_MSG;
++		is_dsp = TRUE;
+ 	}
+ 
+ 	chan = snd_gd_chan(lport);
+@@ -672,6 +957,39 @@
+ 		direction = (chan == snd_gd_chan(SND_GD_SIN))
+ 			? SND_DIR_RECORD
+ 			: SND_DIR_PLAY;
++
++	if (!is_dsp) {
++		oq = &snd_var.sndout_owners;
++		if (direction == SND_DIR_RECORD)
++			oq = &snd_var.sndin_owners;
++		o = snd_get_owner(oq, owner_port);
++		if (o == 0)
++			return SND_BAD_CHAN;
++		stream = o->stream;
++	}
++
++	switch (msg->header.msg_id) {
++	case SND_MSG_STREAM_MSG:
++		break;	// handled after this
++	case SND_MSG_STREAM_NSAMPLES: {
++		u_int bytes_processed, time_stamp;
++		/*
++		 * Return number of samples played/recorded.
++		 */
++		if (is_dsp)
++			snd_reply_ret_samples(msg->header.msg_remote_port,
++					      q->nxfer, 0);
++		else {
++			(*__NXAudioStreamInfo)(stream, &bytes_processed,
++					       &time_stamp);
++			snd_reply_ret_samples(msg->header.msg_remote_port,
++					      bytes_processed, time_stamp);
++		}
++		return 0;
++	}
++	default:
++		return SND_BAD_MSG;
++	}
+ 
+ 	size = msg->header.msg_size - sizeof(*msg);
+ 	msg_type = (snd_msg_type_t *)(msg+1);
+@@ -799,9 +1117,22 @@
+ 			snd_control |= stream_control->snd_control;
+ 			break;
+ 		}
++		case SND_MT_FORMAT: {
++			snd_stream_format_t *stream_format =
++				(snd_stream_format_t *)msg_type;
++			*(int *)&msg_type += sizeof(snd_stream_format_t);
++			size -= sizeof(snd_stream_format_t);
++
++			sample_rate = stream_format->rate;
++			data_encoding = stream_format->encoding;
++			chan_count = stream_format->chan_count;
++			set_format = TRUE;
++			break;
++		}
+ 		case SND_MT_OPTIONS: {
+ 			snd_stream_options_t *stream_options = 
+ 				(snd_stream_options_t *)msg_type;
++			u_int dma_cur, dma_count;
+ 			*(int *)&msg_type += sizeof(snd_stream_options_t);
+ 			size -= sizeof(snd_stream_options_t);
+ 
+@@ -839,22 +1170,47 @@
+ 					error = SND_BAD_PARM;
+ 			}
+ 
++			if (!is_dsp) {
++				(*__NXAudioGetBufferOptions)(
++					direction == SND_DIR_RECORD
++					    ? _NXAudioSndinDevice
++					    : _NXAudioSndoutDevice,
++					&dma_cur, &dma_count);
++				(*__NXAudioSetBufferOptions)(
++					direction == SND_DIR_RECORD
++					    ? _NXAudioSndinDevice
++					    : _NXAudioSndoutDevice,
++					0, dma_size, dma_count);
++			}
+ 			break;
+ 		}
+ 		case SND_MT_NDMA: {
+ 			snd_stream_ndma_t *stream_ndma = 
+ 				(snd_stream_ndma_t *)msg_type;
++			u_int dma_cur, dma_count, ndma;
+ 			*(int *)&msg_type += sizeof(snd_stream_ndma_t);
+ 			size -= sizeof(snd_stream_ndma_t);
+ 
+-			snd_dbug(("snd_s_port_msg: ndma 0x%x\n",
+-				stream_ndma->ndma));
+-
+-			if (!stream_ndma->ndma)
+-				q->ndma = 4;
+-			else
+-				q->ndma = stream_ndma->ndma;
+-
++			if (is_dsp) {
++				if (!stream_ndma->ndma)
++					q->ndma = 4;
++				else
++					q->ndma = stream_ndma->ndma;
++			} else {
++				ndma = stream_ndma->ndma;
++				if (!ndma)
++					ndma = 4;
++				(*__NXAudioGetBufferOptions)(
++					direction == SND_DIR_RECORD
++					    ? _NXAudioSndinDevice
++					    : _NXAudioSndoutDevice,
++					&dma_cur, &dma_count);
++				(*__NXAudioSetBufferOptions)(
++					direction == SND_DIR_RECORD
++					    ? _NXAudioSndinDevice
++					    : _NXAudioSndoutDevice,
++					0, dma_cur, ndma);
++			}
+ 			break;
+ 		}
+ 		default:
+@@ -899,6 +1255,11 @@
+ 				size -= sizeof(snd_stream_control_t);
+ 				break;
+ 	
++			case SND_MT_FORMAT:
++				*(int *)&msg_type +=
++					sizeof(snd_stream_format_t);
++				size -= sizeof(snd_stream_format_t);
++				break;
+ 	
+ 			case SND_MT_OPTIONS:
+ 				*(int *)&msg_type +=
+@@ -924,7 +1285,7 @@
+ 	 * If an option was sent down without a corresponding region
+ 	 * update the defaults in the stream with the new values.
+ 	 */
+-	if (!snd_size && dma_size) {
++	if (is_dsp && !snd_size && dma_size) {
+ 		q->dmasize = dma_size;
+ 		q->def_high_water = high_water;
+ 		q->def_low_water = low_water;
+@@ -935,24 +1296,41 @@
+ 	 *
+ 	 * Abortions first.
+ 	 */
+-	if (snd_control&SND_DC_ABORT)
+-		snd_stream_abort(q, data_tag);
++	timerclear(&time_now);
++	if (snd_control&SND_DC_ABORT) {
++		if (is_dsp) {
++			snd_link_abort();
++			snd_stream_abort(q, data_tag);
++		} else
++			(*__NXAudioStreamControl)(stream,
++				_NXAUDIO_STREAM_ABORT, time_now);
++	}
+ 
+ 
+ 	/*
+ 	 * AWAIT on record sends back recorded data.
+ 	 */
+ 	if (snd_control&SND_DC_AWAIT) {
+-		error = snd_stream_await(q, data_tag);
+-		if (error)
++		if (is_dsp) {
++			error = snd_stream_await(q, data_tag);
++			if (error)
++				goto error_return;
++		} else if ((*__NXAudioStreamControl)(stream,
++				_NXAUDIO_STREAM_RETURN_DATA, time_now)) {
++			error = SND_SEARCH;
+ 			goto error_return;
++		}
+ 	}
+ 
+ 	/*
+ 	 * Pause play or record
+ 	 */
+ 	if (snd_control&SND_DC_PAUSE) {
+-		snd_stream_pause(q);
++		if (is_dsp)
++			snd_stream_pause(q);
++		else
++			(*__NXAudioStreamControl)(stream,
++				_NXAUDIO_STREAM_PAUSE, time_now);
+ 	}
+ 
+ 	size = msg->header.msg_size - sizeof(*msg);
+@@ -976,7 +1354,8 @@
+ 			 * Protect this region read-only so that we
+ 			 * don't end up copying all the pages we play.
+ 			 */
+-			(void) vm_map_protect(snd_var.task_map,
++			if (is_dsp)
++				(void) vm_map_protect(snd_var.task_map,
+ 					    trunc_page(snd_data),
+ 					    round_page(snd_data+snd_size),
+ 					    VM_PROT_READ,
+@@ -994,8 +1373,9 @@
+ 			options = record_data->options;
+ 			snd_size = (vm_size_t)record_data->nbytes;
+ 
+-			(void) vm_allocate(snd_var.task_map, &snd_data,
+-					snd_size, TRUE);
++			if (is_dsp)
++				(void) vm_allocate(snd_var.task_map, &snd_data,
++						snd_size, TRUE);
+ 
+ 			reply_port = record_data->reg_port;
+ 			break;
+@@ -1003,6 +1383,10 @@
+ 		case SND_MT_CONTROL:
+ 			*(int *)&msg_type += sizeof(snd_stream_control_t);
+ 			size -= sizeof(snd_stream_control_t);
++			break;
++		case SND_MT_FORMAT:
++			*(int *)&msg_type += sizeof(snd_stream_format_t);
++			size -= sizeof(snd_stream_format_t);
+ 			break;
+ 		case SND_MT_OPTIONS:
+ 			*(int *)&msg_type += sizeof(snd_stream_options_t);
+@@ -1024,9 +1408,10 @@
+ 		 * message sent in the future.
+ 		 */
+ 		if (snd_size) {
+-			queue_head_t temp_q;
+-			snd_region_t *rt;
++			snd_region_t *new_reg;
++			u_int messages = 0;
+ 	
++			if (is_dsp) {
+ 			new_reg = (snd_region_t *)kalloc(sizeof(snd_region_t));
+ 			new_reg->addr = snd_data;
+ 			new_reg->size = snd_size;
+@@ -1051,12 +1436,65 @@
+ 			snd_stream_enqueue_region(new_reg, chan,
+ 						  snd_gd_isdevice(lport),
+ 						  (options&SND_DM_PREEMPT));
+-	
++			} else {
++			if ((options&SND_DM_STARTED_MSG) != 0)
++				messages |= _NXAUDIO_MSG_STARTED;
++			if ((options&SND_DM_COMPLETED_MSG) != 0)
++				messages |= _NXAUDIO_MSG_COMPLETED;
++			if ((options&SND_DM_PAUSED_MSG) != 0)
++				messages |= _NXAUDIO_MSG_PAUSED;
++			if ((options&SND_DM_RESUMED_MSG) != 0)
++				messages |= _NXAUDIO_MSG_RESUMED;
++			if ((options&SND_DM_ABORTED_MSG) != 0)
++				messages |= _NXAUDIO_MSG_ABORTED;
++			if ((options&SND_DM_OVERFLOW_MSG) != 0)
++				messages |= _NXAUDIO_MSG_UNDERRUN;
++
++			if (direction == SND_DIR_PLAY) {
++				if (set_format) {
++					snd_set_stream_format(direction, stream,
++						sample_rate, data_encoding,
++						chan_count, low_water,
++						high_water);
++					(*__NXAudioPlayStreamData)(stream,
++						snd_data, snd_size, data_tag,
++						reply_port, messages);
++				} else {
++					int rate = lport == (SND_GD_SOUT_44|SND_PN_ASSIGNED)
++						    ? _NXAUDIO_RATE_44100
++						    : _NXAUDIO_RATE_22050;
++					(*__NXAudioPlayStream)(stream,
++						snd_data, snd_size, data_tag,
++						2, rate, 32768, 32768,
++						low_water, high_water,
++						reply_port, messages);
++				}
++			} else {
++				if (set_format) {
++					snd_set_stream_format(direction, stream,
++						sample_rate, data_encoding,
++						chan_count, low_water,
++						high_water);
++					(*__NXAudioRecordStreamData)(stream,
++						snd_size, data_tag,
++						reply_port, messages);
++				} else {
++					(*__NXAudioRecordStream)(stream,
++						snd_size, data_tag,
++						low_water, high_water,
++						reply_port, messages);
++				}
++			}
++			}
+ 		}
+ 	}
+ 
+ 	if (snd_control&SND_DC_RESUME) {
+-		snd_stream_resume(q);
++		if (is_dsp)
++			snd_stream_resume(q);
++		else
++			(*__NXAudioStreamControl)(stream,
++				_NXAUDIO_STREAM_RESUME, time_now);
+ 	}
+ 
+ 	return SND_NO_ERROR;
+@@ -1070,6 +1508,7 @@
+ static void snd_port_gone(port_name_t port)
+ {
+ 	register int i;
++	struct snd_owner *o;
+ 
+ 	if (port == snd_var.dspowner) {
+ 		snd_dbug(("snd_port_gone: dsp owner\n"));
+@@ -1078,14 +1517,16 @@
+ 		 * Deallocate stream ports
+ 		 */
+ 		for (i = DSP_N_CHAN-1; i >= 0; i--)
+-			port_deallocate(snd_var.task,
++			port_deallocate(snd_var.task_space,
+ 				snd_stream_port_name(i, 0));
+-		port_deallocate(snd_var.task, snd_dsp_cmd_port_name());
++		port_deallocate(snd_var.task_space, snd_dsp_cmd_port_name());
+ 
+ 		dsp_dev_reset_hard();			// reset DSP
+-		kfree((caddr_t)dsp_var.msgbuf,
+-			(dsp_var.emsgbuf-dsp_var.msgbuf)*sizeof(u_int *));
+-		dsp_var.msgbuf = dsp_var.emsgbuf = dsp_var.msgp = 0;
++		if (dsp_var.msgbuf) {
++			kfree((caddr_t)dsp_var.msgbuf,
++			    (dsp_var.emsgbuf-dsp_var.msgbuf)*sizeof(u_int *));
++			dsp_var.msgbuf = dsp_var.emsgbuf = dsp_var.msgp = 0;
++		}
+ 		if (dsp_var.errbuf) {
+ 			kfree((caddr_t)dsp_var.errbuf,
+ 			    (dsp_var.eerrbuf-dsp_var.errbuf)*sizeof(u_int *));
+@@ -1093,32 +1534,30 @@
+ 		}
+ 		
+ 	}
+-	if (port == snd_var.sndinowner) {
+-		snd_dbug(("snd_port_gone: sndin owner\n"));
+-		port_deallocate(snd_var.task,
+-			snd_stream_port_name(SND_GD_SIN, 1));
+-		snd_var.sndinowner = PORT_NULL;
+-		snd_device_reset(SND_DIR_RECORD);	// reset sound in
+-	}
+-	if (port == snd_var.sndoutowner) {
+-		snd_dbug(("snd_port_gone: sndout owner\n"));
+-		port_deallocate(snd_var.task,
+-			snd_stream_port_name(SND_GD_SOUT_44, 1));
+-		port_deallocate(snd_var.task,
+-			snd_stream_port_name(SND_GD_SOUT_22, 1));
+-		snd_var.sndoutowner = PORT_NULL;
+-		snd_device_reset(SND_DIR_PLAY);		// reset sound out
+-	}
+-
+-	if (snd_var.sndoutowner || snd_var.sndinowner || snd_var.dspowner)
+-		return;
+-
+-	if (snd_var.task_map->size) {
+-#if	DEBUG
+-		snd_dbug(("sound task map not empty!\n"));
+-		printf("sound task map not empty!\n");
+-		vm_map_print(snd_var.task_map);
+-#endif	DEBUG
++	if (o = snd_get_owner(&snd_var.sndin_owners, port)) {
++		if (o->stream)
++			(*__NXAudioRemoveStream)(o->stream);
++		snd_owner_remove(&snd_var.sndin_owners, o);
++		if (queue_empty(&snd_var.sndin_owners))
++			port_deallocate(snd_var.task_space,
++				snd_stream_port_name(SND_GD_SIN, 1));
++	}
++	if (o = snd_get_owner(&snd_var.sndout_owners, port)) {
++		if (o->stream)
++			(*__NXAudioRemoveStream)(o->stream);
++		snd_owner_remove(&snd_var.sndout_owners, o);
++		if (queue_empty(&snd_var.sndout_owners)) {
++			port_deallocate(snd_var.task_space,
++				snd_stream_port_name(SND_GD_SOUT_44, 1));
++			port_deallocate(snd_var.task_space,
++				snd_stream_port_name(SND_GD_SOUT_22, 1));
++		}
++	}
++
++	if (   queue_empty(&snd_var.sndin_owners)
++	    && queue_empty(&snd_var.sndout_owners)
++	    && !snd_var.dspowner
++	    && snd_var.task_map->size) {
+ 		/*
+ 		 * If all ownership has been revoked then ensure that we don't
+ 		 * have any memory left in our task map (we shouldn't, but
+@@ -1129,4 +1568,5 @@
+ 				vm_map_max(snd_var.task_map));
+ 	}
+ }
++/* plan 759 END */
+ #endif	NSOUND > 0

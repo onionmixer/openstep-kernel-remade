@@ -1,0 +1,907 @@
+--- NeXTMach mk-108.1/nextdev/ev_mouse.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/ev_mouse.c (plan 736, D165)
+@@ -25,12 +25,66 @@
+ 
+ ******************************************************************************/
+ 
+-#import <next/cpu.h>
+-#import <nextdev/kmreg.h>
+-#import <machine/machparam.h>
+-#import <vm/vm_param.h>
+-#import <vm/vm_kern.h>
+-#import <nextdev/ev_vars.h>
++/*
++ * plan 736 (D165, D013, D024, D104, D158): the 1997 m68k ev_mouse.c.
++ * NeXTMach mk-108.1 nextdev/ev_mouse.c with the include lines in OPENSTEP paths
++ * (the 1997 SDK bsd/dev/m68k/evio.h) and these changes, from the original bytes
++ * [0x4069eb8, 0x406aa70) (plans 690-735):
++ *	functions that differ from NeXTMach: process_mouse_event, mouse_motion, ev_register_screen, ev_unregister_screen, InitMouseVars, InitMouse, TermMouse, ResetMouse, StartCursor, ShowWaitCursor (NeXTMach showWaitCursor), HideWaitCursor (NeXTMach hideWaitCursor), AnimateWaitCursor (NeXTMach animateWaitCursor)
++ *	new functions: MoveTheCursor, evsetup_screens, evdispatch, evretry, ev_wait_frame, ev_point_to_screen
++ *	removed (not in this 1997 unit): the cursor bit data and the functions SetCursor, HideCursor, ShowCursor, ObscureCursor, RevealCursor, ShieldCursor, UnShieldCursor, SetMouseMoved, ClearMouseRect, SetMouseRect, boundBounds, touchBounds, offsetBounds
++ * The original has no symbols for its static data and static functions: the
++ * three init statics keep the NeXTMach names (the 28 bytes of __data are their
++ * values and a zero pointer); ev_shmem_cursor, ev_adb_mouse, evCoalesce,
++ * evBrightness, ev_wait_frame and ev_point_to_screen are named by this project
++ * (D165).  evsetup_screens, MoveTheCursor and the other bodies are forms that
++ * give the original bytes, not evidence of the original source.  Lines marked
++ * plan 736, and the lines of a plan 736 BEGIN/END region (which may include
++ * unchanged lines), differ from NeXTMach.
++ */
++
++/* plan 736 (D024, D165) BEGIN: declarations and data */
++#import <sys/types.h>
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <kern/kalloc.h>
++#import <bsd/dev/m68k/evio.h>
++
++/* plan 736 (D104, D165): struct mouse of NeXTMach nextdev/kmreg.h:100-106 (07 copy nextmach/nextdev/kmreg.h:100-106); the header itself is not included,
++ * it would define the COMMON km and alert_key (D158) */
++struct mouse {
++	u_int	: 16,
++		delta_y : 7,
++		button_right : 1,
++		delta_x : 7,
++		button_left : 1;
++};
++
++/* plan 736 (D024, D104, D165): the names of NeXTMach nextdev/ev_vars.h that this file uses, as extern declarations; the types are those of ev_vars.h
++ * (line numbers of ev_vars.h: cursorPin:148 buttonsTied:156 mouseHandedness:157 mouseDelX:169 mouseDelY:170 numMouseScales:159 mouseScaleThresholds:163 mouseScaleFactors:164 waitFrameRate:98 waitFrameTime:99 waitSusTime:97 waitSustain:96 clickTimeThresh:154 clickTime:151 clickSpaceThresh:155 clickLoc:152 clickState:153 autoDimTime:271 autoDimPeriod:267 autoDimmed:270 curBright:276 rightENum:150 leftENum:149);
++ * evg, evScreen, screens, currentScreen, lastPressure, evScreenSize, totalShmemSize, evs, sessionPressure, sessionPrecision, dimmedBrightness,
++ * evRetryMask and the functions are not in it (reconstructed from the original symbols and uses) */
++extern EvGlobals *evg;
++extern EvScreen *evScreen;
++extern Bounds cursorPin;
++extern int screens, currentScreen, curBright;
++extern int buttonsTied, mouseHandedness, mouseDelX, mouseDelY, numMouseScales;
++extern unsigned char lastPressure;
++extern short mouseScaleThresholds[], mouseScaleFactors[];
++extern short waitFrameRate, waitFrameTime, waitSusTime, waitSustain;
++extern int evScreenSize, totalShmemSize;
++extern void *evs;
++extern long clickTimeThresh, clickTime;
++extern Point clickSpaceThresh, clickLoc;
++extern int clickState, autoDimTime, autoDimPeriod, dimmedBrightness, autoDimmed;
++extern int sessionPressure, sessionPrecision;
++extern short rightENum, leftENum;
++extern int evRetryMask;
++extern int adb_mouse_present(void);
++extern void LLEventPost(int, Point, NXEventData *);
++extern void SetCurBrightness(int), UndoAutoDim(void);
++extern void evdispatch(EvCmd, int, int);
++/* plan 736 END */
+ 
+ /* Implementation Constants */
+ 
+@@ -44,60 +98,76 @@
+ 
+ #define DAUTODIMPERIOD	(67*60*30)	/* Default dim time: Half an hour */
+ 
+-
+-/* The bits for the default cursors */
+-static int arrowData[] =
+-{
+-    0xf0000000, 0xcc000000, 0xc3000000, 0xc0c00000,
+-    0xc0300000, 0xc00c0000, 0xc0030000, 0xc000c000,
+-    0xc0003000, 0xc00ffc00, 0xc30c0000, 0xccc30000,
+-    0xf0c30000, 0xc030c000, 0x0030c000, 0x000fc000
+-};
+-
+-static int arrowAlpha[] =
+-{
+-    0xf0000000, 0xfc000000, 0xff000000, 0xffc00000,
+-    0xfff00000, 0xfffc0000, 0xffff0000, 0xffffc000,
+-    0xfffff000, 0xfffffc00, 0xfffc0000, 0xfcff0000,
+-    0xf0ff0000, 0xc03fc000, 0x003fc000, 0x000fc000
+-};
+-
+-static int waitData1[] =
+-{
+-    0x003FFC00, 0x03E94280, 0x0FA94160, 0x3FE90554,
+-    0x3BF915A4, 0xEAB916BC, 0xD66D1BFC, 0xD5556EA8,
+-    0xD1015598, 0xC0165054, 0xC15B9404, 0x256BA500,
+-    0x25ABE540, 0x09AFA540, 0x017FE400, 0x00000000
+-};
+-
+-static int waitData2[] =
+-{
+-    0x003FFC00, 0x03EFEA80, 0x0EAFA960, 0x35ABA504,
+-    0x316B9404, 0xC05B9054, 0xD0068158, 0xD54116A8,
+-    0xD9941FF8, 0xEAAD1AFC, 0xEBF906A4, 0x2FE905A0,
+-    0x2FA90560, 0x0BA54140, 0x02954000, 0x00000000
+-};
+-
+-static int waitData3[] =
+-{
+-    0x003FFC00, 0x03C56BC0, 0x0D056BF0, 0x3941AFF4,
+-    0x3941AFA4, 0xEA51AA94, 0xFE949554, 0xFFF90000,
+-    0xFBA45500, 0xEA94A954, 0xE951BA54, 0x2541BA90,
+-    0x2501AE80, 0x0905AF40, 0x01556400, 0x00000000
+-};
+-
+-static int waitAlpha1[] =
+-{
+-    0x003FFC00, 0x03FFFFC0, 0x0FFFFFF0, 0x3FFFFFFC,
+-    0x3FFFFFFC, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x3FFFFFFC,
+-    0x3FFFFFFC, 0x0FFFFFF0, 0x03FFFFC0, 0x003FFC00
+-};
+-
+-static int   *waitCursorIndex[] = {waitData1, waitData2, waitData3};
++/* plan 736 (D024): NeXTMach lines 47-97 removed (not in the 1997 kernel) */
+ static int   initNumMouseScales = 5;
+ static short initMouseScaleThresholds[] = { 2, 3, 4, 5, 6 };
+ static short initMouseScaleFactors[] = { 2, 4, 6, 8, 10 };
++/* plan 736 (D024, D165) BEGIN: MoveTheCursor */
++
++static char *ev_shmem_cursor = 0;
++static char evCoalesce[4][4] = {
++    { EVNOP,  EVHIDE, EVSHOW, EVMOVE },
++    { EVHIDE, EVHIDE, EVNOP,  EVSHOW },
++    { EVSHOW, EVNOP,  EVSHOW, EVSHOW },
++    { EVMOVE, EVHIDE, EVSHOW, EVMOVE }
++};
++static int evBrightness;
++static int ev_adb_mouse;
++
++static int ev_point_to_screen(Point);
++static void ev_wait_frame(int);
++
++void MoveTheCursor(Point p, int mask)
++{
++    int newscreen = -1;
++    volatile Bounds *screenBounds;
++    EvScreen *es;
++    (void)&p;
++    if (!screens) return;
++    es = evScreen;
++    screenBounds = &((EvScreen *)(currentScreen * sizeof(EvScreen) + (int)es))->bounds;
++    if (!(p.x >= screenBounds->minx &&
++          p.x < screenBounds->maxx &&
++          p.y >= screenBounds->miny &&
++          p.y < screenBounds->maxy)) {
++        newscreen = ev_point_to_screen(p);
++        if (newscreen < 0) {
++            p.x = (p.x < cursorPin.minx) ? cursorPin.minx :
++                  ((p.x > cursorPin.maxx) ? cursorPin.maxx : p.x);
++            p.y = (p.y < cursorPin.miny) ? cursorPin.miny :
++                  ((p.y > cursorPin.maxy) ? cursorPin.maxy : p.y);
++        }
++    }
++    if (*(int *)&p == *(int *)&evg->cursorLoc) return;
++    evg->cursorLoc = p;
++    if (newscreen >= 0) {
++        evdispatch(1, currentScreen, 0);
++        currentScreen = newscreen;
++        cursorPin = evScreen[currentScreen].bounds;
++        cursorPin.maxx--;
++        cursorPin.maxy--;
++        evdispatch(2, currentScreen, 0);
++    } else {
++        evdispatch(3, currentScreen, 0);
++    }
++    if (evg->movedMask) {
++        if ((evg->movedMask & (1 << 6)) && (evg->buttons & (1 << 2)))
++            LLEventPost(6, p, 0);
++        else if ((evg->movedMask & (1 << 7)) && (evg->buttons & 1))
++            LLEventPost(7, p, 0);
++        else if (evg->movedMask & (1 << 5))
++            LLEventPost(5, p, 0);
++    }
++    if (evg->mouseRectValid &&
++        !(p.x >= evg->mouseRect.minx && p.x < evg->mouseRect.maxx &&
++          p.y >= evg->mouseRect.miny && p.y < evg->mouseRect.maxy)) {
++        if (evg->mouseRectValid) {
++            LLEventPost(9, evg->cursorLoc, 0);
++            evg->mouseRectValid = 0;
++        }
++    }
++}
++/* plan 736 END */
+ 
+ /******************************************************************************
+ 	process_mouse_event
+@@ -120,6 +190,7 @@
+ 	cursor motion.
+ ******************************************************************************/
+ 
++/* plan 736 (D024, D165) BEGIN: process_mouse_event */
+ void process_mouse_event(struct mouse *me)
+ {
+     register int cursorDeltaX, cursorDeltaY;
+@@ -136,28 +207,35 @@
+ 	}
+ 
+     /* Generate any button-related events */
+-    if (((eventGlobals->buttons & LB)!=0) != (!me->button_left)) {
++    if (((evg->buttons & LB)!=0) != (!me->button_left)) {
+ 	if (!me->button_left) {
+-	    LLEventPost(NX_LMOUSEDOWN, eventGlobals->cursorLoc, NULL);
+-	    eventGlobals->buttons |= LB;
++	    lastPressure = 255;
++	    LLEventPost(NX_LMOUSEDOWN, evg->cursorLoc, NULL);
++	    evg->buttons |= LB;
+ 	} else {
+-	    LLEventPost(NX_LMOUSEUP, eventGlobals->cursorLoc, NULL);
+-	    eventGlobals->buttons &= ~LB;
++	    lastPressure = 0;
++	    LLEventPost(NX_LMOUSEUP, evg->cursorLoc, NULL);
++	    evg->buttons &= ~LB;
+ 	}
+-    }
+-
+-    if (((eventGlobals->buttons & RB)!=0) != (!me->button_right)) {
++        evg->dontCoalesce = evg->dontWantCoalesce;
++        if (evg->dontCoalesce)
++            evg->eventFlags |= NX_NONCOALSESCEDMASK;
++        else
++            evg->eventFlags &= ~NX_NONCOALSESCEDMASK;
++    }
++
++    if (((evg->buttons & RB)!=0) != (!me->button_right)) {
+     	if (!me->button_right) {
+-	    LLEventPost(NX_RMOUSEDOWN, eventGlobals->cursorLoc, NULL);
+-	    eventGlobals->buttons |= RB;
++	    LLEventPost(NX_RMOUSEDOWN, evg->cursorLoc, NULL);
++	    evg->buttons |= RB;
+ 	} else {
+-	    LLEventPost(NX_RMOUSEUP, eventGlobals->cursorLoc, NULL);
+-	    eventGlobals->buttons &= ~RB;
++	    LLEventPost(NX_RMOUSEUP, evg->cursorLoc, NULL);
++	    evg->buttons &= ~RB;
+ 	}
+     }
+ 
+     /* Figure cursor movement */
+-    EVSETSEMA();
++    evg->cursorSema = 1;
+     if (me->delta_x || me->delta_y) {
+ 	cursorDeltaX = me->delta_x;
+ 	/* Sign-extend by hand */
+@@ -170,9 +248,10 @@
+ 	    cursorDeltaY |= (int)0xffffff80;
+ 	mouseDelY -= cursorDeltaY;
+     }
+-    EVCLEARSEMA();
++    evg->cursorSema = 0;
+ } /* process_mouse_event */
+-
++/* plan 736 (D024): NeXTMach line 175 removed (a blank line) */
++/* plan 736 END */
+ 
+ /******************************************************************************
+ 	mouse_motion
+@@ -183,133 +262,32 @@
+ 	mouse-dragged, and mouse-exited events may all be generated).
+ ******************************************************************************/
+ 
+-void mouse_motion()
+-{
+-    /* Observe evp->cursorSema; if we can't run now because of it,
+-     * don't worry, we'll get called again next vertical retrace. */
+-
+-    if (!evp->cursorSema) {
+-	/* Changed to support deviced that don't set mouseDel[XY]
+-		26Feb90 Dave S. */
+-	if ((evp->movedMask & FORCEMOUSEMOVEDMASK)||(mouseDelX || mouseDelY)) {
+-	    Point newCursorLoc;
+-	    int absDelX, absDelY, index;
+-	    
+-	    /* Undo obscurecursor (code copied from SysRevealCursor) */
+-	    if (evp->cursorObscured) {
+-		evp->cursorObscured = 0;
+-		SysShowCursor();
+-	    }
+-	    
+-	    /* See if this event want mouse scaling applied to it.
+-	    	26Feb90 Dave S.
+-	     */
+-	    if (!(evp->movedMask & NOMOUSESCALINGMASK)) {
+-		/* Mouse scaling */
+-		absDelX = (mouseDelX < 0) ? -mouseDelX : mouseDelX;
+-		absDelY = (mouseDelY < 0) ? -mouseDelY : mouseDelY;
+-	   
+-		/* Use sum of distances as threshold criterion */
+-		absDelX += absDelY;
+-		if (absDelX > mouseScaleThresholds[0]) {
+-		    for (index=1; index<numMouseScales; index++)
+-			if (absDelX <= mouseScaleThresholds[index])
+-			    break;
+-		    index--;
+-		    mouseDelX *= mouseScaleFactors[index];
+-		    mouseDelY *= mouseScaleFactors[index];
+-		    XPR(XPR_EVENT, ("mouse_motion: scaling with index %d\n",
+-			index));
+-		}
+-	    }
+-	    /* Remove any trace of special device support -- 26Feb90 Dave S. */
+-	    evp->movedMask &= ~(FORCEMOUSEMOVEDMASK | NOMOUSESCALINGMASK);
+-	    XPR(XPR_EVENT, ("mouse_motion: delX = %d, delY = %d\n",
+-		mouseDelX, mouseDelY));
+-	    /* Finally... update the cursor position */
+-	    newCursorLoc.x = eventGlobals->cursorLoc.x + mouseDelX;
+-	    newCursorLoc.y = eventGlobals->cursorLoc.y + mouseDelY;
+-	    MoveCursor(newCursorLoc, evp->movedMask);
+-	    mouseDelX = mouseDelY = 0;
+-	}
+-    }
+-} /* mouse_motion */
+-
+-void SetCursor(int *newData, int dataBytes, int *newMask, int maskBytes,
+-    int hotSpotX, int hotSpotY)
+-{
+-    int i;
+-    void (*proc)();
+-    
+-    EVSETSEMA();
+-    SysHideCursor();
+-
+-    /* Copy new data and mask into evp->cursorData and evp->cursorMask */    
+-    for (i=0; i<evp->screens; i++) {
+-        if (proc = evp->screen[i].SetCursor)
+-	    (*proc)(&evp->screen[i], newData, newMask, dataBytes, maskBytes,
+-	    waitFrameNum, &nxCursorData);
+-    }
+-    /* Calculate new cursorPin rect */
+-    evp->cursorSpot.x = hotSpotX;
+-    evp->cursorSpot.y = hotSpotY;
+-    
+-    /* Calculate new evp->cursorRect */
+-    evp->cursorRect.maxx = (evp->cursorRect.minx =
+-	eventGlobals->cursorLoc.x - hotSpotX) + CURSORWIDTH;
+-    evp->cursorRect.maxy = (evp->cursorRect.miny =
+-	eventGlobals->cursorLoc.y - hotSpotY) + CURSORHEIGHT;
+-    
+-    SysShowCursor();
+-    EVCLEARSEMA();
+-} /* SetCursor */
+-
+-void HideCursor()
+-{
+-    EVSETSEMA();
+-    SysHideCursor();
+-    EVCLEARSEMA();
+-}
+-
+-void ShowCursor()
+-{
+-    EVSETSEMA();
+-    SysShowCursor();
+-    EVCLEARSEMA();
+-}
+-
+-void ObscureCursor()
+-{
+-    EVSETSEMA();
+-    SysObscureCursor();
+-    EVCLEARSEMA();
+-}
+-
+-void RevealCursor()
+-{
+-    EVSETSEMA();
+-    SysRevealCursor();
+-    EVCLEARSEMA();
+-}
+-
+-void ShieldCursor(Bounds *bounds)
+-{
+-    EVSETSEMA();
+-    evp->shieldFlag = 1;
+-    evp->shieldRect = *bounds;
+-    evp->shielded = 0;
+-    CheckShield();
+-    EVCLEARSEMA();
+-}
+-
+-void UnShieldCursor()
+-{
+-    EVSETSEMA();
+-    if (evp->shielded)
+-	SysShowCursor();
+-    evp->shielded = 0;
+-    evp->shieldFlag = 0;
+-    EVCLEARSEMA();
++/* plan 736 (D024, D165) BEGIN: AnimateWaitCursor, HideWaitCursor, ShowWaitCursor, evsetup_screens, mouse_motion */
++void mouse_motion(void)
++{
++    Point p;
++    int x, y, index, shift;
++    if (!evg->cursorSema) {
++        if (!(evg->movedMask & (1 << 17))) {
++            x = (mouseDelX < 0) ? -mouseDelX : mouseDelX;
++            y = (mouseDelY < 0) ? -mouseDelY : mouseDelY;
++            x += y;
++            shift = ev_adb_mouse != 0;
++            if (x > (mouseScaleThresholds[0] << shift)) {
++                for (index = 1; index < numMouseScales; index++)
++                    if (x <= (mouseScaleThresholds[index] << shift))
++                        break;
++                index--;
++                mouseDelX *= mouseScaleFactors[index];
++                mouseDelY *= mouseScaleFactors[index];
++            }
++        }
++        evg->movedMask &= ~((1 << 16) | (1 << 17));
++        p.x = evg->cursorLoc.x + mouseDelX;
++        p.y = evg->cursorLoc.y + mouseDelY;
++        MoveTheCursor(p, evg->movedMask);
++        mouseDelX = mouseDelY = 0;
++    }
+ }
+ 
+ /* The "waitFrameNum" global is passed to devices to indiacte the state of the
+@@ -318,55 +296,43 @@
+  * wish to cache these cursor images the first time they are seen to save
+  * cpu cycles converting the cursor from 2 bits/pixel.
+  */
+-void showWaitCursor()
+-{
+-    /* Put up wait cursor */
+-    evp->waitCursorUp = TRUE;
+-    evp->oldCursorSpot = evp->cursorSpot;
+-    waitFrameNum = 1;
+-    SetCursor(waitData1, 4, waitAlpha1, 4, 8, 8);
+-    (void)RevealCursor();
+-    waitFrameTime = waitFrameRate + 1; /* One more at start */
++void ShowWaitCursor(void)
++{
++    evg->waitCursorUp = 1;
++    ev_wait_frame(1);
++    waitFrameTime = waitFrameRate + 1;
+     waitSusTime = waitSustain;
+ }
+ 
+-void hideWaitCursor()
+-{
+-    evp->waitCursorUp = 0;
+-    waitFrameNum = 0;
+-    /* Hide wait cursor */
+-    HideCursor();
+-    evp->cursorSpot = evp->oldCursorSpot;
+-    /* Show normal cursor */
+-    ShowCursor();
+-}
+-
+-void animateWaitCursor()
+-{
+-    /* Show next wait cursor frame */
+-    if (++waitFrameNum > 3)
+-	waitFrameNum = 1;
+-    SetCursor(waitCursorIndex[waitFrameNum-1], 4, waitAlpha1, 4, 8, 8);
++void HideWaitCursor(void)
++{
++    evg->waitCursorUp = 0;
++    ev_wait_frame(0);
++}
++
++void AnimateWaitCursor(void)
++{
++    ev_wait_frame(evg->frame + 1);
+     waitFrameTime = waitFrameRate;
+ }
+ 
+-void SetMouseMoved(int eMask)
+-{
+-    evp->movedMask = eMask & MOVEDEVENTMASK;
+-}
+-
+-void ClearMouseRect()
+-{
+-    evp->mouseRectValid = 0;
+-}
+-
+-void SetMouseRect(Bounds *bounds)
+-{
+-    EVSETSEMA();
+-    evp->mouseRectValid = 1;
+-    evp->mouseRect = *bounds;
+-    EVCLEARSEMA();
+-}
++void evsetup_screens(struct evioSetScreen *arg)
++{
++    register int screenIndex = arg->screenIndex;
++    EvScreen *screen;
++    if (!evScreen) {
++        evScreenSize = arg->totalScreens * sizeof(EvScreen);
++        evScreen = (EvScreen *)kalloc(evScreenSize);
++        bzero((void *)evScreen, evScreenSize);
++        totalShmemSize = sizeof(EvOffsets) + sizeof(EvGlobals);
++    }
++    evScreen[screenIndex].bounds = arg->screenBounds;
++    screen = (EvScreen *)(screenIndex * sizeof (EvScreen) + (int)evScreen);
++    screen->shmemSize = arg->screenShmemSize;
++    totalShmemSize += screen->shmemSize;
++    arg->totalShmemSize = totalShmemSize;
++}
++/* plan 736 END */
+ 
+ /******************************************************************************
+ 	ev_register_screen adds a new screen to the screen list.  Returns
+@@ -374,26 +340,28 @@
+ 	ev_unregister_screen.
+ ******************************************************************************/
+ 
+-int ev_register_screen(evioScreen *evsi)
+-{
+-    int s;
+-    void (*proc)();
+-
+-    if (!evp) return 0;
+-    if ((s = evp->screens) == MAXSCREENS)
+-	return(-1);	/* No more space */
+-    evp->screens++;
+-    evp->screen[s] = *evsi;
+-    /* Update (set or enlarge) the workBounds */
+-    if (s==0) /* First Screen! */
+-    	evp->workBounds = evsi->bounds;
+-    else
+-        boundBounds(&evp->workBounds, &evsi->bounds, &evp->workBounds);
+-    /* Immediately set current brightness level on registered device */
+-    if (proc = evp->screen[s].SetBrightness)
+-	(*proc)(&evp->screen[s], curBright);
+-    return(s+SCREENTOKEN);
+-}
++/* plan 736 (D024, D165) BEGIN: ev_register_screen */
++int ev_register_screen(EvScreen **out, void *priv,
++    int (*move)(struct _evScreen *, Point, int),
++    int (*hide)(struct _evScreen *),
++    int (*show)(struct _evScreen *, Point, int),
++    int (*level)(struct _evScreen *, int))
++{
++    EvScreen *screen;
++    if (!evg) return -1;
++    if (!screens) ev_shmem_cursor = evs;
++    screen = &evScreen[screens];
++    *out = screen;
++    screen->priv = priv;
++    screen->move = move;
++    screen->hide = hide;
++    screen->show = show;
++    screen->level = level;
++    if (screen->shmemSize) screen->shmemPtr = ev_shmem_cursor;
++    ev_shmem_cursor += screen->shmemSize;
++    return screens++ + SCREENTOKEN;
++}
++/* plan 736 END */
+ 
+ /******************************************************************************
+ 	ev_unregister_screen is called by device drivers when they are about
+@@ -402,185 +370,176 @@
+ 	cursor on it, the cursor is first hidden.
+ ******************************************************************************/
+ 
++/* plan 736 (D024, D165) BEGIN: InitMouse, InitMouseVars, ResetMouse, StartCursor, TermMouse, ev_point_to_screen, ev_unregister_screen, ev_wait_frame, evdispatch, evretry */
+ int ev_unregister_screen(int token)
+ {
+-    volatile evioScreen *es;
+-
+-    if (!evp) return 0;
++    if (!evg) return -1;
+     token -= SCREENTOKEN;
+-    if (token<0 || token>MAXSCREENS)
+-	return -1;
+-
+-    HideCursor();
+-    /* Critcal Section */
+-    EVSETSEMA();
+-    es = &evp->screen[token];
+-    es->device = 0;
+-    es->SetCursor = NULL;
+-    es->DisplayCursor = NULL;
+-    es->RemoveCursor = NULL;
+-    es->MoveCursor = NULL;
+-    es->SetBrightness = NULL;
+-
+-    /* We won't subtract one from evp->screens because this is a boundary
+-     * on the number of entries in the matrix.  When a screen goes away,
+-     * we just mark it inactive so the driver is never called.
+-     */
+-     EVCLEARSEMA();
+-     ShowCursor();
+-     return 0;
+-}
+-
+-void InitMouseVars()
+-{
+-    int i;
+-    void (*proc)();
+-    
+-    /* Set cursor on all devices to the ARROW cursor */
+-    for (i=0; i<evp->screens; i++) {
+-    	if (proc = evp->screen[i].SetCursor)
+-	    (*proc)(&evp->screen[i], arrowData, arrowAlpha, 4, 4,
+-	    0 /*regular cursor*/, &nxCursorData);
+-    }
+-    evp->cursorSpot.x = evp->cursorSpot.y = 1;
+-    /* End Arrow Cursor Setup */
+-
+-    /* Calculate new evp->cursorRect */
+-    evp->cursorRect.maxx = (evp->cursorRect.minx =
+-	eventGlobals->cursorLoc.x - evp->cursorSpot.x) + CURSORWIDTH;
+-    evp->cursorRect.maxy = (evp->cursorRect.miny =
+-	eventGlobals->cursorLoc.y - evp->cursorSpot.y) + CURSORHEIGHT;
+-    cursorPin = evp->screen[evp->crsrScreen].bounds;
+-    cursorPin.maxx--; cursorPin.maxy--;
+-    evp->cursorShow = 1;
+-    clickTimeThresh = DCLICKTIME;
+-    clickSpaceThresh.x = clickSpaceThresh.y = DCLICKSPACE;
+-    clickTime = -DCLICKTIME;
+-    clickLoc.x = clickLoc.y = -DCLICKSPACE;
++    if (token < 0 || token >= screens) return -1;
++    evdispatch(1, currentScreen, 0);
++    evScreen[token].move = 0;
++    evScreen[token].hide = 0;
++    evScreen[token].show = 0;
++    evScreen[token].level = 0;
++    evdispatch(2, currentScreen, 0);
++    return 0;
++}
++
++void InitMouseVars(void)
++{
++    short i;
++    clickTimeThresh = 30;
++    clickSpaceThresh.x = clickSpaceThresh.y = 3;
++    clickTime = -30;
++    clickLoc.x = clickLoc.y = -3;
+     clickState = 1;
+-    autoDimTime = eventGlobals->VertRetraceClock + DAUTODIMPERIOD;
+-    autoDimPeriod = DAUTODIMPERIOD;
++    autoDimTime = evg->VertRetraceClock + 120600;
++    autoDimPeriod = 120600;
++    dimmedBrightness = 15;
+     buttonsTied = 1;
+     mouseHandedness = 0;
+     numMouseScales = initNumMouseScales;
+-    for (i=0; i<initNumMouseScales; i++) {
+-	mouseScaleThresholds[i] = initMouseScaleThresholds[i];
+-	mouseScaleFactors[i] = initMouseScaleFactors[i];
++    for (i = initNumMouseScales; i-- != 0;) {
++        mouseScaleThresholds[i] = initMouseScaleThresholds[i];
++        mouseScaleFactors[i] = initMouseScaleFactors[i];
+     }
+     mouseDelX = mouseDelY = 0;
+ }
+ 
+-void InitMouse(int lleqsize)
+-{
+-    int i;
+-    
+-    /* Do one-time only initialization of mouse-related state */
+-    for (i=0; i<lleqsize; i++) {
+-	eventGlobals->lleq[i].event.type = 0;
+-	eventGlobals->lleq[i].event.time = 0;
+-	eventGlobals->lleq[i].event.flags = 0;
+-	eventGlobals->lleq[i].sema = 0;
+-	eventGlobals->lleq[i].next = i+1;
+-    }
+-    eventGlobals->LLELast = eventGlobals->lleq[lleqsize-1].next = 0;
+-    eventGlobals->LLEHead = eventGlobals->LLETail =
+-	eventGlobals->lleq[eventGlobals->LLELast].next;
+-    eventGlobals->buttons = 0;
+-    eventGlobals->eNum = INITEVENTNUM;
+-    eventGlobals->eventFlags = 0;
+-    eventGlobals->VertRetraceClock = 1;
+-    eventGlobals->cursorLoc.x = INITX;
+-    eventGlobals->cursorLoc.y = INITY;
+-    
+-    nxCursorData.saveRect     = (Bounds *)&evp->saveRect;
+-    nxCursorData.saveData     = (unsigned int *)evp->saveData;
+-    nxCursorData.cursorData2W = (unsigned int *)evp->cursorData2W;
+-    nxCursorData.cursorData2B = (unsigned int *)evp->cursorData2B;
+-    nxCursorData.cursorAlpha2 = (unsigned int *)evp->cursorAlpha2;
+-    nxCursorData.cursorData8  = (unsigned int *)evp->cursorData8;
+-    nxCursorData.cursorData16 = (unsigned int *)evp->cursorData16;
+-    nxCursorData.cursorData32 = (unsigned int *)evp->nd_cursorData;
+-
+-    leftENum = rightENum = NULLEVENTNUM;
+-    evp->mouseRectValid = 0;
+-    evp->movedMask = 0;
+-    evp->cursorSema = 0;
++void InitMouse(int n)
++{
++    short i;
++    for (i = n; i-- != 0;) {
++        evg->lleq[i].event.type = 0;
++        evg->lleq[i].event.time = 0;
++        evg->lleq[i].event.flags = 0;
++        evg->lleq[i].sema = 0;
++        evg->lleq[i].next = i + 1;
++    }
++    evg->LLELast = evg->lleq[n - 1].next = 0;
++    evg->LLEHead = evg->LLETail = evg->lleq[evg->LLELast].next;
++    evg->buttons = 0;
++    evg->eNum = 13;
++    evg->eventFlags = 0;
++    evg->VertRetraceClock = 1;
++    evg->cursorLoc.x = 100;
++    evg->cursorLoc.y = 100;
++    screens = 0;
++    sessionPressure = 0;
++    sessionPrecision = 0;
++    lastPressure = 0;
++    evg->dontCoalesce = 0;
++    evg->dontWantCoalesce = 0;
++    evg->wantPressure = 0;
++    evg->wantPrecision = 0;
++    leftENum = rightENum = 0;
++    evg->mouseRectValid = 0;
++    evg->movedMask = 0;
++    evg->cursorSema = 0;
+     autoDimmed = 0;
+     mouseDelX = mouseDelY = 0;
++    ev_adb_mouse = adb_mouse_present();
+     InitMouseVars();
+ }
+ 
+-void TermMouse()
+-{
+-    if (evp->screens)
+-	HideCursor();
+-}
+-
+-void ResetMouse()
+-{
+-    if (evp->screens) {
+-	if (!evp->cursorShow)
+-	    HideCursor();
+-	if (autoDimmed)
+-	    UndoAutoDim();
+-	InitMouseVars();
+-	ShowCursor();
+-    }
++void TermMouse(void)
++{
++    if (screens) evdispatch(1, currentScreen, 0);
++}
++
++void ResetMouse(void)
++{
++    if (autoDimmed) UndoAutoDim();
++    InitMouseVars();
+ }
+ 
+ /* StartCursor is the first call to display the initial cursor. It should
+  * never be called again.
+  */
+-int StartCursor(Point pp)
+-{
+-    if (evp->screens) {
+-	evp->oldCursorLoc = eventGlobals->cursorLoc = pp;
+-	if ((evp->crsrScreen = evp->prevScreen = PointToScreen(pp)) < 0)
+-	    return(-1);
+-	InitMouseVars();
+-	ShowCursor();
+-	return(0);
+-    } else
+-    	return(-1);
+-}
+-
+-void boundBounds(register Bounds *one, register Bounds *two,
+-    register Bounds *result)
+-{
+-    result->minx = two->minx < one->minx ? two->minx : one->minx;
+-    result->miny = two->miny < one->miny ? two->miny : one->miny;
+-    result->maxx = two->maxx > one->maxx ? two->maxx : one->maxx;
+-    result->maxy = two->maxy > one->maxy ? two->maxy : one->maxy;
+-}
+-
+-int touchBounds(Bounds *one, Bounds *two)
+-{
+-    return(((one->minx < two->maxx) && (two->minx < one->maxx))
+-    && ((one->miny < two->maxy) && (two->miny < one->maxy)));
+-}
+-
+-void offsetBounds(Bounds *one, short dx, short dy)
+-{
+-    one->minx += dx;
+-    one->maxx += dx;
+-    one->miny += dy;
+-    one->maxy += dy;
+-}
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
++int StartCursor(void)
++{
++    if (!screens) return -1;
++    currentScreen = ev_point_to_screen(evg->cursorLoc);
++    if (currentScreen < 0) return -1;
++    cursorPin = evScreen[currentScreen].bounds;
++    cursorPin.maxx--;
++    cursorPin.maxy--;
++    SetCurBrightness(curBright);
++    evdispatch(2, currentScreen, 0);
++    return 0;
++}
++
++void evdispatch(EvCmd cmd, int screen, int arg)
++{
++    EvScreen *esp = &evScreen[screen];
++    int err = 0;
++    int (*proc)();
++
++    if (cmd < EVLEVEL || esp->retry.cursor) {
++	esp->retry.cursor = evCoalesce[esp->retry.cursor][cmd & 3];
++	switch (esp->retry.cursor) {
++	case EVMOVE:
++	    proc = esp->move;
++	    if (proc)
++		err = (*proc)(esp, evg->cursorLoc, evg->frame);
++	    break;
++	case EVSHOW:
++	    proc = esp->show;
++	    if (proc)
++		err = (*proc)(esp, evg->cursorLoc, evg->frame);
++	    break;
++	case EVHIDE:
++	    proc = esp->hide;
++	    if (proc)
++		err = (*proc)(esp);
++	    break;
++	}
++	if (!err)
++	    esp->retry.cursor = 0;
++    }
++    if (cmd == EVLEVEL)
++	evBrightness = arg;
++    if (cmd == EVLEVEL || esp->retry.level) {
++	proc = esp->level;
++	if (proc) {
++	    esp->retry.level = (*proc)(esp, evBrightness);
++	    err |= esp->retry.level;
++	}
++    }
++    {
++	int bit = 1 << screen;
++	int mask = evRetryMask & ~bit;
++	if (err)
++	    mask |= bit;
++	evRetryMask = mask;
++    }
++}
++
++void evretry(void)
++{
++    unsigned i, m;
++
++    for (i = 0, m = evRetryMask; m && i < screens; i++, m >>= 1)
++	if (m & 1)
++	    evdispatch(EVNOP, i, 0);
++}
++
++static void ev_wait_frame(int frame)
++{
++    evg->frame = frame > 3 ? 1 : frame;
++    evdispatch(3, currentScreen, 0);
++}
++
++static int ev_point_to_screen(Point p)
++{
++    short i;
++    for (i = screens; i-- != 0;) {
++        if (p.x >= evScreen[i].bounds.minx && p.x < evScreen[i].bounds.maxx &&
++            p.y >= evScreen[i].bounds.miny && p.y < evScreen[i].bounds.maxy)
++            return i;
++    }
++    return -1;
++}
++/* plan 736 END */
++
++/* plan 736 (D024): NeXTMach lines 571-586 removed (a blank line) */

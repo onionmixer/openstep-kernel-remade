@@ -1,0 +1,75 @@
+--- nextmach/mk-108.1/nextdev/fd_io.c
++++ 07_kernel/src/machdep/m68k/fd_io.c
+@@ -10,22 +10,47 @@
+  *
+  */ 
+  
++/*
++ * plan 573 (D129, D013, D024, D104, D110, D113, D121, D128): the 1997 m68k
++ * fd_io.c.  NeXTMach mk-108.1 nextdev/fd_io.c with the include lines in
++ * OPENSTEP paths, the next/cpu.h and next/scr.h names it uses defined in this
++ * file (next/cpu.h is assembly only, D109; next/scr.h is not imported), and
++ * the 1997 changes written from the original bytes [0x406c55c, 0x406d6b6)
++ * (plans 571-572):
++ *	fc_probe	sczctl is slot_id_bmap + SDC_ADDRS; no sczfst (the 1997
++ *			struct fd_controller has none, plan 570)
++ *	fc_intr		flushes the DMA FIFO 8 times only when dma_chip == 313
++ * The other 20 functions are the NeXTMach text unchanged.  Lines marked
++ * plan 573 differ from NeXTMach.
++ */
+ #import "fd.h"
+-#import <next/cpu.h>
++#import <m68k/cpu.h>	/* plan 573 (D110): NeXTMach <next/cpu.h> */
++/* plan 573 (D113, D121): NeXTMach next/cpu.h and next/scr.h names used here */
++extern int slot_id, slot_id_bmap;
++#define	SLOT_ID		slot_id
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_SCSI_CSR	(SLOT_ID+0x02000010)
++#define	P_DISK		(SLOT_ID_BMAP+0x02012000)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_IPL(i)	(((i) >> 4) & 7)
++#define	I_SCSI_DMA	I(6,3,26)
++#define	I_SCSI		I(3,1,12)
++#define	I_PHONE		I(3,6,7)
++#define	NeXT_CUBE	0
+ #import <kern/lock.h>
+ #import <sys/time.h>
+ #import <sys/callout.h>
+ #import <sys/dk.h>
+-#import <next/psl.h>
+-#import <kern/mach_types.h>
+-#import <next/machparam.h>
++#import <m68k/psl.h>	/* plan 573 (D104): NeXTMach <next/psl.h> */
++#import <mach/mach_types.h>	/* plan 573 (D104): NeXTMach <kern/mach_types.h> */
++#import <m68k/machparam.h>	/* plan 573 (D104): NeXTMach <next/machparam.h> */
+ #import <nextdev/dma.h>
+ #import <nextdev/fd_extern.h>
+ #import	<nextdev/fd_reg.h>
+ #import	<nextdev/fd_vars.h>
+ #import <nextdev/sf_access.h>
+ #import <nextdev/odreg.h>
+-#import <next/scr.h>
++/* plan 573 (D121): NeXTMach #import <next/scr.h> removed; its name used here (NeXT_CUBE) is defined above */
+ #import "sc.h"
+ /*
+  * prototypes of local functions
+@@ -183,8 +208,8 @@
+ 	fcp->dma_chan.dc_ddp = (struct dma_dev *)P_SCSI_CSR;
+ 	dma_init(&fcp->dma_chan, I_SCSI_DMA);
+ 	fcp->flags |= FCF_INITD;
+-	fcp->sczctl = (u_char *)SDC_ADDRS;
+-	fcp->sczfst = (u_char *)SFS_ADDRS;
++	fcp->sczctl = (u_char *)(SLOT_ID_BMAP + SDC_ADDRS);	/* plan 573 (D129, D024): NeXTMach SDC_ADDRS */
++			/* plan 573 (D128, D129): NeXTMach fcp->sczfst = (u_char *)SFS_ADDRS; removed (no sczfst in 1997) */
+ 	sfa_relinquish(fcp->sfahp, &fcp->sfad, SF_LD_FD);
+ 
+ 	/*
+@@ -699,7 +724,7 @@
+ 		 */
+ 		if(fcp->flags & FCF_DMAING) {
+ 			
+-			for(i=0; i<8; i++) {	/* fixme: how many flushes? */
++			for(i=0; i<((dma_chip == 313) ? 8 : 1); i++) {	/* plan 573 (D129, D024): NeXTMach i<8 */
+ 				*fcp->sczctl |= SDC_FLUSH;
+ 				DELAY(5);
+ 				*fcp->sczctl &= ~SDC_FLUSH;

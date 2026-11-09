@@ -1,0 +1,133 @@
+--- NeXTMach mk-108.1/nextdev/scsi.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/scsi.c (plan 667, D154)
+@@ -34,6 +34,23 @@
+  *	Created.
+  *
+  */ 
++/*
++ * plan 667 (D154, D013, D024, D104, D113, D149): the 1997 m68k scsi.c.
++ * NeXTMach mk-108.1 nextdev/scsi.c with the include lines in OPENSTEP paths
++ * and these changes (plans 665-666); the behavior is from the original bytes
++ * [0x407bd9c, 0x407c574):
++ *	scsi_probe	sc_target first, then the 1997 per-target, per-lun count
++ *			table (D149) is cleared and the controller's own luns are
++ *			counted once; no compile-time alignment check (its panic
++ *			string is not in the original)
++ *	scsi_slave	the two "already taken" tests read the count table
++ *	scsi_pollcmd	not in the 1997 code (its declaration in the shared
++ *			scsivar.h is kept)
++ * These spellings are this project's choices (the bytes do not show them;
++ * D154): the bzero size SCSI_NTARGETS * SCSI_NLUNS, and removing the two
++ * NeXTMach pieces rather than excluding them.  The other functions are the
++ * NeXTMach text unchanged.  Lines marked plan 667 differ from NeXTMach.
++ */
+ 
+ /* #define	SCSI_NOTIMER	1	/* disable lost interrupt timer */
+ /* #define	SCSI_TRACE	1	/* trace polled commands */
+@@ -47,12 +64,12 @@
+ #import <sys/kernel.h>
+ #import <kern/queue.h>
+ #import <vm/vm_kern.h>
+-#import <next/printf.h>
+-#import <next/psl.h>
+-#import <nextdev/busvar.h>
+-#import <nextdev/scsireg.h>
+-#import <nextdev/scsivar.h>
+-#import <nextdev/disk.h>
++#import <kernserv/printf.h>	/* plan 667 (D104): NeXTMach <next/printf.h> */
++#import <m68k/psl.h>	/* plan 667 (D104): NeXTMach <next/psl.h> */
++#import <dev/busvar.h>	/* plan 667 (D104): NeXTMach <nextdev/busvar.h> */
++#import <dev/m68k/scsireg.h>	/* plan 667 (D104, D113): NeXTMach <nextdev/scsireg.h> */
++#import <dev/m68k/scsivar.h>	/* plan 667 (D104, D113): NeXTMach <nextdev/scsivar.h> */
++#import <dev/disk.h>	/* plan 667 (D104): NeXTMach <nextdev/disk.h> */
+ 
+ #import <machine/cpu.h>
+ #import <kern/xpr.h>
+@@ -201,19 +218,17 @@
+ {
+ 	int s;
+ 
+-	if (sizeof(struct cdb_6) != 6 || sizeof(struct cdb_10) != 10
+-	    || sizeof(struct cdb_12) != 12)
+-		panic("scsi: compiler alignment problems");
++	/* plan 667 (D154): no compile-time alignment check in the 1997 code */
+ 	/*
+ 	 * initialize generic scsi structs for controller
+ 	 * number "ctrl".
+ 	 */
+ 	scp->sc_bcp = bcp;
+ 	scp->sc_scswp = scswp;	/* controller specific routines */
++	scp->sc_target = 7;	/* plan 667 (D024, D149, D154) */
++	bzero(scp->sc_lunmask, SCSI_NTARGETS * SCSI_NLUNS);	/* plan 667 (D024, D149, D154) */
+ 	for (s = 0; s < SCSI_NLUNS; s++)
+-		scp->sc_lunmask[s] = 0;
+-	scp->sc_target = 7;
+-	scp->sc_lunmask[scp->sc_target] = -1;
++		scp->sc_lunmask[scp->sc_target][s] = 1;	/* plan 667 (D024, D149, D154) */
+ 	scp->sc_active = SCACTIVE_IDLE;
+ 	scp->sc_expectintr = 0;
+ 	scp->sc_ipl = ipl;
+@@ -258,7 +273,7 @@
+ 		sdp->sd_target = SCSI_TARGET(bdp->bd_slave);
+ 		sdp->sd_lun = SCSI_LUN(bdp->bd_slave);
+ 		/* has it already been snagged */
+-		if (scp->sc_lunmask[sdp->sd_target] & (1 << sdp->sd_lun))
++		if (scp->sc_lunmask[sdp->sd_target][sdp->sd_lun])	/* plan 667 (D024, D149, D154) */
+ 			return(0);
+ 		if ((*sdswp->sdsw_slave)(sdp,bdp)) 
+ 			return(1);
+@@ -273,7 +288,7 @@
+ 		sdp->sd_target = sdswp->sdsw_nexttarget;
+ 		while (sdswp->sdsw_nextlun < SCSI_NLUNS) {
+ 			sdp->sd_lun = sdswp->sdsw_nextlun++;
+-			if(scp->sc_lunmask[sdp->sd_target]&(1<<sdp->sd_lun)) {
++			if(scp->sc_lunmask[sdp->sd_target][sdp->sd_lun]) {	/* plan 667 (D024, D149, D154) */
+ 				/* it's already been snagged. Forget this 
+ 				 * target.
+ 				 */
+@@ -323,44 +338,7 @@
+ 	return;
+ }
+ 
+-int
+-scsi_pollcmd(struct scsi_device *sdp)
+-{
+-	struct scsi_ctrl *scp = sdp->sd_scp;
+-	int tries = 0;
+-	int waittries;
+-	int s;
+-
+-	/*
+-	 * some SCSI controller chips can't be polled,
+-	 * so what we do here is to run the command
+-	 * "the normal way" and then spin waiting for the controller
+-	 * to go idle
+-	 */
+-	ASSERT(curipl() == 0);
+-	do {
+-		s = spln(ipltospl(scp->sc_ipl));
+-		ASSERT(sdp->sd_active == 0 && scp->sc_active == SCACTIVE_IDLE);
+-		sdp->sd_disconnectok = 0;	/* can't disconnect! */
+-		scp->sc_active = SCACTIVE_POLLING;
+-		(*scp->sc_scswp->scsw_start)(sdp);
+-		waittries = 0;
+-		while (scp->sc_active != SCACTIVE_IDLE && ++waittries < 1000) {
+-			splx(s);
+-			DELAY(1000);
+-			s = spln(ipltospl(scp->sc_ipl));
+-		}
+-		if (waittries >= 1000) {
+-#ifdef SCSI_TRACE
+-			printf("scsi_pollcmd: timeout\n");
+-#endif SCSI_TRACE
+-			(*scp->sc_scswp->scsw_reset)(scp, SCRESET_ABORT, NULL);
+-			scp->sc_active = SCACTIVE_IDLE;
+-		}
+-		splx(s);
+-	} while (++tries < 3 && sdp->sd_state == SDSTATE_SELTIMEOUT);
+-	return(sdp->sd_state==SDSTATE_COMPLETED && sdp->sd_status==STAT_GOOD);
+-} /* scsi_pollcmd() */
++/* plan 667 (D154): NeXTMach scsi_pollcmd() is not in the 1997 code */
+ 
+ /*
+  * scsi device start routine -- queues a unit for service by scsi

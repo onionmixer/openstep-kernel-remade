@@ -1,0 +1,1583 @@
+--- 07_kernel/src/machdep/i386/trap.c (frame)
++++ 07_kernel/src/machdep/m68k/trap.c
+@@ -22,6 +22,8 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
++/* Modified 2026-10-31: see 07_kernel/MODIFICATIONS.md */
++
+ /*
+  * Copyright (c) 1992 NeXT Computer, Inc.
+  *
+@@ -32,699 +34,560 @@
+  * 13 April 1992 ? at NeXT
+  *	Created.
+  */
+- 
+-#import <gdb.h>
+-
+-#import <mach/mach_types.h>
++
++/*
++ * NeXTMach next/trap.c:
++ * Copyright (c) 1987, 1988 NeXT, Inc.
++ */
++
++/*
++ * m68k: the trap handlers of the 1997 m68k kernel (plans 628-636, D024,
++ * D103, D142, D144), the original range [0x40996b8, 0x409a8ba) (inventory
++ * rows m68k-315 .. m68k-320; 9 functions in the original order).  Notices
++ * above: Apple APSL 1.0 and NeXT 1992 of machdep/i386/trap.c (Darwin 0.1, the
++ * frame of unix_syscall_return and check_for_ast), and NeXTMach mk-108.1
++ * next/trap.c, whose trap_type (161-188), trap (196-561), INIT_VARS and
++ * unix_syscall (851-1065), traceback (1113-1143) and do_writeback (1152-1258)
++ * lines are used, with the vector numbers of NeXTMach next/trap.h (18-32,
++ * 43-48, 50-55) and the TRACE_PENDING name of next/pcb.h:53.  The bodies are
++ * written from the original bytes; the 1997 changes in trap() are the fifth
++ * vm_fault argument (the kernel error), the copyoutstr .. fast_setjmp
++ * recovery range with fault_error, the bmap parity check, the P_MON retry of
++ * the 0x139 DMA chip, the move_space_fault result registers, the return of
++ * the exception frame size by format (exframesize) instead of
++ * TRAP_RERUN/TRAP_NORERUN, exception_with_continuation and
++ * thread_halt_self_with_continuation, the deferred 68882 signal (AST_BLOCK),
++ * gdb_from_trap, no USER bit, the saved u_ar0 and saved_regs through the
++ * local pcb.  do_trace, move_space and bmap_parity_error are written from the
++ * original bytes alone.  The constants in this file, the exframesize name,
++ * the bmap_parity_error locals and the check_for_ast spl local are user
++ * decisions (D144).  The marks give each function's source.
++ */
++#import <sys/param.h>
++#import <sys/systm.h>
++#import <sys/user.h>
++#import <sys/proc.h>
++#import <sys/errno.h>
++#import <kern/thread.h>
++#import <kern/task.h>
++#import <kern/sched.h>
++#import <kern/sched_prim.h>
++#import <kern/ast.h>
++#import <kern/processor.h>
+ #import <mach/exception.h>
+-
+-#import <kern/syscall_sw.h>
+-#import <kern/kdp.h>
+-
++#import <sys/ux_exception.h>
++#import <mach/machine.h>
++#import <mach/vm_param.h>
++#import <m68k/psl.h>
++#import <m68k/reg.h>
++#import <m68k/mmu.h>
++#import <m68k/cframe.h>
++#import <machine/spl.h>
++#import <m68k/cpu.h>
++#import <m68k/bmap.h>
++#import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+-
+-#import <machdep/i386/trap.h>
+-#import <machdep/i386/machdep_call.h>
+-#import <machdep/i386/cpu_inline.h>
+-#import <machdep/i386/fp_exported.h>
+-#import <machdep/i386/sel_inline.h>
+-#import <machdep/i386/err_inline.h>
+-
+-#import <sys/kernel.h>
+-#import <sys/systm.h>
+-#import <sys/proc.h>
+-#import <sys/user.h>
+-#import <sys/syslog.h>
+-#import <sys/param.h>		/* plan 273: CHECK_SIGNALS */
+-#import <kern/ast.h>		/* plan 273 */
+-#import <kern/sched.h>		/* plan 273: csw_needed */
+-
+-#define N_BACKTRACE		4	// number of backtrace frames to print
+-
+-static
++#import <vm/vm_fault.h>
++#import <mach/kern_return.h>
++
++/* plan 636 (D144): NeXTMach mk-108.1 next/trap.h:18-32, 43-48, 50-55 (the vectors used here) */
++#define	T_BADTRAP	0x04
++#define	T_BUSERR	0x08
++#define	T_ADDRERR	0x0c
++#define	T_ILLEGAL	0x10
++#define	T_ZERODIV	0x14
++#define	T_CHECK		0x18
++#define	T_TRAPV		0x1c
++#define	T_PRIVILEGE	0x20
++#define	T_TRACE		0x24
++#define	T_EMU1010	0x28
++#define	T_EMU1111	0x2c
++#define	T_COPROC	0x34		/* 030 only */
++#define	T_FORMAT	0x38
++#define	T_BADINTR	0x3c
++#define	T_SPURIOUS	0x60
++#define	T_USER_BPT	0xbc
++#define	T_FPP		0xc0
++#define	T_FP_UDT	0xdc		/* 040 only */
++#define	T_MMU_CONFIG	0xe0		/* 030 only */
++#define	T_MMU_ILL	0xe4		/* 851 only */
++#define	T_MMU_ACCESS	0xe8		/* 851 only */
++/* MMU psuedo vectors (determined from MMU status reg during T_BUSERR) */
++#define	T_MMU_BUSERR	0x400		/* bus error during table walk */
++#define	T_MMU_LIMIT	0x404		/* index exceeded limit during walk */
++#define	T_MMU_SUPER	0x408		/* supervisor violation during walk */
++#define	T_MMU_WRITE	0x40c		/* write protected during walk */
++#define	T_MMU_INVALID	0x410		/* invalid descriptor during walk */
++
++#define	TRACE_PENDING	0x08000000	/* plan 636 (D144): NeXTMach next/pcb.h:53 name; 1997 value (bit 3 of byte +0x54 of the int pcb_flags, D142) from the original bytes */
++
++extern struct sysent	sysent[];
++extern int		nsysent;
++int	traptrace;
++volatile int traceback_recursive;
++label_t traceback_jb[2];
++
++struct trap_type {
++	short	tt_type;	/* processor vector number */
++	char	*tt_name;
++} trap_type[] = {
++	T_BUSERR,	"bus error",
++	T_ADDRERR,	"address error",
++	T_ILLEGAL,	"illegal instruction",
++	T_ZERODIV,	"zero divide",
++	T_CHECK,	"CHK, CHK2 instruction",
++	T_TRAPV,	"TRAPV, cpTRAPcc, TRAPcc instruction",
++	T_PRIVILEGE,	"privilege violation",
++	T_TRACE,	"trace trap",
++	T_EMU1010,	"1010 emulator trap",
++	T_EMU1111,	"1111 emulator trap",
++	T_COPROC,	"coprocessor protocol error",
++	T_FORMAT,	"stack format error",
++	T_BADINTR,	"uninitialized interrupt",
++	T_SPURIOUS,	"spurious interrupt",
++	T_MMU_CONFIG,	"MMU configuration",
++	T_MMU_ILL,	"MMU illegal operation",
++	T_MMU_ACCESS,	"MMU access level violation",
++	T_MMU_BUSERR,	"MMU bus error",
++	T_MMU_LIMIT,	"MMU limit error",
++	T_MMU_SUPER,	"MMU supervisor access error",
++	T_MMU_WRITE,	"MMU write access error",
++	T_MMU_INVALID,	"MMU invalid descriptor during table walk",
++	0
++};
++
++/* plan 636 (D144): exception frame size by stack format, from the original bytes 0x40b2c9a (right after trap_type); the name is this project's */
++static short exframesize[] = { 0, 0, 4, 4, -1, -1, -1, 52, -1, 12, 24, 84, -1, -1, -1, -1 };
++
++extern void	exception(), exception_with_continuation(), exception_from_kernel();	/* plan 636 (D144): kern; no header declares them */
++extern void	thread_halt_self(), _return_with_state();	/* plan 636 (D144): thread_halt_self also kern/thread.h:310; _return_with_state locore */
++extern int	_move_space(), issig();	/* plan 636 (D144): locore, bsd; no header declares them */
++extern void	psig(), addupc();			/* plan 636 (D144): bsd; no header declares them */
++extern int	slot_id, num_regions;		/* plan 636 (D144): num_regions also vm/pmap.h:210 */
++extern void	tlb_update_read(), tlb_update_write(), gdb_from_trap();	/* plan 636 (D144): no header declares them */
++extern void	thread_halt_self_with_continuation();	/* plan 636 (D144): kern/thread.c; no header declares it */
++extern int	copyoutstr(), fast_setjmp();		/* plan 636 (D144): locore bounds of the copyin/copyout recovery range */
++extern int	FAULT_ERROR, move_space_fault;		/* plan 636 (D144): locore labels, used by address */
++extern int	fault_error;				/* plan 636 (D144): locore data; no header declares it */
++extern vm_offset_t	probe_recover;			/* plan 636 (D144): locore data (NeXTMach next/trap.c:209 declares it in trap()) */
++int	do_writeback();
++void	bmap_parity_error();
++
++void	do_trace();
++void	unix_syscall_return();
++void	check_for_ast();
++int	move_space();
++
++/*
++ * Called from the trap handler when a processor trap occurs.
++ */
++/*ARGSUSED*/
++int
++trap (type, fcode, rw, faultaddr, regs)	/* plan 636 (D024, D144): NeXTMach next/trap.c:196-561, body from the original bytes 0x40996b8 */
++	int type, fcode;
++	int rw;				/* VM_PROT_{READ, READ|WRITE} */
++	vm_offset_t faultaddr;		/* fault address */
++	struct regs *regs;
++{
++	int		error;
++	struct regs *r = regs;
++	int i, save_error;
++	struct proc *p;
++	struct trap_type *tp;
++	struct timeval syst;
++	vm_offset_t	recover, va;
++	kern_return_t	fault_result = KERN_SUCCESS;
++	vm_map_t	map, second_map;
++	thread_t	thread;
++	struct pcb	*pcb;
++	int		rerun = 0;
++	int		fp_exc = 0;
++	int		exc_type, exc_code, exc_subcode;
++	struct regs	*saved_regs;
++	int		*ar0;
++
++	error = 0;
++	if ((thread = current_thread()) != THREAD_NULL)
++		pcb = thread->pcb;
++	else
++		pcb = 0;
++	exc_type = 0;
++	exc_code = 0;
++	exc_subcode = 0;
++	if (!USERMODE(r->r_sr)) {
++	/*
++	 *	Trap in system mode.  Only page-faults are valid,
++	 *	and then only in special circumstances.
++	 */
++	switch (type) {
++	case T_TRACE:	/* happens when trap instruction is traced */
++		if (pcb)
++			pcb->pcb_flags |= TRACE_PENDING;
++		return (0);
++	case T_MMU_INVALID:
++	case T_MMU_WRITE:
++	case T_MMU_LIMIT:
++		if (thread != THREAD_NULL) {
++			save_error = u.u_error;
++			u.u_error = 0;
++		}
++		/*
++		 *	Determine which map to "fault" on.
++		 *	We can get user space faults in kernel mode
++		 *	from copyin, etc.
++		 */
++		second_map = VM_MAP_NULL;
++		if ((fcode & ~(FC_SUPERI ^ FC_SUPERD)) == 0) {
++			/*
++			 *	User space:  just use the task's map.
++			 */
++			map = thread->task->map;
++		} else {
++			/*
++			 *	Kernel space:  use kernel_map, except...
++			 */
++			if ((thread != THREAD_NULL) &&
++			    thread->task->kernel_vm_space &&
++			    (thread->task->map != kernel_map)) {
++				map = thread->task->map;
++				second_map = kernel_map;
++			} else {
++				map = kernel_map;
++			}
++		}
++		va = faultaddr;
++		fault_result = vm_fault (map, trunc_page (va), rw, FALSE, &error);
++		if ((fault_result != KERN_SUCCESS) &&
++		    (second_map != VM_MAP_NULL))
++			fault_result = vm_fault (second_map, trunc_page (va), rw, FALSE, &error);
++		if (thread != THREAD_NULL) {
++			u.u_error = save_error;
++		}
++		if (fault_result == KERN_SUCCESS) {
++			/*
++			 *	Load new entry into ATC (TLB).
++			 */
++			if (rw == VM_PROT_READ)
++				tlb_update_read (fcode, faultaddr);
++			else
++				tlb_update_write (fcode, faultaddr);
++			if (cpu_type != MC68030) {
++				fault_result = do_writeback (r);
++				if (fault_result & 0x40000000)
++					goto buserr;
++				if (fault_result < 0)
++					goto Default;
++			}
++			return (0);
++		}
++		exc_type = EXC_BAD_ACCESS;
++		exc_code = fault_result;
++		exc_subcode = va;
++		/* fall through ... */
++	case T_BUSERR:
++	buserr:
++		if (bmap_chip && bmap_chip->bm_paren && bmap_chip->bm_parck)
++			bmap_parity_error (faultaddr);
++		/*
++		 *	Return control to the failure
++		 *	return address that has been saved in
++		 *	the thread table.
++		 */
++		if (thread != THREAD_NULL)
++			recover = thread->recover;
++		else
++			recover = 0;
++		/* catch faults in copyin/copyout */
++		if (recover == 0 &&
++		    (vm_offset_t)r->r_pc > (vm_offset_t)copyoutstr &&
++		    (vm_offset_t)r->r_pc < (vm_offset_t)fast_setjmp) {
++			recover = (vm_offset_t)&FAULT_ERROR;
++			if (error)
++				fault_error = error;
++			else
++				fault_error = EFAULT;
++		}
++		if (recover == 0 && probe_recover != 0) {
++			recover = probe_recover;
++		}
++		if (recover) {
++			r->r_pc = recover;
++			if (thread != THREAD_NULL &&
++			    thread->recover == (vm_offset_t)&move_space_fault) {
++				int	flag;
++
++				if (exc_type == 0) {
++					exc_type = EXC_BAD_ACCESS;
++					exc_code = KERN_INVALID_ADDRESS;
++					flag = 0x40000000;
++				} else
++					flag = 0x80000000;
++				r->r_dreg[0] = flag;
++				r->r_dreg[1] = exc_type;
++				r->r_areg[0] = exc_code;
++				r->r_areg[1] = exc_subcode;
++			}
++			return (exframesize[r->r_format]);
++		}
++		/* get around bug in old DMA chip -- retry failed accesses to P_MON */
++		if (dma_chip == 0x139 &&
++		    ((faultaddr >= slot_id + 0x200e000 && faultaddr < slot_id + 0x200e00c) ||
++		     (faultaddr >= slot_id + 0x200f000 && faultaddr < slot_id + 0x200f00c)))
++			return (0);
++		printf("unexpected kernel page fault failure\n");
++		/*
++		 * Unanticipated page-fault errors in kernel
++		 * should not happen.  Fall through ...
++		 */
++	default:
++	Default:
++		spl7();
++		gdb_from_trap (r, r->r_sr, r->r_pc, faultaddr);
++		printf ("trap: type 0x%x fcode %d rw %d faultaddr 0x%x\n",
++			type, fcode, rw, faultaddr);
++		printf ("trap: pc 0x%x sp 0x%x sr 0x%x\n",
++			r->r_pc, r->r_sp, r->r_sr);
++		printf ("trap: cpu %d th 0x%x proc 0x%x pid %d pcb 0x%x\n",
++			cpu_number(), thread, thread? (int)u.u_procp : -1,
++			thread? u.u_procp->p_pid : -1, pcb);
++		if (setjmp (&traceback_jb[traceback_recursive]) == 0)
++			traceback (r->r_areg[6]);
++		for (tp = trap_type; tp->tt_type; tp++)
++			if (type == tp->tt_type)
++				panic (tp->tt_name);
++		printf ("trap: stray vector #%d (0x%x)\n", type >> 2, type);
++		panic("trap");
++	}
++	}
++	/*
++	 *	Trap from user mode.
++	 */
++	p = u.u_procp;
++	if (p) {
++	    syst = u.u_ru.ru_stime;
++	    ar0 = u.u_ar0;
++	    u.u_ar0 = (int *)r;
++	}
++	saved_regs = pcb->saved_regs;
++	pcb->saved_regs = r;
++	switch (type) {
++	case T_MMU_INVALID:
++	case T_MMU_WRITE:
++	case T_MMU_LIMIT:
++		save_error = u.u_error;
++		u.u_error = 0;
++		map = thread->task->map;
++		va = faultaddr;
++		fault_result = vm_fault (map, trunc_page (va), rw, FALSE, 0);
++		u.u_error = save_error;
++		if (fault_result == KERN_SUCCESS) {
++			/*
++			 *	Load new entry into ATC (TLB).
++			 */
++			if (rw == VM_PROT_READ)
++				tlb_update_read (fcode, faultaddr);
++			else
++				tlb_update_write (fcode, faultaddr);
++			if (cpu_type != MC68030 && (fault_result = do_writeback (r)))
++				goto out;
++			goto restore;
++		}
++		if (cpu_type != MC68030) {
++			do_writeback (r);
++			if (rw != VM_PROT_READ)
++				goto out;
++		}
++		exc_type = EXC_BAD_ACCESS;
++		exc_code = fault_result;
++		exc_subcode = va;
++		break;
++	case T_BUSERR:		/* SIGSEGV */
++		if (bmap_chip && bmap_chip->bm_paren && bmap_chip->bm_parck)
++			bmap_parity_error (faultaddr);
++		/* get around bug in old DMA chip -- retry failed accesses to P_MON */
++		if (dma_chip == 0x139 &&
++		    faultaddr >= slot_id + 0x200e000 && faultaddr < slot_id + 0x200e00c)
++			goto restore;
++		exc_type = EXC_BAD_ACCESS;
++		exc_code = KERN_INVALID_ADDRESS;
++		break;
++	case T_ADDRERR:		/* SIGBUS */
++		exc_type = EXC_BAD_ACCESS;
++		exc_code = KERN_PROTECTION_FAILURE;	/* not really.. */
++		break;
++	case T_PRIVILEGE:	/* SIGILL */
++	case T_COPROC:
++	case T_ILLEGAL:
++	case T_BADTRAP:
++	default:
++		exc_type = EXC_BAD_INSTRUCTION;
++		exc_code = r->r_vector;		/* FIXME: make mach indep? */
++		break;
++	case T_EMU1010:		/* SIGEMT */
++	case T_EMU1111:
++		exc_type = EXC_EMULATION;
++		exc_code = r->r_vector;		/* FIXME: make mach indep? */
++		break;
++	case T_FPP:		/* SIGFPE */
++	case T_FPP + 0x04:	/* plan 636 (D144): the other 68882 vectors, from the original bytes */
++	case T_FPP + 0x08:
++	case T_FPP + 0x0c:
++	case T_FPP + 0x10:
++	case T_FPP + 0x14:
++	case T_FPP + 0x18:
++	case T_FP_UDT:
++		fp_exc = 1;
++		/* fall through */
++	case T_ZERODIV:
++	case T_CHECK:
++	case T_TRAPV:
++		exc_type = EXC_ARITHMETIC;
++		exc_code = r->r_vector;		/* FIXME: make mach indep? */
++		break;
++	case T_USER_BPT:	/* SIGTRAP */
++		exc_type = EXC_BREAKPOINT;
++		break;
++	case T_TRACE:
++		do_trace (r);
++		goto out;
++	}
++	/*
++	 *	Check for halt condition here, as both a trace trap and
++	 *	a mem violation is reported as a mem violation.
++	 */
++	while (thread_should_halt(thread))
++		thread_halt_self_with_continuation(0);
++	exception_with_continuation(exc_type, exc_code, exc_subcode, 0);
++out:
++	if (p) {
++	    if (CHECK_SIGNALS(p, thread, thread->_uthread)) {
++		if (fp_exc)
++		    ast_on(cpu_number(), AST_BLOCK);
++		else {
++		    if (p->p_cursig || issig(0))
++			psig();
++		    rerun = 1;
++		}
++	    }
++	}
++	if (thread_should_halt(thread)) {
++	    thread_halt_self_with_continuation(0);
++	    goto out;
++	}
++	if (USERMODE(r->r_sr)) {
++		/*
++		 *	If trapped from user mode, handle possible
++		 *	rescheduling.
++		 */
++		if (csw_needed(thread, current_processor())) {
++			u.u_ru.ru_nivcsw++;
++			thread_block();
++			if (p && CHECK_SIGNALS(p, thread, thread->_uthread))
++			{
++				/*
++				 * A signal's come it since we blocked,
++				 * go back and handle them again.
++				 */
++				goto out;
++			}
++		}
++	}
++	if (u.u_prof.pr_scale) {
++	    int	ticks;
++	    struct timeval *tv = &u.u_ru.ru_stime;
++
++	    ticks = ((tv->tv_sec - syst.tv_sec) * 1000 +
++			(tv->tv_usec - syst.tv_usec) / 1000) / (tick / 1000);
++	    if (ticks)
++		addupc(r->r_pc, &u.u_prof, ticks);
++	}
++restore:
++	pcb->saved_regs = saved_regs;
++	if (p)
++	    u.u_ar0 = ar0;
++	return (rerun ? exframesize[r->r_format] : 0);
++}
++
++#define INIT_VARS \
++	r = regs; \
++	thread = current_thread(); \
++	uthread = thread->_uthread; \
++	utask = thread->task->u_address; \
++	syscode = r->r_dreg[0]; \
++	if (syscode < 0) { \
++		callp = &sysent[63]; /* XXX 172 -> 63 */ \
++	} \
++	else { \
++		callp = (syscode >= nsysent) ? &sysent[63] : \
++				&sysent[syscode]; \
++	}
++
+ void
+-kernel_debug_trap(
+-	thread_saved_state_t	*saved_state
+-);
+-static
+-kern_return_t
+-kernel_pagefault(
+-	vm_offset_t		address,
+-	except_frame_t		*frame
+-);
+-static
+-boolean_t
+-kernel_try_recover(
+-	except_frame_t		*frame
+-);
+-static
++unix_syscall(regs)	/* plan 636 (D024, D144): NeXTMach next/trap.c:851-1065, body from the original bytes 0x409a044 */
++	struct regs *regs;
++{
++	struct regs *r;
++	caddr_t params;
++	struct sysent *callp;
++	int	error = 0;
++	struct uthread	*uthread;
++	struct utask	*utask;
++	struct proc *p;
++	int		s;
++	thread_t	thread;
++	int		opc;
++	struct timeval syst;
++	int		syscode;
++
++	INIT_VARS;
++	p = utask->uu_procp;
++	if (p == (struct proc *)0)
++	    exception(EXC_SOFTWARE, EXC_UNIX_BAD_SYSCALL, 0);
++	syst = utask->uu_ru.ru_stime;
++	uthread->uu_ar0 = &r->r_dreg[0];
++
++	thread->pcb->saved_regs = r;
++	uthread->uu_error = 0;
++
++	params = (caddr_t)&r->r_dreg[1];
++	if (callp == sysent) {		/* indir */
++		syscode = r->r_dreg[1];
++		params = (caddr_t)&r->r_dreg[2];
++		if (syscode < 0) {
++			callp = &sysent[63];
++		}
++		else {
++			callp = (syscode >= nsysent) ? &sysent[63] :
++					&sysent[syscode];
++		}
++	}
++
++	if (callp->sy_narg > 0)
++		bcopy(params,
++		      (caddr_t)uthread->uu_arg, callp->sy_narg*sizeof(int));
++	uthread->uu_r.r_val1 = 0;
++	if (setjmp(&uthread->uu_qsave)) {
++		INIT_VARS;
++		if (uthread->uu_error == 0 && uthread->uu_eosys != RESTARTSYS)
++			error = EINTR;
++	} else {
++		uthread->uu_eosys = NORMALRETURN;
++		uthread->uu_rpswhich = 0;	/* CS_RPAUSE */
++		uthread->uu_rpsfs = 0;		/* CS_RPAUSE */
++		(*(callp->sy_call))();
++		error = uthread->uu_error;
++	}
++
++	unix_syscall_return(error);
++}
++
+ void
+-kernel_recover_thread(
+-	thread_saved_state_t	*saved_state
+-);
+-
+-void
+-_i386_backtrace(
+-	void			*frame,
+-	int			nframes
+-);
+-
+-void	unix_syscall_return(int error);	/* plan 273 */
+-
+-void
+-user_trap(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    int				trapno;
+-    thread_t			thread;
+-    int				_exception, code = 0, subcode = 0;
+-    vm_offset_t			va;
+-    kern_return_t		result;
+-    int				uerror;
+-    struct proc			*p;
+-    struct timeval		syst;
+-    
+-    thread = current_thread();
+-    trapno = state->trapno;
+-    
+-    if (p = u.u_procp)		/* plan 273: 4.3BSD u area, as in NeXTMach next/trap.c */
+-	syst = u.u_ru.ru_stime;
+-    
+-    switch (trapno) {
+-
+-    case T_ZERO_DIVIDE:
+-	_exception	= EXC_ARITHMETIC;
+-	code		= EXC_I386_ZERO_DIVIDE;
+-	break;
+-	
+-    case T_DEBUG:
+-	_exception	= EXC_BREAKPOINT;
+-	code		= EXC_I386_DEBUG;
+-	break;
+-	
+-    case T_BREAKPOINT:
+-	_exception	= EXC_BREAKPOINT;
+-	code		= EXC_I386_BREAKPOINT;
+-	break;
+-	
+-    case T_OVERFLOW:
+-    	_exception	= EXC_SOFTWARE;
+-	code		= EXC_I386_OVERFLOW;
+-	break;
+-	
+-    case T_BOUNDS_CHECK:
+-	_exception	= EXC_SOFTWARE;
+-	code		= EXC_I386_BOUNDS_CHECK;
+-	break;
+-	
+-    case T_INVALID_OPCODE:
+-	_exception	= EXC_BAD_INSTRUCTION;
+-	code		= EXC_I386_INVALID_OPCODE;
+-	break;
+-	
+-    case T_NOEXTENSION:
+-    	fp_noextension(state);
+-	goto out;
+-	
+-    case T_SEGMENT_NOTPRESENT:
+-    	_exception	= EXC_BAD_INSTRUCTION;
+-	code		= EXC_I386_SEGMENT_NOTPRESENT;
+-	subcode		= err_to_error_code(frame->err);
+-	break;
+-	
+-    case T_STACK_EXCEPTION:
+-	_exception	= EXC_BAD_INSTRUCTION;
+-	code		= EXC_I386_STACK_EXCEPTION;
+-	subcode		= err_to_error_code(frame->err);
+-	break;
+-	
+-    case T_GENERAL_PROTECTION:
+-	_exception	= EXC_BAD_INSTRUCTION;
+-	code		= EXC_I386_GENERAL_PROTECTION;
+-	subcode		= err_to_error_code(frame->err);
+-	break;
+-	
+-    case T_PAGE_FAULT:
+-    	va = cr2();
+-	uerror = u.u_error;	/* plan 273: as NeXTMach next/trap.c:410 */
+-	u.u_error = 0;
+-	result = vm_fault(thread->task->map, trunc_page(va),
+-			    frame->err.pgfault.wrtflt?
+-				VM_PROT_READ | VM_PROT_WRITE:
+-				VM_PROT_READ,
+-			    FALSE, 0);
+-	u.u_error = uerror;	/* plan 273 */
+-	if (result == KERN_SUCCESS)
+-	    goto out;
+-
+-	_exception	= EXC_BAD_ACCESS;
+-	code		= result;
+-	subcode		= va;
+-	break;
+-    
+-    case T_EXTENSION_FAULT:
+-    	fp_extension_fault(state);
+-	goto out;
+-	
+-    case T_ALIGNMENT_CHECK:
+-	_exception	= EXC_SOFTWARE;
+-	code		= EXC_I386_ALIGNMENT_CHECK;
+-	break;
+-	
+-    default:
+-    	_exception	= EXC_BAD_INSTRUCTION;
+-	code		= trapno;
+-	break;
+-    }
+-
+-    exception(_exception, code, subcode);
+-    /* NOTREACHED */
+-			    
+-out:
+-    if (p && u.u_prof.pr_scale) {	/* plan 273: u_prof, as NeXTMach next/trap.c:550 */
+-	int		ticks;
+-	struct timeval	*tv = &u.u_ru.ru_stime;
+-			
+-	ticks = ((tv->tv_sec - syst.tv_sec) * 1000 +
+-		    (tv->tv_usec - syst.tv_usec) / 1000) / (tick / 1000);
+-	if (ticks)
+-	    addupc(frame->eip, &u.u_prof, ticks);
+-    }
+-
+-    thread_exception_return();
+-    /* NOTREACHED */
+-}
+-
+-void
+-kernel_trap(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    int				trapno;
+-    vm_offset_t			va;
+-    int				_exception, code = 0, subcode = 0;
+-    kern_return_t		result;
+-    int				uerror;
+-    
+-    trapno = state->trapno;
+-    
+-    switch (trapno) {
+-
+-    case T_NOEXTENSION:
+-	/* ignore exception */;
+-	return;
+-	
+-    case T_EXTENSION_FAULT:
+-	fp_kernel_extension_fault(state);
+-	return;
+-	
+-    case T_DEBUG:
+-    case T_BREAKPOINT:
+-	kernel_debug_trap(state);
+-	return;
+-	
+-    case T_PAGE_FAULT:
+-	va = cr2();
+-
+-	if (current_thread()) {	/* plan 273: save u.u_error, as NeXTMach next/trap.c:262 */
+-	    uerror = u.u_error;
+-	    u.u_error = 0;
+-	}
+-	
+-	if (va >= KERNEL_LINEAR_BASE)
+-	    result = kernel_pagefault(va, frame);
+-	else
+-	    result = vm_fault(current_task()->map, trunc_page(va),
+-				frame->err.pgfault.wrtflt?
+-				    VM_PROT_READ | VM_PROT_WRITE:
+-				    VM_PROT_READ,
+-				FALSE, 0);
+-
+-	if (current_thread())	/* plan 273 */
+-	    u.u_error = uerror;
+-
+-	if (result == KERN_SUCCESS)
+-	    return;
+-    
+-	if (kernel_try_recover(frame))
+-	    return;
+-	    
+-	if (va < KERNEL_LINEAR_BASE) {
+-	    /*
+-	     * This can happen on return to user mode
+-	     * when a private thread LDT contains
+-	     * unallocated virtual memory.  Send an
+-	     * exception RPC, after carefully piecing
+-	     * the thread state back together.
+-	     */
+-	    kernel_recover_thread(state);
+-
+-	    _exception		= EXC_BAD_ACCESS;
+-	    code		= result;
+-	    subcode		= va;
+-	    exception_from_kernel(_exception, code, subcode);
+-	    thread_exception_return();
+-	    /* NOTREACHED */
+-	}
+-	break;
+-	
+-    case T_GENERAL_PROTECTION:
+-    case T_SEGMENT_NOTPRESENT:
+-    case T_STACK_EXCEPTION:
+-	if (frame->err.normal.tbl == ERR_LDT) {
+-	    /*
+-	     * This can happen on return to user mode
+-	     * when one of the segment registers refers
+-	     * to a descriptor that is invalid for some
+-	     * reason or another.  Send an exception RPC,
+-	     * after carefully piecing the thread state
+-	     * back together.
+-	     */
+-	    kernel_recover_thread(state);
+-
+-	    _exception	= EXC_BAD_INSTRUCTION;
+-	    code	= trapno;
+-	    subcode	= err_to_error_code(frame->err);
+-	    exception_from_kernel(_exception, code, subcode);
+-	    thread_exception_return();
+-	    /* NOTREACHED */
+-	}
+-    	break;
+-	
+-    case T_INVALID_TSS:
+-    	if ((frame->eflags & EFL_NT) != 0) {
+-	    /*
+-	     * This can happen on return to user mode
+-	     * when a thread managed to set the NT flag
+-	     * and then entered the kernel through a call
+-	     * gate.  The fix is to redo the IRET, since
+-	     * the NT flag cannot be set at this point (we
+-	     * just came through a trap gate to get here).
+-	     */
+-	     kernel_recover_thread(state);
+-	     thread_exception_return();
+-	     /* NOTREACHED */
+-	}
+-	break;
+-    }
+-    
+-    if (kernel_try_recover(frame))
+-    	return;   
+-
+-    /* plan 273: debugger path unconditional (the original kernel has GDB 0, as if_venip shows, yet keeps this path) */
+-    DoAlert("Kernel Trap", "");	/* plan 273: DoAlert in the original */
+-    printf("unexpected kernel trap %x eip %x\n", trapno, frame->eip);
+-    switch (trapno) {
+-    
+-    case T_ZERO_DIVIDE:
+-	_exception = EXC_ARITHMETIC;
+-	code = EXC_I386_ZERO_DIVIDE;
+-	break;
+-    
+-    case T_OVERFLOW:
+-	_exception = EXC_SOFTWARE;
+-	code = EXC_I386_OVERFLOW;
+-	break;
+-    
+-    case T_BOUNDS_CHECK:
+-	_exception = EXC_ARITHMETIC;
+-	code = EXC_I386_BOUNDS_CHECK;
+-	break;
+-    
+-    case T_INVALID_OPCODE:
+-	_exception = EXC_BAD_INSTRUCTION;
+-	code = EXC_I386_INVALID_OPCODE;
+-	break;
+-    
+-    case T_SEGMENT_NOTPRESENT:
+-	_exception = EXC_BAD_INSTRUCTION;
+-	code = EXC_I386_SEGMENT_NOTPRESENT;
+-	subcode	= err_to_error_code(frame->err);
+-	break;
+-    
+-    case T_STACK_EXCEPTION:
+-	_exception = EXC_BAD_INSTRUCTION;
+-	code = EXC_I386_STACK_EXCEPTION;
+-	subcode	= err_to_error_code(frame->err);
+-	break;
+-    
+-    case T_GENERAL_PROTECTION:
+-	_exception = EXC_BAD_INSTRUCTION;
+-	code = EXC_I386_GENERAL_PROTECTION;
+-	subcode	= err_to_error_code(frame->err);
+-	break;
+-	
+-    case T_PAGE_FAULT:
+-    	_exception = EXC_BAD_ACCESS;
+-	code = result;
+-	subcode = va;
+-	break;
+-    
+-    case T_ALIGNMENT_CHECK:
+-	_exception = EXC_SOFTWARE;
+-	code = EXC_I386_ALIGNMENT_CHECK;
+-	break;
+-	
+-    default:
+-    	_exception = EXC_BAD_INSTRUCTION;
+-	code = trapno;
+-	break;
+-    }
+-
+-    _i386_backtrace(state->regs.ebp, N_BACKTRACE);
+-
+-    kdp_raise_exception(_exception, code, subcode, state);
+-    DoRestore();
+-    panic("continued after kernel trap");
+-}
+-
+-static
+-kern_return_t
+-kernel_pagefault(
+-    vm_offset_t			va,
+-    except_frame_t		*frame
+-)
+-{
+-    thread_t			thread = current_thread();
+-    vm_map_t			map;
+-    kern_return_t		result;
+-
+-    if (thread == THREAD_NULL)
+-	map = kernel_map;
+-    else {
+-	map = thread->task->map;
+-	if (vm_map_pmap(map) != kernel_pmap)
+-	    map = kernel_map;
+-    }
+-
+-    result = vm_fault(map, trunc_page(va - KERNEL_LINEAR_BASE),
+-			frame->err.pgfault.wrtflt?
+-			    VM_PROT_READ | VM_PROT_WRITE:
+-			    VM_PROT_READ,
+-			FALSE, 0);
+-
+-    return (result);
+-}
+-
+-static
+-void
+-kernel_debug_trap(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    int				code;
+-    dr6_t			debug = (dr6_t) { 0 };
+-    extern void			unix_syscall_(void),
+-    				mach_kernel_trap_(void),
+-				machdep_call_(void);
+-    
+-    // Clear debug status
+-    set_dr6(debug);
+-    
+-    if (state->trapno == T_DEBUG) {
+-	if (	frame->eip == (unsigned int)unix_syscall_	||
+-		frame->eip == (unsigned int)mach_kernel_trap_ 	||
+-		frame->eip == (unsigned int)machdep_call_	) {
+-	    current_thread()->pcb->trace = TRUE;
+-	    frame->eflags &= ~EFL_TF;
+-	    return;
+-	}
+-	code = EXC_I386_DEBUG;
+-    }
+-    else
+-    	code = EXC_I386_BREAKPOINT;
+-
+-    kdp_raise_exception(EXC_BREAKPOINT, code, 0, state);	/* plan 273: unconditional */
+-}
+-
+-static
+-boolean_t
+-kernel_try_recover(
+-    except_frame_t	*frame
+-)
+-{
+-    vm_offset_t		recover = current_thread()->recover;
+-				
+-    if (recover != 0) {
+-        frame->eip = recover;
+-	frame->cs = KCS_SEL;
+-	frame->eflags &= ~EFL_DF;
+-    }
+-    else
+-	return (FALSE);
+-	
+-    current_thread()->recover = 0;
+-    
+-    return (TRUE);
+-}
+-
+-static
+-void
+-kernel_recover_thread(
+-    thread_saved_state_t	*state
+-)
+-{
+-    thread_saved_state_t	*user_regs = USER_REGS(current_thread());
+-    vm_offset_t			stack_ptr = (vm_offset_t)&state->frame.esp;
+-
+-    user_regs->frame.err = state->frame.err;
+-    
+-    if (stack_ptr > (vm_offset_t)&user_regs->regs.ds) {
+-
+-    	user_regs->regs.eax = state->regs.eax;
+-    	user_regs->regs.ecx = state->regs.ecx;
+-    	user_regs->regs.edx = state->regs.edx;
+-    	user_regs->regs.ebx = state->regs.ebx;
+-    	user_regs->regs.ebp = state->regs.ebp;
+-    	user_regs->regs.esi = state->regs.esi;
+-    	user_regs->regs.edi = state->regs.edi;
+-	
+-	user_regs->regs.ds = state->regs.ds;
+-	user_regs->regs.es = state->regs.es;
+-    	user_regs->regs.fs = state->regs.fs;
+-    	user_regs->regs.gs = state->regs.gs;
+-    }
+-    else if (stack_ptr > (vm_offset_t)&user_regs->regs.es) {
+-	user_regs->regs.es = state->regs.es;
+-    	user_regs->regs.fs = state->regs.fs;
+-    	user_regs->regs.gs = state->regs.gs;
+-    }
+-    else if (stack_ptr > (vm_offset_t)&user_regs->regs.fs) {
+-    	user_regs->regs.fs = state->regs.fs;
+-    	user_regs->regs.gs = state->regs.gs;
+-    }
+-    else if (stack_ptr > (vm_offset_t)&user_regs->regs.gs)
+-    	user_regs->regs.gs = state->regs.gs;
+-}
+-
+-static inline
+-void
+-check_for_trace(
+-    thread_saved_state_t	*state
+-)
+-{
+-    thread_t			thread = current_thread();
+-    
+-    if (thread->pcb->trace) {
+-	thread->pcb->trace = FALSE;
+-	state->frame.eflags |= EFL_TF;
+-    }
+-}
+-
+-void
+-machdep_call(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    regs_t			*regs = &state->regs;
+-    int				trapno, nargs;
+-    machdep_call_t		*entry;
+-    
+-    check_for_trace(state);
+-    
+-    trapno = regs->eax;
+-    if (trapno < 0 || trapno >= machdep_call_count) {
+-	regs->eax = (unsigned int)kern_invalid();
+-
+-	thread_exception_return();
+-	/* NOTREACHED */
+-    }
+-    
+-    entry = &machdep_call_table[trapno];
+-    nargs = entry->nargs;
+-
+-    if (nargs > 0) {
+-	int			args[nargs];
+-
+-	if (copyin(frame->esp + sizeof (int),
+-		    args,
+-		    nargs * sizeof (int))) {
+-
+-	    regs->eax = KERN_INVALID_ADDRESS;
+-
+-	    thread_exception_return();
+-	    /* NOTREACHED */
+-	}
+-
+-	asm volatile("
+-	    1:
+-	    mov (%2),%%eax;
+-	    pushl %%eax;
+-	    sub $4,%2;
+-	    dec %1;
+-	    jne 1b;
+-	    mov %3,%%eax;
+-	    call *%%eax;
+-	    mov %%eax,%0"
+-	    
+-	    : "=r" (regs->eax)
+-	    : "r" (nargs),
+-		"r" (&args[nargs - 1]),
+-		"g" (entry->routine)
+-	    : "ax", "cx", "dx", "sp");
+-    }
+-    else
+-	regs->eax = (unsigned int)(*entry->routine)();
+-
+-    thread_exception_return();
+-    /* NOTREACHED */
+-}
+-
+-void
+-mach_kernel_trap(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    regs_t			*regs = &state->regs;
+-    int				trapno, nargs;
+-    mach_trap_t			*entry;
+-    
+-    check_for_trace(state);
+-    
+-    trapno = -(int)regs->eax;
+-    if (trapno < 0 || trapno >= mach_trap_count) {
+-	regs->eax = (unsigned int)kern_invalid();
+-
+-	thread_exception_return();
+-	/* NOTREACHED */
+-    }
+-    
+-    entry = &mach_trap_table[trapno];
+-    nargs = entry->mach_trap_arg_count;
+-
+-    if (nargs > 0) {
+-	int			args[nargs];
+-
+-	if (copyin(frame->esp + sizeof (int),
+-		    args,
+-		    nargs * sizeof (int))) {
+-
+-	    exception(EXC_BAD_ACCESS,
+-	    		KERN_INVALID_ADDRESS,
+-			frame->esp + sizeof (int));
+-	    /* NOTREACHED */
+-	}
+-
+-	asm volatile("
+-	    1:
+-	    mov (%2),%%eax;
+-	    pushl %%eax;
+-	    sub $4,%2;
+-	    dec %1;
+-	    jne 1b;
+-	    mov %3,%%eax;
+-	    call *%%eax;
+-	    mov %%eax,%0"
+-	    
+-	    : "=r" (regs->eax)
+-	    : "r" (nargs),
+-		"r" (&args[nargs - 1]),
+-		"g" (entry->mach_trap_function)
+-	    : "ax", "cx", "dx", "sp");
+-    }
+-    else
+-	regs->eax = (unsigned int)(*entry->mach_trap_function)();
+-
+-    thread_exception_return();
+-    /* NOTREACHED */
+-}
+-
+-/*
+- * plan 273: unix_syscall and unix_syscall_return use the 4.3BSD u area
+- * (setjmp(&uu_qsave), uu_eosys, CS_RPAUSE), as NeXTMach mk-108.1
+- * next/trap.c:865-1010; argument fetch as Darwin.
+- */
+-void
+-unix_syscall(
+-    thread_saved_state_t	*state
+-)
+-{
+-    except_frame_t		*frame = &state->frame;
+-    regs_t			*regs = &state->regs;
+-    thread_t			thread = current_thread();
+-    struct uthread		*uthread;
+-    struct sysent		*callp;
+-    struct proc			*p;
+-    struct timeval		syst;
+-    int				nargs, error = 0;
+-    unsigned short		code;
+-    caddr_t			params;
+-
+-    check_for_trace(state);
+-
+-    uthread = thread->_uthread;
+-    uthread->uu_ar0 = (int *)state;
+-    if (p = u.u_procp)
+-	syst = u.u_ru.ru_stime;
+-    u.u_error = 0;
+-
+-    code = regs->eax;
+-    params = (caddr_t)frame->esp + sizeof (int);
+-    callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
+-    if (callp == sysent) {
+-	code = fuword(params);
+-	params += sizeof (int);
+-	callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
+-    }
+-
+-    if ((nargs = (callp->sy_narg * sizeof (int))) &&
+-	    (error = copyin(params, (caddr_t)uthread->uu_arg, nargs)) != 0) {
+-	regs->eax = error;
+-	frame->eflags |= EFL_CF;
+-	thread_exception_return();
+-	/* NOTREACHED */
+-    }
+-
+-    uthread->uu_r.r_val1 = 0;
+-    uthread->uu_r.r_val2 = regs->edx;
+-
+-    if (setjmp(&uthread->uu_qsave)) {
+-	if (uthread->uu_error == 0 && uthread->uu_eosys != RESTARTSYS)
+-	    error = EINTR;
+-    } else {
+-	uthread->uu_eosys = NORMALRETURN;
+-	uthread->uu_rpswhich = 0;	/* CS_RPAUSE */
+-	uthread->uu_rpsfs = 0;		/* CS_RPAUSE */
+-	(*(callp->sy_call))();
+-	error = uthread->uu_error;
+-    }
+-
+-    unix_syscall_return(error);
+-}
+-
+-void
+-unix_syscall_return(
++unix_syscall_return(	/* plan 636 (D024, D144): i386 frame, body from the original bytes 0x409a216 */
+     int				error
+ )
+ {
+     thread_t			thread = current_thread();
+-    thread_saved_state_t	*state = USER_REGS(thread);
++    struct regs			*regs = USER_REGS(thread);
+     struct uthread		*uthread = thread->_uthread;
+ 
+ /* BEGIN CS_RPAUSE */
+@@ -732,11 +595,11 @@
+ 
+     case ENOSPC:
+ 	if (fspause(0))
+-	    u.u_eosys = RESTARTSYS;
++	    uthread->uu_eosys = RESTARTSYS;
+ 	error = uthread->uu_error;	/* can change in fspause */
+ 	break;
+ 
+-    case EAGAIN:	/* as in NeXTMach next/trap.c; these cases produce no code */
++    case EAGAIN:
+     case ENOMEM:
+     case ENFILE:
+ 	break;
+@@ -745,60 +608,76 @@
+ 
+     if (uthread->uu_eosys == NORMALRETURN) {
+ 	if (error) {
+-	    state->regs.eax = error;
+-	    state->frame.eflags |= EFL_CF;	/* carry bit */
++	    regs->r_dreg[0] = error;
++	    regs->r_sr |= SR_C;		/* carry bit */
+ 	} else {
+-	    state->regs.eax = uthread->uu_r.r_val1;
+-	    state->regs.edx = uthread->uu_r.r_val2;
+-	    state->frame.eflags &= ~EFL_CF;
++	    regs->r_dreg[0] = uthread->uu_r.r_val1;
++	    regs->r_dreg[1] = uthread->uu_r.r_val2;
++	    regs->r_sr &= ~SR_C;
+ 	}
+     }
+     else if (uthread->uu_eosys == RESTARTSYS)
+-	state->frame.eip -= 7;
++	regs->r_pc -= 2;
+ 
+     uthread->uu_error = error;
+ 
+-    thread_exception_return();
++    if (thread->pcb->pcb_flags & TRACE_PENDING)
++	do_trace(regs);
++
++    check_for_ast(regs);
++
++    _return_with_state(regs);
+     /* NOTREACHED */
+ }
+ 
+-
+-/*
+- * plan 273: check_for_ast uses the u area (SOWEUPC, u_prof, issig/psig,
+- * ru_nivcsw), as NeXTMach mk-108.1 next/trap.c:1101.
+- */
+ void
+-check_for_ast(
+-    thread_saved_state_t	*state
++do_trace(	/* plan 636 (D024, D144): from the original bytes 0x409a2dc */
++    struct regs		*regs
++)
++{
++    regs->r_sr &= ~(SR_TSINGLE|SR_TFLOW);
++    exception_with_continuation(EXC_BREAKPOINT, 0, 0, 0);
++}
++
++void
++check_for_ast(	/* plan 636 (D024, D144): i386 frame, body from the original bytes 0x409a2fe */
++    struct regs		*regs
+ )
+ {
+     thread_t			thread = current_thread();
+     struct proc			*p = u.u_procp;
++    struct regs			*saved_regs = thread->pcb->saved_regs;
++
++    thread->pcb->saved_regs = regs;
+ 
+     while (TRUE) {
+ 	ast_t			reasons;
+ 	int			mycpu = cpu_number();
+-
+-	cli();		/* disable interrupts */
+-
++	int			s;
++
++	s = splhigh();
+ 	reasons = ast_needed(mycpu);
++	splx(s);
+ 
+ 	if (p) {
+ 	    if ((p->p_flag & SOWEUPC) && u.u_prof.pr_scale) {
+-		addupc(state->frame.eip, &u.u_prof, 1);
++		addupc(regs->r_pc, &u.u_prof, 1);
+ 		p->p_flag &= ~SOWEUPC;
+ 	    }
+ 
+ 	    ast_off(mycpu, AST_UNIX);
++
++	    u.u_ar0 = (int *)regs;
+ 
+ 	    if (CHECK_SIGNALS(p, thread, thread->_uthread)) {
+ 		if (p->p_cursig || issig(0))
+ 		    psig();
+-		cli();
+ 	    }
+ 	}
+ 
++	s = splhigh();
+ 	ast_off(mycpu, reasons);
++	splx(s);
+ 
+ 	if (thread_should_halt(thread))
+ 	    thread_halt_self();
+@@ -806,52 +685,175 @@
+ 	if ((reasons & AST_BLOCK) ||
+ 		csw_needed(thread, current_processor())) {
+ 	    u.u_ru.ru_nivcsw++;
+-	    thread_block_with_continuation(thread_exception_return);
+-	}
+-	else
+-	if (reasons & AST_FP_EXTEN)
+-	    fp_ast(thread);
++	    thread_block();
++	}
+ 	else
+ 	    break;
+     }
++
++    thread->pcb->saved_regs = saved_regs;
+ }
+ 
+-typedef struct _cframe_t {
+-    struct _cframe_t	*prev;
+-    unsigned		caller;
+-    unsigned		args[0];
+-} cframe_t;
+-
+-
+-#define MAX_FRAME_DELTA		65536
+-
+-void
+-_i386_backtrace(
+-    void			*_frame,
+-    int				nframes
++traceback (fp)	/* plan 636 (D024, D144): NeXTMach next/trap.c:1113-1143, body from the original bytes 0x409a4aa */
++register struct frame *fp;
++{
++	struct frame *stackbot, *stacktop;
++
++	if (traceback_recursive) {
++		printf ("traceback: recursive call!\n");
++		longjmp (&traceback_jb[0]);
++	} else
++		traceback_recursive = 1;
++
++	printf ("traceback: fp 0x%x\n", fp);
++	stackbot = (struct frame *)interrupt_stack[cpu_number()];
++	stacktop = (struct frame *)((char *)stackbot + INTSTACK_SIZE);
++	while ( ((int)fp & 1) == 0
++		&& (  (fp >= stackbot
++		      && fp <= stacktop)
++		   || (fp >= (struct frame *)VM_MIN_KERNEL_ADDRESS
++		      && fp <= (struct frame *)VM_MAX_KERNEL_ADDRESS))
++	) {
++		printf ("called from pc 0x%08x fp 0x%08x 4-args"
++		    " %08x %08x %08x %08x\n", fp->f_pc, fp->f_fp,
++		    (&fp->f_arg)[0], (&fp->f_arg)[1], (&fp->f_arg)[2],
++		    (&fp->f_arg)[3]);
++		if (fp == fp->f_fp) {
++			printf ("LOOPING fp\n");
++			break;
++		}
++		fp = fp->f_fp;
++	}
++	printf ("last fp 0x%x\n", fp);
++	traceback_recursive = 0;
++}
++
++int
++do_writeback (r)	/* plan 636 (D024, D144): NeXTMach next/trap.c:1152-1258, body from the original bytes 0x409a574 */
++	struct regs *r;
++{
++	struct excp_access *e = (struct excp_access*) (r + 1);
++	u_int d;
++	int result = 0, rv;
++
++	if (e->e_wb1s.wbs_v && e->e_wb1s.wbs_tt == TT_NORM) {
++		d = e->e_wb1d_pd0;
++		switch (e->e_wb1s.wbs_size) {
++
++		case SIZE_BYTE:
++			switch (e->e_wb1a & 0x3) {
++			case 0:  d = d >> 24;  break;
++			case 1:  d = d >> 16;  break;
++			case 2:  d = d >> 8;  break;
++			case 3:  d = d;  break;
++			}
++			asm ("nop");	/* flush pipeline */
++			result = move_space (e->e_wb1a, e->e_wb1s.wbs_tm, SIZE_BYTE, d, r);
++			break;
++
++		case SIZE_WORD:
++			switch (e->e_wb1a & 0x3) {
++			case 0:  d = d >> 16;  break;
++			case 1:  d = d >> 8;  break;
++			case 2:  d = d;  break;
++			case 3:  d = (d << 8) | (d >> 24);  break;
++			}
++			asm ("nop");	/* flush pipeline */
++			result = move_space (e->e_wb1a, e->e_wb1s.wbs_tm, SIZE_WORD, d, r);
++			break;
++
++		case SIZE_LONG:
++			switch (e->e_wb1a & 0x3) {
++			case 0:  d = d;  break;
++			case 1:  d = (d << 8) | (d >> 24);  break;
++			case 2:  d = (d << 16) | (d >> 16);  break;
++			case 3:  d = (d << 24) | (d >> 8);  break;
++			}
++			asm ("nop");	/* flush pipeline */
++			result = move_space (e->e_wb1a, e->e_wb1s.wbs_tm, SIZE_LONG, d, r);
++			break;
++		}
++	}
++
++	/* writeback data #2 */
++	if (e->e_wb2s.wbs_v && e->e_wb2s.wbs_tt == TT_NORM) {
++		asm ("nop");	/* flush pipeline */
++		rv = move_space (e->e_wb2a, e->e_wb2s.wbs_tm,
++			e->e_wb2s.wbs_size, e->e_wb2d, r);
++		if (result == 0)
++			result = rv;
++	}
++
++	/* writeback data #3 */
++	if (e->e_wb3s.wbs_v && e->e_wb3s.wbs_tt == TT_NORM) {
++		asm ("nop");	/* flush pipeline */
++		rv = move_space (e->e_wb3a, e->e_wb3s.wbs_tm,
++			e->e_wb3s.wbs_size, e->e_wb3d, r);
++		if (result == 0)
++			result = rv;
++	}
++	return (result);
++}
++
++int
++move_space(	/* plan 636 (D024, D144): from the original bytes 0x409a6fa */
++    vm_offset_t		addr,
++    int			fc,
++    int			size,
++    int			data,
++    struct regs		*regs
+ )
+ {
+-	cframe_t	*frame = (cframe_t *)_frame;
+-	int i;
+-
+-	for (i=0; i<nframes; i++) {
+-	    if ((vm_offset_t)frame < VM_MIN_KERNEL_ADDRESS ||
+-	        (vm_offset_t)frame > VM_MAX_KERNEL_ADDRESS) {
+-		goto invalid;
+-	    }
+-	    safe_prf("frame %x called by %x ",
+-		frame, frame->caller);
+-	    safe_prf("args %x %x %x %x\n",
+-		frame->args[0], frame->args[1],
+-		frame->args[2], frame->args[3]);
+-	    if ((frame->prev < frame) ||	/* wrong direction */
+-	    	((frame->prev - frame) > MAX_FRAME_DELTA)) {
+-		goto invalid;
+-	    }
+-	    frame = frame->prev;
+-	}
+-	return;
+-invalid:
+-	safe_prf("invalid frame pointer %x\n",frame->prev);
++    int				pc = regs->r_pc;
++    thread_t			thread = current_thread();
++    struct proc			*p = u.u_procp;
++    int				*ar0;
++    struct regs			*saved_regs;
++    int				result;
++    int				_exception, code, subcode;
++
++    if (p) {
++	ar0 = u.u_ar0;
++	u.u_ar0 = (int *)regs;
++    }
++    saved_regs = thread->pcb->saved_regs;
++    thread->pcb->saved_regs = regs;
++
++    while (result = _move_space(addr, fc, size, data, &_exception, &code, &subcode)) {
++	if (fc & ~3)
++	    break;
++	exception_from_kernel(_exception, code, subcode);
++	if (thread_should_halt(current_thread()) || pc != regs->r_pc ||
++		(p && CHECK_SIGNALS(p, thread, thread->_uthread)))
++	    break;
++    }
++
++    thread->pcb->saved_regs = saved_regs;
++    if (p)
++	u.u_ar0 = ar0;
++
++    return (result);
+ }
+ 
++void
++bmap_parity_error(	/* plan 636 (D024, D144): from the original bytes 0x409a7ea */
++    int			addr
++)
++{
++    int			offset, bank, socket, membase;
++
++    bmap_chip->bm_paren = 1;
++    membase = slot_id;
++    membase += 0x04000000;
++    offset = addr - membase;
++    bank = offset / (((dma_chip == 0x139) ? ((machine_type == 3) ? 0x2000000 : 0x4000000) : 0x8000000) / num_regions);
++    if (machine_type == 3 && bank)
++	socket = 2;
++    else
++	socket = 4;
++    printf("parity error at address 0x%x, SIMM memory sockets %d%s%d\n",
++	addr, socket, (machine_type == 3) ? " and " : "-",
++	(machine_type == 3) ? socket + 1 : socket + 3);
++    panic("parity error");
++}
++

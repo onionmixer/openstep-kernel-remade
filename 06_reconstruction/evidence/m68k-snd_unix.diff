@@ -1,0 +1,40 @@
+--- NeXTMach mk-108.1/nextdev/snd_unix.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/snd_unix.c (plan 646, D148)
+@@ -11,6 +11,17 @@
+  *
+  */ 
+ 
++/*
++ * plan 646 (D148, D013, D024, D123): the 1997 m68k snd_unix.c.  NeXTMach
++ * mk-108.1 nextdev/snd_unix.c with the 1997 changes written from the
++ * original bytes [0x408833a, 0x408844e) (plan 645):
++ *	thread_start() takes two arguments (no THREAD_SYSTEMMODE)
++ *	port_deallocate() takes the IPC space: current_task()->itk_space and
++ *	snd_var.task_space (D123)
++ * The store snd_var.task_port = PORT_NULL is kept as NeXTMach has it; the
++ * compiler drops it, the bytes are the same without it (user decision D148).
++ * Lines marked plan 646 differ from NeXTMach.
++ */
+ #import <sound.h>
+ #if	NSOUND > 0
+ 
+@@ -46,7 +57,7 @@
+ 		snd_var.task_port = PORT_NULL;
+ 		(void) task_create(kernel_task, FALSE, &newtask);
+ 		(void) thread_create(newtask, &snd_th);
+-		thread_start(snd_th, snd_server_loop, THREAD_SYSTEMMODE);
++		thread_start(snd_th, snd_server_loop);	/* plan 646 (D024): 1997 two arguments, 0x4088380 */
+ 		(void) thread_resume(snd_th);
+ 		if (snd_var.task_port == PORT_NULL) {
+ 			assert_wait((int)&snd_var.task_port, FALSE);
+@@ -66,8 +77,8 @@
+ 
+ 	msg_send_from_kernel(&msg, MSG_OPTION_NONE, 0);
+ 
+-	port_deallocate(current_task(), *(port_t *)datap);
+-	port_deallocate(snd_var.task, lport);
++	port_deallocate(current_task()->itk_space, *(port_t *)datap);	/* plan 646 (D024): 1997 IPC space, 0x408841e */
++	port_deallocate(snd_var.task_space, lport);	/* plan 646 (D024, D123): 1997 IPC space, 0x4088438 */
+ 
+ 	return(0);
+ }

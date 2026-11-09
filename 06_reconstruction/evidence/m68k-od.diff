@@ -1,0 +1,725 @@
+--- NeXTMach mk-108.1/nextdev/od.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/od.c (plan 683, D159)
+@@ -76,6 +76,40 @@
+  *	Created.
+  *
+  */
++/*
++ * plan 683 (D159, D013, D024, D104, D110, D150, D154): the 1997 m68k od.c.
++ * NeXTMach mk-108.1 nextdev/od.c with the include lines in OPENSTEP paths and
++ * these changes (plans 681-682); the behavior is from the original bytes
++ * [0x4074a6c, 0x407aae0):
++ *	struct ctrl	652 B: no c_ccount, c_cmap (copy path), c_curpos_time
++ *	struct more_info	mi_reserved_cyls, mi_nsect only; no mi_* globals
++ *	odprobe		major numbers first; on machines other than NeXT_CUBE
++ *			and NeXT_X15 the od switch entries become nodev; wired
++ *			allocations; the MHZ_20 branch (1997 struct scr1 at
++ *			P_SCR1); no dc_dmaintr
++ *	odopen, odclose, od_setup, od_done	no copy buffer; odopen
++ *			restores the spl before ENXIO; od_setup pmap test with
++ *			B_KERNSPACE; od_done sets EIO for a failed request
++ *	od_fsm		no relative jump on OMD_SEEK; no CF_50_50_SEEK
++ *	od_issue_cmd	DMACHAN_INTR only
++ *	odintr		dma_cleanup() when DMA was needed; dma_abort(dcp); no
++ *			head position time
++ *	od_cmd		three-argument vsunlock()
++ *	odioctl, od_canon_remap, od_canon_label, od_make_free_pages,
++ *	od_buf_alloc	kmem_alloc_wired()
++ *	odminphys	64 KB, 8 KB with DMA chip 313 (as scminphys)
++ *	od_make_empty	-1 without an LRU drive; od_request_vol tests <= 0
++ *	od_dma_init	dma_list() without secsize and rathole_va
++ *	odsize		returns DEV_BSIZE (1024); oddump, odsize last
++ *	od_dmaintr, od_daemon	removed
++ * The configuration has NOD 2 and NOC 1 (06_reconstruction/
++ * config_options-m68k.tsv).  These spellings are this project's choices (the
++ * bytes do not show them; D159): c_cbuf as the unused field at offset 552,
++ * MHZ_20 defined here, the scr1 read without volatile, DEV_BSIZE defined
++ * here, odioctl's l without register, the vsunlock argument form.  The other
++ * functions are the NeXTMach text unchanged.  Lines marked plan 683 differ
++ * from NeXTMach.
++ */
+ 
+ #define	USE_RJ		0
+ #define	SCAN_RETRY	0
+@@ -139,20 +173,43 @@
+ #import <vm/vm_kern.h>
+ #import <vm/vm_page.h>
+ #import <next/autoconf.h>
+-#import <next/psl.h>
+-#import <next/cpu.h>
+-#import <next/pmap.h>
+-#import <next/printf.h>
++#import <m68k/psl.h>	/* plan 683 (D104): NeXTMach <next/psl.h> */
++#import <m68k/cpu.h>	/* plan 683 (D110): NeXTMach <next/cpu.h> */
++extern int slot_id, slot_id_bmap;	/* plan 683 (D110, D159) */
++#define	SLOT_ID		slot_id	/* plan 683 (D110, D159) */
++#define	P_DISK_CSR	(SLOT_ID+0x02000050)	/* plan 683 (D110, D159) */
++#define	P_SCR1		(SLOT_ID+0x0200c000)	/* plan 683 (D110, D159) */
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))	/* plan 683 (D110, D159) */
++#define	I_IPL(i)	(((i) >> 4) & 7)	/* plan 683 (D110, D159) */
++#define	I_DISK_DMA	I(6,4,25)	/* plan 683 (D110, D159) */
++#define	I_DISK		I(3,0,13)	/* plan 683 (D110, D159) */
++#import <vm/pmap.h>	/* plan 683 (D104): NeXTMach <next/pmap.h> */
++#import <kernserv/printf.h>	/* plan 683 (D104): NeXTMach <next/printf.h> */
+ #import <next/event_meter.h>
+-#import	<next/scr.h>
++/* plan 683 (D110, D159): NeXTMach <next/scr.h> names used here, the 1997 struct scr1 */
++#define	NeXT_CUBE	0	/* plan 683 (D110, D159) */
++#define	NeXT_X15	2	/* plan 683 (D110, D159) */
++#define	CPU_25MHz	2	/* plan 683 (D110, D159) */
++struct scr1 {	/* plan 683 (D110, D159): 1997 struct scr1 (07 m68k_init.c) */
++	u_int	s_slot_id : 4,	/* plan 683 (D110, D159) */
++		: 4,	/* plan 683 (D110, D159) */
++		s_dma_rev : 8,	/* plan 683 (D110, D159) */
++		s_cpu_rev : 8,	/* plan 683 (D110, D159) */
++		s_vmem_speed : 2,	/* plan 683 (D110, D159) */
++		s_mem_speed : 2,	/* plan 683 (D110, D159) */
++		s_reserved : 1,	/* plan 683 (D110, D159) */
++		s_cpu_clock : 3;	/* plan 683 (D110, D159) */
++};	/* plan 683 (D110, D159) */
++#define	MHZ_20	1	/* plan 683 (D024, D159) */
++#define	DEV_BSIZE	1024	/* plan 683 (D024, D159) */
+ #import <nextdev/odreg.h>
+ #import <nextdev/odvar.h>
+ #import <nextdev/dma.h>
+-#import <nextdev/disk.h>
++#import <dev/disk.h>	/* plan 683 (D104): NeXTMach <nextdev/disk.h> */
+ #import <nextdev/kmreg.h>
+ #import <nextdev/canon.h>
+-#import <nextdev/insertmsg.h>
+-#import <nextdev/voldev.h>
++#import <kernserv/insertmsg.h>	/* plan 683 (D104): NeXTMach <nextdev/insertmsg.h> */
++#import <dev/voldev.h>	/* plan 683 (D104): NeXTMach <nextdev/voldev.h> */
+ #import <machine/spl.h>
+ #import <nextdev/sf_access.h>
+ 
+@@ -192,7 +249,7 @@
+ /* autoconfiguration */
+ int	odprobe(), odslave(), odattach(), od_go(),
+ 	od_done(), odpoll(), odintr(), odopen();
+-void	od_dma_intr(), od_dmaintr();
++void	od_dma_intr();	/* plan 683 (D024, D159) */
+ struct	bus_ctrl *odcinfo[NOC];
+ struct	bus_device *oddinfo[NOD];
+ struct	bus_driver ocdriver = {
+@@ -216,22 +273,12 @@
+ struct	more_info {			/* info about media */
+ 	int	mi_reserved_cyls;	/* # cyls to skip at front of media */
+ 	short	mi_nsect;		/* # sectors / track */
+-	u_int	mi_rv_delay;		/* delay in reporting read/verify */
+-	u_int	mi_expire;		/* CUR_POS info expires after this time */
+-	u_int	mi_expire_sh;		/* expire time if also switching head */
+-	u_int	mi_expire_sh2;		/* expire time if also switching head */
+-	u_int	mi_expire_jmp;		/* expire time if jumping too far */
+-	u_int	mi_expire_max;
++	/* plan 683 (D024, D159): NeXTMach mi_rv_delay .. mi_expire_max removed */
+ } od_more_info[NDRIVES] = {
+-	{ 4149, 16, 2500, 2800, 2800, 2800, 4750, 7500 },
++	{ 4149, 16 },	/* plan 683 (D024, D159) */
+ };
+ 
+-u_int	mi_rv_delay = 2500;
+-u_int	mi_expire = 2800;
+-u_int	mi_expire_sh = 2800;
+-u_int	mi_expire_sh2 = 2800;
+-u_int	mi_expire_jmp = 4750;
+-u_int	mi_expire_max = 7500;
++/* plan 683 (D024, D159): NeXTMach mi_* globals removed */
+ 
+ /*
+  * Thectrl and drive structures mirror bus_ctrl and bus_device
+@@ -272,8 +319,7 @@
+ #endif	SCAN_RETRY
+ 	caddr_t	c_tbuf;			/* aligned pointer to test buffer */
+ 	caddr_t	c_cbuf;			/* aligned pointer to copy buffer */
+-	int	c_ccount;		/* copy count */
+-	struct	pmap *c_cmap;		/* copy map */
++	/* plan 683 (D024, D159): NeXTMach c_ccount, c_cmap removed */
+ 	short	c_track;		/* requested track */
+ 	short	c_seek_track;		/* seek track (may not be same) */
+ 	int	c_blkno;		/* block number to transfer */
+@@ -282,7 +328,7 @@
+ #if	SCAN_RETRY
+ 	int	c_err_pblk;		/* block in error during ECC scan */
+ #endif	SCAN_RETRY
+-	u_int	c_curpos_time;		/* time that CUR_POS was captured */
++	/* plan 683 (D024, D159): NeXTMach c_curpos_time removed */
+ 	int	c_nsect;		/* number of sectors to xfer */
+ 	int	c_save_nsect;		/* saved copy during ECC scan */
+ 	int	c_xfer;			/* number actually xfer'd */
+@@ -715,8 +761,20 @@
+ 	extern struct sf_access_head sf_access_head[];
+ #endif	OD_SFA_ARB
+ 
+-	if (machine_type != NeXT_CUBE && machine_type != NeXT_X15)
++	/* remember major device numbers */	/* plan 683 (D024, D159) */
++	for (bd = bdevsw; bd < &bdevsw[nblkdev]; bd++)	/* plan 683 (D024, D159) */
++		if (bd->d_open == odopen)	/* plan 683 (D024, D159) */
++			od_blk_major = bd - bdevsw;	/* plan 683 (D024, D159) */
++	for (cd = cdevsw; cd < &cdevsw[nchrdev]; cd++)	/* plan 683 (D024, D159) */
++		if (cd->d_open == odopen)	/* plan 683 (D024, D159) */
++			od_raw_major = cd - cdevsw;	/* plan 683 (D024, D159) */
++	if (machine_type != NeXT_CUBE && machine_type != NeXT_X15) {	/* plan 683 (D024, D159) */
++		bdevsw[od_blk_major].d_open = nodev;	/* plan 683 (D024, D159) */
++		bdevsw[od_blk_major].d_psize = nodev;	/* plan 683 (D024, D159) */
++		bdevsw[od_blk_major].d_dump = nodev;	/* plan 683 (D024, D159) */
++		cdevsw[od_raw_major].d_open = nodev;	/* plan 683 (D024, D159) */
+ 		return (0);
++	}	/* plan 683 (D024, D159) */
+ 
+ 	/* FIXME: not needed unless driver is loadable? */
+ 	bzero (c, sizeof (struct ctrl));	/* init ctrl info */
+@@ -729,9 +787,8 @@
+ 		return (0);
+ 	c->c_od_regs = r;
+ 	c->c_flags |= CF_ONLINE;
+-	od_readlabel = (struct disk_label*) kmem_alloc (kernel_map,
+-		sizeof (struct disk_label));
+-	if (od_readlabel == 0)
++	if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&od_readlabel,	/* plan 683 (D024, D159) */
++	    sizeof (struct disk_label)) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 		panic ("od: probe alloc");
+ 	od_rathole = ALIGN(caddr_t, kalloc (1024 + DMA_ENDALIGNMENT));
+ 
+@@ -742,19 +799,13 @@
+ 	r->r_disr = disr_shadow | OMD_CLR_INT;
+ 	r->r_dimr = 0;
+ 
+-	/* remember major device numbers */
+-	for (bd = bdevsw; bd < &bdevsw[nblkdev]; bd++)
+-		if (bd->d_open == odopen)
+-			od_blk_major = bd - bdevsw;
+-	for (cd = cdevsw; cd < &cdevsw[nchrdev]; cd++)
+-		if (cd->d_open == odopen)
+-			od_raw_major = cd - cdevsw;
++	/* plan 683 (D024, D159): NeXTMach major number loops moved to the top of odprobe */
+ 
+ 	/* set various flags */
+ 	r->r_cntrl1 = 0;		/* make sure formatter is idle */
+ #if	MHZ_20
+ 	c->c_initr = OMD_SEC_GREATER | OMD_ECC_STV_DIS;
+-	if (scr1->s_cpu_clock >= CPU_25MHz)
++	if (((struct scr1 *)P_SCR1)->s_cpu_clock >= CPU_25MHz)	/* plan 683 (D024, D159) */
+ 		c->c_initr |= OMD_25_MHZ;
+ #else	MHZ_20
+ 	c->c_initr = OMD_SEC_GREATER | OMD_ECC_STV_DIS | OMD_25_MHZ;
+@@ -769,7 +820,7 @@
+ 	/* initialize DMA */
+ 	dcp->dc_handler = od_dma_intr;
+ 	dcp->dc_hndlrpri = CALLOUT_PRI_SOFTINT1;
+-	dcp->dc_dmaintr = od_dmaintr;
++	/* plan 683 (D024, D159): NeXTMach dc_dmaintr removed */
+ 	dcp->dc_ddp = (struct dma_dev*) P_DISK_CSR;
+ 	dcp->dc_queue.dq_head = (struct dma_hdr *volatile) c->c_dma_list;
+ 	dma_init (dcp, I_DISK_DMA);
+@@ -784,8 +835,8 @@
+ 	install_scanned_intr (I_DISK, odintr, (void *)c);
+ 
+ 	/* allocate test buffer */
+-	c->c_tbuf = (caddr_t) kmem_alloc (kernel_map, MAXBUF);
+-	if (c->c_tbuf == 0)
++	if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&c->c_tbuf, MAXBUF)	/* plan 683 (D024, D159) */
++	    != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 		panic ("od: test alloc");
+ 
+ 	/* start watchdog timer */
+@@ -919,7 +970,7 @@
+ odopen (dev, flag)
+ 	dev_t dev;
+ {
+-	int vol = OD_VOL(dev), part = OD_PART(dev), s, raw, cbuf = 0;
++	int vol = OD_VOL(dev), part = OD_PART(dev), s, raw;	/* plan 683 (D024, D159) */
+ 	struct volume *v = &od_vol[vol];
+ 	register struct partition *p;
+ 	register struct ctrl *c = od_ctrl; /* FIXME: what about multiple ctrls? */
+@@ -945,7 +996,10 @@
+ 		}
+ 		dbug_vol (("open: make empty for v%d ", vol, 0, 0, 0, 0));
+ 		od_empty = vol + 1;
+-		od_make_empty();
++		if (od_make_empty() < 0) {	/* plan 683 (D024, D159) */
++			splx (s);	/* plan 683 (D024, D159) */
++			return (ENXIO);	/* plan 683 (D024, D159) */
++		}	/* plan 683 (D024, D159) */
+ 		if (od_requested == 0 && od_spinup == 0) {
+ 			dbug_vol (("odopen: WAKEUP req ", 0, 0, 0, 0, 0));
+ 			od_requested = 1;
+@@ -958,8 +1012,10 @@
+ 		}
+ 		while (od_empty > 0)
+ 			sleep (&od_empty, PRI_OMD);
+-		if (od_empty < 0)
++		if (od_empty < 0) {	/* plan 683 (D024, D159) */
++			splx (s);	/* plan 683 (D024, D159) */
+ 			return (ENXIO);
++		}	/* plan 683 (D024, D159) */
+ 	}
+ 	if ((flag & O_NDELAY) && (v->v_flags & VF_INSERTED) == 0) {
+ 		splx (s);
+@@ -968,13 +1024,7 @@
+ 	splx (s);
+ 	raw = cdevsw[major(dev)].d_open == odopen;
+ 
+-	/* allocate copy buffer on first raw open */
+-	if (c->c_cbuf == 0 && raw && (v->v_refcnt & (NPART - 1)) == 0) {
+-		c->c_cbuf = (caddr_t) kmem_alloc (kernel_map, MAXBUF);
+-		if (c->c_cbuf == 0)
+-			panic ("od: copy alloc");
+-		cbuf = 1;
+-	}
++	/* plan 683 (D024, D159): NeXTMach copy buffer allocation removed */
+ 	v->v_refcnt |= (raw? 1 : (1 << NPART)) << part;
+ 	v->v_owner = u.u_ruid;
+ 	dbug_vol (("open: v%d dev 0x%x refcnt 0x%x\n", vol, dev, v->v_refcnt,
+@@ -989,8 +1039,7 @@
+ 	if (cdevsw[major(dev)].d_open == odopen)
+ 		return (0);
+ 	v->v_refcnt &= ~((raw? 1 : (1 << NPART)) << part);
+-	if (cbuf)
+-		kmem_free (kernel_map, c->c_cbuf, MAXBUF);
++	/* plan 683 (D024, D159): NeXTMach copy buffer free removed */
+ 	dbug_vol (("open: ENXIO "));
+ 	return (ENXIO);
+ }
+@@ -1010,11 +1059,7 @@
+ 	raw = cdevsw[major(dev)].d_open == odopen;
+ 	v->v_refcnt &= ~((raw? 1 : (1 << NPART)) << part);
+ 
+-	/* deallocate copy buffer on last raw close */
+-	if (c->c_cbuf && raw && (v->v_refcnt & (NPART - 1)) == 0) {
+-		kmem_free (kernel_map, c->c_cbuf, MAXBUF);
+-		c->c_cbuf = 0;
+-	}
++	/* plan 683 (D024, D159): NeXTMach copy buffer free removed */
+ 	if (v->v_refcnt) {
+ 		dbug_vol (("odclose: v%d dev 0x%x refcnt 0x%x\n",
+ 			vol, dev, v->v_refcnt, 0, 0));
+@@ -1400,43 +1445,10 @@
+ 	p = &l->dl_part[OD_PART(bp->b_dev)];
+ 	c->c_blkno = bp->b_blkno;
+ 	c->c_va = bp->b_un.b_addr;
+-	c->c_pmap = bp->b_flags & B_PHYS?
++	c->c_pmap = (bp->b_flags & (B_PHYS|B_KERNSPACE)) == B_PHYS?	/* plan 683 (D024, D159) */
+ 		vm_map_pmap (bp->b_proc->task->map) : pmap_kernel();
+ 
+-	/* for now force alignment by copying to intermediate kernel buffer */
+-	if ((bp->b_flags & B_PHYS) && !DMA_ENDALIGNED(c->c_va)) {
+-		if (bp->b_bcount > MAXBUF)
+-			panic ("od: copy > MAXBUF");
+-		if (c->c_cbuf == 0)
+-			panic ("od: no copy buf");
+-		if ((bp->b_flags & B_READ) == 0) {
+-			int resid, len;
+-			caddr_t va, ka;
+-
+-			/*
+-			 * Use bcopy with a kernel buffer instead of
+-			 * copyin because user process may not be mapped in
+-			 * when od_setup is called at interrupt time.
+-			 */
+-			resid = bp->b_bcount;
+-			va = bp->b_un.b_addr;
+-			ka = c->c_cbuf;
+-			while (resid) {
+-				len = MIN(resid, NeXT_page_size -
+-					((int)va % NeXT_page_size));
+-				bcopy (pmap_resident_extract (c->c_pmap, va),
+-					ka, len);
+-				ka += len;
+-				va += len;
+-				resid -= len;
+-			}
+-		}
+-		c->c_va = c->c_cbuf;
+-		c->c_cmap = c->c_pmap;
+-		c->c_pmap = pmap_kernel();
+-		c->c_ccount = bp->b_bcount;
+-		bp->b_flags |= B_PHYS_COPY;
+-	}
++	/* plan 683 (D024, D159): NeXTMach copy to the intermediate buffer removed */
+ 	nblk = howmany (bp->b_bcount, l->dl_secsize);
+ 	if (bp == &v->v_cbuf) {
+ 		c->c_cmd = v->v_cmd;
+@@ -1515,34 +1527,12 @@
+ 	if (v->v_flags & VF_MISSING)
+ 		goto out;
+ 
+-	/* copy out intermediate buffer to user space */
+-	if ((bp->b_error == 0) && (bp->b_flags & B_PHYS_COPY)) {
+-		if (bp->b_flags & B_READ) {
+-			int resid, len;
+-			caddr_t va, ka;
+-
+-			/*
+-			 * Use bcopy with phys addr of user buffer instead of
+-			 * copyout because user process may not be mapped in
+-			 * at interrupt time.
+-			 */
+-			resid = c->c_ccount;
+-			va = bp->b_un.b_addr;
+-			ka = c->c_cbuf;
+-			while (resid) {
+-				len = MIN(resid, NeXT_page_size -
+-					((int)va % NeXT_page_size));
+-				bcopy (ka, pmap_resident_extract
+-					(c->c_cmap, va), len);
+-				ka += len;
+-				va += len;
+-				resid -= len;
+-			}
+-		}
+-		bp->b_flags &= ~B_PHYS_COPY;
+-	}
+-	if (!(bp->b_flags & B_DONE))
++	/* plan 683 (D024, D159): NeXTMach copy out of the intermediate buffer removed */
++	if (!(bp->b_flags & B_DONE)) {	/* plan 683 (D024, D159) */
++		if ((bp->b_flags & B_ERROR) && bp != &v->v_cbuf)	/* plan 683 (D024, D159) */
++			bp->b_error = EIO;	/* plan 683 (D024, D159) */
+ 		biodone (bp);
++	}	/* plan 683 (D024, D159) */
+ 	dbug_q (("done: DONE I/O v%d bf 0x%x bp 0x%x\n",
+ 		v - od_vol, bp->b_flags, bp, 0, 0));
+ out:
+@@ -1913,11 +1903,8 @@
+ 			while ((r->r_disr & OMD_CMD_COMPL) == 0)
+ 				;
+ 			track = (r->r_csr_h << 8) | r->r_csr_l;
+-			rel_trk = c->c_blkno - track;
+-			if (rel_trk <= 7 && rel_trk >= -8 && rel_trk) {
+-				c->c_dcmd = OMD1_RJ | (rel_trk & 0xf);
+-			} else
+-				c->c_dcmd = OMD1_SEK | (c->c_blkno & 0xfff);
++			/* plan 683 (D024, D159): NeXTMach relative jump removed */
++			c->c_dcmd = OMD1_SEK | (c->c_blkno & 0xfff);	/* plan 683 (D024, D159) */
+ 			c->c_flags |= CF_ISSUE_D_CMD;
+ 			od_issue_cmd (c, d);
+ 			c->c_next_fsm = FSM_WORKED;
+@@ -2093,9 +2080,7 @@
+ 		use_rj = 0;
+ 		if (1 || c->c_sect < spht || c->c_retry) {
+ 			track -= od_land;	/* land before first half-track */
+-			if (c->c_flags & CF_50_50_SEEK)
+-				use_rj = 1;
+-			c->c_flags &= ~CF_50_50_SEEK;
++			/* plan 683 (D024, D159): NeXTMach CF_50_50_SEEK test and clear removed */
+ 		} else {
+ 			c->c_flags |= CF_50_50_SEEK;
+ 		}
+@@ -2552,7 +2537,7 @@
+ 
+ 			/* od_dma_intr shouldn't be called unless reading */
+ 			dcp->dc_flags = (direction == DMACSR_READ)?
+-				DMACHAN_INTR | DMACHAN_DMAINTR : 0;
++				DMACHAN_INTR : 0;	/* plan 683 (D024, D159) */
+ 
+ 			/* start DMA */
+ 			dbug_dma (("DMA va 0x%x size %d ",
+@@ -2849,18 +2834,7 @@
+ 	}
+ }
+ 
+-void
+-od_dmaintr (c)
+-	register volatile struct ctrl *c;
+-{
+-	struct bus_ctrl *bc = odcinfo[c - od_ctrl];
+-	ds_queue_t *q = (ds_queue_t *)queue_first(&bc->bc_tab);
+-	register struct buf *bp = disksort_first(q);
+-	register struct drive *d;
+-
+-	d = &od_drive[od_vol[OD_VOL(bp->b_dev)].v_drive];
+-	c->c_curpos_time = event_get() - mi_rv_delay;
+-}
++/* plan 683 (D024, D159): NeXTMach od_dmaintr() removed */
+ #define DMA_INIT_ON_ERR	1
+ 
+ odintr (c)
+@@ -3024,6 +2998,8 @@
+ 	}
+ 
+ 	if ((c->c_flags & CF_ERR_VALID) == 0) {
++		if (c->c_flags & CF_NEED_DMA)	/* plan 683 (D024, D159) */
++			dma_cleanup (dcp, 0);	/* plan 683 (D024, D159) */
+ 
+ 		/* compute current position of the head */
+ 		if (l && (c->c_flags & CF_ISSUE_F_CMD)) {
+@@ -3031,11 +3007,7 @@
+ 			c->c_cur_sect = bno % l->dl_nsect;
+ 			c->c_cur_track = bno / l->dl_nsect;
+ 			c->c_flags |= CF_CUR_POS;
+-			if (c->c_fcmd & OMD_VERIFY)
+-				c->c_curpos_time = event_get() - mi_rv_delay;
+-			else
+-			if ((c->c_fcmd & (OMD_ECC_READ|OMD_READ)) == 0)
+-				c->c_curpos_time = event_get();
++			/* plan 683 (D024, D159): NeXTMach c_curpos_time updates removed */
+ 		}
+ 
+ 		/* undo read gate, remap sector & copy data */
+@@ -3181,7 +3153,7 @@
+ 
+ 	/* abort the DMA if there was an error */
+ 	if (c->c_flags & CF_NEED_DMA) {
+-		dma_abort (&c->c_dma_chan);
++		dma_abort (dcp);	/* plan 683 (D024, D159) */
+ 		c->c_flags &= ~(CF_DMAINT_EXP|CF_NEED_DMA);
+ 		/* 
+ 		 * DMA hang kludge. This is per Kevin Grundy's suggestion,
+@@ -3734,7 +3706,7 @@
+ 	v->v_flags &= ~(VF_SPEC_RETRY | VF_IGNORE_BITMAP);
+ 	splx (s);
+ 	if (dc && bufp) {
+-		vsunlock (bufp, bcount);
++		vsunlock (bufp, bcount, (bp->b_flags & B_READ) ? 1 : 0);	/* plan 683 (D024, D159) */
+ 		bp->b_proc->p_flag &= ~SPHYSIO;
+ 	}
+ out:
+@@ -4461,75 +4433,7 @@
+ 	return (0);
+ }
+ 
+-od_daemon() {
+-	register struct ctrl *c = od_ctrl; /* FIXME: what about multiple ctrls? */
+-	register struct drive *d;
+-	register struct disk_label *l;
+-	register int dev, be, max_be, off, shift;
+-	int be_len, bno, spbe, state;
+-	char dummy_buf[1];
+-	register char *buf = dummy_buf;
+-	register struct volume *v;
+-
+-#if	NeXT
+-	current_thread()->priority = 0;	/* low priority */
+-	current_thread()->sched_pri = 0;
+-#else	NeXT
+-	current_thread()->priority = 127;	/* low priority */
+-	current_thread()->sched_pri = 127;
+-#endif	NeXT
+-	for (d = od_drive; d < &od_drive[NOD]; d++) {
+-		v = d->d_vol;
+-		if ((d->d_flags & DF_ONLINE) == 0)
+-			continue;
+-		dev = OD_DEV(v - od_vol, 0);
+-		dbug_timer (("<daemon> dev 0x%x ", dev, 0, 0, 0, 0));
+-		l = v->v_label;
+-		if (l->dl_version == DL_V1)
+-			spbe = l->dl_nsect >> 1;
+-		else
+-			spbe = 1;
+-		be_len = spbe * l->dl_secsize;
+-		bno = 0;
+-		max_be = v->v_size / spbe;
+-		for (be = 0; be < max_be; be++) {
+-			if ((d->d_flags & DF_ONLINE) == 0)
+-				break;
+-
+-			/* stop when regular I/O requests appear */
+-			if (od_idle_time != KT_BUSY) {
+-				dbug_timer (("stop-daemon ", 0, 0, 0, 0, 0));
+-				od_idle_time = KT_SCHED;
+-				goto out;
+-			}
+-			off = be >> 4;
+-			shift = (be & 0xf) << 1;
+-			state = (v->v_bitmap[off] >> shift) & 3;
+-
+-			/* test erased blocks from a bulk erase also */
+-			if (state == SB_UNTESTED /* || state == SB_ERASED */) {
+-				dbug_timer (("D%d ", be, 0, 0, 0, 0));
+-
+-				/*
+-				 *  Note: force use of bitmap so testing
+-				 *  will occur.
+-				 */
+-				od_cmd (dev, OMD_TEST, bno, buf, be_len,
+-					0, 0, 0, 1, RTPRI_NONE);
+-
+-				/* let others run */
+-				if (csw_needed(current_thread(), current_processor()))
+-					thread_block();
+-			}
+-			bno += spbe;
+-		}
+-	}
+-	dbug_timer (("daemon-done ", 0, 0, 0, 0, 0));
+-	od_idle_time = KT_DONE;		/* no need to run again */
+-out:
+-	thread_terminate (current_thread());
+-	thread_halt_self();
+-}
++/* plan 683 (D024, D159): NeXTMach od_daemon() removed */
+ 
+ od_spiral()
+ {
+@@ -4568,7 +4472,7 @@
+ 	int vol = OD_VOL(dev), old_bitmap_bytes, new_bitmap_bytes;
+ 	register struct volume *v = &od_vol[vol];
+ 	register struct drive *d;
+-	register struct disk_label *l;
++	struct disk_label *l;	/* plan 683 (D024, D159) */
+ 	register caddr_t bp = *(caddr_t*) data;
+ 	register struct disk_req *dr;
+ 	struct dr_cmdmap *dc;
+@@ -4655,9 +4559,8 @@
+ 			return (u.u_error);
+ 		old_bitmap_bytes = v->v_bitmap_bytes;
+ 		if (l == 0) {
+-			l = (struct disk_label*) kmem_alloc (kernel_map,
+-				sizeof (struct disk_label));
+-			if (l == 0)
++			if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&l,	/* plan 683 (D024, D159) */
++			    sizeof (struct disk_label)) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 				panic ("od: SLABEL alloc");
+ 			old_tag = 0;
+ 		} else
+@@ -4669,8 +4572,8 @@
+ 		
+ 		/* create a bad block table if we need one */
+ 		if (v->v_bad_block == 0) {
+-			if ((v->v_bad_block = (struct bad_block*) kmem_alloc
+-			    (kernel_map, sizeof (struct bad_block))) == 0)
++			if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&v->v_bad_block,	/* plan 683 (D024, D159) */
++			    sizeof (struct bad_block)) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 				return (ENOMEM);
+ 			bzero (v->v_bad_block, sizeof (struct bad_block));
+ 		}
+@@ -4688,8 +4591,8 @@
+ 				kmem_free (kernel_map, v->v_bitmap,
+ 					MAX_BITMAP);
+ 			v->v_bitmap_bytes = new_bitmap_bytes;
+-			if ((v->v_bitmap = (int*) kmem_alloc (kernel_map,
+-			    MAX_BITMAP)) == 0)
++			if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&v->v_bitmap,	/* plan 683 (D024, D159) */
++			    MAX_BITMAP) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 				return (ENOMEM);
+ 
+ 			/* set all entires to SB_UNTESTED */
+@@ -4817,7 +4720,7 @@
+ 
+ 	save_filter = od_errmsg_filter;
+ 	od_errmsg_filter = EF_ALWAYS;
+-	cd = (struct canon_defect*) kmem_alloc (kernel_map, CANON_TABSIZE);
++	kmem_alloc_wired (kernel_map, (vm_offset_t *)&cd, CANON_TABSIZE);	/* plan 683 (D024, D159) */
+ 	bno = (DEFECT_TRACK - v->v_mi->mi_reserved_cyls) * v->v_mi->mi_nsect;
+ 	if (od_cmd (dev, OMD_READ, bno, cd, CANON_TABSIZE,
+ 	    0, 0, 0, 0, RTPRI_NONE))
+@@ -4887,7 +4790,7 @@
+ 
+ 	save_filter = od_errmsg_filter;
+ 	od_errmsg_filter = EF_ALWAYS;
+-	cc = (struct canon_control*) kmem_alloc (kernel_map, CANON_TABSIZE);
++	kmem_alloc_wired (kernel_map, (vm_offset_t *)&cc, CANON_TABSIZE);	/* plan 683 (D024, D159) */
+ 	bno = (CONTROL_TRACK - v->v_mi->mi_reserved_cyls) * v->v_mi->mi_nsect;
+ 	if (od_cmd (dev, OMD_READ, bno, cc, CANON_TABSIZE,
+ 	    0, 0, 0, 0, RTPRI_NONE))
+@@ -4997,7 +4900,7 @@
+ 
+ 	dbug_lock (("mfp: vmpf %d BEFORE\n", vm_page_free_count));
+ 	size = vm_page_free_target * 2 * PAGE_SIZE;
+-	va = kmem_alloc (kernel_map, size);
++	kmem_alloc_wired (kernel_map, (vm_offset_t *)&va, size);	/* plan 683 (D024, D159) */
+ 	kmem_free (kernel_map, va, size);
+ 	dbug_lock (("mfp: vmpf %d AFTER\n", vm_page_free_count));
+ }
+@@ -5013,16 +4916,12 @@
+ odminphys (bp)
+ 	register struct buf *bp;
+ {
+-	extern int maxphys;
+-	
+-	/* limit the size of unaligned transfers to MAXBUF */
+-	if (!DMA_ENDALIGNED(bp->b_un.b_addr) && bp->b_bcount > MAXBUF)
+-		bp->b_bcount = MAXBUF;
+-
+-	/* limit the size of the transfer due to DMA bug */
+-	if (bp->b_bcount > maxphys)
+-		bp->b_bcount = maxphys;
+-	minphys (bp);
++	int maxlen = 0x10000;	/* plan 683 (D024, D159) */
++
++	if (dma_chip == 313)	/* plan 683 (D024, D159) */
++		maxlen = 8192;	/* plan 683 (D024, D159) */
++	if (bp->b_bcount > maxlen)	/* plan 683 (D024, D159) */
++		bp->b_bcount = maxlen;	/* plan 683 (D024, D159) */
+ }
+ 
+ /* note: assumes sector size <= physical page size */
+@@ -5039,7 +4938,7 @@
+ 		bcount = l->dl_secsize;
+ 		while (bcount) {
+ 			pa = pmap_resident_extract (c->c_pmap, va);
+-			rem = NeXT_page_size - (va & NeXT_page_mask);
++			rem = m68k_page_size - (va & m68k_page_mask);	/* plan 683 (D104): NeXTMach NeXT_page_size, NeXT_page_mask */
+ 			if (rem > bcount)
+ 				rem = bcount;
+ 			bzero (pa, rem);
+@@ -5049,22 +4948,18 @@
+ 	}
+ }
+ 
+-oddump() {}
+-
+-odsize() {}
++/* plan 683 (D024, D159): NeXTMach oddump() and odsize() moved to the end of the file */
+ 
+ od_buf_alloc()
+ {
+-	od_label = (struct disk_label*) kmem_alloc (kernel_map,
+-		sizeof (struct disk_label));
+-	if (od_label == 0)
++	if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&od_label,	/* plan 683 (D024, D159) */
++	    sizeof (struct disk_label)) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 		panic ("od: label alloc");
+-	od_bad_block = (struct bad_block*) kmem_alloc (kernel_map,
+-		sizeof (struct bad_block));
+-	if (od_bad_block == 0)
++	if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&od_bad_block,	/* plan 683 (D024, D159) */
++	    sizeof (struct bad_block)) != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 		panic ("od: bad_block alloc");
+-	od_bitmap = (int*) kmem_alloc (kernel_map, MAX_BITMAP);
+-	if (od_bitmap == 0)
++	if (kmem_alloc_wired (kernel_map, (vm_offset_t *)&od_bitmap, MAX_BITMAP)	/* plan 683 (D024, D159) */
++	    != KERN_SUCCESS)	/* plan 683 (D024, D159) */
+ 		panic ("od: bitmap alloc");
+ }
+ 
+@@ -5121,7 +5016,7 @@
+ 	if (d == &od_drive[NOD]) {
+ 		if (lru == 0) {
+ 			dbug_vol (("make empty: NO lru? ", 0, 0, 0, 0, 0));
+-			return (0);
++			return (-1);	/* plan 683 (D024, D159) */
+ 		}
+ 		if (lru->d_flags & DF_EJECTING) {
+ 			dbug_vol (("make empty: already ejecting! ",
+@@ -5257,7 +5152,7 @@
+ 			v - od_vol, 0, 0, 0, 0));	
+ 	}
+ 	dbug_vol (("req_vol: make_empty IN ", 0, 0, 0, 0, 0));
+-	if (od_make_empty() == 0) {
++	if (od_make_empty() <= 0) {	/* plan 683 (D024, D159) */
+ 		dbug_vol (("req_vol: make_empty == 0 OUT ",
+ 			0, 0, 0, 0, 0));
+ 		goto out;
+@@ -5366,9 +5261,7 @@
+ 		DMACSR_READ,
+ 		NDMAHDR, 
+ 		0, 		/* before ?? */
+-		0,		/* after  ?? */
+-		0,		/* secsize */
+-		0);		/* rathole_va */
++		0);		/* after  ?? */	/* plan 683 (D024, D159) */
+ 	dma_start(&ctrl->c_dma_chan, 
+ 		ctrl->c_dma_list, 
+ 		DMACSR_READ);
+@@ -5377,6 +5270,10 @@
+ }
+ #endif	DMA_INIT_ON_ERR
+ 
++oddump() {}	/* plan 683 (D024, D159) */
++
++odsize() { return (DEV_BSIZE); }	/* plan 683 (D024, D159) */
++
+ #endif	NOD
+ 
+ 

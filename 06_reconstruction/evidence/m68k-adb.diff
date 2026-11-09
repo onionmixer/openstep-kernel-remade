@@ -1,0 +1,144 @@
+--- diagnostic N2 (plan 765; scratch/p765/adb_N2_diag.c sha256 3cbbb222...)
++++ 07_kernel/src/machdep/m68k/adb.c
+@@ -1,9 +1,27 @@
+-/* plan 765 N1 diagnostic: m68k ADB driver written from the original bytes [0x4064216, 0x4065bbc) */
++/*
++ * plan 766 (D024, D027, D030, D173): the 1997 m68k ADB driver (adb.c).
++ * Written from the original bytes [0x4064216, 0x4065bbc) of the OPENSTEP 4.2 m68k
++ * mach_kernel (21 functions, 6566 bytes; __cstring 286, __data 48, __const 128, static
++ * bss 192 bytes estimated); the diagnostic is plan 765.  There is no reference text for
++ * this file: NeXTMach mk-108.1 and Mach4 have no ADB code and Darwin 0.1 has an ADB
++ * header (bsd/dev/adb.h, see adb.h) and PPC ADB sources that are not the m68k driver
++ * (they were neither imported nor compared).  The 18 external functions are original
++ * symbols; adb_intr, adb_reset_ctl and adb_command are static in the original, and the
++ * static data names, struct adb_dev, struct adb_kqent, struct adb_bits, ADB_KEY_TRANSLATE
++ * and adb_restart_request are given by this project (D173; the bytes do not decide them).
++ * The forms below give the original bytes and are not evidence of the original source:
++ * block-local volatile pointers for the controller data registers, the rotated goto loop,
++ * the post-increment inside the key queue index, the do { } while (0) around the command
++ * and delay calls, the scalar modifier byte, the 3 byte array under a bit field overlay,
++ * the key code table and the one pointer that reaches the event bytes.  The functions are
++ * in the address order of the original.
++ */
++
+ #import <sys/types.h>
+ #import <sys/param.h>
+ #import <mach/boolean.h>
+ #import <m68k/cpu.h>
+-#import <nextdev/adb.h>
++#import <machdep/m68k/adb.h>
+ #import <mon/global.h>
+ #import <nextdev/kmreg.h>
+ #import <bsd/dev/ev_types.h>
+@@ -13,33 +31,38 @@
+ extern void delay();
+ extern void callout_dispatch();
+ 
+-#define ADB_BASE	(slot_id + 0x02208000)
+-#define ADB_CSR		((volatile int *)(slot_id + 0x02208000))	/* status, write 1 bits clears */
+-#define ADB_CTL1	((volatile int *)(slot_id + 0x02208020))
+-#define ADB_CTL0	((volatile int *)(slot_id + 0x02208018))
+-
++/* hardware: the ADB controller registers used are at slot_id + 0x02208000 (csr 0, 8, 0x18, ctl 0x20, status 0x28, command 0x30, length 0x38, data 0x80 and 0x88) */
++/* static data and functions have no symbol in the original: the names below are this project's (provisional, D173) */
+ int ADB_present = 0;
++/* address of the device kept as the default poll target (the mouse, 3, if one answers) */
+ static int adb_present_addr = 0;
++/* address polled by the next talk register 0 command */
+ static int adb_cur_addr = 0;
+ extern void adb_null(), adb_keyboard(), adb_mouse();
+ static void (*adb_handler[8])() = { adb_null, adb_null, adb_keyboard, adb_mouse, adb_null, adb_null, adb_null, adb_null };
+ static int adb_polling_off = 0;
+ static int adb_wd_count;
++/* one record per address 1..7 found by adb_initialize; next is the ring of found devices (10 bytes) */
+ struct adb_dev {
+ 	int addr;
+ 	unsigned char type;
+ 	int next;
+ };
+ static struct adb_dev adb_dev[16];
++/* not referenced; fills the 4 bytes the original has between the device table and the key queue */
+ static int adb_dev_pad;
++/* key queue: two 16 bit entries (up flag, 7 bit ADB key code) filled by adb_keyboard / adb_check_keyboard */
+ struct adb_kqent {
+ 	unsigned short up:1, code:7, :8;
+ };
+ static struct adb_kqent adb_kq[2];
+ static int adb_kq_head;
+ static int adb_kq_tail;
++/* flag bits (meanings provisional): 0 keyboard found, 1 keyboard accepted handler 3 (LED register 2), 16 mouse found, 17 mouse accepted the Logitech setup, 19 mouse answered the extended protocol */
+ static int adb_flags;
++/* modifier key state (names from the ADB key codes 54/125, 58/124, 56/123, 55; provisional): 0x80 and 0x40 control, 0x20 and 0x10 alt, 8 and 4 shift, 2 command */
+ static unsigned char adb_kbs0;
++/* byte 0: 0x80 caps lock state, 0x40 caps lock LED (struct adb_bits overlay at an odd address; the compiler ignores packed) */
+ static unsigned char adb_led[3];
+ struct adb_bits {
+ 	unsigned char caps:1, led:1;
+@@ -50,6 +73,7 @@
+ static struct keyboard adb_kbd_event;
+ extern void uninstall_scanned_intr(), ev_m_intr(), ev_k_intr(), mini_mon(), km_reset(), AllKeysUp();
+ extern int eventsOpen;
++/* ADB key code -> NeXT key code (bytes of the original __const table; entries are masked with 0x7f) */
+ static const unsigned char adb_keymap[128] = {
+ 	0x39, 0x3a, 0x3b, 0x3c, 0x40, 0x3d, 0x31, 0x32, 0x33, 0x34, 0x0a, 0x35, 0x42, 0x43, 0x44, 0x45,
+ 	0x47, 0x48, 0x4a, 0x4b, 0x4c, 0x4d, 0x4f, 0x50, 0x1c, 0x1f, 0x4e, 0x1d, 0x1e, 0x20, 0x04, 0x07,
+@@ -63,13 +87,12 @@
+ extern struct mon_global *mon_global;
+ static int adb_intr();
+ extern void adb_keybd_init(), adb_mouse_init();
++extern void adb_talk(), adb_listen();
++static void adb_reset_ctl();
+ static void adb_command();
+ void adb_watchdog();
+ 
+-
+-
+-
+-
++/* translate one queued key event into adb_kbd_event; the original has this code once in adb_keyboard and twice in adb_check_keyboard */
+ #define ADB_KEY_TRANSLATE() \
+ 	e = adb_kq[adb_kq_head++ & 1]; \
+ 	kp = &adb_kbd_event; \
+@@ -165,6 +188,7 @@
+ 		} \
+ 	}
+ 
++/* probe addresses 1..7 (talk register 3), set service request, run the keyboard / mouse initializers, install adb_intr */
+ void
+ adb_initialize()
+ {
+@@ -242,6 +266,7 @@
+ 	adb_command(cmd, 0, 0, 0);
+ }
+ 
++/* callout handler: reads the controller status and dispatches the received data to adb_handler[address] */
+ static int
+ adb_intr()
+ {
+@@ -545,6 +570,7 @@
+ 	}
+ }
+ 
++/* a static inline function compiled before adb_keyboard puts its two strings first in __cstring and keeps the watchdog calls uncached, as the original bytes show */
+ static inline void
+ adb_restart_request()
+ {
+--- diagnostic header (plan 765; sha256 acd5fadf...)
++++ 07_kernel/src/machdep/m68k/adb.h
+@@ -1,4 +1,15 @@
+-/* plan 765 diagnostic copy of the ADB types (shape of Darwin 0.1 bsd/dev/adb.h; the cmd union is 16 bits wide as the original bytes show) */
++/*
++ * plan 766 (D024, D032, D173): ADB types of the 1997 m68k kernel (adb.h).
++ * nearly the same as Darwin 0.1 kernel/bsd/dev/adb.h (kernel-1.tar.gz): the union views
++ * (adb_data_t: longword, byte, reg3, m_reg0, logitech_s13_m_reg0, k_reg0, k_reg2,
++ * logitech_s13_m_reg1) and the ADB_ADDR_* values are Darwin's text; this file is project
++ * authored without Darwin's notice (D030, D032; license judgement is the user's).
++ * Differences: no KERNEL_PRIVATE condition, no notices or comments, no declarations, no
++ * import of ev_types.h, adb_cmd_t.cmd has a pad byte (the original passes adb_cmd_t by
++ * value in a 2 byte slot: movew %d1,%sp@-; subqw #2,%sp), the ADB_reset/flush/listen/talk
++ * values are defined here and not inside the structure.  Which views the original source
++ * had is not known; these are the views the bytes of adb.c use.
++ */
+ #ifndef _NEXTDEV_ADB_H_
+ #define _NEXTDEV_ADB_H_
+ typedef union {

@@ -1,0 +1,1731 @@
+--- NeXTMach mk-108.1 nextdev/video.c
++++ 07_kernel/src/machdep/m68k/video.c
+@@ -82,0 +83,31 @@
++/*
++ * plan 761 (D171, D013, D024, D104): the 1997 m68k video.c.
++ * NeXTMach mk-108.1 nextdev/video.c with its notice, HISTORY and description kept
++ * (the lines above), changed to what the original bytes [0x4089786, 0x408b300)
++ * show (plans 760-761); the original has three built-in frame buffer entries
++ * (video_dev[]: the 2 bit MegaPixel BW2 and two 16 bit color variants that share
++ * everything but present() and config()) and the new screen registration of the
++ * event system (ev_register_screen with four vectors and a driver-private shared
++ * memory area, msp).
++ *	functions that differ from NeXTMach: vidopen, vidioctl, vidProbeForFB, vidStopAnimation, vidSuspendAnimation, vidResumeAnimation, vidSetBrightness, vidInterruptEnable, vid_BW2_present, vid_BW2_config, vid_BW2_init, vid_BW2_MapFB, vid_BW2_DisplayCursor, vid_BW2_RemoveCursor, vid_BW2_SetBrightness, vid_BW2_installIntr, vid_BW2_intr, vid_BW2_SuspendAnim, vid_BW2_ResumeAnim, vid_C16_init, vid_C16_MapFB, vid_C16_DisplayCursor, vid_C16_RemoveCursor, vid_C16_SetBrightness, vid_C16_installIntr, vid_C16_intr, vid_C16_SuspendAnim, vid_C16_ResumeAnim
++ *	new functions: vidGetFBAddrAndSize, vidApplyBrightness, vid_BW2_UnMapFB, vid_C16_present2, vid_C16_present1, vid_C16_config2, vid_C16_config1, vid_C16_UnMapFB, vid_ev_hide, vid_ev_show, vid_ev_move, vid_ev_level, vidRegisterScreen
++ *	NeXTMach functions that are not in the 1997 unit: vidConfigureFB, vidMoveCursor, vid_probe_faulted, vid_early_probe, vid_BW2_SetCursor, vid_C16_present, vid_C16_config, vid_C16_SetCursor
++ * The cursor hide/show/shield logic of vid_ev_hide, vid_ev_show and vid_ev_move is
++ * that of NeXTMach nextdev/ev_cursor.c (SysHideCursor, SysShowCursor, CheckShield)
++ * moved into this driver; the device cursor drawing functions are NeXTMach's
++ * vid_*_DisplayCursor and vid_*_RemoveCursor rewritten for the msp structure of
++ * <dev/m68k/video.h>.  The original has no symbols for its static functions and
++ * static data: the NeXTMach statics keep their names; the new functions and
++ * variables, the ioctls DKIOCGGAMMA, DKIOCSGAMMA and DKIOCRGAMMA and the local
++ * names in the marked regions are given by this project (D171; the bytes do not
++ * decide them).  The loops written for (i = n; i--; ), the skip written with
++ * (char *)vramPtr + vramRow + vramRow, the zero initial values of the flags
++ * doLeft and doRight and the one copy of dma_chip in chip are forms that give the
++ * original bytes, not evidence of the original source.  The functions are in the
++ * address order of the original.  Lines marked plan 761, and the lines of a plan
++ * 761 BEGIN/END region (which may include unchanged lines), differ from NeXTMach.
++ */
++
++/* plan 761 (D024, D171) BEGIN: includes, definitions, declarations and data */
++#import <sys/types.h>
++#import <sys/param.h>	/* plan 761 (D024): not imported by NeXTMach video.c */
+@@ -84 +114,0 @@
+-#import <sys/types.h>
+@@ -90 +120 @@
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 761 (D104): NeXTMach <vm/vm_param.h> */
+@@ -94,5 +124,3 @@
+-#import <next/cpu.h>
+-#import <next/pcb.h>
+-#import <next/scr.h>
+-#import <next/trap.h>
+-#import <next/vmparam.h>
++#import <m68k/cpu.h>	/* plan 761 (D104): NeXTMach <next/cpu.h> (D110) */
++#import <m68k/vmparam.h>	/* plan 761 (D104): NeXTMach <next/vmparam.h> */
++#import <machine/spl.h>	/* plan 761 (D024): not imported by NeXTMach video.c */
+@@ -100,2 +128,2 @@
+-#import <nextdev/video.h>
+-#import <nextdev/ev_vars.h>
++#import <dev/m68k/video.h>	/* plan 761 (D104): NeXTMach <nextdev/video.h> */
++#import <bsd/dev/m68k/evio.h>	/* plan 761 (D104): NeXTMach <nextdev/ev_vars.h> */
+@@ -104,6 +132,40 @@
+-
+-#define COLOR_FB 1	/* Support the color Warp 9C frame buffer in standard release*/
+-
+-/* Forward declarations */
+-void	vidStopAnimation();
+-void vidMoveCursor();
++#import <mon/nvram.h>	/* plan 761 (D024): not imported by NeXTMach video.c */
++
++/* plan 761 (D171): names of NeXTMach headers that are not in the 1997 SDK, and the gamma ioctls (values from the original bytes); defined here, as km.c (D104, D158) */
++extern int slot_id, slot_id_bmap;
++#define SLOT_ID		slot_id
++#define NeXT_CUBE	0
++#define NeXT_WARP9	1
++#define NeXT_X15	2
++#define NeXT_WARP9C	3
++#define P_VIDEO_CSR	(SLOT_ID+0x02000180)
++#define P_VIDEOMEM	(SLOT_ID + ((dma_chip == 313) ? 0x0b000000 : 0x0c000000))
++#define PCB_TT1		0x80000000
++#define PMAP_TT_DISABLE		0
++#define PMAP_TT_ENABLE		1
++#define PMAP_TT_NON_CACHEABLE	0
++#define PMAP_TT_CACHEABLE	1
++#define SLOT_ID_BMAP	slot_id_bmap
++#define P_C16_VIDEOMEM	((dma_chip == 313) ? 0x2c000000 : 0x0c000000)
++#define C16_VIDEO_NBPL	(C16_VIDEO_1120x832_MW * C16_VIDEO_NBPP)
++#define C16_VIDEOSIZE	(C16_VIDEO_NBPL * C16_VIDEO_1120x832_H)
++#define P_C16_DAC_0	((dma_chip == 313) ? (SLOT_ID_BMAP + 0x02018100) : (SLOT_ID + 0x0201c000))
++#define P_C16_DAC_1	((dma_chip == 313) ? (SLOT_ID_BMAP + 0x02018101) : (SLOT_ID + 0x0201c001))
++#define P_C16_DAC_3	((dma_chip == 313) ? (SLOT_ID_BMAP + 0x02018103) : (SLOT_ID + 0x0201c003))
++#define P_C16_CMD_REG	(SLOT_ID_BMAP + 0x02018180)
++#define CURSORWIDTH	16
++#define CURSORHEIGHT	16
++/* plan 761 (D171): this project's names for the ioctls 0x40307608, 0x80307608, 0x20007609 (not in <dev/m68k/video.h>) */
++#define DKIOCGGAMMA	_IOR('v', 8, vid_gamma_t)
++#define DKIOCSGAMMA	_IOW('v', 8, vid_gamma_t)
++#define DKIOCRGAMMA	_IO('v', 9)
++typedef unsigned char vid_gamma_t[48];
++
++extern int evOpenCalled, autoDimmed, curBright, dimmedBrightness;
++extern volatile u_char *brightness;
++extern char boot_dev[], boot_info[], boot_file[];
++extern struct km_console_info km_coni;
++
++void vidStopAnimation();
++void vidSuspendAnimation();
++void vidResumeAnimation();
+@@ -111,10 +173,8 @@
+-static int vidConfigureFB();
+-/*
+- * We have our own private probe package that can be run before the full Unix/Mach
+- * trap handler is set up.  This is used to test for the presence of frame buffers
+- * VERY EARLY in the startup sequence.
+- */
+-static int	vid_early_probe( int );
+-static void	vid_probe_faulted();
+-
+-/* 2 bit frame buffer */
++static void vidApplyBrightness();
++static int vidRegisterScreen();
++static int vid_ev_move();
++static int vid_ev_hide();
++static int vid_ev_show();
++static int vid_ev_level();
++extern int console_o;
++
+@@ -125 +185 @@
+-static void vid_BW2_SetCursor();
++static void vid_BW2_UnMapFB();
+@@ -127 +186,0 @@
+-static void vid_BW2_MoveCursor();
+@@ -135,18 +194,4 @@
+-static unsigned int waitData2[16];
+-static unsigned int waitMask2[16];
+-
+-/* Global Variables */
+-static int vid_screen_token;
+-#define VID_NO_FB	-1
+-static int vidFBnum = VID_NO_FB;
+-static void (*vidIntrFunc)() = (void (*)()) 0;		/* Vert retrace intr func. */
+-static void * vidIntrFuncArg;				/* Arg to retrace func. */
+-typedef	void (*voidfptr_t)();
+-
+-#if defined(COLOR_FB)
+-/*	16 Bit Color frame buffer */
+-#define RBMASK	0xF0F0		/* Short, or 16 bit format */
+-#define GAMASK	0x0F0F		/* Short, or 16 bit format */
+-#define AMASK	0x000F		/* Short, or 16 bit format */
+-static int vid_C16_present();
+-static void vid_C16_config();
++static int vid_C16_present1();
++static int vid_C16_present2();
++static void vid_C16_config1();
++static void vid_C16_config2();
+@@ -155 +200 @@
+-static void vid_C16_SetCursor();
++static void vid_C16_UnMapFB();
+@@ -157 +201,0 @@
+-static void vid_C16_MoveCursor();
+@@ -165,12 +209,6 @@
+-static char C16_waitCache[3] = {0, 0, 0};
+-static unsigned short C16_waitCursor1[256], C16_waitCursor2[256], C16_waitCursor3[256];
+-static unsigned short *C16_waitCursors[] =
+-		{C16_waitCursor1, C16_waitCursor2, C16_waitCursor3};
+-#endif
+-/*
+- * The following structure is used to autoconfigure the correct 
+- * video device for this CPU board.  The 'present' function snoops 
+- * about and returns TRUE if the 'init' function is appropriate for the board.
+- * The 'config' function fills in the km_coni data structure for the specified display.
+- * The 'init' function puts the display in a sane state.
+- */
++#define VID_NO_FB	-1
++static int vidFBnum = VID_NO_FB;
++static void (*vidIntrFunc)() = (void (*)()) 0;
++static char vidAnimSuspended = 0;
++static char vidBW2Suspended = 0;
++typedef	void (*voidfptr_t)();
+@@ -180 +218 @@
+-	int	(*present)();		/* returns TRUE or FALSE */
++	int	(*present)();
+@@ -183,2 +221,2 @@
+-	vm_offset_t (*MapFB)();		/* Map the frame buffer into user space */
+-	void	(*SetCursor)();		/* Cursor control for events system */
++	vm_offset_t (*MapFB)();
++	void	(*UnMapFB)();
+@@ -188,4 +226,2 @@
+-	
+-	void	(*installIntr)();	/* Install and enable VBL interrupts */
+-
+-	void	(*suspendAnim)();	/* Funcs used to control boot animation */
++	void	(*installIntr)();
++	void	(*suspendAnim)();
+@@ -196 +232 @@
+-	vid_BW2_SetCursor, vid_BW2_DisplayCursor, vid_BW2_RemoveCursor,
++	vid_BW2_UnMapFB, vid_BW2_DisplayCursor, vid_BW2_RemoveCursor,
+@@ -201,4 +237,8 @@
+-#if COLOR_FB
+-    {
+-    	vid_C16_present, vid_C16_config, vid_C16_init, vid_C16_MapFB,
+-	vid_C16_SetCursor, vid_C16_DisplayCursor, vid_C16_RemoveCursor,
++    {	vid_C16_present1, vid_C16_config1, vid_C16_init, vid_C16_MapFB,
++	vid_C16_UnMapFB, vid_C16_DisplayCursor, vid_C16_RemoveCursor,
++	vid_C16_SetBrightness,
++	vid_C16_installIntr,
++	vid_C16_SuspendAnim, vid_C16_ResumeAnim
++    },
++    {	vid_C16_present2, vid_C16_config2, vid_C16_init, vid_C16_MapFB,
++	vid_C16_UnMapFB, vid_C16_DisplayCursor, vid_C16_RemoveCursor,
+@@ -209 +248,0 @@
+-#endif
+@@ -214,2 +253,21 @@
+-
+-
++static unsigned char vid_gamma_r[16] = {
++	0x00, 0x4a, 0x66, 0x7b, 0x8c, 0x9b, 0xa8, 0xb4,
++	0xc0, 0xca, 0xd4, 0xdd, 0xe6, 0xef, 0xf7, 0xff };
++static unsigned char vid_gamma_g[16] = {
++	0x00, 0x4a, 0x66, 0x7b, 0x8c, 0x9b, 0xa8, 0xb4,
++	0xc0, 0xca, 0xd4, 0xdd, 0xe6, 0xef, 0xf7, 0xff };
++static unsigned char vid_gamma_b[16] = {
++	0x00, 0x4a, 0x66, 0x7b, 0x8c, 0x9b, 0xa8, 0xb4,
++	0xc0, 0xca, 0xd4, 0xdd, 0xe6, 0xef, 0xf7, 0xff };
++static const unsigned char vid_gamma_default[16] = {
++	0x00, 0x4a, 0x66, 0x7b, 0x8c, 0x9b, 0xa8, 0xb4,
++	0xc0, 0xca, 0xd4, 0xdd, 0xe6, 0xef, 0xf7, 0xff };
++
++static int vid_screen_token;
++static void * vidIntrFuncArg;
++static vidShmemStruct *msp;
++static unsigned int vid_disp_start, vid_disp_end, vid_rem_start, vid_rem_end;
++static unsigned int vid_flush_flags;
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidopen */
+@@ -218,2 +275,0 @@
+-	extern int probe_rb();
+-
+@@ -222 +278 @@
+-		if ( vidConfigureFB() == -1 )
++		if ( vidProbeForFB() == -1 )
+@@ -226,0 +283 @@
++/* plan 761 END */
+@@ -233,0 +291 @@
++/* plan 761 (D024, D171) BEGIN: vidioctl */
+@@ -239,3 +296,0 @@
+-    vm_map_t		map = current_task()->map;
+-    struct pmap		*pmap = vm_map_pmap (current_task()->map);
+-    vm_offset_t		addr;
+@@ -243 +297,0 @@
+-    struct		mon_global *mg = mon_global;
+@@ -246 +299,0 @@
+-    struct dma_dev	*vddp = (struct dma_dev*) P_VIDEO_CSR;
+@@ -249 +302 @@
+-    
++
+@@ -251,2 +303,0 @@
+-    
+-	/* stop boot icon animation (hook is for bootblit)  */
+@@ -254,2 +305 @@
+-	    /* stop animation temporarily */
+-	    (*video_dev[vidFBnum].suspendAnim)();
++	    vidSuspendAnimation();
+@@ -258,2 +308 @@
+-	    /* continue animation after being stopped temporarily */
+-	    (*video_dev[vidFBnum].resumeAnim)();
++	    vidResumeAnimation();
+@@ -261 +309,0 @@
+-	    /* stop animation permamently */
+@@ -264,5 +311,0 @@
+-	/*
+-	 *  Do this here instead of vidopen() so the unrelated
+-	 *  ioctls can be used without actually mapping in
+-	 *  the video spaces.
+-	 */
+@@ -270,3 +313 @@
+-	    return EBUSY;		/* already open */
+-
+-	/* stop boot icon animation (hook is for bootblit)  */
++	    return EBUSY;
+@@ -274 +314,0 @@
+-	    /* stop animation permamently */
+@@ -277,2 +317,2 @@
+-	
+-	*(vm_offset_t*) data = (*video_dev[vidFBnum].MapFB)();
++	if ((*(vm_offset_t*) data = (*video_dev[vidFBnum].MapFB)()) == 0)
++	    return ENXIO;
+@@ -299,2 +339 @@
+-	
+-	/* change reboot arg if nvram boot cmd changed */
++
+@@ -302,2 +340,0 @@
+-	    extern char boot_dev[], boot_info[], boot_file[];
+-	    
+@@ -308 +344,0 @@
+-	/* flip state of auto poweron if requested */
+@@ -313 +349 @@
+-	
++
+@@ -316 +352 @@
+-	
++
+@@ -322,13 +358,3 @@
+-    case DKIOCREGISTER: {
+-    	evioScreen *es = (evioScreen *)data;
+-	es->SetCursor = video_dev[vidFBnum].SetCursor;
+-	es->DisplayCursor = video_dev[vidFBnum].DisplayCursor;
+-	es->RemoveCursor = video_dev[vidFBnum].RemoveCursor;
+-	es->MoveCursor = vidMoveCursor;
+-	es->SetBrightness = NULL;
+-	vid_screen_token = ev_register_screen(es);
+-	if (vid_screen_token<0)
+-	    return(ENXIO);
+-	return(0);
+-    }
+-    /* can't do this in a close routine because it's needed per-process */
++    case DKIOCREGISTER:
++	return vidRegisterScreen();
++
+@@ -338,3 +364 @@
+-		
+-	/* disable transparent translation */
+-	pmap_tt (current_thread(), PMAP_TT_DISABLE, 0, 0, 0);
++	(*video_dev[vidFBnum].UnMapFB)();
+@@ -343 +366,0 @@
+-    /* Fetch and copy out the configuration information for the built-in frame buffer*/
+@@ -349,0 +373,20 @@
++
++    case DKIOCGGAMMA:
++	bcopy (vid_gamma_r, data, sizeof (vid_gamma_t));
++	break;
++
++    case DKIOCSGAMMA:
++	bcopy (data, vid_gamma_r, sizeof (vid_gamma_t));
++	vidApplyBrightness();
++	break;
++
++    case DKIOCRGAMMA: {
++	int i;
++	for (i = 0; i < 16; i++) {
++	    vid_gamma_r[i] = vid_gamma_default[i];
++	    vid_gamma_g[i] = vid_gamma_default[i];
++	    vid_gamma_b[i] = vid_gamma_default[i];
++	}
++	vidApplyBrightness();
++	break;
++    }
+@@ -355,5 +398,3 @@
+-
+-/*
+- * Published kernel entry points for manipulating the console video device.
+- */
+- 
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidProbeForFB */
+@@ -368,2 +409,2 @@
+-	int fb_num;
+-	
++	short fb_num;
++
+@@ -371 +412 @@
+-	    if ( (*video_dev[fb_num].present)(vid_early_probe) == TRUE ){
++	    if ( (*video_dev[fb_num].present)() == TRUE ){
+@@ -379,20 +420 @@
+-
+-/*
+- * Called from open routine, if we haven't configured a frame buffer yet.
+- * This routine uses the standard probe_rb() function to probe hardware.
+- */
+- static int
+-vidConfigureFB()
+-{
+-	int fb_num;
+-	extern int probe_rb();
+-	
+-	for ( fb_num = NUM_VIDEO_DEVS - 1; fb_num >= 0; --fb_num) {
+-	    if ( (*video_dev[fb_num].present)(probe_rb) == TRUE ){
+-		vidFBnum = fb_num;
+-		(*video_dev[fb_num].init)();
+-		return fb_num;
+-	    }
+-	}
+-	return -1;
+-}
++/* plan 761 END */
+@@ -411,0 +434,20 @@
++/* plan 761 (D024, D171) BEGIN: vidGetFBAddrAndSize */
++ void
++vidGetFBAddrAndSize(vm_offset_t *addr, vm_size_t *size)
++{
++	struct km_console_info kmcons;
++
++	if ( vidFBnum == VID_NO_FB ) {
++		if ( vidProbeForFB() == -1 ) {
++			*addr = 0;
++			*size = 0;
++			return;
++		}
++	}
++	(*video_dev[vidFBnum].config)(&kmcons);
++	*addr = kmcons.map_addr[KM_CON_FRAMEBUFFER].phys_addr;
++	*size = km_coni.map_addr[KM_CON_FRAMEBUFFER].size + km_coni.map_addr[KM_CON_BACKINGSTORE].size;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidStopAnimation */
+@@ -422 +463,0 @@
+-	/* stop animation permamently */
+@@ -423,0 +465,2 @@
++	if ( vidIntrFunc )
++		vidResumeAnimation();
+@@ -426 +469,3 @@
+-
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidSuspendAnimation */
+@@ -430 +475 @@
+-	if ( vidFBnum != VID_NO_FB )
++	if ( vidFBnum != VID_NO_FB && !vidAnimSuspended ) {
+@@ -432 +477,6 @@
+-}
++		vidAnimSuspended = 1;
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidResumeAnimation */
+@@ -436 +486 @@
+-	if ( vidFBnum != VID_NO_FB )
++	if ( vidFBnum != VID_NO_FB && vidAnimSuspended ) {
+@@ -438,4 +488,6 @@
+-}
+-
+-
+-
++		vidAnimSuspended = 0;
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidSetBrightness */
+@@ -450,3 +502,25 @@
+-		(*video_dev[vidFBnum].SetBrightness)((evioScreen *)0, level);
+-}
+-
++		(*video_dev[vidFBnum].SetBrightness)(level);
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidApplyBrightness */
++ static void
++vidApplyBrightness()
++{
++	int level;
++	struct nvram_info ni;
++
++	if ( evOpenCalled ) {
++		if ( autoDimmed && dimmedBrightness < curBright )
++			level = dimmedBrightness;
++		else
++			level = curBright;
++	} else {
++		nvram_check(&ni);
++		level = ni.ni_brightness;
++	}
++	vidSetBrightness( level );
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidInterruptEnable */
+@@ -462 +535,0 @@
+-	/* Make sure that a display device is configured */
+@@ -465 +538 @@
+-		if ( vidConfigureFB() == -1 )
++		if ( vidProbeForFB() == -1 )
+@@ -468 +540,0 @@
+-	/* Save the function to be called and it's arg in a safe place. */
+@@ -472,0 +545,2 @@
++/* plan 761 END */
++
+@@ -491,25 +565,4 @@
+-/*
+- * vidMoveCursor():
+- *
+- *	Move a cursor by calling the RemoveCursor function at the old position, and
+- *	calling the DisplayCursor function at the new position.
+- */
+- void vidMoveCursor(evioScreen *es, Bounds oldCursorRect, Bounds cursorRect,
+-    int waitFrame, NXCursorData *nxCursorData)
+-{
+-    (*video_dev[vidFBnum].RemoveCursor)(es, oldCursorRect, nxCursorData);
+-    (*video_dev[vidFBnum].DisplayCursor)(es, cursorRect, waitFrame, nxCursorData);
+-}
+-
+-/*
+- * Probe routine which can be called very early in the startup sequence, before the
+- * Unix/Mach trap handler and probe_rb() is available for use.
+- */
+-static label_t vid_jmpbuf;
+-
+- static void
+-vid_probe_faulted()
+-{
+-	longjmp( &vid_jmpbuf );
+-}
+-
++/* plan 761 (D024, D171) BEGIN: vid_BW2_present */
++/*
++ *	2 Bit Display Device code.
++ */
+@@ -517,39 +570 @@
+-vid_early_probe( int addr )
+-{
+-	void vid_probe_faulted();
+-	volatile int oldbuserr;
+-	volatile int oldadrerr;
+-	int * volatile vbp;
+-	volatile char *cp = (volatile char *) addr;
+-	int s;
+-	
+-	s = splhigh();
+-	vbp = (int *)get_vbr();		/* Get the vector base register */
+-	oldbuserr = vbp[(T_BUSERR/sizeof (int))];
+-	oldadrerr = vbp[(T_ADDRERR/sizeof (int))];
+-	vbp[(T_BUSERR/sizeof (int))] = (int) vid_probe_faulted;
+-	vbp[(T_ADDRERR/sizeof (int))] = (int) vid_probe_faulted;
+-	
+-	if ( setjmp( &vid_jmpbuf ) != 0 )
+-	{
+-	    vbp[(T_BUSERR/sizeof (int))] = (int) oldbuserr;
+-	    vbp[(T_ADDRERR/sizeof (int))] = (int) oldadrerr;
+-	    splx(s);
+-	    return 0;			/* The probe failed. */
+-	}
+-	
+-	addr = *cp;		/* Read the location in question. */
+-	
+-	vbp[(T_BUSERR/sizeof (int))] = (int) oldbuserr;
+-	vbp[(T_ADDRERR/sizeof (int))] = (int) oldadrerr;
+-	splx(s);
+-	return 1;			/* The probe succeeds */
+-}
+-
+-
+-/*
+- *	2 Bit Display Device code.
+- */
+- 
+- static int
+-vid_BW2_present( int (*probe)() )
++vid_BW2_present()
+@@ -558,3 +572,0 @@
+-	
+-	case NeXT_WARP9C:
+-		return FALSE;
+@@ -563,0 +576,2 @@
++	case 4:
++	case 8:
+@@ -565,0 +580,2 @@
++	if (dma_chip != 313 && !(machine_type & 1))
++		return TRUE;
+@@ -568 +584,3 @@
+-
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_config */
+@@ -572,8 +590,17 @@
+-	/*
+-	 * If no other frame buffer is found, default to the 2 bit display.
+-	 */
+-	kp->pixels_per_word = NPPB * sizeof (int);
+-	kp->bytes_per_scanline = VIDEO_NBPL;
+-	kp->dspy_w = VIDEO_W;
+-	kp->dspy_max_w = VIDEO_MW;
+-	kp->dspy_h = VIDEO_H;
++	unsigned int w, mw, h;
++
++	if (dma_chip != 313) {
++		w = *(unsigned int *)(SLOT_ID + 0x02200088) & 0xfff;
++		w = mw = w << 2;
++		h = *(unsigned int *)(SLOT_ID + 0x0220008c);
++		h &= 0xfff;
++	} else {
++		w = 1120;
++		mw = 1152;
++		h = 832;
++	}
++	kp->pixels_per_word = 16;
++	kp->bytes_per_scanline = mw >> 2;
++	kp->dspy_w = w;
++	kp->dspy_max_w = mw;
++	kp->dspy_h = h;
+@@ -588,8 +615,8 @@
+-	kp->map_addr[KM_CON_FRAMEBUFFER].size = VIDEO_NBPL * VIDEO_H;
+-	kp->map_addr[KM_CON_BACKINGSTORE].virt_addr =
+-					P_VIDEOMEM + (VIDEO_NBPL * VIDEO_H);
+-	kp->map_addr[KM_CON_BACKINGSTORE].phys_addr =
+-					P_VIDEOMEM + (VIDEO_NBPL * VIDEO_H);
+-	kp->map_addr[KM_CON_BACKINGSTORE].size = (VIDEO_MH - VIDEO_H) * VIDEO_NBPL;
+-}
+-
++	kp->map_addr[KM_CON_FRAMEBUFFER].size = kp->bytes_per_scanline * h;
++	kp->map_addr[KM_CON_BACKINGSTORE].phys_addr = kp->map_addr[KM_CON_BACKINGSTORE].virt_addr =
++					P_VIDEOMEM + kp->map_addr[KM_CON_FRAMEBUFFER].size;
++	kp->map_addr[KM_CON_BACKINGSTORE].size = (VIDEO_MH - h) * kp->bytes_per_scanline;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_init */
+@@ -600,4 +627,7 @@
+-    
+-	nvram_check(&ni);		/* Unblank screen, in case ROM missed dspy. */
+-	vid_BW2_SetBrightness((evioScreen *)0, ni.ni_brightness);
+-}
++
++	nvram_check(&ni);
++	vid_BW2_SetBrightness(ni.ni_brightness);
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_MapFB */
+@@ -620,9 +650,5 @@
+-	/*
+-	 *  Set the maximum address that can be used to the beginning
+-	 *  of video memory space.  XXX - Do some checking here?
+-	 */
+-	addr = P_VIDEOMEM & ~(VID_SIZE - 1);
+-	vm_map_max(current_task()->map) = addr;
+-
+-	/* setup transparent translation, UNCACHED! */
+-	pmap_tt (current_thread(), PMAP_TT_ENABLE, addr, VID_SIZE,
++
++	addr = P_VIDEOMEM & ~(VID_MAPPED_SIZE - 1);
++	if (vm_allocate(current_task()->map, &addr, VID_MAPPED_SIZE, FALSE) != KERN_SUCCESS)
++		return 0;
++	pmap_tt (current_thread(), PMAP_TT_ENABLE, addr, VID_MAPPED_SIZE,
+@@ -631,0 +658,14 @@
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_UnMapFB */
++ static void
++vid_BW2_UnMapFB()
++{
++	vm_offset_t addr = P_VIDEOMEM & ~(VID_MAPPED_SIZE - 1);
++
++	vm_deallocate(current_task()->map, addr, VID_MAPPED_SIZE);
++	pmap_tt (current_thread(), PMAP_TT_DISABLE, 0, 0, 0);
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_DisplayCursor */
+@@ -639,30 +679,31 @@
+-
+-void vid_BW2_DisplayCursor(evioScreen *es, Bounds cursorRect, int waitFrame,
+-		      NXCursorData *nxCursorData)
+-{
+-    Bounds bounds;			/* screen bounds */
+-    Bounds *saveRect;			/* screen rect saved */
+-    unsigned int vramRow;		/* screen row longs (4-byte chunks) */
+-    volatile unsigned int *cursPtr;	/* cursor data pointer */
+-    volatile unsigned int *vramPtr;	/* screen data pointer */
+-    volatile unsigned int *savePtr;	/* saved screen data pointer */
+-    volatile unsigned int *maskPtr;	/* cursor mask pointer */
+-    int i, doLeft, doRight, skew, rSkew;
+-
+-    vramPtr = (unsigned int *)P_VIDEOMEM;
+-    vramRow = 72;
+-    bounds = es->bounds;
+-
+-    saveRect = nxCursorData->saveRect;
+-    *saveRect = cursorRect;
+-    /* Clip saveRect vertical within screen bounds */
+-    if (saveRect->miny < bounds.miny) saveRect->miny = bounds.miny;
+-    if (saveRect->maxy > bounds.maxy) saveRect->maxy = bounds.maxy;
+-    i = cursorRect.minx-bounds.minx;
+-    saveRect->minx = i-(i & PPXMASK)+bounds.minx;
+-    saveRect->maxx = saveRect->minx + CURSORWIDTH*2;
+-    
+-    vramPtr += (vramRow * (saveRect->miny - bounds.miny)) +
+-	       ((saveRect->minx - bounds.minx) >> 4);
+-
+-    skew = (cursorRect.minx & PPXMASK)<<1; /* skew is in bits */
++ static void
++vid_BW2_DisplayCursor()
++{
++    Bounds saveRect;
++    unsigned short chip;
++    unsigned int vramRow;
++    volatile unsigned int *cursPtr;
++    volatile unsigned int *vramPtr;
++    volatile unsigned int *savePtr;
++    volatile unsigned int *maskPtr;
++    short i;
++    register unsigned int workreg;
++    short x;
++    char doLeft = 0;
++    int doRight = 0;
++    int skew, rSkew;
++
++    saveRect = msp->cursorRect;
++    if (saveRect.miny < msp->screenBounds.miny) saveRect.miny = msp->screenBounds.miny;
++    if (saveRect.maxy > msp->screenBounds.maxy) saveRect.maxy = msp->screenBounds.maxy;
++    x = msp->cursorRect.minx - msp->screenBounds.minx;
++    saveRect.minx = x-(x & PPXMASK)+msp->screenBounds.minx;
++    saveRect.maxx = saveRect.minx + 32;
++    msp->saveRect = saveRect;
++    chip = dma_chip;
++    vramRow = 70;
++    if (chip == 313)
++	vramRow = 72;
++    vramPtr = (unsigned int *)(SLOT_ID + ((chip == 313) ? 0x0b000000 : 0x0c000000)) + (vramRow * (saveRect.miny - msp->screenBounds.miny)) +
++	       ((saveRect.minx - msp->screenBounds.minx) >> 4);
++    skew = (msp->cursorRect.minx & PPXMASK)<<1;
+@@ -670,8 +711,44 @@
+-
+-    savePtr = nxCursorData->saveData;
+-    if (waitFrame) {
+-	cursPtr = waitData2;
+-	maskPtr = waitMask2;
+-    } else {
+-	cursPtr = nxCursorData->cursorData2W;
+-	maskPtr = nxCursorData->cursorAlpha2;
++    savePtr = msp->cursor.bw.save;
++    cursPtr = msp->cursor.bw.image[msp->frame];
++    maskPtr = msp->cursor.bw.mask[msp->frame];
++    i = saveRect.miny - msp->cursorRect.miny;
++    cursPtr += i;
++    maskPtr += i;
++    doLeft = (saveRect.minx >= msp->screenBounds.minx);
++    doRight = (saveRect.maxx <= msp->screenBounds.maxx);
++
++    if (doLeft) {
++	if (doRight) {
++	    for (i = saveRect.maxy - saveRect.miny; i--; ) {
++		volatile unsigned int *rp = vramPtr + 1;
++
++		*savePtr++ = workreg = *vramPtr;
++		*vramPtr = (workreg&(~((*maskPtr)>>skew))) | ((*cursPtr)>>skew);
++		*savePtr++ = workreg = *rp;
++		*rp = (workreg & (~((*maskPtr)<<rSkew)))
++			       | ((*cursPtr)<<rSkew);
++		vramPtr += vramRow;
++		cursPtr++;
++		maskPtr++;
++	    }
++	} else {
++	    for (i = saveRect.maxy - saveRect.miny; i--; ) {
++
++		*savePtr++ = workreg = *vramPtr;
++		*vramPtr = (workreg&(~((*maskPtr)>>skew))) | ((*cursPtr)>>skew);
++		vramPtr += vramRow;
++		cursPtr++;
++		maskPtr++;
++	    }
++	}
++    } else if (doRight) {
++	for (i = saveRect.maxy - saveRect.miny; i--; ) {
++	    volatile unsigned int *rp = vramPtr + 1;
++
++	    *savePtr++ = workreg = *rp;
++	    *rp = (workreg & (~((*maskPtr)<<rSkew)))
++			   | ((*cursPtr)<<rSkew);
++	    vramPtr += vramRow;
++	    cursPtr++;
++	    maskPtr++;
++	}
+@@ -679,25 +756,4 @@
+-    cursPtr += saveRect->miny - cursorRect.miny;
+-    maskPtr += saveRect->miny - cursorRect.miny;
+-
+-    doLeft = (saveRect->minx >= bounds.minx);
+-    doRight = (saveRect->maxx <= bounds.maxx);
+-
+-    for (i = saveRect->maxy - saveRect->miny-1; i>=0; i--) {
+-	register unsigned int workreg;
+-
+-	if (doLeft) {
+-	    *savePtr++ = workreg = *vramPtr;
+-	    *vramPtr = (workreg&(~((*maskPtr)>>skew))) | ((*cursPtr)>>skew);
+-	}
+-	if (doRight) {
+-	    *savePtr++ = workreg = *(vramPtr+1);
+-	    *(vramPtr+1) = (workreg & (~((*maskPtr)<<rSkew)))
+-			   | ((*cursPtr)<<rSkew);
+-	}
+-	vramPtr += vramRow;
+-	cursPtr++;
+-	maskPtr++;
+-    }
+-}
+-
+-
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_RemoveCursor */
+@@ -708,7 +764,9 @@
+-
+-void vid_BW2_RemoveCursor(evioScreen *es, Bounds cursorRect, NXCursorData
+-		     *nxCursorData)
+-{
+-    Bounds *saveRect = nxCursorData->saveRect;
+-    int i, doLeft, doRight;
+-    unsigned int vramRow, lmask, rmask;
++ static void
++vid_BW2_RemoveCursor()
++{
++    Bounds saveRect = msp->saveRect;
++    unsigned short chip;
++    int i;
++    int doLeft = 0, doRight = 0;
++    unsigned int vramRow;
++    unsigned int lmask, rmask;
+@@ -717 +774,0 @@
+-    Bounds bounds = es->bounds;
+@@ -724,13 +781,29 @@
+-    vramPtr = (unsigned int *)P_VIDEOMEM;
+-    vramRow = 72;
+-    vramPtr += (vramRow * (saveRect->miny - bounds.miny)) +
+-	       ((saveRect->minx - bounds.minx) >> 4);
+-    savePtr = nxCursorData->saveData;
+-    if (doLeft = (saveRect->minx >= bounds.minx))
+-    	lmask = vid_mask_array[cursorRect.minx-saveRect->minx];
+-    if (doRight = (saveRect->maxx <= bounds.maxx))
+-	rmask = ~vid_mask_array[16-(saveRect->maxx-cursorRect.maxx)];
+-    for (i = saveRect->maxy-saveRect->miny; i>0; i--) {
+-	if (doLeft) *vramPtr = (*vramPtr&(~lmask))|(*savePtr++&lmask);
+-	if (doRight) *(vramPtr+1)=(*(vramPtr+1)&(~rmask))|(*savePtr++&rmask);
+-	vramPtr += vramRow;
++    chip = dma_chip;
++    vramRow = 70;
++    if (chip == 313)
++	vramRow = 72;
++    vramPtr = (unsigned int *)(SLOT_ID + ((chip == 313) ? 0x0b000000 : 0x0c000000)) + (vramRow * (saveRect.miny - msp->screenBounds.miny)) +
++	       ((saveRect.minx - msp->screenBounds.minx) >> 4);
++    savePtr = msp->cursor.bw.save;
++    if (doLeft = (saveRect.minx >= msp->screenBounds.minx))
++    	lmask = vid_mask_array[msp->oldCursorRect.minx-saveRect.minx];
++    if (doRight = (saveRect.maxx <= msp->screenBounds.maxx))
++	rmask = ~vid_mask_array[16-(saveRect.maxx-msp->oldCursorRect.maxx)];
++    if (doLeft) {
++	if (doRight) {
++	    for (i = saveRect.maxy-saveRect.miny; i--; ) {
++		*vramPtr = (*vramPtr&(~lmask))|(*savePtr++&lmask);
++		*(vramPtr+1)=(*(vramPtr+1)&(~rmask))|(*savePtr++&rmask);
++		vramPtr += vramRow;
++	    }
++	} else {
++	    for (i = saveRect.maxy-saveRect.miny; i--; ) {
++		*vramPtr = (*vramPtr&(~lmask))|(*savePtr++&lmask);
++		vramPtr += vramRow;
++	    }
++	}
++    } else if (doRight) {
++	for (i = saveRect.maxy-saveRect.miny; i--; ) {
++	    *(vramPtr+1)=(*(vramPtr+1)&(~rmask))|(*savePtr++&rmask);
++	    vramPtr += vramRow;
++	}
+@@ -739,26 +812,3 @@
+-
+-
+-void vid_BW2_SetCursor(evioScreen *es, unsigned int *data, unsigned int *mask,
+-    int drow, int mrow, int waitFrame, NXCursorData *nxCursorData)
+-{
+-    int i;
+-    unsigned int alpha;
+-    volatile unsigned int *cm, *cd;
+-    
+-    mrow >>= 2;
+-    drow >>= 2;
+-    if (waitFrame) {
+-	cd = waitData2;
+-	cm = waitMask2;
+-    } else {
+-	cd = nxCursorData->cursorData2W;
+-	cm = nxCursorData->cursorAlpha2;
+-    }
+-    for (i = CURSORHEIGHT; i > 0; i--) {
+-	*cm++ = alpha = *mask;
+-	*cd++ = alpha - *data;
+-	mask += mrow;
+-	data += drow;
+-    }
+-}
+-
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_SetBrightness */
+@@ -768,5 +818,4 @@
+-static void
+-vid_BW2_SetBrightness(evioScreen *es, int level)
+-{
+-    extern volatile u_char *brightness;		/* See scr.h, next_init.c */
+-    static char	bright_table[BRIGHT_MAX+1] = {
++ static void
++vid_BW2_SetBrightness(int level)
++{
++    static char	bright_table[0x3d+1] = {
+@@ -782,3 +831,5 @@
+-    *brightness = level | BRIGHT_ENABLE;
+-}
+-
++    *brightness = level | 0x40;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_installIntr */
+@@ -789 +840 @@
+-static void
++ static void
+@@ -793,4 +844,11 @@
+-
+-	install_scanned_intr(I_VIDEO, vid_BW2_intr, (void *)0);
+-	vddp->dd_limit = (char*) RETRACE_LIMIT;		/* Enable interrupt */
+-}
++	volatile int *p2 = (volatile int *)(SLOT_ID + 0x02200080);
++
++	install_scanned_intr((dma_chip != 313) ? 0xd30 : 0x538, vid_BW2_intr, (void *)0);
++	if (dma_chip == 313)
++		vddp->dd_limit = (char*) 0xea;
++	else
++		*p2 = 0x06000000;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_intr */
+@@ -801 +859 @@
+-static void
++ static void
+@@ -805,2 +863,6 @@
+-
+-	vddp->dd_csr = DMACMD_RESET;			/* ack interrupt */
++	volatile int *p2 = (volatile int *)(SLOT_ID + 0x02200080);
++
++	if (dma_chip == 313)
++		vddp->dd_csr = 0x00100000;
++	else
++		*p2 = 0x05000000;
+@@ -809,3 +871,7 @@
+-}
+-
+-static void
++	if (dma_chip != 313)
++		*p2 = 0x06000000;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_SuspendAnim */
++ static void
+@@ -814,9 +880,13 @@
+-	struct dma_dev *vddp = (struct dma_dev*) P_VIDEO_CSR;
+-
+-	/* stop animation temporarily */
+-	vddp->dd_limit = (char*) RETRACE_START;
+-	vddp->dd_csr = DMACMD_RESET;
+-	DELAY (100000);
+-}
+-
+-static void
++	extern		struct mon_global *mon_global;
++	struct		mon_global *mg = mon_global;
++
++	if (curipl() <= 2) {
++		*MG (char*, MG_flags) &= ~MGF_ANIM_RUN;
++		vidBW2Suspended = 1;
++		DELAY (100000);
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_BW2_ResumeAnim */
++ static void
+@@ -825,46 +895,16 @@
+-	struct dma_dev *vddp = (struct dma_dev*) P_VIDEO_CSR;
+-
+-	/* continue animation after being stopped temporarily */
+-	vddp->dd_limit = (char*) RETRACE_LIMIT;
+-}
+-
+-#if defined(COLOR_FB)
+-static const unsigned char Gamma[] =
+-{	/* Gamma 2.0 CLUT, suitable for Trinitron tubes */
+-    0,      16,     23,     28,     32,     36,     39,     42,
+-    45,     48,     50,     53,     55,     58,     60,     62,
+-    64,     66,     68,     70,     71,     73,     75,     77,
+-    78,     80,     81,     83,     84,     86,     87,     89,
+-    90,     92,     93,     94,     96,     97,     98,     100,
+-    101,    102,    103,    105,    106,    107,    108,    109,
+-    111,    112,    113,    114,    115,    116,    117,    118,
+-    119,    121,    122,    123,    124,    125,    126,    127,
+-    128,    129,    130,    131,    132,    133,    134,    135,
+-    135,    136,    137,    138,    139,    140,    141,    142,
+-    143,    144,    145,    145,    146,    147,    148,    149,
+-    150,    151,    151,    152,    153,    154,    155,    156,
+-    156,    157,    158,    159,    160,    160,    161,    162,
+-    163,    164,    164,    165,    166,    167,    167,    168,
+-    169,    170,    170,    171,    172,    173,    173,    174,
+-    175,    176,    176,    177,    178,    179,    179,    180,
+-    181,    181,    182,    183,    183,    184,    185,    186,
+-    186,    187,    188,    188,    189,    190,    190,    191,
+-    192,    192,    193,    194,    194,    195,    196,    196,
+-    197,    198,    198,    199,    199,    200,    201,    201,
+-    202,    203,    203,    204,    204,    205,    206,    206,
+-    207,    208,    208,    209,    209,    210,    211,    211,
+-    212,    212,    213,    214,    214,    215,    215,    216,
+-    217,    217,    218,    218,    219,    220,    220,    221,
+-    221,    222,    222,    223,    224,    224,    225,    225,
+-    226,    226,    227,    228,    228,    229,    229,    230,
+-    230,    231,    231,    232,    233,    233,    234,    234,
+-    235,    235,    236,    236,    237,    237,    238,    238,
+-    239,    240,    240,    241,    241,    242,    242,    243,
+-    243,    244,    244,    245,    245,    246,    246,    247,
+-    247,    248,    248,    249,    249,    250,    250,    251,
+-    251,    252,    252,    253,    253,    254,    254,    255,
+-};
+-	
+-/*
+- *	16 Bit Color Display Device code.
+- */
++	extern		struct mon_global *mon_global;
++	struct		mon_global *mg = mon_global;
++
++	if (vidBW2Suspended) {
++		vidBW2Suspended = 0;
++		*MG (char*, MG_flags) |= MGF_ANIM_RUN;
++		if (!(km.flags & KMF_SEE_MSGS) && !console_o &&
++		    *MG (short *, 780) > 23 && *MG (int *, 782))
++			callout_dispatch(2, *MG (int *, 782), 0);
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_present2 (with its macros) */
++/* ---- 16 bit color frame buffer ---- */
++
+@@ -872 +912,11 @@
+-vid_C16_present( int (*probe)() )
++vid_C16_present2()
++{
++	if (machine_type == NeXT_WARP9C)
++		return TRUE;
++	return FALSE;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_present1 */
++ static int
++vid_C16_present1()
+@@ -875,2 +925,2 @@
+-	
+-	case NeXT_WARP9C:
++	case 5:
++	case 9:
+@@ -878,5 +928,3 @@
+-	case NeXT_CUBE:
+-	case NeXT_WARP9:
+-	case NeXT_X15:
+-		return FALSE;
+-	}
++	}
++	if (dma_chip != 313 && (machine_type & 1))
++		return TRUE;
+@@ -885,5 +933,7 @@
+-
+- static void
+-vid_C16_config(struct km_console_info * kp)
+-{
+-	kp->pixels_per_word = C16_NPPW;
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_config2 */
++ static void
++vid_C16_config2(struct km_console_info * kp)
++{
++	kp->pixels_per_word = 2;
+@@ -891,4 +941,4 @@
+-	kp->dspy_w = C16_VIDEO_W;
+-	kp->dspy_max_w = C16_VIDEO_MW;
+-	kp->dspy_h = C16_VIDEO_H;
+-	kp->flag_bits = 0;
++	kp->dspy_w = C16_VIDEO_1120x832_W;
++	kp->dspy_max_w = C16_VIDEO_1120x832_MW;
++	kp->dspy_h = C16_VIDEO_1120x832_H;
++	kp->flag_bits = 2;
+@@ -901,10 +951,37 @@
+-	kp->map_addr[KM_CON_FRAMEBUFFER].size =
+-		    C16_VIDEO_NBPL * C16_VIDEO_H;
+-	kp->map_addr[KM_CON_BACKINGSTORE].virt_addr =
+-		    P_C16_VIDEOMEM + (C16_VIDEO_NBPL * C16_VIDEO_H);
+-	kp->map_addr[KM_CON_BACKINGSTORE].phys_addr =
+-		    P_C16_VIDEOMEM + (C16_VIDEO_NBPL * C16_VIDEO_H);
+-	kp->map_addr[KM_CON_BACKINGSTORE].size =
+-		    (C16_VIDEO_MH - C16_VIDEO_H) * C16_VIDEO_NBPL;
+-}
+-
++	kp->map_addr[KM_CON_FRAMEBUFFER].size = C16_VIDEOSIZE;
++	kp->map_addr[KM_CON_BACKINGSTORE].virt_addr = P_C16_VIDEOMEM + C16_VIDEOSIZE;
++	kp->map_addr[KM_CON_BACKINGSTORE].phys_addr = P_C16_VIDEOMEM + C16_VIDEOSIZE;
++	kp->map_addr[KM_CON_BACKINGSTORE].size = (C16_VIDEO_1120x832_MH - C16_VIDEO_1120x832_H) * C16_VIDEO_NBPL;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_config1 */
++ static void
++vid_C16_config1(struct km_console_info * kp)
++{
++	unsigned int w, mw, h, nbpl;
++
++	w = (*(unsigned int *)(SLOT_ID + 0x02200088)) & 0xfff;
++	w *= 4;
++	h = (*(unsigned int *)(SLOT_ID + 0x0220008c)) & 0xfff;
++	kp->pixels_per_word = 2;
++	nbpl = w + w;
++	kp->bytes_per_scanline = nbpl;
++	kp->dspy_w = w;
++	kp->dspy_max_w = w;
++	kp->dspy_h = h;
++	kp->flag_bits = 2;
++	kp->color[0] = C16_WHITE;
++	kp->color[1] = C16_LT_GRAY;
++	kp->color[2] = C16_DK_GRAY;
++	kp->color[3] = C16_BLACK;
++	kp->map_addr[KM_CON_FRAMEBUFFER].virt_addr = P_C16_VIDEOMEM;
++	kp->map_addr[KM_CON_FRAMEBUFFER].phys_addr = P_C16_VIDEOMEM;
++	kp->map_addr[KM_CON_FRAMEBUFFER].size = w * (h << 1);
++	kp->map_addr[KM_CON_BACKINGSTORE].phys_addr = kp->map_addr[KM_CON_BACKINGSTORE].virt_addr =
++					P_C16_VIDEOMEM + nbpl * h;
++	kp->map_addr[KM_CON_BACKINGSTORE].size = C16_VID_SIZE - kp->map_addr[KM_CON_FRAMEBUFFER].size;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_init */
+@@ -921,6 +997,0 @@
+-	volatile unsigned char *dac0 = ((unsigned char *)P_C16_DAC_0);
+-	volatile unsigned char *dac1 = ((unsigned char *)P_C16_DAC_1);
+-	volatile unsigned char *dac2 = ((unsigned char *)P_C16_DAC_2);
+-	volatile unsigned char *dac3 = ((unsigned char *)P_C16_DAC_3);
+-	int index;
+-	unsigned int level, scale;
+@@ -929,77 +1000,6 @@
+-	nvram_check(&ni);	/* Unblank screen, in case ROM missed dspy. */
+-
+-	level = ni.ni_brightness;
+-	scale = (level*64)/BRIGHT_MAX;
+-	
+-	// Load up command register 0, 0x201
+-	*dac0 = 0x01;
+-	*dac1 = 0x02;
+-		*dac2 = 0x40;	// 1:1 interleave
+-	// Command register 1, 0x202
+-	*dac0 = 0x02;
+-	*dac1 = 0x02;
+-		*dac2 = 0x00;	// ??
+-	// Command register 2, 0x203
+-	*dac0 = 0x03;
+-	*dac1 = 0x02;
+-		*dac2 = 0x80;	// Enable sync, no pedestal
+-	// Pixel read mask, 0x205-0x208
+-	*dac0 = 0x05;
+-	*dac1 = 0x02;
+-		*dac2 = 0xF0;	// high nibble enabled
+-	*dac0 = 0x06;
+-	*dac1 = 0x02;
+-		*dac2 = 0xF0;	// high nibble enabled
+-	*dac0 = 0x07;
+-	*dac1 = 0x02;
+-		*dac2 = 0xF0;	// high nibble enabled
+-	*dac0 = 0x08;
+-	*dac1 = 0x02;
+-		*dac2 = 0xF0;	// high nibble enabled
+-
+-	// Blink mask, 0x209-0x20c
+-	*dac0 = 0x09;
+-	*dac1 = 0x02;
+-		*dac2 = 0x0;	// All bits disabled
+-	*dac0 = 0x0a;
+-	*dac1 = 0x02;
+-		*dac2 = 0x0;	// All bits disabled
+-	*dac0 = 0x0b;
+-	*dac1 = 0x02;
+-		*dac2 = 0x0;	// All bits disabled
+-	*dac0 = 0x0c;
+-	*dac1 = 0x02;
+-		*dac2 = 0x0;	// All bits disabled
+-
+-	// Tag table 0x300 - 0x30F. 24 bit word loaded w 3 writes
+-	for ( index = 0x300; index <= 0x30F; ++index )
+-	{
+-		*dac0 = index & 0xFF;
+-		*dac1 = (index & 0xFF00) >> 8;
+-			*dac2 = 0x0;
+-			*dac2 = 0x1;
+-			*dac2 = 0x0;
+-	}
+-	
+-	// Load a ramp in the palatte. Second 256 locations
+-	for (index = 0x100; index < 0x200; index++)
+-	{
+-	        level = (unsigned int)Gamma[index-0x100];
+-		*dac0 = index & 0xFF;
+-		*dac1 = (index & 0xFF00) >> 8;
+-		    *dac3 = level;
+-		    *dac3 = level;
+-		    *dac3 = level;
+-	}	
+-	// Last 4 locations 0x20C to 0x20F must be FF 
+-	for (index = 0x20C; index < 0x210; index++)
+-	{
+-		*dac0 = index & 0xFF;
+-		*dac1 = (index & 0xFF00) >> 8;
+-		    *dac3 = 0xFF;
+-		    *dac3 = 0xFF;
+-		    *dac3 = 0xFF;
+-	}
+-	/* Set the 1st 256 locations, according to current brightness. */
+-	vid_C16_SetBrightness((evioScreen *)0, ni.ni_brightness);
+-}	
++	nvram_check(&ni);
++	vid_C16_SetBrightness(ni.ni_brightness);
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_MapFB */
+@@ -1019,9 +1019,5 @@
+-	/*
+-	 *  Set the maximum address that can be used to the beginning
+-	 *  of video memory space.  XXX - Do some checking here?
+-	 */
+-	addr = P_C16_VIDEOMEM & ~(C16_VID_SIZE - 1);
+-	vm_map_max(current_task()->map) = addr;
+-
+-	/* setup transparent translation, CACHED! */
+-	pmap_tt (current_thread(), PMAP_TT_ENABLE, addr, C16_VID_SIZE,
++
++	addr = P_C16_VIDEOMEM;
++	if (vm_allocate(current_task()->map, &addr, VID_MAPPED_SIZE, FALSE) != KERN_SUCCESS)
++		return 0;
++	pmap_tt (current_thread(), PMAP_TT_ENABLE, addr, VID_MAPPED_SIZE,
+@@ -1030,0 +1027,14 @@
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_UnMapFB */
++ static void
++vid_C16_UnMapFB()
++{
++	vm_offset_t addr = P_C16_VIDEOMEM;
++
++	vm_deallocate(current_task()->map, addr, VID_MAPPED_SIZE);
++	pmap_tt (current_thread(), PMAP_TT_DISABLE, 0, 0, 0);
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_DisplayCursor */
+@@ -1041,13 +1051,9 @@
+-
+-void vid_C16_DisplayCursor(evioScreen *es, Bounds cursorRect, int waitFrame,
+-		      NXCursorData *nxCursorData)
+-{
+-    Bounds bounds;			/* screen bounds */
+-    Bounds *saveRect;			/* screen rect saved */
+-    unsigned int vramRow;		/* screen row */
+-    volatile unsigned short *cursPtr;	/* cursor data pointer */
+-    volatile unsigned short *vramPtr;	/* screen data pointer */
+-    vm_offset_t startPtr;		/* Starting screen data pointer */
+-    volatile unsigned short *savePtr;	/* saved screen data pointer */
+-    volatile unsigned short *maskPtr;	/* cursor mask pointer */
+-    int width, cursRow;
++ static void
++vid_C16_DisplayCursor()
++{
++    Bounds saveRect;
++    unsigned int vramRow;
++    volatile unsigned short *cursPtr;
++    volatile unsigned short *vramPtr;
++    unsigned short *savePtr;
++    short i, j, width, cursRow;
+@@ -1055,16 +1061,11 @@
+-    int i, j;
+-
+-    vramPtr = (unsigned short *)P_C16_VIDEOMEM;
+-    vramRow = C16_VIDEO_MW;	/* Scanline width in pixels */
+-    bounds = es->bounds;
+-
+-    saveRect = nxCursorData->saveRect;
+-    *saveRect = cursorRect;
+-    /* Clip saveRect vertical within screen bounds */
+-    if (saveRect->miny < bounds.miny) saveRect->miny = bounds.miny;
+-    if (saveRect->maxy > bounds.maxy) saveRect->maxy = bounds.maxy;
+-    if (saveRect->minx < bounds.minx) saveRect->minx = bounds.minx;
+-    if (saveRect->maxx > bounds.maxx) saveRect->maxx = bounds.maxx;
+-    vramPtr += (vramRow * (saveRect->miny - bounds.miny)) +
+-	       (saveRect->minx - bounds.minx);
+-    width = saveRect->maxx - saveRect->minx;
++
++    saveRect = msp->cursorRect;
++    if (saveRect.miny < msp->screenBounds.miny) saveRect.miny = msp->screenBounds.miny;
++    if (saveRect.maxy > msp->screenBounds.maxy) saveRect.maxy = msp->screenBounds.maxy;
++    if (saveRect.minx < msp->screenBounds.minx) saveRect.minx = msp->screenBounds.minx;
++    if (saveRect.maxx > msp->screenBounds.maxx) saveRect.maxx = msp->screenBounds.maxx;
++    msp->saveRect = saveRect;
++    vramRow = km_coni.dspy_max_w;
++    vramPtr = (unsigned short *)P_C16_VIDEOMEM + vramRow * (saveRect.miny - msp->screenBounds.miny) + (saveRect.minx - msp->screenBounds.minx);
++    vid_disp_start = (unsigned int) vramPtr;
++    width = saveRect.maxx - saveRect.minx;
+@@ -1072,11 +1073,20 @@
+-    
+-    switch(waitFrame) {
+-	case 1:
+-	case 2:
+-	case 3:
+-	    cursPtr = C16_waitCursors[waitFrame-1];
+-	    break;
+-	default:
+-	case 0:
+-	    cursPtr = (volatile unsigned short *)nxCursorData->cursorData16;
+-	    break;
++    cursRow = CURSORWIDTH - width;
++    savePtr = msp->cursor.rgb.save;
++    cursPtr = msp->cursor.rgb.image[msp->frame];
++    cursPtr += (saveRect.miny - msp->cursorRect.miny) * CURSORWIDTH +
++	       (saveRect.minx - msp->cursorRect.minx);
++    for (i = saveRect.maxy - saveRect.miny; i--; ) {
++	for (j = width; j--; ) {
++	    d = *vramPtr; *savePtr++ = d;
++	    s = *cursPtr++;
++	    if (s == 0)
++		vramPtr++;
++	    else {
++		f = (~s) & (unsigned int)0x000F;
++		if (f != 0)
++		    s += (((((d & 0xF0F0)>>4)*f + 0x0F0F) & 0xF0F0) | ((((d & 0x0F0F)*f+0x0F0F)>>4) & 0x0F0F));
++		*vramPtr++ = s;
++	    }
++	}
++	cursPtr += cursRow;
++	vramPtr = (volatile unsigned short *)((char *)vramPtr + vramRow + vramRow);
+@@ -1084,27 +1094,6 @@
+-    startPtr = (vm_offset_t) vramPtr;
+-    savePtr = (volatile unsigned short *)nxCursorData->saveData;
+-    /* Index into the cursor data by an appropriate amount */
+-    cursPtr += (saveRect->miny - cursorRect.miny) * CURSORWIDTH +
+-    	       (saveRect->minx - cursorRect.minx);
+-    cursRow = CURSORWIDTH - width;
+-    for (i = saveRect->maxy - saveRect->miny; i>0; i--) {
+-	for (j = width; j>0; j--) {
+-	    d = *savePtr++ = *vramPtr;
+-	    s = *cursPtr++;
+-	    f = (~s) & (unsigned int)AMASK;
+-	    d = s + (((((d & RBMASK)>>4)*f + GAMASK) & RBMASK)
+-		| ((((d & GAMASK)*f+GAMASK)>>4) & GAMASK));
+-	    *vramPtr++ = d;
+-	}
+-	cursPtr += cursRow; /* starting point of next cursor line */
+-	vramPtr += vramRow; /* starting point of next screen line */
+-    }
+-    /* Flush the pixels modified by the cursor drawing operation */
+-    while( startPtr < (vm_offset_t)vramPtr )
+-    {
+-	cache_push_page( startPtr );	/* Assumes phys addr == virt addr */
+-	startPtr += PAGE_SIZE;
+-    }
+-}
+-
+-
++    vid_disp_end = (unsigned int) (vramPtr + 1);
++    vid_flush_flags |= 1;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_RemoveCursor */
+@@ -1118,6 +1107,5 @@
+-
+-void vid_C16_RemoveCursor(evioScreen *es, Bounds cursorRect, NXCursorData
+-		     *nxCursorData)
+-{
+-    Bounds *saveRect = nxCursorData->saveRect;
+-    int i, j, width;
++ static void
++vid_C16_RemoveCursor()
++{
++    Bounds saveRect = msp->saveRect;
++    short i, j, width;
+@@ -1127,13 +1115,9 @@
+-    vm_offset_t startPtr;		/* Starting screen data pointer */
+-    Bounds bounds = es->bounds;
+-
+-    vramPtr = (unsigned short *)P_C16_VIDEOMEM;
+-    vramRow = C16_VIDEO_MW;	/* Scanline width in pixels */
+-    vramPtr += (vramRow * (saveRect->miny - bounds.miny)) +
+-	       (saveRect->minx - bounds.minx);
+-    vramRow -= (saveRect->maxx - saveRect->minx);
+-    savePtr = (volatile unsigned short *)nxCursorData->saveData;
+-    startPtr = (vm_offset_t) vramPtr;
+-    width = saveRect->maxx - saveRect->minx;
+-    for (i = saveRect->maxy - saveRect->miny; i>0; i--) {
+-	for (j = width; j>0; j--)
++
++    vramRow = km_coni.dspy_max_w;
++    vramPtr = (unsigned short *)P_C16_VIDEOMEM + vramRow * (saveRect.miny - msp->screenBounds.miny) + (saveRect.minx - msp->screenBounds.minx);
++    width = saveRect.maxx - saveRect.minx;
++    vramRow -= width;
++    savePtr = msp->cursor.rgb.save;
++    vid_rem_start = (unsigned int) vramPtr;
++    for (i = saveRect.maxy - saveRect.miny; i--; ) {
++	for (j = width; j--; )
+@@ -1143,48 +1127,6 @@
+-    /* Flush the pixels modified by the cursor erase operation */
+-    while( startPtr < (vm_offset_t)vramPtr )
+-    {
+-	cache_push_page( startPtr );	/* Assumes phys addr == virt addr */
+-	startPtr += PAGE_SIZE;
+-    }
+-}
+-
+-
+-void vid_C16_SetCursor(evioScreen *es, unsigned int *data, unsigned int *mask,
+-    int drow, int mrow, int waitFrame, NXCursorData *nxCursorData)
+-{
+-    volatile unsigned short *cp;
+-    unsigned int d, m;
+-    unsigned short e, f;
+-    int i, j;
+-    
+-    switch (waitFrame) {
+-	case 1:
+-	case 2:
+-	case 3:
+-	    if (C16_waitCache[waitFrame-1])	/* Already in cache? */
+-		return;
+-	    C16_waitCache[waitFrame-1]++;
+-	    cp = (volatile unsigned short *)C16_waitCursors[waitFrame-1];
+-	    break;
+-	default:
+-	case 0:
+-	    cp = (volatile unsigned short *)nxCursorData->cursorData16;
+-	    break;
+-    }
+-    mrow >>= 2;
+-    drow >>= 2;
+-    for (i=16; i>0; i--) {
+-	m = *mask; mask += mrow;	/* Get mask data and inc ptr */
+-        d = *data; data += drow;	/* Get grey data and convert */
+-	for (j=30; j>=0; j-=2) {	/* Grind through 16 packed 2 bit pixels */
+-	    e = (d>>j) & 3;		/* isolate single 2bit data */
+-	    e = (e << 2) | e;		/* And replicate over 12 bits */
+-	    e = (e << 4) | e;
+-	    e = ((e << 8) | e) & ~AMASK;
+-	    f = (m>>j) & 3;		/* isolate single 2bit mask (alpha) */
+-	    e |= (f << 2) | f;		/* Replicate to 4 bit alpha */
+-	    *cp++ = e;
+-	}
+-    }
+-}
+-
++    vid_rem_end = (unsigned int) (vramPtr + 1);
++    vid_flush_flags |= 2;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_SetBrightness */
+@@ -1198,23 +1140,31 @@
+-static void
+-vid_C16_SetBrightness(evioScreen *es, unsigned int level)
+-{
+-	volatile unsigned char *dac0 = ((unsigned char *)P_C16_DAC_0);
+-	volatile unsigned char *dac1 = ((unsigned char *)P_C16_DAC_1);
+-	volatile unsigned char *dac2 = ((unsigned char *)P_C16_DAC_2);
+-	volatile unsigned char *dac3 = ((unsigned char *)P_C16_DAC_3);
+-	int index;
+-	unsigned int scale;
+-
+-	scale = (level*64)/BRIGHT_MAX;
+-	for (index = 0; index < 256; index++)
+-	{
+-	        level = (unsigned int)((Gamma[index]*scale)>>6) + 0x08;
+-		if ( level > 0xFF )
+-			level = 0xFF;
+-		*dac0 = index & 0xFF;
+-		*dac1 = (index & 0xFF00) >> 8;
+-		    *dac3 = level;
+-		    *dac3 = level;
+-		    *dac3 = level;
+-	}	
+-}
++ static void
++vid_C16_SetBrightness(unsigned int level)
++{
++	volatile unsigned char *dac0 = (volatile unsigned char *) P_C16_DAC_0;
++	volatile unsigned char *dac1 = (volatile unsigned char *) P_C16_DAC_1;
++	volatile unsigned char *dac3 = (volatile unsigned char *) P_C16_DAC_3;
++	unsigned int scale = (level << 6) / 61;
++	unsigned int idx = 0;
++	unsigned int r, g, b;
++	int i, j;
++
++	for (i = 0; i < 16; i++) {
++		r = (vid_gamma_r[i] * scale) >> 6;
++		g = (vid_gamma_g[i] * scale) >> 6;
++		b = (vid_gamma_b[i] * scale) >> 6;
++		if (r > 255) r = 255;
++		if (g > 255) g = 255;
++		if (b > 255) b = 255;
++		for (j = 0; j < 16; j++) {
++			*dac0 = idx;
++			*dac1 = (idx & 0xff00) >> 8;
++			*dac3 = r;
++			*dac3 = g;
++			*dac3 = b;
++			idx++;
++		}
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_installIntr */
+@@ -1225 +1175 @@
+-static void
++ static void
+@@ -1228,5 +1178,12 @@
+-	volatile char *vcsr = (volatile char *) P_C16_CMD_REG;
+-
+-	install_scanned_intr(I_C16_VIDEO, vid_C16_intr, (void *)0);
+-	*vcsr = C16_CMD_INTRENA | C16_CMD_UNBLANK; /* enable interrupt */
+-}
++	volatile unsigned char *cmd = (volatile unsigned char *) P_C16_CMD_REG;
++	volatile int *p2 = (volatile int *)(SLOT_ID + 0x02200080);
++
++	install_scanned_intr(0xd30, vid_C16_intr, (void *)0);
++	if (dma_chip == 313)
++		*cmd = 6;
++	else
++		*p2 = 0x06000000;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_intr */
+@@ -1237 +1194 @@
+-static void
++ static void
+@@ -1240,3 +1197,7 @@
+-	volatile char *vcsr = (volatile char *) P_C16_CMD_REG;
+-
+-	*vcsr = C16_CMD_CLRINTR | C16_CMD_UNBLANK;	/* Clear it. */
++	volatile unsigned char *cmd = (volatile unsigned char *) P_C16_CMD_REG;
++	volatile int *p2 = (volatile int *)(SLOT_ID + 0x02200080);
++
++	if (dma_chip == 313)
++		*cmd = 5;
++	else
++		*p2 = 0x05000000;
+@@ -1245,2 +1206,8 @@
+-	*vcsr = C16_CMD_INTRENA | C16_CMD_UNBLANK;	/* enable it */
+-}
++	if (dma_chip == 313)
++		*cmd = 6;
++	else
++		*p2 = 0x06000000;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_SuspendAnim */
+@@ -1251 +1218 @@
+-static void
++ static void
+@@ -1254,7 +1221,13 @@
+-	volatile char *vcsr = (volatile char *) P_C16_CMD_REG;
+-
+-	/* Temporarily stop animation by disabling VBL interrupt. */
+-	*vcsr = C16_CMD_UNBLANK;
+-}
+-
+-static void
++	extern		struct mon_global *mon_global;
++	struct		mon_global *mg = mon_global;
++
++	if (curipl() <= 2) {
++		*MG (char*, MG_flags) &= ~MGF_ANIM_RUN;
++		vidBW2Suspended = 1;
++		DELAY (100000);
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_C16_ResumeAnim */
++ static void
+@@ -1263,9 +1236,142 @@
+-	volatile char *vcsr = (volatile char *) P_C16_CMD_REG;
+-
+-	/* continue animation after being stopped temporarily */
+-	*vcsr = C16_CMD_INTRENA | C16_CMD_UNBLANK;
+-}
+-
+-
+-#endif /* COLOR_FB */
+-
++	extern		struct mon_global *mon_global;
++	struct		mon_global *mg = mon_global;
++
++	if (vidBW2Suspended) {
++		vidBW2Suspended = 0;
++		*MG (char*, MG_flags) |= MGF_ANIM_RUN;
++		if (!(km.flags & KMF_SEE_MSGS) && !console_o &&
++		    *MG (short *, 780) > 23 && *MG (int *, 782))
++			callout_dispatch(2, *MG (int *, 782), 0);
++	}
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_ev_hide (with its macros) */
++#define VID_MIN(a, b)	(((a) < (b)) ? (a) : (b))
++#define VID_MAX(a, b)	(((a) > (b)) ? (a) : (b))
++
++#define VID_CACHE_FLUSH() \
++    if (vid_flush_flags == 3) \
++	cache_flush(VID_MIN(vid_disp_start, vid_rem_start), VID_MAX(vid_disp_end, vid_rem_end), 0); \
++    else if (vid_flush_flags == 2) \
++	cache_flush(vid_rem_start, vid_rem_end, 0); \
++    else if (vid_flush_flags == 1) \
++	cache_flush(vid_disp_start, vid_disp_end, 0)
++
++#define VID_HIDE() \
++    if (!msp->cursorShow++) \
++	(*video_dev[vidFBnum].RemoveCursor)()
++
++#define VID_SHOW() \
++    if (msp->cursorShow) \
++	if (!--msp->cursorShow) { \
++	    { Point spot = msp->hotSpot[msp->frame]; \
++	    msp->cursorRect.maxx = (msp->cursorRect.minx = \
++		msp->cursorLoc.x - spot.x) + CURSORWIDTH; \
++	    msp->cursorRect.maxy = (msp->cursorRect.miny = \
++		msp->cursorLoc.y - spot.y) + CURSORHEIGHT; } \
++	    (*video_dev[vidFBnum].DisplayCursor)(); \
++	    msp->oldCursorRect = msp->cursorRect; \
++	}
++
++#define VID_SHIELD() \
++    if (msp->shieldFlag) { \
++	int intersect; \
++	Bounds tempRect; \
++	{ Point spot = msp->hotSpot[msp->frame]; \
++	tempRect.maxx = (tempRect.minx = \
++	    msp->cursorLoc.x - spot.x) + CURSORWIDTH; \
++	tempRect.maxy = (tempRect.miny = \
++	    msp->cursorLoc.y - spot.y) + CURSORHEIGHT; } \
++	intersect = (tempRect.minx < msp->shieldRect.maxx && \
++		     tempRect.maxx > msp->shieldRect.minx && \
++		     tempRect.miny < msp->shieldRect.maxy && \
++		     tempRect.maxy > msp->shieldRect.miny); \
++	if (intersect != msp->shielded) { \
++	    if (msp->shielded = intersect) { VID_HIDE(); } else { VID_SHOW(); } \
++	} \
++    }
++
++ static int
++vid_ev_hide(EvScreen *es)
++{
++    vid_flush_flags = 0;
++    if (msp->cursorSema)
++	return 1;
++    msp->cursorSema = 1;
++    VID_HIDE();
++    msp->cursorSema = 0;
++    VID_CACHE_FLUSH();
++    return 0;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_ev_show */
++ static int
++vid_ev_show(EvScreen *es, Point loc, int frame)
++{
++    vid_flush_flags = 0;
++    if (msp->cursorSema)
++	return 1;
++    msp->cursorSema = 1;
++    msp->frame = frame;
++    msp->cursorLoc = loc;
++    VID_SHIELD();
++    VID_SHOW();
++    msp->cursorSema = 0;
++    VID_CACHE_FLUSH();
++    return 0;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_ev_move */
++ static int
++vid_ev_move(EvScreen *es, Point loc, int frame)
++{
++    vid_flush_flags = 0;
++    if (msp->cursorSema)
++	return 1;
++    msp->cursorSema = 1;
++    msp->frame = frame;
++    msp->cursorLoc = loc;
++    VID_HIDE();
++    if (msp->cursorObscured) {
++	msp->cursorObscured = 0;
++	if (msp->cursorShow)
++	    --msp->cursorShow;
++    }
++    VID_SHIELD();
++    VID_SHOW();
++    msp->cursorSema = 0;
++    VID_CACHE_FLUSH();
++    return 0;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vid_ev_level */
++ static int
++vid_ev_level(EvScreen *es, int level)
++{
++    vidSetBrightness(level);
++    return 0;
++}
++/* plan 761 END */
++
++/* plan 761 (D024, D171) BEGIN: vidRegisterScreen */
++ static int
++vidRegisterScreen()
++{
++    EvScreen *es;
++
++    vid_screen_token = ev_register_screen(&es, 0, vid_ev_move, vid_ev_hide,
++	vid_ev_show, vid_ev_level);
++    if (vid_screen_token < 0)
++	return ENXIO;
++    msp = (vidShmemStruct *) es->shmemPtr;
++    bzero(msp, es->shmemSize);
++    msp->cursorShow = 1;
++    msp->screenBounds = es->bounds;
++    return 0;
++}
++/* plan 761 END */
++

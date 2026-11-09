@@ -1,0 +1,88 @@
+--- nextmach/mk-108.1/next/swapgeneric.c
++++ 07_kernel/src/machdep/m68k/swapgeneric.c
+@@ -23,6 +23,24 @@
+  *	@(#)swapgeneric.c	7.1 (Berkeley) 6/6/86
+  */
+ 
++/*
++ * plan 612 (D138, D013, D024, D104): the 1997 m68k swapgeneric.c.
++ * NeXTMach mk-108.1 next/swapgeneric.c with the 1997 changes fixed by the
++ * original bytes [0x4099184, 0x40996b8) and data [0x40b2bde, 0x40b2c10)
++ * (plans 610-611):
++ *	- <nextdev/busvar.h> written <dev/busvar.h> (D104)
++ *	- genericconf is static (no _genericconf in the original); with the
++ *	  configuration NSD 7, NRD 0 (generated sd.h, rd.h) it has the entries
++ *	  sd, od, fd, en (10 B each: driver, name, dev_t) and the end entry
++ *	- int dmmin, dmmax, dmtext removed (no such names in the original)
++ *	- setconf: the last search for a unit 0 root device removed (no
++ *	  "root on %s0" in the original)
++ *	- initrootnet: the network search skips entries whose gc_root is not
++ *	  NODEV (NeXTMach: is NODEV)
++ * gets and getfsname are the NeXTMach text unchanged.  Lines marked plan
++ * 612 differ from NeXTMach; removed lines are marked where they were.
++ */
++
+ #import <sys/param.h>
+ #import <sys/conf.h>
+ #import <sys/buf.h>
+@@ -33,7 +51,7 @@
+ #import <sys/reboot.h>
+ #import <sys/vfs.h>
+ #import <sys/vnode.h>
+-#import <nextdev/busvar.h>
++#import <dev/busvar.h>	/* plan 612 (D104): NeXTMach <nextdev/busvar.h> */
+ #import <sys/socket.h>
+ #import <sys/errno.h>
+ #import <sys/ioctl.h>
+@@ -58,7 +76,7 @@
+  * Generic configuration;  all in one
+  */
+ long	dumplo;
+-int	dmmin, dmmax, dmtext;
++/* plan 612 (D138, D024): NeXTMach int dmmin, dmmax, dmtext; removed (no such names in the original) */
+ 
+ #import <en.h>
+ #if	NEN > 0
+@@ -85,11 +103,11 @@
+ extern struct bus_driver fcdriver;
+ #endif	NFD
+ 
+-struct	genericconf {
++static struct	genericconf {	/* plan 612 (D138, D024): no _genericconf in the original */
+ 	struct bus_driver *gc_driver;
+ 	char	*gc_name;
+ 	dev_t	gc_root;	/* NODEV means remote root */
+-} genericconf[] = {
++} genericconf[] = {	/* plan 612 (D138, D024): static, as the struct line above */
+ #if	NSD > 0
+ 	{ &scdriver, "sd", makedev(6, 0) },
+ #endif	NSD
+@@ -186,18 +204,7 @@
+ 		printf ("root device %s%d not configured\n", boot_dev, unit);
+ 	}
+ 
+-	for (gc = genericconf; gc->gc_driver; gc++) {
+-		for (bd = bus_dinit; bd->bd_driver; bd++) {
+-			if (bd->bd_alive == 0)
+-				continue;
+-			if (bd->bd_unit == 0 &&
+-			    bd->bd_driver == gc->gc_driver &&
+-			    strcmp(bd->bd_name, gc->gc_name)==0) {
+-				printf("root on %s0\n", bd->bd_name);
+-				goto found;
+-			}
+-		}
+-	}
++	/* plan 612 (D138, D024): NeXTMach unit 0 fallback search removed (no "root on %s0" in the original) */
+ 	printf("no suitable root\n");
+ 	mon_boot ("-h");
+ found:
+@@ -295,7 +302,7 @@
+ 	if (gc->gc_root != NODEV) {
+ 		/* We booted locally, find first congifured net */
+ 		for (lgc = genericconf; lgc->gc_driver; lgc++) {
+-			if (lgc->gc_root == NODEV)
++			if (lgc->gc_root != NODEV)	/* plan 612 (D138, D024): original 0x409959a */
+ 				continue;
+ 			for (bd = bus_dinit; bd->bd_driver; bd++) {
+ 				if (bd->bd_alive == 0)

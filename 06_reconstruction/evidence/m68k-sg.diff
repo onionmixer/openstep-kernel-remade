@@ -1,0 +1,148 @@
+--- NeXTMach mk-108.1/nextdev/sg.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/sg.c (plan 655, D151)
+@@ -15,6 +15,27 @@
+  *
+  */ 
+  
++/*
++ * plan 655 (D151, D013, D024, D104, D110, D113, D149, D150): the 1997 m68k
++ * sg.c.  NeXTMach mk-108.1 nextdev/sg.c with the include lines in OPENSTEP
++ * paths and these changes (plans 653-654); the behavior is from the original
++ * bytes [0x407f612, 0x407ff14):
++ *	sginit		DMA_BEGINALIGN of the 1997 public dma.h (NeXTMach
++ *			DMA_ALIGN, removed from the 07 nextdev/dma.h)
++ *	sgopen		EBUSY when already open; autosense cleared on open
++ *	sgclose		releases the target/lun count in sc_lunmask (D149)
++ *	sgsettl		target/lun bound check; releases the old target/lun
++ *			and counts the new one in sc_lunmask
++ *	sgioctl		the 1997 get-autosense request _IOR('s', 7, int)
++ *	sgcmd		the 1997 kmem_alloc_wired()
++ * SG_UNIT(dev) is minor(dev) in the 1997 code; it is changed in the 07
++ * nextmach/nextdev/sgvar.h.  These spellings are this project's choices
++ * (the bytes do not show them; D151, D150): the SG_UNIT change in the
++ * header, the in-file SGIOCGAS name, the (char) cast of the release test,
++ * the SCSI_NTARGETS/SCSI_NLUNS bounds and the allocation form.
++ * The other functions are the NeXTMach text unchanged.  Lines marked
++ * plan 655 differ from NeXTMach.
++ */
+ /* #define SG_OLAY_OK	0	/* OK to set target/lun = to sd disk */
+ 
+ #import <sg.h>
+@@ -32,20 +53,24 @@
+ #import <sys/user.h>
+ #import <kern/xpr.h>
+ #import <kern/queue.h>
+-#import <next/psl.h>
+-#import <next/cpu.h>
+-#import <next/printf.h>
+-#import <nextdev/busvar.h>
+-#import <nextdev/disk.h>
++#import <m68k/psl.h>	/* plan 655 (D104): NeXTMach <next/psl.h> */
++#import <m68k/cpu.h>	/* plan 655 (D110): NeXTMach <next/cpu.h> */
++#import <kernserv/printf.h>	/* plan 655 (D104): NeXTMach <next/printf.h> */
++#import <dev/busvar.h>	/* plan 655 (D104): NeXTMach <nextdev/busvar.h> */
++#import <dev/disk.h>	/* plan 655 (D104): NeXTMach <nextdev/disk.h> */
+ #import <nextdev/dma.h>
+ #import <nextdev/screg.h>			/* debug only */
+ #import <nextdev/scvar.h>			/* debug only */
+-#import <nextdev/scsireg.h>
+-#import <nextdev/scsivar.h>
++#import <dev/m68k/scsireg.h>	/* plan 655 (D104, D113): NeXTMach <nextdev/scsireg.h> */
++#import <dev/m68k/scsivar.h>	/* plan 655 (D104, D113): NeXTMach <nextdev/scsivar.h> */
+ #import <nextdev/sgvar.h>
+ #import <machine/spl.h>
+ #import <vm/vm_kern.h>
+ 
++#ifndef	SGIOCGAS	/* plan 655 (D151): 1997 public scsireg.h name, not in the 07 <dev/m68k/scsireg.h> */
++#define SGIOCGAS	_IOR( 's', 7, int)		/* get autosense */	/* plan 655 (D151) */
++#endif	/* plan 655 (D151) */
++
+ extern struct reg_values s5c_state_values[];	/* in sc.c */
+ extern struct reg_values sriost_values[];	/* in sg.c */
+ extern struct reg_values scsi_cmd_values[];	/* in scsi.c */
+@@ -182,7 +207,7 @@
+ 
+ 	bzero(sgdp, sizeof(struct scsi_generic_device));
+ 	sgdp->sgd_sdp = sdp;
+-	sgdp->sgd_erp = DMA_ALIGN(struct esense_reply *, &sgdp->sgd_erbuf);
++	sgdp->sgd_erp = DMA_BEGINALIGN(struct esense_reply *, &sgdp->sgd_erbuf);	/* plan 655 (D151): NeXTMach DMA_ALIGN */
+ 	queue_init(&sgdp->sgd_io_q);
+ 	sgdp->sgd_state = SGDSTATE_STARTINGCMD;
+ 	sgdp->sgd_autosense = 0;
+@@ -199,11 +224,13 @@
+ 
+ 	XDBG(("sgopen: dev = %d unit = %d\n",dev,unit));
+ 	if (unit >= NSG || 			/* illegal device */
+-	    sgdp->sgd_sdp == NULL ||		/* hasn't been init'd */
+-	    sgdp->sgd_open)			/* already open */
++	    sgdp->sgd_sdp == NULL)		/* hasn't been init'd */	/* plan 655 (D024) */
+ 		return(ENXIO);
++	if (sgdp->sgd_open)			/* already open */	/* plan 655 (D024): 1997, 0x407f73a */
++		return(EBUSY);	/* plan 655 (D024) */
+ 	sgattach2(sgdp->sgd_sdp);
+ 	sgdp->sgd_open = 1;
++	sgdp->sgd_autosense = 0;	/* plan 655 (D024): 1997, 0x407f74e */
+ 	scsi_ndevices++;
+ 	return(0);
+ }
+@@ -219,8 +246,12 @@
+ 	    !sgdp->sgd_open)			/* not open */
+ 		return(ENXIO);
+ 	sgdp->sgd_open = 0;
+-	sgdp->sgd_sdp->sd_target = -1;
+-	sgdp->sgd_sdp->sd_lun = -1;
++	if ((char)sgdp->sgd_sdp->sd_target != -1) {	/* plan 655 (D024, D151): 1997, 0x407f79a */
++		sgdp->sgd_sdp->sd_scp->sc_lunmask[sgdp->sgd_sdp->sd_target]	/* plan 655 (D024) */
++		    [sgdp->sgd_sdp->sd_lun]--;	/* plan 655 (D024) */
++		sgdp->sgd_sdp->sd_target = -1;	/* plan 655 (D024) */
++		sgdp->sgd_sdp->sd_lun = -1;	/* plan 655 (D024) */
++	}	/* plan 655 (D024) */
+ 	scsi_ndevices--;			/* this device essentially
+ 						 * disappears */
+ 	return(0);
+@@ -493,6 +524,9 @@
+ 		splx(s);
+ #endif	SG_DMA_DIS
+ 		break;
++	case SGIOCGAS:				/* get autosense */	/* plan 655 (D024): 1997, 0x407fc16 */
++		*(int *)data = sgdp->sgd_autosense;	/* plan 655 (D024) */
++		break;	/* plan 655 (D024) */
+ 	case SGIOCRST:
+ 		if (!suser()) {			/* this is too dangerous for
+ 						 * the hoi polloi */
+@@ -514,14 +548,22 @@
+ 	struct scsi_adr *sadp)	
+ {
+ 	XDBG(("sgsettl: target %d  lun %d\n",sadp->sa_target,sadp->sa_lun));
++	if (sadp->sa_target >= SCSI_NTARGETS || sadp->sa_lun >= SCSI_NLUNS)	/* plan 655 (D024, D151): 1997, 0x407fc88 */
++		return(EINVAL);	/* plan 655 (D024) */
++	if ((char)sgdp->sgd_sdp->sd_target != -1) {	/* plan 655 (D024, D151): 1997, 0x407fc9c */
++		sgdp->sgd_sdp->sd_scp->sc_lunmask[sgdp->sgd_sdp->sd_target]	/* plan 655 (D024) */
++		    [sgdp->sgd_sdp->sd_lun]--;	/* plan 655 (D024) */
++		sgdp->sgd_sdp->sd_target = -1;	/* plan 655 (D024) */
++		sgdp->sgd_sdp->sd_lun = -1;	/* plan 655 (D024) */
++	}	/* plan 655 (D024) */
+ #ifndef	SG_OLAY_OK
+ 	/* verify target/lun not already in use. Super user can do this. */
+-	if (sgdp->sgd_sdp->sd_scp->sc_lunmask[sadp->sa_target] & 
+-	   (1 << sadp->sa_lun)) {
++	if (sgdp->sgd_sdp->sd_scp->sc_lunmask[sadp->sa_target][sadp->sa_lun]) {	/* plan 655 (D024, D149): 1997 count table, 0x407fcd0 */
+ 	   	if(!suser())
+ 			return(EACCES);
+ 	}
+ #endif	SG_OLAY_OK
++	sgdp->sgd_sdp->sd_scp->sc_lunmask[sadp->sa_target][sadp->sa_lun]++;	/* plan 655 (D024): 1997, 0x407fd0c */
+ 	sgdp->sgd_sdp->sd_target = sadp->sa_target;
+ 	sgdp->sgd_sdp->sd_lun    = sadp->sa_lun;
+ 	return(0);
+@@ -554,8 +596,8 @@
+ 	
+ 	if(srp->sr_dma_max != 0) {
+ 		/* be sure to kmem_free() if error exit is taken...*/
+-		if ((ap = (caddr_t)kmem_alloc(kernel_map,
+-					      srp->sr_dma_max)) == 0) {
++		if (kmem_alloc_wired(kernel_map, (vm_offset_t *)&ap,	/* plan 655 (D024, D150): 1997, 0x407fd66 */
++				     srp->sr_dma_max) != KERN_SUCCESS) {	/* plan 655 (D151) */
+ 			XDBG(("        ...kmem_alloc() failed\n"));
+ 			srp->sr_io_status = SR_IOST_MEMALL;
+ 			return(ENOMEM);

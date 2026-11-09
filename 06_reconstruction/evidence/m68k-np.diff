@@ -1,0 +1,192 @@
+--- nextmach/mk-108.1/nextdev/np.c
++++ 07_kernel/src/machdep/m68k/np.c
+@@ -47,7 +47,18 @@
+  *	Created.
+  */
+ 
+-#import "np.h"
++/*
++ * plan 549 (D121, D103, D104, D024): the 1997 m68k np.c.  NeXTMach mk-108.1
++ * nextdev/np.c with the include lines in OPENSTEP paths, the next/cpu.h names
++ * in this file, and the 1997 changes written from the original bytes
++ * [0x40726d0, 0x4074a6c) (plan 548): np_setstate (thread_deallocate_interrupt;
++ * the ERROR/OFF case releases sc_wsel as the original does; callout_dispatch),
++ * np_startdata (313-only dh_start step, lpr_csr_or order, the non-313 loop),
++ * np_close (select threads released), np_select_common (selthreadcache) and
++ * np_write (kmem_alloc_wired).  The four compiler warnings of the 1990 text with
++ * the 1997 headers are kept (D121).  Lines marked plan 549 differ from NeXTMach.
++ */
++#import <np.h>	 /* plan 549 (D104): NeXTMach "np.h" */
+ #if	NNP > 0
+ 
+ /*
+@@ -58,13 +69,13 @@
+ #import <sys/errno.h>
+ #import <sys/types.h>
+ #import <sys/buf.h>
+-#import <sys/boolean.h>
++#import <mach/boolean.h>	 /* plan 549 (D104): NeXTMach <sys/boolean.h> */
+ #import <sys/callout.h>
+ #import <sys/param.h>
+ #import <sys/systm.h>
+ #import <sys/kernel.h>
+ #import <sys/ioctl.h>
+-#import <nextdev/npio.h>
++#import <dev/m68k/npio.h>	 /* plan 549 (D104): NeXTMach <nextdev/npio.h> */
+ #import <kern/xpr.h>
+ #import <sys/file.h>
+ #import <kern/sched_prim.h>
+@@ -73,19 +84,31 @@
+ #import <sys/proc.h>
+ #import <sys/uio.h>
+ #import <sys/user.h>
+-#import <kern/mach_types.h>
+-#import <sys/message.h>
+-#import <sys/notify.h>
++#import <mach/mach_types.h>	 /* plan 549 (D104): NeXTMach <kern/mach_types.h> */
++#import <mach/message.h>	 /* plan 549 (D104): NeXTMach <sys/message.h> */
++#import <mach/notify.h>	 /* plan 549 (D104): NeXTMach <sys/notify.h> */
+ #import <kern/lock.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	 /* plan 549 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_kern.h>
+-#import <next/autoconf.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
+-#import <nextdev/busvar.h>
++#import <dev/m68k/autoconf.h>	 /* plan 549 (D104): NeXTMach <next/autoconf.h> */
++#import <m68k/cpu.h>	/* plan 549 (D104, D110): NeXTMach <next/cpu.h>; <next/scr.h> not needed (no name used) */
++#import <dev/busvar.h>	 /* plan 549 (D104): NeXTMach <nextdev/busvar.h> */
+ #import <nextdev/dma.h>
+ #import <nextdev/npreg.h>
+-#import <next/printf.h>
++#import <kernserv/printf.h>	 /* plan 549 (D104): NeXTMach <next/printf.h> */
++
++/* plan 549 (D121, D107, D113): the NeXTMach next/cpu.h names this file needs */
++extern int slot_id;
++#define	SLOT_ID		slot_id
++#define	P_PRINTER_CSR	(SLOT_ID+0x02000090)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_PRINTER_DMA	I(6,5,24)
++#define	I_PRINTER	I(3,2,11)
++
++/* plan 549 (D121, D024): 1997 functions this file calls (no declaration in the headers it imports) */
++extern void callout_dispatch();
++extern int selthreadcache();
++extern void thread_deallocate_interrupt();
+ 
+ 
+ /*
+@@ -921,6 +944,7 @@
+ 			selwakeup(sc->sc_wsel,
+ 				  sc->sc_flags&PF_WSELCOLL);
+ 			sc->sc_flags &= ~PF_WSELCOLL;
++			thread_deallocate_interrupt(sc->sc_wsel);	/* plan 549 (D024): 1997 */
+ 			sc->sc_wsel = THREAD_NULL;
+ 		}
+ 		break;
+@@ -934,6 +958,7 @@
+ 			selwakeup(sc->sc_esel,
+ 				  sc->sc_flags&PF_ESELCOLL);
+ 			sc->sc_flags &= ~PF_ESELCOLL;
++			thread_deallocate_interrupt(sc->sc_wsel);	/* plan 549 (D024): 1997; sc_wsel, not sc_esel, as the original bytes (0x4072f90) */
+ 			sc->sc_esel = THREAD_NULL;
+ 		}
+ 		break;
+@@ -942,7 +967,7 @@
+ 		/*
+ 		 * Schedule the printer initialization routine.
+ 		 */
+-		softint_sched(CALLOUT_PRI_THREAD, np_init_printer,
++		callout_dispatch(CALLOUT_PRI_THREAD, np_init_printer,	/* plan 549 (D024): NeXTMach softint_sched */
+ 			      (caddr_t) sc);
+ 		break;
+ 	}
+@@ -1347,6 +1372,7 @@
+ 	register struct dma_hdr *dhp;
+ 	register u_int		firstlword;
+ 	int	s;
++	int	i;				/* plan 549 (D024): 1997 */
+ 
+ 	XDBG(("np%d: np_startdata called\n", sc - np_softc));
+ 	s = splprinter();
+@@ -1367,13 +1393,21 @@
+ 	dhp = sc->sc_dl;
+ 	firstlword = (u_int) *dhp->dh_start;
+ 	np_send(np, NP_DATA_OUT, firstlword);
+-	dhp->dh_start += sizeof(u_int);
++	if (dma_chip == 313)		/* plan 549 (D024): 1997 */
++		dhp->dh_start += sizeof(u_int);
+ 	/*
+ 	 * Set up the DMA.
+ 	 */
+ 	dma_start(&sc->sc_dc, sc->sc_dl, DMACSR_WRITE);
++	lpr_csr_or(DMAOUT_OVR>>24);	/* plan 549 (D024): 1997 order OVR, DMAEN, OVR */
+ 	lpr_csr_or(DMAOUT_DMAEN>>24);
+ 	lpr_csr_or(DMAOUT_OVR>>24);
++	if (dma_chip != 313) {		/* plan 549 (D024): 1997 */
++		for (i = 0; i < 4; i++) {
++			lpr_csr_or(0x01);	/* plan 549 (D121): bit 0x01 (reserved in NeXTMach npreg.h); meaning unknown */
++			delay(1);
++		}
++	}
+ 
+ 	/*
+ 	 * Enable data out.
+@@ -1766,8 +1800,20 @@
+ np_close(dev_t dev, int flags)
+ {
+ 	register volatile struct np_softc *sc = &np_softc[minor(dev)];
++	thread_t wsel, esel;		/* plan 549 (D024): 1997 */
++	int s;				/* plan 549 (D024): 1997 */
+ 
++	s = splprinter();		/* plan 549 (D024): 1997 */
++	wsel = sc->sc_wsel;		/* plan 549 (D024): 1997 */
++	esel = sc->sc_esel;		/* plan 549 (D024): 1997 */
+ 	sc->sc_flags &= ~PF_OPEN;
++	sc->sc_wsel = THREAD_NULL;	/* plan 549 (D024): 1997 */
++	sc->sc_esel = THREAD_NULL;	/* plan 549 (D024): 1997 */
++	(void) splx(s);			/* plan 549 (D024): 1997 */
++	if (wsel)			/* plan 549 (D024): 1997 */
++		thread_deallocate(wsel);
++	if (esel)			/* plan 549 (D024): 1997 */
++		thread_deallocate(esel);
+ 	XDBG(("np%d: close\n", sc - np_softc));
+ 	return(0);
+ }	
+@@ -2293,10 +2339,8 @@
+ 			goto win;
+ 		}
+ 
+-		if (sc->sc_wsel && sc->sc_wsel->wait_event == (int)&selwait) {
++		if (selthreadcache(&sc->sc_wsel)) {	/* plan 549 (D024): 1997 */
+ 			sc->sc_flags |= PF_WSELCOLL;
+-		} else {
+-			sc->sc_wsel = current_thread();
+ 		}
+ 		break;
+ 
+@@ -2305,10 +2349,8 @@
+ 			goto win;
+ 		}
+ 
+-		if (sc->sc_esel && sc->sc_esel->wait_event == (int)&selwait) {
++		if (selthreadcache(&sc->sc_esel)) {	/* plan 549 (D024): 1997 */
+ 			sc->sc_flags |= PF_ESELCOLL;
+-		} else {
+-			sc->sc_esel = current_thread();
+ 		}
+ 		break;
+ 	}
+@@ -2492,9 +2534,8 @@
+ 	 * Set up the DMA list.
+ 	 */
+ 	sc->sc_dlsize = howmany(sc->sc_len, PAGE_SIZE) + 1;
+-	sc->sc_dl = (struct dma_hdr *) kmem_alloc(kernel_map,
+-						  (sc->sc_dlsize *
+-						   sizeof(struct dma_hdr)));
++	kmem_alloc_wired(kernel_map, (vm_offset_t *)&sc->sc_dl,	/* plan 549 (D024): NeXTMach kmem_alloc */
++			 (sc->sc_dlsize * sizeof(struct dma_hdr)));
+ 
+ 	
+ 

@@ -1,0 +1,249 @@
+--- nextmach/mk-108.1/nextdev/fd_cmds.c
++++ 07_kernel/src/machdep/m68k/fd_cmds.c
+@@ -12,14 +12,31 @@
+  *	Created.
+  */
+ 
+-#import <next/cpu.h>
++/*
++ * plan 579 (D131, D013, D024, D104, D110): the 1997 m68k fd_cmds.c.
++ * NeXTMach mk-108.1 nextdev/fd_cmds.c with the include lines in OPENSTEP
++ * paths and the 1997 changes written from the original bytes
++ * [0x406aa70, 0x406b546) (plans 577-578):
++ *	fc_send_cmd	no DMA alignment check ("fd: Unaligned DMA" removed);
++ *			dma_list without the secsize and rathole_va arguments;
++ *			DMA FIFO flushed 8 times only when dma_chip == 313;
++ *			after DMA, bytes_xfr = byte_count and
++ *			dma_cleanup(&fcp->dma_chan, 0) (no dma_bytes_moved, no
++ *			read-tail or dma_abort branches)
++ *	fc_dma_init	dma_list without the secsize and rathole_va arguments
++ *	dma_bytes_moved	removed (prototype and definition)
++ * The other 9 compiled functions are the NeXTMach text unchanged
++ * (fc_log_bad_phase is DEBUG only).  Lines marked plan 579 differ from
++ * NeXTMach; removed lines are marked where they were.
++ */
++#import <m68k/cpu.h>	/* plan 579 (D110): NeXTMach <next/cpu.h> */
+ #import <kern/lock.h>
+ #import <sys/time.h>
+ #import <sys/callout.h>
+ #import <sys/dk.h>
+-#import <next/psl.h>
+-#import <kern/mach_types.h>
+-#import <next/machparam.h>
++#import <m68k/psl.h>	/* plan 579 (D104): NeXTMach <next/psl.h> */
++#import <mach/mach_types.h>	/* plan 579 (D104): NeXTMach <kern/mach_types.h> */
++#import <m68k/machparam.h>	/* plan 579 (D104): NeXTMach <next/machparam.h> */
+ #import <nextdev/dma.h>
+ #import <nextdev/fd_extern.h>
+ #import	<nextdev/fd_reg.h>
+@@ -37,7 +54,7 @@
+ 	int us_time, 
+ 	int polling_loops);
+ static void fc_log_bad_phase(fd_controller_t fcp);
+-static int dma_bytes_moved(struct dma_chan *dcp, dma_list_t dhp);
++/* plan 579 (D131, D024): NeXTMach prototype of dma_bytes_moved removed */
+ static void fc_dma_init(fd_controller_t fcp);
+ 
+ /*
+@@ -256,23 +273,7 @@
+ 	 */	
+ 	if(requested_byte_count > 0) {
+ 		
+-		/*
+-		 * We require well-aligned transfers since we have no way 
+-		 * of detecting the transfer count at the device level - we
+-		 * have to rely on the DMA engine.
+-		 *
+-		 * Since some commands (particularly format) can't live with
+-		 * this restriction, we'll only enforce it for reads and 
+-		 * writes.
+-		 */
+-		if((opcode == FCCMD_READ) || (opcode == FCCMD_WRITE)) {
+-			if((! DMA_BEGINALIGNED(fdiop->addrs)) ||
+-			   (! DMA_ENDALIGNED(requested_byte_count))) {
+-				rtn = FDR_REJECT;
+-				printf("fd: Unaligned DMA\n");
+-				goto out;
+-			}
+-		}
++		/* plan 579 (D131, D024): NeXTMach DMA alignment check and printf("fd: Unaligned DMA\n") removed */
+ 		if(requested_byte_count > 0x100000) {
+ 			rtn = FDR_REJECT;
+ 			printf("fd: DMA byte count > 64K\n");
+@@ -313,9 +314,8 @@
+ 			direction,
+ 			NDMAHDR, 
+ 		        0, 		/* before ?? */
+-			dma_after,	/* after  ?? */
+-			0,		/* secsize */
+-			0);		/* rathole_va */
++			dma_after);	/* after  ?? */
++			/* plan 579 (D131, D024): NeXTMach secsize and rathole_va arguments removed */
+ 		dma_start(&fcp->dma_chan, 
+ 			fcp->dma_list, 
+ 			direction);
+@@ -429,7 +429,7 @@
+ 		 */
+ 		s=splbio();
+ 		if(*fcp->sczctl & SDC_DMAMODE) {
+-			for(i=0; i<8; i++) {
++			for(i=0; i<((dma_chip == 313) ? 8 : 1); i++) {	/* plan 579 (D131, D024): NeXTMach i<8 */
+ 				*fcp->sczctl |= SDC_FLUSH;
+ 				DELAY(5);
+ 				*fcp->sczctl &= ~SDC_FLUSH;
+@@ -494,20 +494,8 @@
+ 	if(fcp->flags & FCF_DMAING) {
+ 		
+ 		fc_flags_bclr(fcp, FCF_DMAING);
+-		/*
+-		 * If this was a successful write command, dma_bytes_moved
+-		 * doesn't work if the write succeeded because of the 'after' 
+-		 * mechanism used to fill the FIFO. 
+-		 */
+-		if(((opcode == FCCMD_WRITE) || 
+-		    (opcode == FCCMD_WRITE_DELETE)) &&
+-		   (rw_statp->stat1 == SR1_EOCYL)) {
+-		   	fdiop->bytes_xfr = fdiop->byte_count;
+-		}
+-		else {
+-			fdiop->bytes_xfr = dma_bytes_moved(&fcp->dma_chan,
+-			 		                   fcp->dma_list);
+-		}
++		fdiop->bytes_xfr = fdiop->byte_count;	/* plan 579 (D131, D024) */
++		/* plan 579 (D131, D024): NeXTMach write/SR1_EOCYL test and dma_bytes_moved() call removed */
+ 		if(fdiop->bytes_xfr > fdiop->byte_count) {
+ 			XIODBG(("fc_send_cmd: bytes requested = 0x%x\n",
+ 				fdiop->byte_count));
+@@ -524,25 +512,8 @@
+ 			XIODBG(("fc_send_cmd: DMA ERROR\n"));
+ 			rtn = FDR_MEMFAIL;
+ 		}
+-		/*
+-	 	 * For reads with imperfectly aligned endpoints, move data from
+-		 * tail buffer to user's buffer. 
+-		 */
+-		if((fdiop->flags & FD_IOF_DMA_DIR) == FD_IOF_DMA_RD) {
+-			caddr_t end_addrs = fdiop->addrs + fdiop->bytes_xfr;
+-			
+-			if(!DMA_ENDALIGNED(end_addrs)) {
+-				XIODBG(("fc_send_cmd: calling dma_cleanup; "
+-					"dc_taillen = 0x%x\n",
+-					fcp->dma_chan.dc_taillen));
+-				dma_cleanup(&fcp->dma_chan, 
+-					fdiop->byte_count - fdiop->bytes_xfr);
+-			}
+-			else
+-				dma_abort(&fcp->dma_chan);
+-		}
+-		else
+-			dma_abort(&fcp->dma_chan);
++		dma_cleanup(&fcp->dma_chan, 0);	/* plan 579 (D131, D024) */
++		/* plan 579 (D131, D024): NeXTMach read-tail dma_cleanup()/dma_abort() branches removed */
+ 		dma_enable = FALSE;
+ #ifdef	DEBUG
+ 		if(fd_post_init)
+@@ -790,9 +761,8 @@
+ 		DMACSR_READ,
+ 		NDMAHDR, 
+ 		0, 		/* before ?? */
+-		0,		/* after  ?? */
+-		0,		/* secsize */
+-		0);		/* rathole_va */
++		0);		/* after  ?? */
++		/* plan 579 (D131, D024): NeXTMach secsize and rathole_va arguments removed */
+ 	dma_start(&fcp->dma_chan, 
+ 		fcp->dma_list, 
+ 		DMACSR_READ);
+@@ -800,91 +770,7 @@
+ 	dma_abort(&fcp->dma_chan);
+ }
+ 
+-static int dma_bytes_moved(struct dma_chan *dcp, dma_list_t dhp)
+-{
+-	/*
+-	 * Determine how many bytes actually transferred during a DMA using
+-	 * *dcp and dma_list. It is assumed that the current value of next
+-	 * in hardware points to (last address transferred + 1) and that
+-	 * dma_list has not been disturbed since the DMA.
+-	 *
+-	 * FIXME: this is not bulletproof. Here's a case where it will fail:
+-	 *	first dma_hdr.dh_start = 1000
+-	 *	             .dh_stop  = 2000
+-	 *      ...
+-	 *      nth   dma_hdr.dh_start = 2000
+-	 *	             .dh_stop  = 3000
+-	 *	...
+-	 *	At end of DMA, dd_next = 2000. 
+-	 *
+-	 *	Did the DMA end at the end of the first buffer or the 
+-	 *	start of the nth buffer? The code below will claim that the 
+-	 *	DMA ended at the end of the first buffer...
+-	 */
+-	int hdr_num;
+-	int bytes_xfr=0;
+-	char *end_addrs = dcp->dc_ddp->dd_next;
+-	
+-	XIODBG(("dma_bytes_moved: end_addrs = 0x%x\n", end_addrs));
+-	for(hdr_num=0; hdr_num<NDMAHDR; hdr_num++) {
+-		XIODBG(("   dh_start 0x%x   dh_stop 0x%x\n",
+-			dhp->dh_start, dhp->dh_stop));
+-		if((end_addrs < dhp->dh_start) ||
+-		   (end_addrs > dhp->dh_stop)) {
+-		   	/* 
+-			 * end not in this buf; must have moved the whole
+-			 * thing.
+-			 */
+-			XIODBG(("      end not in this buf\n"));
+-			goto next_buf;
+-		}
+-		else if((dcp->dc_current == dhp) ||
+-		        ((end_addrs > dhp->dh_start) && 
+-		        (end_addrs < dhp->dh_stop))) {
+-			/*
+-			 * case 1: dcp->dc_current == dhp. 
+-			 * This is where we stopped in the case of 
+-			 * an aborted DMA - dc_current non-NULL always implies
+-			 * "no DMA complete".
+-			 *
+-			 * Case 2 - unamibiguous termination in this buf.
+-			 *
+-			 * In either case, this is where we stopped.
+-			 */
+-			XIODBG(("   end of xfer(1) dc_current 0x%x\n",
+-				 dcp->dc_current));
+-			bytes_xfr += end_addrs - dhp->dh_start;
+-			return(bytes_xfr);
+-		}
+-		else if(end_addrs == dhp->dh_stop) {
+-			/*
+-			 * The h/w next pointer points to the end of this 
+-			 * buf. We moved the entire buf. We're done if 
+-			 * no other bufs were enabled.
+-			 */
+-			if((dhp->dh_state != DMASTATE_1STDONE) ||
+-			   (dhp->dh_link == NULL)) {
+-				/*
+-				 * this is where we stopped.
+-				 */
+-				XIODBG(("   end of xfer(2) dh_state 0x%x  "
+-					"dh_link 0x%x\n",
+-					dhp->dh_state, dhp->dh_link));
+-				bytes_xfr += end_addrs - dhp->dh_start;
+-				return(bytes_xfr);
+-			}
+-		}
+-		XIODBG(("   (else) end not in this buf\n"));
+-next_buf:
+-		/*
+-		 * This buf is not the end.
+-		 */ 
+-		ASSERT(dhp->dh_link != NULL);
+-		bytes_xfr += dhp->dh_stop - dhp->dh_start;
+-		dhp++;
+-	}
+-	panic("dma_bytes_moved: DMA buf overflow");
+-} /* dma_bytes_moved() */
++/* plan 579 (D131, D024): NeXTMach static dma_bytes_moved() removed */
+ 
+ static void fc_enable_interrupt(fd_controller_t fcp, fd_ioreq_t fdiop)
+ {

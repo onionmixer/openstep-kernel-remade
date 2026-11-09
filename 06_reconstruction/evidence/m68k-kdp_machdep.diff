@@ -1,0 +1,274 @@
+--- 07_kernel/src/machdep/i386/kdp_machdep.c
++++ 07_kernel/src/machdep/m68k/kdp_machdep.c
+@@ -22,7 +22,7 @@
+  * @APPLE_LICENSE_HEADER_END@
+  */
+ 
+-/* Modified 2026-10-02: see 07_kernel/MODIFICATIONS.md */
++/* Modified 2026-10-26: see 07_kernel/MODIFICATIONS.md */
+ 
+ /*
+  * Copyright (c) 1993 NeXT Computer, Inc.  All rights reserved.
+@@ -36,92 +36,19 @@
+  *	declarations. Changed dprintf macro to call kprintf()
+  *	instead of safe_prf() when KDP_TEST_HARNESS==1.
+  */
+- 
+-#import <sys/param.h>
+-#import <sys/systm.h>
+-#import <sys/mbuf.h>
+-#import <sys/socket.h>
+-#import <net/if.h>
+-#import <net/route.h>
+-#import <netinet/in.h>
+-#import <netinet/in_systm.h>
+-#import <netinet/ip.h>
+-#import <netinet/ip_var.h>
+-#import <netinet/in_pcb.h>
+ 
+-#import <mach/mach_types.h>
++/*
++ * m68k: machine-dependent KDP routines of the 1997 m68k kernel (plans 530-531,
++ * D024, D103, D115).  The 13 entries of the m68k original (0x409295e-0x40929c6,
++ * in this order) are 8 B each, "pea a6@; movel sp,a6; unlk a6; rts"; their source
++ * bodies and signatures are not fixed by those bytes.  This file keeps the head
++ * and the function signatures of machdep/i386/kdp_machdep.c (the i386 state
++ * routines kdp_getstate/kdp_setstate are not in the m68k original) and gives
++ * every function an empty body.  Lines marked plan 531 are not in the i386 file.
++ */
+ 
++#import <mach/boolean.h>	/* plan 531: boolean_t for kern/kdp_internal.h */
+ #import <kern/kdp_internal.h>
+-#import <kern/miniMon.h>
+-
+-#import <machdep/i386/sel_inline.h>
+-#import <machdep/i386/intr_exported.h>
+-
+-#import <bsd/sys/conf.h>
+-
+-#define KDP_TEST_HARNESS 0
+-#if KDP_TEST_HARNESS
+-/*#define dprintf(x) safe_prf(x)*/
+-#define dprintf(x) kprintf x
+-#else
+-#define dprintf(x)
+-#endif
+-
+-void
+-kdp_getstate(
+-    i386_thread_state_t		*state
+-)
+-{
+-    thread_saved_state_t	*saved_state;
+-    
+-    saved_state = (thread_saved_state_t *)kdp.saved_state;
+-    
+-    *state = (i386_thread_state_t) { 0 };	
+-    state->eax = saved_state->regs.eax;
+-    state->ebx = saved_state->regs.ebx;
+-    state->ecx = saved_state->regs.ecx;
+-    state->edx = saved_state->regs.edx;
+-    state->edi = saved_state->regs.edi;
+-    state->esi = saved_state->regs.esi;
+-    state->ebp = saved_state->regs.ebp;
+-    state->esp = (unsigned int)&saved_state->frame.esp;	/* XXX */
+-    state->ss = sel_to_selector(saved_state->frame.ss);
+-    state->eflags = saved_state->frame.eflags;
+-    state->eip = saved_state->frame.eip;
+-    state->cs = sel_to_selector(saved_state->frame.cs);
+-    state->ds = sel_to_selector(saved_state->regs.ds);
+-    state->es = sel_to_selector(saved_state->regs.es);
+-    state->fs = sel_to_selector(saved_state->regs.fs);
+-    state->gs = sel_to_selector(saved_state->regs.gs);
+-}
+-
+-
+-void
+-kdp_setstate(
+-    i386_thread_state_t		*state
+-)
+-{
+-    thread_saved_state_t	*saved_state;
+-    
+-    saved_state = (thread_saved_state_t *)kdp.saved_state;
+-
+-    saved_state->regs.eax = state->eax;
+-    saved_state->regs.ebx = state->ebx;
+-    saved_state->regs.ecx = state->ecx;
+-    saved_state->regs.edx = state->edx;
+-    saved_state->regs.edi = state->edi;
+-    saved_state->regs.esi = state->esi;
+-    saved_state->regs.ebp = state->ebp;
+-    saved_state->frame.eflags = state->eflags;
+-#if	0
+-    saved_state->frame.eflags &= ~( EFL_VM | EFL_NT | EFL_IOPL | EFL_CLR );
+-    saved_state->frame.eflags |=  ( EFL_IF | EFL_SET );
+-#endif
+-    saved_state->frame.eip = state->eip;
+-    saved_state->regs.fs = selector_to_sel(state->fs);
+-    saved_state->regs.gs = selector_to_sel(state->gs);
+-}
+-
+ 
+ void
+ kdp_exception(
+@@ -133,26 +60,6 @@
+     unsigned int	subcode
+ )
+ {
+-    kdp_exception_t	*rq = (kdp_exception_t *)pkt;
+-
+-    rq->hdr.request = KDP_EXCEPTION;
+-    rq->hdr.is_reply = 0;
+-    rq->hdr.seq = kdp.exception_seq;
+-    rq->hdr.key = 0;
+-    rq->hdr.len = sizeof (*rq);
+-    
+-    rq->n_exc_info = 1;
+-    rq->exc_info->cpu = 0;
+-    rq->exc_info->exception = exception;
+-    rq->exc_info->code = code;
+-    rq->exc_info->subcode = subcode;
+-    
+-    rq->hdr.len += rq->n_exc_info * sizeof (kdp_exc_info_t);
+-    
+-    kdp.exception_ack_needed = TRUE;
+-    
+-    *remote_port = kdp.exception_port;
+-    *len = rq->hdr.len;
+ }
+ 
+ void
+@@ -161,20 +68,6 @@
+     int			len
+ )
+ {
+-    kdp_exception_ack_t	*rq = (kdp_exception_ack_t *)pkt;
+-
+-    if (len < sizeof (*rq))
+-	return;
+-	
+-    if (!rq->hdr.is_reply || rq->hdr.request != KDP_EXCEPTION)
+-    	return;
+-	
+-    dprintf(("kdp_exception_ack seq %x %x\n", rq->hdr.seq, kdp.exception_seq));
+-	
+-    if (rq->hdr.seq == kdp.exception_seq) {
+-	kdp.exception_ack_needed = FALSE;
+-	kdp.exception_seq++;
+-    }
+ }
+ 
+ kdp_error_t
+@@ -185,25 +78,6 @@
+     int *size
+ )
+ {
+-    switch (flavor) {
+-
+-    case i386_THREAD_STATE:
+-
+-	dprintf(("kdp_readregs THREAD_STATE\n"));
+-	kdp_getstate((i386_thread_state_t *)data);
+-	*size = sizeof (i386_thread_state_t);
+-	return KDPERR_NO_ERROR;
+-	
+-    case i386_THREAD_FPSTATE:
+-	dprintf(("kdp_readregs THREAD_FPSTATE\n"));
+-	*(i386_thread_fpstate_t *)data = (i386_thread_fpstate_t) { 0 };	
+-	*size = sizeof (i386_thread_fpstate_t);
+-	return KDPERR_NO_ERROR;
+-	
+-    default:
+-	dprintf(("kdp_readregs bad flavor %d\n"));
+-	return KDPERR_BADFLAVOR;
+-    }
+ }
+ 
+ kdp_error_t
+@@ -214,21 +88,6 @@
+     int *size
+ )
+ {
+-    switch (flavor) {
+-
+-    case i386_THREAD_STATE:
+-	dprintf(("kdp_writeregs THREAD_STATE\n"));
+-	kdp_setstate((i386_thread_state_t *)data);
+-	return KDPERR_NO_ERROR;
+-	
+-    case i386_THREAD_FPSTATE:
+-	dprintf(("kdp_writeregs THREAD_FPSTATE\n"));
+-	return KDPERR_NO_ERROR;
+-	
+-    default:
+-	dprintf(("kdp_writeregs bad flavor %d\n"));
+-	return KDPERR_BADFLAVOR;
+-    }
+ }
+ 
+ void
+@@ -236,9 +95,6 @@
+     kdp_hostinfo_t *hostinfo
+ )
+ {
+-    hostinfo->cpus_mask = 1;
+-    hostinfo->cpu_type = CPU_TYPE_I386;
+-    hostinfo->cpu_subtype = CPU_SUBTYPE_486;
+ }
+ 
+ void
+@@ -246,53 +102,39 @@
+     const char		*msg
+ )
+ {
+-    safe_prf("kdp panic: %s\n", msg);
+-    
+-    asm volatile("hlt");
+ }
+ 
+-
+ void
+ kdp_reboot(void)
+ {
+-    keyboard_reboot();
+ }
+ 
+ int
+ kdp_intr_disbl(void)
+ {
+-    return intr_disbl();
+ }
+ 
+ void
+ kdp_intr_enbl(int s)
+ {
+-    intr_enbl(s);
+ }
+ 
+-/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
+ void
+ kdp_en_send_pkt(void *pkt, unsigned int pkt_len)
+ {
+-    en_send_pkt(pkt, pkt_len);
+ }
+ 
+-/* Reconstructed from the original binary (no reference source), 2026-10-02: see 07_kernel/MODIFICATIONS.md */
+ void
+ kdp_en_recv_pkt(void *pkt, unsigned int *pkt_len, unsigned int timeout)
+ {
+-    en_recv_pkt(pkt, pkt_len, timeout);
+ }
+ 
+ void
+ kdp_us_spin(int usec)
+ {
+-    us_spin(usec);
+ }
+ 
+ void
+ kdp_flush_cache(void)
+ {
+-    /* no-op on i386 */
+ }
+-

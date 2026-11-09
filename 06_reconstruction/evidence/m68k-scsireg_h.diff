@@ -1,0 +1,58 @@
+--- NeXTMach mk-108.1/nextdev/scsireg.h (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/nextmach/nextdev/scsireg.h (plan 663, D153)
+@@ -237,20 +237,40 @@
+ /*
+  * inquiry data
+  */
+-struct inquiry_reply {
+-	u_char	ir_devicetype;		/* device type, see below */
++struct inquiry_reply {	/* plan 663 (D153): 1997 SDK bsd/dev/scsireg.h big-endian fields */
++	u_char	ir_qual:3,		/* qualifier */
++		ir_devicetype:5;	/* device type, see below */
+ 	u_char	ir_removable:1,		/* removable media */
+ 		ir_typequalifier:7;	/* device type qualifier */
+-	u_char	ir_zero1:2,		/* reserved */
++	u_char	ir_isoversion:2,	/* ISO  version number */
+ 		ir_ecmaversion:3,	/* ECMA version number */
+ 		ir_ansiversion:3;	/* ANSI version number */
+-	u_char	ir_zero2:4,		/* reserved */
++	u_char	ir_aerc:1,		/* Async event reporting capability */
++		ir_trmtsk:1,		/* Terminate Task */
++		ir_normaca:1,		/* Normal ACA supported */
++		ir_zero2:1,		/* reserved */
+ 		ir_rspdatafmt:4;	/* response data format */
+ 	u_char	ir_addlistlen;		/* additional list length */
+-	u_char	ir_zero3[3];		/* vendor unique field */
++	u_char	ir_zero3;		/* reserved */
++	u_char	ir_zero4:2,		/* reserved */
++		ir_port:1,		/* port A/B */
++		ir_dualPort:1,		/* dual port supported */
++		ir_mchngr:1,		/* medium changer */
++		ir_ackqreqq:1,		/* Q cable (SIP only) */
++		ir_addr32:1,		/* 32-bit addressing (SIP only) */
++		ir_addr16:1;		/* 16-bit addressing (SIP only) */
++	u_char	ir_reladr:1,		/* relative addressing */
++		ir_wbus32:1,		/* 32-bit wide data transfers */
++		ir_wbus16:1,		/* 16-bit wide data transfers */
++		ir_sync:1,		/* synchronous data transfers */
++		ir_linked:1,		/* linked commands */
++		ir_trandis:1,		/* transfer disable */
++		ir_cmdque:1,		/* tagged command queuing */
++		ir_sftre:1;		/* soft reset */
+ 	char	ir_vendorid[8];		/* vendor name in ascii */
+ 	char	ir_productid[16];	/* product name in ascii */
+-	char	ir_revision[32];	/* revision level info in ascii */
++	char	ir_revision[4];		/* revision level info in ascii */
++	char	ir_misc[28];		/* misc info */
+ 	char	ir_endofid[1];		/* just a handle for end of id info */
+ };
+ 
+@@ -260,6 +280,8 @@
+ #define	DEVTYPE_PROCESSOR	0x03	/* cpu's */
+ #define	DEVTYPE_WORM		0x04	/* write-once optical disks */
+ #define	DEVTYPE_READONLY	0x05	/* cd rom's, etc */
++#define	DEVTYPE_CDROM		0x05	/* plan 663 (D153): 1997 SDK */
++#define	DEVTYPE_OPTICAL		0x07	/* plan 663 (D153): 1997 SDK */
+ #define	DEVTYPE_NOTPRESENT	0x7f	/* logical unit not present */
+ 
+ /*

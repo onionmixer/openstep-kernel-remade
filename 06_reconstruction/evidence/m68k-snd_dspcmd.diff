@@ -1,0 +1,46 @@
+--- nextmach/mk-108.1/nextdev/snd_dspcmd.c
++++ 07_kernel/src/machdep/m68k/snd_dspcmd.c
+@@ -24,6 +24,17 @@
+  *
+  */ 
+ 
++/*
++ * plan 559 (D125, D103, D104, D107, D110, D024): the 1997 m68k snd_dspcmd.c.
++ * NeXTMach mk-108.1 nextdev/snd_dspcmd.c with the include lines in OPENSTEP
++ * paths and one 1997 change written from the original bytes [0x4080556,
++ * 0x408103e) (plans 557-558): snd_dspcmd_dma_in sets the priority, atomic and
++ * sequence of its dsp message (0x4080f2a-0x4080f34).  The other 13 functions
++ * are the NeXTMach text unchanged; the two static M templates are 8 bytes
++ * longer than with the NeXTMach headers because the 1997 snd_stream_msg_t
++ * (this project's driverkit/snd_msgs.h, plan 559) has two more fields.
++ * Lines marked plan 559 differ from NeXTMach.
++ */
+ #import <dsp.h>
+ #if	NDSP > 0
+ 
+@@ -36,12 +47,12 @@
+ #import <sys/param.h>
+ #import <kern/thread.h>
+ #import <sys/callout.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 559 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_kern.h>
+-#import <next/cpu.h>
++#import <m68k/cpu.h>	/* plan 559 (D110): NeXTMach <next/cpu.h> */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_dsp.h>
+-#import <nextdev/snd_dspreg.h>
++#import <dev/m68k/snd_dspreg.h>	/* plan 559 (D107): NeXTMach <nextdev/snd_dspreg.h> */
+ 
+ #import <machine/spl.h>
+ 
+@@ -817,6 +828,9 @@
+ 	dmsg->u.dma.space = msg->space;
+ 	dmsg->u.dma.mode = msg->mode;
+ 	dmsg->u.dma.chan = DSP_USER_REQ_CHAN;
++	dmsg->priority = DSP_MSG_LOW;	/* plan 559 (D125, D024): 1997, from the original bytes */
++	dmsg->atomic = FALSE;		/* plan 559 (D125) */
++	dmsg->sequence = DSP_MSG_ONLY;	/* plan 559 (D125) */
+ 	dmsg->datafollows = 0;
+ 	dmsg->internal = 0;
+ 	queue_enter(&q, dmsg, dsp_msg_t *, link);

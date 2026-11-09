@@ -1,0 +1,293 @@
+--- nextmach/mk-108.1/nextdev/snd_dspdev.c
++++ 07_kernel/src/machdep/m68k/snd_dspdev.c
+@@ -60,6 +60,26 @@
+  *
+  */ 
+ 
++/*
++ * plan 563 (D126, D013, D024, D104, D105, D107, D110, D113, D121, D124): the
++ * 1997 m68k snd_dspdev.c.  NeXTMach mk-108.1 nextdev/snd_dspdev.c with the
++ * include lines in OPENSTEP paths, the next/cpu.h and next/scr.h names it uses
++ * defined in this file (next/cpu.h is assembly only, D109; next/scr.h is not
++ * imported), and the 1997 changes of nine functions written from the original
++ * bytes [0x408103e, 0x4082764) (plans 561-562):
++ *	dsp_dev_reset		re-installs the device interrupt at the end
++ *	dsp_dev_new_proto	TXD block under splhigh(), SCR2 bit when dma_chip != 313
++ *	dsp_dev_reset_chip	MEMEN polarity by dma_chip, ICR cleared last
++ *	dsp_dev_intr		returns at once unless ISR_HREQ
++ *	dsp_dma_intr		waits up to 200 x DELAY(2) for TRDY
++ *	dsp_dev_loop		callout_dispatch() instead of softint_sched()
++ *	dsp_dma_init		SWFIX only when dma_chip == 313
++ *	dsp_dma			TRDY wait and TX clears first, then enqueue, one
++ *				ICR write per mode, no "Blammo" ICR clear
++ *	dsp_interrupt		SCR2 interrupt enable only when dma_chip == 313
++ * dsp_dev_init, dsp_dev_reset_hard, dsp_dma_cleanup, dsp_probe and dsp_attach
++ * are the NeXTMach text unchanged.  Lines marked plan 563 differ from NeXTMach.
++ */
+ #import <dsp.h>
+ #if	NDSP > 0
+ 
+@@ -73,16 +93,30 @@
+ #import <sys/param.h>
+ #import <kern/thread.h>
+ #import <sys/callout.h>
+-#import <sys/machine.h>
+-#import <vm/vm_param.h>
++#import <mach/machine.h>	/* plan 563 (D104): NeXTMach <sys/machine.h> */
++#import <mach/vm_param.h>	/* plan 563 (D104): NeXTMach <vm/vm_param.h> */
+ #import <next/autoconf.h>
+-#import <next/cpu.h>
+-#import <next/pmap.h>
+-#import <next/scr.h>
+-#import <next/bmap.h>
++#import <m68k/cpu.h>	/* plan 563 (D110): NeXTMach <next/cpu.h>; <next/scr.h> not imported */
++#import <vm/pmap.h>	/* plan 563 (D104): NeXTMach <next/pmap.h> */
++#import <m68k/bmap.h>	/* plan 563 (D105): NeXTMach <next/bmap.h> */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_dsp.h>
+-#import <nextdev/snd_dspreg.h>
++#import <dev/m68k/snd_dspreg.h>	/* plan 563 (D107): NeXTMach <nextdev/snd_dspreg.h> */
++
++/* plan 563 (D113, D121): NeXTMach next/cpu.h and next/scr.h names used here */
++extern int slot_id, slot_id_bmap;
++#define	SLOT_ID		slot_id
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_DSP_CSR	(SLOT_ID+0x020000d0)
++#define	P_DSP		(SLOT_ID_BMAP+0x02008000)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))
++#define	I_DSP_DMA	I(6,9,20)
++#define	I_DSP_4		I(4,0,14)
++#define	NeXT_CUBE	0
++/* plan 563 (D126, D024): SCR2 bit 23 set and cleared by dsp_dev_new_proto when
++ * dma_chip != 313; the name is written here, the bytes do not show its meaning */
++#define	DSP_SCR2_TXDEN	0x00800000
+ 
+ #import <machine/spl.h>
+ 
+@@ -123,6 +157,7 @@
+ /* Register Locations */
+ extern volatile int *scr2;
+ extern volatile int *intrstat;
++extern void callout_dispatch();	/* plan 563 (D124 form) */
+ 
+ #if	DEBUG || XPR_DEBUG
+ int dspdbgflag = 0;
+@@ -204,6 +239,7 @@
+ 	 * Disable all interrupts.
+ 	 */
+ 	dsp_interrupt(DSP_INT_DISABLE);
++	install_scanned_intr (I_DSP_4, (func)dsp_dev_intr, 0);	/* plan 563 (D126, D024): 1997 */
+ }
+ 
+ /*
+@@ -490,12 +526,19 @@
+ 		snd_link_init(SND_DIR_RECORD);
+ 	}
+ 
+-	if (bmap_chip) {
+-		if (new_proto&SND_DSP_PROTO_TXD)
++	s = splhigh();	/* plan 563 (D126, D024): 1997 TXD block from the original bytes */
++	if (new_proto&SND_DSP_PROTO_TXD) {
++		if (dma_chip != 313)
++			*scr2 |= DSP_SCR2_TXDEN;
++		if (bmap_chip)
+ 			bmap_chip->bm_dsp_txd_int = 1;
+-		else
++	} else {
++		if (dma_chip != 313)
++			*scr2 &= ~DSP_SCR2_TXDEN;
++		if (bmap_chip)
+ 			bmap_chip->bm_dsp_txd_int = 0;
+ 	}
++	splx(s);
+ 	if ( dsp_var.flags & (F_MODE_DSPMSG | F_MODE_DSPERR | F_MODE_C_DMA )
+ 	    || !(dsp_var.flags & F_MODE_RAW))
+ 	  regs->icr |= ICR_RREQ;
+@@ -527,16 +570,24 @@
+ 	 * CPU revs > 1 must disable the dsp external memory before
+ 	 * doing the reset and re-enable it after the reset.
+ 	 */
+-	regs->icr = 0;
+-	s = spldma();
++	s = spldma();	/* plan 563 (D126, D024): 1997 order and MEMEN by dma_chip */
+ 	*scr2 &= ~DSP_SCR2_MASK;
+-	if (!(machine_type == NeXT_CUBE && board_rev <= 1))
+-		*scr2 |= DSP_SCR2_MEMEN;
++	if (!(machine_type == NeXT_CUBE && board_rev <= 1)) {
++		if (dma_chip == 313)
++			*scr2 |= DSP_SCR2_MEMEN;
++		else
++			*scr2 &= ~DSP_SCR2_MEMEN;
++	}
+ 	*scr2 |= DSP_MODE_B;
+ 	*scr2 |= DSP_RESET;
+ 	*scr2 &= ~DSP_MODE_B;
+-	if (!(machine_type == NeXT_CUBE && board_rev <= 1))
+-		*scr2 &= ~DSP_SCR2_MEMEN;
++	if (!(machine_type == NeXT_CUBE && board_rev <= 1)) {
++		if (dma_chip == 313)
++			*scr2 &= ~DSP_SCR2_MEMEN;
++		else
++			*scr2 |= DSP_SCR2_MEMEN;
++	}
++	regs->icr = 0;
+ 	splx(s);
+ }
+ 
+@@ -547,6 +598,8 @@
+ {
+ 	register int s;
+ 
++	if (!(regs->isr & ISR_HREQ))	/* plan 563 (D126, D024): 1997 */
++		return;
+ 	/*
+ 	 * Make sure that this is a legitimate device interrupt.
+ 	 */
+@@ -637,8 +690,8 @@
+ 	 */
+ 	if (regs->icr&ICR_TREQ) { /* If writing TO the DSP */
+ 
+-	    for (i = 10; i && !(regs->isr&ISR_TRDY); i--)
+-	      DELAY(1);
++	    for (i = 200; i && !(regs->isr&ISR_TRDY); i--)	/* plan 563 (D126, D024): 1997 */
++	      DELAY(2);
+ 
+ 	    if (i == 0) {
+ 		printf ("DSP DMA write truncated by early complete interrupt!\n");
+@@ -989,7 +1042,7 @@
+ 		    *dsp_var.errp++ = bits;
+ 		    if (dsp_var.err_port) {
+ 			dspdbug(("dsp_dev_loop: reply err\n"))
+-			  softint_sched(CALLOUT_PRI_THREAD,
++			  callout_dispatch(CALLOUT_PRI_THREAD,	/* plan 563 (D126, D024) */
+ 					snd_reply_dsp_err,
+ 					dsp_var.err_port);
+ 			dsp_var.err_port = PORT_NULL;
+@@ -1007,7 +1060,7 @@
+ 		    *dsp_var.msgp++ = bits;
+ 		    if (dsp_var.msg_port) {
+ 			dspdbug(("dsp_dev_loop: reply msg\n"))
+-			  softint_sched(CALLOUT_PRI_THREAD,
++			  callout_dispatch(CALLOUT_PRI_THREAD,	/* plan 563 (D126, D024) */
+ 					snd_reply_dsp_msg, 
+ 					dsp_var.msg_port);
+ 			dsp_var.msg_port = PORT_NULL;
+@@ -1130,7 +1183,7 @@
+ 	if (direction == DMACSR_READ) cmd |= DSP_SYSCALL_READ;
+ 	else {
+ 		cmd |= DSP_SYSCALL_WRITE;
+-		if (   (mode == DSP_MODE32 && dma_chip <= 313)
++		if (   (mode == DSP_MODE32 && dma_chip == 313)	/* plan 563 (D126, D024): NeXTMach <= 313 */
+ #if	DEBUG
+ 		    && (dspdbgflag&0x100)
+ #endif	DEBUG
+@@ -1159,7 +1212,7 @@
+ 	register int i, n, s;
+ 	int preinit = (direction==DMACSR_WRITE ? ICR_TREQ : ICR_RREQ)
+ 			| ((regs->icr)&(ICR_HF1|ICR_HF0));
+-	int init = preinit | ICR_INIT;
++	int init = preinit | ICR_INIT;	/* plan 563 (D126): not used in 1997 */
+ 	register snd_dma_desc_t *ddp;
+ 	register struct chan_data *cdp = dsp_var.chan[channel];
+ 
+@@ -1171,9 +1224,6 @@
+ 	       == (direction == DMACSR_WRITE ? penddmaout1 : penddmain1));
+ 
+ 
+-	regs->icr = 0;		/* Blammo */
+-
+-		
+ 	/*
+ 	 * Get the dma descriptor.
+ 	 */
+@@ -1182,36 +1232,50 @@
+ 	dsp_var.dma_chan.dc_direction = direction;
+ 	ddp->hdr.dh_flags = DMADH_INITBUF;
+ 
++	/* plan 563 (D126, D024): 1997 order from the original bytes */
++	if ((mode == DSP_MODE8 || mode == DSP_MODE16)
++	    && direction == DMACSR_WRITE) {
++		for (i = 10; i && !(regs->isr&ISR_TRDY); i--)
++			DELAY(1);
++		if (i == 0)
++			printf("dsp_dma: Timed out waiting for TRDY!\n");
++		if (mode == DSP_MODE8) {
++			regs->txh = 0;
++			regs->txm = 0;
++		} else if (mode == DSP_MODE16)
++			regs->txh = 0;
++	}
++
+ 	s = spldsp();
++	/* disable dsp interrupts */
++	dsp_interrupt(DSP_INT_DISABLE);
++	/*
++	 * enqueue the dma operation
++	 */
++	dma_enqueue(&dsp_var.dma_chan, &ddp->hdr);
++
+ 	/*
+ 	 * set up the dsp interface in the appropriate dma mode.
+ 	 */
+ 	switch (mode) {
+ 	case DSP_MODE8:
+-		regs->txh = 0;		/* Clear out 2 high bytes */
+-		regs->txm = 0;		/* Clear out 2 high bytes */
+ 		regs->icr = (preinit|ICR_HM0|ICR_HM1);
+-		regs->icr = (init|ICR_HM0|ICR_HM1);
+ 		break;
+ 	case DSP_MODE16:
+-		regs->txh = 0;		/* Clear out high byte */
+ 		regs->icr = (preinit|ICR_HM1);
+-		regs->icr = (init|ICR_HM1);
+ 		break;
+ 	case DSP_MODE24:
+ 		i = splhigh();
+ 		*scr2 &= ~DSP_UNPACK_E;
+ 		splx(i);
+ 		regs->icr = (preinit|ICR_HM0);
+-		regs->icr = (init|ICR_HM0);
+ 		break;
+ 	case DSP_MODE32:	/* This mode broken in hardware */
+ 		i = splhigh();
+ 		*scr2 |= DSP_UNPACK_E;
+ 		splx(i);
+ 		regs->icr = (preinit|ICR_HM0);
+-		regs->icr = (init|ICR_HM0);
+-		if (dma_chip <= 313)
++		if (dma_chip == 313)	/* plan 563 (D126, D024): NeXTMach <= 313 */
+ 		  printf("Attempt to use broken 32-bit unpacked DSP DMA\n");
+ 		break;
+         default:
+@@ -1219,14 +1283,6 @@
+ 	}
+ 
+ 	dspdbug2(("dsp_dma after setup: " DSPREGSFMT));
+-	/* disable dsp interrupts */
+-	dsp_interrupt(DSP_INT_DISABLE);
+-	spldsp();
+-	/*
+-	 * enqueue the dma operation
+-	 */
+-	dma_enqueue(&dsp_var.dma_chan, &ddp->hdr);
+-
+ 	regs->icr |= ICR_HF1;	/* Tell the dsp we're ready */
+ 
+ 	splx(s);
+@@ -1405,11 +1461,13 @@
+ 	
+ 	s = splhigh();
+ 	if (dsp_int_en == DSP_INT_ENABLE) {
+-		*scr2 |= DSP_SCR2_INTREN;
++		if (dma_chip == 313)	/* plan 563 (D126, D024): 1997 */
++			*scr2 |= DSP_SCR2_INTREN;
+ 		if (bmap_chip)
+ 			bmap_chip->bm_dsp_hreq_int = 1;
+ 	} else {
+-		*scr2 &= ~DSP_SCR2_INTREN;
++		if (dma_chip == 313)
++			*scr2 &= ~DSP_SCR2_INTREN;
+ 		if (bmap_chip)
+ 			bmap_chip->bm_dsp_hreq_int = 0;
+ 	}

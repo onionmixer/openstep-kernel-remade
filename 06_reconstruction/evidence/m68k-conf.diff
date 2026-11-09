@@ -1,0 +1,91 @@
+--- 01_resources/upstream/nextmach/mk-108.1/next/conf.c	2026-09-11 10:02:49.583218492 +0900
++++ 07_kernel/src/machdep/m68k/conf.c	2026-11-08 14:04:14.887082751 +0900
+@@ -97,6 +97,7 @@
+ #import <sd.h>
+ #if NSD > 0
+ extern int sdopen(), sdclose(), sdstrategy(), sdread(), sdwrite(), sdioctl(); 
++extern int sdsize();	/* plan 777 (D177): original bdevsw psize */
+ #else
+ #define	sdopen		nodev
+ #define	sdclose		nodev
+@@ -104,12 +105,14 @@
+ #define	sdread		nodev
+ #define	sdwrite		nodev
+ #define	sdioctl		nodev
++#define	sdsize		nodev	/* plan 777 (D177): original bdevsw psize */
+ #endif
+ 
+ 
+ #import <fd.h>
+ #if NFD > 0
+ int fdopen(), fdclose(), fdioctl(), fdread(), fdwrite(), fdstrategy();
++int fdsize();	/* plan 777 (D177): original bdevsw psize */
+ #else
+ #define fdopen		nodev
+ #define fdclose		nodev
+@@ -117,6 +120,7 @@
+ #define fdread		nodev
+ #define fdwrite		nodev
+ #define fdstrategy	nodev
++#define fdsize		nodev	/* plan 777 (D177): original bdevsw psize */
+ #endif	NFD
+ 
+ #define	swstrategy	nodev
+@@ -139,7 +143,7 @@
+ 	{ lddopen,	lddclose,	lddstrategy,	ldddump,	/* 0*/
+ 	  lddsize,	0 },
+ 	{ fdopen,	fdclose,	fdstrategy,	nodev,		/* 1*/
+-	  nodev,	0 },
++	  fdsize,	0 },	/* plan 777 (D177): psize */
+ 	{ odopen,	odclose,	odstrategy,	oddump,		/* 2*/
+ 	  odsize,	0 },
+ 	{ nodev,	nodev,		nodev,		nodev,		/* 3*/
+@@ -149,13 +153,47 @@
+ 	{ rdopen,	nulldev,	rdstrategy,	nodev,		/* 5*/
+ 	  nodev,	0 },
+ 	{ sdopen,	sdclose,	sdstrategy,	nodev,		/* 6*/
+-	  nodev,	0 },
++	  sdsize,	0 },	/* plan 777 (D177): psize */
+ 	{ nodev,	nodev,		nodev,		nodev,		/* 7*/
+ 	  nodev,	0 },			/* 7 reserved for VM disk */
+ 
+ 	/* 8 - 15 are reserved to the user */
+ 
+ 	/* 16 - 23 are reserved to NeXT */
++	/* plan 777 (D177): entries 8-23 of the original bdevsw (24 entries, from the original bytes) begin */
++	{ nodev,	nodev,	nodev,	nodev,		/* 8*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/* 9*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*10*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*11*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*12*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*13*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*14*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*15*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*16*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*17*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*18*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*19*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*20*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*21*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*22*/
++	  0,		0 },
++	{ nodev,	nodev,	nodev,	nodev,		/*23*/
++	  0,		0 },
++	/* plan 777 (D177): entries 8-23 end */
+ };
+ 
+ int	nblkdev = sizeof (bdevsw) / sizeof (bdevsw[0]);

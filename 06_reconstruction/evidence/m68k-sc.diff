@@ -1,0 +1,159 @@
+--- NeXTMach mk-108.1/nextdev/sc.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/sc.c (plan 670, D155)
+@@ -38,6 +38,26 @@
+  *	Created.
+  *
+  */ 
++/*
++ * plan 670 (D155, D013, D024, D104, D110, D113, D119, D121, D149): the 1997
++ * m68k sc.c.  NeXTMach mk-108.1 nextdev/sc.c with the include lines in
++ * OPENSTEP paths and these changes (plans 668-669); the behavior is from the
++ * original bytes [0x407aae0, 0x407bd9c):
++ *	control	the DMA/SCSI control bytes have no 20 MHz bit
++ *	clock	20 MHz for the 313 DMA chip, else 25 MHz (scsetup)
++ *	scprobe	probes the command and fifo-flag register addresses
++ *	scstart, scdmastart	no DMA alignment rejection
++ *	scgo	timeout is the larger of the device timeout and 10
++ *	scintr	no s5c_dmastatus (the 1997 scsi_5390_ctrl, 07 scvar.h);
++ *		8 read flushes for the 313 chip, else 1
++ *	scminphys	8192 for the 313 chip, else 64K
++ * The NeXTMach next/cpu.h and next/scr.h names are defined in this file (as
++ * fd_io.c).  These spellings are this project's choices (the bytes do not
++ * show them; D155): S5RDMAC_10MHZ, the S5R_CLOCKFREQ and S5RDMA_FLUSHCOUNT
++ * macros, MAX() in scgo, and the removal of the alignment checks.  The other
++ * functions are the NeXTMach text unchanged.  Lines marked plan 670 differ
++ * from NeXTMach.
++ */
+ 
+ #import <sc.h>
+ #if NSC > 0
+@@ -55,14 +75,26 @@
+ #import <vm/vm_kern.h>
+ #import <sys/dk.h>
+ #import <next/autoconf.h>
+-#import <next/psl.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
+-#import <next/printf.h>
+-#import <nextdev/disk.h>
++#import <m68k/psl.h>	/* plan 670 (D104): NeXTMach <next/psl.h> */
++#import <m68k/cpu.h>	/* plan 670 (D110): NeXTMach <next/cpu.h> */
++/* plan 670 (D113, D121): NeXTMach next/cpu.h and next/scr.h names used here */
++extern int slot_id, slot_id_bmap;
++#define	SLOT_ID		slot_id
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_SCSI_CSR	(SLOT_ID+0x02000010)
++#define	P_DISK		(SLOT_ID_BMAP+0x02012000)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_IPL(i)	(((i) >> 4) & 7)
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))
++#define	I_SCSI_DMA	I(6,3,26)
++#define	I_SCSI		I(3,1,12)
++#define	NeXT_CUBE	0
++/* plan 670 (D121): NeXTMach #import <next/scr.h> removed; its name used here (NeXT_CUBE) is defined above */
++#import <kernserv/printf.h>	/* plan 670 (D104): NeXTMach <next/printf.h> */
++#import <dev/disk.h>	/* plan 670 (D104): NeXTMach <nextdev/disk.h> */
+ #import <nextdev/dma.h>
+-#import <nextdev/scsireg.h>
+-#import <nextdev/scsivar.h>
++#import <dev/m68k/scsireg.h>	/* plan 670 (D104, D113): NeXTMach <nextdev/scsireg.h> */
++#import <dev/m68k/scsivar.h>	/* plan 670 (D104, D113): NeXTMach <nextdev/scsivar.h> */
+ #import <nextdev/sf_access.h>
+ #import <nextdev/odreg.h>		/* only for DISR */
+ #import <nextdev/screg.h>
+@@ -98,9 +130,10 @@
+  * Normal SCSI mass storage gate array setup
+  * WARNING: S5R_CLOCKFREQ MUST match setup in S5RDMAC_NORMALBITS!
+  */
+-#define	S5RDMAC_NOINTRBITS	S5RDMAC_20MHZ
++#define	S5RDMAC_NOINTRBITS	S5RDMAC_10MHZ	/* plan 670 (D024, D155) */
+ #define	S5RDMAC_NORMALBITS	(S5RDMAC_NOINTRBITS | S5RDMAC_INTENABLE)
+-#define	S5R_CLOCKFREQ		20	/* 20 MHz */
++#define	S5R_CLOCKFREQ		((dma_chip == 313) ? 20 : 25)	/* plan 670 (D024, D155) */
++#define	S5RDMA_FLUSHCOUNT	((dma_chip == 313) ? 8 : 1)	/* plan 670 (D024, D155) */
+ #define	S5R_TIMEOUT		250	/* 250 ms */
+ 
+ /*
+@@ -365,7 +398,7 @@
+ 	 * we see something that looks like the fifo
+ 	 */
+ 	if (!probe_rb(&s5rp->s5r_cntlsb) || !probe_rb(&s5rp->s5r_fifo)
+-	    || !probe_rb(s5rp->s5r_cmd) || !probe_rb(s5rp->s5r_fifoflags))
++	    || !probe_rb(&s5rp->s5r_cmd) || !probe_rb(&s5rp->s5r_fifoflags))	/* plan 670 (D024, D155) */
+ 		return (0);
+ 	s5rp->s5r_dmactrl = S5RDMAC_NOINTRBITS | S5RDMAC_RESET;
+ 	DELAY(10);
+@@ -544,12 +577,9 @@
+ 	/*
+ 	 * Make sure nothing unreasonable has been asked of us
+ 	 */
+-	if (! DMA_BEGINALIGNED(sdp->sd_addr) || 
+-            ((cdb_ctrl & CTRL_LINKFLAG) != CTRL_NOLINK)) {
++	if ((cdb_ctrl & CTRL_LINKFLAG) != CTRL_NOLINK) {	/* plan 670 (D024, D155) */
+ 	    	XNDBG(("scstart: illegal request"));
+-		if (! DMA_BEGINALIGNED(sdp->sd_addr))
+-			EPRINTF(("sc%d: unaligned buffer address\n",
+-			    s5cp->s5c_scp->sc_bcp->bc_ctrl));
++		/* plan 670 (D155): no unaligned-buffer message in the 1997 code */
+ 		sdp->sd_state = SDSTATE_UNIMPLEMENTED;
+ 		scsi_cintr(scp);
+ 		return(-1);
+@@ -667,6 +697,8 @@
+ {
+ 	volatile struct scsi_5390_regs *s5rp
+ 	    = (struct scsi_5390_regs *)bcp->bc_addr;
++	struct scsi_5390_ctrl *s5cp = &sc_s5c[bcp->bc_ctrl];	/* plan 670 (D024, D155) */
++	struct scsi_device *sdp = s5cp->s5c_cursdp;	/* plan 670 (D024, D155) */
+ 
+ #ifndef SC_53C90A
+ 	s5rp->s5r_cmd = S5RCMD_NOP;
+@@ -676,7 +708,7 @@
+ 	/* FIXME: this timeout is questionable. We really should get this from
+ 	 * sdp->sd_timeout...
+ 	 */
+-	scsi_expectintr(&sc_sc[bcp->bc_ctrl], 10);
++	scsi_expectintr(&sc_sc[bcp->bc_ctrl], MAX(sdp->sd_timeout, 10));	/* plan 670 (D024, D155) */
+ }
+ 
+ static void
+@@ -734,10 +766,10 @@
+ 	if (s5cp->s5c_state == S5CSTATE_DMAING) {
+ 		/* capture ms chip state and re-enter pio mode */
+ 		DELAY(20);
+-		s5cp->s5c_dmastatus = s5rp->s5r_dmastatus;
++		/* plan 670 (D155): no s5c_dmastatus in the 1997 code */
+ 		if (sdp->sd_read) {
+ 			for (i = 0;
+-			     i < DMA_ENDALIGNMENT / S5RDMA_FIFOALIGNMENT;
++			     i < S5RDMA_FLUSHCOUNT;	/* plan 670 (D024, D155) */
+ 			     i++) {
+ 				s5rp->s5r_dmactrl = S5RDMAC_FLUSH
+ 				    | S5RDMAC_NORMALBITS | S5RDMAC_DMAMODE
+@@ -1496,10 +1528,7 @@
+ 		return;
+ 	}
+ 	s5cp->s5c_state = S5CSTATE_DMAING;
+-	if (! DMA_BEGINALIGNED(s5cp->s5c_curaddr)) {
+-		screset(scp, SCRESET_ABORT, "unaligned DMA segment");
+-		return;
+-	}
++	/* plan 670 (D155): no DMA alignment check in the 1997 code */
+ 	if (s5cp->s5c_curbcount > 0x10000) {
+ 		screset(scp, SCRESET_ABORT, "DMA len > 64K");
+ 		return;
+@@ -1519,10 +1548,12 @@
+ scminphys(bp)
+ 	struct buf *bp;
+ {
+-	extern int maxphys;
++	int maxlen = 0x10000;	/* plan 670 (D024, D155) */
+ 	
+-	if (bp->b_bcount > maxphys)
+-		bp->b_bcount = maxphys;
++	if (dma_chip == 313)	/* plan 670 (D024, D155) */
++		maxlen = 8192;	/* plan 670 (D024, D155) */
++	if (bp->b_bcount > maxlen)	/* plan 670 (D024, D155) */
++		bp->b_bcount = maxlen;	/* plan 670 (D024, D155) */
+ }
+ 
+ static void

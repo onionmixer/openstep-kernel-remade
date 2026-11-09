@@ -1,0 +1,36 @@
+--- nextmach/mk-108.1/nextdev/snd_var.h
++++ 07_kernel/nextmach/nextdev/snd_var.h
+@@ -12,6 +12,11 @@
+  *
+  */ 
+ 
++/*
++ * plan 554 (D123): struct snd_var in the 1997 m68k layout read from the
++ * original bytes (68 bytes; plan 553); lines marked plan 554 differ from
++ * NeXTMach mk-108.1 nextdev/snd_var.h.
++ */
+ #ifndef _SND_VAR_
+ #define _SND_VAR_
+ 
+@@ -109,16 +114,17 @@
+  */
+ typedef struct snd_var {
+ 	port_name_t		dspowner;	// port of dsp device owner
+-	port_name_t		sndinowner;	// port of sndin device owner
+-	port_name_t		sndoutowner;	// port of sndout device owner
++	queue_head_t		sndin_owners;	/* plan 554 (D123, D024): 1997 queue of sndin owners (NeXTMach sndinowner) */
++	queue_head_t		sndout_owners;	/* plan 554 (D123, D024): 1997 queue of sndout owners (NeXTMach sndoutowner) */
+ 	port_name_t		dspnegotiation;	// for negotiating dsp owner
+-	port_name_t		sndinnegotiation; // for negotiation sin own
+-	port_name_t		sndoutnegotiation; // for negotiation sout own
++	port_name_t		sndinnegotiation; // for negotiation sin own	/* plan 554 (D123): no use in the 1997 m68k kernel */
++	port_name_t		sndoutnegotiation; // for negotiation sout own	/* plan 554 (D123): no use in the 1997 m68k kernel */
+ 	port_set_name_t		portset;	// for recieving msgs
+ 	queue_head_t		new_thread_q;	// q of q's waiting threads
+ 	port_t			dev_port;	// my device port
+ 	task_t			task;		// me
+ 	vm_map_t		task_map;	// my address space
++	struct ipc_space	*task_space;	/* plan 554 (D123, D024): 1997 IPC space of the task (task + 0x7c) */
+ 	port_name_t		task_port;	// my task port
+ 	port_name_t		host_priv_self;	// our version of host priv.
+ } snd_var_t;

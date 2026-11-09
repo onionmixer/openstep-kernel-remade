@@ -1,0 +1,612 @@
+--- NeXTMach mk-108.1/nextdev/km.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/km.c (plan 679, D158)
+@@ -53,6 +53,39 @@
+  *	- audible bell
+  */
+ 
++/*
++ * plan 679 (D158, D013, D024, D104, D110, D113, D121): the 1997 m68k km.c.
++ * NeXTMach mk-108.1 nextdev/km.c with the include lines in OPENSTEP paths
++ * and the 1997 changes read from the original bytes [0x406f0fe, 0x4072264)
++ * (plans 677-678; the x86 07 bsd/dev/i386/km.m, "lifted from 68k km.c",
++ * shows the same kmgetc_silent, kmoutput, selthreadclear and winsize forms):
++ *	headers		the 1997 SDK bsd/dev/m68k event.h/evio.h (EvGlobals evg)
++ *			instead of nextdev/event.h and ev_vars.h; ohlfs12.h is
++ *			imported before keycodes.h; EACCES for EACCESS
++ *	kmopen		t_state |= TS_CARR_ON; t_winsize set after l_open
++ *	kmstart, kmoutput	callout_dispatch; selthreadclear; kmoutput
++ *			uses ttynty, spltty and the PASS8OUT/OPOST/CS8 test
++ *	kmpopup		NC_W_FULL 100, NC_H_FULL 48; km_access_stack reset;
++ *			adb_watchdog around 16/32 bit pixel lines; no final
++ *			km_end_access
++ *	km_big, km_switch_to_vm	kmem_alloc_wired
++ *	kmrestore	no km_begin_access; km_end_access outside the if
++ *	kmioctl		KMIOCSTATUS, KMIOCDISABLCONS, KMIOCANIMCTL, KMIOCSIZE,
++ *			TIOCSWINSZ (names in the 07 nextdev/kmreg.h)
++ *	km_autorepeat, kmintr_process	callout_dispatch
++ *	kmgetc, kmgetc_silent (new), kmtrygetc	adb_check_keyboard first
++ *	km_reset (new)	written from the original bytes
++ *	km_clear_eol	an argument: nonzero clears the whole line; kmpaint
++ *			passes 0 for 'K' and 1 when scrolling, with
++ *			adb_watchdog around the scroll
++ *	km_select_console	nbic_bus_enable
++ *	km_end_access, km_flip_cursor	cache push when km_coni.flag_bits & 2
++ *	km_run_pcode	LOAD_AR converts the address too
++ * The forms the bytes do not show are this project's choices (D158): the
++ * kmgetc loops (do/while with goto), ntp, whole, the number 2, txloop,
++ * 0x1000a825, the extern names for ev_vars.h.  Lines marked plan 679 differ
++ * from NeXTMach.
++ */
+ #import <sys/types.h>
+ #import <sys/param.h>
+ #import <sys/user.h>
+@@ -73,29 +106,47 @@
+ #import <kern/xpr.h>
+ #import <sys/printf.h>
+ #import <vm/vm_page.h>
+-#import <next/cpu.h>
+-#import <next/psl.h>
+-#import <next/scr.h>
+-#import <next/bmap.h>
+-#import <next/trap.h>
+-#import <next/eventc.h>
+-#import <next/cons.h>
++#import <m68k/cpu.h>	/* plan 679 (D110): NeXTMach <next/cpu.h> */
++/* plan 679 (D110, D113): the NeXTMach next/cpu.h names used here (fd_io.c precedent) */
++extern int slot_id;	/* plan 679 (D024, D158) */
++extern volatile int *intrmask;	/* plan 679 (D024, D158) */
++extern int intr_mask;	/* plan 679 (D024, D158) */
++#define	SLOT_ID		slot_id	/* plan 679 (D024, D158) */
++#define	P_MON		(SLOT_ID+0x0200e000)	/* plan 679 (D024, D158) */
++#define	P_SCR2		(SLOT_ID+0x0200d000)	/* plan 679 (D024, D158) */
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))	/* plan 679 (D024, D158) */
++#define	I_IPL(i)	(((i) >> 4) & 7)	/* plan 679 (D024, D158) */
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))	/* plan 679 (D024, D158) */
++#define	I_VIDEO		I(3,8,5)	/* plan 679 (D024, D158) */
++#define	I_POWER		I(3,11,2)	/* plan 679 (D024, D158) */
++#import <m68k/psl.h>	/* plan 679 (D104): NeXTMach <next/psl.h> */
++/* plan 679 (D121): NeXTMach #import <next/scr.h> removed (no name used) */
++#import <m68k/bmap.h>	/* plan 679 (D104): NeXTMach <next/bmap.h> */
++/* plan 679 (D121): NeXTMach #import <next/trap.h> removed (no name used) */
++#import <machdep/m68k/eventc.h>	/* plan 679 (D104): NeXTMach <next/eventc.h> */
++#import <m68k/cons.h>	/* plan 679 (D104): NeXTMach <next/cons.h> */
+ #import <next/event_meter.h>
+-#import <nextdev/monreg.h>
++#import <dev/m68k/monreg.h>	/* plan 679 (D104): NeXTMach <nextdev/monreg.h> */
+ #import <nextdev/kmreg.h>
+-#import <nextdev/video.h>
+-#import <nextdev/nbicreg.h>
+-#import <nextdev/keycodes.h>
+-#import <nextdev/ohlfs12.h>
++#import <dev/m68k/video.h>	/* plan 679 (D104): NeXTMach <nextdev/video.h> */
++#import <architecture/m68k/nbicreg.h>	/* plan 679 (D104): NeXTMach <nextdev/nbicreg.h> */
++#import <nextdev/ohlfs12.h>	/* plan 679 (D158): before keycodes.h (the original data order) */
++#import <bsd/dev/m68k/keycodes.h>	/* plan 679 (D104, D158): NeXTMach <nextdev/keycodes.h>, after ohlfs12.h (the original data order) */
+ #import <nextdev/td.h>
+ #import <nextdev/dma.h>
+-#import <nextdev/event.h>
+-#import <nextdev/ev_vars.h>
+-#import <nextdev/busvar.h>
++#import <bsd/dev/m68k/event.h>	/* plan 679 (D104, D158): NeXTMach <nextdev/event.h>; the 1997 SDK m68k header */
++#import <bsd/dev/m68k/evio.h>	/* plan 679 (D104, D158): NeXTMach <nextdev/ev_vars.h>; the 1997 SDK m68k EvGlobals */
++/* plan 679 (D158): the NeXTMach nextdev/ev_vars.h names km.c uses */
++extern int eventsOpen;	/* plan 679 (D024, D158) */
++extern task_t eventTask;	/* plan 679 (D024, D158) */
++extern int curBright;	/* plan 679 (D024, D158) */
++extern EvGlobals *evg;	/* plan 679 (D024, D158) */
++#import <dev/busvar.h>	/* plan 679 (D104): NeXTMach <nextdev/busvar.h> */
+ #import <machine/spl.h>
+ #import <mon/global.h>
+ #import <vm/vm_kern.h>
+ 
++extern void callout_dispatch();	/* plan 679 (D024, D158) */
+ #define	NKMCHAN		2	/* number of channels (keyboards & mice) */
+ #define	KYBD(unit)	(((unit) & 1) == 0)
+ #define	MOUSE(unit)	((unit) & 1)
+@@ -104,8 +155,8 @@
+ #define	AUTORPT_SUBSEQ	(hz/20)	/* 20 cps autorepeat rate */
+ #define	TAB_SIZE	8
+ 
+-#define	NC_W_FULL	120	/* full window when nothing else on screen */
+-#define	NC_H_FULL	60
++#define	NC_W_FULL	100	/* plan 679 (D024, D158) */
++#define	NC_H_FULL	48	/* plan 679 (D024, D158) */
+ #define	NC_W_BIG	80	/* big window when requested */
+ #define	NC_H_BIG	40
+ #define	NC_W_NOM	50	/* nominal window that fits in off-screen memory */
+@@ -185,6 +236,7 @@
+ {
+ 	register int unit;
+ 	register struct tty *tp;
++	int ret;	/* plan 679 (D024, D158) */
+ 
+ 	/*
+ 	 *  Allows single user shell to always have a window.
+@@ -213,7 +265,7 @@
+ 				 * must not be running.
+ 				 */
+ 				if (!suser()) {
+-					return (EACCESS);
++					return (EACCES);	/* plan 679 (D024, D158): NeXTMach EACCESS (mon/tftp.h 2); the original returns 13 */
+ 				}
+ 				if (eventsOpen) {
+ 					return (EBUSY);
+@@ -268,10 +320,15 @@
+ 			CRTBS | CTLECH | CRTERA | CRTKIL | PRTERA;
+ 		tp->t_chars.tc_erase = (char) 0x7f;
+                 tp->t_ispeed = tp->t_ospeed = B9600;
+-                tp->t_state = TS_ISOPEN | TS_CARR_ON;
++                tp->t_state |= TS_CARR_ON;	/* plan 679 (D024, D158) */
+ 	} else if ((tp->t_state&TS_XCLUDE) && u.u_uid != 0)
+ 		return (EBUSY);
+-	return ((*linesw[tp->t_line].l_open)(dev, tp));
++	ret = (*linesw[tp->t_line].l_open)(dev, tp);	/* plan 679 (D024, D158) */
++	tp->t_winsize.ws_col = km.nc_w;	/* plan 679 (D024, D158) */
++	tp->t_winsize.ws_row = km.nc_h;	/* plan 679 (D024, D158) */
++	tp->t_winsize.ws_xpixel = KM_VIDEO_W;	/* plan 679 (D024, D158) */
++	tp->t_winsize.ws_ypixel = KM_VIDEO_H;	/* plan 679 (D024, D158) */
++	return (ret);	/* plan 679 (D024, D158) */
+ }
+ 
+ kmclose(dev, flag)
+@@ -329,7 +386,7 @@
+ 		goto out;
+ 	tp->t_state |= TS_BUSY;
+ 	if (tp->t_outq.c_cc > TTLOWAT(tp))
+-		softint_sched (0, kmoutput, tp);
++		callout_dispatch (0, kmoutput, tp);	/* plan 679 (D024, D158) */
+ 	else
+ 		timeout (kmoutput, tp, SCROLL_RATE);
+ 	return;
+@@ -341,7 +398,7 @@
+ 		}
+ 		if (tp->t_wsel) {
+ 			selwakeup(tp->t_wsel, tp->t_state & TS_WCOLL);
+-			tp->t_wsel = 0;
++			selthreadclear(&tp->t_wsel);	/* plan 679 (D024, D158) */
+ 			tp->t_state &= ~TS_WCOLL;
+ 		}
+ 	}
+@@ -350,13 +407,18 @@
+ kmoutput (tp)
+ 	register struct tty *tp;
+ {
++	struct nty *ntp = ttynty(tp);	/* plan 679 (D024, D158) */
+ 	char buf[80];
+ 	register char *cp;
+ 	register int cc = -1;
++	int s;	/* plan 679 (D024, D158) */
+ 	extern int ttrstrt();
+ 
++	s = spltty();	/* plan 679 (D024, D158) */
+ 	while (tp->t_outq.c_cc > 0) {
+-		if ((tp->t_flags&(RAW|LITOUT)))
++		if ((tp->t_flags & (RAW|LITOUT|PASS8OUT)) ||	/* plan 679 (D024, D158) */
++		    (ntp->t_pflags & TP_OPOST) == 0 ||	/* plan 679 (D024, D158) */
++		    (ntp->t_pflags & TP_CSIZE) == TP_CS8)	/* plan 679 (D024, D158) */
+ 			cc = ndqb(&tp->t_outq, 0);
+ 		else
+ 			cc = ndqb(&tp->t_outq, 0200);
+@@ -372,7 +434,7 @@
+                 timeout(ttrstrt, (caddr_t)tp, cc&0x7f);
+                 tp->t_state |= TS_TIMEOUT;
+         } else if (tp->t_outq.c_cc > 0)
+-		softint_sched (0, kmoutput, tp);
++		callout_dispatch (0, kmoutput, tp);	/* plan 679 (D024, D158) */
+ 	tp->t_state &= ~TS_BUSY;
+         if (tp->t_outq.c_cc <= TTLOWAT(tp)) {
+ 		if (tp->t_state & TS_ASLEEP) {
+@@ -381,10 +443,11 @@
+ 		}
+ 		if (tp->t_wsel) {
+ 			selwakeup (tp->t_wsel, tp->t_state & TS_WCOLL);
+-			tp->t_wsel = 0;
++			selthreadclear(&tp->t_wsel);	/* plan 679 (D024, D158) */
+ 			tp->t_state &= ~TS_WCOLL;
+ 		}
+ 	}
++	splx(s);	/* plan 679 (D024, D158) */
+ }
+ 
+ kmpopup (title, flag, w, h, allocmem)
+@@ -480,6 +543,7 @@
+ 		title_t = KM_LT_GRAY;
+ 		title_b = KM_DK_GRAY;
+ 	}
++	km_access_stack = 0;	/* plan 679 (D024, D158) */
+ 	km_begin_access();
+ 	if (flag == POPUP_FULL)
+ 		km_clear_screen();
+@@ -562,6 +626,7 @@
+ 			}
+ 			break;
+ 		    case 2:	/* Word size pixels */
++			adb_watchdog(0);	/* plan 679 (D024, D158) */
+ 		    	((short*)sp) += 7;	/* Bump into our X_OVHD margin */
+ 		    	if ( dp ){
+ 				*((short*)dp)++ = *((short*)sp);
+@@ -584,8 +649,10 @@
+ 				*((short*)sp)++ = bg3 & 0xFFFF;	     /* 2nd to last */
+ 				*((short*)sp)++ = KM_BLACK & 0xFFFF; /* last pixel */
+ 			}
++			adb_watchdog(1);	/* plan 679 (D024, D158) */
+ 			break;
+ 		    case 1:	/* longword sized pixels */
++			adb_watchdog(0);	/* plan 679 (D024, D158) */
+ 		    	((int*)sp) += 7;	/* Bump into our X_OVHD margin */
+ 		    	if ( dp ){
+ 				*((int*)dp)++ = *((int*)sp);
+@@ -608,7 +675,8 @@
+ 				*((int*)sp)++ = bg3;		/* 2nd to last */
+ 				*((int*)sp)++ = KM_BLACK;	/* last pixel */
+ 			}
+-		    	break;
++		    	adb_watchdog(1);	/* plan 679 (D024, D158) */
++			break;
+ 		}
+ 	}
+ 	km.bg = title_bg;
+@@ -618,7 +686,7 @@
+ 	for (i = 0; c = ((char*)title)[i]; i++)	
+ 		kmpaint (c);
+ 	km_flip_cursor();
+-	km_end_access();
++	/* plan 679 (D024, D158): no km_end_access() here in the 1997 code */
+ 	km.bg = text_bg;
+ 	km.fg = text_fg;
+ 	km.x = km.y = 0;
+@@ -638,7 +706,7 @@
+ 	km.nc_w2 = NC_W_BIG;
+ 	km.nc_h2 = NC_H_BIG;
+ 	i = WIN_SIZE(km.nc_w2, km.nc_h2);
+-	km.store2 = kmem_alloc(kernel_map, i);
++	kmem_alloc_wired(kernel_map, (vm_offset_t *)&km.store2, i);	/* plan 679 (D024, D158) */
+ 	km.flags |= KMF_PERMANENT;
+ 	km.store = 0;
+ }
+@@ -654,7 +722,7 @@
+ 
+ 	/* restore obscured bits */
+ 	if (km.store) {
+-		km_begin_access();
++		/* plan 679 (D024, D158): no km_begin_access() in the 1997 code */
+ 		/* Indent to left margin, row 0, less 1/2 of X_OVHD characters. */
+ 		vmem = KM_P_VIDEOMEM + (km.nc_lm * CHAR_W * sizeof(int) / KM_NPPW) - 
+ 		       (X_OVHD * CHAR_W * sizeof(int) / (KM_NPPW * 2) );
+@@ -688,8 +756,8 @@
+ 			        break;
+ 			}
+ 		}
+-		km_end_access();
+-	}
++	}
++	km_end_access();	/* plan 679 (D024, D158) */
+ 
+ 	/* restore previous cons_tp & KMF_SEE_MSGS */
+ 	km.save--;
+@@ -710,6 +778,7 @@
+ 	int unit, error;
+ 	char *mp;
+ 	register struct tty *tp;
++	unsigned status = 0;	/* plan 679 (D024, D158) */
+ 
+ 	unit = minor(dev);
+ 	tp = &cons;
+@@ -752,8 +821,15 @@
+ 		
+ 	case KMIOCGFLAGS:
+ 		if (!suser())
+-			return (EACCESS);
++			return (EACCES);	/* plan 679 (D024, D158): NeXTMach EACCESS (mon/tftp.h 2); the original returns 13 */
+ 		*(int*)data = km.flags;
++		return (0);
++	case KMIOCSTATUS:	/* plan 679 (D024, D158) */
++		if (!suser())
++			return (EACCES);	/* plan 679 (D024, D158) */
++		if (km.flags & KMF_SEE_MSGS)	/* plan 679 (D024, D158) */
++			status |= KMS_SEE_MSGS;	/* plan 679 (D024, D158) */
++		*(unsigned *)data = status;	/* plan 679 (D024, D158) */
+ 		return (0);
+ 	
+ 	/* Destructively image a rectangle onto the screen. */
+@@ -762,6 +838,32 @@
+ 	/* Clear a rectangle on the screen. */
+ 	case KMIOCERASERECT:
+ 		return( km_eraserect( (struct km_drawrect *)data ) );
++	case KMIOCDISABLCONS:	/* plan 679 (D024, D158) */
++		km.flags &= ~KMF_SEE_MSGS;	/* plan 679 (D024, D158) */
++		return (0);
++	case KMIOCANIMCTL:	/* plan 679 (D024, D158) */
++		switch (*(int *)data) {	/* plan 679 (D024, D158) */
++		case KM_ANIM_STOP:	/* plan 679 (D024, D158) */
++			vidStopAnimation();	/* plan 679 (D024, D158) */
++			break;
++		case KM_ANIM_SUSPEND:	/* plan 679 (D024, D158) */
++			vidSuspendAnimation();	/* plan 679 (D024, D158) */
++			break;
++		case KM_ANIM_RESUME:	/* plan 679 (D024, D158) */
++			vidResumeAnimation();	/* plan 679 (D024, D158) */
++			break;
++		default:
++			return (EINVAL);	/* plan 679 (D024, D158) */
++		}
++		return (0);
++	case KMIOCSIZE:	/* plan 679 (D024, D158) */
++		((struct winsize *)data)->ws_col = km.nc_w;	/* plan 679 (D024, D158) */
++		((struct winsize *)data)->ws_row = km.nc_h;	/* plan 679 (D024, D158) */
++		((struct winsize *)data)->ws_xpixel = KM_VIDEO_W;	/* plan 679 (D024, D158) */
++		((struct winsize *)data)->ws_ypixel = KM_VIDEO_H;	/* plan 679 (D024, D158) */
++		return (0);
++	case TIOCSWINSZ:	/* plan 679 (D024, D158) */
++		return (EINVAL);	/* plan 679 (D024, D158) */
+ 	}
+ 
+ 	error = (*linesw[tp->t_line].l_ioctl)(tp, cmd, data, flag);
+@@ -788,7 +890,7 @@
+ 	if (km.flags & KMF_AUTOREPEAT) {
+ 		c = kybd_process (&km.autorepeat_event);
+         	if ((cons.t_state & TS_ISOPEN) && c < inv)
+-			softint_sched (0, km_input, c);
++			callout_dispatch (0, km_input, c);	/* plan 679 (D024, D158) */
+ 		timeout (km_autorepeat, 0, AUTORPT_SUBSEQ);
+ 	}
+ }
+@@ -845,7 +947,7 @@
+ 		timeout (km_autorepeat, 0, AUTORPT_INITIAL);
+ 	}
+         if ((cons.t_state & TS_ISOPEN) && c < inv)
+-		softint_sched (0, km_input, c);
++		callout_dispatch (0, km_input, c);	/* plan 679 (D024, D158) */
+ 	if (!recon_poll && reconnect && callfree) {
+ 		timeout (reconpoll, 0, hz*3);
+ 		recon_poll = 1;
+@@ -875,7 +977,7 @@
+ 		timeout (km_autorepeat, 0, AUTORPT_INITIAL);
+ 	}
+         if ((cons.t_state & TS_ISOPEN) && c < inv)
+-		softint_sched (0, km_input, c);
++		callout_dispatch (0, km_input, c);	/* plan 679 (D024, D158) */
+ } /* kmintr_process */
+ #endif NOEVDRIVER
+ 
+@@ -910,10 +1012,13 @@
+ 	 */
+ 	s = splhigh();
+ 	do {
+-		do {
++retry:	/* plan 679 (D024, D158) */
++		if (adb_check_keyboard(&km.kybd_event) == 0) {	/* plan 679 (D024, D158) */
+ 			csr = mon->mon_csr;
+-		} while (csr.km_dav == 0);
+-		km.kybd_event.data = mon->mon_km_data;
++			if (csr.km_dav == 0)	/* plan 679 (D024, D158) */
++				goto retry;	/* plan 679 (D024, D158) */
++			km.kybd_event.data = mon->mon_km_data;	/* plan 679 (D024, D158) */
++		}
+ 		c = kybd_process (&km.kybd_event);
+ 	} while (c >= inv);
+ 	(void) splx(s);
+@@ -923,6 +1028,38 @@
+ 	return (c);
+ }
+ 
++kmgetc_silent (dev)	/* plan 679 (D024, D158) */
++	dev_t dev;
++{
++	register volatile struct monitor *mon =
++		(volatile struct monitor*) P_MON;
++	register int s, c;
++	struct mon_status csr;
++
++	/*
++	 *  Make sure we loop at or above the console interrupt priority
++	 *  otherwise we can get into an infinite loop processing console
++	 *  receive interrupts which will never be handled because the
++	 *  interrupt routine is short-circuited while we are doing direct
++	 *  input.
++	 */
++	s = splhigh();
++	do {
++retry:	/* plan 679 (D024, D158) */
++		if (adb_check_keyboard(&km.kybd_event) == 0) {	/* plan 679 (D024, D158) */
++			csr = mon->mon_csr;
++			if (csr.km_dav == 0)	/* plan 679 (D024, D158) */
++				goto retry;	/* plan 679 (D024, D158) */
++			km.kybd_event.data = mon->mon_km_data;	/* plan 679 (D024, D158) */
++		}
++		c = kybd_process (&km.kybd_event);
++	} while (c >= inv);
++	(void) splx(s);
++	if (c == '\r')
++		c = '\n';
++	return (c);
++}
++
+ kmtrygetc()
+ {
+ 	register volatile struct monitor *mon =
+@@ -930,10 +1067,12 @@
+ 	register int c;
+ 	struct mon_status csr;
+ 
+-	csr = mon->mon_csr;
+-	if (csr.km_dav == 0)
+-		return (-1);
+-	km.kybd_event.data = mon->mon_km_data;
++	if (adb_check_keyboard(&km.kybd_event) == 0) {	/* plan 679 (D024, D158) */
++		csr = mon->mon_csr;	/* plan 679 (D024, D158) */
++		if (csr.km_dav == 0)	/* plan 679 (D024, D158) */
++			return (-1);	/* plan 679 (D024, D158) */
++		km.kybd_event.data = mon->mon_km_data;
++	}	/* plan 679 (D024, D158) */
+ 	c = kybd_process (&km.kybd_event);
+ 	if (c >= inv)
+ 		return (-1);
+@@ -1025,6 +1164,19 @@
+ 	if (i == 0)
+ 		return (MON_NO_RESP);
+ 	return (0);
++}
++
++/* plan 679 (D024, D158): km_reset written from the original bytes [0x407077c, 0x40707ca) */
++km_reset()	/* plan 679 (D024, D158) */
++{
++	register volatile struct monitor *mon =
++		(volatile struct monitor*) P_MON;
++
++	(void) splhigh();	/* plan 679 (D024, D158) */
++	mon->mon_csr.txloop = 1;	/* plan 679 (D024, D158) */
++	mon_send(MON_KM_POLL, 0x1000a825);	/* plan 679 (D024, D158) */
++	mon_send(0, 0);	/* plan 679 (D024, D158) */
++	DELAY(10000);	/* plan 679 (D024, D158) */
+ }
+ 
+ /*
+@@ -1296,7 +1448,7 @@
+ 				break;
+ 
+ 			case 'K':
+-				km_clear_eol();
++				km_clear_eol(0);	/* plan 679 (D024, D158) */
+ 				break;
+ 
+ 			case 'm':
+@@ -1423,6 +1575,8 @@
+ 	if (km.x >= km.nc_w)		/* wrap */
+ 		km.x = 0,  km.y++;
+ 	if (km.y >= km.nc_h) {		/* scroll screen */
++		if (KM_NPPW <= 2)	/* plan 679 (D024, D158) */
++			adb_watchdog(0);	/* plan 679 (D024, D158) */
+ 		km.y = km.nc_h - 1;
+ 		bpl = KM_VIDEO_NBPL;
+ 		/* Indent to left margin, scanline 0 */
+@@ -1435,7 +1589,9 @@
+ 			s = (int*) ((int) d + chunk);
+ 			LOOP32 (longs, *d++ = *s++);
+ 		}
+-		km_clear_eol();
++		km_clear_eol(1);	/* plan 679 (D024, D158) */
++		if (KM_NPPW <= 2)	/* plan 679 (D024, D158) */
++			adb_watchdog(1);	/* plan 679 (D024, D158) */
+ 	}
+ 	km_flip_cursor();
+ 	km_end_access();
+@@ -1472,18 +1628,23 @@
+ 		}
+ 	}
+ 	km_end_access();
+-}
+-
+-km_clear_eol()
++	if ( km_coni.flag_bits & 2 )	/* plan 679 (D024, D158) */
++		asm(".word 0xf478 | cpusha      dc");
++}
++
++km_clear_eol(whole)	/* plan 679 (D024, D158) */
++	int whole;	/* plan 679 (D024, D158) */
+ {
+ 	register int x, y, vmem, nchars;
+ 
+ 	km_begin_access();
+-	nchars = km.nc_w - km.x;	/* Number of characters to clear. */
++	nchars = km.nc_w;	/* plan 679 (D024, D158) */
++	if (!whole)	/* plan 679 (D024, D158) */
++		nchars -= km.x;	/* Number of characters to clear. */	/* plan 679 (D024, D158) */
+ 	for (y = 0; y < CHAR_H; y++) {
+ 		vmem = KM_P_VIDEOMEM
+ 			+ (((km.nc_tm + km.y) * CHAR_H + y) * KM_VIDEO_NBPL)
+-			+ ((km.nc_lm + km.x) * CHAR_W * sizeof (int))/KM_NPPW;
++			+ ((km.nc_lm + (whole ? 0 : km.x)) * CHAR_W * sizeof (int))/KM_NPPW;	/* plan 679 (D024, D158) */
+ 		if ( KM_NPPW == 16 ) {	/* 2 bit display */
+ 		    /* Hidden assumption: CHAR_W == 8 */
+ 		    for (x = 0; x < nchars; x++)
+@@ -1559,14 +1720,14 @@
+ 	/* lock cursor in event driver */
+ 	if (lock) {
+ 		s = splx(ipltospl(I_IPL(I_VIDEO)));
+-		while (evp->cursorSema == 1) {
++		while (evg->cursorSema == 1) {	/* plan 679 (D024, D158) */
+ 			if (csw_needed(current_thread(), current_processor()))
+ 				thread_block();
+ 		}
+-		evp->cursorSema = 1;
++		evg->cursorSema = 1;	/* plan 679 (D024, D158) */
+ 		splx(s);
+ 	} else {
+-		evp->cursorSema = 0;
++		evg->cursorSema = 0;	/* plan 679 (D024, D158) */
+ 	}
+ 	
+ 	if (eventTask == 0)
+@@ -1672,7 +1833,7 @@
+ 		 */
+ 		if ( KM_BACKING_SIZE == 0 ){ /* Non-zero indicates a backing store */
+ 			/* Sigh... Wire it down. This won't happen on NeXT boards. */
+-			KM_BACKING_STORE = (int) kmem_alloc(kernel_map, WIN_SIZE_NOM);
++			kmem_alloc_wired(kernel_map, (vm_offset_t *)&KM_BACKING_STORE, WIN_SIZE_NOM);	/* plan 679 (D024, D158) */
+ 			if ( KM_BACKING_STORE ) {	/* And don't steal any more! */
+ 				KM_BACKING_SIZE = WIN_SIZE_NOM;
+ 				km.nc_w2 = NC_W_NOM;
+@@ -1684,7 +1845,7 @@
+ 	}
+ }
+ 
+-#include "nextdev/km_pcode.h"
++#import <nextdev/km_pcode.h>	/* plan 679 (D104, D158): NeXTMach #include "nextdev/km_pcode.h" */
+ 
+ /*
+  * Read the requested word from the p-code table.
+@@ -1748,11 +1909,7 @@
+ 	volatile int *scr2 = (volatile int *)P_SCR2;
+ 	
+ 	if ( SLOT_ID == 0 )	/* Gain access to NextBus */
+-	{
+-		*scr2 |= SCR2_OVERLAY;
+-		if ( bmap_chip )
+-			bmap_chip->bm_lo = 0;
+-	}
++		nbic_bus_enable();	/* plan 679 (D024, D158) */
+ 
+ 	/*
+ 	 *	If the ROM monitor says it found a board on the bus,
+@@ -1876,30 +2033,14 @@
+  */
+ km_end_access()
+ {
+-	if ( --km_access_stack > 0 )
++	if ( km_access_stack && --km_access_stack > 0 )	/* plan 679 (D024, D158) */
+ 		return;
+-	km_access_stack = 0;	/* Avoid underflow errors */
+ 	
+ 	if ( km_coni.end_access_pfunc )
+ 		km_run_pcode( km_coni.end_access_pfunc );
+-		
+-	switch (machine_type) {
+-	
+-	case NeXT_WARP9C:
+-		/*
+-		 * The Warp 9C has a cached frame buffer.
+-		 * We need to flush the data cache to get the NMI
+-		 * window to behave cleanly.
+-		 */
++	if ( km_coni.flag_bits & 2 )	/* plan 679 (D024, D158) */
+ 		asm(".word 0xf478 | cpusha      dc");
+-		break;
+-	case NeXT_CUBE:
+-	case NeXT_WARP9:
+-	case NeXT_X15:
+-		break;
+-	}
+ 	return FALSE;
+-
+ }
+ /*
+  * validate and convert the specified physical address into the correct 
+@@ -1972,6 +2113,7 @@
+ 				
+ 			case LOAD_AR:
+ 			    addr = (vm_offset_t)KM_CONVERT_ADDR(slot,immediate);
++			    addr = km_convert_addr(addr);	/* plan 679 (D024, D158) */
+ 			    reg[REG2(inst)] = *((int *)addr);
+ 			    break;
+ 				

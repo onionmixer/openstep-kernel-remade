@@ -1,0 +1,174 @@
+--- nextmach/mk-108.1/next/autoconf.c
++++ 07_kernel/src/machdep/m68k/autoconf.c
+@@ -18,6 +18,22 @@
+  */ 
+ 
+ /*
++ * m68k: next/autoconf.c of the 1997 m68k kernel (plans 525-526, D024, D103, D104, D113).
++ * Base: NeXTMach mk-108.1 next/autoconf.c (above notice and history).  The include
++ * lines use the OPENSTEP paths (D104); next/autoconf.h, nextdev/scsireg.h and
++ * nextdev/scsivar.h come from 07_kernel/nextmach; the next/cpu.h names this file
++ * needs are defined here (next/cpu.h is assembly only, D109), P_MEMSIZE written from
++ * the original bytes as in mem.c.  Removed because the original has no code for them:
++ * the next/scr.h import, "master_cpu = 0;" and the lines after swapconf() in
++ * configure() (set_cpu_number, the "master cpu at slot" message, machine_slot),
++ * pflush_super() in ioaccess() and slave_config().  Changed from the original bytes:
++ * kmem_alloc_pageable(map, &addr, size) in map_addr(), the seventh argument 1 of
++ * pmap_enter_mapping() and m68k_page_mask in ioaccess().  bus_find is static, so the
++ * original symbol table has no name for it (0x4065c02).  Lines marked plan 526
++ * differ from NeXTMach.
++ */
++
++/*
+  * Setup the system to run on the current machine.
+  *
+  * Configure() is called at boot time and initializes the bus device tables.
+@@ -30,12 +46,37 @@
+ #import <sys/dk.h>
+ #import <sys/conf.h>
+ #import <vm/vm_kern.h>
+-#import <vm/vm_param.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
+-#import <next/spl.h>
+-#import <nextdev/scsireg.h>
+-#import <nextdev/scsivar.h>
++#import <mach/vm_param.h>
++#import <m68k/cpu.h>	/* plan 526 (D113, D110): NeXTMach <next/cpu.h> */
++#import <machine/spl.h>
++#import <dev/m68k/scsireg.h>	/* plan 526 (D113, D104): NeXTMach <nextdev/scsireg.h> */
++#import <dev/m68k/scsivar.h>	/* plan 526 (D113, D104): NeXTMach <nextdev/scsivar.h> */
++
++/* plan 526 (D113): NeXTMach next/cpu.h names used here (next/cpu.h is assembly only, D109) */
++extern volatile int *intrmask;
++extern int intr_mask;
++extern int slot_id;
++
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_INDEX(i)	((i) & 0xf)
++#define	I_IPL(i)	(((i) >> 4) & 7)
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))
++
++#define	I_IPL7_BITS	2
++#define	I_IPL6_BITS	12
++#define	I_IPL4_BITS	1
++#define	I_IPL3_BITS	12
++
++#define	I_SCC		I(5,0,17)
++#define	I_REMOTE	I(5,1,16)
++#define	I_BUS		I(5,2,15)
++#define	I_SOFTINT1	I(2,0,1)
++#define	I_SOFTINT0	I(1,0,0)
++
++#define	SLOT_ID		slot_id
++#define	P_EPROM		(SLOT_ID+0x00000000)
++#define	P_MAINMEM	(SLOT_ID+0x04000000)
++#define	P_MEMSIZE	(dma_chip == 313 ? (machine_type == 3 ? 0x02000000 : 0x04000000) : 0x08000000)	/* plan 526 (D024): from the original bytes, as plan 510 mem.c */
+ 
+ /*
+  * The following several variables are related to
+@@ -54,8 +95,6 @@
+  */
+ void configure(void)
+ {
+-	master_cpu = 0;
+-
+ 	nbic_configure();	/* configure NeXT Bus Interface Chip */
+ 
+ 	/* enable default interrupts */
+@@ -72,25 +111,6 @@
+ 	 * parameter based on device(s) used.
+ 	 */
+ 	swapconf();
+-
+-	set_cpu_number();
+-	printf("master cpu at slot %d.\n", master_cpu);
+-	machine_slot[master_cpu].is_cpu = TRUE;
+-	machine_slot[master_cpu].running = TRUE;
+-	switch (machine_type) {
+-
+-	case NeXT_CUBE:
+-		machine_slot[master_cpu].cpu_type = CPU_TYPE_MC680x0;
+-		machine_slot[master_cpu].cpu_subtype = CPU_SUBTYPE_MC68030;
+-		break;
+-
+-	case NeXT_WARP9:
+-	case NeXT_X15:
+-	case NeXT_WARP9C:
+-		machine_slot[master_cpu].cpu_type = CPU_TYPE_MC680x0;
+-		machine_slot[master_cpu].cpu_subtype = CPU_SUBTYPE_MC68040;
+-		break;
+-	}
+ }
+ 
+ /*
+@@ -337,15 +357,14 @@
+ 
+ caddr_t map_addr(register caddr_t addr, int size)
+ {
+-	register caddr_t reg;
++	caddr_t reg;	/* plan 526 (D024): not register, its address is passed */
+ 	caddr_t ioaccess(vm_offset_t phys, vm_offset_t virt, vm_size_t size);
+ 
+ 	/* setup mapping if outside transparently mapped space */
+ 	/* FIXME: how does this all work for devices in other slots? */
+ 	if (addr < (caddr_t) P_EPROM ||
+ 	    addr >= (caddr_t) (P_MAINMEM + P_MEMSIZE)) {
+-		if ((reg = (caddr_t) kmem_alloc_pageable (kernel_map, size))
+-		     == 0)
++		if (kmem_alloc_pageable (kernel_map, &reg, size) != KERN_SUCCESS)	/* plan 526 (D024) */
+ 			panic ("map_addr: no memory for device");
+ 		reg = ioaccess ((vm_offset_t)addr, (vm_offset_t)reg,
+ 			(vm_size_t)size);
+@@ -384,24 +403,14 @@
+ 
+ 	do {
+ 		pmap_enter_mapping (pmap_kernel(), va, pa,
+-			VM_PROT_READ | VM_PROT_WRITE, 0, 0);
++			VM_PROT_READ | VM_PROT_WRITE, 0, 0, 1);	/* plan 526 (D024) */
+ 		pa += page_size;
+ 		va += page_size;
+ 	} while (--i > 0);
+ 
+-	pflush_super();
+-	return ((caddr_t) (virt + (phys & NeXT_page_mask)));
++	return ((caddr_t) (virt + (phys & m68k_page_mask)));	/* plan 526 (D113): NeXTMach NeXT_page_mask */
+ }
+ 
+-#if	MACH
+-void slave_config(void)
+-{
+-	register int i;
+-	struct MACHstate *m;
+- 
+-	set_cpu_number();
+-}
+-#endif	MACH
+ 
+ /*
+  * Configure swap space and related parameters.
+--- nextmach/mk-108.1/next/autoconf.h
++++ 07_kernel/nextmach/next/autoconf.h
+@@ -15,8 +15,8 @@
+  */
+ 
+ #import <sys/types.h>
+-#import <kern/mach_types.h>
+-#import <nextdev/busvar.h>
++#import <mach/mach_types.h>	/* plan 526 (D113, D104): NeXTMach <kern/mach_types.h> */
++#import <dev/busvar.h>	/* plan 526 (D113, D104): NeXTMach <nextdev/busvar.h> */
+ 
+ /*
+  * The following several variables are related to
+--- nextmach/mk-108.1/nextdev/scsivar.h
++++ 07_kernel/nextmach/nextdev/scsivar.h
+@@ -22,7 +22,8 @@
+ #define	_SCSIVAR_
+ 
+ #import <kern/lock.h>
+-#import <nextdev/busvar.h>
++#import <dev/busvar.h>	/* plan 526 (D113, D104): NeXTMach <nextdev/busvar.h> */
++#import <kernserv/printf.h>	/* plan 526 (D113): struct reg_values (NeXTMach next/printf.h) */
+ 
+ /* #define DISC_DBG 0 */
+ 

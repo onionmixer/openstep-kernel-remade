@@ -1,0 +1,209 @@
+--- nextmach/mk-108.1/nextdev/fd_driver.c
++++ 07_kernel/src/machdep/m68k/fd_driver.c
+@@ -13,6 +13,23 @@
+  *	Created.
+  */ 
+  
++/*
++ * plan 576 (D130, D013, D024, D104, D110): the 1997 m68k fd_driver.c.
++ * NeXTMach mk-108.1 nextdev/fd_driver.c with the include lines in OPENSTEP
++ * paths and the 1997 changes written from the original bytes
++ * [0x406b546, 0x406c55c) (plans 574-575):
++ *	fd_attach_com	no message when the disk label cannot be read
++ *	fdsize		new; written from the bytes 0x406ba5a
++ *	fdclose		ENXIO when the volume is not open (fvp == NULL)
++ *	fdread, fdwrite	block size of a non-live partition from the disk
++ *			label (ENXIO without a valid label); no DEV_BSIZE
++ *	fdstrategy	checks fvp before reading fvp->labelp
++ *	fdioctl		ENXIO when fvp == NULL before the first switch;
++ *			DKIOCGFORMAT, DKIOCBLKSIZE, DKIOCNUMBLKS; FDIOCREQ uses a
++ *			DMA_BEGINALIGN'd buffer inside a larger kalloc
++ * The other 5 functions are the NeXTMach text unchanged.  Lines marked
++ * plan 576 differ from NeXTMach.
++ */
+ #import "fd.h"
+ #import <sys/types.h>
+ #import <sys/uio.h>
+@@ -22,9 +39,9 @@
+ #import <sys/user.h>
+ #import <sys/dk.h>
+ #import <sys/fcntl.h>
+-#import <nextdev/disk.h>
+-#import <next/psl.h>
+-#import <next/cpu.h>
++#import <dev/disk.h>	/* plan 576 (D104): NeXTMach <nextdev/disk.h> */
++#import <m68k/psl.h>	/* plan 576 (D104): NeXTMach <next/psl.h> */
++#import <m68k/cpu.h>	/* plan 576 (D110): NeXTMach <next/cpu.h> */
+ #import <next/pmon.h>
+ #import <next/pmon_targets.h>
+ #import <next/kernel_pmon.h>
+@@ -399,13 +416,28 @@
+ 			fip->disk_info.num_cylinders / 1024,
+ 			fip->sectsize_info.sect_size);
+ 	} 
+-	else
+-		printf("fd: UNABLE TO READ DISK LABEL\n");
++	/* plan 576 (D130, D024): NeXTMach else printf("fd: UNABLE TO READ DISK LABEL\n"); removed */
+ 	if(fip->flags & FFI_WRITEPROTECT)
+ 		printf("\tDisk is Write Protected\n");
+ 	return(0);
+ } /* fd_attach_com() */
+ 
++/* plan 576 (D130, D024): new in 1997; written from the original bytes 0x406ba5a */
++int fdsize(dev_t dev)
++{
++	int volume = FD_VOLUME(dev);
++	fd_volume_t fvp = fd_volume_p[volume];
++
++	if(volume == FVP_CONTROLLER)
++		return(0);
++	if((volume > FVP_CONTROLLER) || (fvp == NULL))
++		return(-1);
++	if(fvp->format_info.flags & FFI_LABELVALID)
++		return(fvp->labelp->dl_secsize);
++	else
++		return(fvp->format_info.sectsize_info.sect_size);
++}
++
+ int fdopen(dev_t dev, int flag)
+ {
+ 	int volume = FD_VOLUME(dev);
+@@ -505,6 +537,8 @@
+ 		return(0);		/* controller device */
+ 	if(volume > FVP_CONTROLLER)
+ 		return(ENXIO);
++	if(fvp == NULL)		/* plan 576 (D130, D024) */
++		return(ENXIO);
+ 		
+ 	/*
+ 	 * remember which device has been closed.
+@@ -552,8 +586,10 @@
+ 		return(ENXIO);		/* not open */
+ 	if(FD_PART(dev) == FD_LIVE_PART)
+ 	    	blocksize = fvp->format_info.sectsize_info.sect_size;
++	else if(fvp->format_info.flags & FFI_LABELVALID)	/* plan 576 (D130, D024): NeXTMach DEV_BSIZE */
++		blocksize = fvp->labelp->dl_secsize;
+ 	else
+-		blocksize = DEV_BSIZE;
++		return(ENXIO);
+ 	rtn = physio(fdstrategy, &fd_volume_p[volume]->rio_buf, dev, B_READ,
+ 	    	fdminphys, uiop, blocksize);
+ 	return(rtn);
+@@ -578,8 +614,10 @@
+ 		return(ENXIO);		/* not open */
+ 	if(FD_PART(dev) == FD_LIVE_PART)
+ 	    	blocksize = fvp->format_info.sectsize_info.sect_size;
++	else if(fvp->format_info.flags & FFI_LABELVALID)	/* plan 576 (D130, D024): NeXTMach DEV_BSIZE */
++		blocksize = fvp->labelp->dl_secsize;
+ 	else
+-		blocksize = DEV_BSIZE;
++		return(ENXIO);
+ 	rtn = physio(fdstrategy, &fd_volume_p[volume]->rio_buf, dev, B_WRITE,
+ 	    	fdminphys, uiop, blocksize);
+ 	return(rtn);
+@@ -609,18 +647,19 @@
+ 	daddr_t bno;
+ 	struct partition *pp;
+ 	int sect_per_cyl;
+-	struct disk_label *dlp = fvp->labelp;
++	struct disk_label *dlp;		/* plan 576 (D130, D024): set below */
+ 	
+ 	/*
+ 	 * returns 0/-1.
+ 	 */
+ 	XCDBG(("fdstrategy: volume %d part %d\n", volume, partition));
+-	if (volume > NUM_FVP) {
++	if ((volume > NUM_FVP) || (fvp == NULL)) {	/* plan 576 (D130, D024) */
+ 		XDBG(("fdstrategy: bad volume\n"));
+ 		bp->b_error = ENXIO;
+ 		goto bad;
+ 	}
+ 	ASSERT(fvp != NULL);
++	dlp = fvp->labelp;		/* plan 576 (D130, D024) */
+ 	
+ 	/*
+ 	 * Don't check special commands, rely on fd_start to
+@@ -764,6 +803,7 @@
+ 	struct fd_ioreq *fdiop;
+ 	caddr_t cp = *(caddr_t *)data;
+ 	caddr_t ap;
++	caddr_t aligned_ap;		/* plan 576 (D130, D024) */
+ 	char *user_addr;
+ 	int i, nblk, error = 0;
+ 	u_short *dl_cksum, size;
+@@ -774,6 +814,8 @@
+ 	 * returns an errno.
+ 	 */
+ 	XCDBG(("fdioctl: volume %d cmd = %d\n", FD_VOLUME(dev), cmd));
++	if(fvp == NULL)			/* plan 576 (D130, D024) */
++		return(ENXIO);
+ 
+ 	/*
+ 	 * do ioctls for fdc (volume == FVP_CONTROLLER)....
+@@ -920,6 +962,18 @@
+ 		 */
+ 		*(struct fd_format_info *)data = fvp->format_info;
+ 		break;
++
++	   case DKIOCGFORMAT:		/* plan 576 (D130, D024) */
++		*(int *)data = fvp->format_info.flags & FFI_FORMATTED;
++		break;
++
++	   case DKIOCBLKSIZE:		/* plan 576 (D130, D024) */
++		*(int *)data = fvp->format_info.sectsize_info.sect_size;
++		break;
++
++	   case DKIOCNUMBLKS:		/* plan 576 (D130, D024) */
++		*(int *)data = fvp->format_info.total_sects;
++		break;
+ 		
+ 	   case DKIOCEJECT:
+ 		/* 
+@@ -954,16 +1008,17 @@
+ 		if (fdiop->byte_count != 0) {
+ 			if(!DMA_ENDALIGNED(fdiop->byte_count))
+ 				return(EINVAL);
+-			ap = 
+-			   (caddr_t)kalloc(fdiop->byte_count);
++			ap = (caddr_t)kalloc(fdiop->byte_count +	/* plan 576 (D130, D024) */
++				DMA_BEGINALIGNMENT);
++			aligned_ap = DMA_BEGINALIGN(caddr_t, ap);	/* plan 576 (D130, D024) */
+ 			if(ap == 0) {
+ 				XDBG(("        ...kalloc() failed\n"));
+ 				fdiop->status = FDR_MEMALLOC;
+ 				return(ENOMEM);
+ 			}
+ 			if((fdiop->flags & FD_IOF_DMA_DIR) == FD_IOF_DMA_WR) {
+-				if (error = copyin(fdiop->addrs, ap,
+-						   fdiop->byte_count)) {
++				if (error = copyin(fdiop->addrs, aligned_ap,
++						   fdiop->byte_count)) {	/* plan 576 (D130, D024) */
+ 				    XDBG(("        ...copyin() returned %d\n",
+ 					    error));
+ 				    fdiop->status = FDR_MEMFAIL;
+@@ -973,7 +1028,7 @@
+ 		}
+ 			
+ 		user_addr = fdiop->addrs;
+-		fdiop->addrs = ap;
++		fdiop->addrs = aligned_ap;		/* plan 576 (D130, D024) */
+ 		error = fd_command(fvp, fdiop);
+ 		/*
+ 		 * Setting errno nonzero prevents caller from seeing 
+@@ -985,13 +1040,14 @@
+ 		fdiop->addrs = user_addr;
+ 		if ((fdiop->flags & FD_IOF_DMA_DIR) == FD_IOF_DMA_RD && 
+ 		    (fdiop->bytes_xfr != 0))
+-			error = copyout(ap, user_addr, fdiop->bytes_xfr);
++			error = copyout(aligned_ap, user_addr,	/* plan 576 (D130, D024) */
++				fdiop->bytes_xfr);
+ err_exit:
+ 		/* 
+ 		 * if we kalloc'd any memory, free it.
+ 		 */
+ 		if (fdiop->byte_count != 0) 
+-			kfree(ap, fdiop->byte_count); 
++			kfree(ap, fdiop->byte_count + DMA_BEGINALIGNMENT);	/* plan 576 (D130, D024) */
+ 		break;
+ 	    
+ 	    case FDIOCRRW:

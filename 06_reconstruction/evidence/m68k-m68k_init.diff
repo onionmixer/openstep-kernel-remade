@@ -1,0 +1,481 @@
+--- nextmach/mk-108.1/next/next_init.c
++++ 07_kernel/src/machdep/m68k/m68k_init.c
+@@ -39,6 +39,35 @@
+  *	Ported to NeXT.
+  */ 
+ 
++/*
++ * plan 609 (D137, D013, D024, D104, D105, D110): the 1997 m68k m68k_init.
++ * NeXTMach mk-108.1 next/next_init.c (NeXT_init) with the include lines in
++ * OPENSTEP paths and the 1997 function written from the original bytes
++ * [0x4094afe, 0x40951ec) and data [0x40b2b9e, 0x40b2bca) (plans 605-608):
++ *	- one argument, a pointer to the block of the NeXTMach NeXT_init
++ *	  arguments (struct m68k_init_args, same field order); no bzero
++ *	- SCB: reboot_vector saved from monitor trap 13, which becomes mon_exit
++ *	- machine type from the SCR1 word (re-read at P_SCR1_TURBO for type 4),
++ *	  cpu_rev, board_rev, cpu_clk from cpu_clock_table; switch 0-9 with
++ *	  types 4-9 sharing the default body (dma_chip from SCR1, probe_rl at
++ *	  P_NCC); no disk_chip, scr1 or bmap_chip = 0 assignments
++ *	- page size 4096 or 8192 only (m68k_page_size); one memory region loop
++ *	  (OPENSTEP vm/pmap.h mem_region, no region_type) with the limit test
++ *	  mem_size + size >= mem and pmsgbuf from the monitor region
++ *	- after mon_reset: km_send and mon_rev when dma_chip != 313, master_cpu,
++ *	  machine_slot and interrupt_stack, getlastaddr, pmap_bootstrap with the
++ *	  1997 arguments, en_bufalloc, and the debugger address prompt and wait
++ *	- no set_cpu_number, _nextdbginit, mallocdebuginit; no struct bootp
++ *	  bootp or mem_region definition; rpc/types.h and nfs/nfs.h not imported
++ * Forms fixed by the bytes: the non-volatile bit-field read of dma_chip, the
++ * explicit cases 4-9, the monitor pointer variable for mon_rev.  User
++ * decisions (D137): the authored names struct m68k_init_args, ap0,
++ * cpu_clock_table, P_SCR1_TURBO, P_NCC, NeXT_TURBO, the kdb_net declaration
++ * (only its +8 word is known) and the 1997 struct scr1 field names; explicit
++ * case labels; the block-local monitor pointer; the file name m68k_init.c.
++ * Lines marked plan 609 differ from NeXTMach; m68k_init is rewritten.
++ */
++
+ #import <gdb.h>
+ #import <mallocdebug.h>
+ 
+@@ -54,25 +83,65 @@
+ #import <sys/socket.h>
+ #import <kern/xpr.h>
+ #import <sys/msgbuf.h>
+-#import <vm/vm_param.h>
+-#import <vm/vm_prot.h>
++#import <mach/vm_param.h>	/* plan 609 (D104): NeXTMach <vm/vm_param.h> */
++#import <mach/vm_prot.h>	/* plan 609 (D104): NeXTMach <vm/vm_prot.h> */
+ #import <vm/vm_page.h>
+ #import <next/scb.h>
+-#import <next/cpu.h>
+-#import <next/pcb.h>
+-#import <next/vm_param.h>
+-#import <next/cons.h>
+-#import <next/scr.h>
++#import <m68k/cpu.h>	/* plan 609 (D110): NeXTMach <next/cpu.h> */
++/* plan 609 (D104, D137): NeXTMach #import <next/pcb.h> left out (as machdep.c) */
++#import <mach/m68k/vm_param.h>	/* plan 609 (D104): NeXTMach <next/vm_param.h> */
++#import <m68k/cons.h>	/* plan 609 (D104): NeXTMach <next/cons.h> */
++/* plan 609 (D104, D137): NeXTMach #import <next/scr.h> left out (as machdep.c) */
+ #import <next/clock.h>
+-#import <next/eventc.h>
+-#import <nextdev/snd_dspreg.h>
++#import <machdep/m68k/eventc.h>	/* plan 609 (D104): NeXTMach <next/eventc.h> */
++#import <dev/m68k/snd_dspreg.h>	/* plan 609 (D104): NeXTMach <nextdev/snd_dspreg.h> */
+ #import <nextdev/kmreg.h>
+-#import <nextdev/monreg.h>
+-#import <next/bmap.h>
+-#import <rpc/types.h>
+-#import <nfs/nfs.h>
++#import <dev/m68k/monreg.h>	/* plan 609 (D104): NeXTMach <nextdev/monreg.h> */
++#import <m68k/bmap.h>	/* plan 609 (D105): NeXTMach <next/bmap.h> */
++/* plan 609 (D104, D137): NeXTMach #import <rpc/types.h>, <nfs/nfs.h> left out (no name used; nfs.h does not parse here) */
++#import <m68k/mmu.h>	/* plan 609 (D104, D137): CACR_* names */
++#import <kern/cpu_number.h>	/* plan 609 (D104, D137): master_cpu */
+ #import <mon/global.h>
+ 
++/* plan 609 (D137, D024): NeXTMach next/cpu.h and next/scr.h names used here (values as NeXTMach) */
++extern int slot_id, slot_id_bmap;
++#define	SLOT_ID		slot_id
++#define	SLOT_ID_BMAP	slot_id_bmap
++#define	P_MON		(SLOT_ID+0x0200e000)
++#define	P_TIMER		(SLOT_ID_BMAP+0x02016000)
++#define	P_TIMER_CSR	(SLOT_ID_BMAP+0x02016004)
++#define	P_EVENTC	(SLOT_ID_BMAP+0x0201a000)
++#define	P_BMAP		(SLOT_ID+0x020c0000)
++#define	P_INTRSTAT	(SLOT_ID+0x02007000)
++#define	P_INTRMASK	(SLOT_ID+0x02007800)
++#define	P_SCR1		(SLOT_ID+0x0200c000)
++#define	P_SCR2		(SLOT_ID+0x0200d000)
++#define	P_BRIGHTNESS	(SLOT_ID_BMAP+0x02010000)
++#define	P_SCR1_TURBO	(SLOT_ID+0x02200000)	/* plan 609 (D137, D024): authored name, original 0x4094b6e */
++#define	P_NCC		(SLOT_ID+0x02210000)	/* plan 609 (D137, D024): authored name, original 0x4094c5c */
++#define	NeXT_CUBE	0
++#define	NeXT_WARP9	1
++#define	NeXT_X15	2
++#define	NeXT_WARP9C	3
++#define	NeXT_TURBO	4	/* plan 609 (D137, D024): authored name, original 0x4094b68 */
++#define	MACHINE_TYPE(x)	((x) >> 4)
++#define	BOARD_REV(x)	((x) & 0xf)
++#define	SCR2_EKG_LED	0x00000001
++struct scr1 {				/* plan 609 (D137, D024): 1997 layout from the original bfextu {16:8}, {29:3} */
++	u_int	s_slot_id : 4,
++		: 4,
++		s_dma_rev : 8,
++		s_cpu_rev : 8,
++		s_vmem_speed : 2,
++		s_mem_speed : 2,
++		s_reserved : 1,
++		s_cpu_clock : 3;
++};
++extern volatile int *scr2;
++extern volatile u_char *brightness;
++extern volatile int *intrmask;
++extern int intr_mask;
++
+ volatile u_char		*eventc_latch, *eventc_h, *eventc_m, *eventc_l;
+ 
+ /*
+@@ -91,8 +160,7 @@
+ vm_size_t	mem_size, pagesize, mem;
+ vm_offset_t	virtual_avail, virtual_end;
+ struct		mon_global *mon_global;
+-struct		mem_region mem_region[MAX_REGIONS];
+-struct		bootp bootp;
++/* plan 609 (D137, D024): NeXTMach mem_region[MAX_REGIONS] and struct bootp bootp left out (OPENSTEP vm/pmap.h declares mem_region) */
+ int		console_i, console_o;
+ u_char		etheraddr[6];
+ #define	NBOOTDEV	8
+@@ -102,9 +170,7 @@
+ char		*boot_args;
+ int		default_page_size = 8192;	/* patchable */
+ 
+-#if	GDB
+-int	breakpoint;
+-#endif	GDB
++int	breakpoint;	/* plan 609 (D137, D024): NeXTMach under #if GDB */
+ 
+ #if	MALLOCDEBUG
+ extern int mallocdebug;
+@@ -114,49 +180,69 @@
+ int	show_info;	/* print initilization info */
+ #endif	DEBUG
+ 
+-NeXT_init (ra, mg, cons_i, cons_o, dev, args, info, sid, mon_pagesize,
+-	mon_nr, mon_rp, clientetheraddr, file)
+-	struct mon_global *mg;
+-	char *dev, *args, *info, *file;
+-	struct mon_region *mon_rp;
+-	u_char *clientetheraddr;
++/* plan 609 (D137, D024): the 1997 m68k_init (original 0x4094afe-0x40951ec) */
++static int cpu_clock_table[8] = { 16, 20, 25, 33, 40, 50, 66, 80 };	/* plan 609 (D137, D024): authored name, original 0x40b2baa */
++
++struct m68k_init_args {			/* plan 609 (D137, D024): authored name; the NeXTMach NeXT_init arguments */
++	int			ra;
++	struct mon_global	*mg;
++	int			cons_i, cons_o;
++	char			*dev, *args, *info;
++	int			sid;
++	int			mon_pagesize;
++	int			mon_nr;
++	struct mon_region	*mon_rp;
++	u_char			*clientetheraddr;
++	char			*file;
++};
++
++extern int (*reboot_vector)();		/* plan 609 (D137, D024) */
++extern int mon_exit();			/* plan 609 (D137, D024) */
++extern int ncc_chip;			/* plan 609 (D137, D024) */
++extern char *mach_title;
++extern vm_offset_t interrupt_stack[];
++extern char intstacks[];		/* plan 609 (D137, D024) */
++extern u_long kdb_ipaddr;		/* plan 609 (D137, D024) */
++extern struct { int kn_pad[2]; int kn_connected; } kdb_net;	/* plan 609 (D137, D024): type unknown, +8 tested */
++
++m68k_init (ap0)
++	struct m68k_init_args *ap0;
+ {
+ 	register int 	i;
+-	vm_offset_t	avail_start, avail_end;
+-	extern char	start, _DATA__bss__begin, _DATA__end;
++	register struct mon_global *mg = ap0->mg;
+ 	struct		scb *get_vbr(), *mon_scb;
+-	register	mem_region_t rp;
++	register	struct mem_region *rp;
+ 	extern int	tickadj;
+ 	int		see_msgs, skip, size;
+ 	char		*ap;
+ 	extern		int cache;
++	struct scr1	s1;
+ 
+-	bzero (&_DATA__bss__begin, &_DATA__end - &_DATA__bss__begin);
+-	slot_id = sid;
+-	slot_id_bmap = sid;
++	slot_id = ap0->sid;
++	slot_id_bmap = ap0->sid;
+ 
+ 	/* set up SCB */
+ 	mon_scb = get_vbr();
+ 	scb.scb_issp = mon_scb->scb_issp;	/* saved from monitor */
+ 	scb.scb_ipc = mon_scb->scb_ipc;
+-#if	GDB
+-	scb.scb_trap[14] = mon_scb->scb_trap[14];	/* gdb trap */
+-#endif	GDB
+-	scb.scb_trap[13] = mon_scb->scb_trap[13];	/* monitor exit */
++	reboot_vector = mon_scb->scb_trap[13];
++	scb.scb_trap[13] = mon_exit;		/* monitor exit */
+ 	set_vbr (&scb);
+ 
+ 	/* figure out chip type installed */
+-	dma_chip = 313;
+-	disk_chip = 310;
+-	scr1 = (struct scr1*) P_SCR1;
+-	bmap_chip = 0;
+-	machine_type = MACHINE_TYPE(scr1->s_cpu_rev);
+-	board_rev = BOARD_REV(scr1->s_cpu_rev);
++	s1 = *(volatile struct scr1 *) P_SCR1;
++	if (MACHINE_TYPE(s1.s_cpu_rev) == NeXT_TURBO)
++		s1 = *(volatile struct scr1 *) P_SCR1_TURBO;
++	cpu_rev = s1.s_cpu_rev;
++	machine_type = MACHINE_TYPE(cpu_rev);
++	board_rev = BOARD_REV(cpu_rev);
++	cpu_clk = cpu_clock_table[s1.s_cpu_clock];
+ 
+ 	switch (machine_type) {
+ 	
+ 	case NeXT_CUBE:
+ 		cpu_type = MC68030;
++		dma_chip = 313;
+ 		break;
+ 
+ 	case NeXT_WARP9:
+@@ -164,8 +250,25 @@
+ 	case NeXT_WARP9C:
+ 		cpu_type = MC68040;
+ 		slot_id_bmap += 0x00100000;	// remap byte devices to BMAP chip
++		dma_chip = 313;
+ 		bmap_chip = (struct bmap_chip*) P_BMAP;
+ 		break;
++
++	case NeXT_TURBO:	/* plan 609 (D137, D024): cases 4-9 explicit */
++	case 5:
++	case 6:
++	case 7:
++	case 8:
++	case 9:
++	default:
++		cpu_type = MC68040;
++		dma_chip = ((struct scr1 *) P_SCR1)->s_dma_rev;	/* plan 609 (D137, D024): bit-field read without volatile (fixed by the bytes) */
++		cpu_clk = cpu_clock_table[s1.s_cpu_clock ^ 4];
++		if (probe_rl (P_NCC)) {
++			ncc_chip = 1;
++			cpu_clk = 40;
++		}
++		break;
+ 	}
+ 	
+ 	switch (cpu_type) {
+@@ -196,14 +299,14 @@
+ 	timer_low = (u_char*) (P_TIMER+1);
+ 
+ 	/* copy boot parameters from monitor stack */
+-	mon_global = mg;
+-	bcopy (clientetheraddr, etheraddr, 6);
++	mon_global = ap0->mg;
++	bcopy (ap0->clientetheraddr, etheraddr, 6);
+ 	hostid = 0x01000000 | ((u_int)etheraddr[3] << 16) |
+ 		  ((u_int)etheraddr[4] << 8) | (u_int)etheraddr[5];
+-	strncpy (boot_dev, dev, NBOOTDEV);
+-	strncpy (boot_file, file, NBOOTFILE);
++	strncpy (boot_dev, ap0->dev, NBOOTDEV);
++	strncpy (boot_file, ap0->file, NBOOTFILE);
+ 
+-	ap = args;
++	ap = ap0->args;
+ 	if (ap) {
+ 		while (*ap) {
+ 			if (strncmp("pagesize=", ap, 9) == 0) {
+@@ -218,59 +321,48 @@
+ 			ap++;
+ 		}
+ 	}
+-	if (pagesize == 2048 || pagesize == 4096 || pagesize == 8192)
+-		NeXT_page_size = pagesize;
++	if (pagesize == 4096 || pagesize == 8192)
++		m68k_page_size = pagesize;
+ 	else
+-		NeXT_page_size = default_page_size;
++		m68k_page_size = default_page_size;
+ 
+ 	/*
+ 	 *	Virtual page size must be at least the physical page size.
+ 	 */
+ 	pmap_set_page_size();
+-	if (page_size < NeXT_page_size)
+-		page_size = NeXT_page_size;
++	if (page_size < m68k_page_size)
++		page_size = m68k_page_size;
+ 	vm_set_page_size();
+ 
+ 	/* configure memory regions */
+-	num_regions = mon_nr;
+-	for (i = 0, skip = 0; i < num_regions && skip == 0; i++) {
++	num_regions = ap0->mon_nr;
++	for (i = 0, skip = 0; i < num_regions; i++) {
+ 		rp = &mem_region[i];
+-		rp->region_type = REGION_MEM;
+-		rp->first_phys_addr = mon_rp[i].first_phys_addr;
+-		rp->last_phys_addr = mon_rp[i].last_phys_addr;
+-		size = rp->last_phys_addr - rp->first_phys_addr;
++		if (skip == 0) {
++			rp->first_phys_addr = ap0->mon_rp[i].first_phys_addr;
++			rp->last_phys_addr = ap0->mon_rp[i].last_phys_addr;
++			size = rp->last_phys_addr - rp->first_phys_addr;
++		} else {
++			rp->first_phys_addr = 0;
++			rp->last_phys_addr = 0;
++			size = 0;
++		}
+ 		
+ 		/* limit memory used if requested */
+-		if (mem && (mem_size + size > mem)) {
++		if (mem && skip == 0 && (mem_size + size >= mem)) {
+ 			rp->last_phys_addr = rp->first_phys_addr + (mem - mem_size);
+ 			skip = 1;
+ 		}
+ 		mem_size += rp->last_phys_addr - rp->first_phys_addr;
+-		if (rp->first_phys_addr) {
+-
+-			/*
+-			 *  Always keep the msgbuf in the same place so
+-			 *  panic messages will be logged on the next reboot.
+-			 *  Overlay the monitor stack that is just beyond
+-			 *  the end of the last memory region.  The monitor
+-			 *  guarantees this stack area is big enough.
+-			 */
++		if (ap0->mon_rp[i].first_phys_addr)
+ 			pmsgbuf = (struct msgbuf *)
+-				NeXT_trunc_page (rp->last_phys_addr);
+-		}
+-	}
+-
+-	for (; i < num_regions; i++) {
+-		rp = &mem_region[i];
+-		rp->region_type = REGION_MEM;
+-		rp->first_phys_addr = 0;
+-		rp->last_phys_addr = 0;
++				(m68k_trunc_page (ap0->mon_rp[i].last_phys_addr) + 256);
+ 	}
+ 
+ 	/* configure console device */
+ 	cons_tp = &cons;
+-	console_i = cons_i;
+-	console_o = cons_o;
++	console_i = ap0->cons_i;
++	console_o = ap0->cons_o;
+ 
+ 	switch (console_i) {
+ 
+@@ -282,15 +374,6 @@
+ 	case CONS_I_SCC_A:
+ 		cons.t_dev = makedev(11, 0);		/* zs */
+ 		break;
+-
+-#if 0
+-	case CONS_I_SCC_B:
+-		cons.t_dev = makedev(11, 1);		/* zs */
+-		break;
+-
+-	case CONS_I_NET:
+-		break;
+-#endif
+ 	}
+ 
+ 	switch (console_o) {
+@@ -301,7 +384,7 @@
+ 
+ 		/* see msgs if booting single user or asking for root dev */
+ 		see_msgs = 0;
+-		ap = args;
++		ap = ap0->args;
+ 		if (ap) {
+ 			while (isargsep (*ap))
+ 				ap++;
+@@ -327,28 +410,9 @@
+ 	case CONS_O_SCC_A:
+ 		cons.t_dev = makedev(11, 0);		/* zs */
+ 		break;
+-
+-#if 0
+-	case CONS_O_SCC_B:
+-		cons.t_dev = makedev(11, 1);		/* zs */
+-		break;
+-
+-	case CONS_O_NET:
+-		break;
+-#endif
+ 	}
+-	boot_args = args;
+-	getargs(args, 0);
+-
+-#if	GDB
+-	_nextdbginit();
+-	if (breakpoint)
+-		asm ("trap #14");	/* Initial early breakpoint */
+-#endif	GDB
+-#if	MALLOCDEBUG
+-	if (mallocdebug)
+-		mallocdebuginit();
+-#endif	MALLOCDEBUG
++	boot_args = ap0->args;
++	getargs(ap0->args, 0);
+ 
+ 	printf ("NeXT ROM Monitor %d.%d v%d\n",
+ 		mg->mg_major, mg->mg_minor, mg->mg_seq);
+@@ -360,25 +424,47 @@
+ 	/* Initialize keyboard monitor and line printer interface */
+ 	mon_reset();
+ 
+-	/*
+-	 *	We won't really know our cpu number till after
+-	 *	we configure... but we still need to have a valid
+-	 *	cpu number for routines that use it.  Fortunately,
+-	 *	set_cpu_number will do the right thing for us here
+-	 *	because cpu_number doesn't know we have multi-port
+-	 *	memory yet.  FIXME: what does this mean for NeXT?
+-	 */
+-	set_cpu_number();
+-
+-	/*
+-	 *	Bootstrap the pmap system.
+-	 *	Kernel virtual address starts at VM_KERNEL_MIN_ADDRESS.
+-	 */
+-	rp = &mem_region[0];
+-	avail_start = (vm_offset_t) &_DATA__end;
+-	avail_end = trunc_page (rp->last_phys_addr);
+-	pmap_bootstrap(&avail_start, &avail_end, &virtual_avail, &virtual_end);
+-	rp->first_phys_addr = avail_start;
+-}
++	if (dma_chip != 313) {
++		km_send (0xc5, 0xf0000000);
++		{
++		volatile struct monitor *mon = (struct monitor *) P_MON;	/* plan 609 (D137, D024): pointer variable (fixed by the bytes), block-local (user decision) */
++		mon_rev = mon->mon_km_data >> 16;
++		}
++	}
+ 
++	master_cpu = 0;
++	machine_slot[master_cpu].running = TRUE;
++	for (i = 0; i < NCPUS; i++) {
++		machine_slot[i].is_cpu = TRUE;
++		machine_slot[i].clock_freq = cpu_clk;
++		if (machine_type == NeXT_CUBE) {
++			machine_slot[i].cpu_type = CPU_TYPE_MC680x0;
++			machine_slot[i].cpu_subtype = CPU_SUBTYPE_MC68030;
++		} else {
++			machine_slot[i].cpu_type = CPU_TYPE_MC680x0;
++			machine_slot[i].cpu_subtype = CPU_SUBTYPE_MC68040;
++		}
++		interrupt_stack[i] = (vm_offset_t) intstacks + i * 4096;
++	}
+ 
++	mem_region[0].first_phys_addr = getlastaddr();
++	pmap_bootstrap(mem_region, num_regions, &virtual_avail, &virtual_end,
++		(vm_offset_t) pmsgbuf - 256);
++	en_bufalloc(0);
++
++	if (breakpoint) {
++		if (kdb_ipaddr == 0) {
++			char line[32];
++			u_long addr;
++
++			do {
++				printf("ip address? ");
++				gets(line, line);
++			} while (inet_aton(line, &addr) == 0);
++			kdb_ipaddr = addr;
++		}
++		printf("Waiting for connection from debugger\n");
++		while (kdb_net.kn_connected == 0)
++			kdbg_connect(0);
++	}
++}

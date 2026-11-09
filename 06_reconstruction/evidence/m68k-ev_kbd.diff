@@ -1,0 +1,930 @@
+--- NeXTMach mk-108.1/nextdev/ev_kbd.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/ev_kbd.c (plan 729, D164)
+@@ -20,18 +20,90 @@
+     06Jul90 Mike Modified SetCurBrightness to get rid of two bit dspy special case.
+ ******************************************************************************/
+ 
++/*
++ * plan 729 (D164, D013, D024, D104, D158): the 1997 m68k ev_kbd.c.
++ * NeXTMach mk-108.1 nextdev/ev_kbd.c with the include lines in OPENSTEP paths
++ * (the 1997 SDK bsd/dev/m68k event.h and evio.h and bsd/dev/ev_keymap.h for
++ * ev_vars.h) and these changes, from the original bytes [0x4068fa2, 0x4069eb8)
++ * (plan 723):
++ *	functions that differ from NeXTMach: process_kbd_event, AlphaLockFeedback, SetCurBrightness, DoAutoDim, UndoAutoDim, RecordBrightness, DoBrightnessChange, DoSoundKey, DoSpecialKey, NextNum, SetKeyMapping, CalcModBit, DoModCalc, DoCharGen, DoKbdEvent, ResetKbd, InitKbd, AllKeysUp
++ *	new functions: process_adb_event, ModKeysDown
++ * The names, masks and declarations of ev_vars.h that this file uses are an
++ * in-file block (D162, D164); LLEventPost has no declaration, as in NeXTMach
++ * (the call returns int in d0: the bytes of DoModCalc need that, plan 728).
++ * The original has no symbols for its static functions: NextNum keeps the
++ * NeXTMach name, the new ModKeysDown is named by this project (D164).  Lines marked plan 729, and the lines of a
++ * plan 729 BEGIN/END region (which may include unchanged lines), differ from
++ * NeXTMach.
++ */
++
+ #import <sys/types.h>
+-#import <nextdev/monreg.h>
++/* plan 729 (D024, D164) BEGIN: declarations and data */
++#import <dev/m68k/monreg.h>	/* plan 729 (D104): NeXTMach <nextdev/monreg.h> */
+ #import <nextdev/kmreg.h>
+-#import <nextdev/video.h>
++#import <dev/m68k/video.h>	/* plan 729 (D104): NeXTMach <nextdev/video.h> */
++/* plan 729 END */
+ #import <mon/global.h>
+-#import <next/scr.h>
++/* plan 729 (D024): NeXTMach line 28 removed (not in the 1997 kernel) */
+ #import <sys/param.h>
+ #import <sys/callout.h>
+ #import <kern/thread.h>
++/* plan 729 (D024, D164) BEGIN: declarations and data */
++#import <kern/kalloc.h>	/* plan 729 (D024, D164) */
++/* plan 729 END */
+ #import <vm/vm_kern.h>
+ #import <nextdev/snd_snd.h>
+-#import <nextdev/ev_vars.h>
++/* plan 729 (D024, D164) BEGIN: declarations and data */
++#import <bsd/dev/m68k/event.h>	/* plan 729 (D104, D158): NeXTMach <nextdev/ev_vars.h>; the 1997 SDK bsd/dev/m68k/event.h */
++#import <bsd/dev/m68k/evio.h>
++#import <bsd/dev/ev_keymap.h>	/* plan 729 (D104): NX_KEYTYPE_*, NX_NUMSPECIALKEYS (SDK) */
++
++/* plan 729 (D024, D104, D164): names, masks and declarations of NeXTMach nextdev/ev_vars.h (the nine ev_kbd.c declarations verbatim; the KeyMapping type with the 1997 fields)
++ * and next/scr.h:106-107 (BRIGHT_MAX, BRIGHT_MIN); evg, screens, dimmedBrightness and the ADB names are not in them (reconstructed) */
++#define BRIGHT_MAX	0x3d
++#define BRIGHT_MIN	0x00
++#define VALIDMODSMASK	0x7F
++#define NUMKEYCODES	128
++#define NUMMODIFIERS	16
++#define WHICHMODMASK	0x0F
++#define MODMASK		0x10
++#define CHARGENMASK	0x20
++#define SPECIALKEYMASK	0x40
++#define KEYSTATEMASK	0x80
++#define DEVICEMODMASK  0x0000FFFF
++#define MAPPINGMODMASK 0xFFFF0000
++typedef struct KeyMappingStruct {
++    short shorts;
++    char keyBits[NUMKEYCODES];
++    int maxMod;
++    unsigned char *modDefs[NUMMODIFIERS];
++    unsigned char *keyDefs[NUMKEYCODES];
++    int numSeqs;
++    unsigned char *seqDefs;
++    unsigned char specialKeys[NX_NUMSPECIALKEYS];
++    unsigned char *mapping;
++} KeyMapping;
++extern EvGlobals *evg;
++extern int evOpenCalled, eventsOpen, screens;
++extern unsigned char deviceMods;
++extern int alphaLock, keyPressed, initialKeyRepeat, keyRepeat;
++extern int autoDimPeriod, autoDimmed, autoDimTime, dimmedBrightness, curBright;
++extern int mapNotDefault, curMapLen, keySema;
++extern KeyMapping *curMapping;
++extern KeyMapping curMappingStorage;
++extern void DoKbdRepeat();
++extern void DoKbdEvent();
++extern void ResetKbd();
++extern void process_device_mods();
++extern void process_kbd_event();
++extern void DoAutoDim();
++extern void UndoAutoDim();
++extern void CalcModBit();
++extern unsigned char *SetKeyMapping();
++extern int evdispatch(), adb_keybd_present();
++extern void adb_keyboard_LED();
++/* plan 729 (D164): end of the ev_vars.h names */
++/* plan 729 END */
+ 
+ void AllKeysUp();
+ 
+@@ -41,13 +113,14 @@
+ 
+ /******************************************************************************
+     downKey and downCount keep a record of the key that is currently down.
+-    This is used by DoKbdRepeat, the routine called once per vertical retrace,
+-    to generate key-repeated events.  This is maintained in the routine
+-    DoCharGen, which is called when a physical key goes down or up.
++ plan 729 (D024): NeXTMach lines 44-46 removed (not in the 1997 kernel)
+ ******************************************************************************/
+ 
+ static short downCount = -1;
+ static short downKey = -1;
++/* plan 729 (D024, D164) BEGIN: declarations and data */
++static short adbKeyboard = 0;	/* plan 729 (D024, D164): set by InitKbd from adb_keybd_present() */
++/* plan 729 END */
+ 
+ struct unmapped_key_event {
+     u_int : 16,
+@@ -57,34 +130,19 @@
+     key_code : 7;
+ };
+ 
+-/******************************************************************************
+-    pseudo-key codes for the keys whose transitions are reported to
+-    the driver only via changes in deviceMods.  That is, the hardware
+-    reports these changes to the driver as changes in deviceMods; the
+-    driver synthesizes keyDown/keyUp transitions from that, and feeds
+-    that to process_kbd_event like any other key transition; and 
+-    process_kbd_event often turns that transition into a Flags-changed
+-    event and updates evGlobals->eventFlags.  The reason, though, for
+-    going through the key transition step is to allow the key mapping
+-    to remap what those keys do.  This array is referenced by
+-    process_device_mods, below.
+-******************************************************************************/
+-
++/* plan 729 (D024): NeXTMach lines 60-72 removed (not in the 1997 kernel) */
+ static unsigned char modKeys[] = { 0x51,0x52,0x57,0x54,0x55,0x53,0x56 };
+ 
+-/******************************************************************************
+-    These are the key codes for the device control keys that affect sound and
+-    volume.
+-******************************************************************************/
+-
+-static unsigned char specialKeyCodes[] = { SOUND_UP_KEY, SOUND_DOWN_KEY,
+-    BRIGHTNESS_UP_KEY, BRIGHTNESS_DOWN_KEY } ;
+-
++/* plan 729 (D024, D164) BEGIN: process_kbd_event */
++#define SOUND_UP_KEY		(curMapping->specialKeys[NX_KEYTYPE_SOUND_UP])	/* plan 729 (D024, D164) */
++#define SOUND_DOWN_KEY		(curMapping->specialKeys[NX_KEYTYPE_SOUND_DOWN])
++#define BRIGHTNESS_UP_KEY	(curMapping->specialKeys[NX_KEYTYPE_BRIGHTNESS_UP])
++#define BRIGHTNESS_DOWN_KEY	(curMapping->specialKeys[NX_KEYTYPE_BRIGHTNESS_DOWN])
+ 
+ void process_kbd_event(struct unmapped_key_event *ke)
+ {
+     unsigned char dMods;
+-    
++
+     dMods = ke->deviceMods & VALIDMODSMASK;
+     if (!ke->up_down) /* If going down */
+     	/* Process meta bits before */
+@@ -98,6 +156,7 @@
+ 	    (void)process_device_mods(dMods);
+     deviceMods = dMods;
+ }
++/* plan 729 END */
+ 
+ void process_device_mods(dMods)
+     unsigned char dMods;
+@@ -113,63 +172,46 @@
+ 	}
+ }
+ 
++/* plan 729 (D024, D164) BEGIN: AlphaLockFeedback, DoAutoDim, DoBrightnessChange, RecordBrightness, SetCurBrightness, UndoAutoDim, process_adb_event */
+ void AlphaLockFeedback(int state)
+ {
+     km_send(MON_KM_USRREQ,KM_SET_LEDS(0,(state?(KM_LED_LEFT|KM_LED_RIGHT):0)));
+-}
+-
+-/******************************************************************************
+-    SetCurBrightness clips the given brightness level to be in range, and set
+-    the current brightness to that level. It returns the level actually set.
+-******************************************************************************/
++    adb_keyboard_LED(state);	/* plan 729 (D024, D164) */
++}
++
++void process_adb_event(struct unmapped_key_event *ke)	/* plan 729 (D024, D164): new */
++{
++    DoKbdEvent(ke->key_code,!ke->up_down,ke->deviceMods);
++}
+ 
+ int SetCurBrightness(int level)
+ {
+-    int	i;
+-    void (*proc)();
++    short i;
+ 
+     level = MAX(level, BRIGHT_MIN);
+     level = MIN(level, BRIGHT_MAX);
+-    
+-    /* Generic Driver Code */
+-    vidSetBrightness( level );		/* Always set the built-in display. */
+-    /* Tell all drivers to change brightness level */
+-    if (evOpenCalled)
+-	for (i=0; i<evp->screens; i++)
+-	    if (proc = evp->screen[i].SetBrightness)
+-		(*proc)(&evp->screen[i], level);
++
++    if (evOpenCalled)	/* plan 729 (D024, D164) */
++	for (i=screens-1; i!=-1; i--)
++	    evdispatch(4, i, level);
++    else
++	vidSetBrightness( level );
+     return(level);
+ }
+ 
+-/******************************************************************************
+-    DoAutoDim reduces the current brightness to a fraction of its previous
+-    value.  It stores the old value in undimmedBrightness and sets autoDimmed.
+-******************************************************************************/
+-
+-#define BRIGHT_NUM 1
+-#define BRIGHT_DENOM 3
+-
+ void DoAutoDim()
+ {
+-    SetCurBrightness((curBright*BRIGHT_NUM)/BRIGHT_DENOM);
++    if (dimmedBrightness < curBright)	/* plan 729 (D024, D164) */
++	SetCurBrightness(dimmedBrightness);
+     autoDimmed = 1;
+ }
+ 
+-/******************************************************************************
+-    UndoAutoDim restores full brightness and clears autoDimmed.
+-******************************************************************************/
+-
+ void UndoAutoDim()
+ {
+     SetCurBrightness(curBright);
+-    autoDimTime = eventGlobals->VertRetraceClock + autoDimPeriod;
++    autoDimTime = evg->VertRetraceClock + autoDimPeriod;
+     autoDimmed = 0;
+ }
+-
+-/******************************************************************************
+-    RecordBrightness
+-    records the current brightness in nvram.
+-******************************************************************************/
+ 
+ void RecordBrightness()
+ {
+@@ -179,12 +221,13 @@
+     nvram_check(&ni);
+     ni.ni_brightness = curBright;
+     nvram_set(&ni);
+-} 
++}
+ 
+ void DoBrightnessChange(int change)
+ {
+     curBright = SetCurBrightness(curBright+change);
+-} 
++}
++/* plan 729 END */
+ 
+ #define LEFT_CHANNEL 1
+ #define RIGHT_CHANNEL 2
+@@ -198,10 +241,11 @@
+     	vol_r = MAX(MIN(newLevel,VOLUME_MAX),VOLUME_MIN);
+ }
+ 
++/* plan 729 (D024, D164) BEGIN: DoSoundKey, DoSpecialKey, ModKeysDown */
+ void DoSoundKey(int key, int direction, int flags)
+ {
+     int change;
+-    
++
+     /* Note that what we really set is attenuation, so if the
+        guy hits the up key we decrease attentuation, and vice versa */
+     if (key == SOUND_UP_KEY)
+@@ -235,50 +279,55 @@
+ 	case NX_NEXTRALTKEYMASK:
+ 	    SetAttenuation(RIGHT_CHANNEL,vol_r+change);
+ 	    break;
+-	} /* switch() */	
++	} /* switch() */
+     snd_device_vol_set();
+ }
+ 
+-/******************************************************************************
+-    DoSpecialKey treats those keys that are flagged as requiring special
+-    device processing.  This is used for brightness and volume keys.  It
+-    accepts direction (0 up, 1 down, 2 repeat).
+-******************************************************************************/
++#define NEXTNUM() (shorts ? *((short *)mapping)++ : \
++*((unsigned char *)mapping)++ )
++
++/* plan 729 (D024, D164): new in 1997: is any key assigned to modifier bit "bit" down? */
++static int ModKeysDown(KeyMapping *map, int bit)
++{
++	unsigned char	*mapping;
++	short		shorts;
++	int		i,n;
++
++	shorts = map->shorts;
++	mapping = map->modDefs[bit];
++	if (mapping)
++	    for(i=0, n=NEXTNUM(); i<n; i++)
++		if (map->keyBits[NEXTNUM()] & KEYSTATEMASK)
++		    return(1);
++	return(0);
++}
+ 
+ void DoSpecialKey(int key, int direction, int flags)
+ {
+-    if (direction != 0) /* If not an up event */
+-	switch(key) {
+-	case SOUND_UP_KEY:
+-	case SOUND_DOWN_KEY:
++    NXEventData outData;	/* plan 729 (D024, D164): unused 12-byte frame slot (original linkw #-12) */
++
++    if (curMapping == NULL)	/* plan 729 (D024, D164) */
++	return;
++    if (direction != 0) { /* If not an up event */
++	if (key == SOUND_UP_KEY || key == SOUND_DOWN_KEY)
+ 	    DoSoundKey(key,direction,flags);
+-	    break;
+-	case BRIGHTNESS_UP_KEY:
+-	case BRIGHTNESS_DOWN_KEY:
++	else if (key == BRIGHTNESS_UP_KEY || key == BRIGHTNESS_DOWN_KEY) {
+ 	    if (autoDimmed)
+ 	        UndoAutoDim();
+-	    curBright = SetCurBrightness(curBright + 
++	    curBright = SetCurBrightness(curBright +
+ 	    	((key == BRIGHTNESS_UP_KEY) ? 1 : -1) );
+-	    break;
+-	} /* switch(key) */
+-    else /* it is an up key */
+-    	switch(key) {
+-	case SOUND_UP_KEY:
+-	case SOUND_DOWN_KEY:
++	}
++    } else { /* it is an up key */
++	if (key == SOUND_UP_KEY || key == SOUND_DOWN_KEY)
+ 	    snd_device_vol_save();
+-	    break;
+-	case BRIGHTNESS_UP_KEY:
+-	case BRIGHTNESS_DOWN_KEY:
+-	    /* Here, we launch a softint to record the current brightness.
+-	       That way, the nvram code called by RecordCurBrightness won't
+-	       be called from interrupt level (which is where we are now). */
+-	    softint_sched(CALLOUT_PRI_THREAD, RecordBrightness, 0);
+-	    break;
+-	} /* switch(key) */	
++	else if (key == BRIGHTNESS_UP_KEY || key == BRIGHTNESS_DOWN_KEY)
++	    callout_dispatch(CALLOUT_PRI_THREAD, RecordBrightness, 0);	/* plan 729 (D024, D164) */
++    }
+ }
+ 
+ /* This variable generated by keymap except for the one edit noted below.  */
+-const unsigned char defaultMapping[] = {
++static const unsigned char defaultMapping[] = {
++/* plan 729 END */
+ 	0x00,0x00,0x05,0x01,0x02,0x52,0x57,0x02,0x01,0x51,
+ 	0x03,0x02,0x53,0x56,0x04,0x02,0x54,0x55,0x05,0x16,
+ 	0x0b,0x0c,0x0d,0x11,0x17,0x14,0x15,0x13,0x18,0x12,
+@@ -370,8 +419,114 @@
+ 	0xa8,0x0a,0x00,0x37,0x00,0x26,0x00,0xb7,0x01,0xab,
+ 	0x0e,0x00,0x36,0x00,0x5e,0x00,0x1e,0x00,0x1e,0x00,
+ 	0xb6,0x00,0xc3,0x00,0x1e,0x00,0x1e,0x0a,0x00,0x35,
+-	0x00,0x25,0x01,0xa5,0x00,0xbd,0x03,0x01,0x00,0x61,
+-	0x01,0x00,0x61,0x01,0x00,0x61
++/* plan 729 (D024, D164) BEGIN: declarations and data */
++	0x00,0x25,0x01,0xa5,0x00,0xbd,0x00,0x07,0x00,0x1a,0x01,0x02,0x02,0x19,
++	0x03,0x01,0x06,0x58,0x07,0x16,0x08,0x0f
++};
++
++static const unsigned char adbMapping[] = {	/* plan 729 (D024, D164): the original bytes at 0x40ad4bc */
++	0x00, 0x00, 0x07, 0x00, 0x01, 0x39, 0x01, 0x02, 0x38, 0x7b,
++	0x02, 0x02, 0x36, 0x7d, 0x03, 0x02, 0x3a, 0x7c, 0x04, 0x01,
++	0x37, 0x05, 0x15, 0x52, 0x41, 0x4c, 0x53, 0x54, 0x55, 0x45,
++	0x58, 0x57, 0x56, 0x59, 0x5b, 0x5c, 0x4e, 0x43, 0x4b, 0x51,
++	0x3b, 0x3d, 0x3e, 0x3c, 0x06, 0x01, 0x72, 0x7b, 0x0d, 0x00,
++	0x61, 0x00, 0x41, 0x00, 0x01, 0x00, 0x01, 0x00, 0xca, 0x00,
++	0xc7, 0x00, 0x01, 0x00, 0x01, 0x0d, 0x00, 0x73, 0x00, 0x53,
++	0x00, 0x13, 0x00, 0x13, 0x00, 0xfb, 0x00, 0xa7, 0x00, 0x13,
++	0x00, 0x13, 0x0d, 0x00, 0x64, 0x00, 0x44, 0x00, 0x04, 0x00,
++	0x04, 0x01, 0x44, 0x01, 0xb6, 0x00, 0x04, 0x00, 0x04, 0x0d,
++	0x00, 0x66, 0x00, 0x46, 0x00, 0x06, 0x00, 0x06, 0x00, 0xa6,
++	0x01, 0xac, 0x00, 0x06, 0x00, 0x06, 0x0d, 0x00, 0x68, 0x00,
++	0x48, 0x00, 0x08, 0x00, 0x08, 0x00, 0xe3, 0x00, 0xeb, 0x00,
++	0x00, 0x18, 0x00, 0x0d, 0x00, 0x67, 0x00, 0x47, 0x00, 0x07,
++	0x00, 0x07, 0x00, 0xf1, 0x00, 0xe1, 0x00, 0x07, 0x00, 0x07,
++	0x0d, 0x00, 0x7a, 0x00, 0x5a, 0x00, 0x1a, 0x00, 0x1a, 0x00,
++	0xcf, 0x01, 0x57, 0x00, 0x1a, 0x00, 0x1a, 0x0d, 0x00, 0x78,
++	0x00, 0x58, 0x00, 0x18, 0x00, 0x18, 0x01, 0xb4, 0x01, 0xce,
++	0x00, 0x18, 0x00, 0x18, 0x0d, 0x00, 0x63, 0x00, 0x43, 0x00,
++	0x03, 0x00, 0x03, 0x01, 0xe3, 0x01, 0xd3, 0x00, 0x03, 0x00,
++	0x03, 0x0d, 0x00, 0x76, 0x00, 0x56, 0x00, 0x16, 0x00, 0x16,
++	0x01, 0xd6, 0x01, 0xe0, 0x00, 0x16, 0x00, 0x16, 0x02, 0x00,
++	0x3c, 0x00, 0x3e, 0x0d, 0x00, 0x62, 0x00, 0x42, 0x00, 0x02,
++	0x00, 0x02, 0x01, 0xe5, 0x01, 0xf2, 0x00, 0x02, 0x00, 0x02,
++	0x0d, 0x00, 0x71, 0x00, 0x51, 0x00, 0x11, 0x00, 0x11, 0x00,
++	0xfa, 0x00, 0xea, 0x00, 0x11, 0x00, 0x11, 0x0d, 0x00, 0x77,
++	0x00, 0x57, 0x00, 0x17, 0x00, 0x17, 0x01, 0xc8, 0x01, 0xc7,
++	0x00, 0x17, 0x00, 0x17, 0x0d, 0x00, 0x65, 0x00, 0x45, 0x00,
++	0x05, 0x00, 0x05, 0x00, 0xc2, 0x00, 0xc5, 0x00, 0x05, 0x00,
++	0x05, 0x0d, 0x00, 0x72, 0x00, 0x52, 0x00, 0x12, 0x00, 0x12,
++	0x01, 0xe2, 0x01, 0xd2, 0x00, 0x12, 0x00, 0x12, 0x0d, 0x00,
++	0x79, 0x00, 0x59, 0x00, 0x19, 0x00, 0x19, 0x00, 0xa5, 0x01,
++	0xdb, 0x00, 0x19, 0x00, 0x19, 0x0d, 0x00, 0x74, 0x00, 0x54,
++	0x00, 0x14, 0x00, 0x14, 0x01, 0xe4, 0x01, 0xd4, 0x00, 0x14,
++	0x00, 0x14, 0x0a, 0x00, 0x31, 0x00, 0x21, 0x01, 0xad, 0x00,
++	0xa1, 0x0e, 0x00, 0x32, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0xb2, 0x00, 0xb3, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x00,
++	0x33, 0x00, 0x23, 0x00, 0xa3, 0x01, 0xba, 0x0a, 0x00, 0x34,
++	0x00, 0x24, 0x00, 0xa2, 0x00, 0xa8, 0x0e, 0x00, 0x36, 0x00,
++	0x5e, 0x00, 0x1e, 0x00, 0x1e, 0x00, 0xb6, 0x00, 0xc3, 0x00,
++	0x1e, 0x00, 0x1e, 0x0a, 0x00, 0x35, 0x00, 0x25, 0x01, 0xa5,
++	0x00, 0xbd, 0x0a, 0x00, 0x3d, 0x00, 0x2b, 0x01, 0xb9, 0x01,
++	0xb1, 0x0a, 0x00, 0x39, 0x00, 0x28, 0x00, 0xac, 0x00, 0xab,
++	0x0a, 0x00, 0x37, 0x00, 0x26, 0x00, 0xb7, 0x01, 0xab, 0x0e,
++	0x00, 0x2d, 0x00, 0x5f, 0x00, 0x1f, 0x00, 0x1f, 0x00, 0xb1,
++	0x00, 0xd0, 0x00, 0x1f, 0x00, 0x1f, 0x0a, 0x00, 0x38, 0x00,
++	0x2a, 0x01, 0xb0, 0x00, 0xb4, 0x0a, 0x00, 0x30, 0x00, 0x29,
++	0x00, 0xad, 0x00, 0xbb, 0x0e, 0x00, 0x5d, 0x00, 0x7d, 0x00,
++	0x1d, 0x00, 0x1d, 0x00, 0x27, 0x00, 0xba, 0x00, 0x1d, 0x00,
++	0x1d, 0x0d, 0x00, 0x6f, 0x00, 0x4f, 0x00, 0x0f, 0x00, 0x0f,
++	0x00, 0xf9, 0x00, 0xe9, 0x00, 0x0f, 0x00, 0x0f, 0x0d, 0x00,
++	0x75, 0x00, 0x55, 0x00, 0x15, 0x00, 0x15, 0x00, 0xc8, 0x00,
++	0xcd, 0x00, 0x15, 0x00, 0x15, 0x0e, 0x00, 0x5b, 0x00, 0x7b,
++	0x00, 0x1b, 0x00, 0x1b, 0x00, 0x60, 0x00, 0xaa, 0x00, 0x1b,
++	0x00, 0x1b, 0x0d, 0x00, 0x69, 0x00, 0x49, 0x00, 0x09, 0x00,
++	0x09, 0x00, 0xc1, 0x00, 0xf5, 0x00, 0x09, 0x00, 0x09, 0x0d,
++	0x00, 0x70, 0x00, 0x50, 0x00, 0x10, 0x00, 0x10, 0x01, 0x70,
++	0x01, 0x50, 0x00, 0x10, 0x00, 0x10, 0x10, 0x00, 0x0d, 0x00,
++	0x03, 0x0d, 0x00, 0x6c, 0x00, 0x4c, 0x00, 0x0c, 0x00, 0x0c,
++	0x00, 0xf8, 0x00, 0xe8, 0x00, 0x0c, 0x00, 0x0c, 0x0d, 0x00,
++	0x6a, 0x00, 0x4a, 0x00, 0x0a, 0x00, 0x0a, 0x00, 0xc6, 0x00,
++	0xae, 0x00, 0x0a, 0x00, 0x0a, 0x0a, 0x00, 0x27, 0x00, 0x22,
++	0x00, 0xa9, 0x01, 0xae, 0x0d, 0x00, 0x6b, 0x00, 0x4b, 0x00,
++	0x0b, 0x00, 0x0b, 0x00, 0xce, 0x00, 0xaf, 0x00, 0x0b, 0x00,
++	0x0b, 0x0a, 0x00, 0x3b, 0x00, 0x3a, 0x01, 0xb2, 0x01, 0xa2,
++	0x0e, 0x00, 0x5c, 0x00, 0x7c, 0x00, 0x1c, 0x00, 0x1c, 0x00,
++	0xe3, 0x00, 0xeb, 0x00, 0x1c, 0x00, 0x1c, 0x0a, 0x00, 0x2c,
++	0x00, 0x3c, 0x00, 0xcb, 0x01, 0xa3, 0x0a, 0x00, 0x2f, 0x00,
++	0x3f, 0x01, 0xb8, 0x00, 0xbf, 0x0d, 0x00, 0x6e, 0x00, 0x4e,
++	0x00, 0x0e, 0x00, 0x0e, 0x00, 0xc4, 0x01, 0xaf, 0x00, 0x0e,
++	0x00, 0x0e, 0x0d, 0x00, 0x6d, 0x00, 0x4d, 0x00, 0x0d, 0x00,
++	0x0d, 0x01, 0x6d, 0x01, 0xd8, 0x00, 0x0d, 0x00, 0x0d, 0x0a,
++	0x00, 0x2e, 0x00, 0x3e, 0x00, 0xbc, 0x01, 0xb3, 0x02, 0x00,
++	0x09, 0x00, 0x19, 0x0c, 0x00, 0x20, 0x00, 0x00, 0x00, 0x80,
++	0x00, 0x00, 0x0a, 0x00, 0x60, 0x00, 0x7e, 0x00, 0x60, 0x01,
++	0xbb, 0x02, 0x00, 0x7f, 0x00, 0x08, 0xff, 0x02, 0x00, 0x1b,
++	0x00, 0x7e, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x01, 0xac,
++	0x00, 0x01, 0xae, 0x00, 0x01, 0xaf, 0x00, 0x01, 0xad, 0xff,
++	0xff, 0x00, 0x00, 0x2e, 0xff, 0x00, 0x00, 0x2a, 0xff, 0x00,
++	0x00, 0x2b, 0xff, 0x02, 0x00, 0x1b, 0x00, 0x7e, 0xff, 0xff,
++	0xff, 0x02, 0x00, 0x2f, 0x00, 0x5c, 0x00, 0x00, 0x03, 0xff,
++	0x00, 0x01, 0x2d, 0xff, 0xff, 0x02, 0x00, 0x3d, 0x00, 0x7c,
++	0x00, 0x00, 0x30, 0x00, 0x00, 0x31, 0x00, 0x00, 0x32, 0x00,
++	0x00, 0x33, 0x00, 0x00, 0x34, 0x00, 0x00, 0x35, 0x00, 0x00,
++	0x36, 0x00, 0x00, 0x37, 0xff, 0x00, 0x00, 0x38, 0x00, 0x00,
++	0x39, 0xff, 0xff, 0xff, 0x00, 0xff, 0x04, 0x00, 0xff, 0x05,
++	0x00, 0xff, 0x06, 0x00, 0xff, 0x02, 0x00, 0xff, 0x07, 0x00,
++	0xff, 0x08, 0xff, 0x00, 0xff, 0x0a, 0xff, 0x00, 0xff, 0x0c,
++	0xff, 0x00, 0xff, 0x0d, 0xff, 0x00, 0xff, 0x09, 0xff, 0x00,
++	0xff, 0x0b, 0xff, 0x00, 0xff, 0x0e, 0xff, 0xff, 0xff, 0x00,
++	0x00, 0x04, 0x00, 0xff, 0x03, 0xff, 0x00, 0xff, 0x01, 0xff,
++	0x00, 0xff, 0x00, 0x0f, 0x02, 0xff, 0x04, 0x00, 0x31, 0x02,
++	0xff, 0x04, 0x00, 0x32, 0x02, 0xff, 0x04, 0x00, 0x33, 0x02,
++	0xff, 0x04, 0x00, 0x34, 0x02, 0xff, 0x04, 0x00, 0x35, 0x02,
++	0xff, 0x04, 0x00, 0x36, 0x02, 0xff, 0x04, 0x00, 0x37, 0x02,
++	0xff, 0x04, 0x00, 0x38, 0x02, 0xff, 0x04, 0x00, 0x39, 0x02,
++	0xff, 0x04, 0x00, 0x30, 0x02, 0xff, 0x04, 0x00, 0x2d, 0x02,
++	0xff, 0x04, 0x00, 0x3d, 0x02, 0xff, 0x04, 0x00, 0x70, 0x02,
++	0xff, 0x04, 0x00, 0x5d, 0x02, 0xff, 0x04, 0x00, 0x5b, 0x09,
++	0x00, 0x73, 0x01, 0x77, 0x02, 0x74, 0x03, 0x79, 0x04, 0x39,
++	0x05, 0x72, 0x06, 0x7f, 0x07, 0x3e, 0x08, 0x3d
++/* plan 729 END */
+ };
+ 
+ typedef struct _NewMappingData {
+@@ -380,22 +535,16 @@
+     int shorts;
+ } NewMappingData;
+ 
++/* plan 729 (D024, D164) BEGIN: CalcModBit, DoCharGen, DoKbdEvent, DoModCalc, NextNum, SetKeyMapping */
+ static unsigned int NextNum(NewMappingData *nmd)
+ {
+-    if (nmd->bp > nmd->endPtr)
++    if (nmd->bp >= nmd->endPtr)	/* plan 729 (D024, D164): NeXTMach > */
+ 	return(0);
+     if (nmd->shorts)
+ 	return(*((unsigned short *)nmd->bp)++);
+     else
+ 	return(*((unsigned char *)nmd->bp)++);
+ }
+-
+-/******************************************************************************
+-    SetKeyMapping parses through the given keyMapping and installs the
+-    description of it into the variable curMappingStorage and curMapLen. It
+-    does not affect mapNotDefault.  It returns the old value of
+-    curMappingStorage.mapping, or NULL if it failed.
+-******************************************************************************/
+ 
+ unsigned char *SetKeyMapping(unsigned char *mapping, int mappingLen)
+ {
+@@ -472,82 +621,86 @@
+     for(i=0; i<newMapping.numSeqs; i++)
+ 	for(j=0, l=NextNum(&nmd); j<l; j++)
+ 	{
+-	    if (NextNum(&nmd) == 0x00ff)
+-		return(NULL);
++	    NextNum(&nmd);	/* plan 729 (D024, D164): NeXTMach rejected 0x00ff here */
+ 	    NextNum(&nmd);
+ 	}
++    /* plan 729 (D024, D164): the special key definitions */
++    numMods = NextNum(&nmd);
++    if (numMods > NX_NUMSPECIALKEYS) return(NULL);
++    if (numMods)
++    {
++	for(i=0; i<NX_NUMSPECIALKEYS; i++)
++	    newMapping.specialKeys[i] = 0xff;
++	for(i=0; i<numMods; i++)
++	{
++	    j = NextNum(&nmd);
++	    l = NextNum(&nmd);
++	    if (j > NX_NUMSPECIALKEYS - 1) return(NULL);
++	    newMapping.specialKeys[j] = l;
++	}
++    }
++    else
++    {
++	if (adbKeyboard) return(NULL);
++	for(i=0; i<NX_NUMSPECIALKEYS; i++)
++	    newMapping.specialKeys[i] = curMapping->specialKeys[i];
++    }
+     /* Install bits for Special device keys */
+-    for(i=0; i<sizeof(specialKeyCodes); i++)
+-    	newMapping.keyBits[specialKeyCodes[i]] |= (CHARGENMASK|SPECIALKEYMASK);
++    for(i=0; i<=NX_KEYTYPE_BRIGHTNESS_DOWN; i++)
++    	if (newMapping.specialKeys[i] != 0xff)
++	    newMapping.keyBits[newMapping.specialKeys[i]] |= (CHARGENMASK|SPECIALKEYMASK);
+     /* Great!  We are there, install new mapping */
+     oldMapping = curMapping->mapping;
+-    /* BEGIN CRITICAL SECTION */ keySema = 1;
++    /* BEGIN CRITICAL SECTION */ keySema++;
+     /* Copy current key states */
+     for(i=0; i<NUMKEYCODES; i++)
+ 	newMapping.keyBits[i] |= (curMappingStorage.keyBits[i] & KEYSTATEMASK);
+     /* Recalculate modifiers */
+-    eventGlobals->eventFlags = eventGlobals->eventFlags & ~MAPPINGMODMASK;
++    evg->eventFlags = evg->eventFlags & ~MAPPINGMODMASK;
+     for(i=0; i<=newMapping.maxMod; i++)
+ 	CalcModBit(&newMapping, i);
+     curMappingStorage = newMapping;
+     curMapLen = mappingLen;
+-    /* END CRITICAL SECTION */ keySema = 0;
++    /* END CRITICAL SECTION */ keySema--;
+     return(oldMapping);
+ } /* SetKeyMapping */
+ 
+-#undef NEXTNUM
+-#define NEXTNUM() (shorts ? *((short *)mapping)++ : \
+-*((unsigned char *)mapping)++ )
+-
+-/******************************************************************************
+-    CalcModBit recalculates the state of the given modifier bit from the
+-    states of all the keys assigned to it in the given mapping. Notice that
+-    its parameter, bit, is in the mapping's space of 0-14 but the bit of
+-    eventFlags that is changed is 16 higher than that (i.e., the
+-    mapping-dependent bits).
+-******************************************************************************/
+-
+ void CalcModBit(KeyMapping *map, int bit)
+ {
+-	unsigned char	*mapping;
+-	short		shorts;
+-	int		bitMask,i,n;
++	int		bitMask;
+ 	int		myFlags;
+-
+-	shorts = map->shorts;
+-	mapping = map->modDefs[bit];
++	int		oldAlphaLock;
++
++	oldAlphaLock = alphaLock;	/* plan 729 (D024, D164) */
+ 	bitMask = 1<<(bit+16);
+ 	/* Initially clear bit */
+-	myFlags = eventGlobals->eventFlags & (~bitMask);
+-	if (mapping)
+-	    for(i=0, n=NEXTNUM(); i<n; i++)
+-		if (map->keyBits[NEXTNUM()] & KEYSTATEMASK)
+-		    myFlags |= bitMask;
++	myFlags = evg->eventFlags & (~bitMask);
++	if (ModKeysDown(map, bit))
++	    myFlags |= bitMask;
+ 	/* If this was the shift bit... */
+ 	if (bit == 1)
+ 	{
+ 		if (myFlags & NX_COMMANDMASK)
+-		    if (myFlags&bitMask)
++		    if (map->modDefs[0] == NULL)	/* plan 729 (D024, D164) */
+ 		    {
+-		    	keyPressed = 0;
++			if (myFlags&bitMask)
++			{
++			    keyPressed = 0;
++			}
++			else
++			    if (!keyPressed)
++				alphaLock = !alphaLock;
+ 		    }
+-		    else
+-		    	if (!keyPressed)
+-			{
+-			    alphaLock = !alphaLock;
+-			    AlphaLockFeedback(alphaLock);
+-			}
+ 		/* And in any case, reset the alphaLock/shift bit */
+ 		myFlags = (myFlags & ~NX_ALPHASHIFTMASK) |
+ 			(alphaLock<<16) | ((myFlags & NX_SHIFTMASK)>>1);
+ 	}
+-	eventGlobals->eventFlags = myFlags;
+-}
+-
+-/******************************************************************************
+-    DoModCalc recalculates all modifier bits that depend on the given key, if
+-    any, and posts a flags-changed event.
+-******************************************************************************/
++	else if (bit == 0)	/* plan 729 (D024, D164) */
++	    alphaLock = (myFlags >> 16) & 1;
++	if (oldAlphaLock != alphaLock)	/* plan 729 (D024, D164) */
++	    AlphaLockFeedback(alphaLock);
++	evg->eventFlags = myFlags;
++}
+ 
+ void DoModCalc(KeyMapping *map, int key)
+ {
+@@ -563,32 +716,27 @@
+ 	if (!(thisBits & CHARGENMASK))
+ 	{
+ 	    outData.key.keyCode = key;
+-	    outData.key.keyData = outData.key.charSet =
++	    outData.key.origCharSet = outData.key.charSet =
+ 	    outData.key.charCode = outData.key.repeat =
+-	    outData.key.reserved = 0;
+-	    LLEventPost(NX_FLAGSCHANGED,eventGlobals->cursorLoc,&outData);
+-	}
+-    }
+-}
+-
+-/******************************************************************************
+-    DoCharGen does any required character generation for the given key.
+-    Accepts 3 values for direction: 0 (up), 1 (down), 2 (repeat)
+-******************************************************************************/
++	    outData.key.origCharCode = 0;	/* plan 729 (D024, D164) */
++	    LLEventPost(NX_FLAGSCHANGED,evg->cursorLoc,&outData);
++	}
++    }
++}
+ 
+ void DoCharGen(KeyMapping *map, int key, int direction)
+ {
+     int	i, j, n, eventType, adjust, thisMask, shorts, modifiers;
+     NXEventData	outData;
+     unsigned char *mapping;
++    int savedFlags;	/* plan 729 (D024, D164) */
+ 
+     keyPressed = 1;
+     shorts = map->shorts;
+     outData.key.repeat = (direction == 2);
+     outData.key.keyCode = key;
+-    outData.key.keyData = outData.key.reserved = 0;
+     eventType = direction ? NX_KEYDOWN : NX_KEYUP;
+-    modifiers = eventGlobals->eventFlags>>16;
++    modifiers = evg->eventFlags>>16;
+     /* Get this key's key mapping */
+     mapping = curMapping->keyDefs[key];
+     if (mapping)
+@@ -615,6 +763,30 @@
+ 	else
+ 	    outData.key.charSet = *((char *)mapping)++;
+ 	outData.key.charCode = NEXTNUM();
++	/* plan 729 (D024, D164): the character without the other modifiers */
++	mapping = curMapping->keyDefs[key];
++	modifiers = (evg->eventFlags>>16) & 3;
++	thisMask = NEXTNUM();
++	if (thisMask && modifiers)
++	{
++	    adjust = (shorts ? sizeof(short) : sizeof(char))*2;
++	    for(i=0; i<=curMapping->maxMod; i++)
++	    {
++		if (thisMask & 0x01)
++		{
++		    if (modifiers & 0x01)
++			mapping += adjust;
++		    adjust *= 2;
++		}
++		thisMask >>= 1;
++		modifiers >>= 1;
++	    }
++	}
++	if (shorts)
++	    outData.key.origCharSet = *((short *)mapping)++;
++	else
++	    outData.key.origCharSet = *((char *)mapping)++;
++	outData.key.origCharCode = NEXTNUM();
+ 	if (((short)outData.key.charSet) == -1)
+ 	{ /* She's a sequence, captain */
+ 	    mapping = curMapping->seqDefs;
+@@ -623,31 +795,47 @@
+ 		j = NEXTNUM();
+ 		mapping += j * (shorts ? 4 : 2);
+ 	    }
++	    savedFlags = evg->eventFlags;
+ 	    for(i=0,n=NEXTNUM();i<n;i++)
+ 	    {
+-		outData.key.charSet = NEXTNUM();
+-		outData.key.charCode = NEXTNUM();
+-		LLEventPost(eventType,eventGlobals->cursorLoc,&outData);
++		outData.key.origCharSet = outData.key.charSet = NEXTNUM();
++		if (outData.key.charSet == 0x00ff)	/* plan 729 (D024, D164) */
++		{
++		    outData.key.keyCode = key;
++		    outData.key.origCharSet = outData.key.charSet =
++		    outData.key.charCode = outData.key.repeat =
++		    outData.key.origCharCode = 0;
++		    if (direction)
++		    {
++			evg->eventFlags |= (1 << (NEXTNUM() + 16));
++			LLEventPost(NX_FLAGSCHANGED,evg->cursorLoc,&outData);
++		    }
++		    else
++			NEXTNUM();
++		}
++		else
++		{
++		    outData.key.charCode = outData.key.origCharCode = NEXTNUM();
++		    LLEventPost(eventType,evg->cursorLoc,&outData);
++		}
+ 	    }
++	    evg->eventFlags = savedFlags;
+ 	}
+ 	else
+-	    LLEventPost(eventType,eventGlobals->cursorLoc,&outData);
++	    LLEventPost(eventType,evg->cursorLoc,&outData);
+     } /* if (mapping) */
+-    
++
+     /* Check for a device control keys: note that they always have CHARGEN
+        bit set */
+     if (curMapping->keyBits[key] & SPECIALKEYMASK)
+-    	DoSpecialKey(key,direction,eventGlobals->eventFlags);
++    	DoSpecialKey(key,direction,evg->eventFlags);
+ 
+     /* Deal with downKeys */
+     if (direction == 1)
+     {
+ 	/* Set this key to repeat (push out last key if present) */
+-	downCount = initialKeyRepeat; 
++	downCount = initialKeyRepeat;
+ 	downKey = key;
+-#if NO_VERTICAL_RETRACE
+-	timeout(DoKbdRepeat, 0, 1);
+-#endif NO_VERTICAL_RETRACE
+     } else if (direction == 0)
+     {
+ 	/* Remove from downKey */
+@@ -659,24 +847,24 @@
+     }
+ }
+ 
+-/******************************************************************************
+-    DoKbdEvent performs the key mapping for the key with keyCode key moving in
+-    the direction given (0 == up, 1 == down).
+-******************************************************************************/
+-
+ void DoKbdEvent(int key, int direction, int deviceMods)
+ {
+     char thisBits;
+ 
+-    /* Update device-dependent modifier bits */
+-    eventGlobals->eventFlags = (eventGlobals->eventFlags & MAPPINGMODMASK)
+-				    | (deviceMods & DEVICEMODMASK);
+     /* Update bit in keyBits */
+     thisBits = curMapping->keyBits[key];
+     if (direction)
+ 	thisBits |= KEYSTATEMASK;
++    else if (thisBits < 0)	/* plan 729 (D024, D164): was down */
++	thisBits &= ~KEYSTATEMASK;
+     else
+-	thisBits &= ~KEYSTATEMASK;
++    {
++	AllKeysUp();	/* plan 729 (D024, D164): an up for a key that is not down */
++	return;
++    }
++    /* Update device-dependent modifier bits */
++    evg->eventFlags = (evg->eventFlags & MAPPINGMODMASK)
++				    | (deviceMods & DEVICEMODMASK);
+     curMapping->keyBits[key] = thisBits;
+     /* Do mod bit update and char generation in useful order */
+     if (direction)
+@@ -690,12 +878,8 @@
+ 	if (thisBits & MODMASK) DoModCalc(curMapping,key);
+     }
+ }
+-
+-/******************************************************************************
+-    DoKbdRepeat should be called once every retrace interval (or whatever
+-    the times recorded in downKeys are).  It will decrement all the valid down
+-    keys' counts, and generate KEYREPEATED events as appropriate.
+-******************************************************************************/
++/* plan 729 (D024): NeXTMach lines 693-698 removed (not in the 1997 kernel) */
++/* plan 729 END */
+ 
+ void DoKbdRepeat()
+ {
+@@ -711,39 +895,42 @@
+     }
+ }
+ 
+-/******************************************************************************
+-    ResetKbd resets all keyboard status variables to their initial state.
+-******************************************************************************/
+-
++/* plan 729 (D024): NeXTMach lines 714-717 removed (not in the 1997 kernel) */
++/* plan 729 (D024, D164) BEGIN: AllKeysUp, InitKbd, ResetKbd */
+ void ResetKbd()
+ {
+-    if (mapNotDefault)
+-	kmem_free(kernel_map, curMapping->mapping, curMapLen);
++    unsigned char *oldMapping;	/* plan 729 (D024, D164) */
++    int oldLen;
++
++    if (mapNotDefault) {
++	oldMapping = curMapping->mapping;
++	oldLen = curMapLen;
++    } else
++	oldMapping = NULL;
+     InitKbd(1);
++    if (oldMapping)
++	kfree((vm_offset_t)oldMapping, oldLen);
+ }
+ 
+ int InitKbd(int reset)
+ {
+-    char *mapping;
+-    int mappingLen, i;
++    struct nvram_info ni;
+ 
+     alphaLock = keyPressed = mapNotDefault = 0;
+     curMapping = &curMappingStorage;
+     AlphaLockFeedback(0);
+-    AllKeysUp();
+     initialKeyRepeat = DEFAULTINITIALREPEAT;
+     keyRepeat = DEFAULTKEYREPEAT;
+-    
+-    /* We don't check the error return from this because it actually
+-       will return an error, since the old mapping was NULL */
+-    SetKeyMapping((unsigned char *)defaultMapping, sizeof(defaultMapping));
+-    
+-    /* Get the current brightness level and cache it in curBright
+-       FIX!!! Do we want to do this for volume, too? */
++
++    adbKeyboard = adb_keybd_present();	/* plan 729 (D024, D164) */
++    if (adbKeyboard)
++	SetKeyMapping((unsigned char *)adbMapping, sizeof(adbMapping));
++    else
++	SetKeyMapping((unsigned char *)defaultMapping, sizeof(defaultMapping));
++    AllKeysUp();	/* plan 729 (D024, D164): NeXTMach before SetKeyMapping */
++
+     if (!reset) /* only do this on the real open */
+     {
+-	struct nvram_info ni;
+-    
+ 	nvram_check(&ni);
+ 	curBright = ni.ni_brightness;
+     }
+@@ -753,19 +940,37 @@
+ 
+ void AllKeysUp()
+ {
+-    /* this is used in 2 situations: at boot time, and when we detect a
+-     * keyboard overrun. In the latter case, we want to ensure that any 
+-     * keys which may be autorepeating are forced into a "key up"
+-     * condition (the overrun might cause us to miss a key up event).
+-     */
+-     downKey = -1;
+-     downCount = -1;
+-}
+-
+-
+-
+-
+-
+-
+-
+-
++    int i, j, n, clear, shorts;	/* plan 729 (D024, D164) */
++    unsigned char *mapping, *base;
++
++    downKey = -1;
++    downCount = -1;
++    if (curMapping)
++    {
++	shorts = curMapping->shorts;
++	mapping = curMapping->modDefs[0];
++	if (mapping == NULL)
++	    n = 0;
++	else
++	    n = NEXTNUM();
++	base = mapping;
++	for(i=0; i<NUMKEYCODES; i++)
++	{
++	    mapping = base;
++	    clear = 1;
++	    for(j=0; j<n; j++)
++		if (i == NEXTNUM())
++		{
++		    clear = 0;
++		    break;
++		}
++	    if (clear)
++		curMapping->keyBits[i] &= ~KEYSTATEMASK;
++	}
++    }
++    if (eventsOpen)
++	evg->eventFlags &= ~(NX_SHIFTMASK|NX_CONTROLMASK|NX_ALTERNATEMASK|NX_COMMANDMASK|NX_NUMERICPADMASK);
++}
++/* plan 729 END */
++
++/* plan 729 (D024): NeXTMach lines 765-771 removed (a blank line) */

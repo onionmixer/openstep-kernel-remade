@@ -1,0 +1,44 @@
+--- NeXTMach mk-108.1/nextif/if_bus.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/if_bus.c (plan 676, D157)
+@@ -1,3 +1,15 @@
++/*
++ * plan 676 (D157, D024, D104): the 1997 m68k if_bus.c.  NeXTMach mk-108.1
++ * nextif/if_bus.c (the NeXTMach file has no notice) with two changes read
++ * from the original bytes [0x408d9aa, 0x408db8a) (plan 675):
++ *	enbuf_get	external (the 1997 if_en.c en_bufalloc calls it)
++ *	if_rbusget	takes the buffer as a second argument and wraps it,
++ *			with endp->end_bp as the free argument (the 1997
++ *			if_en.c caller passes three arguments)
++ * The new parameter's name and type (caddr_t buf) are this project's choice
++ * (the bytes do not show them; D157); nextif/if_bus.h carries the matching
++ * prototype.  Lines marked plan 676 differ from NeXTMach.
++ */
+ #import <machine/spl.h>
+ 
+ #import <sys/param.h>
+@@ -75,7 +87,7 @@
+ 
+ }
+ 
+-static enbuf_t
++enbuf_t	/* plan 676 (D024, D157) */
+ enbuf_get()
+ {
+ 	enbuf_t enb;
+@@ -152,6 +164,7 @@
+ netbuf_t
+ if_rbusget(
+ 	   en_dmabuf_t endp,
++	   caddr_t buf,	/* plan 676 (D024, D157) */
+ 	   int totlen
+ 	   )
+ {
+@@ -160,7 +173,7 @@
+ 	stats[totlen * STAT_BUCKETS / BUF_SIZE]++;
+ #endif	DEBUG
+ 
+-	return (nb_alloc_wrapper((void *)endp->end_bp, totlen, 
++	return (nb_alloc_wrapper(buf, totlen,	/* plan 676 (D024, D157) */
+ 				 enbuf_put, (void *)endp->end_bp));
+ }
+ 

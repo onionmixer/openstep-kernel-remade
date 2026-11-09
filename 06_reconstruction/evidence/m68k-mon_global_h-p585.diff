@@ -1,0 +1,35 @@
+--- nextmach/mk-108.1/mon/global.h
++++ 07_kernel/nextmach/mon/global.h
+@@ -15,6 +15,15 @@
+  *	Sync with ROM version.
+  */
+  
++/*
++ * plan 583 (D132, D013, D104, D109, D110): NeXTMach mk-108.1 mon/global.h for
++ * the 1997 m68k kernel, replacing the partial header of plan 437 from plan 583
++ * on (stage_m68k.py OVLDROP).  Lines marked plan 583 differ from NeXTMach:
++ * next/cpu.h is assembly only in 1997 (D109), so <m68k/cpu.h> is imported and
++ * N_SIMM, which mon_global needs, is defined here (NeXTMach next/cpu.h:59,
++ * user decision D132); <next/machparam.h> is <m68k/machparam.h>.  Plan 585
++ * (D133): the import of <mon/tftp.h> is removed (see the marked line).
++ */
+ #ifndef _GLOBAL_
+ #define _GLOBAL_
+ 
+@@ -37,12 +46,13 @@
+ 
+ #import <mon/nvram.h>
+ #import <mon/region.h>
+-#import <mon/tftp.h>
++/* plan 585 (D133): NeXTMach #import <mon/tftp.h> removed: struct mon_global uses no name of it, and its netinet/ip.h struct ip_timestamp collides with the ip_timestamp macro of ipc/ipc_port.h (user decision) */
+ #import <mon/sio.h>
+ #import <mon/animate.h>
+ #import <mon/kmreg.h>
+-#import <next/cpu.h>
+-#import <next/machparam.h>
++#import <m68k/cpu.h>	/* plan 583 (D110): NeXTMach <next/cpu.h> */
++#define	N_SIMM		4	/* plan 583 (D132): NeXTMach next/cpu.h:59 */
++#import <m68k/machparam.h>	/* plan 583 (D104): NeXTMach <next/machparam.h> */
+ 
+ #define	LMAX		128
+ #define	NBOOTFILE	64

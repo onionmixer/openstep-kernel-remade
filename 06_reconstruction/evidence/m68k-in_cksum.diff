@@ -1,0 +1,198 @@
+--- 07_kernel/src/machdep/i386/in_cksum.c
++++ 07_kernel/src/machdep/m68k/in_cksum.c
+@@ -1,85 +1,20 @@
+ /*
+- * i386 Internet checksum (plan 247).
++ * m68k Internet checksum (plans 518-520, D024, D027, D103, D111).
+  *
+- * Written for this project from the OPENSTEP 4.2 kernel bytes
+- * (D024, D027).  The assembler sequence is the one in the original
+- * kernel, so it may coincide with Darwin 0.1 machdep/i386/in_cksum.c,
+- * which was consulted for structure only.
++ * Written for this project from the OPENSTEP 4.2 m68k kernel bytes.
++ * in_cksum is the in_cksum body of the i386 in_cksum.c of this project
++ * (plan 247) without the two "<< 8" of the odd-byte additions (m68k is
++ * big-endian; original _in_cksum at 0x40927d4, 212 bytes).  oc_cksum is the
++ * instruction sequence of the original _oc_cksum (0x40928a8, 182 bytes),
++ * written as a file-scope asm after in_cksum (D111); there is no reference
++ * text for it.  The i386 file notes that its sequence may coincide with
++ * Darwin 0.1 machdep/i386/in_cksum.c; no Darwin text is used here.
+  */
+ 
+ #import <sys/param.h>
+ #import <sys/mbuf.h>
+ 
+-/*
+- * Add len bytes at buf to the 16-bit one's complement sum oldsum.
+- */
+-static inline int
+-oc_cksum(
+-    unsigned char	*buf,
+-    int			len,
+-    unsigned long	oldsum
+-)
+-{
+-    unsigned short	sum;
+-
+-    asm("
+-	testb	$1, %%ecx
+-	jne	5f
+-	testb	$2, %%ecx
+-	jne	7f
+-0:
+-	adc	$0, %%eax
+-	shr	$3, %%ecx
+-	jnc	1f
+-	add	(%%esi), %%eax
+-	adc	$0, %%eax
+-	add	$4, %%esi
+-1:
+-	test	%%ecx, %%ecx
+-	jz	4f
+-	mov	(%%esi), %%edx
+-	mov	4(%%esi), %%ebx
+-	dec	%%ecx
+-	jz	3f
+-	add	$8, %%esi
+-2:
+-	add	%%edx, %%eax
+-	mov	(%%esi), %%edx
+-	adc	%%ebx, %%eax
+-	mov	4(%%esi), %%ebx
+-	adc	$0, %%eax
+-	add	$8, %%esi
+-	dec	%%ecx
+-	jnz	2b
+-3:
+-	add	%%edx, %%eax
+-	adc	%%ebx, %%eax
+-	adc	$0, %%eax
+-4:
+-	mov	%%eax, %%edx
+-	shr	$16, %%edx
+-	add	%%dx, %%ax
+-	adc	$0, %%eax
+-	jmp	8f
+-5:
+-	testb	$2, %%ecx
+-	je	6f
+-	movzwl	-3(%%esi,%%ecx), %%ebx
+-	add	%%ebx, %%eax
+-6:
+-	movzbl	-1(%%esi,%%ecx), %%ebx
+-	adc	%%ebx, %%eax
+-	jmp	0b
+-7:
+-	movzwl	-2(%%esi,%%ecx), %%ebx
+-	add	%%ebx, %%eax
+-	jmp	0b
+-8:
+-    " : "=a" (sum) : "c" (len), "S" (buf), "a" (oldsum) :
+-    "eax", "ebx", "ecx", "edx", "esi");
+-
+-    return (sum);
+-}
++int oc_cksum(unsigned char *buf, int len, unsigned long oldsum);	/* plan 518 (D111): prototype */
+ 
+ in_cksum(m, len)
+ 	register struct mbuf *m;
+@@ -104,7 +39,7 @@
+ 				if (i & 1) {
+ 					i = m->m_len - 1;
+ 					--len;
+-					sum += (*cp++) << 8;
++					sum += (*cp++);	/* plan 518 (D111): no << 8 (big-endian) */
+ 				} else
+ 					i = m->m_len;
+ 				sum = oc_cksum(cp, i, sum);
+@@ -113,10 +48,89 @@
+ 			}
+ 			if (i & 1) {
+ 				cp = mtod(m, u_char *);
+-				sum += (*cp++) << 8;
++				sum += (*cp++);	/* plan 518 (D111): no << 8 (big-endian) */
+ 				return (0xffff & ~oc_cksum(cp, len - 1, sum));
+ 			}
+ 		}
+ 	}
+ 	return (0xffff & ~oc_cksum(mtod(m, u_char *), len, sum));
+ }
++
++/* plan 518 (D111): the original _oc_cksum (0x40928a8-0x409295e) as file-scope asm */
++asm("
++	.text
++	.globl	_oc_cksum
++_oc_cksum:
++	link	a6,#0
++	movl	a6@(0x8),a0
++	movl	a6@(0xc),d1
++	movl	a6@(0x10),d0
++	movl	d2,sp@-
++	btst	#0,d1
++	bne	5f
++	btst	#1,d1
++	bne	7f
++1:	movl	d1,d2
++	lsrl	#6,d1
++	andl	#0x3c,d2
++	negl	d2
++	andb	#0xf,cc
++	jmp	pc@(0x42,d2:l)
++3:
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	movl	a0@+,d2
++	addxl	d2,d0
++	dbf	d1,3b
++	movl	d0,d1
++	swap	d1
++	addxw	d1,d0
++	bcc	4f
++	addqw	#1,d0
++4:	andl	#0xffff,d0
++	movl	sp@+,d2
++	unlk	a6
++	rts
++5:	btst	#1,d1
++	beq	6f
++	clrl	d2
++	movw	a0@(-3,d1:l),d2
++	addl	d2,d0
++6:	clrl	d2
++	movb	a0@(-1,d1:l),d2
++	lsll	#8,d2
++	addl	d2,d0
++	bra	1b
++7:	clrl	d2
++	movw	a0@(-2,d1:l),d2
++	addl	d2,d0
++	bra	1b
++");

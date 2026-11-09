@@ -1,0 +1,58 @@
+--- nextmach/mk-108.1/next/nextdbgasm.s
++++ 07_kernel/src/machdep/m68k/nextdbgasm.s
+@@ -1,11 +1,19 @@
++// m68k: next/nextdbgasm.s of the 1997 m68k kernel (plans 536-538, D024, D103, D108, D117).
++// Base: NeXTMach mk-108.1 next/nextdbgasm.s (https://github.com/johnsonjh/NeXTMach.git
++// f6bdb9c3268f0eadc545d41bcc0564453b17001e; the NeXTMach file has no notice).  The object is
++// [0x4096700, 0x40967be) of the original: __m68k_dbginit, __dbg_trap, __dbg_kresume,
++// _dbg_setjmp, _dbg_longjmp (part of the inexact row m68k-306 and the row m68k-307).
++// Removed because the original has no space for it: .lcomm dbgstack,DBG_STACK.
++// Changed from the original bytes: the names __m68k_dbginit and _m68k_dbginit (NeXTMach
++// __nextdbginit, _nextdbginit) and the stack load from the pointer _dbgstack plus DBG_STACK.
++// Added from the original bytes: .lcomm dbgsavesp,4 after dbgrts (__bss 0x40b563c, 0x40b5640)
++// and the save and restore of sp in __dbg_trap.  Lines marked plan 538 differ from NeXTMach.
+ PCB_REGS=4
+ PCB_USP=0
+ DBG_STACK=1024
+-// Stack for the debugger.
+-	.lcomm	dbgstack,DBG_STACK
+ //	 Switch stacks, initialize client_pcb and call nextdbginit.
+-	.globl	__nextdbginit
+-__nextdbginit:
++	.globl	__m68k_dbginit	// plan 538
++__m68k_dbginit:	// plan 538
+ 	movl	sp@+,a0		// The return PC (Called without args)
+ 	// Heaven help us if we change compilers (alignment!)
+ 	moveml	#0xffff,_client_pcb+4	// Save all registers.
+@@ -13,9 +21,10 @@
+ 	movw	d0,_client_pcb+(17*4)+2
+ 	movw	#0x2700,sr	// Disable all interrupts.
+ 	movl	a0,_client_pcb+(17*4)+4	// And the PC
+-	movl	#dbgstack+DBG_STACK,sp	// Load the new stack pointer
++	movl	_dbgstack,sp	// Load the new stack pointer (plan 538)
++	addl	#DBG_STACK,sp	// plan 538
+ 	movw	#0,_client_pcb+(17*4)+8	// Initialize frame type.
+-	jsr	_nextdbginit
++	jsr	_m68k_dbginit	// plan 538
+ 	// doesnt return.
+ 
+ //
+@@ -24,8 +33,10 @@
+ //
+ 	
+ 	.lcomm	dbgrts,4
++	.lcomm	dbgsavesp,4	// plan 538
+ 	.globl	__dbg_trap
+ __dbg_trap:
++	movl	sp,dbgsavesp	// plan 538
+ 	clrw	sp@-
+ 	moveml	#0xffff,sp@-
+ 	movc	usp,a0
+@@ -44,6 +55,7 @@
+ 	movl	sp@+,a0
+ 	movc	a0,usp		// restore usp.
+ 	moveml	sp@+,#0xffff
++	movl	dbgsavesp,sp	// plan 538
+ 	movl	dbgrts,sp@-
+ 	rts
+ 

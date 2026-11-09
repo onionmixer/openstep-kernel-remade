@@ -1,0 +1,741 @@
+--- NeXTMach mk-108.1/nextdev/ev.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/ev.c (plan 689, D161)
+@@ -40,6 +40,40 @@
+     18Jun90 Ted  Call to animateWaitCursor() to fix wait cursor sustain bug.
+ 
+ ******************************************************************************/
++/*
++ * plan 689 (D161, D013, D024, D104, D110, D121, D154, D158): the 1997 m68k
++ * ev.c.  NeXTMach mk-108.1 nextdev/ev.c with the include lines in OPENSTEP
++ * paths (the 1997 SDK bsd/dev/m68k event.h and evio.h for ev_vars.h) and
++ * these changes (plan 688), from the original bytes [0x40678ce, 0x4068710):
++ *	evinit		nbic_bus_enable(); I_PFAIL also goes to call_nmi
++ *			unless dma_chip is 313
++ *	evopen		the shared memory setup moved to evmmap; evRetryMask
++ *	evclose		thread_deallocate, round_page(sharedMemSize), kfree of
++ *			evScreen; evg for evp and eventGlobals
++ *	evselect	thread_reference of the selecting thread
++ *	evmmap		kmem_alloc_wired of totalShmemSize; EvOffsets eop,
++ *			EvGlobals evg, evs; process_adb_event when an ADB
++ *			keyboard is present; callout_dispatch
++ *	add_queued_event, process_queued_events, power_check, myAbs and
++ *	UniqueEventNum (NeXTMach ev_cursor.c)	static inline
++ *	ev_m_intr, ev_k_intr	new
++ *	evintr		ns_callfree
++ *	evvert		evretry; the VertRetraceClock increment at the end
++ *	power_intr	static; UndoAutoDim when autodimmed
++ *	evMsgThreadProc	ipc_kmsg_get_from_kernel, ipc_kmsg_copyin_compat_from_
++ *			kernel, ipc_mqueue_send (three arguments, as in the
++ *			original: called through a cast, which avoids the
++ *			four-argument prototype)
++ *	evnewevents	thread_deallocate_interrupt
++ *	LLEventPost	evg; dontCoalesce; pressure
++ * These spellings are this project's choices (the bytes do not show them;
++ * D161): the ev_vars.h names as extern declarations in this file, the static
++ * name sharedMemSize, the union hw_event * arguments, extern int ns_callfree,
++ * the ipc_mqueue_send cast, the kfree cast, the NeXTMach forms where the
++ * bytes allow others.  eventGlobals is renamed evg (the SDK name) in
++ * LLEventPost without markers.  Lines marked plan 689 differ from NeXTMach
++ * (a marked BEGIN/END region as a whole).
++ */
+ 
+ #import <sys/types.h>
+ #import <sys/param.h>
+@@ -54,26 +88,101 @@
+ #import <sys/reboot.h>
+ #import <kern/thread.h>
+ #import <kern/task.h>
++/* plan 689 (D104, D110, D121, D158, D161) BEGIN: include lines in OPENSTEP paths, the next/cpu.h and ev_vars.h names */
+ #import <next/autoconf.h>
+ #import <next/clock.h>
+-#import <next/cpu.h>
+-#import <next/scr.h>
++#import <m68k/cpu.h>	/* plan 689 (D110): NeXTMach <next/cpu.h> */
++/* plan 689 (D110, D161): the NeXTMach next/cpu.h names used here (km.c precedent) */
++extern int slot_id;
++extern volatile int *intrmask;
++extern int intr_mask;
++#define	SLOT_ID		slot_id
++#define	P_MON		(SLOT_ID+0x0200e000)
++#define	I(l,i,b)	(((b) << 8) | ((l) << 4) | (i))
++#define	I_BIT(i)	( 1 << (((i) >> 8) & 0x1f))
++#define	I_NMI		I(7,0,31)
++#define	I_PFAIL		I(7,1,30)
++#define	I_KYBD_MOUSE	I(3,10,3)
++#define	I_POWER		I(3,11,2)
++/* plan 689 (D121, D154): NeXTMach #import <next/scr.h> removed (no name used) */
+ #import <next/event_meter.h>
+-#import <next/xpr.h>
++/* plan 689 (D121, D154): NeXTMach #import <next/xpr.h> removed (no name used) */
+ #import <next/kernel_pmon.h>
+-#import <nextdev/monreg.h>
++#import <dev/m68k/monreg.h>	/* plan 689 (D104): NeXTMach <nextdev/monreg.h> */
+ #import <nextdev/kmreg.h>
+-#import <nextdev/video.h>
++#import <dev/m68k/video.h>	/* plan 689 (D104): NeXTMach <nextdev/video.h> */
+ #import <nextdev/td.h>
+ #import <nextdev/dma.h>
+ #import <mon/global.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 689 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_kern.h>
+-#import <nextdev/ev_vars.h>
++#import <bsd/dev/m68k/event.h>	/* plan 689 (D104, D158): NeXTMach <nextdev/ev_vars.h>; the 1997 SDK m68k headers */
++#import <bsd/dev/m68k/evio.h>	/* plan 689 (D104, D158) */
++/* plan 689 (D024, D161): the NeXTMach nextdev/ev_vars.h names ev.c uses (1997 SDK EvGlobals evg) */
++extern void evintr();
++extern void process_mouse_event();
++extern void process_kbd_event();
++extern void process_adb_event();
++extern void mouse_motion();
++extern void DoKbdRepeat();
++extern void DoAutoDim();
++extern void UndoAutoDim();
++extern void evretry();
++extern int ns_callfree;
++#define	NULLEVENTNUM 0
++#define MOVEDEVENTMASK \
++	(NX_MOUSEMOVEDMASK | NX_LMOUSEDRAGGEDMASK | NX_RMOUSEDRAGGEDMASK )
++#define COALESCEEVENTMASK \
++	(MOVEDEVENTMASK | NX_MOUSEEXITEDMASK)
++#define MOUSEEVENTMASK \
++	(NX_LMOUSEDOWNMASK|NX_RMOUSEDOWNMASK|NX_LMOUSEUPMASK|NX_RMOUSEUPMASK)
++#define PRESSUREEVENTMASK \
++	(NX_LMOUSEDOWNMASK|NX_LMOUSEUPMASK|NX_MOUSEMOVEDMASK|NX_LMOUSEDRAGGEDMASK)
++#define FORCEMOUSEMOVED		16
++#define FORCEMOUSEMOVEDMASK	(1 << FORCEMOUSEMOVED)
++extern EvOffsets *eop;
++extern EvGlobals *evg;
++extern void *evs;
++extern EvScreen *evScreen;
++extern int evScreenSize;
++extern int screens;
++extern int totalShmemSize;
++extern int evRetryMask;
++extern int evOpenCalled;
++extern int eventsOpen;
++extern short waitSustain;
++extern short waitSusTime;
++extern short waitFrameRate;
++extern short waitFrameTime;
++extern port_t eventPort;
++extern task_t eventTask;
++struct _eventMsg {
++    msg_header_t h;
++    msg_type_t   t;
++};
++extern struct _eventMsg eventMsg;
++#define EventsInQueue() \
++	(eventsOpen && (evg->LLEHead != evg->LLETail))
++extern short leftENum;
++extern short rightENum;
++extern long clickTime;
++extern Point clickLoc;
++extern int clickState;
++extern long clickTimeThresh;
++extern Point clickSpaceThresh;
++extern int mouseDelX;
++extern int mouseDelY;
++extern int keySema;
++extern unsigned char lastPressure;
++extern int	autoDimPeriod;
++extern int	autoDimmed;
++extern int	autoDimTime;
++/* plan 689 (D161): end of the ev_vars.h names */
+ #import <kern/xpr.h>
+ #import <machine/spl.h>
+ #import <machine/cpu.h>	/* SCR 2 address definition. */
+-#import <machine/mmu.h>	/* struct mmu_030_tt */
++#import <m68k/mmu.h>	/* plan 689 (D104): NeXTMach <machine/mmu.h> */
++/* plan 689 END */
+ 
+ union hw_event {
+     int data;
+@@ -88,10 +197,10 @@
+ extern evvert();
+ extern void evnewevents();
+ extern void LLEventPost();
+-extern void evMsgThreadProc();
++static void evMsgThreadProc();	/* plan 689 (D024, D161) */
+ extern void AllKeysUp();
+-void power_intr();
+-void power_check();
++static void power_intr();	/* plan 689 (D024, D161) */
++/* plan 689 (D024, D161): power_check is static inline */
+ 
+ /* Local state */
+ 
+@@ -99,6 +208,7 @@
+ static int needsMsg;			/* A lock used between the driver code
+ 					   and a kernel thread running
+ 					   evMsgThreadFunc.  */
++static int sharedMemSize;	/* plan 689 (D024, D161): new in 1997 (authored name) */
+ static char *sharedMem;		/* The page of memory shared between driver
+ 				   and driver client */
+ 				/* ...and how big that memory is */
+@@ -133,10 +243,10 @@
+ void evinit()
+ {
+     extern int call_nmi();
++/* plan 689 (D024, D161) BEGIN: evinit, from the original bytes */
+     register int i;
+-    volatile int *scr2 = (int *) P_SCR2;
+ 
+-    *scr2 |= 0x80;	/* initialize dma chip to write over NextBus */
++    nbic_bus_enable();	/* plan 689 (D024, D161): NeXTMach *scr2 |= 0x80 */
+     /* for now, hardwire one keyboard and mouse */
+     /* FIXME: t/o and switch to SCC */
+     km_send (MON_KM_USRREQ, KM_SET_ADRS(0));
+@@ -146,7 +256,10 @@
+     /* enable interrupts */
+     install_scanned_intr(I_POWER, (func)power_intr, 0); /*before retrace!*/
+     install_scanned_intr(I_NMI, call_nmi, 0);
++    if (dma_chip != 313)	/* plan 689 (D024, D161) */
++	install_scanned_intr(I_PFAIL, call_nmi, 0);	/* plan 689 (D024, D161) */
+     install_scanned_intr(I_KYBD_MOUSE, (func)evintr, 0);
++/* plan 689 END */
+ }
+ 
+ /******************************************************************************
+@@ -158,7 +271,7 @@
+ 
+ int evopen(dev_t dev, int flag)
+ {
+-    EvOffsets *eop;
++    /* plan 689 (D024, D161): EvOffsets *eop is global */
+     extern struct km km;
+     extern int keySema;
+     static int evInitialized;
+@@ -178,47 +291,22 @@
+ 	kernel_thread(kernel_task, evMsgThreadProc);
+     }
+     /* We can only be opened once */
++/* plan 689 (D024, D161) BEGIN: evopen tail, from the original bytes */
+     if (evOpenCalled)
+ 	return(EBUSY);
+-    /*
+-     * Now allocate shared memory.  Allow the WindowServer to gain access to
+-     * it via the evmmap call below.
+-     */
+-    sharedMem =  (char *) kmem_alloc(kernel_map, round_page(SHMEMSIZE));
+-    if (!sharedMem)
+-	panic("ev: No space!\n");
+-
++    /* plan 689 (D024, D161): shared memory and 2.0 structures moved to evmmap */
+     km.flags &= ~KMF_SEE_MSGS;
+     km.save = 0;	
+     km.showcount = 0;
+     evSelProcess = NULL;
+-    eventPort = KERN_PORT_NULL;
+-	
+-    /* Set up 2.0 structures */
+-    eop = (EvOffsets *) sharedMem;
+-    evp = (EvVars *) (sharedMem + sizeof(EvOffsets));
+-    eventGlobals = (EventGlobals *) (((char *) evp) + sizeof(EvVars));
+-    eop->evVarsOffset = ((char *) evp) - sharedMem;
+-    eop->evGlobalsOffset = ((char *) eventGlobals) - sharedMem;
+-    evp->waitCursorEnabled = TRUE;
+-    evp->globalWaitCursorEnabled = TRUE;
+-    /* Set wait cursor defaults */
+-    evp->waitThreshold = DefaultWCThreshold;
+-    waitFrameRate = DefaultWCFrameRate;
+-    waitSustain = DefaultWCSustain;	
+-    waitSusTime = 0;
+-    /* End of 2.0 structures init */
+-
+-    lleqSize = LLEQSIZE;
+-    mouseQueued.queueFlag = (int *) &evp->cursorSema;
+-    mouseQueued.queueFunc = process_mouse_event;
+-    kbdQueued.queueFlag = (int *) &keySema;
+-    kbdQueued.queueFunc = process_kbd_event;
+-
++    eventPort = PORT_NULL;	/* plan 689 (D024, D161) */
+     evOpenCalled = 1;	/* Driver now marked as open */
++    evRetryMask = 0;	/* plan 689 (D024, D161) */
+     return(0);		/* Successful open call */
++/* plan 689 END */
+ }
+ 
++/* plan 689 (D024, D161) BEGIN: evclose, from the original bytes */
+ int evclose(dev_t dev, int flag)
+ {
+     if (!evOpenCalled)
+@@ -227,29 +315,37 @@
+     eventsOpen = 0;
+     if (autoDimmed)
+ 	UndoAutoDim();
++    if (evSelProcess)	/* plan 689 (D024, D161) */
++	thread_deallocate(evSelProcess);
+     evSelProcess = NULL;
+     TermMouse();
+     if (sharedMem)
+-	kmem_free(kernel_map, sharedMem, round_page(SHMEMSIZE));
+-    evp = NULL;
+-    eventGlobals = NULL;
++	kmem_free(kernel_map, sharedMem, round_page(sharedMemSize));	/* plan 689 (D024, D161) */
++    if (evScreen)	/* plan 689 (D024, D161) */
++	kfree((vm_offset_t)evScreen, evScreenSize);	/* plan 689 (D161) */
++    screens = 0;	/* plan 689 (D024, D161) */
++    evScreen = NULL;
++    evScreenSize = 0;
++    evg = NULL;	/* plan 689 (D024, D161) */
+     sharedMem = NULL;
+     eventTask = 0;
+-    if (eventPort != KERN_PORT_NULL) {
++    if (eventPort != PORT_NULL) {	/* plan 689 (D024, D161) */
+ 	port_release(eventPort);
+-	eventPort = KERN_PORT_NULL;
++	eventPort = PORT_NULL;
+     }
+     /* kmioctl (0, KMIOCPOPUP, mach_title, POPUP_NOM, 0, 0); */
+     return(0);
+ }
++/* plan 689 END */
+ 
++/* plan 689 (D024, D161) BEGIN: evselect, from the original bytes */
+ int evselect(dev_t dev, int flag)
+ {
+     int s;
+ 
+     XPR(XPR_EVENT, ("evselect: thread 0x%x\n", current_thread()));
+     if (flag == FREAD) {
+-	if (eventGlobals->LLEHead != eventGlobals->LLETail) {
++	if (evg->LLEHead != evg->LLETail) {	/* plan 689 (D024, D161) */
+ 	    XPR(XPR_EVENT, ("evselect: head != tail\n"));
+ 	    return(1);
+ 	}
+@@ -261,27 +357,54 @@
+ 		return(-1);
+ 	    }
+ 	}
+-	else
++	else {
+ 	    evSelProcess = (struct proc *)current_thread();
++	    thread_reference(current_thread());	/* plan 689 (D024, D161) */
++	}
+ 	splx(s);
+     }
+     return(0);
+ }
++/* plan 689 END */
+ 
++/* plan 689 (D024, D161) BEGIN: evmmap, from the original bytes (the shared memory setup moved here from evopen) */
+ int evmmap(dev_t dev, int off, int prot)
+ {
+-    static int returnValue;
+-    /* We save this since the kernel calls us multiple times: first to set up
+-     * the map, subsequent times for each page. Since we only map one page,
+-     * we're called twice. The second time, we just return the previous value.
+-     */
+-    
++    /* plan 689 (D024, D161): NeXTMach static int returnValue removed */
+     if (eventsOpen)
+ 	return atop(pmap_resident_extract(pmap_kernel(), sharedMem+off));
+ 
+-    if (off >= round_page(SHMEMSIZE))
++    sharedMemSize = totalShmemSize;	/* plan 689 (D024, D161) */
++    if (off >= round_page(totalShmemSize))	/* plan 689 (D024, D161) */
+ 	return(-1);
+ 
++    /* Now allocate shared memory. */	/* plan 689 (D024, D161): moved from evopen */
++    if (kmem_alloc_wired(kernel_map, &sharedMem, round_page(totalShmemSize))
++	!= KERN_SUCCESS)
++	panic("ev: No space for shmem!\n");
++
++    eop = (EvOffsets *) sharedMem;	/* plan 689 (D024, D161) */
++    eop->evGlobalsOffset = sizeof(EvOffsets);
++    eop->evShmemOffset = eop->evGlobalsOffset + sizeof(EvGlobals);
++    evg = (EvGlobals *)((char *)eop + eop->evGlobalsOffset);
++    evs = (void *)((char *)eop + eop->evShmemOffset);
++    evg->waitCursorEnabled = TRUE;
++    evg->globalWaitCursorEnabled = TRUE;
++    /* Set wait cursor defaults */
++    evg->waitThreshold = DefaultWCThreshold;
++    waitFrameRate = DefaultWCFrameRate;
++    waitSustain = DefaultWCSustain;	
++    waitSusTime = 0;
++
++    lleqSize = LLEQSIZE;
++    mouseQueued.queueFlag = (int *) &evg->cursorSema;
++    mouseQueued.queueFunc = process_mouse_event;
++    kbdQueued.queueFlag = (int *) &keySema;
++    if (adb_keybd_present())	/* plan 689 (D024, D161) */
++	kbdQueued.queueFunc = process_adb_event;
++    else
++	kbdQueued.queueFunc = process_kbd_event;
++
+     /* Get those events coming through! */
+     InitMouse(lleqSize);
+     
+@@ -294,18 +417,20 @@
+     eventsOpen = 1;
+     
+     /* Start vbl interrupts */
+-    softint_sched(CALLOUT_PRI_RETRACE, evvert, 0);
++    callout_dispatch(CALLOUT_PRI_RETRACE, evvert, 0);	/* plan 689 (D024, D161) */
+     eventTask = current_task();
+ 
+     /* OK, remember the value we're returning this time */
+     return atop(pmap_resident_extract(pmap_kernel(), sharedMem+off));
+ }
++/* plan 689 END */
+ 
+ /*
+ void set_new_ev_structs() {}
+ */
+ 
+-void add_queued_event(PreQueued *preQueue)
++/* plan 689 (D024, D161) BEGIN: static inline queue helpers and power_check (NeXTMach 308-336, 527-546); new ev_m_intr, ev_k_intr */
++static inline void add_queued_event(PreQueued *preQueue)	/* plan 689 (D024, D161) */
+ {
+     if (preQueue->numQueued < MAXQUEUEDEVENTS) {
+ 	preQueue->queuedUp[preQueue->numQueued] = curEvent;
+@@ -324,7 +449,7 @@
+     }
+ }
+ 
+-void process_queued_events(PreQueued *preQueue)
++static inline void process_queued_events(PreQueued *preQueue)	/* plan 689 (D024, D161) */
+ {
+     if (preQueue->numQueued&&(!*preQueue->queueFlag)) {
+ 	int i;
+@@ -335,6 +460,57 @@
+     }
+ }
+ 
++static inline void power_check()	/* plan 689 (D024, D161): NeXTMach 527-546, moved before evintr */
++{
++    extern volatile int	*intrstat;
++    int bit;
++
++    /*
++     * Detect power key up motion.
++     */
++    bit = I_BIT(I_POWER);
++    if ((intr_mask & bit) == 0) {
++	/* Disabled ... means that we detected power key down */
++	if ((*intrstat & bit))
++	    return;	/* key still down */
++	/*
++	 * Reenable interrupt.
++	 */
++	*intrmask |= bit;
++	intr_mask |= bit;
++    }
++}
++
++void ev_m_intr(union hw_event *ev)	/* plan 689 (D024, D161): new in 1997 */
++{
++    if (eventsOpen) {
++	int wereEvents;
++
++	curEvent = *ev;
++	wereEvents = EventsInQueue();
++	add_queued_event(&mouseQueued);
++	process_queued_events(&mouseQueued);
++	if ((!wereEvents)&&EventsInQueue())
++	    evnewevents();
++    }
++}
++
++void ev_k_intr(union hw_event *ev)	/* plan 689 (D024, D161): new in 1997 */
++{
++    if (eventsOpen) {
++	int wereEvents;
++
++	curEvent = *ev;
++	wereEvents = EventsInQueue();
++	add_queued_event(&kbdQueued);
++	process_queued_events(&kbdQueued);
++	if ((!wereEvents)&&EventsInQueue())
++	    evnewevents();
++    } else		/* Revert to console driver */
++	kmintr_process(ev);
++}
++/* plan 689 END */
++
+ void evintr()
+ {
+     register volatile struct monitor *mon = (volatile struct monitor*) P_MON;
+@@ -420,27 +596,25 @@
+ 	power_check();	/* better place to do this? */
+     }
+ 
+-    if (!recon_poll && reconnect && callfree) {
++    if (!recon_poll && reconnect && ns_callfree) {	/* plan 689 (D024, D161) */
+ 	timeout (reconpoll, 0, hz*3);
+ 	recon_poll = 1;
+     }
+     XPR(XPR_EVENT, ("evintr(B): exit"));
+ }
+ 
++/* plan 689 (D024, D161) BEGIN: evvert, from the original bytes */
+ int evvert()
+ {
+     int wereEvents;
+     
+     if (eventsOpen) {
+     	wereEvents = EventsInQueue();
+-    	/* Increment event time stamp */
+-	if (!++eventGlobals->VertRetraceClock)
+-	    eventGlobals->VertRetraceClock++; /* skip 0 */
+ 	/* Generate any repeat-key events */
+ 	DoKbdRepeat(); 
+ 	/* Move cursor for accumulated mouse motion */
+-	if ((evp->movedMask & FORCEMOUSEMOVEDMASK)
+-	|| (mouseDelX || mouseDelY))
++	if ((mouseDelX || mouseDelY)	/* plan 689 (D024, D161) */
++	|| (evg->movedMask & FORCEMOUSEMOVEDMASK))
+ 	    mouse_motion();
+ 	/* Check for leftover pre-queued events */
+ 	if (mouseQueued.numQueued)
+@@ -452,38 +626,45 @@
+ 	    evnewevents();
+ 	/* WAITCURSOR ACTION */
+ 	if (waitSusTime) --waitSusTime; /* Do this every tick regardless */
+-	if (!evp->waitCursorSema && !evp->cursorSema)
++	if (!evg->waitCursorSema && !evg->cursorSema)	/* plan 689 (D024, D161) */
+ 	{
+-	    if ((evp->AALastEventSent != evp->AALastEventConsumed) &&
+-	    ((eventGlobals->VertRetraceClock - evp->AALastEventSent >
+-	    evp->waitThreshold)))
+-		evp->ctxtTimedOut = TRUE;
+-	    if (evp->waitCursorEnabled && evp->globalWaitCursorEnabled &&
+-	    evp->ctxtTimedOut)
++	    if ((evg->AALastEventSent != evg->AALastEventConsumed) &&
++	    ((evg->VertRetraceClock - evg->AALastEventSent >
++	    evg->waitThreshold)))
++		evg->ctxtTimedOut = TRUE;
++	    if (evg->waitCursorEnabled && evg->globalWaitCursorEnabled &&
++	    evg->ctxtTimedOut)
+ 	    {
+ 		/* WAIT CURSOR SHOULD BE ON */
+-		if (!evp->waitCursorUp)
+-		    (void)showWaitCursor();
++		if (!evg->waitCursorUp)
++		    (void)ShowWaitCursor();	/* plan 689 (D024, D161) */
+ 	    } else {
+ 		/* WAIT CURSOR SHOULD BE OFF */
+-		if (evp->waitCursorUp && (waitSusTime == 0))
+-		    (void)hideWaitCursor();
++		if (evg->waitCursorUp && (waitSusTime == 0))
++		    (void)HideWaitCursor();	/* plan 689 (D024, D161) */
+ 	    }
+ 	    /* Animate cursor */
+-	    if (evp->waitCursorUp)
+-		if (--waitFrameTime == 0)
+-		    (void)animateWaitCursor();
++	    if (evg->waitCursorUp)
++	    if (--waitFrameTime == 0)
++		    (void)AnimateWaitCursor();	/* plan 689 (D024, D161) */
+ 	}
+ 	power_check();
+-	if ((eventGlobals->VertRetraceClock > autoDimTime) && (!autoDimmed))
++	if ((evg->VertRetraceClock > autoDimTime) && (!autoDimmed))
+ 	    DoAutoDim();
++	if (evRetryMask)	/* plan 689 (D024, D161) */
++	    evretry();
++    	/* Increment event time stamp */	/* plan 689 (D024, D161): moved from the head */
++	if (!++evg->VertRetraceClock)
++	    evg->VertRetraceClock++; /* skip 0 */
+     }
+     return(eventsOpen);
+ }
++/* plan 689 END */
+ 
+ int force_power_down = 0;
+ 
+-void power_intr()
++/* plan 689 (D024, D161) BEGIN: power_intr, from the original bytes */
++static void power_intr()	/* plan 689 (D024, D161) */
+ {
+     extern volatile int	*intrstat;
+     int bit;
+@@ -499,13 +680,15 @@
+     intr_mask &= ~bit;
+     if (force_power_down)
+ 	rtc_power_down();
++    if (autoDimmed)	/* plan 689 (D024, D161) */
++	UndoAutoDim();	/* plan 689 (D024, D161) */
+     if (eventsOpen) {
+ 	NXEventData powerData;
+ 	static Point powerPoint = { 0, 0 };
+ 
+ #define HARD_OFF_MASK (NX_NEXTLCMDKEYMASK|NX_NEXTLALTKEYMASK)
+ 
+-	if ((eventGlobals->eventFlags & HARD_OFF_MASK) == HARD_OFF_MASK) {
++	if ((evg->eventFlags & HARD_OFF_MASK) == HARD_OFF_MASK) {	/* plan 689 (D024, D161) */
+ 	    /*
+ 	     * Immediate power down
+ 	     */
+@@ -523,33 +706,16 @@
+ 	km_power_down();
+     }
+ }
++/* plan 689 END */
+ 
+-void power_check()
+-{
+-    extern volatile int	*intrstat;
+-    int bit;
+-
+-    /*
+-     * Detect power key up motion.
+-     */
+-    bit = I_BIT(I_POWER);
+-    if ((intr_mask & bit) == 0) {
+-	/* Disabled ... means that we detected power key down */
+-	if ((*intrstat & bit))
+-	    return;	/* key still down */
+-	/*
+-	 * Reenable interrupt.
+-	 */
+-	*intrmask |= bit;
+-	intr_mask |= bit;
+-    }
+-}
++/* plan 689 (D024, D161): power_check is static inline before evintr */
+ 
++/* plan 689 (D024, D161) BEGIN: evMsgThreadProc, from the original bytes */
+ static void evMsgThreadProc()
+ {
+     int	s;
+ 
+-    (current_thread())->ipc_kernel = TRUE;
++    /* plan 689 (D024, D161): NeXTMach (current_thread())->ipc_kernel = TRUE removed */
+     s = splhigh();	/* could possibly be lower */
+     while (1) {
+ 	if (!needsMsg) {
+@@ -560,22 +726,28 @@
+ 	}
+ 	needsMsg = 0;
+ 	if (eventsOpen) {
+-	    /* Do the local equivalent of a msg_send_from_kernel, without
+-	     * the SEND_ALWAYS.
+-	     */
+-	    kern_msg_t	new_kmsg;
++	    ipc_kmsg_t	new_kmsg;	/* plan 689 (D024, D161) */
++	    mach_msg_return_t	r;	/* plan 689 (D024, D161) */
+ 
+-	    if (msg_copyin(kernel_task, &eventMsg, eventMsg.h.msg_size,
+-		&new_kmsg) == SEND_SUCCESS)
+-	    msg_queue(new_kmsg, 0, 0);
++	    r = ipc_kmsg_get_from_kernel((mach_msg_header_t *) &eventMsg,	/* plan 689 (D024, D161) */
++		eventMsg.h.msg_size, 0, &new_kmsg);
++	    if (r == MACH_MSG_SUCCESS) {	/* plan 689 (D024, D161) */
++		ipc_kmsg_copyin_compat_from_kernel(new_kmsg);
++		r = ((mach_msg_return_t (*)()) ipc_mqueue_send)(new_kmsg, 0, 0);
++	    }
++	    if (r != MACH_MSG_SUCCESS)	/* plan 689 (D024, D161) */
++		printf("evMsgThreadProc: msg to window server fails (%d)", r);
+ 	}
+     }
+ }
++/* plan 689 END */
+ 
++/* plan 689 (D024, D161) BEGIN: evnewevents, from the original bytes */
+ void evnewevents()
+ {
+     if (evSelProcess) {	/* Wakeup our sleeper */
+ 	selwakeup(evSelProcess, 0);
++	thread_deallocate_interrupt(evSelProcess);	/* plan 689 (D024, D161) */
+ 	evSelProcess = NULL;
+     }
+     if (eventPort) {
+@@ -584,8 +756,18 @@
+ 	/* evp->pendingMsg = 1; */
+     }
+ }
++/* plan 689 END */
++
++/* plan 689 (D024, D161) BEGIN: static inline myAbs; UniqueEventNum from NeXTMach ev_cursor.c:35-40 */
++static inline int myAbs(int a) { return(a > 0 ? a : -a); }	/* plan 689 (D024, D161) */
+ 
+-static int myAbs(int a) { return(a > 0 ? a : -a); }
++static inline short UniqueEventNum()	/* plan 689 (D024, D161): NeXTMach ev_cursor.c:35-40 */
++{
++    while (++evg->eNum == NULLEVENTNUM)
++	; /* sic */
++    return(evg->eNum);
++}
++/* plan 689 END */
+ 
+ /* LLEventPost 
+  *
+@@ -596,13 +778,13 @@
+ 
+ void LLEventPost(int what, Point location, NXEventData *myData)
+ {
+-    int	theClock = eventGlobals->VertRetraceClock;
++    int	theClock = evg->VertRetraceClock;
+     NXEQElement *theHead = (NXEQElement *)
+-	&eventGlobals->lleq[eventGlobals->LLEHead];
++	&evg->lleq[evg->LLEHead];
+     NXEQElement *theLast = (NXEQElement *)
+-	&eventGlobals->lleq[eventGlobals->LLELast];
++	&evg->lleq[evg->LLELast];
+     NXEQElement *theTail = (NXEQElement *)
+-	&eventGlobals->lleq[eventGlobals->LLETail];
++	&evg->lleq[evg->LLETail];
+ 
+     /* Some events affect screen dimming */
+     if (EventCodeMask(what) & NX_UNDIMMASK) {
+@@ -611,7 +793,8 @@
+     	else
+     	    autoDimTime = theClock + autoDimPeriod;
+     }
+-    if ((theHead != theTail)
++    if ((!evg->dontCoalesce)	/* plan 689 (D024, D161) */
++    && (theHead != theTail)	/* plan 689 (D024, D161) */
+     && (!theLast->sema)
+     && (theLast->event.type == what)
+     && (EventCodeMask(what) & COALESCEEVENTMASK)) {
+@@ -621,12 +804,12 @@
+ 	theLast->event.time = theClock;
+ 	if (myData != NULL)	/* dspring 22Mar90 */
+ 	    theLast->event.data = *myData;
+-    } else if (theTail->next != eventGlobals->LLEHead) {
++    } else if (theTail->next != evg->LLEHead) {
+ 	/* store event in tail */
+ 	theTail->event.type = what;
+ 	theTail->event.location.x = location.x;
+ 	theTail->event.location.y = location.y;
+-	theTail->event.flags = eventGlobals->eventFlags;
++	theTail->event.flags = evg->eventFlags;
+ 	theTail->event.time = theClock;
+ 	theTail->event.window = 0;
+ 	if (myData != NULL)
+@@ -649,6 +832,9 @@
+ 	    rightENum = NULLEVENTNUM;
+ 	    break;
+ 	}
++	if (EventCodeMask(what) & PRESSUREEVENTMASK) {	/* plan 689 (D024, D161) */
++	    theTail->event.data.mouse.pressure = lastPressure;	/* plan 689 (D024, D161) */
++	}	/* plan 689 (D024, D161) */
+ 	if (EventCodeMask(what) & MOUSEEVENTMASK) { /* Click state */
+ 	    if (((theClock - clickTime) <= clickTimeThresh)
+ 	    && (myAbs(location.x - clickLoc.x) <= clickSpaceThresh.x)
+@@ -668,11 +854,11 @@
+ 	pmon_log_event(PMON_SOURCE_EV,
+ 		       KP_EV_POST_EVENT,
+ 		       what,
+-		       eventGlobals->eventFlags,
++		       evg->eventFlags,
+ 		       theClock);
+ #endif
+-	eventGlobals->LLETail = theTail->next;
+-	eventGlobals->LLELast = theLast->next;
++	evg->LLETail = theTail->next;
++	evg->LLELast = theLast->next;
+     }
+  /*
+   * if queue is full, ignore event, too hard to take care of all cases 
+@@ -682,7 +868,7 @@
+ 	pmon_log_event( PMON_SOURCE_EV,
+ 			KP_EV_QUEUE_FULL,
+ 			what,
+-			eventGlobals->eventFlags,
++			evg->eventFlags,
+ 			theClock);
+ #endif
+ }

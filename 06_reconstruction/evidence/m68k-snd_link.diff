@@ -1,0 +1,479 @@
+--- NeXTMach mk-108.1 nextdev/snd_link.c
++++ 07_kernel/src/machdep/m68k/snd_link.c
+@@ -27,6 +27,31 @@
+  *
+  */ 
+ 
++/*
++ * plan 756 (D169, D013, D024, D104): the 1997 m68k snd_link.c.
++ * NeXTMach mk-108.1 nextdev/snd_link.c with the include lines in the OPENSTEP paths
++ * the 1997 unit needs and these changes, written from the original bytes
++ * [0x40842fe, 0x408503e) (plans 755-756):
++ *	functions that differ from NeXTMach: snd_link_init, snd_link_reset, snd_link_shutdown, snd_link_resume, snd_link_dsp_complete, snd_link_snd_complete
++ *	new function: snd_link_abort (clears the static link_active)
++ *	snd_link_snd_complete is an external symbol (NeXTMach: static)
++ *	ll_snd_var is not used any more: the dma sizes and the number of buffers
++ *	come from the audio layer (names in <nextdev/snd_audio.h>, this project's
++ *	declarations), the owner of the stream from snd_get_owner(), the start of
++ *	a sound-out buffer is __NXAudioPlayStream() instead of snd_device_start()
++ *	and the dsp queue is started through cdp->sndq.start
++ *	(see the marked regions).
++ * The original has no symbols for its static data: the NeXTMach statics keep their
++ * names; link_stream, link_active, size, count, rate, device, owners and owner are
++ * names given by this project (D169).  The duplicated link_thread store in
++ * snd_link_shutdown, the empty-queue returns, the order of the statements in
++ * snd_link_shutdown and the other forms marked plan 756 are forms that give the
++ * original bytes, not evidence of the original source.  The file compiles with
++ * the known warnings of the acceptance record (kfree and assert_wait argument
++ * types, as NeXTMach).  Lines marked plan 756, and the lines of a plan 756
++ * BEGIN/END region (which may include unchanged lines), differ from NeXTMach.
++ */
++
+ #import <sound.h>
+ #import <dsp.h>
+ #if	NSOUND > 0 && NDSP > 0
+@@ -38,15 +63,16 @@
+ #import <kern/xpr.h>
+ #import <sys/buf.h>
+ #import <sys/param.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 756 (D104): NeXTMach <vm/vm_param.h> */
+ #import <sys/callout.h>
+ #import <sys/kernel.h>
+ #import <kern/sched_prim.h>
+-#import <next/pmap.h>
+-#import <next/us_timer.h>
++#import <vm/pmap.h>	/* plan 756 (D104): NeXTMach <next/pmap.h> */
++#import <kernserv/m68k/us_timer.h>	/* plan 756 (D104): NeXTMach <next/us_timer.h> */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_dsp.h>
+ #import <nextdev/snd_snd.h>
++#import <nextdev/snd_audio.h>	/* plan 756 (D169): this project's declarations of the audio layer names (07 nextdev/snd_audio.h) */
+ 
+ #import <machine/spl.h>
+ 
+@@ -61,7 +87,11 @@
+ 
+ extern snd_var_t snd_var;
+ extern dsp_var_t dsp_var;
+-extern ll_snd_var_t ll_snd_var;
++/* plan 756 (D024, D169) BEGIN: declarations and data */
++extern int sound_active;
++extern void thread_timeout();	/* plan 756 (D024): K&R declaration, the 1997 headers do not declare it */
++extern void callout_dispatch();	/* plan 756 (D124 form): the 1997 softint_sched */
++/* plan 756 END */
+ 
+ static void snd_link_init_buf (
+ 	snd_dma_desc_t	*ddp,
+@@ -73,7 +103,9 @@
+ 	queue_t		q);
+ static void snd_link_reset(int direction);
+ static int snd_link_dsp_complete(register snd_dma_desc_t *ddp);
+-static int snd_link_snd_complete(register snd_dma_desc_t *ddp);
++/* plan 756 (D024, D169) BEGIN: declarations and data */
++int snd_link_snd_complete(register snd_dma_desc_t *ddp);
++/* plan 756 END */
+ 
+ static queue_head_t snd_ddp_q[2], dsp_ddp_q[2];
+ static queue_head_t snd_pause_q[2], dsp_pause_q[2];
+@@ -83,6 +115,8 @@
+ static vm_size_t buf_size[2];
+ static u_int snd_buf_count[2];
+ static u_int dsp_buf_count[2];
++static caddr_t link_stream = 0;	/* plan 756 (D169): this project's name; __data 0x40b21d0 of the original */
++static int link_active = 0;	/* plan 756 (D169): this project's name; __data 0x40b21d4 of the original */
+ 
+ /*
+  * Link between the DSP and sound devices is used for sound-out only.
+@@ -90,24 +124,43 @@
+ /*
+  * Initialize the dsp - sound link.
+  */
++/* plan 756 (D024, D169) BEGIN: snd_link_abort, snd_link_init */
+ void snd_link_init(int direction)
+ {
++	u_int size, count;
+ 	snd_dma_desc_t *ddp, *ddp2;
+ 	int s, dsp_buf_size, snd_buf_size;
+ 	int small_buf_size, large_buf_size;
+ 	struct chan_data *cdp = dsp_var.chan
+ 		[direction == SND_DIR_PLAY ? DSP_SO_CHAN : DSP_SI_CHAN];
+ 	int nbufs, buf_ratio;
++	caddr_t device;
++	queue_t owners;
++	struct snd_owner *owner;
+ 
+ 	ASSERT(curipl() == 0);
+ 	snd_link_dsp_reg[direction].sound_q = &cdp->sndq;
+ 
+ 	ASSERT(cdp);
+ 	dsp_buf_size = cdp->sndq.dmasize;
+-	snd_buf_size = ll_snd_var.dma[direction].sndq.dmasize;
++	if (direction == SND_DIR_PLAY) {
++		owners = &snd_var.sndout_owners;
++		device = _NXAudioSndoutDevice;
++	} else {
++		owners = &snd_var.sndin_owners;
++		device = _NXAudioSndinDevice;
++	}
++	(*__NXAudioGetBufferOptions)(device, &size, &count);
++	snd_buf_size = size;
++	owner = snd_get_owner(owners, snd_var.dspowner);
++	if (owner == 0) {
++		printf("SoundDSP: link could not get new stream owner\n");
++		return;
++	}
++	link_stream = owner->stream;
+ 
+ 	cdp->sndq.linked = TRUE;
+-	ll_snd_var.dma[direction].sndq.linked = TRUE;
++	link_active = TRUE;
+ 
+ 	if (dsp_buf_size < snd_buf_size) {
+ 		small_buf_size = dsp_buf_size;
+@@ -119,10 +172,7 @@
+ 	buf_ratio = large_buf_size/small_buf_size;
+ 
+ 	if (direction == SND_DIR_PLAY) {
+-		/*
+-		 * Take nbufs from sound-out stream.
+-		 */
+-		nbufs = ll_snd_var.dma[direction].sndq.ndma;
++		nbufs = count;
+ 	} else {
+ 		/*
+ 		 * Take nbufs from dsp stream.
+@@ -172,24 +222,17 @@
+ 			snd_buf_size, snd_link_snd_complete,
+ 			(caddr_t)direction, &snd_ddp_q[direction]);
+ 		snd_buf_count[direction] = nbufs*buf_ratio;
+-	}
++		(*__NXAudioSetBufferOptions)(device, 0, size,
++			nbufs*buf_ratio);
++	}
++	(*__NXAudioInitLinkedStream)(link_stream);
+ 
+ 	s = spldma();
+ 	/*
+ 	 * Start up dma.
+ 	 */
+ 	if (direction == SND_DIR_RECORD) {
+-		/*
+-		 * Start up sound.
+-		 */
+-		while (!queue_empty(&snd_ddp_q[direction])) {
+-			queue_remove_first(&snd_ddp_q[direction], ddp,
+-				snd_dma_desc_t *, link);
+-			snd_device_start(ddp, SND_DIR_RECORD,
+-				(dsp_var.flags&F_MODE_SND_HIGH)
+-					? SND_RATE_44
+-					: SND_RATE_22);
+-		}
++		printf("SoundDSP: codec->dsp link broken\n");
+ 	} else {
+ 		/*
+ 		 * Start up the dsp.
+@@ -202,6 +245,12 @@
+ 	}
+ 	splx(s);
+ }
++
++void snd_link_abort(void)
++{
++	link_active = FALSE;
++}
++/* plan 756 END */
+ 
+ static void snd_link_init_buf (
+ 	snd_dma_desc_t	*ddp,
+@@ -233,6 +282,7 @@
+ /*
+  * Release linkage resources
+  */
++/* plan 756 (D024, D169) BEGIN: snd_link_reset, snd_link_shutdown */
+ static void snd_link_reset(int direction)
+ {
+ 	register snd_dma_desc_t *ddp, *first_ddp;
+@@ -303,7 +353,8 @@
+ 	/*
+ 	 * Free up the buffer's when everything's in.
+ 	 */
+-	if (snd_buf_count[direction] == 0 && dsp_buf_count[direction] == 0) {
++	if (snd_buf_count[direction] == 0 && dsp_buf_count[direction] == 0
++	    && bufs[direction] && buf_size[direction]) {
+ 		kfree(bufs[direction], round_page(buf_size[direction]));
+ 		snd_dbug(("snd_link_reset: free %d bytes at 0x%x (bufs)\n",
+ 			round_page(buf_size[direction]), bufs[direction]));
+@@ -315,7 +366,6 @@
+ 		 */
+ 		if (cdp)
+ 			cdp->sndq.linked = FALSE;
+-		ll_snd_var.dma[direction].sndq.linked = FALSE;
+ 	}
+ }
+ 
+@@ -324,19 +374,30 @@
+  */
+ void snd_link_shutdown(int direction)
+ {
+-	snd_queue_t *q = &ll_snd_var.dma[direction].sndq;
+-	int s, ndma;
++	int s, ndma, i;
+ 	snd_dma_desc_t *ddp;
++	snd_queue_t *q;
+ 
+ 	ASSERT(curipl() == 0);
+ 	snd_dbug(("snd_link_shutdown: reset dir %d\n", direction));
+-	snd_link_reset(direction);
+ 	s = splsound();
+ 	link_thread[direction] = current_thread();
+-	if (direction == SND_DIR_PLAY)
+-		ndma = ll_snd_var.dma[SND_DIR_PLAY].ndma;
+-	else
++	if (direction == SND_DIR_PLAY) {
++		ndma = 0;
++		if (link_active) {
++			i = 0;
++			do {
++				assert_wait(0, TRUE);
++				thread_set_timeout(hz/2);
++				thread_block();
++				untimeout(thread_timeout, current_thread());
++			} while (sound_active && ++i <= 3);
++		}
++	} else {
++		link_thread[direction] = current_thread();
+ 		ndma = dsp_var.chan[DSP_SI_CHAN]->sndq.ndma;
++		q = &dsp_var.chan[DSP_SI_CHAN]->sndq;
++	}
+ 
+ 	/*
+ 	 * Free ddps from paused queues.
+@@ -363,12 +424,13 @@
+ 		assert_wait((int)q, TRUE);
+ 		thread_set_timeout(hz);
+ 		thread_block();
+-		snd_dbug(("snd_link_shutdown: done waiting dir %d\n",
+-			ndma, direction));
++		untimeout(thread_timeout, current_thread());
+ 	}
+ 	link_thread[direction] = 0;
+ 	splx(s);
+-}
++	snd_link_reset(direction);
++}
++/* plan 756 END */
+ 
+ /*
+  * Pause data on a linked stream.
+@@ -385,6 +447,7 @@
+ /*
+  * Resume a paused stream that's linked.
+  */
++/* plan 756 (D024, D169) BEGIN: snd_link_dsp_complete, snd_link_resume, snd_link_snd_complete */
+ void snd_link_resume(snd_queue_t *q)
+ {
+ 	int direction, s;
+@@ -397,30 +460,7 @@
+ 	 * Only start buffers that have counter parts in both queues.
+ 	 */
+ 	s = spldma();
+-	if (q == &ll_snd_var.dma[SND_DIR_PLAY].sndq) {
+-		snd_dbug2(("sl_resume: q sound out\n", q));
+-		direction = SND_DIR_PLAY;
+-		while (!queue_empty(&snd_pause_q[direction])) {
+-			queue_remove_first(&snd_pause_q[direction], ddp,
+-				snd_dma_desc_t *, link);
+-			snd_device_start(ddp, direction,
+-				(dsp_var.flags&F_MODE_SND_HIGH
+-					? SND_RATE_44
+-					: SND_RATE_22));
+-		}
+-	} else if (q == &ll_snd_var.dma[SND_DIR_RECORD].sndq){
+-		snd_dbug2(("sl_resume: q sound in\n", q));
+-		direction = SND_DIR_RECORD;
+-		while (!queue_empty(&snd_pause_q[direction])) {
+-			queue_remove_first(&snd_pause_q[direction], ddp,
+-				snd_dma_desc_t *, link);
+-			snd_device_start(ddp, direction,
+-				(dsp_var.flags&F_MODE_SND_HIGH
+-					? SND_RATE_44
+-					: SND_RATE_22));
+-		}
+-	} else if (q == snd_link_dsp_reg[SND_DIR_PLAY].sound_q) {
+-		snd_dbug2(("sl_resume: q dsp play\n", q));
++	if (q == snd_link_dsp_reg[SND_DIR_PLAY].sound_q) {
+ 		direction = SND_DIR_PLAY;
+ 		while (!queue_empty(&dsp_pause_q[direction])) {
+ 			queue_remove_first(&dsp_pause_q[direction], ddp,
+@@ -446,16 +486,13 @@
+ {
+ 	snd_dma_desc_t *ddp2;
+ 	int direction;
+-	int r = 1;
+-	int s;
+-	snd_queue_t *snd_q;
++	int s, rate;
+ 
+ 	if (&snd_link_dsp_reg[SND_DIR_PLAY] == (snd_region_t *)ddp->ptr)
+ 		direction = SND_DIR_PLAY;
+ 	else
+ 		direction = SND_DIR_RECORD;
+ 
+-	snd_q = &ll_snd_var.dma[direction].sndq;
+ 
+ 	/*
+ 	 * If this is the last buffer in a series, start up the
+@@ -472,12 +509,14 @@
+ 	    || (direction == SND_DIR_RECORD && !(dsp_var.flags&F_LINKEDIN)))
+ 	{
+ 		splx(s);
+-		snd_dbug(("sl_dsp_comp: ddp 0x%x reset\n", ddp));
+-		softint_sched(CALLOUT_PRI_THREAD, snd_link_reset, direction);
++		callout_dispatch(CALLOUT_PRI_THREAD, snd_link_reset, direction);
+ 		return 0;
+ 	}
+ 
+-	ASSERT(!queue_empty(&snd_ddp_q[direction]));
++	if (queue_empty(&snd_ddp_q[direction])) {
++		splx(s);
++		return 0;
++	}
+ 	ddp2 = (snd_dma_desc_t *)queue_first(&snd_ddp_q[direction]);
+ 
+ 	if (ddp->size > ddp2->size) {
+@@ -496,20 +535,17 @@
+ 					snd_dma_desc_t *, link);
+ 				break;
+ 			}
+-			if (snd_q->paused) {
+ 				snd_dbug2(("sl_dsp_comp: snd_q paused, "
+ 					"add ddp %d to pause queue\n", ddp2));
+-				queue_enter(&snd_pause_q[direction],
+-					ddp2, snd_dma_desc_t *, link);
+-				break;
+-			}
+ 			splx(s);
+ 
+-			snd_dbug2(("sl_dsp_comp: start ddp 0x%x\n",ddp2));
+-			if (!(r = snd_device_start(ddp2, direction,
+-				(dsp_var.flags&F_MODE_SND_HIGH)
+-					? SND_RATE_44
+-					: SND_RATE_22)))
++			rate = (dsp_var.flags&F_MODE_SND_HIGH) ? 2 : 1;
++			if ((*__NXAudioPlayStream)(link_stream,
++				ddp2->hdr.dh_start,
++				ddp2->hdr.dh_stop - ddp2->hdr.dh_start,
++				ddp2, 2,
++				rate,
++				0x8000, 0x8000, 0, 0, 0, 0))
+ 			{
+ 				snd_dbug2(("sl_dsp_comp: snd_device_start "
+ 					"failed, req ddp2 0x%x\n", ddp2));
+@@ -530,27 +566,22 @@
+ 		 * the next sound descriptor.
+ 		 */
+ 		if (ddp2->hdr.dh_stop == ddp->hdr.dh_stop) {
+-		    if (snd_q->paused) {
+ 			snd_dbug2(("sl_dsp_comp: snd_q paused, "
+ 				"add ddp %d to pause queue\n", ddp2));
+-			queue_enter(&snd_pause_q[direction],
+-				ddp2, snd_dma_desc_t *, link);
+-		    } else {
+ 			splx(s);
+-			snd_dbug2(("sl_dsp_comp: start ddp2 0x%x\n", ddp2));
+-			r = snd_device_start(ddp2, direction,
+-				(dsp_var.flags&F_MODE_SND_HIGH)
+-					? SND_RATE_44
+-					: SND_RATE_22);
+-			if (!r) {
+-				snd_dbug2(("sl_dsp_comp: snd_device_start "
+-					"failed, req ddp2 0x%x\n", ddp2));
++			rate = (dsp_var.flags&F_MODE_SND_HIGH) ? 2 : 1;
++			if ((*__NXAudioPlayStream)(link_stream,
++				ddp2->hdr.dh_start,
++				ddp2->hdr.dh_stop - ddp2->hdr.dh_start,
++				ddp2, 2,
++				rate,
++				0x8000, 0x8000, 0, 0, 0, 0))
++			{
+ 				s = spldma();
+ 				queue_enter_first(&snd_ddp_q[direction], ddp2,
+ 						snd_dma_desc_t *, link);
+ 				splx(s);
+ 			}
+-		    }
+ 		} else {
+ 			queue_enter_first(&snd_ddp_q[direction], ddp2,
+ 					snd_dma_desc_t *, link);
+@@ -559,16 +590,15 @@
+ 		}
+ 	}
+ 
+-	return r;
+-}
+-
+-static int snd_link_snd_complete(register snd_dma_desc_t *ddp)
++	return 1;
++}
++
++int snd_link_snd_complete(register snd_dma_desc_t *ddp)
+ {
+ 	register snd_dma_desc_t *ddp2;
+ 	int direction = (int)ddp->ptr;
+ 	struct chan_data *cdp = dsp_var.chan
+ 		[direction == SND_DIR_PLAY ? DSP_SO_CHAN : DSP_SI_CHAN];
+-	snd_queue_t *q = &ll_snd_var.dma[direction].sndq;
+ 	int s;
+ 	int r = 1;
+ 
+@@ -581,15 +611,9 @@
+ 	queue_enter(&snd_ddp_q[direction], ddp, snd_dma_desc_t *, link);
+ 
+ 	/*
+-	 * If someone's waiting for sound to over/underrun, then
+-	 * wake them up now.
+-	 */
+-	if ((ddp->flag&SDD_OVERFLOW) && link_thread[direction]) {
+ 		/*
+ 		 * Wait for all dma's to complete.
+ 		 */
+-		softint_sched(CALLOUT_PRI_SOFTINT1, thread_wakeup, (int)q);
+-	}
+ 
+ 	/*
+ 	 * Closing down, don't send anything on to sound out.
+@@ -598,20 +622,14 @@
+ 	    || (direction == SND_DIR_RECORD && !(dsp_var.flags&F_LINKEDIN)))
+ 	{
+ 		splx(s);
+-		snd_dbug(("sl_snd_comp: ddp 0x%x reset\n", ddp));
+-		softint_sched(CALLOUT_PRI_THREAD, snd_link_reset, direction);
++		callout_dispatch(CALLOUT_PRI_THREAD, snd_link_reset, direction);
+ 		return 0;
+ 	}
+ 
+-	/*
+-	 * The sound driver sometimes splits up buffers, in which
+-	 * case the starting address of the returned buffer will
+-	 * be half-way between the real start and the end.
+-	 */
+-	if (ddp->hdr.dh_stop - ddp->hdr.dh_start != ddp->size)
+-		ddp->hdr.dh_start = ddp->hdr.dh_stop - ddp->size;
+-
+-	ASSERT(!queue_empty(&dsp_ddp_q[direction]));
++	if (queue_empty(&dsp_ddp_q[direction])) {
++		splx(s);
++		return 0;
++	}
+ 	ddp2 = (snd_dma_desc_t *)queue_first(&dsp_ddp_q[direction]);
+ 
+ 	if (ddp->size > ddp2->size) {
+@@ -691,6 +709,7 @@
+ 	
+ 	return r;
+ }
++/* plan 756 END */
+ 
+ #endif	NSOUND > 0 && NDSP > 0
+ 

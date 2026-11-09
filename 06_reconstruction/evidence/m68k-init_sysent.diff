@@ -1,0 +1,26 @@
+--- 07_kernel/src/bsd/kern/init_sysent.c	2026-10-08 20:54:04.019585634 +0900
++++ 07_kernel/v183.34/m68k/src/bsd/kern/init_sysent.c	2026-11-08 12:22:50.117308432 +0900
+@@ -349,7 +349,11 @@
+ 	syss(utimes,2),			/* 138 = utimes */
+ #if	NeXT
+ 	/* SUN binary compatibility */
++#if	!m68k	/* plan 774 (m68k) */
+ 	syss(nosys,0),			/* 139 */	/* plan 397: OPENSTEP 4.2 */
++#else	/* plan 774 (m68k) */
++	syss(sigreturn,0),		/* 139 = 4.2 signal cleanup */	/* plan 774 (m68k) */
++#endif	/* plan 774 (m68k) */
+ #else	NeXT
+ 	syss(nosys,0),			/* 139 = used internally */
+ #endif	NeXT
+@@ -370,7 +374,11 @@
+ 	 * with other Unix variants.)
+ 	 */
+ #if	NeXT
++#if	!m68k	/* plan 774 (m68k) */
+ 	syss(nosys,0),			/* 151 */	/* plan 397: OPENSTEP 4.2 */
++#else	/* plan 774 (m68k) */
++	syss(machparam,2),		/* 151 = machparam */	/* plan 774 (m68k) */
++#endif	/* plan 774 (m68k) */
+ 	sysp(setprivexec,1),		/* 152 = setprivexec */	/* plan 397 (Darwin): OPENSTEP 4.2 */
+ 	syss(getposix,0),		/* 153 = getposix */	/* plan 397: OPENSTEP 4.2 */
+ 	syss(setposix,1),		/* 154 = setposix */	/* plan 397: OPENSTEP 4.2 */

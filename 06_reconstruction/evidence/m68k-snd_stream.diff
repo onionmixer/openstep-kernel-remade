@@ -1,0 +1,118 @@
+--- NeXTMach mk-108.1/nextdev/snd_stream.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/snd_stream.c (plan 644, D147)
+@@ -45,6 +45,26 @@
+  *
+  */ 
+ 
++/*
++ * plan 644 (D147, D013, D024, D104, D124): the 1997 m68k snd_stream.c.
++ * NeXTMach mk-108.1 nextdev/snd_stream.c with the include lines in OPENSTEP
++ * paths and the 1997 changes written from the original bytes [0x4087272,
++ * 0x408833a) (plan 643):
++ *	snd_stream_thread	snd_deactivate_pages() third argument: for the
++ *				processed pages 1 when recording, SND_DIRTY_KEEP
++ *				when playing; for the unused pages of an aborted
++ *				region 0 when recording, SND_DIRTY_KEEP when
++ *				playing
++ *	snd_desc_completion	callout_dispatch()
++ *	snd_deactivate_pages	m->clean is left alone for SND_DIRTY_KEEP;
++ *				vm_fault() with the 1997 fifth argument
++ *	snd_wire_page		vm_fault() with the 1997 fifth argument
++ *	snd_reg_complete	snd_deactivate_pages() third argument 0 when
++ *				recording, SND_DIRTY_KEEP when playing
++ * SND_DIRTY_KEEP is this project's name for the value 2 that the original
++ * bytes encode (user decision D147).  The other functions are the NeXTMach
++ * text unchanged.  Lines marked plan 644 differ from NeXTMach.
++ */
+ #import <sound.h>
+ #if	NSOUND > 0
+ 
+@@ -68,10 +88,10 @@
+ #import <sys/param.h>
+ #import <sys/callout.h>
+ #import <sys/buf.h>
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 644 (D104): NeXTMach <vm/vm_param.h> */
+ #import <vm/vm_map.h>
+ #import <vm/vm_page.h>
+-#import <nextdev/busvar.h>
++#import <dev/busvar.h>	/* plan 644 (D104): NeXTMach <nextdev/busvar.h> */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_snd.h>
+ #import <nextdev/snd_dsp.h>
+@@ -80,6 +100,9 @@
+ #import <kern/kalloc.h>
+ #import <machine/spl.h>
+ 
++extern void callout_dispatch();	/* plan 644 (D124 form) */
++#define	SND_DIRTY_KEEP	2	/* plan 644 (D147): this project's name; snd_deactivate_pages() leaves m->clean alone */
++
+ #if	XPR_DEBUG
+ extern int sdbgflag;
+ #define snd_dbug(f) {if (sdbgflag&1)printf f; else XPR(XPR_SOUND, f);}
+@@ -492,7 +515,7 @@
+ 				  " in region %x\n", len,
+ 				  stale_reg->first_locked, stale_reg));
+ 			snd_deactivate_pages(stale_reg->first_locked, len,
+-				stale_reg->direction == SND_DIR_RECORD,
++				stale_reg->direction == SND_DIR_RECORD ? 1 : SND_DIRTY_KEEP,	/* plan 644 (D147, D024): 1997, 0x40877f6 */
+ 				stale_reg->deactivate);
+ 			stale_reg->first_locked += len;
+ 			q->total_wired -= len;
+@@ -550,7 +573,7 @@
+ 			if (len > 0) {
+ 				snd_deactivate_pages(
+ 					round_page(stale_reg->rw_head), len,
+-					FALSE, TRUE);
++					stale_reg->direction == SND_DIR_RECORD ? 0 : SND_DIRTY_KEEP, TRUE);	/* plan 644 (D147, D024): 1997, 0x40878d8 */
+ 				q->total_wired -= len;
+ 				ASSERT(q->total_wired >= 0);
+ 				stale_reg->next_to_lock =
+@@ -868,8 +891,8 @@
+ 	 if (do_wakeup) {
+ 		q->work = 1;
+ 		if (curipl() > IPLSCHED)
+-			softint_sched(CALLOUT_PRI_SOFTINT1, thread_wakeup,
+-				(int)q);
++			callout_dispatch(CALLOUT_PRI_SOFTINT1, thread_wakeup,
++				(int)q);	/* plan 644 (D124, D024): NeXTMach softint_sched, 0x4087d78 */
+ 		else
+ 			thread_wakeup((int)q);
+ 	}
+@@ -989,7 +1012,8 @@
+ 		 * m is NULL.
+ 		 */
+ 		if (m) {
+-			m->clean = !dirty;
++			if (dirty != SND_DIRTY_KEEP)	/* plan 644 (D147, D024): 1997, 0x4087f62 */
++				m->clean = !dirty;
+ 			vm_page_unlock_queues();
+ 		} else {
+ 			vm_page_unlock_queues();
+@@ -999,7 +1023,7 @@
+ 		/*
+ 		 * Unlock the page.
+ 		 */
+-		(void) vm_fault(snd_var.task_map, start, VM_PROT_NONE, TRUE);
++		(void) vm_fault(snd_var.task_map, start, VM_PROT_NONE, TRUE, 0);	/* plan 644 (D024): 1997 fifth argument, 0x4087f7c */
+ 
+ 		if (deactivate) {
+ 			/*
+@@ -1038,7 +1062,7 @@
+ 	/*
+ 	 * Fault the page in and lock it.
+ 	 */
+-	(void) vm_fault(snd_var.task_map, page, VM_PROT_NONE, TRUE);
++	(void) vm_fault(snd_var.task_map, page, VM_PROT_NONE, TRUE, 0);	/* plan 644 (D024): 1997 fifth argument, 0x408803c */
+ 
+ 	vm_map_lock(snd_var.task_map);
+ 	entry->wired_count--;
+@@ -1061,7 +1085,7 @@
+ 	 */
+ 	if (reg->first_locked != reg->next_to_lock) {
+ 		snd_deactivate_pages(reg->first_locked, PAGE_SIZE,
+-		    reg->direction == SND_DIR_RECORD, reg->deactivate);
++		    reg->direction == SND_DIR_RECORD ? 0 : SND_DIRTY_KEEP, reg->deactivate);	/* plan 644 (D147, D024): 1997, 0x40880a0 */
+ 		q->total_wired -= PAGE_SIZE;
+ 	}
+     

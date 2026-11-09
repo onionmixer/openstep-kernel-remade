@@ -1,0 +1,89 @@
+--- nextmach/mk-108.1/nextdev/snd_reply.c
++++ 07_kernel/src/machdep/m68k/snd_reply.c
+@@ -19,6 +19,16 @@
+  *
+  */ 
+ 
++/*
++ * plan 554 (D123, D103, D104, D110, D024): the 1997 m68k snd_reply.c.  NeXTMach
++ * mk-108.1 nextdev/snd_reply.c with the include lines in OPENSTEP paths and the
++ * 1997 changes written from the original bytes [0x4085056, 0x4085920) (plan 552):
++ * snd_reply_ret_samples takes a time stamp, snd_reply_ret_formats is new.  The
++ * 1997 message definitions come from this project's driverkit/snd_msgs.h and the
++ * 1997 struct snd_var from nextdev/snd_var.h (plan 553).  The kfree warning of
++ * the 1990 text with the 1997 headers is kept (D123).  Lines marked plan 554
++ * differ from NeXTMach.
++ */
+ #import <sound.h>
+ #if	NSOUND > 0
+ 
+@@ -27,11 +37,11 @@
+  * sound facility services.
+  */
+ #import <kern/xpr.h>
+-#import <next/cpu.h>
++#import <m68k/cpu.h>	/* plan 554 (D110): NeXTMach <next/cpu.h> */
+ #import <nextdev/snd_var.h>
+ #import <nextdev/snd_dsp.h>
+ 
+-#import <next/spl.h>
++#import <machine/spl.h>	/* plan 554 (D104): NeXTMach <next/spl.h> */
+ 
+ extern snd_var_t snd_var;
+ 
+@@ -236,7 +246,8 @@
+  */
+ kern_return_t snd_reply_ret_samples (
+ 	port_name_t	remote_port,	// who to send it to.
+-	int		nsamples)	// number of bytes of data to record
++	int		nsamples,	// number of bytes of data to record
++	int		timeStamp)	/* plan 554 (D123, D024): 1997 */
+ {
+ 	snd_ret_samples_t msg;
+ 
+@@ -247,6 +258,7 @@
+ 
+ 	msg.dataType = snd_type_int_template;
+ 	msg.nsamples = nsamples;
++	msg.timeStamp = timeStamp;	/* plan 554 (D123, D024): 1997 */
+ 
+ 	return msg_send((msg_header_t *)&msg, SEND_TIMEOUT|SEND_SWITCH, 0);
+ }
+@@ -353,6 +365,37 @@
+ 
+ 	return msg_send((msg_header_t *)&msg, SEND_TIMEOUT, 0);
+ }
++
++/*
++ * Message to return supported data formats.
++ * plan 554 (D123, D024): new in 1997, written from the original bytes
++ * (0x40854bc; field names as this project's x86 driverkit/snd_reply.c).
++ */
++kern_return_t snd_reply_ret_formats (
++	port_name_t	remote_port,
++	u_int		rates,
++	u_int		low,
++	u_int		high,
++	u_int		encodings,
++	u_int		chans)
++{
++	snd_ret_stream_formats_t msg;
++
++	msg.header = snd_reply_header_template;
++	msg.header.msg_id = SND_MSG_RET_STREAM_FORMATS;
++	msg.header.msg_size = sizeof(snd_ret_stream_formats_t);
++	msg.header.msg_remote_port = remote_port;
++
++	msg.Type = snd_type_int_template;
++	msg.Type.msg_type_number = 5;
++	msg.rate = rates;
++	msg.low_rate = low;
++	msg.high_rate = high;
++	msg.encoding = encodings;
++	msg.chan_count = chans;
++
++	return msg_send((msg_header_t *)&msg, SEND_TIMEOUT, 0);
++}
+ 
+ /*
+  * DSP specific messages

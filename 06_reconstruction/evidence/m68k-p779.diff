@@ -1,0 +1,281 @@
+# plan 779 (D178): 07 changes of the M7 __common declarations and the fpsp counters (unified diffs; old file -> new file).
+# Old 07 files: the versions before plan 779 (SHA-256 in each header); vol.c: the 07 main file -> the new m68k overlay;
+# scr.h: NeXTMach mk-108.1 next/scr.h (https://github.com/johnsonjh/NeXTMach.git f6bdb9c3268f0eadc545d41bcc0564453b17001e) -> 07 copy.
+--- 07_kernel/v183.34/m68k/src/bsd/kern/subr_prf.c (17135f3be313b903)
++++ 07_kernel/v183.34/m68k/src/bsd/kern/subr_prf.c (27c1c04df1cdf21e)
+@@ -663,4 +663,6 @@
+ 		(*sp)++;
+ 	}
+ }
+-
++#import <mon/tftp.h>	/* plan 779 (m68k): mon/tftp.h (NeXTMach mon/global.h:40 chain) for its tentative definitions; mon/global.h unchanged (D133) */
++#import <m68k/bmap.h>	/* plan 779 (m68k): bmap_chip tentative definition; written to match the original bytes (D178, D024, plan 778.15) */
++
+--- 07_kernel/v183.34/m68k/src/bsd/kern/kern_exit.c (d61eaf6b14c59ae6)
++++ 07_kernel/v183.34/m68k/src/bsd/kern/kern_exit.c (f7bfa42be445480f)
+@@ -758,4 +758,5 @@
+ 
+ 
+ 
+-
++#import <m68k/scr.h>	/* plan 779 (m68k): scr2/brightness tentative definitions of NeXTMach next/scr.h; written to match the original bytes (D178, D024, plan 778.15) */
++
+--- 07_kernel/src/bsd/dev/vol.c (657799a7b4e70ed8)
++++ 07_kernel/v183.34/m68k/src/bsd/dev/vol.c (cf09bab0c1fe097a)
+@@ -976,4 +976,7 @@
+ 
+ /* end of vol.c */
+ 
+-
++/* plan 779 (m68k): tentative definitions, place and types written to match the original bytes (D178, D024, plan 778.15) */
++u_short	dma_chip;	/* plan 779 (m68k) */
++int	slot_id;	/* plan 779 (m68k) */
++
+--- 07_kernel/v183.34/m68k/src/machdep/m68k/pmap.h (c9b1f66ae7d52969)
++++ 07_kernel/v183.34/m68k/src/machdep/m68k/pmap.h (d4b88701c7ac4ae8)
+@@ -55,5 +55,9 @@
+ #define pmap_resident_count(pmap)	((pmap)->stats.resident_count)
+ #define pmap_phys_address(frame)	((vm_offset_t) (m68k_ptob(frame)))	/* (Darwin) */
+ #define pmap_phys_to_frame(phys)	((unsigned int) (m68k_btop(phys)))	/* (Darwin) */
++#ifdef	KERNEL	/* plan 779 (D178): NeXTMach next/pmap.h:186 form (pv_lock_table is not in the original) */
++struct pv_entry	*pv_head_table;
++struct zone	*pv_list_zone;
++#endif	/* KERNEL */
+ #endif
+ 
+--- 01_resources/upstream/nextmach/mk-108.1/next/scr.h (de6c789cc87303d1)
++++ 07_kernel/nextmach/next/scr.h (85227d3c4f5e1dc7)
+@@ -1,3 +1,4 @@
++/* plan 779 (D178): NeXTMach mk-108.1 next/scr.h without the scr1 tentative definition (scr1 is not in the original kernel) */
+ /*	@(#)scr.h	1.0	12/02/86	(c) 1986 NeXT	*/
+ 
+ /* 
+@@ -112,7 +113,6 @@
+ #define TIMER_MAX	0xffff		/* Maximum value of timer */
+ 
+ #ifndef	ASSEMBLER
+-volatile struct scr1 *scr1;
+ volatile int *scr2;
+ volatile u_char *brightness;
+ #endif	ASSEMBLER
+--- /dev/null
++++ 07_kernel/src/machdep/m68k/ev_vars.h (f224a7da3f53d5a0)
+@@ -0,0 +1,73 @@
++/* ev_vars.h -- plan 779 (D178): KeyMapping copied from 07 ev_kbd.c:66-67,75-85 (NeXTMach mk-108.1 nextdev/ev_kbd.c, Copyright 1987 NeXT, Inc.); the 50 tentative definitions written to match the original bytes (D178, D024, plan 778.15), types as the 07 externs */
++#ifndef _M68K_EV_VARS_H_
++#define _M68K_EV_VARS_H_
++#ifndef NUMKEYCODES
++#define NUMKEYCODES	128
++#endif
++#ifndef NUMMODIFIERS
++#define NUMMODIFIERS	16
++#endif
++#import <dev/ev_keymap.h>	/* NX_NUMSPECIALKEYS (bsd/dev/ev_keymap.h:41) */
++typedef struct KeyMappingStruct {
++    short shorts;
++    char keyBits[NUMKEYCODES];
++    int maxMod;
++    unsigned char *modDefs[NUMMODIFIERS];
++    unsigned char *keyDefs[NUMKEYCODES];
++    int numSeqs;
++    unsigned char *seqDefs;
++    unsigned char specialKeys[NX_NUMSPECIALKEYS];
++    unsigned char *mapping;
++} KeyMapping;
++int	alphaLock;
++int	autoDimPeriod;
++int	autoDimTime;
++int	autoDimmed;
++int	buttonsTied;
++Point	clickLoc;
++Point	clickSpaceThresh;
++int	clickState;
++long	clickTime;
++long	clickTimeThresh;
++int	curBright;
++int	curMapLen;
++KeyMapping *	curMapping;
++KeyMapping	curMappingStorage;
++int	currentScreen;
++Bounds	cursorPin;
++unsigned char	deviceMods;
++int	dimmedBrightness;
++EvOffsets *	eop;
++int	evOpenCalled;
++int	evRetryMask;
++EvScreen *	evScreen;
++int	evScreenSize;
++port_t	eventPort;
++task_t	eventTask;
++int	eventsOpen;
++EvGlobals *	evg;
++void *	evs;
++int	initialKeyRepeat;
++int	keyPressed;
++int	keyRepeat;
++int	keySema;
++unsigned char	lastPressure;
++short	leftENum;
++int	mapNotDefault;
++int	mouseDelX;
++int	mouseDelY;
++int	mouseHandedness;
++short	mouseScaleFactors[MAXMOUSESCALINGS];
++short	mouseScaleThresholds[MAXMOUSESCALINGS];
++int	numMouseScales;
++short	rightENum;
++int	screens;
++int	sessionPrecision;
++int	sessionPressure;
++int	totalShmemSize;
++short	waitFrameRate;
++short	waitFrameTime;
++short	waitSusTime;
++short	waitSustain;
++#endif
++
+--- 07_kernel/src/machdep/m68k/ev.c (119f32e273bb701c)
++++ 07_kernel/src/machdep/m68k/ev.c (754b5ea1dd9bba13)
+@@ -882,4 +882,5 @@
+ 
+ 
+ 
+-
++#import "ev_vars.h"	/* plan 779 (D178): ev variables written to match the original bytes (D024, plan 778.15) */
++
+--- 07_kernel/src/machdep/m68k/if_en.c (78ccf37360eb4dc8)
++++ 07_kernel/src/machdep/m68k/if_en.c (b38df36361c437c6)
+@@ -2005,4 +2005,6 @@
+ /* plan 727 END */
+ #endif	GDB
+ #endif
+-
++/* plan 779 (D178): kdb_net tentative definition (type of nextdbg.c:207) written to match the original bytes (D024, plan 778.15) */
++struct kdb_n { char *ri; char *ti; int locked; } kdb_net;
++
+--- 07_kernel/src/machdep/m68k/m68k_init.c (68d4c7e85e0a3658)
++++ 07_kernel/src/machdep/m68k/m68k_init.c (e23f24a12065a516)
+@@ -468,4 +468,22 @@
+ 			kdbg_connect(0);
+ 	}
+ }
+-
++/* plan 779 (D178): bootp (NeXTMach next/next_init.c:95) and the size-only names written to match the original bytes (D024, plan 778.15) */
++#import <netinet/in.h>
++#import <netinet/in_systm.h>
++#import <netinet/ip.h>
++#import <netinet/udp.h>
++#import <netinet/bootp.h>
++struct bootp	bootp;
++u_char	cpu_type, machine_type, mon_rev, board_rev, cpu_clk, cpu_rev;
++int	intr_mask;
++int	(*reboot_vector)();
++int	vmlog_send;
++struct mem_region	mem_region[MAX_REGIONS];
++int	num_regions;
++volatile int	*intrmask;
++int	ncc_chip;
++int	slot_id_bmap;
++u_long	kdb_ipaddr;
++vm_offset_t	interrupt_stack[NCPUS];
++
+--- 07_kernel/src/machdep/m68k/nextdbg.c (f7811200c2d58cbe)
++++ 07_kernel/src/machdep/m68k/nextdbg.c (62270349b4db014a)
+@@ -819,3 +819,6 @@
+ /* plan 739 END */
+ 
+ /* plan 739 (D024): NeXTMach lines 978-979 removed (a blank line) */
++/* plan 779 (D178): dbg_connect_pkt tentative definition (type of the extern above) written to match the original bytes (D024, plan 778.15) */
++struct dbg_pkt *dbg_connect_pkt;
++
+--- 07_kernel/src/machdep/m68k/fpsp.s (168e2d5d14565317)
++++ 07_kernel/src/machdep/m68k/fpsp.s (7c11e357c749a57a)
+@@ -9305,7 +9305,7 @@
+ 	bclr		#e1,a6@(e_byte)
+ 	frestore	sp@+
+ 	unlk		a6
+-	addql	#0x1,0x40b30f8:l
++	addql	#0x1,fpsp_cnt3:l
+ 	jmp	std_trap:l
+ 	.globl	inex
+ inex:
+@@ -9349,7 +9349,7 @@
+ 	unlk	a6
+ 	.globl	real_inex
+ real_inex:
+-	addql	#0x1,0x40b30f4:l
++	addql	#0x1,fpsp_cnt2:l
+ 	linkw	a6,#0xff40
+ 	fsave	sp@-
+ ADR_40a0b10:
+@@ -9383,7 +9383,7 @@
+ 	.word	0x4c48
+ 	.globl	real_ovfl
+ real_ovfl:
+-	addql	#0x1,0x40b3100:l
++	addql	#0x1,fpsp_cnt5:l
+ 	linkw	a6,#0xff40
+ 	fsave	sp@-
+ 	bclr	#1,a6@(-220:w)
+@@ -9406,7 +9406,7 @@
+ 	.word	0x520e
+ 	.globl	real_unfl
+ real_unfl:
+-	addql	#0x1,0x40b30fc:l
++	addql	#0x1,fpsp_cnt4:l
+ 	linkw	a6,#0xff40
+ 	fsave	sp@-
+ 	bclr	#1,a6@(-220:w)
+@@ -9434,7 +9434,7 @@
+ 	bclr	#2,a6@(-220:w)
+ 	frestore	sp@+
+ 	unlk	a6
+-	addql	#0x1,0x40b3108:l
++	addql	#0x1,fpsp_cnt7:l
+ 	jmp	std_trap:l
+ 	.globl	operr
+ operr:
+@@ -9454,7 +9454,7 @@
+ 	bclr	#2,a6@(-220:w)
+ 	frestore	sp@+
+ 	unlk		a6
+-	addql	#0x1,0x40b3104:l
++	addql	#0x1,fpsp_cnt6:l
+ 	jmp	std_trap:l
+ 	.globl	bsun
+ bsun:
+@@ -9488,7 +9488,7 @@
+ 	fmoveml	sp@+,fps
+ 	frestore	sp@+
+ 	unlk		a6
+-	addql	#0x1,0x40b30f0:l
++	addql	#0x1,fpsp_cnt1:l
+ 	jmp	std_trap:l
+ 	.globl	fline
+ fline:
+@@ -15870,4 +15870,24 @@
+ 	moveb	a6@(-69:w),sp@
+ 	bra	gen_except
+ ADR_40a5510:
+-
++/* plan 779 (D178): the nine counters the real_* handlers increment (original [0x40b30ec, 0x40b3110), plan 778.19); provisional names (D178, D024) */
++	.data
++fpsp_cnt0:
++	.long	0
++fpsp_cnt1:
++	.long	0
++fpsp_cnt2:
++	.long	0
++fpsp_cnt3:
++	.long	0
++fpsp_cnt4:
++	.long	0
++fpsp_cnt5:
++	.long	0
++fpsp_cnt6:
++	.long	0
++fpsp_cnt7:
++	.long	0
++fpsp_cnt8:
++	.long	0
++

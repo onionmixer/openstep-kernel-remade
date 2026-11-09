@@ -1,0 +1,80 @@
+{
+ "plan": "788",
+ "date": "2026-11-09",
+ "kernel": {
+  "path": "08_build/runs/m7p787-ln1/out/mach_kernel",
+  "sha256": "dff6c51c952add68ce326d861150df799737b9476bad95e51976b36683ba5d75",
+  "original_sha256": "dff6c51c952add68ce326d861150df799737b9476bad95e51976b36683ba5d75",
+  "identical_to_original": true,
+  "name_on_disk": "/sdmachl2",
+  "version": "NeXT Mach 4.2: Sun Apr 27 13:42:14 PDT 1997; root(rcbuilder):Objects/mk-183.34.obj~4/RELEASE_M68K"
+ },
+ "disks": {
+  "repository": {
+   "path": "09_validation/images/m68k/openstep42-m68k-hdd.raw",
+   "sha256_before": "7097595fbcd83380eac3ddda5f78a1a8c0f572d094823892f998fd95806c9c1c",
+   "sha256_after": "7097595fbcd83380eac3ddda5f78a1a8c0f572d094823892f998fd95806c9c1c"
+  },
+  "test": {
+   "path": "09_validation/images/m68k/openstep42-m68k-hdd.l2test.raw",
+   "sha256_after_prep": "88b35f1266ed5bf9cdad868b99732cb1afbe2d9af28aa7610fb9c12b05ae0a1c",
+   "sha256_after_boots": "88b35f1266ed5bf9cdad868b99732cb1afbe2d9af28aa7610fb9c12b05ae0a1c"
+  },
+  "fsck": {
+   "before": "33278 files, 506581 used",
+   "after": "33279 files, 507405 used",
+   "logs": [
+    "09_validation/images/m68k/logs/l2test-fsck-before-20261109.log",
+    "09_validation/images/m68k/logs/l2test-fsck-after-20261109.log"
+   ]
+  }
+ },
+ "qemu": {
+  "binary_sha256": "fbb5364332539334ab407a5dca607e095643a55247bd677341b36e21575c943b",
+  "command": "bash 11_emulation/scripts/vm-m68k.sh boot --disk <test disk> --snapshot --gdb-wait < /dev/null",
+  "driver": "scratch/p788/qmp_boot.py",
+  "driver_sha256": "6083d5b24fc36ae88ebe6e6338880d9856f0a2a72a880feb119ad050eadfa7b4"
+ },
+ "runs": {
+  "R0": {
+   "rom_command": "bsd nosuchkern -s",
+   "result": "ROM: boot sd(0,0,0)nosuchkern -s; blk0 boot: sd()nosuchkern; nosuchkern: not found; load failed; blk0 boot prompt",
+   "verdict": "as expected: no kernel started"
+  },
+  "R1": {
+   "rom_command": "bsd sdmachl2 -s",
+   "result": "kernel version string as expected; init arg -sx; root on sd0; single-user shell; /usr/bin/hostinfo: 1 processor MC680x0 (68040) 25 MHz, 32.00 MB, 9 tasks 22 threads; ls -l /sdmachl2 832196 bytes mode -r--r--r--",
+   "verdict": "pass"
+  },
+  "R2": {
+   "rom_command": "bsd sdmachl2",
+   "result": "multi-user: login window reached; Workspace after the user logged in; Terminal hostinfo: version as expected, 39 tasks 74 threads",
+   "user_input": "the user typed Ctrl+C twice (hostname wait after -AUTOMATIC-), c (a later wait) and logged in at the GTK window; the account is not recorded",
+   "verdict": "pass (QEMU)"
+  }
+ },
+ "screenshots": {
+  "r0/s01.png": "de3079e6bd33e2898b2ef44d6c50331fc0c3ccffe914a5e3cdb8d197606e0644",
+  "r0/s02.png": "7bccbe141baa025e99995ff3a0d11770e4ea4fa3e62ac8b6d4b5f0350e4ce687",
+  "r0/s03.png": "d9a082da4f9ce8a62ca9841a6004722300d50353e151b0909f4338881fe1a076",
+  "r0/s04.png": "d9a082da4f9ce8a62ca9841a6004722300d50353e151b0909f4338881fe1a076",
+  "r0/s05.png": "d9a082da4f9ce8a62ca9841a6004722300d50353e151b0909f4338881fe1a076",
+  "r1/s01.png": "9612e3301e9afed94beb9b319f7d9363f38856cf1e8110f1c9388aa28339625b",
+  "r1/s02.png": "9612e3301e9afed94beb9b319f7d9363f38856cf1e8110f1c9388aa28339625b",
+  "r1/s03.png": "9612e3301e9afed94beb9b319f7d9363f38856cf1e8110f1c9388aa28339625b",
+  "r1/s04.png": "9612e3301e9afed94beb9b319f7d9363f38856cf1e8110f1c9388aa28339625b",
+  "r1/s05.png": "2b6623f0eb7dab3fe29da6072f621a335e2a200cc75ddbb1170eeaaea1e863d7",
+  "r2/hostinfo.png": "990d40b52efc51a89ded9bec8dafe286b80e0e6f7f4022992048f304c5961bf2",
+  "r2/login.png": "88f509c04415ef9516f59bbf532862824a9a2c8c0243359a9ee1e6450761d6d1",
+  "r2/s01.png": "5af5172163bebca2b159bf851f1ebdcafb0b8337a872d9db7ca5a88685d08775",
+  "r2/s02.png": "c86fefc0ad0ea4929f2a087dcdad30c5b9b46b15becb9846362fde2d4ff869c3",
+  "r2/s03.png": "b9ab656079f91d881135bc37f989d2889bed732e3202f3f56a6316bf43355914",
+  "r2/s04.png": "c37c886c2c87990f5648adf7f692db541d62df3db8cbae789e98262608dd3514",
+  "r2/workspace.png": "c37c886c2c87990f5648adf7f692db541d62df3db8cbae789e98262608dd3514"
+ },
+ "limits": [
+  "QEMU only, no real machine (D067)",
+  "the kernel is byte-identical to the installed /sdmach, so this is no further evidence about the reconstructed source",
+  "--snapshot: the disks were not changed"
+ ]
+}

@@ -1,0 +1,78 @@
+--- nextmach/mk-108.1/nextdev/fd_subr.c
++++ 07_kernel/src/machdep/m68k/fd_subr.c
+@@ -13,6 +13,18 @@
+  *	Created.
+  */ 
+ 
++/*
++ * plan 570 (D128, D013, D024, D104): the 1997 m68k fd_subr.c.  NeXTMach
++ * mk-108.1 nextdev/fd_subr.c with the include lines in OPENSTEP paths and
++ * three 1997 changes written from the original bytes [0x406d6b6, 0x406f0fe)
++ * (plans 567-569):
++ *	fd_setbratio	no DEV_BSIZE check (the 1997 headers have no DEV_BSIZE);
++ *			the dk_bps statistics only when fvp->bdp is set
++ *	volume_check	vc_fvp->bdp = fdp->bdp before fd_attach_com()
++ * The other 40 functions are the NeXTMach text unchanged; their 1997 layout
++ * changes come from the headers (nextdev/fd_vars.h: no sczfst).  Lines marked
++ * plan 570 differ from NeXTMach.
++ */
+ #import "fd.h"
+ #import <sys/types.h>
+ #import <sys/buf.h>
+@@ -21,18 +33,18 @@
+ #import <sys/param.h>
+ #import <sys/errno.h>
+ #import <sys/proc.h>
+-#import <sys/time_stamp.h>
++#import <kern/time_stamp.h>	/* plan 570 (D104): NeXTMach <sys/time_stamp.h> */
+ #import <sys/dk.h>
+-#import <nextdev/disk.h>
+-#import <next/psl.h>
+-#import <next/machparam.h>
++#import <dev/disk.h>	/* plan 570 (D104): NeXTMach <nextdev/disk.h> */
++#import <m68k/psl.h>	/* plan 570 (D104): NeXTMach <next/psl.h> */
++#import <m68k/machparam.h>	/* plan 570 (D104): NeXTMach <next/machparam.h> */
+ #import <vm/vm_map.h>
+ #import <vm/vm_kern.h>
+ #import <nextdev/dma.h>
+ #import	<nextdev/fd_extern.h>
+ #import	<nextdev/fd_vars.h> 
+-#import <nextdev/insertmsg.h>
+-#import <nextdev/voldev.h>
++#import <kernserv/insertmsg.h>	/* plan 570 (D104): NeXTMach <nextdev/insertmsg.h> */
++#import <dev/voldev.h>	/* plan 570 (D104): NeXTMach <nextdev/voldev.h> */
+ #import <next/pmon.h>
+ #import <next/pmon_targets.h>
+ #import <next/kernel_pmon.h>
+@@ -1589,21 +1601,9 @@
+ 		    dlp->dl_secsize, fip->sectsize_info.sect_size);
+ 		return;
+ 	}
+-	/*
+-	 * FIXME:  Some day, we should tell the FS code
+-	 * this, rather than have it built in!
+-	 */
+-	if (dlp->dl_secsize != DEV_BSIZE) {
+-	    	simple_lock(&fvp->lock);
+-		fvp->format_info.flags &= ~FFI_LABELVALID;
+-	    	simple_unlock(&fvp->lock);
+-		printf("FS BLOCK NOT EQUAL TO DEV_BSIZE\n");
+-		printf("FS block: %d, DEV_BSIZE: %d\n", dlp->dl_secsize,
+-		    DEV_BSIZE);
+-		return;
+-	}
++	/* plan 570 (D128, D024): the NeXTMach DEV_BSIZE check is not in the 1997 code */
+ 	fvp->bratio = dlp->dl_secsize / fip->sectsize_info.sect_size;
+-	if ((dk = fvp->bdp->bd_dk) >= 0) {
++	if (fvp->bdp && (dk = fvp->bdp->bd_dk) >= 0) {	/* plan 570 (D128, D024): 1997 */
+ 		rps = dlp->dl_rpm >= 60 ? dlp->dl_rpm / 60 : 60;
+ 		dk_bps[dk] = dlp->dl_secsize * dlp->dl_nsect * rps;
+ 	}
+@@ -1729,6 +1729,7 @@
+ 		     */
+ 		    XDBG(("volume_check: New disk\n"));
+ 		    vc_fvp->format_info.flags = 0;	
++		    vc_fvp->bdp = fdp->bdp;	/* plan 570 (D128, D024): 1997 */
+ 		    /* not formatted; no label */
+ 		    if(fd_attach_com(vc_fvp)) {
+ 			    XDBG(("volume_check: fd_attach_com FAILED\n"));

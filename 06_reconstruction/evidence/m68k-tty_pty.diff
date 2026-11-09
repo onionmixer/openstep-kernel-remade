@@ -1,0 +1,92 @@
+--- a/07_kernel/src/bsd/kern/tty_pty.c
++++ b/07_kernel/v183.34/m68k/src/bsd/kern/tty_pty.c
+@@ -825,4 +825,89 @@
+  * plan 189: pts_process_putc, ptsputc and ptsputcbuf are not in the
+  * original object (no symbols or code in [0x111c00, 0x112db0)).
+  */
++/* plan 764 (m68k) begin: pts_process_putc and ptsputc exist in the m68k original (NeXTMach bsd/tty_pty.c:735-815); the x86 original has neither (plan 189 above) */
++extern void callout_dispatch();
++
++/*
++ * Process queued entries to ptsputc via software interrupt.
++ */
++static char ptsputcbuf[256], *ptsputcp = ptsputcbuf;
++static void pts_process_putc(tp)
++	struct tty *tp;
++{
++	register char *optr;
++	register int s, n;
++
++    again:
++	optr = ptsputcp;
++	if (b_to_q(ptsputcbuf, optr - ptsputcbuf, &tp->t_outq) == 0)
++		ptsstart(tp);
++
++	/*
++	 * To guard against re-entrency we took a snapshot of ptsputcp
++	 * above.  If it's not the same, copy the newly added stuff to
++	 * the beginning of the buffer and try again.
++	 */
++	s = splhigh();
++	if (n = ptsputcp - optr) {
++		bcopy(optr, ptsputcbuf, n);
++		ptsputcp = ptsputcbuf + n;
++		splx(s);
++		goto again;
++	}
++	ptsputcp = ptsputcbuf + n;
++	splx(s);
++}
++
++/*
++ * Put and Get routines for ptys.  Used for kernel access to the
++ * pty slave queues.
++ */
++ptsputc (dev, c)
++	dev_t dev;
++	register int c;
++{
++	register struct tty *tp = pt_soft[minor(dev)].ps_tty;
++	char buf[2];
++
++	buf[0] = c;
++	c = 1;
++	if (buf[0] == '\n') {
++		buf[1] = '\r';
++		c++;
++	}
++
++	/*
++	 * We can't add to the queue if at ipl >= spltty().  Buffer
++	 * the data and flag a software interrupt if there's not already
++	 * data buffered.  The software interrupt can then cleanup
++	 * the stuff.
++	 */
++	if (curipl() >= IPLTTY) {
++		int s = splhigh();
++		switch (ptsputcp-ptsputcbuf) {
++		case 0:
++			/*
++			 * Start up the software interrupt on first character
++			 * posted to buffer.
++			 */
++			callout_dispatch(0, pts_process_putc, (int)tp);
++			break;
++		case sizeof(ptsputcbuf):
++			/*
++			 * The thing's already full, tough luck.
++			 */
++			splx(s);
++			return;
++		}
++		*ptsputcp++ = buf[0];
++		if (c == 2 && ptsputcp != &ptsputcbuf[sizeof(ptsputcbuf)])
++			*ptsputcp++ = buf[1];
++		splx(s);
++		return;
++	}
++	if (b_to_q(buf, c, &tp->t_outq) == 0)
++		ptsstart(tp);
++}
++/* plan 764 (m68k) end */
+ #endif

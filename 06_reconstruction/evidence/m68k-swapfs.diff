@@ -1,0 +1,34 @@
+--- 07_kernel/src/bsd/swapfs/swapfs.c (ef33dddeddf76fc5)
++++ 07_kernel/v183.34/m68k/src/bsd/swapfs/swapfs.c (63b9d5473c7ebc05)
+@@ -58,7 +58,11 @@
+ 	vm_offset_t	sd_cbuf;	/* compression buffer */
+ 	long		sd_wblock;
+ 	u_char		sd_refcnt;
++#if	!m68k	/* plan 784 (m68k) */
+ 	u_char		sd_flags;
++#else	/* plan 784 (m68k) */
++	char		sd_flags;	/* plan 784 (m68k): D179, signed byte as in the original first mask (plan 783 F2) */
++#endif	/* plan 784 (m68k) */
+ };
+ 
+ #define SD_LOCKED	0x1
+@@ -330,11 +334,19 @@
+ swapfs_unlock(struct vnode *vp)
+ {
+ 	struct swapfs_data *sd = &VTOSN(vp)->sn_data;
++#if	!m68k	/* plan 784 (m68k) */
+ 	u_char flags = sd->sd_flags;
++#else	/* plan 784 (m68k) */
++	char flags = sd->sd_flags;	/* plan 784 (m68k) */
++#endif	/* plan 784 (m68k) */
+ 
+ 	sd->sd_flags = flags & ~SD_LOCKED;
+ 	if (flags & SD_WANTED) {
++#if	!m68k	/* plan 784 (m68k) */
+ 		sd->sd_flags &= ~(SD_LOCKED|SD_WANTED);	/* plan 494 (D102) */
++#else	/* plan 784 (m68k) */
++		sd->sd_flags &= ~SD_WANTED;	/* plan 784 (m68k): D179 (plan 783 F2) */
++#endif	/* plan 784 (m68k) */
+ 		wakeup((caddr_t)&sd->sd_flags);
+ 	}
+ }

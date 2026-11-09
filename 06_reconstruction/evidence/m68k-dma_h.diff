@@ -1,0 +1,116 @@
+--- nextmach/mk-108.1/nextdev/dma.h
++++ 07_kernel/nextmach/nextdev/dma.h
+@@ -2,6 +2,15 @@
+ 
+ /* 
+  **********************************************************************
++ * plan 544 (D119): the 1997 m68k layout of struct dma_chan written from the
++ * original bytes (dma.c 0x4066410, np 0x40726d0, en 0x408dd08); lines
++ * marked plan 544 differ from NeXTMach mk-108.1 nextdev/dma.h.
++ * plan 547 (D120): the 1997 DMA_W (panic string, rewrite loop only on the
++ * 313 chip) and dh_flags values (DMADH_INITBUF 0x4, new DMADH_LONGALIGN 0x1
++ * and DMADH_FLUSHED 0x2; DMADH_SECTCHAIN 0x2 removed, the 1997 kernel has no
++ * sector chaining) and DMACSR_INITBUF_TURBO, from the original bytes (dma.c,
++ * en); lines marked plan 547.
++ *
+  * HISTORY
+  *
+  * 26-Sep-89  John Seamons (jks) at NeXT
+@@ -20,7 +29,10 @@
+ 
+ #ifndef	__DMA__
+ #define	__DMA__
+-#import <vm/vm_param.h>
++#import <mach/vm_param.h>	/* plan 544 (D104): NeXTMach <vm/vm_param.h> */
++#ifndef	NeXT_MIN_PAGE_SIZE	/* plan 544 (D119): NeXTMach next/vm_param.h:60; the 1997 NDMAHDR is not yet checked against the bytes */
++#define	NeXT_MIN_PAGE_SIZE	8192
++#endif
+ #ifdef	KERNEL
+ #import <kern/xpr.h>
+ #endif	KERNEL
+@@ -28,20 +40,13 @@
+ /*
+  * dma.h -- description of NeXT dma structures
+  */
+-#define	MAX_DMA_LEN	(64*1024)	/* max DMA transfer size per chain */
+-
+-#define	DMA_BEGINALIGNMENT	4	/* initial buffer must be on long */
+-#define	DMA_ENDALIGNMENT	16	/* DMA must end on quad longword */
+-
+-#define	DMA_ALIGN(type, addr)	\
+-	((type)(((unsigned)(addr)+DMA_BEGINALIGNMENT-1) \
+-		&~(DMA_BEGINALIGNMENT-1)))
+-
+-#define	DMA_ENDALIGN(type, addr)	\
+-	((type)(((unsigned)(addr)+DMA_ENDALIGNMENT-1) \
+-		&~(DMA_ENDALIGNMENT-1)))
+-#define	DMA_BEGINALIGNED(addr)	(((unsigned)(addr)&(DMA_BEGINALIGNMENT-1))==0)
+-#define	DMA_ENDALIGNED(addr)	(((unsigned)(addr)&(DMA_ENDALIGNMENT-1))==0)
++/*
++ * plan 544 (D119): the 1997 alignment macros (MAX_DMA_LEN, MAX_CHAIN_LEN,
++ * DMA_BEGINALIGNMENT 16, DMA_ENDALIGNMENT 16, DMA_LONGALIGNMENT,
++ * DMA_BEGINALIGN, DMA_ENDALIGN, DMA_*ALIGNED) come from the OPENSTEP public
++ * header; NeXTMach's block here (DMA_BEGINALIGNMENT 4, DMA_ALIGN) is removed.
++ */
++#import <dev/m68k/dma.h>
+ 
+ #if	!ASSEMBLER
+ struct dma_hdr {		/* header that represents buffers to dma */
+@@ -61,8 +66,9 @@
+  * Flags for per-dma_hdr actions
+  * (Might someday want to do flag for ENETR soft ints with these)
+  */
+-#define	DMADH_INITBUF	0x0001		/* initialize internal DMA buffer */
+-#define	DMADH_SECTCHAIN	0x0002		/* call routine on sector chain */
++#define	DMADH_LONGALIGN	0x0001		/* plan 547 (D120, D024): buffer need only be long aligned */
++#define	DMADH_FLUSHED	0x0002		/* plan 547 (D120, D024): cache flushed by dma_prep */
++#define	DMADH_INITBUF	0x0004		/* initialize internal DMA buffer */	/* plan 547 (D120): NeXTMach 0x0001 */
+ 
+ /*
+  * lists of dma_hdr's used by dma_list()
+@@ -95,10 +101,10 @@
+ #define	DMA_W(reg, val) \
+ 	if (((int)(val) & 0x0fffffff) < P_MAINMEM || \
+ 	    ((int)(val) & 0x0fffffff) >= (P_MAINMEM + P_MEMSIZE)) \
+-		panic ("TBG in DMA"); \
++		panic ("attempted DMA outside of memory space"); \
+ 	do { \
+ 		(reg) = (val); \
+-	} while ((reg) != (val));
++	} while (dma_chip == 313 && (reg) != (val));	/* plan 547 (D120): NeXTMach "TBG in DMA", every chip */
+ #endif	!ASSEMBLER
+ 
+ /*
+@@ -117,6 +123,7 @@
+ #define	DMACSR_CLRCOMPLETE	0x00080000	/* clear complete conditional */
+ #define	DMACSR_RESET		0x00100000	/* clr cmplt, sup, enable */
+ #define	DMACSR_INITBUF		0x00200000	/* initialize DMA buffers */
++#define	DMACSR_INITBUF_TURBO	0x00800000	/* plan 547 (D120, D024): initialize DMA buffers, not the 313 chip */
+ 
+ /*
+  * dma "commands"
+@@ -169,10 +176,15 @@
+ 	volatile int dc_flags;		/* see below */
+ 	char *dc_tailstart;		/* phys addr for start of tail */
+ 	long dc_taillen;		/* length of tail segment */
++	char *dc_tailalloc;		/* plan 544 (D119, D024): kalloc'd tail buffer (0x38) */
+ 	char *dc_tail;			/* pts to quad aligned tail buf */
+ 	vm_offset_t dc_ptail;		/* phys addr for tail buf */
+ 	char dc_tailbuf[DMA_MAXTAIL+2*DMA_ENDALIGNMENT]; /* tail buffer */
+-	void (*dc_sectchain)();		/* routine to call on sector chain */
++	char *dc_alignva;		/* plan 544 (D119, D024): unaligned buffer: original address (0xe4) */
++	long dc_alignoff;		/* plan 544 (D119, D024): bytes to the next 16-byte boundary (0xe8) */
++	long dc_alignlen;		/* plan 544 (D119, D024): length moved by dma (0xec) */
++	long dc_alignrem;		/* plan 544 (D119, D024): rest through the tail buffer (0xf0) */
++	struct pmap *dc_alignpmap;	/* plan 544 (D119, D024): pmap of the buffer (0xf4) */
+ };
+ 
+ /*
+@@ -196,6 +208,7 @@
+ #define	DMACHAN_BUSY		0x1000	/* dma channel is active */
+ #define	DMACHAN_CHAINING	0x2000	/* channel is chaining */
+ #define	DMACHAN_ERROR		0x4000	/* dma channel in error state */
++#define	DMACHAN_UNALIGNED	0x8000	/* plan 544 (D119, D024): buffer moved for alignment (dc_align*) */
+ 
+ /*
+  * constants for use with dma_dequeue "doneflag" argument

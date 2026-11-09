@@ -1,0 +1,1844 @@
+--- NeXTMach mk-108.1 next/locore.s
++++ 07_kernel/src/machdep/m68k/locore.s
+@@ -1,3 +1,95 @@
++/* plan 753 (D104, D167, D168, D024) the 1997 m68k locore.s from NeXTMach next/locore.s; changed lines are marked plan 744-753.  Names that are this project's, not the original source's (D168): R_A6, THREAD_TASK, TASK_U_ADDRESS, FSAVE_BIT, IRSO1997, IMM0, IMM1, move_space_done;
++ * the values are from the original bytes (the define block).  NeXTMach text that no longer affects the object (unused defines and macros, NCPUS/FIXME/NIPLMEAS parts) is kept (D168). */
++/* plan 754 (D167, D168, D024) BEGIN: assym constants and T_* (the define block; values from the original bytes, project names marked in their lines) */
++#define	REGS 0
++#define	R_D0 0
++#define	R_SP 60
++#define	R_A6 56	/* plan 745: a6 slot of the 16-register frame (14*4; R_SP is 15*4); this project's name (not the original source's), value from the original bytes (D168) */
++#define	FSIZE 28
++#define	R_SR 64
++#define	R_PC 66
++#define	FMT 70
++#define	VOR 70
++#define	FAKE_SIZE 72
++#define	SSW 74
++#define	FAULTADDR 80
++#define	STAGEB 100
++#define	SIZEOF_NORMAL6 4
++#define	SIZEOF_SHORTBUS 24
++#define	SIZEOF_LONGBUS 84
++#define	SIZEOF_ACCESS 52
++#define	FAULTD_BIT 8
++#define	FAULTB_BIT 14
++#define	FAULTC_BIT 15
++#define	READ_BIT 6
++#define	SSW_040 76
++#define	FAULTADDR_040 84
++#define	ATC_BIT 10
++#define	RW_BIT 8
++#define	MA_BIT 11
++#define	LK_BIT 9
++#define	SIZEOF_PCB 416
++#define	FLAGS 84
++#define	AST 84
++#define	FSAVE_BIT 6	/* plan 750, D168: original bclr/bset #6,a0@(84) around fsave (pcb flags bit; plan 743); this project's name (not the original source's), value from the original bytes */
++#define	T_STRAY 0x00	/* plan 753: NeXTMach next/trap.h:17; original mmu_type entry at 0x4002170 */
++#define	T_BUSERR 0x08	/* plan 753: original movel #8,sp@- at 0x4002158; same value as 07 trap.c */
++#define	T_ADDRERR 0x0c	/* plan 753: original movel #12,sp@- at 0x4001f7e; same value as 07 trap.c */
++#define	T_MMU_BUSERR 0x400	/* plan 753: original mmu_type entry 0x4002164; same value as 07 trap.c */
++#define	T_MMU_LIMIT 0x404	/* plan 753: original mmu_type entry 0x4002168; same value as 07 trap.c */
++#define	T_MMU_SUPER 0x408	/* plan 753: original mmu_type entry 0x400216c; same value as 07 trap.c */
++#define	T_MMU_WRITE 0x40c	/* plan 753: original mmu_type entry 0x4002174; same value as 07 trap.c */
++#define	T_MMU_INVALID 0x410	/* plan 753: original mmu_type entry 0x4002178 and movel #1040,d2 at 0x4002014; same value as 07 trap.c */
++#define	TT1 88
++#define	PCB_TT1 7
++#define	AST_SCHED_BIT 4	/* plan 743: original btst #4 */
++#define	TRACE_AST_BIT 2
++#define	TRACE_USER_BIT 1
++#define	FPC_INT 92
++#define	FPC_EXT 404
++#define	FPC_REGS 308
++#define	THREAD_USER_REG 80
++#define	SAVED_REGS 72
++#define	SR_TSINGLE_BIT 15
++#define	SR_SUPER_BIT 13
++#define	VM_PROT_READ 1
++#define	VM_PROT_WRITE 2
++#define	P_LINK 0
++#define	P_RLINK 4
++#define	P_PRI 17
++#define	P_STAT 19
++#define	P_CURSIG 23
++#define	P_SIG 24
++#define	P_FLAG 40
++#define	SSLEEP 1
++#define	SRUN 3
++#define	V_SWTCH 0
++#define	V_TRAP 4
++#define	V_SYSCALL 8
++#define	V_INTR 12
++#define	V_SOFT 16
++#define	V_PDMA 20
++#define	V_FAULTS 92
++#define	V_PGREC 52
++#define	V_FASTPGREC 112
++#define	NMBCLUSTERS 512
++#define	U_PROCP 0
++#define	U_RU 358
++#define	RU_MINFLT 32
++#define	U_ERROR 100
++#define	U_AR0 0
++#define	THREAD_PCB 36
++#define	THREAD_TASK 12	/* plan 746: original trap3 movl a1@(12),a1 (thread->task); this project's name (not the original source's), value from the original bytes (plan 743; D168) */
++#define	TASK_U_ADDRESS 48	/* plan 746: original trap3 movl a1@(48),a1 (task->u_address); this project's name (not the original source's), value from the original bytes (plan 743; D168) */
++#define	THREAD_RECOVER 112
++#define	THREAD_AST 372
++#define	AST_ZILCH 0
++#define	UTHREAD 300
++#define	UTASK 304
++
++#define	IMM0 0	/* plan 745 (D167): INTRARG argument for ipl1: the body adds the # (the NeXT cpp drops an argument that starts with #) */
++#define	IMM1 1	/* plan 745 (D167): INTRARG argument for ipl2 */
++/* plan 754 END */
+ #define	D25B	1
+ #define	D43B	1
+ #define	D50D	0
+@@ -36,29 +128,28 @@
+ #import <eventmeter.h>
+ #import <mach_ldebug.h>
+ 
+-#import <sys/kern_return.h>
++/* plan 753 (D104, D168, D024) BEGIN: the include lines of the 07 staging (D104): m68k/ and mach/ headers for next/ and sys/kern_return.h; next/pcb.h and next/trap.h are not included (the assym constants are the define block, the T_* are defined above) */
++#import <mach/kern_return.h>
+ #import <sys/errno.h>
+ #import <sys/reboot.h>
+ 
+-#import <next/cframe.h>
+-#import <next/vm_param.h>
+-#import <next/vmparam.h>
++#import <m68k/cframe.h>
++#import <mach/m68k/vm_param.h>
++#import <m68k/vmparam.h>
+ #import <next/cpu.h>
+-#import <next/psl.h>
+-#import <next/pcb.h>
+-#import <next/mmu.h>
+-#import <next/trap.h>
+-#import <next/spl.h>
+-
+-	.data
+-	.globl	_sdata
+-_sdata:	/* Marks the start of the data segment */
++#import <m68k/psl.h>
++#import <m68k/mmu.h>
++#import <m68k/reg.h>
++#import <m68k/spl.h>
++/* plan 753 END */
++
++/* plan 744 (D167, D024) BEGIN: _sdata and the global _start_text removed (not in the original symbol table) */
++/* plan 744 END */
+ 	.text
+ 	.globl	_start
+ _start:
+ 	jmp	entry		// so start = lowest address in text seg
+ 
+-	.globl	_start_text
+ _start_text:
+ ZERO_PHYS:			// lowest address in object file
+ 
+@@ -71,10 +162,13 @@
+ 	 *	that fall off the front will fault.
+ 	 */
+ 
+-	.globl	_intstack, _eintstack
+-_intstack:
++/* plan 744 (D167, D024) BEGIN: _intstacks (original 0x4000318 = _start+8; global _intstack and _eintstack are not in the original symbol table) */
++	.align	2
++	.globl	_intstacks
++_intstacks:
+ 	.skip	INTSTACK_SIZE
+ _eintstack:
++/* plan 744 END */
+ 
+ 	.data
+ #ifdef	DEBUG
+@@ -119,21 +213,14 @@
+ 
+ 	.text
+ entry:
+-	/* use monitor stack until after NeXT_init() is called */
+-
+-#if	 NCPUS > 1
+-try:
+-	tas	_start_lock
+-	beq	2f
+-1:	tstb	_start_lock
+-	bne	1b
+-	bra	try
+-2:
+-	tas	_master_lock
+-	bne	slave_start
+-#endif	NCPUS > 1
+-
+-	jsr	_NeXT_init
++/* plan 749 (D167, D024) BEGIN: entry (original 0x4001318, 172 B): interrupt stack first, _m68k_init instead of _NeXT_init */
++	lea	_eintstack,a0		// interrupt stack, with the monitor stack pointer saved on it
++	movl	sp,a0@-
++	movl	a0,sp
++	movl	#0,a6
++	jsr	_m68k_init
++	addqw	#4,sp
++/* plan 749 END */
+ 	cmpb	#MC68030,_cpu_type
+ 	beq	1f
+ 	movl	#0,d0				// disable MMU
+@@ -147,35 +234,51 @@
+ 	.word	0xf4d8
+ //	pflusha					// flush TLB
+ 	.word	0xf518
+-	movl	_NeXT_kernel_mmu_rp+4,d0	// only load rp_ptbr portion for 68040
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	movl	_m68k_kernel_mmu_rp+4,d0	// only load rp_ptbr portion for 68040
++/* plan 749 END */
+ //	movc	d0,srp
+ 	.long	0x4e7b0807
+-	movl	_NeXT_kernel_mmu_040_tt,d0
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	movl	_m68k_kernel_mmu_040_tt,d0
++/* plan 749 END */
+ //	movc	d0,itt0
+ 	.long	0x4e7b0004
+ //	movc	d0,dtt0
+ 	.long	0x4e7b0006
+-	movl	_NeXT_kernel_mmu_040_tc,d0
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	movl	_m68k_kernel_mmu_040_tc,d0
++/* plan 749 END */
+ //	movc	d0,tc
+ 	.long	0x4e7b0003
+ 	bra	2f
+ 1:
+-//	pmove	_NeXT_kernel_mmu_030_tt,tt0	// transparently map kernel
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++//	pmove	_m68k_kernel_mmu_030_tt,tt0	// transparently map kernel
++/* plan 749 END */
+ 	.long	0xf0390800
+-	.long	_NeXT_kernel_mmu_030_tt
+-//	pmove	_NeXT_kernel_mmu_rp,srp	// reconfigure MMU
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	.long	_m68k_kernel_mmu_030_tt
++/* plan 749 END */
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++//	pmove	_m68k_kernel_mmu_rp,srp	// reconfigure MMU
++/* plan 749 END */
+ 	.long	0xf0394800
+-	.long	_NeXT_kernel_mmu_rp
+-//	pmove	_NeXT_kernel_mmu_030_tc,tc
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	.long	_m68k_kernel_mmu_rp
++/* plan 749 END */
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++//	pmove	_m68k_kernel_mmu_030_tc,tc
++/* plan 749 END */
+ 	.long	0xf0394000
+-	.long	_NeXT_kernel_mmu_030_tc
++/* plan 749 (D167, D024) BEGIN: original symbol name _m68k_kernel_mmu_* (NeXTMach _NeXT_kernel_mmu_*) */
++	.long	_m68k_kernel_mmu_030_tc
++/* plan 749 END */
+ 2:
+ 	movl	_cache,d0		// enable cache
+ 	movc	d0,cacr
+-	lea	_eintstack,sp		// switch to interrupt stack
+-#if	GDB
+-	movl	#0,a6			// zero fp to keep GDB happy
+-#endif	GDB
++/* plan 749 (D167, D024) BEGIN: the interrupt stack switch and the a6 clear are at the start of entry */
++/* plan 749 END */
+ 
+ 	/*
+ 	 *  Record the fsave stack frame version number
+@@ -193,146 +296,10 @@
+ 5:
+ 	jsr	_startup_early		// early initializaion
+ 	jsr	_setup_main		// returns initial thread in d0
+-
+-	/*
+-	 *	Set up initial PCB and change to kernel stack in context
+-	 *	of first thread.
+-	 */
+-
+-	movl	d0,a0
+-	movl	a0@(THREAD_PCB),a0	// get virtual address of PCB
+-	lea	1f,a1			// initial pc
+-	movl	a1,a0@(R_PC)
+-	movw	#SR_SUPER,a0@(R_SR)	// kernel mode, ipl 0
+-	movl	a0@(R_SP),sp		// switch to new kernel stack
+-	clrl	sp@-			// EF_NORMAL4 format for rte below
+-	movl	a0@(R_PC),sp@-		// push pc for rte below
+-	movw	a0@(R_SR),sp@-		// push sr for rte below
+-#if	NIPLMEAS
+-	moveml	#0xc0c0,sp@-		// paranoia...
+-	clrl	d0
+-	movw	a0@(R_SR),d0
++/* plan 749 (D167, D024) BEGIN: the end of entry (original 0x40013b6-0x40013c4): the initial thread to _start_initial_context; the NeXTMach PCB set-up, rte, _main, _start_init and _thread_bootstrap are not in the 1997 unit */
+ 	movl	d0,sp@-
+-	jsr	_ipl_rte		// ipl_rte(new_sr)
+-	addql	#4,sp
+-	moveml	sp@+,#0x0303
+-#endif	NIPLMEAS
+-	/*
+-	 *	Make sure the "cpu number" is still correct.
+-	 */
+-
+-	jsr	_set_cpu_number
+-	rte				// change to thread context
+-1:
+-
+-/*
+- *	call main to set up the initial processes
+- */
+-	jsr	_main
+-	/* NOTREACHED */
+-
+-	.globl	_start_init
+-_start_init:
+-
+-	/* fake a complete syscall exception stack */
+-	lea	_active_threads,a0	// current_thread()
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0@(UTHREAD),a1		// pointer to u area
+-	subl	#FAKE_SIZE,sp
+-	movl	sp,a1@(U_AR0)		// u.u_ar0 = kernel sp
+-	movl	a0@(THREAD_PCB),a1	// pointer to PCB
+-	movl	sp,a1@(SAVED_REGS)	// same as u_ar0
+-	clrw	sp@(VOR)		// EF_NORMAL4 format
+-					// other fields set by exec()/setregs()
+-	jsr	_load_init_program	// load init program
+-#if	NCPUS > 1
+-	clrb	_start_lock		// release the lock
+-#endif	NCPUS > 1
+-	jmp	syscall_rtn		// return to init program
+-
+-/*
+- *	Bootstrap a thread from an already built kernel stack.
+- */
+-	.globl	_thread_bootstrap
+-_thread_bootstrap:
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0@(THREAD_PCB),a0
+-	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	1f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	1f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(R_SR)
+-	jeq	1f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-1:	movw	d0,sr
+-	clrw	sp@(VOR)		// EF_NORMAL4 format
+-	movl	sp@(R_SP),a0		// restore usp
+-	movc	a0,usp
+-	cmpb	#MC68030,_cpu_type
+-	beq	2f
+-#if	D25B || D43B
+-	nop
+-#endif	D25B || D43B
+-//	cpusha	bc
+-	.word	0xf4f8
+-	bra	3f
+-2:
+-	movl	_cache,d0
+-	movc	d0,cacr			// clear cache and enable it
+-3:
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_rte		// ipl_rte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
+-					// FIXME: really restore d0,d1,a0,a1?
+-	moveml	sp@,#0x7fff		// restore all (except kernel sp)
+-	addw	#R_SR,sp		// pop register frame, including r_fsize
+-	rte
+-
+-#if	NCPUS > 1
+-#ifdef	FIXME
+-	.data
+-foo_stack:
+-	.skip	512
+-efoo_stack:
+-#endif	FIXME
+-
+-	.text
+-slave_start:
+-#ifdef	FIXME
+-	clrl	r1
+-	moval	_slave_scb-0x80000000(r1),r0
+-	mtpr	r0,$SCBB
+-	/* go into mapped mode */
+-	mtpr	_vax_sbr,$SBR
+-	mtpr	_vax_slr,$SLR
+-	mtpr	_vax_vsbr,$P0BR			# double map for jmp below
+-	mtpr	_vax_slr,$P0LR
+-
+-	moval	_startup_pcb,r1		#address fake PCB
+-	mtpr	r1,$PCBB		#to store other stack pointers in
+-	mtpr	$1,$TBIA
+-	mtpr	$1,$MAPEN
+-	jmp	*$0f
+-0:
+-	moval	efoo_stack,sp
+-	calls	$0,_set_cpu_number		# set the cpu number (returned in r0)
+-	movl	_interrupt_stack[r0],sp		# virtual stack
+-	addl2	$INTSTACK_SIZE,sp		# start and end
+-	bbcci	$1,_start_lock,1f		# release the lock
+-1:
+-	calls	$0,_slave_main
+-	halt
+-#endif	NCPUS > 1
+-#endif	FIXME
++	jsr	_start_initial_context
++/* plan 749 END */
+ 
+ PROCENTRY (curipl)
+ 	movw	sr,d0
+@@ -390,7 +357,9 @@
+ 2:
+ 	PROCEXIT
+ 
+-PROCENTRY (pload_read)
++/* plan 751 (D167, D024) BEGIN: _tlb_update_read (original 0x4001412; NeXTMach pload_read) */
++PROCENTRY (tlb_update_read)
++/* plan 751 END */
+ 	movl	a_p0,d0
+ 	movl	a_p1,a0
+ 	cmpb	#MC68030,_cpu_type
+@@ -407,14 +376,18 @@
+ 2:
+ 	PROCEXIT
+ 
+-PROCENTRY (pload_write)
++/* plan 751 (D167, D024) BEGIN: _tlb_update_write (original 0x4001440; NeXTMach pload_write) */
++PROCENTRY (tlb_update_write)
++/* plan 751 END */
+ 	movl	a_p0,d0
+ 	movl	a_p1,a0
+ 	cmpb	#MC68030,_cpu_type
+ 	beq	1f
+ 	movc	dfc,d1
+ 	movc	d0,dfc
+-#define	PTESTW_BUG	1
++/* plan 751 (D167, D024) BEGIN: original _tlb_update_write has ptestw (0xf548) */
++#define	PTESTW_BUG	0
++/* plan 751 END */
+ #if	PTESTW_BUG
+ //	ptestr	a0@
+ 	.word	0xf568
+@@ -469,10 +442,17 @@
+ 2:
+ 	PROCEXIT
+ 
+-PROCENTRY (move_space)
++/* plan 751 (D167, D024) BEGIN: __move_space and _move_space_fault (original 0x40014be, 0x4001522; NeXTMach move_space) */
++	.globl	__move_space
++__move_space:
++	link	a6,#0
++	moveml	#0x2030,sp@-
++	movl	_active_threads,a2
++	movl	a2@(THREAD_RECOVER),sp@-
++	movl	#_move_space_fault,a2@(THREAD_RECOVER)
+ 	movl	a_p0,a0
+ 	movl	a_p1,d0
+-	movc	dfc,d1
++	movc	dfc,d2
+ 	movc	d0,dfc
+ 	movl	a_p3,d0
+ 	cmpl	#SIZE_LONG,a_p2
+@@ -484,8 +464,25 @@
+ 	movsw	d0,a0@
+ 	bra	3f
+ 2:	movsb	d0,a0@
+-3:	movc	d1,dfc
+-	PROCEXIT
++3:	clrl	d0
++move_space_done:
++	movc	d2,dfc
++	movl	sp@+,a2@(THREAD_RECOVER)
++	moveml	sp@+,#0x0c04
++	unlk	a6
++	rts
++
++	.globl	_move_space_fault
++_move_space_fault:
++	orl	a_p1,d0
++	movl	a_p4,a3
++	movl	d1,a3@
++	movl	a_p5,a3
++	movl	a0,a3@
++	movl	a_p6,a3
++	movl	a1,a3@
++	jra	move_space_done
++/* plan 751 END */
+ 
+ PROCENTRY (cache_push_page)
+ 	movl	a_p0,a0
+@@ -523,46 +520,8 @@
+ 	movc	d0,vbr
+ 	PROCEXIT
+ 
+-	.data
+-global_lock:
+-	.byte	0
+-	.even
+-	.text
+-
+-/* FIXME: SPL(7) at all?  Should drop to SPLX() if tas fails? */
+-PROCENTRY (bbcci)
+-	spl7()
+-	movl	#1,a0
+-1:
+-	tas	global_lock
+-	bne	1b
+-	movl	a_p0,d1
+-	movl	a_p1,a1
+-	bfclr	a1@{d1:#1}
+-	beq	2f
+-	movl	#0,a0
+-2:	clrb	global_lock
+-	movl	d0,d1
+-	splx(d1)
+-	movl	a0,d0
+-	PROCEXIT
+-
+-PROCENTRY (bbssi)
+-	spl7()
+-	movl	#1,a0
+-1:
+-	tas	global_lock
+-	bne	1b
+-	movl	a_p0,d1
+-	movl	a_p1,a1
+-	bfset	a1@{d1:#1}
+-	bne	2f
+-	movl	#0,a0
+-2:	clrb	global_lock
+-	movl	d0,d1
+-	splx(d1)
+-	movl	a0,d0
+-	PROCEXIT
++/* plan 744 (D167, D024) BEGIN: NeXTMach global_lock, bbcci and bbssi removed (not in the 1997 unit) */
++/* plan 744 END */
+ 
+ /*
+  *	WARNING FIXME:
+@@ -640,6 +599,10 @@
+ 
+ #define	COPY_THRESH	64
+ 
++/* plan 744 (D167, D024) BEGIN: _copyoutmsg alias of _copyout (original 0x400165e) */
++	.globl	_copyoutmsg
++_copyoutmsg:
++/* plan 744 END */
+ PROCENTRY(copyout)
+ 	movl	#FC_USERD,d0	// set destination func code
+ 	movc	d0,dfc
+@@ -679,6 +642,10 @@
+ 
+ 	bra	copy_exit
+ 
++/* plan 744 (D167, D024) BEGIN: _copyinmsg alias of _copyin (original 0x40016d0) */
++	.globl	_copyinmsg
++_copyinmsg:
++/* plan 744 END */
+ PROCENTRY(copyin)
+ 	movl	#FC_USERD,d0	// set source func code
+ 	movc	d0,sfc
+@@ -820,10 +787,17 @@
+ 	movl	#EINVAL,d0
+ 	PROCEXIT
+ 
++/* plan 744 (D167, D024) BEGIN: _fault_error and _FAULT_ERROR (original 0x400182c) */
++	.data
++	.globl	_fault_error
++_fault_error:
++	.long	0
++	.text
+ 	.globl _FAULT_ERROR
+ _FAULT_ERROR:
+-	movl	#EFAULT,d0
+-	PROCEXIT
++	movl	_fault_error,d0
++	PROCEXIT
++/* plan 744 END */
+ 
+ copy_exit:
+ 	clrl	d0
+@@ -875,6 +849,21 @@
+ 	clrl	d0
+ 2:
+ 	PROCEXIT
++
++/* plan 751 (D167, D024) BEGIN: _probe_rl (original 0x4001898): probe_rb with a longword read */
++PROCENTRY (probe_rl)
++	movl	#1f,_probe_recover
++	movl	a_p0,a0
++	movl	a0@,d0
++	clrl	_probe_recover
++	movql	#1,d0
++	bra	2f
++1:
++	clrl	_probe_recover
++	clrl	d0
++2:
++	PROCEXIT
++/* plan 751 END */
+ 
+ #if	MACH_LDEBUG && (NCPUS == 1)
+ /*
+@@ -946,17 +935,8 @@
+ //----sched stuff----//
+ 	.text
+ 
+-PROCENTRY (set_cpu_number)
+-#if	NCPUS == 1
+-	clrl	d0
+-#else	NCPUS == 1
+-	jsr	_cpu_number		// do it the hard way
+-#endif	NCPUS == 1
+-	movc	msp,d1			// store in low byte
+-	andl	#0xffffff00,d1
+-	orl	d0,d1
+-	movc	d1,msp			// save in msp
+-	PROCEXIT
++/* plan 744 (D167, D024) BEGIN: NeXTMach set_cpu_number removed (not in the 1997 unit) */
++/* plan 744 END */
+ 
+ /*
+  *	Save and load kernel context by saving kernel register state in
+@@ -966,117 +946,227 @@
+  null_frame:
+  	.long	0
+ 	
+-	.globl	_save_context
+-_save_context:
+-	lea	_active_threads,a0	// current_thread()
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0@(THREAD_PCB),a0	// pointer to pcb
+-	fsave	a0@(FPC_INT)		// save internal state
+-	tstb	a0@(FPC_INT)		// null state?
+-	beq	1f			// yes
+-//	fmovem	fpcr/fpsr/fpiar,a0@(FPC_EXT) // no, save external state too
++/* plan 750 (D167, D024) BEGIN: the switch_context family (original 0x40018d8-0x4001b3e, 614 B); NeXTMach _save_context, _load_context and loadfpregs are not in the 1997 unit */
++	.globl	__switch_context
++__switch_context:
++	movl	sp@(4),a0
++	bclr	#FSAVE_BIT,a0@(AST)
++	fsave	a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	beq	1f
++	bset	#FSAVE_BIT,a0@(AST)
++//	fmovem	fpcr/fpsr/fpiar,a0@(FPC_EXT)
+ 	.long	0xf228bc00
+ 	.word	FPC_EXT
+-//	fmovem	fp0-fp7,a0@(FPC_REGS)	// save registers
++//	fmovem	fp0-fp7,a0@(FPC_REGS)
+ 	.long	0xf228f0ff
+ 	.word	FPC_REGS
+-	
+-	// 040 bug: restore a null frame before subsequent frestore
+ 	nop
+ 	frestore null_frame
+ 1:
+-	spl7()				// spl7() -- lowered by load_context
+-	movw	d0,a0@(R_SR)		// save previous sr
+-	movl	sp@+,a1			// pop return address so saved sp
+-					// can be pushed again in load_context
+-	movl	a1,a0@(R_PC)		// where to resume on load_context
+-	moveml	#0xffff,a0@(REGS)	// save regs including kernel sp
+-
+-	/*
+-	 *	We assume the caller won't trash anything deeper on
+-	 *	the stack than the return address on the top of the stack
+-	 *	(which we have saved in the pcb) before doing a load_context.
+-	 */
+-	clrl	d0			// return 0 to caller of save_context()
+-	jmp	a1@
+-
+-	.globl	_load_context
+-_load_context:			/* (struct thread*) */
+-	addql	#1,_cnt+V_SWTCH
+-	movl	sp@(4),a0		// argument points to thread
+-	movl	a0@(THREAD_PCB),a0	// pointer to pcb
+-	tstb	a0@(FPC_INT)		// null state?
+-	beq	1f			// yes
+-//	fmovem	a0@(FPC_EXT),fpcr/fpsr/fpiar // no, restore external state
++	movl	sp@+,a1
++	moveml	#0xffff,a0@(REGS)
++	movl	sp@(4),a0
++	tstb	a0@(FPC_INT)
++	beq	2f
++//	fmovem	a0@(FPC_EXT),fpcr/fpsr/fpiar
+ 	.long	0xf2289c00
+ 	.word	FPC_EXT
+-//	fmovem	a0@(FPC_REGS),fp0-fp7	// restore registers
++//	fmovem	a0@(FPC_REGS),fp0-fp7
+ 	.long	0xf228d0ff
+ 	.word	FPC_REGS
+-//	movl	a0,a1@(0,d0:w:4)	// mark this pcbs regs still loaded
+-1:
+-	// 040 bug: flush pending writes before frestore
+-	nop
+-	frestore a0@(FPC_INT)		// restore internal state
+-	cmpb	#MC68030,_cpu_type
+-	beq	2f
++2:	nop
++	frestore a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	bne	3f
++	fmovel	#128,fpcr
++3:	cmpb	#MC68030,_cpu_type
++	beq	4f
+ 	movl	a0@(TT1),d0
+ //	movc	d0,itt1
+ 	.long	0x4e7b0005
+ //	movc	d0,dtt1
+ 	.long	0x4e7b0007
+-	bra	3f
+-2:
+-//	pmove	a0@(TT1),tt1		// set MMU tt1 reg
++	bra	5f
++4:
++//	pmove	a0@(TT1),tt1
+ 	.long	0xf0280c00
+ 	.word	TT1
+-3:
+-#if	FIXME
+-#if	NCPUS == 1
+-	// FIXME: this really doesnt do anything!
+-	CPU_NUMBER_d0
+-	movc	msp,d1			// store in low byte
+-	andl	#0xffffff00,d1
+-	orl	d0,d1
+-	movc	d1,msp			// save in msp
+-#else	NCPUS == 1
+-	jsr	_set_cpu_number		// update cpu number
+-#endif	NCPUS == 1
+-
+-//	lea	_active_threads,a1	// current_thread()
+-//	CPU_NUMBER_d0
+-//	movl	a1@(d0:w:4),a1
+-//	movc	a1,msp			// FIXME: someday update cache in msp
+-#endif	FIXME
+-
+-	movl	a0@(R_SP),sp		// switch to new kernel stack
+-	movl	a0@(R_PC),sp@-		// restore return address
+-#if	NIPLMEAS
+-	clrl	d1
+-	movw	a0@(R_SR),d1
+-	splx(d1)
+-#else	NIPLMEAS
+-	movw	a0@(R_SR),sr		// restore new sr
+-#endif	NIPLMEAS
++5:
++	movl	sp@(8),a0@(R_D0)
++	movl	a0@(R_SP),sp
+ 	cmpb	#MC68030,_cpu_type
+-	bne	5f
++	bne	6f
+ 	movl	_cache,d0
+-	movc	d0,cacr			// clear cache and enable it
++	movc	d0,cacr
++6:	moveml	a0@(REGS),#0x7fff
++	jmp	a1@
++
++	.globl	__switch_context_discard
++__switch_context_discard:
++	movl	sp@(4),a0
++	bclr	#FSAVE_BIT,a0@(AST)
++	fsave	a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	beq	1f
++	bset	#FSAVE_BIT,a0@(AST)
++//	fmovem	fpcr/fpsr/fpiar,a0@(FPC_EXT)
++	.long	0xf228bc00
++	.word	FPC_EXT
++//	fmovem	fp0-fp7,a0@(FPC_REGS)
++	.long	0xf228f0ff
++	.word	FPC_REGS
++	nop
++	frestore null_frame
++1:
++	addql	#4,sp
++	movl	sp@(4),a0
++	tstb	a0@(FPC_INT)
++	beq	2f
++//	fmovem	a0@(FPC_EXT),fpcr/fpsr/fpiar
++	.long	0xf2289c00
++	.word	FPC_EXT
++//	fmovem	a0@(FPC_REGS),fp0-fp7
++	.long	0xf228d0ff
++	.word	FPC_REGS
++2:	nop
++	frestore a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	bne	3f
++	fmovel	#128,fpcr
++3:	cmpb	#MC68030,_cpu_type
++	beq	4f
++	movl	a0@(TT1),d0
++//	movc	d0,itt1
++	.long	0x4e7b0005
++//	movc	d0,dtt1
++	.long	0x4e7b0007
++	bra	5f
++4:
++//	pmove	a0@(TT1),tt1
++	.long	0xf0280c00
++	.word	TT1
+ 5:
+-	moveml	a0@(REGS),#0x7fff	// restore all except kernel sp
+-	movl	#1,d0			// return 1 to caller of save_context()
+-	rts
+-
+-/* The following is used by the ptrace PT_SETFPREGS to restore fpregs */
+-PROCENTRY(loadfpregs)
+-	movl	a_p0,a0			/* Pointer to fp regs base */
+-//	fmovem	fp0-fp7,a0@+		/* restore regs */
+-	.long	0xf218d0ff
+-//	fmovem	fpcr/fpsr/fpiar,a0@+
+-	.long	0xf2109c00
+-	PROCEXIT
+-	
++	movl	sp@(8),a0@(R_D0)
++	movl	a0@(R_SP),sp
++	cmpb	#MC68030,_cpu_type
++	bne	6f
++	movl	_cache,d0
++	movc	d0,cacr
++6:	moveml	a0@(REGS),#0x7fff
++	jmp	a1@
++
++	.globl	__switch_context0
++__switch_context0:
++	addql	#4,sp
++	movl	sp@(4),a0
++	tstb	a0@(FPC_INT)
++	beq	2f
++//	fmovem	a0@(FPC_EXT),fpcr/fpsr/fpiar
++	.long	0xf2289c00
++	.word	FPC_EXT
++//	fmovem	a0@(FPC_REGS),fp0-fp7
++	.long	0xf228d0ff
++	.word	FPC_REGS
++2:	nop
++	frestore a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	bne	3f
++	fmovel	#128,fpcr
++3:	cmpb	#MC68030,_cpu_type
++	beq	4f
++	movl	a0@(TT1),d0
++//	movc	d0,itt1
++	.long	0x4e7b0005
++//	movc	d0,dtt1
++	.long	0x4e7b0007
++	bra	5f
++4:
++//	pmove	a0@(TT1),tt1
++	.long	0xf0280c00
++	.word	TT1
++5:
++	movl	sp@(8),a0@(R_D0)
++	movl	a0@(R_SP),sp
++	cmpb	#MC68030,_cpu_type
++	bne	6f
++	movl	_cache,d0
++	movc	d0,cacr
++6:	moveml	a0@(REGS),#0x7fff
++	jmp	a1@
++
++	.globl	__stack_handoff
++__stack_handoff:
++	movl	sp@(4),a0
++	bclr	#FSAVE_BIT,a0@(AST)
++	fsave	a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	beq	1f
++	bset	#FSAVE_BIT,a0@(AST)
++//	fmovem	fpcr/fpsr/fpiar,a0@(FPC_EXT)
++	.long	0xf228bc00
++	.word	FPC_EXT
++//	fmovem	fp0-fp7,a0@(FPC_REGS)
++	.long	0xf228f0ff
++	.word	FPC_REGS
++	nop
++	frestore null_frame
++1:
++	movl	sp@(8),a0
++	tstb	a0@(FPC_INT)
++	beq	2f
++//	fmovem	a0@(FPC_EXT),fpcr/fpsr/fpiar
++	.long	0xf2289c00
++	.word	FPC_EXT
++//	fmovem	a0@(FPC_REGS),fp0-fp7
++	.long	0xf228d0ff
++	.word	FPC_REGS
++2:	nop
++	frestore a0@(FPC_INT)
++	tstb	a0@(FPC_INT)
++	bne	3f
++	fmovel	#128,fpcr
++3:	cmpb	#MC68030,_cpu_type
++	beq	4f
++	movl	a0@(TT1),d0
++//	movc	d0,itt1
++	.long	0x4e7b0005
++//	movc	d0,dtt1
++	.long	0x4e7b0007
++	bra	5f
++4:
++//	pmove	a0@(TT1),tt1
++	.long	0xf0280c00
++	.word	TT1
++5:
++	cmpb	#MC68030,_cpu_type
++	bne	6f
++	movl	_cache,d0
++	movc	d0,cacr
++6:	rts
++
++	.globl	__return_with_state
++__return_with_state:
++	movl	sp@(4),sp
++	movl	sp@(R_SP),a0
++	movc	a0,usp
++	moveml	sp@,#0x7fff
++	addw	#R_SR,sp
++	rte
++
++	.globl	__stack_attach
++__stack_attach:
++	movl	d0,sp@-
++	jsr	a2@
++
++	.globl	_call_continuation
++_call_continuation:
++	movl	sp@(4),a0
++	movl	_stack_pointers,sp
++	movl	sp,a6
++	jmp	a0@
++/* plan 750 END */
++
+ //----traps----//
+ 
+ #define	DO_ALIGNMENT	clrw	sp@-;
+@@ -1162,82 +1252,8 @@
+ 	movl	d0,sp@-; \
+ 	jra	trap;
+ 
+-#define	INTRARG(name, vector, arg, ra) \
+-	.globl	name; \
+-name: \
+-	clrw	sp@-;			/* zero r_fsize */ \
+-	DO_ALIGNMENT; \
+-	moveml	\#0xffff,sp@-; \
+-	movc	usp,a0; \
+-	movl	a0,sp@(R_SP); \
+-	IPL_INTR (); \
+-	movl	sp,a6;			/* special fp for gdb */ \
+-	addl	\#1,a6; \
+-	movl	sp,a2;			/* save sp */ \
+-	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+-	jls	1f; \
+-	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	INTR_CALL_LIT(vector, arg); \
+-	jra	ra;			/* sp & regs restored in intr_rtn */
+-
+-#define	INTRSCAN(name, scanlist, scanarg, start, len) \
+-	.globl	name; \
+-name: \
+-	clrw	sp@-;			/* zero r_fsize */ \
+-	DO_ALIGNMENT; \
+-	moveml	\#0xffff,sp@-; \
+-	movc	usp,a0; \
+-	movl	a0,sp@(R_SP); \
+-	IPL_INTR (); \
+-	movl	sp,a6;			/* special fp for gdb */ \
+-	addl	\#1,a6; \
+-	movl	sp,a2;			/* save sp */ \
+-	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+-	jls	1f; \
+-	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	movw	a2@(IRSO+0),d0;		/* push sr for timer */ \
+-	movl	d0,sp@-; \
+-	movl	a2@(IRSO+2),sp@-;	/* push pc */ \
+-2:	movl	_slot_id,a0; \
+-	addl	_intrstat,a0; \
+-	movl	a0@,d0;			/* see who's interrupting */ \
+-	andl	_intr_mask,d0;		/* scan only if enabled */ \
+-	bfffo	d0{\#start##:\#len##},d1;	/* scan all bits each time */ \
+-	jne	1f; \
+-	addql	\#8,sp;			/* pop off sr and pc */ \
+-	jmp	intr_rtn;		/* sp & regs restored in intr_rtn */ \
+-1:	subl	\#start,d1;		/* reset origin */ \
+-	lea	scanarg,a0; \
+-	movl	a0@(0,d1:w:4),a1;	/* arg to interrupt routine */ \
+-	lea	scanlist,a0; \
+-	movl	a0@(0,d1:w:4),a0; \
+-	INTR_CALL_REG(a0,a1); \
+-	bra	2b;			/* keep looking until no more */
+-
+-#define	INTRPOLL(name, vector) \
+-	.globl	name; \
+-name: \
+-	clrw	sp@-;			/* zero r_fsize */ \
+-	DO_ALIGNMENT; \
+-	moveml	\#0xffff,sp@-; \
+-	movc	usp,a0; \
+-	movl	a0,sp@(R_SP); \
+-	IPL_INTR (); \
+-	movl	sp,a6;			/* special fp for gdb */ \
+-	addl	\#1,a6; \
+-	movl	sp,a2;			/* save sp */ \
+-	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+-	jls	1f; \
+-	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	movl	a3,sp@-;		/* save a3 */ \
+-	movl	\#vector,a3;		/* list of routines to poll */ \
+-2:	movl	a3@+,a1; \
+-	INTR_CALL_REG0(a1); \
+-	tstl	d0;			/* interrupt serviced? */ \
+-	beqs	2b;			/* no, keep looking */ \
+-	movl	sp@+,a3;		/* restore a3 */ \
+-	jra	intr_rtn;		/* sp & regs restored in intr_rtn */
+-
++/* plan 745 (D167, D024) BEGIN: NeXTMach INTRARG, INTRSCAN, INTRPOLL removed here (1997 forms follow #endif GDB) */
++/* plan 745 END */
+ #else	GDB
+ #define	IRSO	(5*4)			/* interrupt register save offset */
+ 
+@@ -1278,32 +1294,48 @@
+ 	movl	d0,sp@-; \
+ 	jra	trap;
+ 
+-#define	INTRARG(name, vector, arg, ra) \
++/* plan 745 (D167, D024) BEGIN: NeXTMach INTRARG, INTRSCAN, INTRPOLL removed here (1997 forms follow #endif GDB) */
++/* plan 745 END */
++#endif	GDB
++
++/* plan 745 (D167, D024) BEGIN: INTRARG, INTRSCAN, INTRPOLL of the 1997 kernel (original 0x4001b8a-0x4001dfa: IPL 7 first, 16-register frame, stack switch, then the IPL of the handler) */
++#define	IRSO1997	(16*4)		/* sr at 64 and pc at 66: the 1997 frame has no r_fsize word */
++
++#define	INTRARG(name, mask, vector, arg, ra) \
+ 	.globl	name; \
+ name: \
+-	moveml	\#0xc0e0,sp@-;		/* save d0,d1,a0,a1,a2 */ \
+-	IPL_INTR (); \
++	orw	\#0x700,sr;		/* IPL 7 */ \
++	moveml	\#0xffff,sp@-; \
++	movc	usp,a0; \
++	movl	a0,sp@(R_SP); \
++	lea	sp@(R_A6),a6; \
+ 	movl	sp,a2;			/* save sp */ \
+ 	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+ 	jls	1f; \
+ 	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	INTR_CALL_LIT(vector, arg); \
+-	jra	ra;			/* sp & regs restored in intr_rtn */
+-
+-#define	INTRSCAN(name, scanlist, scanarg, start, len) \
++1:	andw	\#mask,sr; \
++	movl	\#arg,sp@-; \
++	jsr	vector; \
++	addql	\#4,sp; \
++	jra	ra;			/* sp & regs restored in softint_rtn */
++
++#define	INTRSCAN(name, mask, scanlist, scanarg, start, len) \
+ 	.globl	name; \
+ name: \
+-	moveml	\#0xc0e0,sp@-;		/* save d0,d1,a0,a1,a2 */ \
+-	IPL_INTR (); \
++	orw	\#0x700,sr;		/* IPL 7 */ \
++	moveml	\#0xffff,sp@-; \
++	movc	usp,a0; \
++	movl	a0,sp@(R_SP); \
++	lea	sp@(R_A6),a6; \
+ 	movl	sp,a2;			/* save sp */ \
+ 	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+ 	jls	1f; \
+ 	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	movw	a2@(IRSO+0),d0;		/* push sr for timer */ \
++1:	andw	\#mask,sr; \
++	movw	a2@(IRSO1997+0),d0;	/* push sr for timer */ \
+ 	movl	d0,sp@-; \
+-	movl	a2@(IRSO+2),sp@-;	/* push pc */ \
+-2:	movl	_slot_id,a0; \
+-	addl	_intrstat,a0; \
++	movl	a2@(IRSO1997+2),sp@-;	/* push pc */ \
++2:	movl	_intrstat,a0; \
+ 	movl	a0@,d0;			/* see who's interrupting */ \
+ 	andl	_intr_mask,d0;		/* scan only if enabled */ \
+ 	bfffo	d0{\#start:\#len},d1;	/* scan all bits each time */ \
+@@ -1318,60 +1350,75 @@
+ 	INTR_CALL_REG(a0,a1); \
+ 	bra	2b;			/* keep looking until no more */
+ 
+-#define	INTRPOLL(name, vector) \
++#define	INTRPOLL(name, mask, vector) \
+ 	.globl	name; \
+ name: \
+-	moveml	\#0xc0e0,sp@-;		/* save d0,d1,a0,a1,a2 */ \
+-	IPL_INTR (); \
++	orw	\#0x700,sr;		/* IPL 7 */ \
++	moveml	\#0xffff,sp@-; \
++	movc	usp,a0; \
++	movl	a0,sp@(R_SP); \
++	lea	sp@(R_A6),a6; \
+ 	movl	sp,a2;			/* save sp */ \
+ 	cmpl	\#_eintstack,sp;	/* on interrupt stack? */ \
+ 	jls	1f; \
+ 	lea	_eintstack,sp;		/* switch to interrupt stack */ \
+-1:	movl	a3,sp@-;		/* save a3 */ \
+-	movl	\#vector,a3;		/* list of routines to poll */ \
+-2:	movl	a3@+,a1; \
++1:	andw	\#mask,sr; \
++	movl	\#vector,a4;		/* list of routines to poll */ \
++2:	movl	a4@+,a1; \
+ 	INTR_CALL_REG0(a1); \
+ 	tstl	d0;			/* interrupt serviced? */ \
+ 	beqs	2b;			/* no, keep looking */ \
+-	movl	sp@+,a3;		/* restore a3 */ \
+ 	jra	intr_rtn;		/* sp & regs restored in intr_rtn */
+-#endif	GDB
+-
+-	TRAPVEC(stray)
+-	TRAPVEC(badtrap)
+-
+-	TRAP(illegal, T_ILLEGAL, 0)
+-	TRAP(zerodiv, T_ZERODIV, 4)
+-	TRAP(check, T_CHECK, 4)
+-	TRAP(trapv, T_TRAPV, 4)
+-	TRAP(privilege, T_PRIVILEGE, 0)
+-	TRAP(trace, T_TRACE, 4)
+-	TRAP(emu1010, T_EMU1010, 0)
+-	TRAP(emu1111, T_EMU1111, 0)
+-	TRAP(coproc, T_COPROC, 12)
+-	TRAP(format, T_FORMAT, 0)
+-	TRAP(badintr, T_BADINTR, 0)
+-	TRAP(spurious, T_SPURIOUS, 0)
+-	TRAP(breakpt, T_USER_BPT, 0)
+-	TRAP(fpp, T_FPP, 0)
+-	TRAP(mmu_config, T_MMU_CONFIG, 0)
+-	TRAP(mmu_ill, T_MMU_ILL, 0)
+-	TRAP(mmu_access, T_MMU_ACCESS, 0)
+-
+-	INTRARG(ipl1, _softint_run, #0, softint_rtn)
+-	INTRARG(ipl2, _softint_run, #1, softint_rtn)
+-	INTRSCAN(ipl3, _ipl3_scan, _ipl3_arg, I_IPL3_BASE, I_IPL3_BITS)
+-	INTRSCAN(ipl4, _ipl4_scan, _ipl4_arg, I_IPL4_BASE, I_IPL4_BITS)
+-	INTRPOLL(ipl5, _poll_intr)
+-	INTRSCAN(ipl6, _ipl6_scan, _ipl6_arg, I_IPL6_BASE, I_IPL6_BITS)
+-	INTRSCAN(ipl7, _ipl7_scan, _ipl7_arg, I_IPL7_BASE, I_IPL7_BITS)
+-
++/* plan 745 END */
++
++/* plan 750 (D167, D024) BEGIN: the NeXTMach TRAPVEC/TRAP handlers stray badtrap illegal zerodiv check trapv privilege emu1010 emu1111 coproc format badintr spurious breakpt fpp mmu_config mmu_ill mmu_access are not in the 1997 unit */
++/* plan 750 END */
++/* plan 744 (D167, D024) BEGIN: TRAP(trace) removed; trace is a jump to std_trap near fpsp_frame_err */
++/* plan 744 END */
++
++/* plan 745 (D167, D024) BEGIN: std_trap (original 0x4001b3e, 76 B; NeXTMach has no std_trap) */
++	.globl	std_trap
++std_trap:
++	moveml	#0xffff,sp@-
++	movc	usp,a0
++	movl	a0,sp@(R_SP)
++	lea	sp@(R_A6),a6
++	movw	sp@(VOR),d0		// get trap type from vor
++	andl	#0xfff,d0
++	movl	sp,a2
++	cmpl	#_eintstack,sp
++	jls	1f
++	movl	_stack_pointers,a5
++	cmpl	sp,a5
++	jcs	2f
++	subl	#4084,a5		// 4084 is the value in the bytes
++	cmpl	sp,a5
++	jcs	1f
++2:	movl	_stack_pointers,sp
++1:	movl	a2,sp@-
++	subw	#12,sp			// dummy fcode, rw and faultaddr
++	movl	d0,sp@-
++	jra	trap
++/* plan 745 END */
++
++/* plan 745 (D167, D024) BEGIN: ipl1-ipl7 with the original sr masks */
++	INTRARG(ipl1, 0xf1ff, _softint_run, IMM0, softint_rtn)
++	INTRARG(ipl2, 0xf2ff, _softint_run, IMM1, softint_rtn)
++	INTRSCAN(ipl3, 0xf3ff, _ipl3_scan, _ipl3_arg, I_IPL3_BASE, I_IPL3_BITS)
++	INTRSCAN(ipl4, 0xf4ff, _ipl4_scan, _ipl4_arg, I_IPL4_BASE, I_IPL4_BITS)
++	INTRPOLL(ipl5, 0xf5ff, _poll_intr)
++	INTRSCAN(ipl6, 0xf6ff, _ipl6_scan, _ipl6_arg, I_IPL6_BASE, I_IPL6_BITS)
++	INTRSCAN(ipl7, 0xf7ff, _ipl7_scan, _ipl7_arg, I_IPL7_BASE, I_IPL7_BITS)
++/* plan 745 END */
++
++/* plan 744 (D167, D024) BEGIN: _call_nmi (original 0x4001dfa: frame without r_fsize, sr at 64 and pc at 66) */
+ 	.globl	_call_nmi
+ _call_nmi:
+ 	subl	d0,d0
+-	movw	a2@(IRSO+0),d0		// push sr
++	movw	a2@(IRSO1997+0),d0		// push sr
+ 	movl	d0,sp@-
+-	movl	a2@(IRSO+2),sp@-	// push pc
++	movl	a2@(IRSO1997+2),sp@-	// push pc
++/* plan 744 END */
+ 	movl	sp,sp@-			// push isp
+ 	movc	usp,a0
+ 	movl	a0,sp@-			// push usp
+@@ -1400,26 +1447,28 @@
+ //
+ 	.globl	trap3
+ trap3:
++/* plan 746 (D167, D024) BEGIN: trap3 (original 0x4001e1e, 170 B: no r_fsize word, kernel stack from _stack_pointers, 16-byte table entries, AST test by btst, return through a2) */
+ //
+ //	Save necessary state
+ //
+ 	addql	#1,_cnt+V_SYSCALL
+-	subqw	#4,sp			// space for r_fsize
+ 	moveml	#0xffff,sp@-		// save regs
+ 	movc	usp,a0			// grab usp
+ 	movl	a0,sp@(R_SP)		// and save it
+-//
+-//	Read in args and call handler.  NOTE:  depends on the
+-//	fact that a entry in the syscall table is 8 bytes!
++	lea	sp@(R_A6),a6
++	movl	sp,a2			// save sp
++	movl	_stack_pointers,sp	// kernel stack
++//
++//	Read in args and call handler.  The entries of the syscall table are 16 bytes (lslw #4).
+ //
+ 	tstl	d0			// syscall < 0?
+ 	blt	3f			// yes, bad
+ 	cmpl	_mach_trap_count,d0	// mach_trap_count < syscall number?
+ 	bge	3f			// yes, bad
+ 	lea	_mach_trap_table,a0	// get start of table
+-	lea	a0@(d0:w:8),a0		// point at entry
++	lslw	#4,d0
++	lea	a0@(d0:w),a0		// point at entry
+ 	movl	a0@,d0			// grab arg count
+-	movl	d0,a2			// save for safe keeping
+ 	lea	argc_table,a1		// table pointer
+ 	movl	a1@(d0:w:4),a1		// entry in table
+ 	jmp	a1@			// jump indirect
+@@ -1446,62 +1495,28 @@
+ argc_1:	movl	d1,sp@-			// push arg and fall through
+ argc_0:
+ 	movl	a0@(4),a0		// grab function pointer
+-#ifdef DEBUG
+-	movl	a0,_lastsyscall
+-#endif DEBUG
+ 	jsr	a0@			// go for it
+-	movl	a2,d7			// get count again
+-	lsll	#2,d7			// convert to long count
+-	addw	d7,sp			// pop args off stack
+-	movl	d0,sp@(R_D0)		// save return code for later
+-//
+-//	Execute return sequence.
+-//
+-//
+-//	NOTE:  this does not check for signals... this assumes that
+-//	anything that uses this trap handler will not generate
+-//	a signal that it expects to see immediately.  What should
+-//	really be done is that the signal mechanism should cause
+-//	an AST to occur rather than expect the syscall handler
+-//	to check for it (the same is true of the exit code).
+-//
+-5:
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0,a1
+-	movl	a0@(THREAD_PCB),a0
+-	cmpl	#AST_ZILCH,a1@(THREAD_AST)	// normal exit?
+-	bne	7f			// no, force ast
+-	movl	a1@(UTASK),a1		// point to task U-area
+-	movl	a1@(U_PROCP),a1		// then to proc table slot
++5:	movl	d0,a2@(R_D0)		// save return code for later
++	movl	_active_threads,a1
++	movl	a1@(THREAD_PCB),a0
++	btst	#AST_SCHED_BIT,a0@(AST)
++	bne	7f			// AST requested, call check_for_ast
++	movl	a1@(THREAD_TASK),a1
++	movl	a1@(TASK_U_ADDRESS),a1
++	movl	a1@(U_PROCP),a1		// proc table slot
+ 	tstb	a1@(P_CURSIG)		// check cursig
+-	bne	7f			// there's a sig, cause AST
++	bne	7f			// there's a sig, call check_for_ast
+ 	tstl	a1@(P_SIG)		// test sig bits
+ 	beq	8f			// zero -> no sig
+-7:	bset	#AST_SCHED_BIT,a0@(AST)	// force AST and fall through
+-8:	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	9f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	9f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(R_SR)
+-	jeq	9f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-9:	movw	d0,sr
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_urte		// ipl_urte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
++7:	movl	a2,sp@-
++	jsr	_check_for_ast
++8:	movl	a2,sp			// restore sp
+ 	movl	sp@(R_SP),a0		// restore usp
+ 	movc	a0,usp
+-	moveml	sp@,#0x7fff		// restore regsiters (exc. kernel sp)
+-	addw	#R_SR,sp		// pop register frame and r_fsize
++	moveml	sp@,#0x7fff		// restore registers (exc. kernel sp)
++	addw	#R_SR,sp		// pop register frame
+ 	rte				// return to user
++/* plan 746 END */
+ 
+ //
+ //	trap4 is used for fast Unix system calls.
+@@ -1520,52 +1535,26 @@
+ //
+ 	.globl	trap4
+ trap4:
++/* plan 746 (D167, D024) BEGIN: trap4 (original 0x4001ec8, 58 B: same entry and return as trap3, no AST or signal test) */
+ //
+ //	Save necessary state
+ //
+ 	addql	#1,_cnt+V_SYSCALL
+-	subqw	#4,sp			// space for r_fsize
+ 	moveml	#0xffff,sp@-		// save regs
+ 	movc	usp,a0			// grab usp
+ 	movl	a0,sp@(R_SP)		// and save it
+-#ifdef DEBUG
+-	movl	sp@(R_D0),_lastsyscall
+-#endif DEBUG
++	lea	sp@(R_A6),a6
++	movl	sp,a2			// save sp
++	movl	_stack_pointers,sp	// kernel stack
++	movl	a2,sp@-
+ 	jsr	_unix_syscall		// call handler
+-//
+-//	Execute return sequence (signals were checked in C).
+-//
+-5:
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0,a1
+-	movl	a0@(THREAD_PCB),a0
+-	cmpl	#AST_ZILCH,a1@(THREAD_AST)	// normal exit?
+-	beq	6f			// yes, continue
+-	bset	#AST_SCHED_BIT,a0@(AST)	// force AST and fall through
+-6:	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	9f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	9f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(R_SR)
+-	jeq	9f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-9:	movw	d0,sr
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_urte		// ipl_urte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
++	movl	a2,sp			// restore sp
+ 	movl	sp@(R_SP),a0		// restore usp
+ 	movc	a0,usp
+ 	moveml	sp@,#0x7fff		// restore registers (exc. kernel sp)
+-	addw	#R_SR,sp		// pop register frame and r_fsize
++	addw	#R_SR,sp		// pop register frame
+ 	rte				// return to user
++/* plan 746 END */
+ 
+ //
+ //	traps 5 and 6 are used to retrieve/store a per thread register.
+@@ -1574,105 +1563,56 @@
+ //
+ 	.globl	trap5
+ trap5:					// get users register
+-	lea	_active_threads,a0
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0		// current thread
++/* plan 744 (D167, D024) BEGIN: trap5 and trap6 read _active_threads directly (original 0x4001f02, 0x4001f12) */
++	movl	_active_threads,a0	// current thread
++/* plan 744 END */
+ 	movl	a0@(THREAD_PCB),a0	// current pcb
+ 	movl	a0@(THREAD_USER_REG),d0	// user's register
+ 	rte				// done
+ 
+ 	.globl	trap6
+ trap6:					// set users register
+-	movl	d0,d1
+-	lea	_active_threads,a0
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0		// current thread
++/* plan 754 (D167, D024) BEGIN: trap6 (original 0x4001f12): reads _active_threads directly and stores d0 (the NeXTMach movl d0,d1 and the d1 store are not in the 1997 unit) */
++	movl	_active_threads,a0	// current thread
+ 	movl	a0@(THREAD_PCB),a0	// current pcb
+-	movl	d1,a0@(THREAD_USER_REG)	// user's register
++	movl	d0,a0@(THREAD_USER_REG)	// user's register
++/* plan 754 END */
+ 	rte				// done
+ 
+-/* old UNIX syscall handler */
+-	.globl	trap0, _active_threads
+-trap0:
+-	addql	#1,_cnt+V_SYSCALL
+-	subqw	#4,sp			// space for r_fsize
+-					// FIXME: really save d0,d1,a0,a1?
++/* plan 752 (D167, D024) BEGIN: the NeXTMach old UNIX syscall handler trap0 with syscall_recover, syscall_rtn and syscall_fault (144 B) is not in the 1997 unit */
++/* plan 752 END */
++
++/* exception handlers */
++	.globl	addrerr
++addrerr:
++/* plan 747 (D167, D024) BEGIN: addrerr (original 0x4001f22, 116 B: no r_fsize word, no frame-size stores, the stack check of std_trap at label 3) */
+ 	moveml	#0xffff,sp@-		// save regs
+ 	movc	usp,a0			// save usp
+ 	movl	a0,sp@(R_SP)
+-	lea	_active_threads,a1	// catch fault getting syscall code
+-	CPU_NUMBER_d0
+-	movl	a1@(d0:w:4),a2
+-	movl	#syscall_fault,a2@(THREAD_RECOVER)
+-	movl	#FC_USERD,d0		// set source func code
+-	movc	d0,sfc
+-	movsl	a0@,d0			// get syscall code
+-
+-syscall_recover:
+-	clrl	a2@(THREAD_RECOVER)
+-	movl	d0,sp@-			// pass syscall code to old_syscall()
+-#ifdef DEBUG
+-	movl	d0,_lastsyscall
+-#endif DEBUG
+-	jsr	_old_syscall
+-	addqw	#4,sp
+-syscall_rtn:
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0@(THREAD_PCB),a0
+-	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	1f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	1f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(R_SR)
+-	jeq	1f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-1:	movw	d0,sr
+-	movl	sp@(R_SP),a0		// restore usp
+-	movc	a0,usp
+-					// FIXME: really restore d0,d1,a0,a1?
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_urte		// ipl_urte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
+-	moveml	sp@,#0x7fff		// restore all (except kernel sp)
+-	addw	#R_SR,sp		// pop register frame, including r_fsize
+-	rte
+-
+-syscall_fault:
+-	movl	#63,d0			// illegal syscall code
+-	jra	syscall_recover
+-
+-/* exception handlers */
+-	.globl	addrerr
+-addrerr:
+-	subqw	#4,sp			// room for r_fsize
+-	moveml	#0xffff,sp@-		// save regs
+-	movc	usp,a0			// save usp
+-	movl	a0,sp@(R_SP)
+-	movl	sp,a6			// special fp for gdb
+-	addl	#1,a6
++	lea	sp@(R_A6),a6
+ 	bfextu	sp@(FMT){#0:#4},d0	// extract format bits
+ 	cmpl	#EF_NORMAL6,d0		// 040 only
+ 	bne	1f
+-	movw	#SIZEOF_NORMAL6,sp@(FSIZE) // remember size of exception frame
+ 	bra	3f
+ 1:
+ 	cmpl	#EF_SHORTBUS,d0		// 030 only
+ 	bne	2f
+-	movw	#SIZEOF_SHORTBUS,sp@(FSIZE) // remember size of exception frame
+ 	bra	3f
+ 2:
+ 	cmpl	#EF_LONGBUS,d0		// 030 only
+ 	bne	4f
+-	movw	#SIZEOF_LONGBUS,sp@(FSIZE) // remember size of exception frame
+ 3:
++	movl	sp,a2
++	cmpl	#_eintstack,sp
++	jls	5f
++	movl	_stack_pointers,a5
++	cmpl	sp,a5
++	jcs	6f
++	subl	#4084,a5
++	cmpl	sp,a5
++	jcs	5f
++6:	movl	_stack_pointers,sp
++5:	movl	a2,sp@-
+ 	subw	#12,sp			// dummy fcode, rw and faultaddr
+ 	movl	#T_ADDRERR,sp@-
+ 	jra	trap
+@@ -1683,17 +1623,18 @@
+ 1:	.asciz	"addrerr: bad exception stack format"
+ 	.even
+ 	.text
++/* plan 747 END */
+ 
+ 	.globl	buserr
+ buserr:
+-	subqw	#4,sp			// room for r_fsize
++/* plan 748 (D167, D024) BEGIN: buserr entry (original 0x4001f96: no r_fsize word, a6 from lea) */
+ 	moveml	#0xffff,sp@-		// save regs
+ 	movc	usp,a0			// save usp
+ 	movl	a0,sp@(R_SP)
+-	movl	sp,a6			// special fp for gdb
+-	addl	#1,a6
++	lea	sp@(R_A6),a6
+ 	bfextu	sp@(FMT){#0:#4},d0	// extract format bits
+ 	cmpl	#EF_ACCESS,d0		// 040 only
++/* plan 748 END */
+ 	jeq	access
+ 	cmpl	#EF_SHORTBUS,d0		// 030 only
+ 	jeq	short_bus
+@@ -1714,8 +1655,9 @@
+ 	.even
+ 	.text
+ 
++/* plan 748 (D167, D024) BEGIN: access: no frame-size store */
+ access:
+-	movw	#SIZEOF_ACCESS,sp@(FSIZE) // remember size of exception frame
++/* plan 748 END */
+ 	movl	#T_BUSERR,d2		// assume bus error
+ 	movl	sp@(FAULTADDR_040),a0	// fault address
+ 	movl	#VM_PROT_READ+VM_PROT_WRITE,d0	// read/write
+@@ -1731,15 +1673,30 @@
+ 	movl	#T_MMU_INVALID,d2	// indicate MMU error
+ 	btst	#MA_BIT,sp@(SSW_040)	// misaligned fault addr is +4
+ 	beq	2f
++/* plan 748 (D167, D024) BEGIN: access: stack check and the frame pointer a2 pushed first (original 0x4002024) */
+ 	addql	#4,a0
+-2:	movl	a0,sp@-			// push fault address
++2:
++	movl	sp,a2
++	cmpl	#_eintstack,sp
++	jls	5f
++	movl	_stack_pointers,a5
++	cmpl	sp,a5
++	jcs	6f
++	subl	#4084,a5
++	cmpl	sp,a5
++	jcs	5f
++6:	movl	_stack_pointers,sp
++5:	movl	a2,sp@-
++	movl	a0,sp@-			// push fault address
+ 	movl	d0,sp@-			// push rw
+ 	movl	d1,sp@-			// push fcode
+ 	movl	d2,sp@-			// push trap type
++/* plan 748 END */
+ 	jra	trap
+ 	
++/* plan 748 (D167, D024) BEGIN: short_bus: no frame-size store */
+ short_bus:
+-	movw	#SIZEOF_SHORTBUS,sp@(FSIZE) // remember size of exception frame
++/* plan 748 END */
+ 	btst	#FAULTD_BIT-8,sp@(SSW)	// data fault?
+ 	bne	data_fault
+ 	btst	#FAULTB_BIT-8,sp@(SSW)	// stage B fault?
+@@ -1753,8 +1710,9 @@
+ 	addqw	#2,a0
+ 	bra	inst_fault
+ 
++/* plan 748 (D167, D024) BEGIN: long_bus: no frame-size store */
+ long_bus:
+-	movw	#SIZEOF_LONGBUS,sp@(FSIZE) // remember size of exception frame
++/* plan 748 END */
+ 	btst	#FAULTD_BIT-8,sp@(SSW)	// data fault?
+ 	bne	data_fault
+ 	btst	#FAULTB_BIT-8,sp@(SSW)	// stage B fault?
+@@ -1794,10 +1752,24 @@
+ 1:	movl	#VM_PROT_READ+VM_PROT_WRITE,d0
+ //	ptest	d1,a0@,7,WRITE		// see if MMU caused buserr
+ 	.long	0xf0109c09
+-2:	movl	a0,sp@-			// push fault address
++/* plan 748 (D167, D024) BEGIN: call_trap: stack check and the frame pointer a2 pushed first (original 0x4002106) */
++2:
++	movl	sp,a2
++	cmpl	#_eintstack,sp
++	jls	5f
++	movl	_stack_pointers,a5
++	cmpl	sp,a5
++	jcs	6f
++	subl	#4084,a5
++	cmpl	sp,a5
++	jcs	5f
++6:	movl	_stack_pointers,sp
++5:	movl	a2,sp@-
++	movl	a0,sp@-			// push fault address
+ 	movl	d0,sp@-			// push rw
+ 	movl	d1,sp@-			// push fcode
+ //	pmove	sr,mmu_status
++/* plan 748 END */
+ 	.long	0xf0396200
+ 	.long	mmu_status
+ 	bfffo	mmu_status{#0:#6},d0
+@@ -1825,116 +1797,54 @@
+ trap:
+ 	addql	#1,_cnt+V_TRAP
+ 	jsr	_trap
+-	addl	#16,sp			// pop type, fcode, rw and faultaddr
++/* plan 748 (D167, D024) BEGIN: trap onward (original 0x400217c: no pop after _trap, return through a2 and d0, AST test in softint_rtn) */
+ 	// fall into ...
+-
+-/*
+- * Return from a trap:
+- *	- check for AST's.
+- *	- d0 is {TRAP_RERUN, TRAP_NORERUN} -- fixup stack as required.
+- */
+ trap_rtn:
+-	movl	d0,d2			// save rerun mode
+-	btst	#SR_SUPER_BIT-8,sp@(R_SR) // returning to SUPER mode?
+-	bne	2f			// yes, dont deal with ASTs
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
+-	movl	a0@(THREAD_PCB),a0
+-	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	1f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	1f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(R_SR)
+-	jeq	1f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-1:	movw	d0,sr
+-	movl	sp@(R_SP),a0		// restore usp
++	btst	#SR_SUPER_BIT-8,a2@(R_SR)
++	bne	2f
++	movl	a2@(R_SP),a0
+ 	movc	a0,usp
+-2:
+-	tstl	d2			// TRAP_RERUN?
+-	beq	5f			// no, fixup stack not to rerun cycle
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_rte		// ipl_rte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
+-	moveml	sp@,#0x7fff		// restore all (except ssp)
+-	addw	#R_SR,sp		// pop register frame, including r_fsize
+-	rte				// rerun failing bus cycle(s)
+-
+-	//
+-	// The following assumes that enough exception information is
+-	// being poped that the old sr/pc/format/vor will not get stepped on
+-	// as its being copied.
+-	//
+-
+-5:	movl	sp,a0			// top of old stack
+- 	addw	sp@(FSIZE),a0		// advance by amount to get rid of
+-	movl	sp@(R_PC),a0@(R_PC)	// copy pc
+-	movw	sp@(R_SR),a0@(R_SR)	// copy sr
+-	clrw	a0@(VOR)		// EF_NORMAL4 format
+-	movl	a0,sp@(R_SP)		// new ksp (usp already restored)
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_rte		// ipl_rte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
+-	moveml	sp@,#0xffff		// restore all including new ksp
+-	addw	#R_SR,sp		// pop register frame, including f_size
++2:	tstl	d0
++	bne	5f
++	movl	a2,sp
++	moveml	sp@,#0x7fff
++	addw	#R_SR,sp
+ 	rte
++5:	movl	a2,a0
++	addl	d0,a0
++	movl	a2@(R_PC),a0@(R_PC)
++	movw	a2@(R_SR),a0@(R_SR)
++	clrw	a0@(VOR)
++	movl	a0,a2@(R_SP)
++	movl	a2,sp
++	moveml	sp@,#0xffff
++	addw	#R_SR,sp
++	rte
+ 
+ intr_rtn:
+-#if	EVENTMETER
+-	jsr	_event_intr
+-#endif	EVENTMETER
+ 	addql	#1,_cnt+V_INTR
+ softint_rtn:
+-	movl	a2,sp			// restore sp
+-	btst	#SR_SUPER_BIT-8,sp@(IRSO)// returning to SUPER mode?
+-	bne	2f			// yes, dont deal with ASTs
+-	lea	_active_threads,a0	// get pointer to pcb
+-	CPU_NUMBER_d0
+-	movl	a0@(d0:w:4),a0
++	btst	#SR_SUPER_BIT-8,a2@(IRSO1997)
++	bne	2f
++	movl	_active_threads,a0
++	tstl	a0
++	beq	2f
+ 	movl	a0@(THREAD_PCB),a0
+-	movw	sr,d0
+-	movw	#0x2700,sr
+-	bclr	#AST_SCHED_BIT,a0@(AST)	// reschedule?
+-	jeq	1f			// no
+-	bset	#TRACE_AST_BIT,a0@(AST)	// AST requested tracing
+-	jne	1f			// AST already tracing
+-	bset	#SR_TSINGLE_BIT-8,sp@(IRSO)
+-	jeq	1f			// wasnt set by user previously
+-	bset	#TRACE_USER_BIT,a0@(AST)// was set by user previously
+-1:	movw	d0,sr
+-2:
+-#if	GDB
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(R_SR),d0
++	btst	#AST_SCHED_BIT,a0@(AST)
++	beq	2f
++	movl	_stack_pointers,sp
++	movl	a2,d0
+ 	movl	d0,sp@-
+-	jsr	_ipl_rte		// ipl_rte(new_sr)
+-	addql	#4,sp
+-#endif	NIPLMEAS
++	jsr	_check_for_ast
++	lea	_eintstack,sp
++	movl	a2@(R_SP),a0
++	movc	a0,usp
++2:	orw	#0x700,sr
++	movl	a2,sp
+ 	moveml	sp@,#0x7fff
+-	addw	#R_SR,sp		// pop register frame, including f_size
+-#else	GDB
+-#if	NIPLMEAS
+-	clrl	d0
+-	movw	sp@(5*4),d0
+-	movl	d0,sp@-
+-	jsr	_ipl_rte		// record crossing ipl boundary
+-	addql	#4,sp
+-#endif	NIPLMEAS
+-	moveml	sp@+,#0x0703		// restore d0,d1,a0,a1,a2
+-#endif	GDB
++	addw	#R_SR,sp
+ 	rte
++/* plan 748 END */
+ 
+ #if NIPLMEAS
+ 	.globl	_splu_measured
+@@ -1969,18 +1879,80 @@
+ #endif notdef
+ #endif NIPLMEAS
+ 
+-//	Cache flush trap for Sun binary compatibility
+-trap2:
++/* plan 744 (D167, D024) BEGIN: fpsp_done, fpsp_frame_err, trace (original 0x400221e, 0x4002220, 0x4002232) */
++	.globl	fpsp_done
++fpsp_done:
++	rte
++
++	.globl	fpsp_frame_err
++fpsp_frame_err:
++	pea	1f
++	jsr	_panic
++	jra	fpsp_frame_err
++	.data
++1:	.asciz	"fpsp: frame format error"
++	.even
++	.text
++
++	.globl	trace
++trace:
++	jmp	std_trap
++/* plan 744 END */
++
++/* plan 751 (D167, D024) BEGIN: _cache_push with the trap2 stub, and _mon_exit (original 0x4002238-0x4002284); NeXTMach trap2 is not in the 1997 unit */
++PROCENTRY (cache_push)
+ 	cmpb	#MC68030,_cpu_type
+-	beq	4f
++	beq	1f
+ #if	D25B || D43B
+ 	nop
+ #endif	D25B || D43B
+ //	cpusha	bc
+ 	.word	0xf4f8
+-	rte
+-4:
++	bra	2f
++1:
+ 	movl	_cache,d0
+ 	movc	d0,cacr			// clear cache and enable it
++2:
++	PROCEXIT
++trap2:
++	jsr	_cache_push
+ 	rte
+ 
++	.globl	_mon_exit
++_mon_exit:
++	movw	sp@,d0
++	andw	#0x2000,d0
++	bne	1f
++	jsr	_suser
++	tstl	d0
++	bne	1f
++	rte
++1:	movl	_boot_action,d0
++	movl	_reboot_vector,a0
++	jmp	a0@
++/* plan 751 END */
++
++/* plan 744 (D167, D024) BEGIN: _scb of the 1997 kernel: 72 vectors, std_trap for the unlisted (NeXTMach scb.s has 256 entries; original 0x40ada14) */
++	.data
++	.globl	_scb
++_scb:
++/* 0x000 */	.long	std_trap; .long	std_trap; .long	buserr; .long	addrerr
++/* 0x010 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x020 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	fline
++/* 0x030 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x040 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x050 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x060 */	.long	std_trap; .long	ipl1; .long	ipl2; .long	ipl3
++/* 0x070 */	.long	ipl4; .long	ipl5; .long	ipl6; .long	ipl7
++/* 0x080 */	.long	std_trap; .long	std_trap; .long	trap2; .long	trap3
++/* 0x090 */	.long	trap4; .long	trap5; .long	trap6; .long	std_trap
++/* 0x0a0 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x0b0 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x0c0 */	.long	bsun; .long	inex; .long	dz; .long	unfl
++/* 0x0d0 */	.long	operr; .long	ovfl; .long	snan; .long	unsupp
++/* 0x0e0 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x0f0 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x100 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* 0x110 */	.long	std_trap; .long	std_trap; .long	std_trap; .long	std_trap
++/* plan 744 END */
++

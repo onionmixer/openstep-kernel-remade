@@ -1,0 +1,165 @@
+--- nextmach/mk-108.1/nextif/in_bootp.c
++++ 07_kernel/src/machdep/m68k/in_bootp.c
+@@ -14,10 +14,26 @@
+  **********************************************************************
+  */ 
+ 
++/*
++ * m68k: nextif/in_bootp.c of the 1997 m68k kernel (plans 521-523, D024,
++ * D103, D104, D112).  Base: NeXTMach mk-108.1 nextif/in_bootp.c (above
++ * notice); its function order, external linkage (the static
++ * in_bootp_makeifreq is the unnamed function at 0x4090a50) and m68k console
++ * functions match the original (_in_bootp_initnet at 0x408fd9e ... _in_bootp
++ * at 0x4090ac6).  The include lines use the 4.2 names (D104, as in the x86
++ * bsd/netinet/in_bootp.c).  in_bootp_buildpacket, in_bootp_bptombuf,
++ * in_bootp_sendrequest and in_bootp carry the edits of the x86 file of this
++ * project marked "plan 366" there (written from the x86 bytes; no Darwin-
++ * marked part of that file is used; a few of these lines may coincide with
++ * Darwin 0.1 kernel/bsd/netinet/in_bootp.c, D027); the end of in_bootp keeps
++ * the NeXTMach form "if (vp)" (plan 521).  Lines marked plan 523 differ from
++ * NeXTMach in their include.
++ */
++
+ #import <machine/spl.h>
+ #import <sys/param.h>
+ #import <sys/types.h>
+-#import <sys/boolean.h>
++#import <mach/boolean.h>	/* plan 523 (D104): NeXTMach <sys/boolean.h> */
+ #import <sys/kernel.h>
+ #import <sys/errno.h>
+ #import <sys/file.h>
+@@ -40,8 +56,8 @@
+ #import <netinet/udp.h>
+ #import <netinet/udp_var.h>
+ #import <netinet/ip_icmp.h>
+-#import <mon/bootp.h>
+-#import <nextdev/kmreg.h>
++#import <netinet/bootp.h>	/* plan 523 (D104): NeXTMach <mon/bootp.h> */
++#import <bsd/dev/kmreg_com.h>	/* plan 523 (D104): NeXTMach <nextdev/kmreg.h> */
+ 
+ #define	CONSOLE	"/dev/console"
+ 
+@@ -155,7 +171,7 @@
+ 	bzero(bp_s, sizeof (*bp_s));
+ 	bp_s->bp_ip.ip_v = IPVERSION;
+ 	bp_s->bp_ip.ip_hl = sizeof (struct ip) >> 2;
+-	bp_s->bp_ip.ip_id = ip_id++;
++	bp_s->bp_ip.ip_id = htons(ip_id++);	/* plan 366: htons */
+ 	bp_s->bp_ip.ip_ttl = MAXTTL;
+ 	bp_s->bp_ip.ip_p = IPPROTO_UDP;
+ 	bp_s->bp_ip.ip_src.s_addr = sin->sin_addr.s_addr;
+@@ -169,10 +185,7 @@
+ 	bp_s->bp_bootp.bp_ciaddr.s_addr = 0;
+ 	bcopy((caddr_t)my_enaddr, bp_s->bp_bootp.bp_chaddr, 6);
+ 	bcopy(VM_NEXT, &nv->nv_magic, 4);
+-	if (rootdir) {
+-		/* Only allow sexy net init if we have a root filesystem */
+-		nv->nv_version = 1;
+-	}
++	nv->nv_version = 1;		/* plan 366: no rootdir condition */
+ 	nv->nv_opcode = BPOP_OK;
+ 	bp_s->bp_udp.uh_ulen = htons(sizeof (bp_s->bp_udp) +
+ 				     sizeof (bp_s->bp_bootp));
+@@ -219,10 +232,7 @@
+ 		mp = &m->m_next;
+ 	}
+ 
+-	/* Interface wants mbuf pointing at IP header */
+-	top->m_off += sizeof (struct ether_header);
+-	top->m_len -= sizeof (struct ether_header);
+-
++	/* plan 366: no ether_header adjustment of top here */
+ 	/* Compute the checksum */
+ 	ip = mtod(top, struct ip *);
+ 	ip->ip_sum = 0;
+@@ -296,7 +306,8 @@
+ 		     struct socket *so,
+ 		     struct bootp_packet *bp_s,
+ 		     struct bootp *bp_r,
+-		     u_char my_enaddr[6]
++		     u_char my_enaddr[6],
++		     struct vnode **console_vpp	/* plan 366 */
+ 		     )
+ {
+ 	struct mbuf		*m;
+@@ -323,7 +334,7 @@
+ 
+ 	/* Address to send to */
+ 	lsin.sin_family = AF_INET;
+-	lsin.sin_port = IPPORT_BOOTPS;
++	lsin.sin_port = htons(IPPORT_BOOTPS);	/* plan 366: htons */
+ 	lsin.sin_addr.s_addr = INADDR_BROADCAST;
+ 
+ 	/*
+@@ -336,7 +347,7 @@
+ 	timeo = 1;
+ 	timecount = 0;
+ 	totaltime = 0;
+-	while (alert_key != 'c' && alert_key != 'C') {
++	while (TRUE) {				/* plan 366: no alert_key */
+ 		if (timecount == 0) {
+ 			/* Put the outgoing packet in an mbuf */
+ 			m = in_bootp_bptombuf(bp_s);
+@@ -386,13 +397,14 @@
+ 			 * If we have been waiting a while (20 secs),
+ 			 * let the user know what is going on.
+ 			 */
+-			if ( totaltime == 20 ) {
+-				extern char *mach_title;
+-
+-				alert(60, 8, mach_title,
+-		       " \nNo response from network configuration server.\n%s",
+-	      "Type 'c' to start up computer without a network connection.\n",
+-				      0, 0, 0, 0, 0, 0, 0);
++			if (totaltime == 20) {		/* plan 366: console and message */
++				if (*console_vpp == NULL &&
++				    (error = in_bootp_openconsole(console_vpp))) {
++					goto errout;
++				}
++				printf(" \nNo response from network configuration server.\n"
++				       "Type Control-C to start up computer without a network\n"
++				       "connection.\n");
+ 				alertprinted = TRUE;
+ 			}
+ 			continue;
+@@ -428,18 +440,15 @@
+ 		u.u_qsave = lqsave;
+ 		untimeout(in_bootp_timeout, &timeflag);
+ 
++		if (alertprinted) {			/* plan 366 */
++			printf("Network responded!\n");
++		}
+ 		error = 0;
+ 		goto errout;
+ 	}
+ 
+-	/* We aborted.  Return appropriate error */
+-	error = ETIMEDOUT;
+-
+-errout:
++errout:	/* plan 366: no ETIMEDOUT tail, no alert_done here */
+ 	untimeout(in_bootp_promisctimeout, &promisc_ignore);
+-	if (alertprinted) {
+-	    alert_done();
+-	}
+ 	return (error);
+ }
+ 
+@@ -755,7 +764,7 @@
+ 	while (TRUE) {
+ 		/* Send the request */
+ 		if (error = in_bootp_sendrequest(ifp, so, bp_s, bp_r, 
+-						 my_enaddr)) {
++						 my_enaddr, &vp)) {	/* plan 366 */
+ 			goto errout;
+ 		}
+ 		if (nv_r->nv_opcode == BPOP_OK) {
+@@ -797,7 +806,7 @@
+ 	if (bp_r) {
+ 		kfree((caddr_t)bp_r, sizeof (*bp_r));
+ 	}
+-	if (vp) {
++	if (vp) {				/* plan 521: NeXTMach form */
+ 		(void) in_bootp_closeconsole(vp);
+ 	}
+ 	return (error);

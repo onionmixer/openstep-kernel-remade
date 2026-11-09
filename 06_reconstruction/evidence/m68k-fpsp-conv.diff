@@ -1,0 +1,40 @@
+# plan 770: project changes to the NeXTMach fpsp converter and to its output
+# (1) mk-108.1/fpsp/conv.c (NeXTMach https://github.com/johnsonjh/NeXTMach.git f6bdb9c3268f0eadc545d41bcc0564453b17001e) -> conv_fixed.c (the build used for the 07 sources); unified diff:
+--- mk-108.1/fpsp/conv.c
++++ conv_fixed.c
+@@ -1,3 +1,5 @@
++static char *strcpy(char *d, const char *s) { char *r = d; while ((*d++ = *s++)) ; return r; }
+ #include "stdio.h"
+ #include "ctype.h"
++#include <string.h>
+ 
+@@ -236,3 +238,3 @@
+ 				}
+-				while (*s1 != ':')
++				while (*s1 && *s1 != ':')
+ 					s1++;
+@@ -282,3 +284,3 @@
+ 		/* translations that might eliminate label */
+-		cp = &ss[i][strlen(ss[i])-1];
++		cp = &ss[i][strlen(ss[i]) ? strlen(ss[i])-1 : 0];
+ 		if (strcmp(ss[i+2], "equ") == 0 || strcmp(ss[i+2], "fequ") == 0) {
+@@ -305,3 +307,3 @@
+ 		/* emit label (if any) */
+-		cp = &ss[i][strlen(ss[i])-1];
++		cp = &ss[i][strlen(ss[i]) ? strlen(ss[i])-1 : 0];
+ 		if (*cp == ':') {
+
+# (2) section post-processing applied to the converter output of 11 files (scratch/p767/stage_d0.py): a line holding only .data, produced from a section 15 directive, was changed to .text
+# file<TAB>line<TAB>converter output (X)<TAB>project (Y)
+bindec	139	<TAB>.data	<TAB>.text
+decbin	77	<TAB>.data	<TAB>.text
+kernel_ex	20	<TAB>.data	<TAB>.text
+satan	51	<TAB>.data	<TAB>.text
+setox	347	<TAB>.data	<TAB>.text
+slogn	71	<TAB>.data	<TAB>.text
+srem_mod	74	<TAB>.data	<TAB>.text
+ssin	91	<TAB>.data	<TAB>.text
+stan	58	<TAB>.data	<TAB>.text
+stanh	57	<TAB>.data	<TAB>.text
+stwotox	84	<TAB>.data	<TAB>.text
+# total changed lines: 11

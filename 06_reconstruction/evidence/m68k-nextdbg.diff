@@ -1,0 +1,1311 @@
+--- NeXTMach mk-108.1/next/nextdbg.c (f6bdb9c3268f0eadc545d41bcc0564453b17001e)
++++ 07_kernel/src/machdep/m68k/nextdbg.c (plan 739, D166)
+@@ -11,55 +11,44 @@
+  
+ #pragma CC_OPT_OFF
+ 
+-#ifdef gcc
+-#define	void	int
+-#endif gcc
+-
++/*
++ * plan 739 (D166, D013, D024, D104): the 1997 m68k nextdbg.c.
++ * NeXTMach mk-108.1 next/nextdbg.c with the include lines reduced to the OPENSTEP
++ * paths the 1997 unit needs (next/cpu.h is not included in C: it is assembly only;
++ * the other NeXTMach headers are not used) and these changes, from the original
++ * bytes [0x4095460, 0x4096700) (plans 737-738):
++ *	functions that differ from NeXTMach: dbg_trap, kdbg_connect, rdmem, wrmem, kdebug_send, m68k_dbginit (NeXTMach nextdbginit)
++ *	unchanged: dbg_kresume, hookbuserr, unhookbuserr
++ *	new functions: dbg_panic, dbg_dispatch, gdb_from_trap, dbg_from_ether, dbg_process, dbg_recv, dbg_ack, SENDEXC, inet_aton
++ *	removed (not in this 1997 unit): the functions dbg_exit, btoh, htobs, htob, kdbg, putnib, putpkt, ack, getnib, getpkt, gfunc, pfunc
++ * The original has no symbols for its static data and static functions: the NeXTMach
++ * statics keep their names; dbg_nest, dbg_from_net, dbg_sig, dbg_fault_addr,
++ * dbg_vecoff, dbg_recv, dbg_ack, the packet structures and the request and reply
++ * names are given by this project (D166); ri, ti and locked are the names of the
++ * words of NeXTMach struct kdb_net with the same roles.  The goto, the empty else
++ * and the other forms marked plan 739 are forms that give the original bytes, not
++ * evidence of the original source.  The file needs #pragma CC_OPT_OFF (line 12):
++ * the compiler then prints "warning: optimization turned off" (a known warning of
++ * the acceptance record).  Lines marked plan 739, and the lines of a plan 739
++ * BEGIN/END region (which may include unchanged lines), differ from NeXTMach.
++ */
++
++/* plan 739 (D024): NeXTMach lines 14-17 removed (not in the 1997 kernel) */
+ #import <sys/types.h>
+ #import <sys/param.h>
+-#import <sys/reboot.h>
+-#import <sys/systm.h>
+-#import <sys/conf.h>
+-#import <sys/ioctl.h>
+-#import <sys/tty.h>
+-#import <next/pcb.h>
+-#import <next/psl.h>
+-#import <next/trap.h>
+-#import <next/cons.h>
+-#import <next/mmu.h>
+-#import <next/cpu.h>
+-#import <next/eventc.h>
+-#import <vm/vm_param.h>
+-#import <vm/vm_map.h>
+-#import <sys/dir.h>		/* for user.h (!) */
+-#import <sys/user.h>		/* for u.u_procp  */
+-#import <sys/proc.h>
+-#import <kern/task.h>
+-#import <kern/thread.h>
+-#import <sys/signal.h>
+-#import <sys/errno.h>
+-#import <next/nextdbg.h>
++/* plan 739 (D024): NeXTMach lines 20-41 removed (not in the 1997 kernel) */
+ 
+ #define NO_IPLMEAS	1	/* Don't measure, we're recursive */
+ #import <machine/spl.h>
+-
+-char *kern_stext, *kern_etext, *kern_sdata, *kern_edata;
+-
+-#define	isxdigit(c)	(((c) >= '0' && (c) <= '9') \
+-			 || ((c) >= 'A' && (c) <='F') \
+-			 || ((c) >= 'a' && (c) <= 'f'))
+-
+-#define isdigit(c)	((c) >= '0' && (c) <= '9')
+-
+-#define	isupper(c)	((c) >= 'A' && (c) <= 'Z')
+-
+-#define	tolower(c)	((c) & ~0x20)
++/* plan 739 (D024): NeXTMach lines 45-56 removed (not in the 1997 kernel) */
+ 
+ #define	VEC_BUSERR	2
+ #define	VEC_ADDRERR	3
+ #define	VEC_ILLINST	4
+ #define	VEC_TRACE	9
+-#define	VEC_BRKPT	46	/* trap #14 */
++/* plan 739 (D024, D166) BEGIN: declarations and data */
++#define	VEC_BRKPT	47	/* trap #15 */
++/* plan 739 END */
+ #define ERROR(s) panic(s)
+ 
+ #define	R_D0		0
+@@ -86,13 +75,11 @@
+ 
+ #define	SR_T		0x8000
+ 
+-/*
+- * 0 - 15 regs, 16 pc
+- */
++/* plan 739 (D024): NeXTMach lines 89-91 removed (not in the 1997 kernel) */
+ typedef int jmpbuf[17];
+ static jmpbuf dbgjb;
+ typedef	unsigned unlong;
+-int rmtdebug;
++/* plan 739 (D024): NeXTMach line 95 removed (not in the 1997 kernel) */
+ 
+ struct sf_4wd {
+ 	short sf4_sr;
+@@ -182,35 +169,106 @@
+ 
+ static int *oldbuserr, *oldadrerr, *oldtrace, *oldbkpt;
+ static int trace_expected;
+-#if	0
+-extern int gdb;
+-#endif	0
+-
+-nextdbginit()
++/* plan 739 (D024): NeXTMach lines 185-187 removed (not in the 1997 kernel) */
++
++/* plan 739 (D024, D166) BEGIN: dbg_dispatch, dbg_from_ether, dbg_kresume, dbg_panic, dbg_process, dbg_trap, gdb_from_trap, kdbg_connect, m68k_dbginit, rdmem, wrmem */
++/* plan 739 (D166): request kinds and reply codes of the debug protocol; the names are this project's guesses of the roles, read from the bytes */
++#define	DBG_RQ_CONNECT		8
++#define	DBG_RQ_QUERY		9
++#define	DBG_RQ_REGIONS		11
++#define	DBG_RQ_READMEM		12
++#define	DBG_RQ_WRITEMEM		13
++#define	DBG_RQ_READREGS		14
++#define	DBG_RQ_WRITEREGS	15
++#define	DBG_RQ_ACK16		16
++#define	DBG_RQ_INTERRUPT	17
++#define	DBG_RQ_RESUME		18
++#define	DBG_RQ_STEP		19
++#define	DBG_RQ_DETACH		20
++#define	DBG_RQ_REBOOT		21
++#define	DBG_RP_OK		1
++#define	DBG_RP_CONNECTED	2
++#define	DBG_RP_MEMORY		3
++#define	DBG_RP_REGS		4
++#define	DBG_RP_QUERY		5
++#define	DBG_RP_REGIONS		6
++#define	DBG_RP_ERROR		22
++
++/* plan 739 (D166): packet layouts reconstructed from the original bytes: 42 bytes of Ethernet, IP and UDP headers, then seq @0, code @4,
++ * addr @12, len @16, dlen @20 and the data @24 of the debug header (names are this project's) */
++struct dbg_pkt {
++	char dbg_hdr[42];
++	char *seq;
++	int dbg_type;
++};
++extern struct dbg_pkt *dbg_connect_pkt;
++/* plan 739 (D166): the first three words of the COMMON kdb_net; ri, ti and locked are the names of the words of NeXTMach struct kdb_net
++ * (next/nextdbg.h) with the same roles; the 1997 layout differs, so only these three are declared */
++struct kdb_n { char *ri; char *ti; int locked; };
++struct dbg_hdr { char *seq; int code; int pad; char *addr; int len; int dlen; char data[512]; };
++extern struct kdb_n kdb_net;
++#define SFADR(off)	(*(int *)((char *)&client_pcb.sf + (off)))
++extern void bcopy(), nmi_prf(), adb_watchdog();
++extern int dbg_setjmp(), get_vbr(), cache_push();
++extern void dbg_longjmp();
++extern int dbg_process();
++extern int en_pkt[4], kdb_ipaddr;
++extern struct dbg_pkt *en_recv();
++extern void en_send();
++static struct dbg_pkt *dbg_recv();
++extern char *index();
++extern void mon_call(), mon_boot();
++extern int slot_id;
++extern short dma_chip;
++extern unsigned char machine_type;
++extern int rdmem(), wrmem();
++extern int SENDEXC();
++static void dbg_ack();
++extern void en_bufalloc();
++
++/* plan 739 (D166): the five static words at 0x40b5628..0x40b5638 of the original (names are this project's) */
++static int dbg_nest;
++static int dbg_from_net;
++static int dbg_sig;
++static int dbg_fault_addr;
++static int dbg_vecoff;
++
++m68k_dbginit()
+ {
+ 	int *vbp;
+ 	int _dbg_trap();
+ 
+-	/* 
+-	 * Grab the vectors which cause us to enter the debugger:
+-	 *	Trace trap, breakpoint, bus error, address error.
+-	 *
+-	 * Bus error and address error are held only while under debugger
+-	 * control.
+-	 *
+-	 * Next initialize monitor IO.
+-	 */
+-	vbp = (int *)get_vbr();		/* Get the vector base register */
+-	oldbkpt = (int *)vbp[DBG_BKPT];
+-	vbp[DBG_BKPT] = (int)_dbg_trap;
+-	dbug_tp = &dbug;
+-	dbug.t_dev = makedev (11, 0);		/* zs */
+-	kdbg();
+-}
+-
+-dbg_exit(code)
+-{
+-	printf("exit(%d) called\n", code);
++	vbp = (int *)get_vbr();
++	oldbkpt = (int *)vbp[VEC_BRKPT];
++	vbp[VEC_BRKPT] = (int)_dbg_trap;
++	dbg_kresume();
++	adb_watchdog(0);
++	dbg_process(dbg_connect_pkt);
++	adb_watchdog(1);
++}
++
++dbg_kresume()
++{
++	int sig;
++	struct nextdbgpcb *pcb;
++	struct sf_4wd *sfp;
++
++	if (sig = dbg_setjmp(dbgjb))
++		return(sig);
++	client_pcb.regs[R_SP] -= sizeof(struct sf_4wd);
++	sfp = (struct sf_4wd *)client_pcb.regs[R_SP];
++	sfp->sf4_sr = client_pcb.sf.sf_sr;
++	sfp->sf4_pc = client_pcb.sf.sf_pc;
++	sfp->sf4_ftype = 0;
++	nofault = dbgjb;
++	_dbg_kresume();
++	/* doesn't return */
++}
++
++dbg_panic(s)
++char *s;
++{
++	nmi_prf("dbg_panic: %s\n", s);
+ 	while (1)
+ 		;
+ }
+@@ -219,42 +277,32 @@
+ dbg_trap(pcb)
+ register struct nextdbgpcb *pcb;
+ {
+-	int *jbp;
+ 	int sig;
+ 	int *vbp;
+ 	int _dbg_trap();
+ 
+-	vbp = (int *)get_vbr();		/* Get the vector base register */
+-	if (rmtdebug)
+-		printf("dbg_trap:  client_running=0x%x, sr=0x%x, pc=0x%x, vecoff=%d, nofault=%d\n",
+-			client_running, pcb->sf.sf_sr, pcb->sf.sf_pc,
+-			pcb->sf.sf_vecoff>>2, nofault);
++	adb_watchdog(0);
++	vbp = (int *)get_vbr();
+ 	if (client_running) {
+-		/*
+-		 * Decide if this was for the debugger, if so, snag
+-		 * buserr and adrerr.  Otherwise, return the old 
+-		 * exception vector and let _dbg_trap reroute the
+-		 * exception.
+-		 */
+ 		if ((pcb->sf.sf_sr & 0x2000) == 0) {
+-			/* Return old exception pointer */
+-printf("dbg_trap from user mode\n");
+ 			switch(pcb->sf.sf_vecoff>>2) {
+ 			case VEC_BRKPT:
++				adb_watchdog(1);
+ 				return(oldbkpt);
+-				break;
+ 			case VEC_TRACE:
++				adb_watchdog(1);
+ 				return(oldtrace);
+-				break;
+ 			default:
+-				printf("dbg_trap returning, vecoff = %d\n",
++				nmi_prf("dbg_trap returning, vecoff = %d\n",
+ 					pcb->sf.sf_vecoff);
+-				panic("dbg_trap: bad user vecoff");
++				dbg_panic("dbg_trap: bad user vecoff");
+ 			}
+ 		}
+ 
+ 		client_running = 0;
+ 		client_pcb = *pcb;
++		dbg_fault_addr = 0;
++		dbg_vecoff = pcb->sf.sf_vecoff;
+ 
+ 		switch (pcb->sf.sf_ftype) {
+ 		case 0:
+@@ -269,383 +317,294 @@
+ 			break;
+ 		case 7:
+ 			client_pcb.regs[R_SP] += sizeof(struct sf_access);
++			dbg_fault_addr = SFADR(16);
+ 			break;
+ 		case 9:
+ 			client_pcb.regs[R_SP] += sizeof(struct sf_10wd);
++			dbg_fault_addr = SFADR(8);
+ 			break;
+ 		case 10:
+ 			client_pcb.regs[R_SP] += sizeof(struct sf_16wd);
++			dbg_fault_addr = SFADR(16);
+ 			break;
+ 		case 11:
+ 			client_pcb.regs[R_SP] += sizeof(struct sf_46wd);
++			dbg_fault_addr = SFADR(16);
+ 			break;
+ 		default:
+-			printf("stack frame screw-up\n");
+-			exit(1);
++			dbg_panic("stack frame screw-up\n");
+ 		}
+ 
+ 		switch (client_pcb.sf.sf_vecoff>>2) {
+ 		case VEC_BUSERR:
+ 		case VEC_ADDRERR:
+-			sig = SIGBUS;
++			dbg_sig = 1;
+ 			break;
+ 		case VEC_ILLINST:
+-			sig = SIGILL;
++			dbg_sig = 2;
+ 			break;
+ 		case VEC_TRACE:
+ 			if (nofault && trace_expected) {
+ 				int *vbp;
+ 
+ 				vbp = (int *)get_vbr();
+-				vbp[DBG_TRACE] = (int)oldtrace;
++				vbp[VEC_TRACE] = (int)oldtrace;
+ 				client_pcb.sf.sf_sr &= ~SR_T;
+ 				trace_expected = 0;
+ 			}
+ 			/* fall through */
+ 		case VEC_BRKPT:
+-			sig = SIGTRAP;
++			dbg_sig = 6;
+ 			break;
+ 		default:
+-			sig = SIGIOT;
++			dbg_sig = 5;
+ 			break;
+ 		}
+ 	} else
+-		sig = SIGIOT;
++		dbg_sig = 5;
++	adb_watchdog(1);
++	dbg_dispatch();
++}
++
++dbg_dispatch()
++{
++	int *jbp;
++
+ 	if (nofault) {
+-		if (rmtdebug)
+-			printf("assigning nofault=0x%x to jbp\n", nofault);
+ 		jbp = nofault;
+-		if (rmtdebug)
+-			printf("assigning jbp=0x%x\n", jbp);
+ 		nofault = 0;
+ 		spl7();
+-		if (rmtdebug) {
+-			printf("dbg_trap:  nofault dbg_longjmp, SIGIOT, jbp=0x%x.\n", jbp);
+-			printf("pc=0x%x, a7=0x%x\n", jbp[16], jbp[15]);
++		dbg_longjmp(jbp, dbg_sig);
++	}
++	dbg_panic("debugger screw-up\n");
++}
++
++kdbg_connect(arg)
++{
++	struct kdb_n *n = &kdb_net;
++	char *cp;
++	int len;
++
++	if (n->locked)
++		return(0);
++	n->ri = 0;
++	n->ti = 0;
++	en_bufalloc(arg);
++	dbg_connect_pkt = dbg_recv(1);
++	if (dbg_connect_pkt) {
++		if (dbg_connect_pkt->dbg_type != DBG_RQ_CONNECT) {
++			nmi_prf("old debugging info packet (%d) ignored\n", dbg_connect_pkt->dbg_type);
++			return(0);
+ 		}
+-		dbg_longjmp(jbp, sig);
+-
++		n->locked = 1;
++		if (dbg_nest)
++			dbg_dispatch();
++		asm ("trap #15");
++		return(1);
+ 	}
+-	printf("debugger screw-up\n");
+-}
+-
+-extern int gfunc();
+-extern void pfunc();
+-extern int getpkt();
+-extern void putpkt();
+-
+-char *
+-btoh(val, bp)
+-unsigned int val;
+-char *bp;
+-{
+-	char hbuf[10];
++	return(0);
++}
++
++gdb_from_trap(regs, sr, pc, faultaddr)
++int *regs;
++int sr;
++unsigned pc;
++int faultaddr;
++{
++	struct kdb_n *n = &kdb_net;
++
++	if (++dbg_nest != 1)
++		return;
++	client_pcb.sf.sf_vecoff = 8;
++	dbg_sig = 1;
++	dbg_fault_addr = faultaddr;
++	bcopy(regs, client_pcb.regs, 72);
++	client_pcb.sf.sf_pc = pc;
++	client_pcb.sf.sf_sr = sr;
++	if (!n->locked)
++		return;
++	nmi_prf("gdb_from_trap:pc %x sp %x sr %x faultaddr %x\n",
++		client_pcb.sf.sf_pc, client_pcb.regs[R_SP], sr, faultaddr);
++	dbg_dispatch();
++}
++
++dbg_from_ether(pkt)
++struct dbg_pkt *pkt;
++{
++	if (!kdb_net.locked)
++		return;
++	if (pkt->dbg_type != DBG_RQ_INTERRUPT)
++		return;
++	dbg_connect_pkt = pkt;
++	dbg_from_net = 1;
++	asm ("trap #15");
++}
++
++dbg_process(pkt)
++struct dbg_pkt *pkt;
++{
++	struct dbg_hdr *reply = (struct dbg_hdr *)((char *)en_pkt[2] + 42);
++	int err;
+ 	int i;
+-	int nib;
+-
+-	if (val == 0) {
+-		*bp++ = '0';
+-		return(bp);
+-	}
+-	for (i = 0; val; i++) {
+-		nib = val & 0xf;
+-		hbuf[i] = (nib < 10) ? (nib + '0') : (nib - 10 + 'a');
+-		val >>= 4;
+-	}
+-	for (i--; i >= 0; i--)
+-		*bp++ = hbuf[i];
+-	return(bp);
+-}
+-
+-char *
+-htobs(cp, sp)
+-char *cp;
+-short *sp;
+-{
+-	int val;
+-	int nib;
+-
+-	val = 0;
+-	while (isxdigit(*cp)) {
+-		val <<= 4;
+-		nib = *cp++;
+-		if (isdigit(nib))
+-			val += nib - '0';
+-		else {
+-			if (isupper(nib))
+-				nib = tolower(nib);
+-			val += nib - 'a' + 10;
+-		}
+-	}
+-	*sp = val;
+-	return(cp);
+-}
+-
+-char *
+-htob(cp, ip)
+-char *cp;
+-int *ip;
+-{
+-	int val;
+-	int nib;
+-
+-	val = 0;
+-	while (isxdigit(*cp)) {
+-		val <<= 4;
+-		nib = *cp++;
+-		if (isdigit(nib))
+-			val += nib - '0';
+-		else {
+-			if (isupper(nib))
+-				nib = tolower(nib);
+-			val += nib - 'a' + 10;
+-		}
+-	}
+-	*ip = val;
+-	return(cp);
+-}
+-
+-#define	GETPKT(x, y)	getpkt((x), gfunc, pfunc, (y))
+-#define	PUTPKT(x, y, z)	putpkt((x), (y), gfunc, pfunc, (z))
+-
+-#define	CUR_SEQ		-1	/* use current sequence number */
+-#define	NO_TIMEOUT	0
+-#define	ACK_TIMEOUT	50000
+-#define	NO_BLOCK	0
+-#define	BLOCK		1
+-
+-struct kdb_net kdb_net;
+-
+-kdbg()
+-{
+-	char gbuf[PBUFSIZ];
+-	char pbuf[PBUFSIZ];
+-	char *gbp;
+-	char *pbp;
+-	int *vbp;
+-	int error;
+-	int i, j, k;
+-	int *dbg_trap();
++	int unused1, unused2;
++	char *cp;
++	struct kdb_n *np = &kdb_net;
++	struct dbg_hdr *req;
++	int *wp;
+ 	int _dbg_trap();
+-	struct kdb_net *n = &kdb_net;
+-
+-	printf("Remote debugging enabled\n");
+-	i = dbg_kresume();
+-	if (rmtdebug) printf("connect to debugger\n");
+-	pbp = pbuf;
+-	*pbp++ = 'S';
+-	pbp = btoh(i, pbp);
+-	pbuf[pbp-pbuf] = '\0';
+-	if (rmtdebug) printf("kdbg sending \"%s\"\n", pbuf);
+-	PUTPKT(pbuf, pbp-pbuf, 1);
++
++	if (!np->locked || !pkt)
++		return;
++	nmi_prf("connecting to debugger\n");
+ 	for (;;) {
+-		i = GETPKT(gbuf, BLOCK);
+-		if (i == 0)
+-			continue;
+-		gbuf[i] = 0;
+-
+-		if (rmtdebug) printf("kdbg recvd \"%s\"\n", gbuf);
+-
+-		pbp = pbuf;
+-		gbp = gbuf;
+-
+-		switch (*gbp++) {
+-
+-		default:
+-			ERROR("unknown req\n");
+-			break;
+-
+-		case 'r':	/* read register rNN */
+-			if (*htob(gbp, &i))
+-				ERROR("mangled r req\n");
+-			if (i >= NREGS+2) {
+-				error = EINVAL;
+-				goto error_reply;
+-			}
+-			switch (i) {
++		req = (struct dbg_hdr *)((char *)pkt + 42);
++		switch ((int)req->code) {
++		case DBG_RQ_CONNECT:
++			cp = index((char *)req + 24, ':');
++			if (cp)
++				*cp = 0;
++			nmi_prf("\ndebugging connection from %s on %s\n",
++				(char *)req + 24, cp + 1);
++			np->ti = 0;
++			reply->code = DBG_RP_CONNECTED;
++			break;
++		case DBG_RQ_QUERY:
++			reply->len = 1;
++			reply->code = DBG_RP_QUERY;
++			break;
++		case DBG_RQ_REGIONS:
++			wp = (int *)((char *)reply + 24);
++			reply->dlen = 0;
++			*wp++ = slot_id;
++			*wp++ = 0x20000;
++			*wp++ = 1;
++			*wp++ = slot_id + 0x1000000;
++			*wp++ = 0x20000;
++			*wp++ = 1;
++			*wp++ = slot_id + 0x2000000;
++			*wp++ = 0xC0040;
++			*wp++ = 3;
++			*wp++ = slot_id + 0x2100000;
++			*wp++ = 0x1E000;
++			*wp++ = 3;
++			*wp++ = slot_id + 0x4000000;
++			*wp++ = dma_chip == 313 ? (machine_type == 3 ? 0x2000000 : 0x4000000) : 0x8000000;
++			*wp++ = 3;
++			switch (machine_type) {
++			case 3:
++				*wp++ = 0x4000000;
++				*wp++ = 0x8000000;
++				*wp++ = 3;
++				*wp++ = 0xC000000;
++				*wp++ = 0x10000000;
++				*wp++ = 3;
++				*wp++ = 0x24000000;
++				*wp++ = 0x28000000;
++				*wp++ = 3;
++				*wp++ = 0x2C000000;
++				*wp++ = 0x30000000;
++				*wp++ = 3;
++				break;
++			case 1:
++			case 2:
++				break;
++			case 4:
++			case 5:
+ 			default:
+-				pbp = btoh(client_pcb.regs[i], pbp);
+-				break;
+-			case NREGS:
+-				pbp = btoh(client_pcb.sf.sf_sr, pbp);
+-				break;
+-			case NREGS+1:
+-				pbp = btoh(client_pcb.sf.sf_pc, pbp);
++				*wp++ = slot_id + 0x2200000;
++				*wp++ = 0x9000;
++				*wp++ = 3;
++				*wp++ = slot_id + 0x2210000;
++				*wp++ = 4;
++				*wp++ = 3;
++				*wp++ = slot_id + 0x3E00000;
++				*wp++ = 0x80000;
++				*wp++ = 3;
+ 				break;
+ 			}
+-			break;
+-			
+-		case 'R':	/* write register RNN:XX..XX */
+-			if (*(gbp = htob(gbp, &i)) != ':')
+-				ERROR("mangled R req\n");
+-			if (i >= NREGS+2) {
+-				error = EINVAL;
+-				goto error_reply;
++			*wp++ = 0x10000000;
++			*wp++ = 0x4000000;
++			*wp++ = 3;
++			reply->dlen = (char *)wp - ((char *)reply + 24);
++			reply->code = DBG_RP_REGIONS;
++			break;
++		case DBG_RQ_ACK16:
++		case DBG_RQ_INTERRUPT:
++			reply->code = DBG_RP_OK;
++			reply->dlen = 0;
++			break;
++		case DBG_RQ_DETACH:
++			kdb_net.locked = 0;
++			dbg_from_net = 1;
++		case DBG_RQ_RESUME:
++		case DBG_RQ_STEP:
++			reply->code = DBG_RP_OK;
++			reply->dlen = 0;
++			dbg_ack();
++			if (client_pcb.sf.sf_sr & SR_T) {
++				wp = (int *)get_vbr();
++				oldtrace = (int *)wp[VEC_TRACE];
++				wp[VEC_TRACE] = (int)_dbg_trap;
++				trace_expected = 1;
++			} else ;	/* plan 739 (D166): the bytes need this empty else (a jump to the next instruction) */
++			dbg_kresume();
++			if (dbg_from_net) {
++				dbg_from_net = 0;
++				pkt = dbg_connect_pkt;
++				dbg_connect_pkt = 0;
++				continue;
+ 			}
+-			if (*htob(++gbp, &j))
+-				ERROR("mangled2 R req\n");
+-			switch (i) {
+-			default:
+-				client_pcb.regs[i] = j;
+-				break;
+-			case NREGS:
+-				client_pcb.sf.sf_sr = j;
+-				break;
+-			case NREGS+1:
+-				client_pcb.sf.sf_pc = j;
+-				break;
++			SENDEXC();
++			goto recv;
++		case DBG_RQ_READMEM:
++			if (req->len > 512)
++				dbg_panic("Bad length of data to process");
++			for (i = 0; i < req->len; i += 4) {
++				if (rdmem(req->addr + i, 4, (int *)((char *)reply + 24 + i)))
++					goto error;
+ 			}
+-			*pbp++ = '0';
+-			break;
+-
+-		case 'm':	/* peek memory mAA..AA */
+-			if (*htob(gbp, &i))
+-				ERROR("mangled m req\n");
+-			error = rdmem(i, sizeof(int), &j);
+-			if (error)
+-				goto error_reply;
+-			pbp = btoh(j, pbp);
+-			break;
+-
+-		case 'M':	/* poke memory MAA..AA:XX..XX */
+-			if (*(gbp = htob(gbp, &i)) != ':')
+-				ERROR("mangled M req\n");
+-			if (*htob(++gbp, &j))
+-				ERROR("mangled2 M req\n");
+-			error = wrmem(i, sizeof(int), j);
+-			if (error)
+-				goto error_reply;
+-			*pbp++ = '0';
+-			break;
+-			
+-		case 'c':	/* continue cAA..AA */
+-			if (*htob(gbp, &i))
+-				ERROR("mangled c req\n");
+-			if (i != 1)
+-				client_pcb.sf.sf_pc = i;
+-			if (rmtdebug)
+-				printf("kdbg sending \"0\"\n");
+-			*pbuf = '0';
+-			PUTPKT(pbuf, 1, 1);
+-			i = dbg_kresume();
+-			*pbp++ = 'S';
+-			pbp = btoh(i, pbp);
+-			break;
+-
+-		case 's':	/* step sAA..AA */
+-			if (*htob(gbp, &i))
+-				ERROR("mangled s req\n");
+-			if (i != 1)
+-				client_pcb.sf.sf_pc = i;
+-			if (rmtdebug)
+-				printf("kdbg sending \"0\"\n");
+-			*pbuf = '0';
+-			PUTPKT(pbuf, 1, 1);
+-			client_pcb.sf.sf_sr |= SR_T;
+-			vbp = (int *)get_vbr();
+-			oldtrace = (int *)vbp[DBG_TRACE];
+-			vbp[DBG_TRACE] = (int)_dbg_trap;
+-			trace_expected = 1;
+-			i = dbg_kresume();
+-#ifdef notdef
+-			/* Now handled in dbg_trap */
+-			vbp[DBG_TRACE] = (int)oldtrace;
+-			client_pcb.sf.sf_sr &= ~SR_T;
+-#endif
+-			*pbp++ = 'S';
+-			pbp = btoh(i, pbp);
+-			break;
+-
+-		case 'k':	/* kill k */
+-			if (*gbp)
+-				ERROR("mangled k req\n");
+-			dbg_exit();
+-			/* doesn't return */
+-
+-		case 'g':	/* get registers g */
+-			if (*gbp)
+-				ERROR("mangled g req\n");
+-			for (i = 0; i < NREGS; i++) {
+-				pbp = btoh(client_pcb.regs[i], pbp);
+-				*pbp++ = ':';
++			reply->code = DBG_RP_MEMORY;
++			reply->dlen = req->len;
++			break;
++		case DBG_RQ_WRITEMEM:
++			if (req->dlen != 512)
++				dbg_panic("Bad length of data to process");
++			err = 0;
++			for (i = 0; i <= 511; i += 4) {
++				wp = (int *)((char *)req + 24 + i);
++				err = wrmem(req->addr + i, 4, *wp);
++				if (err)
++					goto error;
+ 			}
+-			pbp = btoh(client_pcb.sf.sf_sr, pbp);
+-			*pbp++ = ':';
+-			pbp = btoh(client_pcb.sf.sf_pc, pbp);
+-			break;
+-
+-		case 'G':	/* set registers GR0:..:RN */
+-			for (i = 0; i < NREGS+2; i++) {
+-				switch (i) {
+-				default:
+-					gbp = htob(gbp, &client_pcb.regs[i]);
+-					break;
+-				case NREGS:
+-					gbp = htobs(gbp, &client_pcb.sf.sf_sr);
+-					break;
+-				case NREGS+1:
+-					gbp = htob(gbp, &client_pcb.sf.sf_pc);
+-					break;
+-				}
+-				if (*gbp != ':' && i != NREGS+2-1)
+-					ERROR("mangled G req\n");
+-				if (*gbp == ':')
+-					gbp++;
+-			}
+-			*pbp++ = '0';
+-			break;
+-
+-		case 'z':
+-			if (rmtdebug)
+-				rmtdebug = 0;
+-			else
+-				rmtdebug = 1;
+-			break;
+-
+-		case 'b':	/* read memory bNN:AA..AA */
+-			if (*(gbp = htob(gbp, &i)) != ':' || i > 128)
+-				ERROR("mangled b req\n");
+-			if (*htob(++gbp, &j))
+-				ERROR("mangled2 b req\n");
+-			while (i-- > 0) {
+-				error = rdmem(j++, sizeof(char), &k);
+-				if (error)
+-					goto error_reply;
+-				pbp = btoh(k, pbp);
+-				*pbp++ = ':';
+-			}
+-			pbp--;
+-			break;
+-
+-		case 'B':	/* write memory BAA..AA:X1:..:XN */
+-			if (*(gbp = htob(gbp, &i)) != ':')
+-				ERROR("mangled B req\n");
+-			error = 0;
+-			do {
+-				gbp = htob(++gbp, &j);
+-				error = wrmem(i++, sizeof(char), j);
+-				if (*gbp != ':' && *gbp)
+-					ERROR("mangled2 B req\n");
+-			} while (*gbp && !error);
+-			if (error)
+-				goto error_reply;
+-			*pbp++ = '0';
+-			break;
+-
+-error_reply:
+-			/*
+-			 * error should be set to appropriate errno
+-			 * before jumping here
+-			 */
+-			*pbp++ = 'E';
+-			pbp = btoh(error, pbp);
+-
++			reply->code = DBG_RP_OK;
++			reply->dlen = 0;
++			break;
++		case DBG_RQ_READREGS:
++			bcopy(client_pcb.regs, (char *)reply + 24, 72);
++			reply->dlen = 72;
++			reply->code = DBG_RP_REGS;
++			break;
++		case DBG_RQ_WRITEREGS:
++			bcopy((char *)req + 24, client_pcb.regs, 72);
++			reply->code = DBG_RP_OK;
++			reply->dlen = 0;
++			break;
++		case DBG_RQ_REBOOT:
++			if (req->dlen != 0 && req->dlen <= 511) {
++				req->data[req->dlen] = 0;
++				mon_call((char *)req + 24);
++			} else
++				mon_boot(0);
++			break;
++		default:
++			nmi_prf("kdbg unknown rq type %d\n", reply->code);
++		error:
++			reply->code = DBG_RP_ERROR;
++			reply->dlen = 0;
+ 		}
+-		pbuf[pbp-pbuf] = '\0';
+-		if (rmtdebug)
+-			printf("kdbg sending \"%s\"\n", pbuf);
+-		if (pbp != pbuf)
+-			PUTPKT(pbuf, pbp-pbuf, 1);
++		dbg_ack();
++	recv:
++		pkt = dbg_recv(0);
+ 	}
+ }
+ 
+@@ -656,8 +615,6 @@
+ 	int error;
+ 
+ 	if (error = dbg_setjmp(dbgjb)) {
+-		if (rmtdebug)
+-			printf("rdmem: error.\n");
+ 		unhookbuserr();
+ 		return(error);
+ 	}
+@@ -677,8 +634,7 @@
+ 		break;
+ 	default:
+ 		nofault = 0;
+-		printf("rdmem: bad size: 0x%x\n", size);
+-		exit(1);
++		dbg_panic("rdmem: bad size\n");
+ 	}
+ 	unhookbuserr();
+ 	nofault = 0;
+@@ -692,8 +648,6 @@
+ 	int error;
+ 
+ 	if (error = dbg_setjmp(dbgjb)) {
+-		if (rmtdebug)
+-			printf("wrmem: error.\n");
+ 		unhookbuserr();
+ 		return(error);
+ 	}
+@@ -711,15 +665,16 @@
+ 		*(int *)addr = val;
+ 		break;
+ 	default:
+-		printf("wrmem: bad size: 0x%x\n", size);
+ 		nofault = 0;
+-		exit(1);
++		dbg_panic("wrmem: bad size\n");
+ 	}
+-	cache_push_page(addr);		/* invalidate instruction cache on 040 */
++	cache_push();
+ 	nofault = 0;
+ 	unhookbuserr();
++	cache_push();
+ 	return(0);
+ }
++/* plan 739 END */
+ 
+ static void
+ hookbuserr()
+@@ -744,236 +699,123 @@
+ 	vbp[DBG_ADRERR] = (int)oldadrerr;
+ }
+ 
+-
+-dbg_kresume()
+-{
+-	int sig;
+-	struct nextdbgpcb *pcb;
+-	struct sf_4wd *sfp;
+-
+-	if (sig = dbg_setjmp(dbgjb))
+-		return(sig);
+-	client_pcb.regs[R_SP] -= sizeof(struct sf_4wd);
+-	sfp = (struct sf_4wd *)client_pcb.regs[R_SP];
+-	sfp->sf4_sr = client_pcb.sf.sf_sr;
+-	sfp->sf4_pc = client_pcb.sf.sf_pc;
+-	sfp->sf4_ftype = 0;
+-	nofault = dbgjb;
+-	_dbg_kresume();
+-	/* doesn't return */
+-}
+-
+-kdbg_connect()
+-{
+-	struct kdb_net *n = &kdb_net;
+-	char buf[PBUFSIZ], *cp;
+-
+-	if (n->locked)
++/* plan 739 (D024, D166) BEGIN: SENDEXC, dbg_ack, dbg_recv, inet_aton, kdebug_send */
++kdebug_send(a, b)
++{
++	char *p;
++	int *q;
++
++	p = (char *)en_pkt[2];
++	q = (int *)(p + 42);
++	*q = b;
++	en_send(a, p, 0x242);
++}
++
++static struct dbg_pkt *
++dbg_recv(arg)
++{
++	struct kdb_n *np = &kdb_net;
++	struct dbg_pkt *pkt;
++	struct dbg_hdr *q;
++	int i = 0;
++	int unused;
++	int port;
++
++	again:			/* plan 739 (D166): the bytes need this goto, not a for or while loop */
++		do {
++			pkt = en_recv(&port, 0x242, np->locked, kdb_ipaddr);
++		} while (!pkt && (arg == 0 || i++ < arg));
++		if (arg != 0 && pkt == 0)
++			return(0);
++		if (port != 1139)
++			goto again;
++		q = (struct dbg_hdr *)((char *)pkt + 42);
++		if (q->seq != np->ri) {
++			if (q->seq == np->ri - 1)
++				kdebug_send(1139, q->seq);
++			else if (q->seq == 0 && q->code == DBG_RQ_CONNECT) {
++				np->ri = 0;
++				return(pkt);
++			}
++			goto again;
++		}
++		return(pkt);
++}
++
++static void
++dbg_ack()
++{
++	struct kdb_n *np = &kdb_net;
++
++	kdebug_send(1139, np->ri);
++	np->ri++;
++}
++
++SENDEXC()
++{
++	struct kdb_n *np = &kdb_net;
++	char *pkt = (char *)en_pkt[3];
++	struct dbg_hdr *q = (struct dbg_hdr *)(pkt + 42);
++	struct dbg_pkt *ret;
++	int i;
++	int port;
++	struct dbg_hdr *q2;
++
++	q->code = dbg_sig;
++	q->len = dbg_vecoff;
++	q->addr = (char *)dbg_fault_addr;
++	q->seq = np->ti;
++	for (;;) {
++		en_send(1140, pkt, 0x242);
++		for (i = 0; i <= 49999; i++) {
++			ret = en_recv(&port, 0x242, np->locked, kdb_ipaddr);
++			if (ret) {
++				if (port == 1140 && ret->seq == np->ti) {
++					np->ti++;
++					return;
++				}
++				port = 1139;
++				q2 = (struct dbg_hdr *)((char *)ret + 42);
++				if (q2->seq == np->ri - 1)
++					kdebug_send(1139, q2->seq);
++			}
++		}
++	}
++}
++
++inet_aton(str, addr)
++char *str;
++long *addr;
++{
++	register char *cp;
++	register char *p;
++	long u;
++	long val;
++
++	p = (char *)&u;
++	val = 0;
++	cp = str;
++	for (; *cp; cp++) {
++		if (*cp == '.') {
++			if (p >= (char *)&u + 3)
++				return(0);
++			*p++ = val;
++			val = 0;
++		} else {
++			if (*cp < '0' || *cp > '9')
++				return(0);
++			val = val * 10;
++			val += *cp - '0';
++			if (val > 255 || val < 0)
++				return(0);
++		}
++	}
++	if (p != (char *)&u + 3)
+ 		return(0);
+-	n->rp = &n->rpkt;
+-	n->tp = &n->tpkt;
+-	n->dev = NET;
+-	if (GETPKT(buf, NO_BLOCK) && buf[0] == 'S') {
+-		cp = (char*) index(buf, ':');
+-		*cp = 0;
+-		printf("\ndebugging connection from %s on %s\n",
+-			&buf[1], cp+1);
+-		n->locked = 1;
+-		asm ("trap #14");
+-		return (1);
+-	}
+-	n->dev = SERIAL;
+-	return (0);
+-}
+-
+-void
+-putnib(putf, nib)
+-void (*putf)();
+-int nib;
+-{
+-	if (nib < 10)
+-		(*putf)('0'+nib);
+-	else
+-		(*putf)('a'+nib-10);
+-}
+-
+-void
+-putpkt(buf, cnt, getf, putf, waitack)
+-char *buf;
+-int cnt;
+-int (*getf)();
+-void (*putf)();
+-{
+-	int i;
+-	char csum;
+-	struct kdb_net *n = &kdb_net;
+-
+-	do {
+-		(*putf)('$');
+-		csum = 0;
+-		for (i = 0; i < cnt; i++) {
+-			csum += buf[i];
+-			(*putf)(buf[i]);
+-		}
+-		(*putf)('#');
+-		putnib(putf, (csum >> 4) & 0xf);
+-		putnib(putf, csum & 0xf);
+-		kdebug_send(CUR_SEQ);
+-	} while (waitack && !ack(getf));
+-	n->seq++;
+-}
+-
+-int
+-ack(getf)
+-int (*getf)();
+-{
+-	char c;
+-	struct kdb_net *n = &kdb_net;
+-
+-	do {
+-		c = (*getf)(ACK_TIMEOUT, BLOCK);
+-		if (c != '+' && c != '-')
+-			n->rlen = 0;
+-	} while (c != '+' && c != '-');
+-	n->rlen = 0;
+-	return(c == '+');
+-}
+-
+-int
+-getnib(getf)
+-int (*getf)();
+-{
+-	char c;
+-
+-	c = (*getf)(NO_TIMEOUT, BLOCK);
+-	if (!isxdigit(c))
+-		return(-1);
+-	if (isdigit(c))
+-		return(c-'0');
+-	return(c-'a'+10);
+-}
+-
+-int
+-getpkt(buf, getf, putf, block)
+-char *buf;
+-int (*getf)();
+-void (*putf)();
+-{
+-	char *bp;
+-	char csum;
+-	char sentsum;
+-	int c;
+-	struct kdb_net *n = &kdb_net;
+-
+-	for (;;) {
+-		do {
+-			c = (*getf)(NO_TIMEOUT, block);
+-			if (!block && c == -1)
+-				return (0);
+-			if (c != '$')
+-				n->rlen = 0;
+-		} while (c != '$');
+-		bp = buf;
+-		csum = 0;
+-		while ((c = (*getf)(NO_TIMEOUT, 1)) != '#') {
+-			*bp++ = c;
+-			csum += c;
+-		}
+-		sentsum = getnib(getf) << 4;
+-		sentsum |= getnib(getf);
+-		if (sentsum == csum)
+-			break;
+-		printf("bad csum\n");
+-		(*putf)('-');
+-		kdebug_send(CUR_SEQ);
+-	}
+-	(*putf)('+');
+-	kdebug_send(CUR_SEQ);
+-	n->seq++;
+-	return(bp-buf);
+-}
+-
+-kdebug_send(seq)
+-{
+-	struct kdb_net *n = &kdb_net;
+-	int len;
+-
+-	if (n->dev != NET || n->ti == 0)
+-		return;
+-		
+-	n->tp->seq = seq == -1? n->seq : seq;
+-	en_send(n->tp, n->ti + HDRSIZE);
+-	n->ti = 0;
+-	n->rlen = 0;
+-}
+-
+-int
+-gfunc(timeout, block)
+-{
+-	dev_t device = dbug_tp->t_dev;
+-	int c, time;
+-	struct kdb_net *n = &kdb_net;
+-
+-	switch (n->dev) {
+-	
+-	case SERIAL:
+-		return ((*cdevsw[major(device)].d_getc)(device));
+-		
+-	case NET:
+-		if (n->rlen == 0) {
+-		
+-			/*
+-			 *  Can't use event_get() to measure timeout interval
+-			 *  because it requires that interrupts are enabled.
+-			 */
+-			time = 0;
+-bad_seq:		do {
+-				n->rlen = en_recv(n->rp, sizeof (struct rpkt),
+-					n->locked);
+-				if (!block && n->rlen == 0)
+-					return (-1);
+-			} while (n->rlen == 0 &&
+-			    (!timeout || time++ < timeout));
+-			if (n->rlen == 0)
+-				return ('-');
+-
+-			/* positive ack delayed duplicates */
+-			if (n->rp->seq != n->seq) {
+-				if (n->rp->buf[0] != '+' && n->rp->buf[0] != '-' &&
+-				    n->rp->seq < n->seq) {
+-					pfunc('+');
+-					kdebug_send(n->rp->seq);
+-				}
+-				goto bad_seq;
+-			}
+-			n->rlen -= HDRSIZE;
+-			n->ri = 0;
+-		}
+-		if (n->ri >= n->rlen)
+-			c = '#';
+-		else
+-			c = n->rp->buf[n->ri++];
+-		return (c);
+-	}
+-}
+-
+-void
+-pfunc(c)
+-{
+-	dev_t device = dbug_tp->t_dev;
+-	struct kdb_net *n = &kdb_net;
+-
+-	switch (n->dev) {
+-	
+-	case SERIAL:
+-		(*cdevsw[major(device)].d_putc)(device, c & 0x7f);
+-		break;
+-
+-	case NET:
+-		n->tp->buf[n->ti++] = c;
+-		break;
+-	}
+-}
+-
+-
+-
++	*p = val;
++	*addr = u;
++	return(1);
++}
++/* plan 739 END */
++
++/* plan 739 (D024): NeXTMach lines 978-979 removed (a blank line) */
